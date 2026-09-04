@@ -26,7 +26,7 @@ A tutor that thinks out loud while it works. Ask a question about anything on th
 Not a video library. Not a question bank. Not something that will pester them, guilt them about a streak, or sell them anything once you have paid.
 
 **The honest footnote**
-One gift, one learner, {{gift_length}}. Paid once, renews never, refundable within {{refund_days}} days if it is unopened. After it ends, the account goes back to the free plan and everything they learnt stays.
+One gift, one learner, {{gift_length}}. Paid once, renews never, so there is nothing to cancel and nothing that can charge you again. After it ends, the account goes back to the free plan and everything they learnt stays.
 
 ## The gift message they receive
 
@@ -50,11 +50,11 @@ Nothing renews and nothing is charged to you, now or later.
 | `gift_length` | three months | Words, not a number of days |
 | `giver_first_name` / `recipient_first_name` | — | |
 | `giver_message` | — | The giver's own line, unedited, shown as written. Drop the paragraph if empty. |
-| `refund_days` | 14 | Must match the real policy |
 
 ## Rules
 - **No testimonials we did not receive, and no invented ones.** §16 notes that the reference product's gift page carries testimonials and "great gift for" cards. Ours carries them only when they are real and consented to, and until then the page carries none. An empty space is better than a fabricated quote.
 - **Nothing renews.** A gift that quietly becomes a subscription is the exact dark pattern this system exists to avoid.
+- **No money back is promised here.** A gift is paid once and renews never, so cancelling does not arise. The refunds that remain are the ones the law requires, and they live in `docs/legal/refund-and-cancellation.md` section 5, not on a page that sells.
 - The giver never gets access to the learner's work. Say so on the page, in those words.
 - No urgency, no seasonal countdown, no "order by" pressure. A seasonal banner may state a date; it may not imply loss.
 - The price is the same as the equivalent plan. A gift is not a discount surface.

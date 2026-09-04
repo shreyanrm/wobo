@@ -18,10 +18,25 @@ export interface ChatTurn {
   extras?: TurnExtras;
 }
 
+/** How a turn is asked. Everything here is about whose words the transcript records. */
+export interface AskOptions {
+  /**
+   * WOBO IS ASKING ITSELF, and the learner never typed this.
+   *
+   * The re-teach ladder asks for a second explanation on the learner's behalf. Written as an
+   * ordinary turn, that put a sentence the child never said into their permanent archive
+   * ("draw multiplication of fractions on the board so I can see it"), twice per stuck concept, and
+   * a child scrolling their own conversation later found requests they never made. Silent sends the
+   * same text to the model and shows the same answer, and records no learner bubble for it. The
+   * mode palette stays loud, because a mode is a button the child pressed.
+   */
+  silent?: boolean;
+}
+
 export interface WoboChat {
   turns: ChatTurn[];
   /** Wobo reasons over the page Wobo is plugged into, then speaks and acts on it. */
-  ask: (text: string) => Promise<void>;
+  ask: (text: string, options?: AskOptions) => Promise<void>;
   busy: boolean;
   mood: WoboMood;
   setMood: (mood: WoboMood) => void;

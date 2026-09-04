@@ -43,7 +43,14 @@ export function restQuery(filter: RestFilter, extra?: Record<string, string>): s
  * Every table that holds a learner's own rows, keyed by `subject_id`. Erasure walks this list, so
  * a new learner-owned table is erased by adding it here and nowhere else.
  */
-export const ERASABLE_TABLES = ['learner_state', 'learner_threads', 'profiles_cache'] as const;
+export const ERASABLE_TABLES = [
+  'learner_state',
+  'learner_threads',
+  'profiles_cache',
+  // Mastery is a record of what a learner answered and how well. It is theirs, and "erase and start
+  // over" has to reach it — a band left behind would rebuild the picture the erasure was for.
+  'mastery_cache',
+] as const;
 
 /** What an erasure did — reported, never swallowed, so the learner can be told the truth. */
 export interface ErasureResult {
@@ -111,6 +118,19 @@ export class SupabaseRest {
   }
 
   /**
+   * Every matching row. `selectOne` covers the one-row-per-subject tables; this covers the ones
+   * that hold a row per node (mastery_cache). RLS still keys every row to auth.uid().
+   */
+  async select(table: string, filter: RestFilter): Promise<Record<string, unknown>[]> {
+    const query = restQuery({ select: '*', ...filter });
+    const res = await fetch(`${this.cfg.url}/rest/v1/${table}?${query}`, {
+      headers: this.headers('accept-profile'),
+    });
+    if (!res.ok) throw new Error(`remote store select ${table} failed: ${res.status}`);
+    return (await res.json()) as Record<string, unknown>[];
+  }
+
+  /**
    * Erasure. RLS keys every row to auth.uid(), so a DELETE can only ever reach the caller's own
    * rows — but the filter is still named explicitly, and a filter-less delete is refused outright
    * rather than being sent as a whole-table wipe.
@@ -127,7 +147,13 @@ export class SupabaseRest {
     if (!res.ok) throw new Error(`remote store delete ${table} failed: ${res.status}`);
   }
 
-  async upsert(table: string, row: Record<string, unknown>, onConflict: string): Promise<void> {
+  /** One row, or a batch of them (PostgREST takes an array under the same conflict target). */
+  async upsert(
+    table: string,
+    row: Record<string, unknown> | Record<string, unknown>[],
+    onConflict: string,
+  ): Promise<void> {
+    if (Array.isArray(row) && row.length === 0) return;
     const conflict = new URLSearchParams({ on_conflict: onConflict }).toString();
     const res = await fetch(`${this.cfg.url}/rest/v1/${table}?${conflict}`, {
       method: 'POST',

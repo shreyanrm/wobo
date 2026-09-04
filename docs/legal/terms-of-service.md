@@ -63,7 +63,7 @@ Paid plans lift the limits and unlock further features. Prices are shown before 
 
 One thing does move the price, and we would rather say it here than let you find it: buying inside a phone app can cost more than buying on the web, because the store takes a share of what you pay it. The price is the same for everyone on the same purchase route, and we show both prices so you can see the difference before you choose. `refund-and-cancellation.md` section 6 has the detail. What else can vary is whether we give something away, and when.
 
-Subscriptions renew until cancelled. The rules on renewals, cancellations, refunds and the cooling-off period live in `refund-and-cancellation.md`, which forms part of these terms.
+Subscriptions renew until cancelled. Cancelling takes two taps in settings, keeps the plan until the end of the period you have already paid for, and stops everything after it. We do not give money back as a gesture of goodwill; the refunds that remain are the ones the law gives you, and they are listed in `refund-and-cancellation.md` section 5, which forms part of these terms along with the rest of that document.
 
 Gifts, free weeks, trial periods and referral rewards are given at our discretion, are not transferable, have no cash value, and can be withdrawn if they are being abused.
 
@@ -95,7 +95,7 @@ Wobo works offline for material already downloaded to your device. Anything that
 
 ## 11. Changes to Wobo and to these terms
 
-Wobo changes often, and features can be added, altered, or retired. Where a change materially reduces what you have paid for, we will tell you before it happens and offer you a way out, including a refund of the unused part of your term.
+Wobo changes often, and features can be added, altered, or retired. Where a change materially reduces what you have paid for, we will tell you before it happens and offer you a way out, including the unused part of your term returned. That is a service we did not supply rather than a goodwill refund, and `refund-and-cancellation.md` section 5 says so in the same words.
 
 We may update these terms. If a change matters to you, we will tell you at least 30 days before it takes effect, by email and in the app, and you can end your subscription before it applies. [REVIEW: notice period and re-consent requirements for material changes, especially for minors and for subscribers.]
 
@@ -103,7 +103,7 @@ We may update these terms. If a change matters to you, we will tell you at least
 
 You can stop using Wobo whenever you like, cancel a subscription from settings, and delete your account from settings. Deleting your account deletes your learning data on the timetable set out in `privacy-policy.md`, and you can export it first.
 
-We may suspend or close an account if these terms are broken seriously or repeatedly, if we are required to by law, or if keeping it open would put another learner at risk. Where we close an account that has paid for a term it has not used, we refund the unused part unless the closure was for serious misuse. [REVIEW: whether a refund may lawfully be withheld on closure for misuse in each consumer jurisdiction, whether suspension without prior notice is enforceable against a consumer, and what notice and appeal route must be offered before closing the account of a minor.]
+We may suspend or close an account if these terms are broken seriously or repeatedly, if we are required to by law, or if keeping it open would put another learner at risk. Where we close an account that has paid for a term it has not used, we return the unused part unless the closure was for serious misuse, which is the same rule as `refund-and-cancellation.md` section 9. [REVIEW: whether that return may lawfully be withheld on closure for misuse in each consumer jurisdiction, whether suspension without prior notice is enforceable against a consumer, and what notice and appeal route must be offered before closing the account of a minor.]
 
 ## 13. Our responsibility, and its limits
 

@@ -79,9 +79,11 @@ describe('the pitch sheet is the prototypes, rule for rule', () => {
       ['.flow .box', '.sc-flow .sc-box'],
       ['.who .r', '.sc-who .sc-r'],
       ['.never div', '.sc-never div'],
-      ['.posture .col', '.sc-col'],
+      // `.posture .col` is not here: law v5 sits the two compliance columns on paper-2 where the
+      // prototype still washes one of them in mint.
       ['.subs div', '.sc-subs div'],
-      ['.panel', '.sc-panel'],
+      // `.panel` is not here: the prototype washes the two closing panels in rose and pig, and
+      // law v5 sits them on paper-2 and keeps the pigment for the mark inside them.
       ['.docs a', '.sc-docs a'],
       ['.req', '.sc-req'],
       ['.req p', '.sc-req p'],
@@ -95,7 +97,8 @@ describe('the pitch sheet is the prototypes, rule for rule', () => {
       ['.chapter', '.pt-chapter'],
       ['.chapter h2 .hl::before', '.pt-chapter h2 .pt-hl::before'],
       ['.chapter li', '.mt-list li'],
-      ['.art', '.pt-art'],
+      // `.art` is not here: the prototype leaves the art panel untinted and paints a wash on the
+      // variant class; law v5 sits every panel on paper-2 instead. `site/law-v5.test.ts` asserts it.
       ['.ink', '.pt-ink'],
       ['.draw', '.pt-draw'],
       ['.never div', '.mt-never div'],
@@ -109,7 +112,8 @@ describe('the pitch sheet is the prototypes, rule for rule', () => {
   it('ports the parents page from site-parents.html', () => {
     ported('site-parents.html', [
       ['.env .letter', '.pa-env .pa-letter'],
-      ['.env .flap', '.pa-env .pa-flap'],
+      // `.env .flap` is not here: the prototype's envelope has been redrawn without a flap rule.
+      // The page still opens its flap, and `pitch.test.ts` holds the copy around it.
       ['.chapter .caps div', '.pa-caps div'],
       ['.mock', '.pa-mock'],
       ['.mock .row', '.pa-mock .pa-row'],
@@ -151,7 +155,7 @@ describe('the pitch sheet is the prototypes, rule for rule', () => {
 
   it('ports the subjects page from site-subjects.html', () => {
     ported('site-subjects.html', [
-      ['.tiles a', '.sb-tiles a'],
+      // `.tiles a` is not here for the same reason: a subject tile is paper-2, not a wash.
       ['.tiles a:hover', '.sb-tiles a:hover'],
       ['.boards', '.sb-boards'],
       ['.typeahead', '.sb-type'],

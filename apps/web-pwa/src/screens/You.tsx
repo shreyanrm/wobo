@@ -25,7 +25,6 @@ import { useSdk } from '../store/sdk';
 import { paintAccess } from '../ui/access';
 import { setMotionPref, useMotionPref } from '../ui/motion';
 import {
-  AllowanceCard,
   AppShell,
   Avatar,
   Button,
@@ -41,12 +40,11 @@ import {
   TopBar,
 } from '../ui/primitives';
 import { setThemePref, type ThemePref, useThemePref } from '../ui/theme';
-import { planInWords } from './allowance-words';
-import { PLAN_TIERS } from './plans/prices';
 import { GradeBoardPicker } from './you/GradeBoardPicker';
 import { weeklyNote } from './you/ledger';
 import { chosenNames, type MailPrefsView, readMailPrefs, writeCalendars } from './you/mailPrefs';
 import { ParentInvite, PHONE_LINK_LINE } from './you/ParentInvite';
+import { PlanPanel } from './you/PlanPanel';
 import { endParentLink, type ParentLinkStatus, readParentLink } from './you/parentLink';
 import {
   boardName,
@@ -264,18 +262,17 @@ export function You() {
   };
 
   // --- the plan ------------------------------------------------------------------------------------
-  const [plan, setPlan] = useState<{ id: string; line: string } | null>(null);
+  // Which tier the brain says this learner is on. The panel below (`you/PlanPanel.tsx`) says
+  // everything about it in words and owns the cancel; this read exists so the panel can tell a
+  // learner who is genuinely on Free from one whose paid plan it could not read — two very
+  // different things to say to somebody about their money.
+  const [planId, setPlanId] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     void sdk
       .me()
       .then((me) => {
-        if (cancelled || !me) return;
-        const tier = PLAN_TIERS.find((t) => t.id === me.plan);
-        const name = tier?.name ?? me.plan;
-        // The copy law (DESIGN.md §0): what the day carries is said in words, never as a count of
-        // turns. The multiple is the plan's own (free carries none at all).
-        setPlan({ id: me.plan, line: planInWords(name, tier?.allowanceMultiple ?? 1) });
+        if (!cancelled && me) setPlanId(me.plan);
       })
       .catch(() => undefined);
     return () => {
@@ -324,7 +321,8 @@ export function You() {
   });
   const planRef = useRegisterTarget<HTMLDivElement>('you-plan', {
     kind: 'card',
-    label: 'the plan card — what the day carries, and the door to Pro',
+    label:
+      'your plan — which plan, what it renews on, the door to the plans page, and the cancel that keeps it until the period already paid for ends',
   });
 
   useEffect(() => {
@@ -372,27 +370,10 @@ export function You() {
   );
 
   return (
-    <AppShell
-      active="you"
-      className="wy-shell"
-      onNavigate={go}
-      bottom={
-        <div ref={planRef}>
-          <AllowanceCard title="Your plan">
-            {plan ? <span style={{ fontSize: 14, color: 'var(--ink)' }}>{plan.line}</span> : null}
-            {plan?.id === 'pro' || plan?.id === 'max' ? null : (
-              <Button
-                size="sm"
-                style={{ justifySelf: 'start' }}
-                onClick={() => router.navigate({ name: 'plans' })}
-              >
-                See Pro
-              </Button>
-            )}
-          </AllowanceCard>
-        </div>
-      }
-    >
+    // The rail's bottom slot used to hold a second, smaller "Your plan" card. The plan now has a
+    // panel of its own in the page below — the one the plans page points at — and one screen does
+    // not say the same heading twice.
+    <AppShell active="you" className="wy-shell" onNavigate={go}>
       <TopBar
         crumb={crumb}
         right={
@@ -665,6 +646,13 @@ export function You() {
               onChange={(v) => patchProfile({ highContrast: v })}
             />
           </Card>
+        </div>
+
+        {/* your plan — the panel the plans page points at: "Settings → Your plan → Cancel". The
+            Cancel is on the panel itself, so the confirmation is one tap away and the whole cancel
+            is two, which is the count that page prints. */}
+        <div ref={planRef}>
+          <PlanPanel planId={planId} onSeePlans={() => router.navigate({ name: 'plans' })} />
         </div>
       </div>
     </AppShell>

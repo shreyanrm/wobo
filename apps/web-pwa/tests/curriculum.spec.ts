@@ -317,7 +317,7 @@ test.describe('the learner’s own syllabus', () => {
       };
       const view = await curriculum().own.read(
         { kind: 'paste', text, title: 'My school list' },
-        { name: "Aanya's school", level: 'Class 8', subject: 'Mathematics' },
+        { name: 'A school of their own', level: 'Class 8', subject: 'Mathematics' },
       );
       return view;
     }, PASTED);
@@ -326,7 +326,7 @@ test.describe('the learner’s own syllabus', () => {
     // into a chapter they did not write.
     expect(built.units.map((u) => u.name)).toEqual(PASTED.split('\n'));
     expect(built.framework.id).toBe('own:aanya-1');
-    expect(built.framework.name).toBe("Aanya's school");
+    expect(built.framework.name).toBe('A school of their own');
     // §6: a personal framework belongs to the learner and is never shared unless they offer it.
     expect(built.framework.personal).toBe(true);
     expect(built.status).toBe('personal');
@@ -354,7 +354,7 @@ test.describe('the learner’s own syllabus', () => {
       return w.worldFrom(
         {
           id: 'own:aanya-1',
-          name: "Aanya's school",
+          name: 'A school of their own',
           kind: 'personal',
           status: 'personal',
           aliases: [],

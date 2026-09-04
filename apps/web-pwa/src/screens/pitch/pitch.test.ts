@@ -14,6 +14,12 @@
  * The one line that is data rather than copy — the mailbox the security page's report panel names,
  * which the page reads from the legal set's published addresses — is checked against that source
  * instead.
+ *
+ * AND a prototype line the COPY LAW forbids is not a line the page has to carry. Law v5
+ * (DESIGN.md §0) outranks the prototypes and the prototypes are still catching up to it, so a
+ * mock-up that still names an invented learner, gates a reader by class, counts out a raw
+ * allowance or invites someone into a product that has not opened cannot drag the shipped page
+ * back over the line. `site/law-v5.test.ts` asserts the other half: that no page says any of it.
  */
 
 import { describe, expect, it } from 'bun:test';
@@ -35,15 +41,60 @@ const PAGES: readonly { proto: string; source: string }[] = [
   { proto: 'site-subjects.html', source: 'Subjects.tsx' },
 ];
 
-/** Lines a page renders from data rather than from its own copy. */
-const DATA_LINES = new Set(['support@heywobo.com']);
+/**
+ * Lines a page renders from data rather than from its own copy: the mailboxes come from the legal
+ * set's published addresses (`site/identity.ts`), so a mock-up that still prints one we have
+ * retired is not a line the page is missing.
+ */
+const DATA_LINES = new Set(['support@heywobo.com', 'security@heywobo.com']);
 
-/** Text as both sides are compared: no quotes, no brackets, whitespace folded. */
+/**
+ * A prototype line the page deliberately improves on, with the reason. Kept short on purpose: an
+ * entry here is a decision, not a backlog.
+ */
+const BETTER_HERE = new Set([
+  // the prototype dropped the sixth promise ("Train on a child without consent"); a page that
+  // makes six promises to a parent does not quietly make five
+  'Five lines wed put in a contract.',
+]);
+
+/**
+ * A prototype line law v5's copy law forbids. The law is the authority on these six things, so a
+ * page is right to say something else — and a prototype that still carries one of them is stale,
+ * not a specification.
+ */
+const AGAINST_THE_LAW = [
+  /\b(aanya|arjun|riya|meera|priya|ananya|rohan|kavya|ishaan|sanya)\b/i, // no names
+  /\bclass(?:es)? \d|\bgrades? \d|\bages? \d/i, // no grade gate
+  /\b\d+ (?:questions|turns) a day\b|\bof \d+ (?:questions|turns)\b/i, // no raw allowance
+  /\b(?:forty|two hundred|eight hundred) questions\b/i,
+  /begin tonight|start learning for free|start free\b|set it up for my child/i, // promote first
+  /this evening|\btonight\b/i, // the same invitation with the clock changed
+  /the first question is on us/i, // the same invitation, in Wobo's hand
+  /which classes and subjects/i, // a grade gate with the numbers taken out is still a gate
+  /\bshe\b|\bher\b|\bhe\b|\bhis\b/i, // a learner with a gender is an invented learner
+];
+
+const bannedByLaw = (phrase: string): boolean => AGAINST_THE_LAW.some((r) => r.test(phrase));
+
+/** The handful of HTML entities the prototypes type, as the page renders them. */
+const ENTITIES: Record<string, string> = {
+  '&#10003;': '\u2713',
+  '&#8594;': '\u2192',
+  '&ldquo;': '\u201c',
+  '&rdquo;': '\u201d',
+  '&hellip;': '\u2026',
+  '&amp;': '&',
+  '&nbsp;': ' ',
+};
+
+/** Text as both sides are compared: entities decoded, no quotes, no brackets, whitespace folded. */
 function fold(s: string): string {
   return s
+    .replace(/&#?\w+;/g, (e) => ENTITIES[e] ?? e)
     .replace(/\{' '\}/g, ' ')
     .replace(/[<>/{}]/g, ' ')
-    .replace(/['"`’]/g, '')
+    .replace(/['"`\u2018\u2019\u201c\u201d]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -60,16 +111,31 @@ function phrases(html: string): string[] {
   return [...new Set([...runs, ...placeholders].map(fold).filter((s) => s.length >= 12))];
 }
 
+/**
+ * A page's words read TWICE: once as written, and once with the intrinsic tags (`<text>`,
+ * `<tspan>`, `<span>` — the lower-case ones) taken out, so a sentence a drawing breaks across two
+ * `<text>` lines still reads as the one sentence the prototype writes on one line. Without the
+ * second reading the test measures where the markup happens to break, which is not a thing a
+ * reader can see. Component tags stay: `<PitchAsk … placeholder="…" />` carries its words in its
+ * props, and stripping it would take them with it.
+ */
+function bothWays(source: string): string {
+  const withoutIntrinsics = source.replace(/<\/?[a-z][^>]*>/g, '');
+  return `${fold(source)} ${fold(withoutIntrinsics)}`;
+}
+
 const SHARED = ['maths.ts', 'Ask.tsx', join('..', 'site', 'ClosePanel.tsx')]
-  .map((f) => fold(readFileSync(join(import.meta.dir, f), 'utf8')))
+  .map((f) => bothWays(readFileSync(join(import.meta.dir, f), 'utf8')))
   .join(' ');
 
 describe('each pitch page carries every line of its prototype', () => {
   for (const page of PAGES) {
     it(`${page.source} says what ${page.proto} says`, () => {
       const html = readFileSync(join(PROTO, page.proto), 'utf8');
-      const source = `${fold(readFileSync(join(import.meta.dir, page.source), 'utf8'))} ${SHARED}`;
-      const missing = phrases(html).filter((p) => !DATA_LINES.has(p) && !source.includes(p));
+      const source = `${bothWays(readFileSync(join(import.meta.dir, page.source), 'utf8'))} ${SHARED}`;
+      const missing = phrases(html).filter(
+        (p) => !DATA_LINES.has(p) && !BETTER_HERE.has(p) && !bannedByLaw(p) && !source.includes(p),
+      );
       expect(missing).toEqual([]);
     });
   }

@@ -23,7 +23,10 @@ Card, or the payment method your device offers. At checkout you confirm two thin
 We write to you 7 days before any renewal, and 30 days before as well if you are on an annual or family plan, with the amount and the date. Cancel any time before it and you are not charged.
 
 **Cancelling**
-Settings, then plan, then cancel. We offer you a pause or a smaller plan first; say no and it is done on the next screen. You keep your plan until the end of the period you paid for, then the account goes back to free with everything you have learnt intact.
+Settings, then your plan, then cancel. Two taps: the control, and one confirmation that says what happens. No offer to stay, no reason to give, no survey. You keep your plan until the end of the period you paid for, nothing renews after that, and the account goes back to free with everything you have learnt intact. Change your mind before that date and one tap puts the plan back.
+
+**Money back**
+We do not give money back as a gesture of goodwill. Cancelling is the answer instead: you keep the plan until the period you paid for ends and nothing renews. Where the law gives you a refund you still have it, and the cancellation document lists every case.
 
 **Receipts**
 Every payment gets one by email. For anything that looks wrong, write to [support email] with it.

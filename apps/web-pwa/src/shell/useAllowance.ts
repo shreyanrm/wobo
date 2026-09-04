@@ -8,12 +8,7 @@
 
 import type { Me, Sdk } from '@wobo/sdk';
 import { useEffect, useState } from 'react';
-import {
-  type Allowance,
-  allowanceLine,
-  readAllowance,
-  resetTime,
-} from '../screens/plans/allowance';
+import { type Allowance, allowanceLine, readAllowance } from '../screens/plans/allowance';
 import { useSdk } from '../store/sdk';
 
 const FRESH_MS = 60_000;
@@ -60,18 +55,24 @@ export function useAllowance(): Allowance {
 }
 
 /**
- * The card's line — "25 of 40 turns left · resets 6:00 am" — from the numbers the brain gave and
- * nothing else. An allowance that could not be read says so in the sentence the plans page uses.
+ * The card's line — one voice for the allowance, everywhere.
+ *
+ * This used to read "25 of 40 turns left · resets 6:00 am", and the plans page said "about half of
+ * today's allowance is left" for the very same number. Two voices for one fact, and one of them
+ * was the raw count DESIGN.md §0 bans. The law states that rule without the "on a public surface"
+ * qualifier its grade-gate rule carries, and the rail is mounted on every authenticated screen, so
+ * the count went. The proportion is not lost: `allowanceProgress` still draws the exact fraction
+ * on the marigold bar right beside this sentence, which is where a share belongs.
+ *
+ * `now` is kept in the signature because callers pass it and because a reset time is read against
+ * a clock; `allowanceLine` formats the same instant.
  */
 export function allowanceNote(allowance: Allowance, now: Date = new Date()): string {
-  if (!allowance.known || allowance.remaining === null) return allowanceLine(allowance);
-  const of = allowance.limit !== null ? ` of ${allowance.limit}` : '';
   const at = allowance.resetsAt;
-  const resets =
-    at && at.getTime() > now.getTime() - 86_400_000
-      ? ` · resets ${resetTime(at).replace(/\b(AM|PM)\b/, (m) => m.toLowerCase())}`
-      : '';
-  return `${allowance.remaining}${of} turns left${resets}`;
+  // A reset stamped more than a day in the past is stale, and a sentence that promises the
+  // allowance comes back at a time that has already gone is worse than one that does not name it.
+  const stale = at !== null && at.getTime() <= now.getTime() - 86_400_000;
+  return allowanceLine(stale ? { ...allowance, resetsAt: null } : allowance);
 }
 
 /** 0..1 for the marigold bar; undefined when there is no limit to draw against. */

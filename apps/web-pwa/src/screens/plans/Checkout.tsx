@@ -6,7 +6,8 @@
  * The payment page is not open, so there is no checkout. This page says that in one line rather
  * than showing a disabled payment form, and lists what will be on it when there is something to
  * buy, because those promises are already made in `docs/legal/refund-and-cancellation.md` §2 and a
- * visitor is entitled to read them before they trust us with a card.
+ * visitor is entitled to read them before they trust us with a card. The document it links to is
+ * named by `CHECKOUT_PAGE.cancelling`, so the checkout and the gift page cannot label it differently.
  */
 
 import { legalPath } from '../legal/catalog';
@@ -42,7 +43,7 @@ export function Checkout() {
           </div>
           <p className="st-hint" style={{ marginTop: 'var(--s3)' }}>
             <SiteLink href={legalPath('refund-and-cancellation')} className="st-link">
-              {CHECKOUT_PAGE.refunds}
+              {CHECKOUT_PAGE.cancelling}
             </SiteLink>
           </p>
         </div>

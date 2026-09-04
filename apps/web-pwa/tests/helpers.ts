@@ -49,7 +49,9 @@ export async function seedOnboarded(page: Page): Promise<void> {
       localStorage.setItem('wobo-home-opened', '1'); // sessionStorage is per-context; set below too
       localStorage.setItem(
         'wobo-learner-profile',
-        JSON.stringify({ name: 'Aanya', grade: 'Class 8', boardId: 'cbse' }),
+        // The copy law (DESIGN.md §0): no invented learner, not even in a fixture — every
+        // frame the responsive proof shoots carries this profile's name across the top of the app.
+        JSON.stringify({ name: 'Learner', grade: 'Class 8', boardId: 'cbse' }),
       );
     },
     { onboarded: ONBOARDED_KEY, met: MET_KEY },

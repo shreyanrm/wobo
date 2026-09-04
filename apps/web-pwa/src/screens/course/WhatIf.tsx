@@ -330,19 +330,25 @@ export function WhatIf({
             />
             <AnimatePresence initial={false}>
               {depthOpen && (
-                // LAW v5 §8 forbids SCRUBBING a layout property — a tween fired per scroll frame.
-                // This is the other thing: one tween on one state change, when the learner taps
-                // "how we got here". Nothing else owns this element's height, and the content under
-                // it has to move, which is the whole point of a disclosure.
+                // LAW v5 §8 names `height` outright, so this disclosure opens on
+                // `grid-template-rows: 0fr → 1fr` rather than on `height: auto`. The row track is
+                // not a layout property of the child — the grid resolves it once per frame and the
+                // child is simply clipped — so the content under it still moves, which is the whole
+                // point of a disclosure, without a per-frame reflow of everything below it.
                 <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
+                  initial={{ gridTemplateRows: '0fr', opacity: 0 }}
+                  animate={{ gridTemplateRows: '1fr', opacity: 1 }}
+                  exit={{ gridTemplateRows: '0fr', opacity: 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-                  style={{ overflow: 'hidden' }}
+                  style={{ display: 'grid', overflow: 'hidden' }}
                 >
                   <div
                     style={{
+                      // The grid's one row. `min-height: 0` is what lets a 0fr track actually
+                      // collapse it, and `overflow: hidden` keeps its own padding from leaking out
+                      // while it does.
+                      minHeight: 0,
+                      overflow: 'hidden',
                       margin: '2px 0 12px',
                       padding: '12px 14px',
                       background: 'var(--paper)',

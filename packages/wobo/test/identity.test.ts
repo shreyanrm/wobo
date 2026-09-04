@@ -7,15 +7,15 @@ describe('Wobo identity is locked', () => {
   it('is the ink-visor wobot — palette v4, cream and night (DESIGN.md §2/§4)', () => {
     expect(WOBO_TONES.light).toEqual({
       body: '#14142B',
-      visor: '#FAF7F0',
+      visor: '#FFFFFF',
       eye: '#2B45FF',
-      hairline: 'rgba(250,247,240,0.55)',
+      hairline: 'rgba(255,255,255,0.55)',
     });
     expect(WOBO_TONES.dark).toEqual({
-      body: '#F3F0E8',
-      visor: '#0F1226',
+      body: '#F4F4F7',
+      visor: '#0E0E16',
       eye: '#7C8CFF',
-      hairline: 'rgba(15,18,38,0.40)',
+      hairline: 'rgba(14,14,22,0.40)',
     });
     expect(WOBO_BLUE).toBe('#2B45FF');
     expect(WOBO_BLUE_NIGHT).toBe('#7C8CFF');
@@ -63,9 +63,9 @@ describe('Wobo identity is locked', () => {
     expect(RIG_DARK).toBe(WOBO_TONES.dark);
     // …and the emitted token layer carries exactly those tones.
     expect(RIG_CSS).toContain('--wr-body:#14142B');
-    expect(RIG_CSS).toContain('--wr-visor:#FAF7F0');
+    expect(RIG_CSS).toContain('--wr-visor:#FFFFFF');
     expect(RIG_CSS).toContain('--wr-eye:#2B45FF');
-    expect(RIG_CSS).toContain('--wr-body:#F3F0E8');
+    expect(RIG_CSS).toContain('--wr-body:#F4F4F7');
     expect(RIG_CSS).toContain('--wr-eye:#7C8CFF');
     expect(RIG_CSS).not.toContain('#FF5A1F');
   });

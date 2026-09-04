@@ -149,7 +149,7 @@ export function Greeting({
     void (async () => {
       let finalBand = 'developing';
       try {
-        const bands = await sdk.kgtopg.mastery.getBands(sdk.config.mockSubjectId);
+        const bands = await sdk.kgtopg.mastery.getBands(sdk.subjectId);
         finalBand = bands.find((b) => b.node_id === nodeId)?.band ?? finalBand;
       } catch {
         // seed path — the fallback band is honest for a fresh pass

@@ -28,15 +28,15 @@ import { penRng, penStroke } from '../board/pen';
 export const ANSWER_CSS = `
 .wobo-answer{
   --wa-ink:var(--ink,#14142B);
-  --wa-soft:var(--ink-2,#4E4E66);
+  --wa-soft:var(--ink-2,#55556B);
   --wa-faint:var(--ink-3,#8A8A9E);
   --wa-mark:var(--pig,#2B45FF);
-  --wa-wash:var(--pig-w,#E6EAFF);
-  --wa-soft-wash:var(--pig-w,#E6EAFF);
+  --wa-wash:var(--pig-w,#EDF0FF);
+  --wa-soft-wash:var(--pig-w,#EDF0FF);
   --wa-ring:var(--pig,#2B45FF);
-  --wa-surface:var(--paper,#FAF7F0);
-  --wa-tonal:var(--paper-2,#F1EDE3);
-  --wa-pressed:var(--paper-3,#E7E1D3);
+  --wa-surface:var(--paper,#FFFFFF);
+  --wa-tonal:var(--paper-2,#F6F6F8);
+  --wa-pressed:var(--paper-3,#ECECF0);
   --wa-sans:var(--sans,'Poppins',system-ui,sans-serif);
   --wa-hand:var(--hand,'Caveat',cursive);
   --wa-lift:var(--lift,0 8px 24px rgba(20,20,43,.10));

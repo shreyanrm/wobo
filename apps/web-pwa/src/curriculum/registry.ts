@@ -17,6 +17,7 @@
 
 import type { CurriculumNode, CurriculumTopicsView, CurriculumUnitsView } from '@wobo/sdk';
 import type { Chapter, Subject, Topic } from '../data/model';
+import { applyPrereqs, type PrereqReason, prereqReason, resetPrereqs } from './prereq';
 import { subjectFamily, subjectLine } from './subjects';
 import { loadWorld, subscribeWorld, type World } from './world';
 
@@ -84,6 +85,7 @@ export function resetRegistry(): void {
   bySubject = {};
   topics.clear();
   chapters.clear();
+  resetPrereqs();
   worldKey = keyOf(loadWorld());
   refreshSubjects();
   revision++;
@@ -106,6 +108,7 @@ function syncWorld(): void {
     bySubject = {};
     topics.clear();
     chapters.clear();
+    resetPrereqs();
     refreshSubjects();
     revision++;
   }
@@ -120,7 +123,8 @@ export function topicOf(node: CurriculumNode, chapterId: string): Topic {
     chapterId,
     name: node.name,
     blurb: node.objectives[0]?.name ?? '',
-    // Prerequisites live in the concept graph, in the brain. The client states none of its own.
+    // Empty as it arrives: a node says nothing about what sits under it. The edges are derived
+    // from the whole subject once it is in memory, by `applyPrereqs` below (curriculum/prereq.ts).
     prereqTopicIds: [],
     kind: 'syllabus',
     xp: TOPIC_XP,
@@ -150,6 +154,7 @@ export function ingestUnits(view: CurriculumUnitsView): void {
     return chapter;
   });
   bySubject = { ...bySubject, [view.subject]: built };
+  applyPrereqs(built);
   revision++;
   notify();
 }
@@ -167,6 +172,9 @@ export function ingestTopics(view: CurriculumTopicsView): void {
   // Re-key the subject list so React sees a new array identity for the chapter that changed.
   const list = bySubject[chapter.subjectId];
   if (list) bySubject = { ...bySubject, [chapter.subjectId]: [...list] };
+  // The graph is derived over the WHOLE subject, not this unit: a chapter opened now can be the
+  // ground under one opened an hour ago, and an edge only exists once both ends are in memory.
+  applyPrereqs(bySubject[chapter.subjectId] ?? [chapter]);
   revision++;
   notify();
 }
@@ -241,14 +249,59 @@ export function displaySubjectById(id: string): DisplaySubject | undefined {
 }
 
 /**
- * Prerequisite suggestions. The concept graph that knows them lives in the brain, so until a turn
- * asks for them the client claims none — a suggestion we cannot source is a suggestion we do not
- * make (CURRICULUM.md §12).
+ * The ground directly under a topic that the learner has not covered yet.
+ *
+ * The edges come from `curriculum/prereq.ts`, derived over the syllabus the brain served for this
+ * learner and labelled with where each one came from, so a suggestion still has a source
+ * (CURRICULUM.md §12), it is just this client's own reading of the board's order rather than a
+ * claim the board made. An edge to a topic that is not in memory resolves to nothing rather than
+ * to a guess.
  */
 export function unmetPrereqs(topic: Topic, completed: ReadonlySet<string>): Topic[] {
   return topic.prereqTopicIds
     .map((id) => topicById(id))
     .filter((p): p is Topic => Boolean(p) && !completed.has((p as Topic).id));
+}
+
+/** One step of the ground under a topic, with the reason the graph put it there. */
+export interface GroundStep {
+  topic: Topic;
+  reason: PrereqReason;
+  /** 1 for a direct prerequisite, 2 for the ground under that, and so on. */
+  depth: number;
+}
+
+/** How far under a topic the walk goes. Deeper than this is an archaeology dig, not a check. */
+export const MAX_GROUND_DEPTH = 3;
+
+/**
+ * Walk down from a topic and collect the prerequisites the learner has NOT covered, nearest first.
+ *
+ * A covered prerequisite stops the walk on that branch, the same rule the tutor's `masteredGround`
+ * uses in the other direction: standing on solid ground means what is under it is solid too. The
+ * walk is breadth-first so "nearest first" is the order a teacher would shore the ground up in.
+ */
+export function groundBeneath(
+  topic: Topic,
+  completed: ReadonlySet<string>,
+  maxDepth: number = MAX_GROUND_DEPTH,
+): GroundStep[] {
+  const out: GroundStep[] = [];
+  const seen = new Set<string>([topic.id]);
+  let frontier: Topic[] = [topic];
+  for (let depth = 1; depth <= maxDepth && frontier.length > 0; depth++) {
+    const next: Topic[] = [];
+    for (const here of frontier) {
+      for (const prereq of unmetPrereqs(here, completed)) {
+        if (seen.has(prereq.id)) continue;
+        seen.add(prereq.id);
+        out.push({ topic: prereq, reason: prereqReason(here.id, prereq.id) ?? 'sequence', depth });
+        next.push(prereq);
+      }
+    }
+    frontier = next;
+  }
+  return out;
 }
 
 /** Every topic of the learner's world that has been loaded, in subject then chapter order. */

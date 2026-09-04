@@ -33,9 +33,18 @@ export function readAllowance(me: Me | null | undefined): Allowance {
   };
 }
 
-/** The clock time an allowance comes back, in the reader's own locale. */
+/**
+ * The clock time an allowance comes back, in the reader's own locale.
+ *
+ * Lower-cased, because DESIGN.md's very first line is "sentence case" and a locale that returns
+ * "6:00 AM" would shout the meridiem in the middle of a calm sentence. Locales that do not use one
+ * are untouched. This used to be lower-cased at one call site only, which is how the rail said
+ * "6:00 am" while the plans page said "6:00 AM" about the same instant.
+ */
 export function resetTime(at: Date): string {
-  return at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return at
+    .toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+    .replace(/\b(AM|PM)\b/, (m) => m.toLowerCase());
 }
 
 /**

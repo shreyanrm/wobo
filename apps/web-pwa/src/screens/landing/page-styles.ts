@@ -74,7 +74,7 @@ export const LANDING_CSS = `${FACES}
   /* one vertical rhythm for the whole page, tied to the viewport so a phone never
      inherits a desktop's air and a wide screen never feels cramped */
   --gutter:clamp(20px, 5vw, 48px);
-  --band:clamp(72px, 9vw, 132px);      /* space between one section and the next */
+  --band:clamp(96px, 11vw, 184px);      /* space between one section and the next */
   --colgap:clamp(32px, 5vw, 80px);     /* space between the two halves of a row   */
   --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 10px 28px rgba(20,20,43,.07);
 }
@@ -101,10 +101,10 @@ export const LANDING_CSS = `${FACES}
    mark continue onto the next line the way a real highlighter would. */
 .${ROOT} h2.t .hl{
   background-image:linear-gradient(color-mix(in srgb,var(--marigold) 46%,transparent),color-mix(in srgb,var(--marigold) 46%,transparent));
-  background-repeat:no-repeat;background-position:0 88%;background-size:0% .40em;
-  -webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em;border-radius:3px;
+  background-repeat:no-repeat;background-position:0 50%;background-size:0% 92%;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em;border-radius:4px;
 }
-.${ROOT} h2.t .hl.lit{background-size:100% .40em;transition:background-size .72s cubic-bezier(.2,.8,.2,1)}
+.${ROOT} h2.t .hl.lit{background-size:100% 92%;transition:background-size .72s cubic-bezier(.2,.8,.2,1)}
 .${ROOT} .lede{font-size:clamp(16px,1.15vw,19px);color:var(--ink-2);max-width:46ch;margin-top:var(--s3)}
 
 /* buttons — magnet is a translate on an INNER span, so the hit box never moves */
@@ -253,6 +253,8 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .grid4 svg{position:absolute;inset:-44px;width:calc(100% + 88px);height:calc(100% + 88px);pointer-events:none;overflow:visible}
 .${ROOT} .try .row2{display:flex;gap:10px}
 .${ROOT} .try .say{font-family:var(--hand);font-weight:700;font-size:26px;color:var(--pig);min-height:1.3em}
+/* The ring's own label, in the flow rather than hidden under the button row — see Practice.tsx. */
+.${ROOT} .try .ringsay{font-family:var(--hand);font-weight:600;font-size:22px;color:var(--pig);min-height:1.3em;margin-top:calc(var(--s3) * -1)}
 .${ROOT} .try .say.win{color:var(--mint)}
 .${ROOT} .spark{position:absolute;width:9px;height:9px;border-radius:2px;opacity:0;pointer-events:none}
 
@@ -314,6 +316,47 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .models a:hover{transform:translateY(-2px);box-shadow:var(--lift)}
 .${ROOT} .models svg{width:18px;height:18px}
 
+
+/* the marked-up paragraph — every mark rides its own words, so none can drift */
+.${ROOT} .marked{width:min(100%,620px);background:var(--paper);border-radius:18px;padding:26px 28px;display:grid;gap:14px}
+.${ROOT} .marked p{font:400 17px/1.9 var(--sans);color:var(--ink);margin:0}
+.${ROOT} .marked mark.hl{background:color-mix(in srgb,var(--marigold) 52%,transparent);color:inherit;padding:.06em .08em;border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.${ROOT} .marked .tag{font-family:var(--hand);font-weight:700;font-size:18px;color:var(--pig);margin-left:8px;white-space:nowrap}
+.${ROOT} .marked .circled{position:relative;display:inline-block}
+.${ROOT} .marked .circled::after{content:"";position:absolute;left:-.35em;right:-.35em;top:-.16em;bottom:-.2em;border:2.6px solid var(--rose);border-radius:50%;transform:rotate(-1.4deg);pointer-events:none}
+.${ROOT} .marked .note{font-family:var(--hand);font-weight:600;font-size:19px;color:var(--rose)}
+.${ROOT} .marked .fix{font-family:var(--hand);font-weight:700;font-size:20px;color:var(--pig)}
+
+/* ── it teaches YOU: the gap, the second way, the mastery ─────────────────────── */
+.${ROOT} .beats{display:grid;gap:var(--s2);margin-top:var(--s4)}
+.${ROOT} .beat{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:var(--colgap);align-items:center;
+  background:var(--paper-2);border-radius:24px;padding:var(--s4)}
+.${ROOT} .beat:nth-child(even){grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr)}
+.${ROOT} .beat:nth-child(even) .beat-art{order:-1}
+.${ROOT} .beat .n{font-family:var(--hand);font-weight:700;font-size:26px;color:var(--pig)}
+.${ROOT} .beat h3{font:700 clamp(24px,2.6vw,34px)/1.1 var(--sans);margin-top:6px;letter-spacing:-.03em}
+.${ROOT} .beat p{color:var(--ink-2);font-size:16px;margin-top:var(--s2);max-width:44ch}
+.${ROOT} .beat .said{font-family:var(--hand);font-weight:600;font-size:22px;color:var(--ink);margin-top:var(--s2)}
+.${ROOT} .beat .said em{font-style:normal;color:var(--rose)}
+.${ROOT} .beat-art{background:var(--paper);border-radius:18px;padding:var(--s3);display:grid;place-items:center;min-height:260px}
+.${ROOT} .beat-art svg{width:100%;height:auto;overflow:visible}
+@media (max-width:900px){.${ROOT} .beat,.${ROOT} .beat:nth-child(even){grid-template-columns:1fr;padding:var(--s3)}
+  .${ROOT} .beat:nth-child(even) .beat-art{order:0}}
+
+/* ── the climb: one path, two vibes ───────────────────────────────────────────── */
+.${ROOT} .climb{margin-top:var(--s4);background:var(--paper-2);border-radius:26px;padding:var(--s4);display:grid;gap:var(--s3)}
+.${ROOT} .climb .switch{display:inline-flex;background:var(--paper);border-radius:999px;padding:4px;gap:4px;justify-self:start;border:0;margin:0;min-inline-size:0}
+.${ROOT} .climb .switch button{border:0;background:transparent;cursor:pointer;font:500 14px/1 var(--sans);color:var(--ink-3);padding:11px 18px;border-radius:999px}
+.${ROOT} .climb .switch button.on{background:var(--ink);color:var(--paper)}
+.${ROOT} .climb .stagewrap{position:relative;border-radius:20px;background:var(--paper);overflow:hidden;min-height:clamp(280px,34vw,360px)}
+.${ROOT} .climb .stagewrap > svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .45s ease}
+.${ROOT} .climb .stagewrap > svg.on{opacity:1}
+.${ROOT} .climb .same{font-family:var(--hand);font-weight:600;font-size:22px;color:var(--ink)}
+.${ROOT} .climb .same em{font-style:normal;color:var(--pig)}
+.${ROOT} .climb .legend{display:flex;gap:18px;flex-wrap:wrap;color:var(--ink-2);font-size:14px}
+.${ROOT} .climb .legend span{display:inline-flex;align-items:center;gap:8px}
+.${ROOT} .climb .legend i{width:11px;height:11px;border-radius:3px}
+
 /* faq */
 .${ROOT} .faq{display:grid;gap:8px;margin-top:var(--s4)}
 .${ROOT} .faq details{background:var(--paper-2);border-radius:16px;padding:0 var(--s3)}
@@ -352,7 +395,7 @@ export const LANDING_CSS = `${FACES}
 @media (prefers-reduced-motion:reduce){
   .${ROOT} .blink{animation:none}
   .${ROOT} .draw{stroke-dashoffset:0 !important}
-  .${ROOT} h2.t .hl{background-size:100% .40em}
+  .${ROOT} h2.t .hl{background-size:100% 92%}
   /* Nothing scrubs, so the four answer cards and the pinned rail lay out as an ordinary stack
      rather than four cards at opacity 0 on top of one another. */
   .${ROOT} #forms .row{align-items:start}

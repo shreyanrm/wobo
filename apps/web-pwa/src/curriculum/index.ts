@@ -15,6 +15,8 @@ export { ProvenanceLabel, SourceNote } from './Labels';
 export { OverlayEditor } from './OverlayEditor';
 export { OwnSyllabus } from './OwnSyllabus';
 export { LevelPicker, SubjectPicker } from './Pickers';
+export * from './placement';
+export * from './prereq';
 export * from './registry';
 export { DiscoveryCard, EmptyWorldCard } from './StatusCard';
 export * from './search';

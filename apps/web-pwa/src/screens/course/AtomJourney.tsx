@@ -11,16 +11,19 @@ import type { PracticeItem } from '@wobo/sdk';
 import { useWoboBus } from '@wobo/wobo';
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { chapterById } from '../../curriculum/registry';
+import { groundFor } from '../../curriculum/placement';
+import { chapterById, topicById } from '../../curriculum/registry';
 import type { Topic } from '../../data/model';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { BossSigil } from '../../ui/art';
 import { CourseIntroScene } from '../../ui/courseIntro';
 import { hueForTopic } from '../../ui/hues';
+import { type BridgeLesson, bridgeFor, bridgeFromReport } from '../../wobo/bridge';
 import { announceCard } from '../../wobo/speech';
 import { BalanceScale } from './BalanceScale';
 import { Boss } from './Boss';
+import { BridgeStep } from './BridgeStep';
 import { Greeting } from './Greeting';
 import { MysteryLesson, MysteryTease } from './Mystery';
 import { PracticeRun } from './PracticeRun';
@@ -39,6 +42,11 @@ import { WhatIf } from './WhatIf';
 
 type CardId =
   | 'arrival'
+  // The ground under this topic, when the learner does not yet stand on all of it. The atom is the
+  // one node with verifier-frozen practice items, so it is the one place the placement check can
+  // ask a real checked question instead of a self report, and it was the one player that never laid
+  // a bridge: the topic where the check had teeth was the topic where nothing was done with it.
+  | 'bridge'
   | 'scale'
   | 'whatif'
   | 'practice'
@@ -65,6 +73,8 @@ const STEPS: readonly [CardId, string][] = [
 /** Where each card sits against the steps: the door stands before the boss; the end is past it. */
 const STEP_AT: Record<CardId, number> = {
   arrival: -1,
+  bridge: -1, // the run-up to the lesson, not a step of it
+
   scale: 0,
   whatif: 1,
   practice: 2,
@@ -77,6 +87,7 @@ const STEP_AT: Record<CardId, number> = {
 /** Per-card progress: base fill + the span the card's own sub-progress moves through. */
 const PROGRESS: Record<CardId, [base: number, span: number]> = {
   arrival: [0.08, 0], // endowed — it never starts empty
+  bridge: [0.12, 0],
   scale: [0.2, 0],
   whatif: [0.36, 0],
   practice: [0.5, 0.22],
@@ -109,6 +120,9 @@ export function AtomJourney({
   const sdk = useSdk();
   const bus = useWoboBus();
   const { award, completed, setReplay } = useProgress();
+  // The ground the learner stands on, read once at the door. A bridge that appeared halfway through
+  // would be a detour; this one is the run-up, so it is decided before the lesson starts.
+  const groundAtEntry = useRef(completed).current;
 
   // Owner replay law: a completed course can be redone freely, but earns no xp. Captured once at
   // mount (completeTopic flips `completed` at the greeting, so a live read would mislabel the very
@@ -123,6 +137,7 @@ export function AtomJourney({
       !replay &&
       typeof saved === 'string' &&
       saved !== 'arrival' &&
+      saved !== 'bridge' &&
       saved !== 'greeting' &&
       saved !== 'tease' &&
       saved !== 'mystery'
@@ -152,6 +167,7 @@ export function AtomJourney({
     const name = topic.name.toLowerCase();
     const lines: Partial<Record<CardId, [text: string, gate: boolean]>> = {
       arrival: [`${name}. one idea — a scale that cannot lie, and a boss at the end.`, true],
+      bridge: ['first, the ground under this one, so we walk up into it rather than at it.', true],
       scale: [
         'Here is a scale that cannot lie. Whatever you do to one side, do to the other, and it stays balanced.',
         true,
@@ -191,7 +207,7 @@ export function AtomJourney({
     void (async () => {
       let band = 'not_started';
       try {
-        const bands = await sdk.kgtopg.mastery.getBands(sdk.config.mockSubjectId);
+        const bands = await sdk.kgtopg.mastery.getBands(sdk.subjectId);
         band = bands.find((b) => b.node_id === nodeId)?.band ?? band;
       } catch {
         // fresh learner — not_started is the honest default
@@ -285,14 +301,45 @@ export function AtomJourney({
     [items],
   );
 
+  /**
+   * THE BRIDGE (wobo/bridge.ts). Asked for on mount, so it is ready while the arrival card is on
+   * screen and the learner never waits for it. The placement check's own report wins when one has
+   * settled for this topic; with none, the derived prerequisite graph is the honest fallback. A
+   * refusal anywhere resolves to null, and the journey runs exactly as it always did.
+   */
+  const [bridge, setBridge] = useState<BridgeLesson | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: asked once at the door, like the course's own bridge — a bridge that appeared mid-lesson would be a detour
+  useEffect(() => {
+    let cancelled = false;
+    const settled = groundFor(topic.id);
+    void (
+      settled
+        ? bridgeFromReport(sdk, topic, settled, topicById, groundAtEntry)
+        : bridgeFor(sdk, { topic, completed: groundAtEntry, lookup: topicById })
+    )
+      .then((lesson) => {
+        if (!cancelled) setBridge(lesson);
+      })
+      .catch(() => {
+        // no bridge is a lesson that simply begins, never an error the learner sees
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sdk, topic.id]);
+
+  // Where "Begin" goes: over the ground when there is ground to cross, else straight into the idea.
+  const afterArrival = useCallback(() => go(bridge ? 'bridge' : 'scale'), [go, bridge]);
+  const toScale = useCallback(() => go('scale'), [go]);
+
   // static cards set their own bar here
   useEffect(() => {
     if (card === 'arrival') {
-      setBar({ primary: { label: 'Begin', onClick: () => go('scale') } });
+      setBar({ primary: { label: 'Begin', onClick: afterArrival } });
     } else if (card === 'bossdoor') {
       setBar({ primary: { label: 'Step in', onClick: () => go('boss') } });
     }
-  }, [card, setBar, go]);
+  }, [card, setBar, go, afterArrival]);
 
   return (
     <Deck id={card}>
@@ -334,6 +381,10 @@ export function AtomJourney({
         </CardBody>
       )}
 
+      {card === 'bridge' && bridge && (
+        <BridgeStep lesson={bridge} hue={hueForTopic(topic.id)} setBar={setBar} onDone={toScale} />
+      )}
+
       {card === 'scale' && (
         <BalanceScale nodeId={nodeId} setBar={setBar} onReveal={onScaleReveal} onDone={toWhatif} />
       )}
@@ -344,6 +395,7 @@ export function AtomJourney({
         (practiceItems.length > 0 ? (
           <PracticeRun
             nodeId={nodeId}
+            topicName={topic.name}
             items={practiceItems}
             setBar={setBar}
             setSub={setSub}

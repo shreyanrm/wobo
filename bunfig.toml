@@ -1,0 +1,15 @@
+# Repo-wide bun settings.
+#
+# [test] — `bun test` at the root walks the whole tree and runs every file whose name looks like a
+# test, which includes `*.spec.ts`. The Playwright suites under apps/web-pwa/tests/ and
+# apps/web-pwa/tests-plan/ are those files: they call `test()` from @playwright/test, which throws
+# "Playwright Test did not expect test() to be called here" under any other runner. So `bun test`
+# exited 1 with one collection error per spec file while every assertion in the repo passed — the
+# verify command in every brief has never been green, and a real failure would have been invisible
+# inside the noise.
+#
+# They are excluded here rather than renamed: Playwright's own configs (tests/x-browser.config.ts,
+# tests-plan/config.ts) match `*.spec.ts`, and `bun run --filter '*' test` reaches them through
+# neither. Run them with `bun run test:e2e` or the config each README names.
+[test]
+pathIgnorePatterns = ["**/apps/web-pwa/tests/**", "**/apps/web-pwa/tests-plan/**"]

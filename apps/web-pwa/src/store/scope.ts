@@ -26,6 +26,13 @@ export const SCOPED_KEYS = [
   // The boards Wobo and the learner drew together, kept as objects. They are the learner's work:
   // they carry across an anonymous-to-account upgrade, and they leave the device on sign-out.
   'wobo-board-notes-v1',
+  // What the placement check established about the ground under each topic, including what the
+  // learner claimed with "I know this". It decides which questions are never asked again, so it
+  // must never outlive the learner it belongs to.
+  'wobo-placement-v1',
+  // What the re-teach ladder has already tried for each concept, and the misses standing against
+  // it. The next explanation a learner is handed depends on it (wobo/reteach.ts).
+  'wobo-reteach-v1',
 ] as const;
 
 /** Where the last scope is remembered, so an upgrade (anonymous → account) can carry data across. */

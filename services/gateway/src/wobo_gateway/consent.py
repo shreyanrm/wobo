@@ -45,11 +45,15 @@ _CACHE_MAX = 4096
 _HTTP_TIMEOUT_S = 5.0
 
 # The database constrains consent_tier to ('un_elevated','elevated') and plan to
-# ('free','plus'), so those two are the values that actually arrive. The wider sets are read
-# tolerance, not policy: anything else — "un_elevated", "basic", empty, missing, a typo, a
-# value we have never seen — falls to the least-privilege side.
+# ('free','plus','pro','max') since migration 0014, so those are the values that actually
+# arrive. The wider sets are read tolerance, not policy: anything else — "un_elevated",
+# "basic", empty, missing, a typo, a value we have never seen — falls to the least-privilege
+# side.
 _ELEVATED_VALUES = frozenset({"elevated", "full", "parental", "verified"})
 _PLUS_VALUES = frozenset({"plus", "pro", "paid", "premium"})
+# The larger paid tier. budget.py prices free, pro and max; without this a stored "max" read
+# back as the smaller allowance, which is a learner paying for one thing and metered at another.
+_MAX_VALUES = frozenset({"max"})
 
 # The row may name these columns differently across the consent table and the profiles cache;
 # read whichever is present rather than forcing one schema on the database.
@@ -71,7 +75,10 @@ class Profile:
     """What the brain is allowed to know about a subject before it decides anything."""
 
     tier: ConsentTier
-    plan: str  # "free" | "plus"
+    # The plan STORED on the profile. It is the fallback the meter uses when a learner has no
+    # subscription row; the record itself is learner.subscriptions (billing.py), which is what
+    # ends by itself when the paid period does.
+    plan: str  # "free" | "plus" | "max"
     # The address on file. Read here so the email seam can refuse to write to any other one.
     email: str | None = None
 
@@ -86,7 +93,10 @@ def _coerce_tier(value: Any) -> ConsentTier:
 
 
 def _coerce_plan(value: Any) -> str:
-    if isinstance(value, str) and value.strip().lower() in _PLUS_VALUES:
+    name = value.strip().lower() if isinstance(value, str) else ""
+    if name in _MAX_VALUES:
+        return "max"
+    if name in _PLUS_VALUES:
         return "plus"
     return "free"
 

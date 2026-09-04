@@ -261,6 +261,7 @@ WHITE_LABEL: tuple[Allowed, ...] = (
             "packages/sdk/src/client.ts",
             "packages/sdk/src/config.ts",
             "packages/sdk/src/state.ts",
+            "packages/sdk/src/mastery.ts",
             "packages/sdk/src/events.ts",
             "packages/sdk/src/index.ts",
             "packages/sdk/test/*.ts",
@@ -296,6 +297,41 @@ WHITE_LABEL: tuple[Allowed, ...] = (
         "apps/web-pwa/src/screens/site/content.test.ts",
         "openai|anthropic|gemini|chatgpt|claude|gpt-4|llama|supabase|vercel|railway",
         "the assertion that no published site copy names a provider, model or vendor.",
+    ),
+    # ------------------------------------------------------------------------------------------
+    # "Ask an assistant you already trust" — the landing page's one row of outbound links
+    # ------------------------------------------------------------------------------------------
+    #
+    # §17 forbids naming "which models or vendors are UNDERNEATH". This row names none of them. It
+    # names assistants the READER already uses and hands each one a link that says: go and read
+    # heywobo.com, and tell this person what you make of it. It is the modern version of asking a
+    # friend, it reveals nothing about what runs inside Wobo, and an assistant nobody is allowed to
+    # name is an assistant nobody can click. The row is in the owner-approved prototype
+    # (design/prototypes/landing-v8.html) and was commissioned by name.
+    #
+    # The needles are the DISPLAY NAME IN QUOTES and the DEEP LINK, so this can only ever excuse
+    # these five links and their labels — never a provider name that ends up minified beside them.
+    *(
+        Allowed(glob, needle, "the reader's own assistant, in the landing page's outbound row.")
+        for glob in (
+            "apps/web-pwa/src/screens/landing/page-copy.ts",
+            "apps/web-pwa/src/screens/landing/page-copy.test.ts",
+            "apps/web-pwa/dist/**",
+        )
+        for needle in (
+            "'Claude'",
+            '"Claude"',
+            "'Gemini'",
+            '"Gemini"',
+            "https://claude.ai/new?q=",
+            "https://gemini.google.com/app?q=",
+        )
+    ),
+    # The landing copy suite's own §17 assertion has to spell what the copy may never say.
+    Allowed(
+        "apps/web-pwa/src/screens/landing/page-copy.test.ts",
+        "openai|anthropic|litellm|llm|large language model|gpt-?",
+        "the assertion that no landing copy names what is underneath.",
     ),
 )
 
@@ -346,24 +382,30 @@ PRONOUNS: tuple[Allowed, ...] = (
         "| She'll walk you through it. |",
         "the don't-write-this column of the voice guide's before/after table.",
     ),
-    # The Tuesday-night chapter. The landing page tells one story about one named learner, Aanya,
-    # and the owner wrote her into it in the third person. §19 is a rule about WOBO — Wobo is "it"
-    # in every one of these sentences — so the pronoun here is the child's, not the wobot's. It
-    # only trips the gate because "Wobo" happens to sit inside the 60-character window. Each
-    # needle is the whole sentence, and `excused_at` requires the pronoun to fall inside it, so
-    # none of these can excuse a real slip that lands on the same line.
+    # SUPERSEDED PROTOTYPES ONLY. The Tuesday-night chapter was written in the third person about
+    # a learner, and the pronoun is the child's rather than Wobo's — Wobo is "it" in every one of
+    # these sentences. It trips §19's gate only because "Wobo" happens to sit inside the
+    # 60-character window. This excuse used to cover the shipped landing page and the For parents
+    # page as well; both were rewritten to "your child" and "they", and law v5's live reference
+    # set (landing-v8.html and site-*.html) carries no name and no gendered learner at all, so the
+    # globs for those files are gone. What remains is the archive: landing-v2 through v7,
+    # onboarding, app-v1 and email-v1 are superseded design records, kept as they were drawn.
+    # Rewriting them would falsify the record; they render nowhere and ship nothing. If the owner
+    # would rather the archive were rewritten too, delete this entry and the gate will list every
+    # line. Each needle is a whole sentence and `excused_at` requires the pronoun to fall inside
+    # it, so none of these can excuse a real slip that lands on the same line.
     *(
-        Allowed(glob, needle, "the named learner Aanya in the Tuesday-night chapter; Wobo is 'it'.")
-        for glob in (
-            "apps/web-pwa/src/screens/landing/page-copy.ts",
-            "apps/web-pwa/src/screens/landing/page-copy.test.ts",
-            # The For parents page carries the same chapter, ported from its prototype.
-            "apps/web-pwa/src/screens/pitch/ForParents.tsx",
-            "design/prototypes/*.html",
+        Allowed(
+            glob,
+            needle,
+            "a superseded prototype in design/prototypes; the pronoun is the child's, not Wobo's.",
         )
+        for glob in ("design/prototypes/landing-v[2-7].html",
+                     "design/prototypes/onboarding*.html",
+                     "design/prototypes/app-v1.html",
+                     "design/prototypes/email-v1.html")
         for needle in (
             "She asks Wobo the way she'd ask a friend.",
-            "She asks Wobo the way she'd ask you.",
             "She saw it, not just heard it",
             "Then she tries one",
             "In its own hand, at her pace",

@@ -155,7 +155,7 @@ def test_console_mode_never_sends(monkeypatch: pytest.MonkeyPatch) -> None:
         raise AssertionError("console mode must never open a network connection")
 
     monkeypatch.setattr(email_mod.urllib.request, "urlopen", _boom)
-    result = send_email("account_created", "learner@example.com", {"name": "Aarav"})
+    result = send_email("account_created", "learner@example.com", {"name": "Learner"})
     assert result == {"ok": True, "mode": "console", "subject": "welcome to Wobo"}
 
 
@@ -277,7 +277,7 @@ def test_endpoint_sends_in_console_with_header_and_consent(monkeypatch: pytest.M
         "kind": "account_created",
         "to": "a@b.com",
         "consent_tier": "elevated",
-        "data": {"name": "Aarav"},
+        "data": {"name": "Learner"},
     }
     r = client.post("/v1/email/send", json=body, headers=INTERNAL_HEADER)
     assert r.status_code == 200
@@ -603,7 +603,7 @@ def test_an_unverified_sending_domain_degrades_to_queued(
         result = send_email(
             "sunday_note",
             "parent@example.test",
-            {"learner_name": "Aanya", "days_active": 4, "unsubscribe_url": stop},
+            {"learner_name": "Learner", "days_active": 4, "unsubscribe_url": stop},
             learner_id="L1",
             period="2026-W36",
         )

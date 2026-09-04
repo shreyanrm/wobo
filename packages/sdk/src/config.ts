@@ -39,7 +39,7 @@ export const DEV_DEFAULTS: SdkConfig = {
   mockSubjectId: '00000000-0000-7000-8000-000000000001',
   consentTierDefault: 'un_elevated',
   surface: 'pwa',
-  displayName: 'Aanya',
+  displayName: 'Learner',
   llmMode: 'mock',
   contentMode: 'seed',
   persistMode: 'local',

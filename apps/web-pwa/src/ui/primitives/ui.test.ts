@@ -340,21 +340,45 @@ describe('the kit keeps the law (DESIGN.md §2, §3)', () => {
 });
 
 describe('the kit keeps law v5’s motion rule (DESIGN.md §0)', () => {
-  /** Every `transition` shorthand in the kit, as the property it names. */
-  const transitions = [...KIT.matchAll(/transition:\s*([a-z-]+)/g)].map((m) => m[1] as string);
+  /** Every `transition` shorthand in the kit, as (selector, property). */
+  const transitions = [...kit].flatMap(([selector, decls]) =>
+    decls
+      .flatMap((d) => [...d.matchAll(/^transition:\s*([a-z-]+)/g)])
+      .map((m) => [selector, m[1] as string] as const),
+  );
 
-  it('declares a transition on something, so the rule below is not vacuous', () => {
+  /**
+   * A pseudo-element is the one place a transform transition cannot have two owners: GSAP animates
+   * elements, and `::after` is not one — there is no handle to scrub it with, from the scroll
+   * engine or from anywhere else. So a knob that slides on `transform: translateX()` inside an
+   * `::after` is the RIGHT answer to §8's second cause (never animate a layout property like
+   * `left`), and the rule below stops short of it rather than pushing the switch back onto `left`.
+   */
+  const PSEUDO = /::(after|before)/;
+
+  it('declares a transition on something, so the rules below are not vacuous', () => {
     expect(transitions.length).toBeGreaterThan(0);
+    // And the parse reaches the declarations rather than an empty map.
+    expect(kit.size).toBeGreaterThan(20);
   });
 
   it('never puts a CSS transition on transform or opacity — the two the scroll engine scrubs', () => {
     // Cause 1 of the jitter: two owners for one property. The browser eases toward a value GSAP
     // has already moved past, every frame, and the element stutters.
-    for (const property of transitions) expect(property).not.toBe('transform');
-    for (const property of transitions) expect(property).not.toBe('opacity');
+    const owned = transitions.filter(([selector]) => !PSEUDO.test(selector));
+    for (const [, property] of owned) expect(property).not.toBe('transform');
+    for (const [, property] of transitions) expect(property).not.toBe('opacity');
     // `all` is both of them, and everything else besides.
-    for (const property of transitions) expect(property).not.toBe('all');
+    for (const [, property] of transitions) expect(property).not.toBe('all');
     expect(KIT).not.toMatch(/transition-property:\s*(transform|opacity|all)/);
+  });
+
+  it('never animates a layout property, anywhere in the kit (law v5 §8, cause 2)', () => {
+    // The switch knob used to slide on `left`, which relayouts the row on every frame of the
+    // slide. Width, height, top, left, right, bottom and inset are all the same defect.
+    const layout = /^(width|height|top|left|right|bottom|inset|margin|padding)$/;
+    const offenders = transitions.filter(([, property]) => layout.test(property));
+    expect(offenders).toEqual([]);
   });
 
   it('writes the rule down where the next person will read it', () => {

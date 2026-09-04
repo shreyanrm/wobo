@@ -61,8 +61,10 @@ button.wk-tile{border:0;cursor:pointer;text-align:left;font:inherit;color:inheri
    <button> round it is the thumb's target, and on a phone it grows to the 44px floor. */
 .wk-sw{width:46px;height:28px;border-radius:999px;background:var(--paper-3);position:relative;flex:none}
 .wk-sw.wk-on{background:var(--pig)}
-.wk-sw::after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s}
-.wk-sw.wk-on::after{left:22px}
+/* The knob travels on a transform, never on `left`: `left` is a layout property, so animating
+   it relayouts the row every frame — law v5 §8, cause 2. Same distance, composited. */
+.wk-sw::after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;transform:translateX(0);transition:transform .2s}
+.wk-sw.wk-on::after{transform:translateX(18px)}
 .wk-sw-hit{border:0;padding:0;background:transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex:none}
 .wk-toggle{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:2px solid var(--paper-3)}
 .wk-toggle:first-child{border-top:0}
@@ -114,7 +116,7 @@ button.wk-tile{border:0;cursor:pointer;text-align:left;font:inherit;color:inheri
 .wk-shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
 .wk-rail{padding:28px 20px;display:flex;flex-direction:column;gap:6px}
 .wk-rail .wk-wm{display:flex;align-items:center;gap:10px;padding:6px 10px 26px}
-.wk-rail .wk-wm svg{height:22px;width:auto;fill:var(--ink)}
+.wk-rail .wk-wm svg{height:20px;width:auto;color:var(--ink)}
 .wk-rail a{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;font:500 15px/1 var(--sans);color:var(--ink-2)}
 .wk-rail a.wk-on{background:var(--paper-2);color:var(--ink)}
 .wk-rail a svg{width:22px;height:22px}

@@ -355,34 +355,316 @@ export function FormDrag({
   );
 }
 
-export function FormMarked({
+// --- It teaches you, not a class -----------------------------------------------------------------
+
+/**
+ * Beat 01: the chapter, the three ideas it stands on, and the shaky one found and patched.
+ *
+ * The ids are the prototype's, because `engine/motion.ts` reaches for `#pre-weak`, `#pre-a` and
+ * `#pre-tick` by name. `#pre-tick` carries its own `--len` because a mint tick drawn in 60 units
+ * of path is shorter than the sheet's 900-unit default and would otherwise appear complete.
+ */
+export function GapArt({
   label,
-  marks,
+  words,
 }: {
   label: string;
-  marks: { prose: readonly string[]; simile: string; comma: string };
+  words: { prerequisites: readonly string[]; chapter: string; weak: string };
+}) {
+  const boxes = [
+    { id: 'pre-a', x: 70, text: 86 },
+    { id: 'pre-b', x: 186, text: 202 },
+    { id: 'pre-c', x: 302, text: 316 },
+  ];
+  return (
+    <svg viewBox="0 0 460 280" role="img" aria-label={label}>
+      <title>{label}</title>
+      <path className="ink thin" d="M60 214 h340" />
+      {boxes.map((box, i) => (
+        <g id={box.id} key={box.id}>
+          <rect x={box.x} y="168" width="86" height="44" rx="12" fill="var(--paper-2)" />
+          <text className="hw" x={box.text} y="196" fontSize="18">
+            {words.prerequisites[i]}
+          </text>
+        </g>
+      ))}
+      <rect x="186" y="66" width="120" height="52" rx="14" fill="var(--pig)" />
+      <text x="246" y="98" textAnchor="middle" fontFamily="Poppins" fontSize="16" fill="#fff">
+        {words.chapter}
+      </text>
+      <path className="ink thin" d="M113 168 C113 140 200 140 226 118" />
+      <path className="ink thin" d="M229 168 v-50" />
+      <path className="ink thin" d="M345 168 C345 140 280 140 266 118" />
+      <g id="pre-weak" opacity="0">
+        <rect
+          x="66"
+          y="164"
+          width="94"
+          height="52"
+          rx="14"
+          fill="none"
+          stroke="var(--rose)"
+          strokeWidth="3"
+        />
+        <text className="hw rose" x="60" y="248" fontSize="19">
+          {words.weak}
+        </text>
+      </g>
+      <path
+        id="pre-tick"
+        className="ink mint draw"
+        d="M96 190 l10 10 l18 -22"
+        style={{ '--len': 60 } as React.CSSProperties}
+        opacity="0"
+      />
+    </svg>
+  );
+}
+
+/** Beat 02: one idea, three different routes into it. Still — nothing here animates. */
+export function RoutesArt({
+  label,
+  words,
+}: {
+  label: string;
+  words: { idea: string; ways: readonly string[] };
 }) {
   return (
-    <svg viewBox="0 0 620 380" role="img" aria-label={label}>
+    <svg viewBox="0 0 460 280" role="img" aria-label={label}>
       <title>{label}</title>
-      <g fontFamily="Poppins" fontSize="19" fill="var(--ink)">
-        {marks.prose.map((line, i) => (
-          <text key={line} x="110" y={130 + i * 38}>
-            {line}
+      <circle cx="230" cy="46" r="26" fill="var(--pig)" />
+      <text x="230" y="52" textAnchor="middle" fontFamily="Poppins" fontSize="15" fill="#fff">
+        {words.idea}
+      </text>
+      <path className="ink thin" d="M212 68 C160 100 120 120 96 146" />
+      <path className="ink thin" d="M230 74 v70" />
+      <path className="ink thin" d="M248 68 C300 100 340 120 364 146" />
+      <g>
+        <rect x="34" y="146" width="124" height="96" rx="16" fill="var(--paper-2)" />
+        <path className="ink pig" d="M60 214 L96 168 L132 214 Z" />
+        <text className="hw dim" x="52" y="238" fontSize="16">
+          {words.ways[0]}
+        </text>
+      </g>
+      <g>
+        <rect x="168" y="146" width="124" height="96" rx="16" fill="var(--paper-2)" />
+        <path className="ink thin" d="M188 176 h84 M188 196 h60 M188 216 h72" />
+        <text className="hw dim" x="186" y="238" fontSize="16">
+          {words.ways[1]}
+        </text>
+      </g>
+      <g>
+        <rect x="302" y="146" width="124" height="96" rx="16" fill="var(--paper-2)" />
+        <circle cx="344" cy="192" r="18" fill="var(--marigold)" />
+        <path className="ink" d="M368 192 h34" />
+        <text className="hw dim" x="316" y="238" fontSize="16">
+          {words.ways[2]}
+        </text>
+      </g>
+    </svg>
+  );
+}
+
+/** Beat 03: the curve dips where it slipped, settles, and only then says mastered. */
+export function MasteryArt({
+  label,
+  words,
+}: {
+  label: string;
+  words: { days: readonly string[]; slipped: string; done: string };
+}) {
+  const dayX = [46, 150, 252, 352];
+  return (
+    <svg viewBox="0 0 460 280" role="img" aria-label={label}>
+      <title>{label}</title>
+      <path className="ink thin" d="M50 220 h370" />
+      <g className="hw dim" fontSize="15">
+        {words.days.map((day, i) => (
+          <text key={day} x={dayX[i]} y="246">
+            {day}
           </text>
         ))}
       </g>
-      <rect x="308" y="112" width="150" height="24" rx="6" fill="var(--marigold)" opacity=".55" />
-      <text className="hw pig" x="466" y="106" fontSize="22">
-        {marks.simile}
-      </text>
+      <circle cx="60" cy="220" r="7" fill="var(--pig)" />
+      <circle cx="168" cy="220" r="7" fill="var(--pig)" />
+      <circle cx="272" cy="220" r="7" fill="var(--pig)" />
+      <circle cx="372" cy="220" r="7" fill="var(--paper-3)" />
       <path
-        className="ink rose"
-        d="M240 214 c-8 14 2 26 26 26 s86 -2 106 -8 s12 -28 -12 -30 s-96 -4 -120 12"
+        id="mast-curve"
+        className="ink pig draw"
+        d="M60 190 C120 176 150 150 168 140 C210 128 240 108 272 96 C320 84 350 76 372 72"
+        style={{ '--len': 360 } as React.CSSProperties}
       />
-      <text className="hw rose" x="380" y="252" fontSize="22">
-        {marks.comma}
-      </text>
+      <g id="mast-dip" opacity="0">
+        <path className="ink rose" d="M168 140 C186 158 200 166 214 158" strokeDasharray="5 7" />
+        <text className="hw rose" x="182" y="184" fontSize="17">
+          {words.slipped}
+        </text>
+      </g>
+      <g id="mast-done" opacity="0">
+        <rect x="326" y="40" width="104" height="34" rx="12" fill="var(--mint)" opacity=".16" />
+        <text className="hw" x="340" y="63" fontSize="18" fill="var(--mint)">
+          {words.done}
+        </text>
+      </g>
+    </svg>
+  );
+}
+
+// --- The climb --------------------------------------------------------------------------------------
+
+/** The path as a climb: two checkpoints held, a chest, where you are, and the chapter test. */
+export function ClimbQuest({
+  label,
+  on,
+  marks,
+}: {
+  label: string;
+  on: boolean;
+  marks: { reward: string; here: string; test: string };
+}) {
+  return (
+    <svg
+      className={on ? 'on' : undefined}
+      data-vibe="quest"
+      viewBox="0 0 900 340"
+      role="img"
+      aria-label={label}
+    >
+      <title>{label}</title>
+      <path
+        className="ink thin"
+        d="M40 258 C170 200 210 296 340 236 C470 178 520 268 650 206 C740 164 790 132 862 104"
+        strokeWidth="14"
+        stroke="var(--paper-3)"
+        strokeLinecap="round"
+      />
+      <path
+        className="ink pig"
+        d="M40 258 C170 200 210 296 340 236 C470 178 520 268 650 206"
+        strokeWidth="6"
+        strokeLinecap="round"
+      />
+      <g>
+        <circle cx="40" cy="258" r="20" fill="var(--mint)" />
+        <path
+          d="M32 258 l6 7 l12 -14"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+      <g>
+        <circle cx="207" cy="248" r="20" fill="var(--mint)" />
+        <path
+          d="M199 248 l6 7 l12 -14"
+          fill="none"
+          stroke="#fff"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+      <g>
+        <rect x="316" y="212" width="48" height="40" rx="8" fill="var(--marigold)" />
+        <rect x="316" y="226" width="48" height="10" fill="#14142B" opacity=".18" />
+        <path d="M340 212 v40" stroke="#14142B" strokeWidth="3" opacity=".25" />
+        <text className="hw" x="306" y="200" fontSize="18">
+          {marks.reward}
+        </text>
+      </g>
+      <g>
+        <circle cx="500" cy="238" r="22" fill="var(--pig)" />
+        <circle
+          cx="500"
+          cy="238"
+          r="30"
+          fill="none"
+          stroke="var(--pig)"
+          strokeWidth="3"
+          opacity=".35"
+        />
+        <text className="hw pig" x="466" y="196" fontSize="18">
+          {marks.here}
+        </text>
+      </g>
+      <g opacity=".55">
+        <circle cx="650" cy="206" r="18" fill="var(--paper-3)" />
+      </g>
+      <g>
+        <rect x="800" y="70" width="72" height="66" rx="16" fill="var(--ink)" />
+        <path
+          d="M818 104 l12 12 l24 -28"
+          fill="none"
+          stroke="var(--marigold)"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <text className="hw" x="782" y="56" fontSize="19">
+          {marks.test}
+        </text>
+      </g>
+    </svg>
+  );
+}
+
+/** The same four chapters, dressed as a plain progress list. Same content, different clothes. */
+export function ClimbFocus({
+  label,
+  on,
+  rows,
+  gate,
+}: {
+  label: string;
+  on: boolean;
+  rows: readonly { title: string; state: string }[];
+  gate: string;
+}) {
+  const tone: Record<string, string> = {
+    mastered: 'var(--mint)',
+    'in progress': 'var(--pig)',
+    next: 'var(--ink-3)',
+  };
+  return (
+    <svg
+      className={on ? 'on' : undefined}
+      data-vibe="focus"
+      viewBox="0 0 900 340"
+      role="img"
+      aria-label={label}
+    >
+      <title>{label}</title>
+      <g fontFamily="Poppins" fontSize="16" fill="var(--ink)">
+        {rows.map((row, i) => {
+          const y = 40 + i * 64;
+          const current = row.state === 'in progress';
+          return (
+            <g key={row.title}>
+              <rect
+                x="40"
+                y={y}
+                width="820"
+                height="52"
+                rx="14"
+                fill={current ? 'var(--pig-soft)' : 'var(--paper-2)'}
+              />
+              <text x="66" y={y + 32} fill={row.state === 'next' ? 'var(--ink-3)' : undefined}>
+                {row.title}
+              </text>
+              <text x="800" y={y + 32} textAnchor="end" fontSize="14" fill={tone[row.state]}>
+                {row.state}
+              </text>
+            </g>
+          );
+        })}
+        <rect x="40" y="296" width="820" height="34" rx="12" fill="var(--paper-3)" />
+        <text x="66" y="319" fontSize="14" fill="var(--ink-2)">
+          {gate}
+        </text>
+      </g>
     </svg>
   );
 }

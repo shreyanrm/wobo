@@ -263,8 +263,21 @@ export function masteredGround(
   return out;
 }
 
+/**
+ * One step of a bridge. `title` names it; `idea` is what the step actually SAYS.
+ *
+ * The idea used to be thrown away: `composeBridge` kept `c.title` and dropped the card, so the
+ * bridge rendered as a table of contents and the learner was then told they were carrying the
+ * ground. A step with no body teaches nothing, and a card made of them is a list of promises.
+ */
+export interface BridgeStep {
+  title: string;
+  /** The step's own words. Empty when the engine gave a heading and nothing under it. */
+  idea: string;
+}
+
 export interface BridgePlan {
-  steps: string[];
+  steps: BridgeStep[];
   /** True when the outline is the honest local floor rather than a composed course. */
   seeded: boolean;
 }
@@ -292,19 +305,31 @@ export async function composeBridge(sdk: Sdk, topic: Topic, ground: Topic[]): Pr
     if (isRecord(res.output)) {
       const src = isRecord(res.output.artifact) ? res.output.artifact : res.output;
       if (res.output.verified !== false && src.verified !== false && Array.isArray(src.cards)) {
+        // The card's own body travels with its title. A bridge whose steps are headings is a table
+        // of contents, and a table of contents is not a lesson the learner can be said to have had.
         const steps = src.cards
-          .map((c) => (isRecord(c) && typeof c.title === 'string' ? c.title.trim() : ''))
-          .filter((t) => t !== '');
+          .filter(isRecord)
+          .map((c) => ({
+            title: typeof c.title === 'string' ? c.title.trim() : '',
+            idea: typeof c.idea === 'string' ? c.idea.trim() : '',
+          }))
+          .filter((step) => step.title !== '' || step.idea !== '');
         if (steps.length >= 3) return { steps, seeded: false };
       }
     }
   } catch {
-    // the floor below is the outcome — never an error state
+    // the floor below is the outcome, never an error state
   }
   return {
     steps: [
-      ...ground.map((g) => `stand on ${g.name.toLowerCase()} — already yours`),
-      `one new step: ${topic.name.toLowerCase()}`,
+      ...ground.map((g) => ({
+        title: g.name.toLowerCase(),
+        idea: 'already yours. we stand on it and go up from there.',
+      })),
+      {
+        title: topic.name.toLowerCase(),
+        idea: 'the new step. we take this one together, slowly, starting now.',
+      },
     ],
     seeded: true,
   };

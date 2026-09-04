@@ -5,7 +5,7 @@
  *
  * Everything here is safe to call where there is no `window` (the build's type-check, a unit test,
  * a server render). Nothing here touches the DOM beyond reading, and every reader has a defined
- * answer when the browser is missing: no motion, no pointer, light paper. That is the quiet
+ * answer when the browser is missing: no motion, no pointer, white paper. That is the quiet
  * fallback — the page renders, it simply does not perform.
  */
 
@@ -53,12 +53,12 @@ export function prefersReducedMotion(win?: Window): boolean {
   return media('(prefers-reduced-motion: reduce)', win ?? safeWindow());
 }
 
-/** A mouse or a hovering pen. The nib and the ribbon exist only for this pointer. */
+/** A mouse or a hovering pen. The magnetic controls reach only for this pointer. */
 export function finePointer(win?: Window): boolean {
   return media('(pointer: fine)', win ?? safeWindow());
 }
 
-/** True while the page wears its night theme — the ribbon changes pigment and blend mode with it. */
+/** True while the page wears its night theme. */
 export function isDark(doc: Document | undefined = safeDocument()): boolean {
   return doc?.documentElement.getAttribute('data-theme') === 'dark';
 }

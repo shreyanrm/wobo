@@ -11,5 +11,21 @@ export * from './atom-seed';
 export * from './dto';
 export * from './event-mapping';
 export * from './interface';
-export { InMemoryKgtopg, type InMemoryKgtopgOptions } from './reference/in-memory';
+export {
+  bandRank,
+  type ChoosableNode,
+  type ChooseOptions,
+  chooseNextNode,
+  isAtFloor,
+  MASTERY_BANDS,
+  MASTERY_FLOOR,
+} from './reference/chooser';
+export {
+  InMemoryKgtopg,
+  type InMemoryKgtopgOptions,
+  type MasteryBandChange,
+  type MasteryEvidencePoint,
+  type MasteryNodeRecord,
+  type MasterySnapshot,
+} from './reference/in-memory';
 export * from './relay';

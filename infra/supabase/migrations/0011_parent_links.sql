@@ -42,7 +42,7 @@ create table if not exists learner.parent_links (
   parent_email_hash text not null,
   -- The address itself, present only while the link is invited or linked (see above).
   parent_email text,
-  -- What the Sunday note calls the learner ("Aanya's week"). A first name, never more.
+  -- What the Sunday note calls the learner ("<name>'s week"). A first name, never more.
   learner_name text,
   -- The family's zone for the parent's mail when the mail dials (0010) carry none.
   timezone text,

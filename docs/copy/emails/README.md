@@ -39,7 +39,7 @@ Specs for every message Wobo sends. Each file carries the trigger, the recipient
 `plan-confirmation` · `receipt` · `renewal-reminder-30-days` · `renewal-reminder-7-days` · `payment-failed` · `cancel-thanks`
 
 **Growth surfaces** (not email; specs live in [`../growth/`](../growth/))
-`save-flow` · `gifted-week` · `gift-page`
+`cancel-flow` · `gifted-week` · `gift-page`
 
 **Win-back**
 `win-back-30-days` · `win-back-90-days`

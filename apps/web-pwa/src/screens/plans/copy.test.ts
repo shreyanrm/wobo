@@ -94,8 +94,14 @@ describe('the copy laws', () => {
  * allowance drawing, the card and table shapes, the gift block and the money questions are all
  * still the prototype's.
  *
- * Its WORDING is held by the law rather than by a diff, because the two differ on purpose in two
- * places. The prototype's cards describe a product where every tier carries one learner and
+ * Its WORDING is held by the law rather than by a diff. The two differ on purpose in three
+ * places.
+
+ *  · Every DOOR and the CLOSE are law v5's: the prototype still invites a reader to "start
+ *    learning for free" into a product that has not opened, and promote-before-you-invite makes
+ *    that an ask for early access. Those strings are asserted against the law below, never
+ *    against the mock-up.
+ * And two more: The prototype's cards describe a product where every tier carries one learner and
  * nothing at all is gated; WOBO-PLAN §14 says Max carries two learners and that voice and
  * past-paper sets are the paid extras, and a prototype does not get to change the deal. And the
  * prototype's phrasing for a multiple ("five times the questions") is written here in law v5's
@@ -118,9 +124,15 @@ describe('the plans page is the prototype', () => {
   it("draws the three cards in the prototype's frame", () => {
     for (const tier of PLAN_TIERS) {
       inProto(`${tier.id}.name`, `<div class="name">${tier.name}</div>`);
-      inProto(`${tier.id}.cta`, `>${tier.cta}</a>`);
-      inProto(`${tier.id}.fine`, `<div class="fine">${tier.fine}</div>`);
+      // the fine line is the prototype's words; the mock-up now carries its cadences as data
+      // attributes on that div, so the words are asserted rather than the tag around them
+      inProto(`${tier.id}.fine`, tier.fine);
       expect([`${tier.id}.lines`, tier.lines.length]).toEqual([`${tier.id}.lines`, 4]);
+      // the card's door is the law's, not the mock-up's
+      expect([`${tier.id}.cta`, /early access|choose/i.test(tier.cta)]).toEqual([
+        `${tier.id}.cta`,
+        true,
+      ]);
     }
     inProto('best', `<span class="best">${BEST_FOR}</span>`);
   });
@@ -133,10 +145,13 @@ describe('the plans page is the prototype', () => {
     inProto('table.subjects', '<div>Every subject your board sets</div>');
   });
 
-  it('carries the gift block and the money questions', () => {
+  it('carries the gift block, and asks the questions the prototype asks', () => {
     for (const [k, v] of Object.entries(PLANS_PAGE.gift)) inProto(`gift.${k}`, v);
-    for (const item of faqItems()) inProto('faq.q', `<summary>${item.question}</summary>`);
-    for (const [k, v] of Object.entries(PLANS_PAGE.close)) inProto(`close.${k}`, v);
+    // every question the prototype asks is asked here; the page may ask one more (schools) that
+    // the mock-up has dropped, and its answers are the product's rather than the mock-up's
+    const theirs = [...PROTO.matchAll(/<summary>([^<]+)<\/summary>/g)].map((m) => m[1] as string);
+    const ours = faqItems().map((i) => i.question);
+    expect(theirs.filter((q) => !ours.includes(q))).toEqual([]);
   });
 });
 
@@ -244,6 +259,55 @@ describe('the money questions', () => {
     const answer = faqItems().find((i) => i.question === 'Do prices change by country?')?.answer;
     expect(answer).toContain('without asking where you are');
     expect(answer).not.toMatch(/[₹$]\d/);
+  });
+});
+
+/**
+ * "Cancel, never refund" (DESIGN.md §0, owner, 4 September 2026). No product surface may promise
+ * money back; cancelling is the answer, and the page has to say what cancelling actually does,
+ * because the site is what a buyer reads before there is a settings screen to try.
+ */
+describe('cancel, never refund', () => {
+  const answer = (question: string): string =>
+    faqItems().find((i) => i.question === question)?.answer ?? '';
+  const cancel = answer('How do I cancel?');
+  const money = answer('Do you give money back?');
+
+  it('promises money back nowhere on the page', () => {
+    // the two exceptions are the name of the legal document and the answer that says no
+    const allowed = new Set<string>([CHECKOUT_PAGE.cancelling, 'Do you give money back?', money]);
+    for (const [label, text] of STRINGS) {
+      if (allowed.has(text)) continue;
+      expect([label, /refund|money back/i.test(text)]).toEqual([label, false]);
+    }
+  });
+
+  it('answers the money question with a no, and states no window at all', () => {
+    expect(money.startsWith('No.')).toBe(true);
+    expect(money).toContain('Cancelling is the answer');
+    expect(money).not.toMatch(/\b(\d+|fourteen|thirty) days\b/i);
+  });
+
+  it('tells a canceller everything that happens to them', () => {
+    expect(cancel).toContain('Two taps');
+    expect(cancel).toContain('until the month you paid for ends');
+    expect(cancel).toContain('nothing renews');
+    expect(cancel).toContain('everything you learnt stays');
+    expect(cancel).toContain('puts the plan back');
+  });
+
+  it('offers nothing on the way out', () => {
+    for (const [label, text] of STRINGS) {
+      expect([
+        label,
+        /are you sure|exit survey|discount to stay|pause instead/i.test(text),
+      ]).toEqual([label, false]);
+    }
+  });
+
+  it('names the money document by leading with cancelling', () => {
+    expect(CHECKOUT_PAGE.cancelling.startsWith('Cancelling')).toBe(true);
+    expect('refunds' in CHECKOUT_PAGE).toBe(false);
   });
 });
 

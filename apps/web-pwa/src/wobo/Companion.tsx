@@ -20,6 +20,7 @@ import { useShellMounted } from '../ui/shellPresence';
 import { sfx } from '../ui/sound';
 import { boardTurn } from './board-turn';
 import { appendToArchive, type ChatTurn, useWoboChat } from './chat';
+import { subscribeCompanionOpen } from './drawer';
 import { FlyingWobo } from './Flight';
 import { registerHoldToTalk } from './hold';
 import {
@@ -413,6 +414,12 @@ export function WoboCompanion() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [turns.length, open, busy, tb?.turns.length]);
+
+  // The drawer's second opener (wobo/drawer.ts). When Wobo changes approach on its own, the new
+  // explanation is asked for on the learner's behalf and arrives here; a drawer that only ever
+  // opened on a tap left that teaching in a closed panel the learner had no reason to open. The
+  // focus, Escape and return-focus contract above is the same either way, because `open` is.
+  useEffect(() => subscribeCompanionOpen(() => setOpen(true)), []);
 
   const submit = (e: FormEvent) => {
     e.preventDefault();

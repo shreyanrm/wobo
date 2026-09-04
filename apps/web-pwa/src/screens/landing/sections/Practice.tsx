@@ -109,19 +109,16 @@ export function Practice() {
                     ref={ring}
                     style={{ '--len': 700 } as React.CSSProperties}
                   />
-                  <text
-                    id="ringtxt"
-                    className="hw pig"
-                    x="112"
-                    y="258"
-                    textAnchor="middle"
-                    fontSize="26"
-                    opacity={ringLabel ? 1 : 0}
-                  >
-                    {ringLabel}
-                  </text>
                 </svg>
               </fieldset>
+              {/* THE ONE PLACE THIS PORT MOVES SOMETHING. The prototype draws this label inside the
+                  ring's SVG at y=258 — below the grid, where the button row paints straight over
+                  it, at every width and in both themes. The words are the point of the moment
+                  ("that's a quarter, not half"), so they are rendered here instead: same words,
+                  same hand, same pigment, in the flow, where they can be read and announced. */}
+              <p className="ringsay" id="ringtxt" aria-live="polite">
+                {ringLabel}
+              </p>
               <div className="row2">
                 <button type="button" className="btn" id="check" onClick={check}>
                   <span>{PRACTICE.check}</span>

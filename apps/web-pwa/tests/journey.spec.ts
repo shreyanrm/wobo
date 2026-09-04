@@ -66,7 +66,7 @@ test("onboarding walks Wobo's beats and opens the home", async ({ page }, info) 
   // the name — Wobo's input only appears once Wobo has finished asking, so wait for it, not a timer
   const nameField = page.getByLabel('your name');
   await nameField.waitFor({ state: 'visible', timeout: 20_000 });
-  await nameField.fill('Aanya');
+  await nameField.fill('Learner');
   await page.getByRole('button', { name: 'continue' }).click();
 
   // when they landed on this planet — age is derived from it, never asked

@@ -77,13 +77,32 @@ function Cell({ value }: { value: Benefit }) {
   return <div>{value}</div>;
 }
 
-/** What is left of today, read from the brain, drawn as the prototype draws it. */
+/**
+ * What is left of today, read from the brain, drawn as the prototype draws it.
+ *
+ * TWO THINGS THIS DOES NOT DO, both of them for the visitor this page exists for — someone signed
+ * out, reading it to decide:
+ *
+ *  · It does not ask the brain who they are. `/v1/me` is an authenticated endpoint, and calling it
+ *    without a session put four console errors (a CORS block, a 422, ERR_FAILED, a failed request)
+ *    into every signed-out visit while the page fell back to the unknown-allowance copy anyway.
+ *    Now the session is checked first, and the sentence is rendered directly.
+ *  · It does not draw a bar it has nothing to put in. The track used to render regardless and fill
+ *    to zero for anyone signed out, so an empty meter sat directly under "free, every day" and
+ *    beside "enough for a normal evening" — a drained gauge arguing against the page it is on. No
+ *    reading, no track: the sentence and the hand carry the promise, which is what they are for.
+ */
 function Allowance() {
   const sdk = useSdk();
   const [me, setMe] = useState<Me | null>(null);
   const [drawn, setDrawn] = useState(false);
   useEffect(() => {
     let live = true;
+    // No session, no question. Where live auth is wired, `subjectId()` is null until someone has
+    // actually signed in, and asking an authenticated endpoint on their behalf is what filled a
+    // signed-out console with a CORS block, a 422 and two failed requests. Where there is no
+    // account layer at all the identity IS the dev mock, and the call is meaningful again.
+    if (sdk.account && sdk.account.subjectId() === null) return;
     // A budget the page cannot read is not an error worth showing: the drawing says so itself.
     void sdk
       .me()
@@ -106,20 +125,20 @@ function Allowance() {
     <Reveal className="pl-allow">
       <Sticker rotate={6}>{PLANS_PAGE.allowance.sticker}</Sticker>
       <b>{PLANS_PAGE.allowance.title}</b>
-      <div
-        className="pl-bar"
-        {...(share !== null
-          ? {
-              role: 'progressbar',
-              'aria-valuemin': 0,
-              'aria-valuemax': allowance.limit ?? 0,
-              'aria-valuenow': allowance.remaining ?? 0,
-              'aria-label': PLANS_PAGE.allowance.title,
-            }
-          : {})}
-      >
-        <i style={{ width: drawn && share !== null ? `${Math.round(share * 100)}%` : 0 }} />
-      </div>
+      {share !== null && (
+        <div
+          className="pl-bar"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={allowance.limit ?? 0}
+          aria-valuenow={allowance.remaining ?? 0}
+          aria-label={PLANS_PAGE.allowance.title}
+        >
+          {/* scaleX from a left origin, never width: a width transition relayouts every frame,
+              which is law v5 §8's second cause of jitter. The same fix course/shared.tsx made. */}
+          <i style={{ transform: `scaleX(${drawn ? share : 0})` }} />
+        </div>
+      )}
       <span>{allowanceLine(allowance)}</span>
       <div className="hand">{PLANS_PAGE.allowance.hand}</div>
     </Reveal>

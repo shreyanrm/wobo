@@ -15,7 +15,7 @@
 /* the step screen */
 .ob-screen{background:var(--paper);min-height:100dvh;display:grid;grid-template-rows:auto 1fr;position:relative;overflow:hidden}
 .ob-top{display:flex;align-items:center;justify-content:space-between;padding:22px 28px}
-.ob-top .ob-wm svg{height:22px;fill:var(--ink)}
+.ob-top .ob-wm svg{height:20px;color:var(--ink)}
 .ob-top .ob-dots{display:flex;gap:8px}
 .ob-top .ob-dots i{width:10px;height:10px;border-radius:50%;background:var(--paper-3)}
 .ob-top .ob-dots i.ob-on{background:var(--pig);width:26px;border-radius:5px}

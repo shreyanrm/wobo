@@ -116,6 +116,10 @@ beforeEach(() => {
 afterEach(() => {
   globalThis.fetch = realFetch;
   plane.dismiss();
+  // `dismiss` only forgets a board that was closed empty, and these turns leave ink on the session's
+  // board. The plane and its book are ONE module-level thing shared by every test in the run, so a
+  // board left inked here is a board the next file inherits: put the book back to rest.
+  for (const id of boardBook.ids()) boardBook.drop(id);
 });
 
 describe('a turn that has both a mark and a diagram in it', () => {

@@ -93,7 +93,7 @@ describe('law v5 tokens are the prototype’s, character for character', () => {
     const mine = block(TOKENS, ':root,[data-theme="light"]{');
     for (const d of [
       '--gutter:clamp(20px, 5vw, 48px)',
-      '--band:clamp(72px, 9vw, 132px)',
+      '--band:clamp(96px, 11vw, 184px)',
       '--colgap:clamp(32px, 5vw, 80px)',
       '--s5:72px',
       '--s6:128px',

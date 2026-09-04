@@ -140,7 +140,12 @@ export function faqItems(_tiers: readonly PlanTier[] = PLAN_TIERS): FaqItem[] {
     {
       question: 'How do I cancel?',
       answer:
-        'Settings → Your plan → Cancel. Two taps, no call, no "are you sure" maze. You keep the plan until the month you paid for ends.',
+        'Settings → Your plan → Cancel. Two taps, no call, no offer to stay, no reason to give. You keep the plan until the month you paid for ends, nothing renews after that, and everything you learnt stays. Change your mind before that date and one tap puts the plan back.',
+    },
+    {
+      question: 'Do you give money back?',
+      answer:
+        'No. Cancelling is the answer instead: you keep the plan to the end of the month you paid for and nothing renews. Where the law gives you a refund you still have it, and the cancellation document lists every case.',
     },
     {
       question: 'Do prices change by country?',
@@ -172,5 +177,6 @@ export const CHECKOUT_PAGE = {
     'Two separate consent boxes, both unticked, and neither pre-ticked for you.',
     'A receipt by email with the same information again.',
   ],
-  refunds: 'Renewals, cancelling and refunds, in full',
+  /** The label every surface links the money document by. Cancelling leads, because it is the answer. */
+  cancelling: 'Cancelling, renewals and refunds, in full',
 } as const;

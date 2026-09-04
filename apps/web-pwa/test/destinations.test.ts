@@ -76,7 +76,9 @@ describe('nav intents are resolved before the gateway round-trip', () => {
   // The turn lives in the app RUNTIME (src/AppRuntime.tsx) — the root above it is the public
   // site's door and holds no conversation at all.
   const app = readFileSync(join(import.meta.dir, '..', 'src', 'AppRuntime.tsx'), 'utf8');
-  const askBody = app.slice(app.indexOf('const ask = async (text: string)'));
+  // The anchor is the signature's opening, not its whole parameter list: `ask` takes options now
+  // (wobo/chat.tsx AskOptions), and a scan pinned to the old arity silently sliced to nothing.
+  const askBody = app.slice(app.indexOf('const ask = async (text: string'));
 
   it('resolves the destination above the llm.invoke call in ask()', () => {
     const nav = askBody.indexOf('resolveDestination(text)');

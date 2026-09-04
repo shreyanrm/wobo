@@ -16,6 +16,7 @@ import type { ImageSpec, Item as WireItem } from '@wobo/contracts/plexus';
 import { useWoboBus } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type GroundReport, groundFor, subscribeGround } from '../../curriculum/placement';
 import { topicById } from '../../curriculum/registry';
 import type { Topic } from '../../data/model';
 import { AnatomyScene, parseAnatomyScene } from '../../engines/AnatomyScene';
@@ -60,12 +61,23 @@ import {
   WordProblemBreakdown,
   type WordProblemSpec,
 } from '../../engines/WordProblemBreakdown';
+import { preferredAnalogy } from '../../store/mind';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { CourseIntroScene } from '../../ui/courseIntro';
 import { hueForTopic } from '../../ui/hues';
 import { cascade, rise } from '../../ui/kit';
+import { type BridgeLesson, bridgeFor, bridgeFromReport } from '../../wobo/bridge';
 import { useWoboChat } from '../../wobo/chat';
+import { openCompanion } from '../../wobo/drawer';
+import {
+  noteConceptCorrect,
+  type ReteachTurn,
+  reteachOnMiss,
+  seedFromEvidence,
+} from '../../wobo/reteach';
+import { topicNodeUuid } from '../learn/mastery';
+import { BridgeStep } from './BridgeStep';
 import { Greeting } from './Greeting';
 import type { BarState, LessonOutline } from './shared';
 import {
@@ -266,6 +278,36 @@ export function parseGenCourse(raw: unknown, fallbackTitle: string): GenCourse |
   };
 }
 
+/**
+ * The bridge across the ground under a topic, laid in front of the course's own first card.
+ *
+ * The learner experiences ONE lesson that starts a little lower down, never a detour they have to
+ * find their way back from: the bridge is card one, the topic is card two, and the side column's
+ * outline shows them as the same journey. Null means the learner already stands on everything this
+ * topic needs, and the course begins exactly as it always did.
+ *
+ * The card inserted here is a PLACEHOLDER so the course's own counting (stops, the outline, the
+ * resume index) is right. What the learner reads is `BridgeStep`, which is chosen by this card's
+ * id at render time and owns its own words, its own bar and its own lack of a reward.
+ */
+function withBridge(course: GenCourse, lesson: BridgeLesson | null): GenCourse {
+  if (!lesson) return course;
+  return {
+    ...course,
+    cards: [
+      {
+        id: 'bridge',
+        kind: 'text',
+        title: `First, the ground under ${lesson.topic.name.toLowerCase()}`,
+        idea: lesson.opening,
+        interaction: { kind: 'tap', prompt: '' },
+        reveal: lesson.arrival,
+      },
+      ...course.cards,
+    ],
+  };
+}
+
 /** The client-side floor for mock mode or a network refusal — structural, never fabricated. */
 function seedCourse(title: string): GenCourse {
   const n = title.toLowerCase();
@@ -372,20 +414,12 @@ function seedCourse(title: string): GenCourse {
 
 // --- Events: a deterministic node id per topic (the contract wants UUIDs) --------------------------
 
-export function topicNodeUuid(topicId: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < topicId.length; i++) {
-    h ^= topicId.charCodeAt(i);
-    h = Math.imul(h, 0x01000193) >>> 0;
-  }
-  let h2 = 0x1000193 ^ topicId.length;
-  for (let i = topicId.length - 1; i >= 0; i--) {
-    h2 = Math.imul(h2 ^ topicId.charCodeAt(i), 0x85ebca6b) >>> 0;
-  }
-  const a = h.toString(16).padStart(8, '0');
-  const b = h2.toString(16).padStart(8, '0').slice(0, 4);
-  return `00000000-0000-7000-8000-${a}${b}`;
-}
+/**
+ * Moved to `screens/learn/mastery.ts`, where the bands derived from this evidence are read, so the
+ * id a topic records under and the id its band is looked up by cannot drift apart. Re-exported here
+ * because both the practice pools and the forge builder import it from this module.
+ */
+export { topicNodeUuid };
 
 // --- Per-card artifacts (hydrated through the matching engine, refusal invisible) ------------------
 
@@ -628,6 +662,7 @@ function ItemBlock({
 function ItemSet({
   items,
   nodeId,
+  topicName,
   courseId,
   heading,
   eyebrow,
@@ -640,6 +675,8 @@ function ItemSet({
 }: {
   items: GenItem[];
   nodeId: string;
+  /** What is being learned, in the learner's words. Wobo re-teaches by name, never by node id. */
+  topicName: string;
   courseId: string;
   heading: string;
   eyebrow: string;
@@ -653,10 +690,65 @@ function ItemSet({
 }) {
   const sdk = useSdk();
   const bus = useWoboBus();
+  // Held in a ref, not read straight into the callback below: the conversation's context value is a
+  // fresh object on every runtime render, and `reteach` is a dependency of the action-bar effect.
+  // A callback that changed identity with it would re-run that effect on every runtime render,
+  // which is the setBar -> parent setState -> render loop this file already warns about.
+  const chat = useWoboChat();
+  const chatRef = useRef(chat);
+  chatRef.current = chat;
   const [entries, setEntries] = useState<string[]>(() => items.map(() => ''));
   const [results, setResults] = useState<boolean[] | null>(null);
+  const [reteachLine, setReteachLine] = useState<string | null>(null);
   const round = useRef(0);
   const startedAt = useRef(Date.now());
+
+  /**
+   * What Wobo does with a round that came back wrong. Two misses on this concept is a pattern
+   * rather than a slip, and the answer is never the same set shown again: the ladder in
+   * wobo/reteach.ts picks an approach on a different axis, Wobo says so in one warm line, and the
+   * ask rides the routing every mode already uses. Offline the line still lands and the ask waits,
+   * because a queued bubble the learner never typed is noise rather than teaching.
+   */
+  const reteach = useCallback(
+    (marks: boolean[]) => {
+      const missed = marks.filter((ok) => !ok).length;
+      if (missed === 0) {
+        // Only a clean round clears the tally: one right answer must not erase two wrong ones.
+        noteConceptCorrect(nodeId);
+        setReteachLine(null);
+        return;
+      }
+      let turn: ReteachTurn | null = null;
+      for (let i = 0; i < missed; i++) {
+        turn =
+          reteachOnMiss(sdk, {
+            nodeId,
+            // One node teaches one concept, so the node is what the tally is kept against.
+            conceptId: nodeId,
+            from: 'worksheet',
+            context: { topic: topicName, world: preferredAnalogy() },
+          }) ?? turn;
+      }
+      if (!turn) return;
+      setReteachLine(turn.line);
+      bus.dispatch([{ type: 'setMood', mood: 'hint' }]);
+      const { ask, offline } = chatRef.current;
+      if (offline) return;
+      // The new explanation lands in Wobo's drawer, so the drawer opens (wobo/drawer.ts): the
+      // learner reads "let me show this a different way" and then actually sees the different way.
+      // Silent, because Wobo asked it: the archive holds the learner's own words and nobody else's.
+      openCompanion({ reason: 'reteach', ask: turn.ask });
+      void ask(turn.ask, { silent: true }).catch(() => undefined);
+    },
+    [sdk, nodeId, topicName, bus],
+  );
+
+  // Mastery already persists this node's answers, so a session that ended on two misses resumes
+  // with the ladder knowing to teach it another way. Ignored when this session is already counting.
+  useEffect(() => {
+    seedFromEvidence(nodeId, sdk.mastery.loadCache().nodes[nodeId]?.evidence ?? []);
+  }, [sdk, nodeId]);
 
   const answered = entries.filter((e) => e.trim() !== '').length;
   const evaluated = results !== null;
@@ -705,6 +797,7 @@ function ItemSet({
               if (r[i]) awardCorrect(item, i);
             });
             round.current += 1;
+            reteach(r);
             setResults(r);
           },
         },
@@ -738,6 +831,7 @@ function ItemSet({
     sdk,
     nodeId,
     courseId,
+    reteach,
   ]);
 
   const state = (i: number): 'idle' | 'correct' | 'retry' =>
@@ -766,6 +860,16 @@ function ItemSet({
             <div style={{ ...cardTitle, marginTop: 8 }}>{heading}</div>
           </div>
         </motion.div>
+        {/* Wobo changing approach, said out loud before the next way of teaching it arrives. */}
+        {reteachLine && (
+          <motion.div
+            variants={rise}
+            style={{ ...lead, color: 'var(--wobo-ink-700)' }}
+            role="status"
+          >
+            {reteachLine}
+          </motion.div>
+        )}
         {items.map((item, i) => (
           <ItemBlock
             key={item.id}
@@ -1146,6 +1250,22 @@ export function Composing({
   // Owner replay law: a completed course replays freely but earns no xp. Captured once at mount —
   // completeTopic flips `completed` at the greeting, so a live read would mislabel a first run.
   const replay = useRef(completed.has(topicId)).current;
+  // The ground the learner stands on, read once at the door. A bridge that appeared halfway
+  // through would be a detour; this one is the run-up, so it is decided before the lesson starts.
+  const groundAtEntry = useRef(completed).current;
+
+  // The bridge itself, so card one can be rendered by its own component rather than squeezed into
+  // the generic idea card. Null whenever the learner already stands on everything this topic needs.
+  const [bridge, setBridge] = useState<BridgeLesson | null>(null);
+  // A ground report that settles after this course started composing (curriculum/placement.ts).
+  const lateGround = useRef<GroundReport | null>(null);
+  useEffect(
+    () =>
+      subscribeGround((report) => {
+        if (report.topicId === topicId) lateGround.current = report;
+      }),
+    [topicId],
+  );
 
   const nodeUuid = useMemo(() => topicNodeUuid(topicId), [topicId]);
   const hue = hueForTopic(topicId);
@@ -1200,6 +1320,20 @@ export function Composing({
     setMood('thinking');
     (async () => {
       let parsed: GenCourse | null = null;
+      // Asked for ALONGSIDE the course, never after it, so crossing the ground under a topic never
+      // costs the learner a second wait. `bridgeFor` floors to an honest outline when the engine has
+      // nothing verified to offer, so this is a lesson or it is nothing, never an error.
+      // The placement check's own report wins when it has settled one for this topic: it knows what
+      // the learner actually answered, where the static graph only knows what they finished. With no
+      // report (skipped, or a topic with nothing under it) the graph is the honest fallback.
+      const settled = groundFor(topicId);
+      const bridging = (
+        settled
+          ? // The check's answers correct the learner's history; they do not replace it. Without
+            // `groundAtEntry` a learner with twenty finished topics had all twenty thrown away.
+            bridgeFromReport(sdk, topic, settled, topicById, groundAtEntry)
+          : bridgeFor(sdk, { topic, completed: groundAtEntry, lookup: topicById })
+      ).catch(() => null);
       try {
         const timeout = new Promise<never>((_, reject) => {
           timer = window.setTimeout(() => reject(new Error('compose timeout')), COMPOSE_TIMEOUT_MS);
@@ -1232,7 +1366,22 @@ export function Composing({
       }
       window.clearTimeout(timer);
       if (cancelled) return;
-      const built = parsed ?? seedCourse(title);
+      let lesson = await bridging;
+      if (cancelled) return;
+      // A check can settle for this topic WHILE the course is composing: the gate and the player are
+      // different screens and the compose starts the moment this one mounts. `subscribeGround` is
+      // the seam the placement module publishes for exactly this, and a report that lands late wins,
+      // because it knows what the learner just answered where the static graph only knows what they
+      // finished. The common case never reaches this branch.
+      const late = lateGround.current;
+      if (late && late !== settled) {
+        lesson = await bridgeFromReport(sdk, topic, late, topicById, groundAtEntry).catch(
+          () => lesson,
+        );
+        if (cancelled) return;
+      }
+      setBridge(lesson);
+      const built = withBridge(parsed ?? seedCourse(title), lesson);
       setCourse(built);
       setSettled(true);
       setMood('idle');
@@ -1329,8 +1478,11 @@ export function Composing({
   // content cards: act → check (reveal + XP) → continue
   const card = course && idx < stops ? course.cards[idx] : null;
   useEffect(() => {
-    // a discovery card or an activity engine owns its own action bar — skip the act/check flow
-    if (!entered || !card || card.discovery || card.activity) return;
+    // a discovery card, an activity engine or the bridge owns its own action bar — skip the
+    // act/check flow. The bridge in particular must never reach the `award('bonus')` below: the
+    // ground under a topic is not an achievement, and paying a child 15 XP for tapping past it
+    // teaches them that the tap was the point.
+    if (!entered || !card || card.discovery || card.activity || card.id === 'bridge') return;
     if (!revealed) {
       setBar({
         primary: {
@@ -1399,6 +1551,7 @@ export function Composing({
         <ItemSet
           items={course.workbook}
           nodeId={nodeUuid}
+          topicName={title}
           courseId={course.courseId}
           eyebrow="The workbook · three quick ones"
           heading="Hold what you just built"
@@ -1419,6 +1572,7 @@ export function Composing({
         <ItemSet
           items={course.boss}
           nodeId={nodeUuid}
+          topicName={title}
           courseId={course.courseId}
           eyebrow="The boss · answered together, checked together"
           heading="Prove it is yours"
@@ -1508,6 +1662,17 @@ export function Composing({
         {a.type === 'anatomy' && (
           <AnatomyScene spec={a.spec} hue={hue} setBar={setBar} onDone={advance} />
         )}
+      </Deck>
+    );
+  }
+
+  // Card one, when the ground under this topic needed crossing. Its own renderer, because a bridge
+  // is not an idea card: the steps are steps, the prompt asks for the tap that exists, and reading
+  // the ground earns nothing (screens/course/BridgeStep.tsx).
+  if (card?.id === 'bridge' && bridge) {
+    return (
+      <Deck id="gen-bridge">
+        <BridgeStep lesson={bridge} hue={hue} setBar={setBar} onDone={() => setIdx((i) => i + 1)} />
       </Deck>
     );
   }

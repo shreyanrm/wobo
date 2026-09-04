@@ -8,7 +8,7 @@ describe('identity boundary', () => {
     const session = await sdk.identity.getSession();
     expect(session.subject_id).toBe('00000000-0000-7000-8000-000000000001');
     expect(session.consent_tier).toBe('un_elevated');
-    expect(session.display_name).toBe('Aanya');
+    expect(session.display_name).toBe('Learner');
     expect(await sdk.identity.getAccessToken()).toBeNull();
   });
 
@@ -70,5 +70,25 @@ describe('kgtopg binding', () => {
     const sdk = createSdk();
     const node = await sdk.kgtopg.ontology.getNode(ATOM_NODE_IDS.linearEquations);
     expect(node?.name).toContain('linear equations');
+  });
+});
+
+/**
+ * `config` is the RAW resolved configuration. Under live auth the canonical subject is auth.uid()
+ * and `config.mockSubjectId` is still the dev knob, so a governed view asked about it was asked
+ * about a learner with no evidence at all and answered from an all-not_started band set. The
+ * attribution subject has to be reachable, and it is `sdk.subjectId`.
+ */
+describe('the subject everything is filed under', () => {
+  it('is exposed on the sdk, and is the one the events are attributed to', () => {
+    const sdk = createSdk();
+    expect(typeof sdk.subjectId).toBe('string');
+    expect(sdk.subjectId.length).toBeGreaterThan(0);
+    const event = sdk.events.record('learn.node.entered.v1', {
+      node_id: '00000000-0000-7000-8000-0000000000c1',
+      entry: 'map',
+      initial_band: 'not_started',
+    });
+    expect(event.actor.subject_id).toBe(sdk.subjectId);
   });
 });

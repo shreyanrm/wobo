@@ -744,7 +744,13 @@ def client_key(request: Request) -> str:
 
 
 # =================================================================================================
-# The suggestions — the chips each public page shows (design/prototypes/site-*.html, landing-v6)
+# The suggestions — the chips each public page shows (design/prototypes/landing-v8.html and
+# site-*.html)
+#
+# These are the only words Wobo puts in a visitor's mouth, so they carry the copy law of DESIGN.md
+# §0 and docs/copy/voice.md §8: no invented learner or parent name, no class or age range that
+# gates who may sign up, no count of questions a day, and never a set that leaves a reader
+# thinking the drawn board is the whole product. Locked by tests/test_copy_law.py.
 # =================================================================================================
 
 
@@ -756,7 +762,7 @@ class Suggestions:
 
 SUGGESTIONS: dict[str, Suggestions] = {
     "home": Suggestions(
-        "Is Wobo good for a Class 6 kid who hates maths?",
+        "Will this help a child who hates maths?",
         (
             "Does it follow my school's syllabus?",
             "What happens when my child gets stuck?",
@@ -768,7 +774,7 @@ SUGGESTIONS: dict[str, Suggestions] = {
         "Do you get annoyed if I ask the same thing twice?",
         (
             "Can you help with my school's textbook?",
-            "What if I don't understand your drawing?",
+            "Can you say it out loud instead of drawing it?",
             "Do you remember me?",
         ),
     ),
@@ -800,9 +806,9 @@ SUGGESTIONS: dict[str, Suggestions] = {
         ),
     ),
     "subjects": Suggestions(
-        "Do you cover ICSE Class 9 physics?",
+        "Do you cover ICSE physics?",
         (
-            "Which chapter is Class 8 CBSE maths on this week?",
+            "Which chapter is my CBSE maths class on this week?",
             "Can you teach Hindi?",
             "My school uses its own books",
         ),

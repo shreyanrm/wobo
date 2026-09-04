@@ -1,6 +1,6 @@
-# Refunds, renewals and cancellation
+# Cancelling, renewals and refunds
 
-Draft of 3 September 2026. Version 0.1. Written by the Wobo team, not yet reviewed by a lawyer. See `README.md` in this folder for the review checklist. This document forms part of the terms of service. Prices in the product are placeholders until the owner sets real ones, and every figure below is an example.
+Draft of 4 September 2026. Version 0.2. Written by the Wobo team, not yet reviewed by a lawyer. See `README.md` in this folder for the review checklist. This document forms part of the terms of service. Prices in the product are placeholders until the owner sets real ones, and every figure below is an example.
 
 > **In plain words**
 >
@@ -8,9 +8,9 @@ Draft of 3 September 2026. Version 0.1. Written by the Wobo team, not yet review
 >
 > A subscription renews on its own until you cancel. We tell you the price, the date and the amount before you pay, and again before each renewal.
 >
-> Cancelling takes one tap in settings, at any time, with no phone call and no retention maze. You keep what you paid for until the end of the period you paid for.
+> Cancelling is the answer to almost everything here. It takes two taps in settings, at any time, with no phone call, no offer to make you stay and no reason to give. You keep the plan until the end of the period you have already paid for, nothing renews after that, and everything you learnt stays. Change your mind before the period ends and one tap puts the plan back.
 >
-> If you change your mind within 14 days, or if something went wrong, write to us and we will sort it out. In many places you have a legal right to that, and where you do, we say so.
+> We do not give money back as a gesture of goodwill. Where the law gives you a refund you have it, and section 5 lists every case: a charge after you cancelled, a charge taken twice, a charge you did not authorise, a service we did not supply, and the cooling-off right in the European Union, the European Economic Area and the United Kingdom.
 
 ---
 
@@ -53,34 +53,55 @@ After you pay, we email you the same information again, with the receipt.
 
 ## 4. Cancelling
 
-- **In the app:** settings, then plan, then cancel. It takes one tap, and the confirmation is one more.
-- **By writing:** support@heywobo.com, and we will do it for you.
-- We do not require a phone call, a chat with a person, a reason, or a survey. You may see one screen offering a pause or a smaller plan; a single visible control on that screen cancels outright. [REVIEW: the "click to cancel" requirements, the FTC's negative-option rule and its litigation history, and California's requirement that cancellation be available by the same route used to sign up.]
-- Cancelling stops the next charge. You keep Plus until the end of the period you have already paid for, and then the account becomes free. Nothing is deleted, and your boards, notes and progress stay.
-- Deleting your account is a separate control, and it does not cancel a subscription bought through an app store. Cancel that in the store first.
+Cancelling is the main thing this document is about, so it is written out in full.
+
+**Where it is.** Settings, then your plan, then cancel. Two taps: the control, and one confirmation that states exactly what is about to happen. By writing to support@heywobo.com works too, and we will do it for you.
+
+**What we do not do on the way out.** No phone call. No chat with a person. No reason to pick, no survey, no discount to stay, no pause offered instead, no second screen asking whether you are sure. The confirmation is a confirmation, not a negotiation. [REVIEW: the FTC's negative-option rule and its litigation history, and California's requirement that cancellation be available by the same route used to sign up.]
+
+**What happens.**
+
+- The plan stays live until the end of the period you have already paid for. Nothing is taken away early.
+- Nothing renews after that. There is no further charge, and the account moves to the free allowance by itself on the day the period ends.
+- Everything you learnt stays: your history, your boards, your notes, your mastery and your climb. Cancelling a plan is not deleting an account.
+- Nothing is deleted unless you delete it. Deleting your account is a separate control, described in `privacy-policy.md`.
+
+**Changing your mind.** While the period you paid for is still running, one tap puts the plan back on and it renews as it did before. After the period ends there is nothing to resume, and you would be subscribing again at whatever the price is then.
+
+**If it does not work.** If the cancellation fails to save, we say so plainly and the plan is unchanged, so you can try again or write to us. We never show a cancellation that did not happen.
+
+**Bought through an app store.** Cancel it in the store, not here. Section 6 has the detail, and our cancel control will point you there rather than pretending it can do it for you.
 
 ## 5. Refunds
 
-**The plain promise.** If Wobo did not work, was not what we described, or you were charged by mistake, write to support@heywobo.com and we will refund you. We do not argue about small amounts.
+We do not refund as a gesture of goodwill, and we would rather say that here than let you find it later. Cancelling is the answer to a change of mind: you stop the next charge, you keep the plan to the end of the period you paid for, and nothing renews.
 
-**Cooling off, European Union, European Economic Area and United Kingdom.** You have 14 days from the day the contract is made to withdraw, without giving a reason. Digital content and digital services have a wrinkle: if you ask us to start straight away, and acknowledge that doing so means you lose the right to withdraw once the service has been fully supplied, then you lose it to that extent. Because Wobo is supplied over time rather than delivered once, if you withdraw within 14 days after starting we refund the amount in proportion to what is left, rather than nothing. We ask for that consent and that acknowledgment explicitly at checkout, in their own words, not buried. [REVIEW: Consumer Rights Directive Articles 9, 14(4)(b) and 16(m); the UK Consumer Contracts Regulations 2013 and the Consumer Rights Act 2015; the distinction between digital content supplied once and a digital service supplied over a period; and the model withdrawal form, which we must publish.]
+Some refunds are not goodwill. They are yours by law or because we took money we had no business taking, and in each of these cases we refund without argument, on request to support@heywobo.com:
 
-**India.** If you are charged after cancelling, charged twice, or charged an amount you did not authorise, we refund in full. Beyond that, refunds for a period already used are at our discretion, and we lean towards saying yes. Your rights under the Consumer Protection Act 2019 and the e-commerce rules are unaffected. [REVIEW: Consumer Protection (E-Commerce) Rules 2020, including the duty to publish a clear refund and cancellation policy and to name a grievance officer.]
+- **A charge taken after you cancelled.** Returned in full.
+- **A charge taken twice for the same period.** The duplicate returned in full.
+- **A charge you did not authorise.** Returned in full, and we will help you with your bank if you need it.
+- **A service we did not supply.** If we could not deliver what you paid for, or we ended your plan ourselves for a reason that is not serious misuse, we return the part of the term you did not get.
+- **The cooling-off right, where you have one.** Set out immediately below.
 
-**United States.** Refunds within 14 days of a charge, on request, for an annual plan you have barely used, and always where the charge was unauthorised or the disclosure was not what it should have been. State law may give you more. [REVIEW: state automatic-renewal laws that require a refund where the disclosure was defective, and any state with a statutory cooling-off period that reaches digital services.]
+**Cooling off, European Union, European Economic Area and United Kingdom.** You have 14 days from the day the contract is made to withdraw, without giving a reason. Digital content and digital services have a wrinkle: if you ask us to start straight away, and acknowledge that doing so means you lose the right to withdraw once the service has been fully supplied, then you lose it to that extent. Because Wobo is supplied over time rather than delivered once, if you withdraw within 14 days after starting we refund the amount in proportion to what is left, rather than nothing. We ask for that consent and that acknowledgment explicitly at checkout, in their own words, not buried. This right is not ours to remove, and nothing above shortens it. [REVIEW: Consumer Rights Directive Articles 9, 14(4)(b) and 16(m); the UK Consumer Contracts Regulations 2013 and the Consumer Rights Act 2015; the distinction between digital content supplied once and a digital service supplied over a period; and the model withdrawal form, which we must publish.]
+
+**India.** A charge after cancelling, a duplicate charge and an unauthorised charge are reversed in full. Beyond those, a period already used is not refunded; you cancel instead, and keep what you paid for until it ends. Your rights under the Consumer Protection Act 2019 and the e-commerce rules are unaffected, and our grievance officer is named in `privacy-policy.md`. [REVIEW: Consumer Protection (E-Commerce) Rules 2020, including the duty to publish a clear refund and cancellation policy, the duty to name a grievance officer with a response timeline, and whether a policy of cancellation rather than refund satisfies that duty.]
+
+**United States.** We refund where the charge was unauthorised, where it was taken after cancellation, and where the automatic-renewal disclosure or the cancellation route was not what the law requires it to be. State law may give you more, and where it does, it wins. [REVIEW: state automatic-renewal laws that require a refund where the disclosure was defective, and any state with a statutory cooling-off period that reaches digital services.]
 
 **Everywhere.** Refunds go back to the payment method you used, within [10 working days] of us approving them, and your bank may take a few days more. Where a refund is due by law, we do not require you to accept credit instead.
 
-**Gifts.** A gift can be refunded before it has been redeemed. Once redeemed it belongs to the person who received it, and only they can ask.
+**Gifts.** A gift is paid once and renews never, so there is nothing to cancel and nothing to stop. The cases above still apply to the person who paid: a duplicate charge, a charge they did not authorise, a gift we failed to deliver, and the cooling-off right where they have one. Once a gift has been opened it belongs to the learner who received it. [REVIEW: whether the cooling-off right survives redemption by a third party, and whether an unredeemed gift is a digital service that has not yet begun.]
 
-**Free periods, gifted weeks and promotions.** These have no cash value and are not refundable, because nothing was paid. Where a free period turns into a paid one, we tell you before the first charge and you can stop it in one tap.
+**Free periods, gifted weeks and promotions.** These have no cash value and nothing to refund, because nothing was paid. Where a free period turns into a paid one, we tell you before the first charge and you can stop it in one tap.
 
 ## 6. If you bought through an app store
 
 If you subscribed inside a phone app, the store took the payment, not us. That means:
 
 - **Cancel in the store**, not in Wobo. Our cancel control will point you there, and we will also tell you how in one line.
-- **Refunds are handled by the store**, under its own policy and its own time limits, which can be shorter or different from ours.
+- **Refunds are handled by the store**, under its own policy and its own time limits, which can be shorter or different from ours, and which apply whatever this document says.
 - If the store refuses and we think you were owed a refund, write to support@heywobo.com and we will try to help, though we cannot reverse a charge we never received.
 - **The price can differ by route.** Buying inside a phone app can cost more than buying on the web, because the store takes a share of what you pay it. The price is the same for everyone on the same purchase route, and we show both prices so you can see the difference before you choose. This is the one exception to the promise in `terms-of-service.md` section 6 that nobody pays a different price for the same plan, and it is stated in both documents so the two agree.
 
@@ -94,11 +115,11 @@ Prices include tax where we are required to show them that way, and add it at ch
 
 - **Upgrading** takes effect at once, and we charge the difference for the rest of the period.
 - **Downgrading** takes effect at the end of the period you have paid for.
-- **Pausing** is available on some plans, keeps your data, and stops the charges while paused.
+- Neither is offered to you as a way of talking you out of cancelling. They live in settings, next to the plan, for whenever you want them.
 
 ## 9. If we end it
 
-If we close your account for a reason that is not serious misuse, we refund the unused part of your term. If we retire a paid feature you were relying on, we will tell you first and offer a refund of the unused part. [REVIEW: whether withholding a refund on closure for misuse is lawful in each consumer jurisdiction, and what notice a subscriber is owed before a paid feature is retired. This must match `terms-of-service.md` section 12.]
+If we close your account for a reason that is not serious misuse, we return the unused part of your term, because that is a service we did not supply rather than a goodwill refund. If we retire a paid feature you were relying on, we will tell you first and offer you the same. [REVIEW: whether withholding this return on closure for misuse is lawful in each consumer jurisdiction, and what notice a subscriber is owed before a paid feature is retired. This must match `terms-of-service.md` section 12.]
 
 ## 10. Complaints
 

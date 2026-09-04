@@ -237,5 +237,7 @@ export function giftTier(option: GiftOption): PlanTier {
   return tierById(option.tier) ?? (PLAN_TIERS[0] as PlanTier);
 }
 
-/** The refund window, stated in `docs/legal/refund-and-cancellation.md`. */
-export const REFUND_DAYS = 14;
+// There is no refund window here any more. DESIGN.md §0 (owner, 4 September 2026) forbids a product
+// surface promising money back: a subscriber cancels and keeps the plan to the end of the period
+// already paid for, and a gift renews never, so neither has a window to state. The refunds the law
+// still requires are listed in `docs/legal/refund-and-cancellation.md` section 5, not priced here.

@@ -11,11 +11,14 @@ import { type PracticeItem, reviewCard } from '@wobo/sdk';
 import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { preferredAnalogy } from '../../store/mind';
 import { useProgress, XP_AWARDS } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { ComboMeter, comboBreak, comboHit, XpTick } from '../../ui/combo';
 import { sfx } from '../../ui/sound';
 import { useWoboChat } from '../../wobo/chat';
+import { openCompanion } from '../../wobo/drawer';
+import { noteConceptCorrect, reteachOnMiss, seedFromEvidence } from '../../wobo/reteach';
 import { announceCard } from '../../wobo/speech';
 import { hintFor, maxHintDepth, noteCorrect, noteMiss, regrade, useTutor } from '../../wobo/tutor';
 import { firstMove, fmt, linearize } from './equations';
@@ -179,6 +182,7 @@ function Detonation({ item, theirs }: { item: PracticeItem; theirs: number }) {
 
 export function PracticeRun({
   nodeId,
+  topicName,
   items,
   setBar,
   setSub,
@@ -187,6 +191,8 @@ export function PracticeRun({
   replay = false,
 }: {
   nodeId: string;
+  /** What is being practised, in the learner's words. Wobo re-teaches by name, never by node id. */
+  topicName: string;
   items: PracticeItem[];
   setBar: (b: BarState | null) => void;
   setSub: (f: number) => void;
@@ -198,7 +204,7 @@ export function PracticeRun({
   const sdk = useSdk();
   const bus = useWoboBus();
   const { award } = useProgress();
-  const { setMood } = useWoboChat();
+  const { setMood, ask, offline } = useWoboChat();
   const { mode } = useTutor();
 
   const [queue, setQueue] = useState<PracticeItem[]>(items);
@@ -228,6 +234,13 @@ export function PracticeRun({
     kind: 'input',
     label: 'the number pad where the learner types x',
   });
+
+  // The tutor keeps no durable table of its own: mastery already persists this node's answers, so
+  // a session that ended on two misses resumes with the ladder already knowing to teach it another
+  // way. Ignored when this session is already counting (wobo/reteach.ts).
+  useEffect(() => {
+    seedFromEvidence(nodeId, sdk.mastery.loadCache().nodes[nodeId]?.evidence ?? []);
+  }, [sdk, nodeId]);
 
   // every item arrival: serve event + fresh clock
   useEffect(() => {
@@ -326,6 +339,34 @@ export function PracticeRun({
     ]);
   }, [item, hintLevel, mode, sdk, nodeId, bus]);
 
+  /**
+   * Wobo changes approach without being asked. Two wrong on this concept is a pattern rather than a
+   * slip (wobo/reteach.ts owns the threshold and the ladder), and the answer is never the same
+   * explanation said again: a different axis, said in one warm line in Wobo's own ink, then asked
+   * for through the routing every mode already uses. Offline the line still lands; the ask waits,
+   * because a queued bubble the learner never typed is noise, not teaching.
+   */
+  const reteach = useCallback(() => {
+    const turn = reteachOnMiss(sdk, {
+      nodeId,
+      // One practice node teaches one concept, so the node is the concept the tally is kept against.
+      conceptId: nodeId,
+      from: 'worksheet',
+      context: { topic: topicName, world: preferredAnalogy() },
+    });
+    if (!turn) return;
+    bus.dispatch([
+      { type: 'setMood', mood: 'hint' },
+      { type: 'write', targetId: 'course-practice-equation', text: turn.line, ttl: 11_000 },
+    ]);
+    if (offline) return;
+    // The new explanation arrives in Wobo's drawer, so the drawer opens: a second way of teaching
+    // it that the learner never sees is not a second way of teaching it (wobo/drawer.ts). Silent,
+    // because Wobo asked this, not the learner, and the archive is the learner's own words.
+    openCompanion({ reason: 'reteach', ask: turn.ask });
+    void ask(turn.ask, { silent: true }).catch(() => undefined);
+  }, [sdk, nodeId, topicName, bus, ask, offline]);
+
   // the learner contests an evaluated answer — the verifier looks again, gracefully either way
   const doContest = useCallback(async () => {
     if (!item) return;
@@ -351,6 +392,7 @@ export function PracticeRun({
         return i > pos ? q.filter((_, j) => j !== i) : q;
       });
       noteCorrect();
+      noteConceptCorrect(nodeId); // the grade bent to the proof: this concept was never missed
       award('item');
       comboHit();
       setContest('upheld');
@@ -404,6 +446,7 @@ export function PracticeRun({
 
     if (correct) {
       noteCorrect();
+      noteConceptCorrect(nodeId); // a clean answer is the evidence this way of teaching landed
       setPhase('correct');
       award('item');
       comboHit();
@@ -411,6 +454,7 @@ export function PracticeRun({
       window.setTimeout(() => setMood('idle'), 1400);
     } else {
       noteMiss();
+      reteach();
       comboBreak();
       sfx.wrong(); // a gentle low blip — kind, never punishing (correct blooms via award)
       // FSRS framing: a lapse, due again soon — and it literally returns later in this run
@@ -434,7 +478,7 @@ export function PracticeRun({
       window.setTimeout(() => setMood('idle'), 2000);
       window.setTimeout(() => setDetReady(true), 2600);
     }
-  }, [item, entry, sdk, nodeId, award, setMood, onAttempt, hintLevel]);
+  }, [item, entry, sdk, nodeId, award, setMood, onAttempt, hintLevel, reteach]);
 
   const checkRef = useRef(check);
   useEffect(() => {
@@ -644,14 +688,17 @@ export function PracticeRun({
                   )}
                   <AnimatePresence>
                     {whyOpen && lin && (
+                      // Law v5 §8 names `height` outright, so this opens on a grid row track
+                      // (0fr → 1fr) rather than on `height: auto` — same reveal, no per-frame
+                      // reflow of the page below it.
                       <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
+                        initial={{ opacity: 0, gridTemplateRows: '0fr' }}
+                        animate={{ opacity: 1, gridTemplateRows: '1fr' }}
+                        exit={{ opacity: 0, gridTemplateRows: '0fr' }}
                         transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
-                        style={{ overflow: 'hidden' }}
+                        style={{ display: 'grid', overflow: 'hidden' }}
                       >
-                        <div style={{ ...lead, marginTop: 8 }}>
+                        <div style={{ ...lead, marginTop: 8, minHeight: 0, overflow: 'hidden' }}>
                           put x = {fmt(correctValue)} back in: both sides make{' '}
                           {fmt(lin.lhs(correctValue))}. the scale stays level — that is what being a
                           solution means.

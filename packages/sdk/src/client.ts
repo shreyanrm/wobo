@@ -1,4 +1,9 @@
-import { InMemoryKgtopg, type KGtoPG } from '@wobo/kgtopg-contract-seed';
+import {
+  InMemoryKgtopg,
+  isAtFloor,
+  type KGtoPG,
+  type MasterySnapshot,
+} from '@wobo/kgtopg-contract-seed';
 import { resolveConfig, type SdkConfig } from './config';
 import { type EventProvider, InMemoryEventProvider, SupabaseOutboxEventProvider } from './events';
 import { configureGatewayAuth, fetchMe, type Me } from './gateway';
@@ -8,6 +13,7 @@ import {
   type IdentityProvider,
   SupabaseAuthIdentity,
 } from './identity';
+import { LocalMasteryProvider, type MasteryProvider, SupabaseMasteryProvider } from './mastery';
 import {
   type ContentProvider,
   GatewayLLMProvider,
@@ -29,6 +35,16 @@ import { ERASABLE_TABLES, type ErasureResult, eraseSubjectRows, SupabaseRest } f
  */
 export interface Sdk {
   config: SdkConfig;
+  /**
+   * THE SUBJECT EVERYTHING IS FILED UNDER. Ask for it here, never `config.mockSubjectId`.
+   *
+   * Under live auth the canonical subject is `auth.uid()`, and `config` is the raw resolved
+   * configuration whose `mockSubjectId` is still the dev knob. Every event this session records is
+   * attributed to the subject below, so a governed view asked about `config.mockSubjectId` in live
+   * mode is asked about a learner with no evidence at all and answers from an empty band set. This
+   * field is the attribution subject in both modes, so the question and the evidence agree.
+   */
+  subjectId: string;
   identity: IdentityProvider;
   kgtopg: KGtoPG;
   events: EventProvider;
@@ -38,6 +54,13 @@ export interface Sdk {
   payment: PaymentProvider;
   /** Learner state + Wobo threads: localStorage in local mode; Supabase-reconciled in live mode. */
   state: StateProvider;
+  /**
+   * Mastery: the evidence behind every band, and the bands themselves. Persisted (localStorage
+   * always, `learner.mastery_cache` in live mode) so a returning learner resumes mid-climb instead
+   * of starting the topic over. `hydrate()` reconciles and feeds the recovered evidence back into
+   * the KGtoPG binding, so bands read after it are the learner's whole history, not this session's.
+   */
+  mastery: MasteryProvider;
   /**
    * Who the brain thinks this learner is, and what is left of their day. Null when no gateway is
    * configured (a keyless build has no meter to read). The client never computes a limit; it asks.
@@ -129,9 +152,6 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
     ? { ...config, mockSubjectId: subjectId, consentTierDefault: 'un_elevated' }
     : config;
 
-  // Mock-first: the in-repo reference. The live Supabase-backed client binds at Phase 1.
-  const kgtopg = new InMemoryKgtopg({ consentTier: attribution.consentTierDefault });
-
   // Live persistence needs the project URL + publishable key (env only); anything less stays local,
   // so mock mode keeps working fully keyless. Under live auth it additionally needs a signed-in
   // session — pre-sign-in the device stays on the local cache (the app re-creates the sdk after
@@ -149,12 +169,57 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
         })
       : null;
 
+  // MASTERY SURVIVES A RELOAD. The cache is read before the KGtoPG binding is built, so the
+  // reference starts the session already holding everything this learner has ever answered — the
+  // band a returning learner sees is their whole history, not the last five minutes of it. Local
+  // mode and a signed-out learner get the localStorage half and work exactly as before.
+  const mastery: MasteryProvider = rest
+    ? new SupabaseMasteryProvider(rest, subjectId)
+    : new LocalMasteryProvider(undefined, supabaseAuth?.subjectId ?? '');
+
   // Events go through the real contract; evidence-bearing events update mastery via the consumer
   // (the same reference instance), so attempts flow all the way to bands and ignite on seed data.
   // In live mode they are additionally batch-appended to learner.outbox for the relay.
-  const events: EventProvider = rest
+  // Declared before the binding because the binding's change hook records through it. Null only
+  // between these two statements; nothing consumes an event during the binding's construction.
+  let events: EventProvider | null = null;
+
+  // Mock-first: the in-repo reference. The live Supabase-backed client binds at Phase 1.
+  const kgtopg = new InMemoryKgtopg({
+    consentTier: attribution.consentTierDefault,
+    evidence: { [subjectId]: mastery.loadCache() },
+    onChange: (subject, snapshot, changes) => {
+      // The repository holds exactly one learner; a snapshot for anyone else is not ours to write.
+      if (subject !== subjectId) return;
+      // Every crossing is written down before it is announced: a band the learner earned must
+      // survive the tab closing a second later.
+      mastery.save(snapshot);
+      for (const change of changes) {
+        // The contract has carried mastery.band.changed.v1 since commit 1 and nothing emitted it.
+        // It does now — one event per crossing, ignite only when the topic reaches the floor for
+        // the first time, so the moment stays scarce.
+        events?.record(
+          'mastery.band.changed.v1',
+          {
+            node_id: change.node_id,
+            from_band: change.from,
+            to_band: change.to,
+            scope: 'node',
+            ...(change.triggered_by_event_id
+              ? { triggered_by_event_id: change.triggered_by_event_id }
+              : {}),
+            ignite: isAtFloor(change.to) && !isAtFloor(change.from),
+          },
+          { ontologyNodeId: change.node_id },
+        );
+      }
+    },
+  });
+
+  events = rest
     ? new SupabaseOutboxEventProvider(attribution, kgtopg, rest)
     : new InMemoryEventProvider(attribution, kgtopg);
+  const eventProvider: EventProvider = events;
 
   // Local mode still knows who is signed in: the cache is scoped to the account (empty only in a
   // keyless build), so a second learner on the same browser reads their own bucket instead of the
@@ -261,5 +326,30 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   const me = async (): Promise<Me | null> =>
     config.gatewayUrl ? fetchMe(config.gatewayUrl) : null;
 
-  return { config, identity, kgtopg, events, llm, content, messaging, payment, state, me, account };
+  // The reconcile: the remote rows merge into the cache, and the recovered evidence goes back into
+  // the KGtoPG binding, so a band read after this is the learner's whole history. Wrapped here (not
+  // inside the provider) because the provider knows about storage and nothing else.
+  const masteryLayer: MasteryProvider = {
+    loadCache: () => mastery.loadCache(),
+    bands: () => mastery.bands(),
+    save: (snapshot: MasterySnapshot) => mastery.save(snapshot),
+    subscribe: (listener: () => void) => mastery.subscribe(listener),
+    hydrate: async () => kgtopg.hydrateEvidence(subjectId, await mastery.hydrate()),
+  };
+
+  return {
+    config,
+    subjectId,
+    identity,
+    kgtopg,
+    events: eventProvider,
+    llm,
+    content,
+    messaging,
+    payment,
+    state,
+    mastery: masteryLayer,
+    me,
+    account,
+  };
 }

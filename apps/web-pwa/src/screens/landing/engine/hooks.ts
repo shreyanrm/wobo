@@ -16,11 +16,14 @@
 import { type RefObject, useEffect } from 'react';
 import { type Disposer, disposeAll, prefersReducedMotion } from './env';
 import {
+  mountClimb,
   mountFilm,
   mountFloats,
   mountForms,
+  mountGap,
   mountHeroLesson,
   mountHighlights,
+  mountMastery,
   mountReport,
   mountReveals,
   settleStill,
@@ -60,7 +63,10 @@ export function useLandingMotion({ root: rootRef, hero: heroRef }: LandingMotion
       mountHeroLesson(root),
       mountFloats(root, heroRef.current),
       mountForms(root),
+      mountGap(root),
       mountFilm(root),
+      mountMastery(root),
+      mountClimb(root),
       mountReport(root),
     ];
 

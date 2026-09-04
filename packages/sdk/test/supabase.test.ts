@@ -150,6 +150,8 @@ describe('server-side erasure of one subject', () => {
     expect(ERASABLE_TABLES).toContain('learner_state');
     expect(ERASABLE_TABLES).toContain('learner_threads');
     expect(ERASABLE_TABLES).toContain('profiles_cache');
+    // Mastery is the learner's record of what they answered; erasure has to reach it too.
+    expect(ERASABLE_TABLES).toContain('mastery_cache');
   });
 
   it('keeps going when one table fails, and reports which did not go', async () => {
@@ -160,7 +162,7 @@ describe('server-side erasure of one subject', () => {
     };
     const result = await eraseSubjectRows(rest, 's-1');
     expect(result.failed).toEqual(['learner_threads']);
-    expect(result.erased).toEqual(['learner_state', 'profiles_cache']);
+    expect(result.erased).toEqual(['learner_state', 'profiles_cache', 'mastery_cache']);
   });
 
   it('erases nothing — and claims nothing — without a subject', async () => {

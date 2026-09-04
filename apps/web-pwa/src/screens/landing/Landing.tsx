@@ -30,6 +30,7 @@ import { LandingDefs } from './art';
 import { useLandingMotion } from './engine';
 import { ensureLandingStyles, ROOT } from './page-styles';
 import { Ask } from './sections/Ask';
+import { Climb } from './sections/Climb';
 import { Close } from './sections/Close';
 import { Devices } from './sections/Devices';
 import { Faq } from './sections/Faq';
@@ -43,6 +44,7 @@ import { Practice } from './sections/Practice';
 import { Safe } from './sections/Safe';
 import { Students } from './sections/Students';
 import { Subjects } from './sections/Subjects';
+import { Teaches } from './sections/Teaches';
 
 // The chunk arriving IS the page being opened, so the stylesheet goes in at import time rather than
 // in an effect — an effect would let the first paint land unstyled for a frame.
@@ -62,8 +64,10 @@ export function Landing() {
         <Hero sectionRef={hero} />
         <Loop />
         <Forms />
+        <Teaches />
         <Students />
         <Practice />
+        <Climb />
         <Parents />
         <Subjects />
         <Safe />

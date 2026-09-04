@@ -75,10 +75,10 @@ describe("Wobo's identity lock", () => {
 
   it('carries palette v4 exactly as DESIGN.md §2/§4 writes it', () => {
     expect(WOBO_TONES.light.body).toBe('#14142B');
-    expect(WOBO_TONES.light.visor).toBe('#FAF7F0');
+    expect(WOBO_TONES.light.visor).toBe('#FFFFFF');
     expect(WOBO_TONES.light.eye).toBe('#2B45FF');
-    expect(WOBO_TONES.dark.body).toBe('#F3F0E8');
-    expect(WOBO_TONES.dark.visor).toBe('#0F1226');
+    expect(WOBO_TONES.dark.body).toBe('#F4F4F7');
+    expect(WOBO_TONES.dark.visor).toBe('#0E0E16');
     expect(WOBO_TONES.dark.eye).toBe('#7C8CFF');
     expect(WOBO_BLUE).toBe('#2B45FF');
     expect(WOBO_BLUE_NIGHT).toBe('#7C8CFF');

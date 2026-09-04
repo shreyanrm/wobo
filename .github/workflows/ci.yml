@@ -131,6 +131,17 @@ jobs:
           CI: "true"
         run: bun run test:e2e
 
+      # The cancel, in a real browser. It cannot live in the journey suite: that one is hermetic
+      # and fails the run if the page reaches any origin at all, and a cancel has no meaning
+      # without a brain to cancel against — so this config starts its own dev server and stubs the
+      # gateway with `page.route`. It ran by hand, from a README, in no job, which meant the only
+      # end-to-end proof of the product's one door out was unwatched.
+      - name: Run the cancel suite
+        working-directory: apps/web-pwa
+        env:
+          CI: "true"
+        run: bun run test:e2e:plan
+
       - name: Upload Playwright report
         if: failure() || cancelled()
         uses: actions/upload-artifact@v4

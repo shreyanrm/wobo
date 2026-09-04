@@ -1,6 +1,6 @@
 # The legal set
 
-Draft of 3 September 2026. Version 0.1. Ten documents, written by the Wobo team, none of them reviewed by a lawyer. Nothing in this folder should be published until the checklist below is complete.
+Draft of 3 September 2026, with `refund-and-cancellation.md` revised on 4 September 2026 at version 0.2. Ten documents, written by the Wobo team, none of them reviewed by a lawyer. Nothing in this folder should be published until the checklist below is complete.
 
 > **In plain words**
 >
@@ -8,7 +8,7 @@ Draft of 3 September 2026. Version 0.1. Ten documents, written by the Wobo team,
 >
 > It is written to be read by a fourteen-year-old and by their parent, not by a lawyer, and then checked by a lawyer.
 >
-> Every line that depends on the law of a particular country is tagged `[REVIEW]`. There are 98 of them. Each one carries its own question, naming the statute, the decision or the figure to confirm, so a specialist can answer it without first working out what was meant.
+> Every line that depends on the law of a particular country is tagged `[REVIEW]`. There are 99 of them. Each one carries its own question, naming the statute, the decision or the figure to confirm, so a specialist can answer it without first working out what was meant.
 
 ---
 
@@ -22,7 +22,7 @@ Draft of 3 September 2026. Version 0.1. Ten documents, written by the Wobo team,
 | `parental-consent.md` | the consent flow wording, and a parent's rights | parents, in the consent flow |
 | `cookies.md` | what we store on your device | everyone, from the cookie banner and the footer |
 | `acceptable-use.md` | the rules of use | everyone, part of the terms |
-| `refund-and-cancellation.md` | renewals, cancelling, refunds, cooling off | anyone who pays, linked at checkout |
+| `refund-and-cancellation.md` | cancelling, renewals, and the refunds the law requires | anyone who pays, linked at checkout |
 | `accessibility-statement.md` | what works, what does not yet, and how to tell us | anyone who needs it, linked in the footer |
 | `safety-and-content.md` | what Wobo refuses, and what Wobo does when a learner is in distress | parents, schools, regulators |
 | `community-and-flags.md` | flags, sharing, and contributed syllabuses | anyone who flags or shares |
@@ -98,6 +98,7 @@ Give this to counsel with the ten documents. It is ordered by what would hurt mo
 - [ ] Confirm the app store sections against each store's current rules, including what a refund policy is required to say and what may be said about paying outside the store.
 - [ ] Confirm tax treatment: GST, VAT and the OSS scheme, and US sales tax on digital services.
 - [ ] Confirm the cancel flow contains no dark pattern under the FTC negative-option rule and California's requirements.
+- [ ] **The owner's ruling is that we do not do refunds; a subscriber cancels instead** (`DESIGN.md` section 0, 4 September 2026). Confirm that a cancel-only policy is lawful in every market we sell in, and in particular: that the India e-commerce duty to publish a refund and cancellation policy is satisfied by a policy that says cancellation is the remedy; that no US state automatic-renewal law obliges a refund we have not listed in `refund-and-cancellation.md` section 5; and that nothing in that section can be read as contracting out of the EU, EEA or UK withdrawal right, which we cannot remove.
 
 ### E. The contract
 
@@ -123,19 +124,19 @@ Give this to counsel with the ten documents. It is ordered by what would hurt mo
 - [ ] Publish the model withdrawal form, the cookie settings panel, the memory page, the export control and the delete control, and check each one works, because each is promised in these documents.
 - [ ] **Controls promised but not built.** Build these, or cut the sentence that promises them. The de-identification stage in the syllabus contribution job, which must fail closed when uncertain, and a test that proves it does. The automatic check and the named human reviewer on anything reaching the shared library. An honest answer, in `community-and-flags.md` section 5, to whether a share link is scanned at all. The per-country helpline list in section B. Until the first two exist, the shared library stays switched off.
 - [ ] **Verify `privacy-policy.md` section 10 item by item before publishing it**, on the same footing as `accessibility-statement.md` section 2: row-level-security account isolation, access logging on personal data and its review, code review before ship, encryption in transit and at rest, provider review cadence, and the no-training and zero-retention provider terms. Drop any control not actually in place.
-- [ ] **Check the two cross-document pairs that used to disagree**, and keep them in step in every future edit: the minimum age, set once in `terms-of-service.md` section 4 and referenced from `childrens-privacy.md` section 1 and `parental-consent.md` section 1; and the app-store price difference, stated in `terms-of-service.md` section 6 and `refund-and-cancellation.md` section 6.
+- [ ] **Check the two cross-document pairs that used to disagree**, and keep them in step in every future edit: the minimum age, set once in `terms-of-service.md` section 4 and referenced from `childrens-privacy.md` section 1 and `parental-consent.md` section 1; and the app-store price difference, stated in `terms-of-service.md` section 6 and `refund-and-cancellation.md` section 6. A third pair now joins them: the cancel-not-refund rule, stated in `terms-of-service.md` sections 6, 11 and 12 and in `refund-and-cancellation.md` sections 4, 5 and 9.
 - [ ] Date and version every document, keep the old versions available, and set the change-notice mechanism running.
 - [ ] Run a final read for tone: no legalese, no exclamation marks, no emoji, no vendor names, no gendered reference to Wobo.
 
 ## 5. Where the `[REVIEW]` tags are
 
-98 tags across the ten documents. Every one of them names a statute, a decision or a figure to confirm; there are no bare tags left, because a tag with no question attached is a bill for a guess.
+99 tags across the ten documents. Every one of them names a statute, a decision or a figure to confirm; there are no bare tags left, because a tag with no question attached is a bill for a guess.
 
 | File | Tags |
 |---|---|
 | `privacy-policy.md` | 24 |
 | `terms-of-service.md` | 13 |
-| `refund-and-cancellation.md` | 12 |
+| `refund-and-cancellation.md` | 13 |
 | `parental-consent.md` | 11 |
 | `childrens-privacy.md` | 10 |
 | `accessibility-statement.md` | 8 |
@@ -144,7 +145,7 @@ Give this to counsel with the ten documents. It is ordered by what would hurt mo
 | `acceptable-use.md` | 3 |
 | `safety-and-content.md` | 2, one of which is the largest single tag in the set |
 
-To list them: `grep -n "REVIEW" docs/legal/*.md`. To check none has gone bare again: `grep -n "\[REVIEW\]\|\[REVIEW\.\]" docs/legal/*.md` should return only the four prose mentions in this file.
+To list them: `grep -n "REVIEW" docs/legal/*.md`. To check none has gone bare again: `grep -n "\[REVIEW\]\|\[REVIEW\.\]" docs/legal/*.md` should return only the five prose mentions in this file.
 
 ## 6. Keeping them true
 

@@ -9,12 +9,13 @@
  *   the provenance pill      where this syllabus came from, in the brain's own words
  *   the subject tiles        every subject of their class, this one outlined
  *   the two tabs             Learn (the chapter rows) and Practice (the set list)
- *   the chapter rows         done · now · next · later, the mint bar on the one under way
+ *   the chapter rows         done · now · next · come back to · later, the mint bar on the one
+ *                            under way; a row's state is completion AND the mastery band together
  *   the set list             board 04's "This set", one row per chapter, ticked once mastered
  *   Wobo's line              the door to reordering the list, in conversation
  *
- * Subjects and chapters are the registry's; states are the progress store's truth; nothing is
- * seeded. A tap on a chapter opens its course (learn) or its sandbox (practice) — the download
+ * Subjects and chapters are the registry's; states are the progress store's truth read against the
+ * mastery bands (screens/learn/mastery.ts); nothing is seeded. A tap on a chapter opens its course (learn) or its sandbox (practice) — the download
  * gate lives in the course screen, once, for every path into it.
  */
 
@@ -27,6 +28,7 @@ import { DiscoveryCard } from '../curriculum/StatusCard';
 import { subjectFamily } from '../curriculum/subjects';
 import { AppFrame } from '../shell/AppFrame';
 import { type Route, routeToPath, useRouter } from '../shell/router';
+import { useMastery } from '../store/mastery';
 import { useProgress } from '../store/progress';
 import {
   Avatar,
@@ -92,6 +94,8 @@ export function SubjectScreen({ subjectId, intent }: { subjectId: string; intent
   const world = useWorld();
   const revision = useRegistryRevision();
   const { completed, topicProgress } = useProgress();
+  // The same law the learn board reads: a row's state is band AND completion (screens/learn/mastery.ts).
+  const { bandOf, nextNodeId } = useMastery();
   const profile = loadProfile();
 
   // The board's own subjects for the learner's class, in its own naming and order.
@@ -108,8 +112,14 @@ export function SubjectScreen({ subjectId, intent }: { subjectId: string; intent
   const units = useUnits(openId);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `revision` stands in for the registry's contents
   const rowsOf = useCallback(
-    (id: string) => unitRows(chaptersBySubject[id] ?? [], { completed, topicProgress }),
-    [completed, topicProgress, revision],
+    (id: string) =>
+      unitRows(chaptersBySubject[id] ?? [], {
+        completed,
+        topicProgress,
+        bandOf,
+        platformNodeId: nextNodeId,
+      }),
+    [completed, topicProgress, bandOf, nextNodeId, revision],
   );
 
   // What Wobo and the page call this subject. Empty when the address resolves to none — the code

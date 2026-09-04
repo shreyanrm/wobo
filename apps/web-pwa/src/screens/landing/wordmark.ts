@@ -1,6 +1,6 @@
 /**
  * The owner's own wordmark, as drawn — the four glyph outlines of `#wm` lifted verbatim from
- * the approved prototype (`scratchpad/design/landing-v7.html`). This is the real mark, not a
+ * the approved prototype (`design/prototypes/landing-v8.html`). This is the real mark, not a
  * reconstruction: the paths, the transforms and the viewBox are byte-for-byte the owner's file.
  *
  * It is data rather than markup so the header and the footer can both stamp it without a second

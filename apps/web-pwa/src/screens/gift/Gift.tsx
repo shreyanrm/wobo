@@ -28,7 +28,7 @@ import { BOARDS } from '../landing/copy';
 import { legalPath } from '../legal/catalog';
 import { parseBlocks } from '../legal/markdown';
 import { Markdown, Spans } from '../legal/Prose';
-import { BENEFITS } from '../plans/copy';
+import { BENEFITS, CHECKOUT_PAGE } from '../plans/copy';
 import {
   GIFT_CADENCE,
   GIFT_OPTIONS,
@@ -254,7 +254,7 @@ export function Gift() {
         hand={null}
         primary={{ label: GIFT_PAGE.cta, onClick: give }}
         quiet={{
-          label: 'Refunds and cancellation, in full',
+          label: CHECKOUT_PAGE.cancelling,
           href: legalPath('refund-and-cancellation'),
         }}
       >

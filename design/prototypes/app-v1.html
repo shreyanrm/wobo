@@ -170,8 +170,10 @@ p{margin:0}
 .toggle span{font-size:13px;color:var(--ink-3)}
 .sw{width:46px;height:28px;border-radius:999px;background:var(--paper-3);position:relative;flex:none}
 .sw.on{background:var(--pig)}
-.sw::after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s}
-.sw.on::after{left:22px}
+/* the knob travels on a transform, never on `left`: `left` is a layout property and animating
+   it relayouts the row every frame (law v5 §8, cause 2). Same distance, composited. */
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#fff;transform:translateX(0);transition:transform .2s}
+.sw.on::after{transform:translateX(18px)}
 .seg{display:inline-flex;background:var(--paper-3);border-radius:999px;padding:4px;gap:4px}
 .seg span{padding:8px 14px;border-radius:999px;font:500 13px/1 var(--sans);color:var(--ink-2)}
 .seg span.on{background:var(--paper);color:var(--ink)}

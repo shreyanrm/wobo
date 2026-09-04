@@ -44,10 +44,6 @@ function blocks(css: string): string[] {
  */
 const CHANGED: readonly { body: string; why: string }[] = [
   {
-    body: "--paper:#FFFFFF; --paper-2:#F6F6F8; --paper-3:#ECECF0; --line:#E4E4EA; --ink:#14142B; --ink-2:#55556B; --ink-3:#8A8A9E; --pig:#2B45FF; --pig-soft:#EDF0FF; --marigold:#FFB629; --rose:#FF6B57; --mint:#12B981; --violet:#7C5CFF; --body:#14142B; --body-hi:#3A3A5C; --visor:#FFFFFF; --visor-lo:#EDEDF2; --eye:#2B45FF; --sans:'Poppins',system-ui,-apple-system,sans-serif; --hand:'Caveat',cursive; --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:72px; --s6:128px; --gutter:clamp(20px, 5vw, 48px); --band:clamp(72px, 9vw, 132px); --colgap:clamp(32px, 5vw, 80px); --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 10px 28px rgba(20,20,43,.07);",
-    why: 'the two faces are self-hosted here, so --sans and --hand name our own stacks. Every other token in the block is asserted below, character for character.',
-  },
-  {
     body: 'scroll-behavior:smooth',
     why: 'a document-level rule. Anchors are eased by the page itself (link.tsx), which also respects a reader who asked for less motion.',
   },
@@ -57,7 +53,7 @@ const CHANGED: readonly { body: string; why: string }[] = [
   },
   {
     body: 'display:grid;grid-template-columns:repeat(2,104px);grid-template-rows:repeat(2,104px);gap:8px;padding:8px;border-radius:22px;background:var(--ink);position:relative',
-    why: 'the same block plus `border:0`, because the puzzle carries a group role here rather than being four loose buttons.',
+    why: 'the same block plus `border:0;margin:0;min-inline-size:0`, because the puzzle is a `<fieldset>` here — four toggles answering one question are a named group of controls — and a fieldset needs those three resets to lay out like a plain div.',
   },
   {
     body: 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px',
@@ -66,6 +62,10 @@ const CHANGED: readonly { body: string; why: string }[] = [
   {
     body: 'font:500 13px/1 var(--sans);padding:9px 13px;border-radius:999px;background:var(--paper);color:var(--ink-2)',
     why: 'the same chip, as a button: `border:0;cursor:pointer` and a hover tone, so a keyboard reader can reach it.',
+  },
+  {
+    body: 'display:inline-flex;background:var(--paper);border-radius:999px;padding:4px;gap:4px;justify-self:start',
+    why: 'the same block plus `border:0;margin:0;min-inline-size:0`, because the climb\u2019s two-way switch is a `<fieldset>` here \u2014 two controls answering one question are a named group, which is the element a screen reader trusts \u2014 and a fieldset needs those three resets to lay out like a plain div.',
   },
   {
     body: 'transform-origin:center;animation:blink 5.5s infinite',
@@ -77,7 +77,22 @@ describe('the landing stylesheet', () => {
   it('is the prototype, declaration for declaration', () => {
     const mine = new Set(blocks(OURS));
     const excused = new Set(CHANGED.map((entry) => entry.body));
-    const drifted = blocks(PROTOTYPE_CSS).filter((body) => !mine.has(body) && !excused.has(body));
+    const drifted = blocks(PROTOTYPE_CSS).filter(
+      // The token block is checked declaration by declaration in the next test instead: the two
+      // font stacks are ours (self-hosted), so the block can never match as a whole.
+      (body) => !body.includes('--sans:') && !mine.has(body) && !excused.has(body),
+    );
+    expect(drifted).toEqual([]);
+  });
+
+  it('carries every token the prototype declares, except the two self-hosted faces', () => {
+    const tokens = blocks(PROTOTYPE_CSS).find((body) => body.includes('--sans:')) ?? '';
+    expect(tokens).not.toBe('');
+    const drifted = tokens
+      .split(';')
+      .map((d) => d.trim())
+      .filter((d) => d.length > 0 && !d.startsWith('--sans:') && !d.startsWith('--hand:'))
+      .filter((d) => !OURS.includes(d));
     expect(drifted).toEqual([]);
   });
 
@@ -130,9 +145,12 @@ describe('the landing stylesheet', () => {
   });
 
   it('holds the one spacing rhythm (DESIGN.md §0)', () => {
-    expect(LANDING_CSS).toContain('--gutter:clamp(20px, 5vw, 48px)');
-    expect(LANDING_CSS).toContain('--band:clamp(72px, 9vw, 132px)');
-    expect(LANDING_CSS).toContain('--colgap:clamp(32px, 5vw, 80px)');
+    // The three clamps come from the prototype, so a rhythm change there is a rhythm change here.
+    for (const name of ['--gutter', '--band', '--colgap']) {
+      const declared = PROTOTYPE_CSS.match(new RegExp(`\\${name}:[^;]+`))?.[0];
+      expect(declared).toBeTruthy();
+      expect(LANDING_CSS).toContain(declared as string);
+    }
     // A section takes half a band from each side, so two of them never stack two bands of air.
     expect(LANDING_CSS).toContain('padding:calc(var(--band) / 2) 0');
   });

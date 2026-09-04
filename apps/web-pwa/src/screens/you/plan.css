@@ -1,0 +1,33 @@
+/* biome-ignore-all format: one rule per line, like the kit and the rest of the You screen */
+/*
+ * "Your plan" — the panel's own rules, and the confirmation's.
+ *
+ * Law v5 (DESIGN.md §0): white ground, tonal surfaces, no border line anywhere, round corners, a
+ * soft shadow only under the thing that floats (the confirmation), and colour only where it has a
+ * job — rose on the one line that needs care, and nowhere else. The panel itself is a <Card>, so
+ * every surface value here is the kit's; these rules only lay out what sits inside one.
+ *
+ * `wp-` so nothing here can meet a rule from another screen (DESIGN.md §0, trap 1: a short class
+ * name that means two things). Child selectors only (trap 3). No transition on transform or
+ * opacity, because nothing here is scrubbed and one owner per property is the law (trap: §0 motion).
+ */
+
+/* the panel */
+.wp-lines{display:grid;gap:6px;font-size:14px;color:var(--ink-2);line-height:1.5}
+.wp-lines > b{color:var(--ink);font-weight:600;font-size:15px}
+.wp-bad{color:var(--rose);font-size:14px;line-height:1.5;font-weight:500}
+
+/* the confirmation — the one thing on this screen that floats */
+.wp-scrim{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;background:rgba(10,11,14,.34)}
+.wp-dialog{width:min(440px,100%);box-sizing:border-box;background:var(--paper);border-radius:24px;padding:24px;display:grid;gap:14px;box-shadow:var(--shadow)}
+.wp-dialog > h2{font:600 21px/1.25 var(--sans);color:var(--ink);margin:0}
+.wp-what{display:grid;gap:10px;margin:0;padding:0;list-style:none;font-size:15px;line-height:1.5;color:var(--ink-2)}
+.wp-choices{display:flex;gap:10px;flex-wrap:wrap}
+
+/* phone: the two choices stack full width so neither is the easier one to hit by accident.
+   `> *` and never `> .wk-btn`: a screen sheet that names the kit's own class is a rule the kit
+   cannot see it has (DESIGN.md §0, trap 1), and these are this panel's children either way. */
+@media (max-width:900px){
+  .wp-choices{display:grid;grid-template-columns:1fr}
+  .wp-choices > *{justify-content:center;min-height:46px}
+}

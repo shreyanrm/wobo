@@ -756,8 +756,11 @@ _TENS = ("", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eigh
 
 
 def _words(n: int) -> str:
-    """A small number the way the design writes it in a sentence ("forty questions a day",
-    "All five lessons"). Past ninety-nine the digits are clearer, and the tiles keep digits."""
+    """A small number the way the design writes it in a sentence ("All five lessons", "Fourteen
+    days"). Past ninety-nine the digits are clearer, and the tiles keep digits.
+
+    Never used for a daily allowance: the copy law (DESIGN.md §0, docs/copy/voice.md §8) forbids a
+    count of questions a day in digits or in words, so the free line says what it feels like."""
     if n < 0 or n > 99:
         return str(n)
     if n < 20:
@@ -921,7 +924,7 @@ def sunday_note(data: dict[str, Any]) -> dict[str, Any]:
 _WELCOME_THINGS: tuple[tuple[str, str], ...] = (
     ("Ask the basic thing.", "“What even is a hypotenuse” counts. I never keep score of what you should already know."),
     ("Hold space and just talk.", "Half a sentence is fine. Or paste question 7 straight from the worksheet."),
-    ("Try one.", "If you’re close, I’ll draw a loop around what you did and wait. I don’t say wrong."),
+    ("Try one.", "If you’re close, I’ll ring the gap on your own working and wait. I don’t say wrong."),
 )
 
 
@@ -940,7 +943,6 @@ def welcome(data: dict[str, Any]) -> dict[str, Any]:
     stamp = str(data.get("stamp") or "Just now")
     cta = _link(data, "cta_url", "/")
     prefs = _preferences(data)
-    allowance = _count(data, "daily_allowance")
 
     greeting = f"Hi {name}. I’m {APP_NAME}." if name else f"Hi. I’m {APP_NAME}."
     if board and klass:
@@ -949,17 +951,19 @@ def welcome(data: dict[str, Any]) -> dict[str, Any]:
             setup += " I’ve already found this week’s chapter."
             if isinstance(chapter, str) and chapter.strip():
                 setup = setup[:-1] + f": {chapter.strip()}."
-        setup += " Ask me anything from it, any time, and I’ll draw the answer instead of reciting it."
+        setup += (
+            " Ask me anything from it, any time. I draw it, film it, build it to drag, or say it —"
+            " whichever the idea needs — then set the practice after."
+        )
     else:
         setup = (
             "Tell me what you are studying and I will load your syllabus. "
-            "Then ask me anything from it, any time, and I’ll draw the answer instead of reciting it."
+            "Then ask me anything from it, any time. I draw it, film it, build it to drag, or say "
+            "it — whichever the idea needs — then set the practice after."
         )
-    free_line = (
-        f"Free every day, {_words(allowance)} questions a day, no card and no trial that ends."
-        if allowance
-        else "Free every day, no card and no trial that ends."
-    )
+    # The copy law forbids a count of questions a day, in digits or in words: the allowance is
+    # described by how it feels, never measured. Free carries no multiplier at all.
+    free_line = "Free every day, a fresh allowance each morning, no card and no trial that ends."
 
     rows = _hand_head(stamp)
     rows += (

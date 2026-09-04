@@ -24,6 +24,11 @@ const SHEETS: Record<string, string> = {
   'subject/subject.css': readFileSync(join(HERE, 'subject', 'subject.css'), 'utf8'),
   'chat/chat.css': readFileSync(join(HERE, 'chat', 'chat.css'), 'utf8'),
   'you/you.css': readFileSync(join(HERE, 'you', 'you.css'), 'utf8'),
+  // "Your plan" and its cancel confirmation. In the map, not only in plan.test.ts: that file can
+  // hold this sheet to the law in ISOLATION, but only the cross-sheet set below can catch the one
+  // failure a single sheet never sees — a short class name that means two things (DESIGN.md §0,
+  // trap 1).
+  'you/plan.css': readFileSync(join(HERE, 'you', 'plan.css'), 'utf8'),
   'practice/practice.css': readFileSync(join(HERE, 'practice', 'practice.css'), 'utf8'),
   'onboarding/onboarding.css': readFileSync(join(HERE, 'onboarding', 'onboarding.css'), 'utf8'),
 };

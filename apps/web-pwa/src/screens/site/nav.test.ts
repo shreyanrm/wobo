@@ -29,10 +29,11 @@ describe('the shell says what the prototype says', () => {
     expect(NAV_LINKS.map((l) => l.label)).toEqual(anchors(nav));
   });
 
-  it('keeps the quiet door the prototype names, and makes the loud one law v5\'s ask', () => {
+  it("keeps the quiet door the prototype names, and makes the loud one law v5's ask", () => {
     const cta = /<div class="cta">([\s\S]*?)<\/div>/.exec(HTML)?.[1] ?? '';
-    expect(anchors(cta)).toHaveLength(2);
-    expect(DOORS.signIn).toBe(anchors(cta)[0]);
+    const doors = anchors(cta);
+    expect(doors).toHaveLength(2);
+    expect(doors[0]).toBe(DOORS.signIn);
     expect(DOORS.getStarted).toBe('Get early access');
   });
 
@@ -62,15 +63,16 @@ describe('the shell says what the prototype says', () => {
     expect(new Set(footerHrefs).size).toBe(footerHrefs.length);
   });
 
-  it('closes on law v5\'s promotion, in the shape the prototype closes in', () => {
+  it("closes on law v5's promotion, in the shape the prototype closes in", () => {
     const close = /<div class="close">([\s\S]*?)<\/div><\/div>/.exec(HTML)?.[1] ?? '';
     // the SHAPE is the prototype's: a headline, a line in Wobo's hand, a loud door and a quiet one
     expect(close).toMatch(/<h2>.+<\/h2>/);
     expect(close).toMatch(/<span class="hand">.+<\/span>/);
-    expect(anchors(close)).toHaveLength(2);
+    const doors = anchors(close);
+    expect(doors).toHaveLength(2);
     // the WORDS are the law's: promote before you invite (landing-v8.html's own close)
     expect(CLOSE.title).toBe('Wobo opens to families this term.');
     expect(CLOSE.primary.label).toBe('Get early access');
-    expect(CLOSE.quiet.label).toBe(anchors(close)[1]);
+    expect(doors[1]).toBe(CLOSE.quiet.label);
   });
 });

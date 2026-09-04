@@ -92,8 +92,9 @@ export function ForParents() {
                 You can't be at the table every evening. <em>Wobo can.</em>
               </h1>
               <p className="pt-sub">
-                A tutor that knows your child's exact syllabus, answers at 10 pm without a sigh, and
-                writes you a note on Sunday about what actually happened. Not a report card. A note.
+                A tutor that knows your child's exact syllabus, answers late in the evening without
+                a sigh, and writes you a note on Sunday about what actually happened. Not a report
+                card. A note.
               </p>
               <div className="pt-row">
                 <SiteLink className="st-btn st-pig" to={{ name: 'onboarding' }}>
@@ -127,10 +128,10 @@ export function ForParents() {
                     Sunday, 6 pm
                   </text>
                   <text className="pt-hw" x="116" y="140" fontSize="26">
-                    asked for help twice
+                    Your child asked for help
                   </text>
                   <text className="pt-hw" x="116" y="172" fontSize="26">
-                    after a miss, <tspan className="pt-hw pt-rose">which is exactly</tspan>
+                    twice after a miss, <tspan className="pt-hw pt-rose">which is</tspan>
                   </text>
                   <text className="pt-hw pt-rose" x="116" y="204" fontSize="26">
                     how learning looks.
@@ -425,7 +426,7 @@ export function ForParents() {
 
         <ClosePanel
           title="Be in the first group when Wobo opens."
-          hand="Ten minutes to set up. Every evening after, easier."
+          hand="Ten minutes now. Every evening after, easier."
           quiet={{ label: 'See plans', href: '/plans' }}
         />
       </div>

@@ -128,7 +128,7 @@ html:has(.pt){scroll-behavior:smooth}
 .sc-children li b{color:var(--ink);font-weight:600}
 .sc-children li svg{width:28px;height:28px;fill:none;stroke:var(--mint);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
 .sc-who{border-radius:24px;overflow:hidden;background:var(--paper-2)}
-.sc-who .sc-r{display:grid;grid-template-columns:1.2fr repeat(4,1fr);align-items:center}
+.sc-who .sc-r{display:grid;grid-template-columns:1.4fr repeat(3,1fr);align-items:center}
 .sc-who .sc-r+.sc-r{border-top:2px solid var(--paper)}
 .sc-who .sc-r>div{padding:14px var(--s3);font-size:15px}
 .sc-who .sc-r.sc-h>div{font:500 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);background:var(--paper-3);padding:var(--s2) var(--s3)}
@@ -226,7 +226,10 @@ html:has(.pt){scroll-behavior:smooth}
 .mt-stage.mt-live .wk-head{transform:scale(1.06)}
 .mt-say{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-family:var(--hand);font-weight:700;font-size:30px;color:var(--marigold);white-space:nowrap;opacity:0;transition:opacity .3s}
 .mt-say.mt-show{opacity:1}
-.mt-ring{position:absolute;width:260px;height:260px;border-radius:50%;background:var(--pig);opacity:0;transition:opacity .3s}
+/* Law v5 gives pig one job — the pointer, one per view — so this backdrop is a GLOW rather
+   than a 260px solid disc of the pointer pigment: the same warmth behind Wobo's head, with
+   the colour falling off to nothing at the edge instead of reading as a second button. */
+.mt-ring{position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--pig) 42%,transparent) 0%,color-mix(in srgb,var(--pig) 16%,transparent) 55%,transparent 72%);opacity:0;transition:opacity .3s}
 .mt-stage.mt-live .mt-ring{opacity:.28;animation:mt-pulse 1.2s ease-in-out infinite}
 @keyframes mt-pulse{50%{transform:scale(1.12)}}
 @media (max-width:900px){
@@ -243,7 +246,7 @@ html:has(.pt){scroll-behavior:smooth}
 .pa-hero p.pt-sub{font-size:19px;color:var(--ink-2);max-width:46ch;margin-top:var(--s3)}
 .pa-env{position:relative;display:grid;place-items:center;min-height:420px}
 .pa-env>svg{width:min(100%,480px);overflow:visible;filter:drop-shadow(0 26px 40px rgba(20,20,43,.16))}
-.pa-env .pa-letter{transform:translateY(140px);animation:pa-rise 1.4s cubic-bezier(.6,0,.2,1) .4s forwards}
+.pa-env .pa-letter{transform:translateY(150px);animation:pa-rise 1.5s cubic-bezier(.6,0,.2,1) .4s forwards}
 @keyframes pa-rise{to{transform:translateY(0)}}
 .pa-env .pa-flap{transform-origin:50% 0;animation:pa-flap 1s cubic-bezier(.6,0,.2,1) forwards}
 @keyframes pa-flap{to{transform:scaleY(-1)}}

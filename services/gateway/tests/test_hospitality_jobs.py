@@ -68,7 +68,7 @@ def token_of(url: str) -> Any:
 KOLKATA_SUNDAY_EVENING = datetime(2026, 9, 6, 13, 0, tzinfo=UTC)
 LONDON_SUNDAY_EVENING = datetime(2026, 9, 6, 17, 30, tzinfo=UTC)
 
-KOLKATA = Family("L-aanya", "Aanya", "parent@example.test", timezone="Asia/Kolkata")
+KOLKATA = Family("L-learner", "Learner", "parent@example.test", timezone="Asia/Kolkata")
 LONDON = Family("L-sam", "Sam", "sam-parent@example.test", timezone="Europe/London")
 
 
@@ -121,7 +121,11 @@ def test_the_note_goes_out_at_six_pm_on_the_familys_own_clock() -> None:
     assert report["sent"] == 1 and report["due"] == 1
     assert report["skipped"] == {"not_due": 1}
     [record] = sends()
-    assert (record.kind, record.learner_id, record.period) == ("sunday_note", "L-aanya", "2026-W36")
+    assert (record.kind, record.learner_id, record.period) == (
+        "sunday_note",
+        "L-learner",
+        "2026-W36",
+    )
 
     # four and a half hours later it is London's evening; Kolkata's note is already in the log
     later = run_sunday(
@@ -131,7 +135,7 @@ def test_the_note_goes_out_at_six_pm_on_the_familys_own_clock() -> None:
         digest=wobo_digest,
     )
     assert later["sent"] == 1 and later["skipped"] == {"not_due": 1}
-    assert {r.learner_id for r in sends()} == {"L-aanya", "L-sam"}
+    assert {r.learner_id for r in sends()} == {"L-learner", "L-sam"}
 
 
 def test_a_second_run_in_the_same_evening_sends_nothing_twice() -> None:
@@ -155,7 +159,7 @@ def test_the_week_asked_for_is_the_familys_last_seven_days() -> None:
     run_sunday(
         KOLKATA_SUNDAY_EVENING, families=InMemoryFamilies([KOLKATA]), week_source=week, digest=None
     )
-    assert week.asked == [("L-aanya", "2026-08-31", "2026-09-06")]
+    assert week.asked == [("L-learner", "2026-08-31", "2026-09-06")]
 
 
 def test_unknown_locality_means_nothing_sends() -> None:
@@ -179,7 +183,7 @@ def test_unknown_locality_means_nothing_sends() -> None:
 
 
 def test_the_switch_is_respected() -> None:
-    off = Family("L1", "Aanya", "parent@example.test", timezone="Asia/Kolkata", sunday_note=False)
+    off = Family("L1", "Learner", "parent@example.test", timezone="Asia/Kolkata", sunday_note=False)
     report = run_sunday(
         KOLKATA_SUNDAY_EVENING,
         families=InMemoryFamilies([off]),
@@ -249,7 +253,7 @@ def test_an_unreadable_week_or_digest_never_breaks_the_pass() -> None:
     # the digest is optional: the numbers still go out without it
     with pytest.raises(RuntimeError):
         compose_week(KOLKATA, FULL_WEEK, broken_digest)
-    assert jobs.gateway_digest("Aanya", {"days_active": 3}) == {"note": "mock digest summary"}
+    assert jobs.gateway_digest("Learner", {"days_active": 3}) == {"note": "mock digest summary"}
 
 
 def test_dry_run_reports_without_sending() -> None:
@@ -268,10 +272,10 @@ def test_the_note_reads_as_the_design_and_says_nothing_it_was_not_told() -> None
     assert data is not None
     out = render("sunday_note", data)
     html, text = out["html"], out["text"]
-    assert out["subject"] == "Aanya's week"
+    assert out["subject"] == "Learner's week"
     assert out["preheader"] == "Three lessons, and the right kind of stuck."
     # the design, verbatim where it is not a family's own words
-    assert "Aanya&#8217;s week" in html
+    assert "Learner&#8217;s week" in html
     assert "font:600 27px/1.2 Caveat,'Comic Sans MS',cursive" in html  # Wobo's hand
     assert "background:#FFF1D6;border-radius:18px" in html  # the marigold card
     assert 'style="color:#FF6B57">which is exactly how learning looks.</span>' in html
@@ -302,17 +306,17 @@ def test_the_familys_dials_decide_and_the_stop_link_rides_along(_dials: Any) -> 
     """The preferences row (hospitality/preferences.py) is the switch and the clock; the
     footer and the one-click header carry that learner's signed stop link."""
     # the dial off, in the store rather than on the link row
-    _dials.put("L-aanya", prefs_mod.MailPreferences(sunday_note=False, timezone="Asia/Kolkata"))
+    _dials.put("L-learner", prefs_mod.MailPreferences(sunday_note=False, timezone="Asia/Kolkata"))
     kwargs: dict[str, Any] = {"week_source": FixedWeek(FULL_WEEK), "digest": wobo_digest}
     report = run_sunday(KOLKATA_SUNDAY_EVENING, families=InMemoryFamilies([KOLKATA]), **kwargs)
     assert report["skipped"] == {"opted_out": 1}
     # the one-click stop overrides every dial
-    _dials.put("L-aanya", prefs_mod.MailPreferences(unsubscribed_at=KOLKATA_SUNDAY_EVENING))
+    _dials.put("L-learner", prefs_mod.MailPreferences(unsubscribed_at=KOLKATA_SUNDAY_EVENING))
     report = run_sunday(KOLKATA_SUNDAY_EVENING, families=InMemoryFamilies([KOLKATA]), **kwargs)
     assert report["skipped"] == {"opted_out": 1}
     # the zone comes from the dials when the link row has none
-    _dials.put("L-aanya", prefs_mod.MailPreferences(timezone="Asia/Kolkata"))
-    unzoned = Family("L-aanya", "Aanya", "parent@example.test")
+    _dials.put("L-learner", prefs_mod.MailPreferences(timezone="Asia/Kolkata"))
+    unzoned = Family("L-learner", "Learner", "parent@example.test")
     sent: list[tuple[str, dict[str, Any]]] = []
 
     def capture(kind: str, to: str, data: dict[str, Any], **kw: Any) -> dict[str, Any]:
@@ -338,21 +342,21 @@ def test_the_familys_dials_decide_and_the_stop_link_rides_along(_dials: Any) -> 
 def test_a_parent_of_two_learners_gets_two_notes(_dials: Any) -> None:
     """The idempotency key names the learner: one address linked to two children hears about
     both, every week, and neither note is ever mistaken for the other's duplicate."""
-    aanya = Family("L-aanya", "Aanya", "parent@example.test", timezone="Asia/Kolkata")
-    vihaan = Family("L-vihaan", "Vihaan", "parent@example.test", timezone="Asia/Kolkata")
+    learner = Family("L-learner", "Learner", "parent@example.test", timezone="Asia/Kolkata")
+    other = Family("L-other", "Learner Two", "parent@example.test", timezone="Asia/Kolkata")
     report = run_sunday(
         KOLKATA_SUNDAY_EVENING,
-        families=InMemoryFamilies([aanya, vihaan]),
+        families=InMemoryFamilies([learner, other]),
         week_source=FixedWeek(FULL_WEEK),
         digest=wobo_digest,
     )
     assert report["sent"] == 2 and report["duplicate"] == 0
-    assert sorted(r.learner_id for r in sends()) == ["L-aanya", "L-vihaan"]
+    assert sorted(r.learner_id for r in sends()) == ["L-learner", "L-other"]
     assert len({r.key for r in sends()}) == 2
     # a second run is a duplicate for both, and neither is sent again
     again = run_sunday(
         KOLKATA_SUNDAY_EVENING + timedelta(minutes=30),
-        families=InMemoryFamilies([aanya, vihaan]),
+        families=InMemoryFamilies([learner, other]),
         week_source=FixedWeek(FULL_WEEK),
         digest=wobo_digest,
     )
@@ -378,7 +382,7 @@ def test_the_note_holds_on_a_quiet_day_and_when_the_inbox_heard_from_wobo_today(
     mail_log().record(
         MailRecord(
             key="wish:x",
-            learner_id="L-aanya",
+            learner_id="L-learner",
             kind="wish",
             to_hash=email_mod.to_hash("parent@example.test"),
             period="diwali:2026-09-06",
@@ -411,10 +415,10 @@ def test_a_digest_line_the_copy_law_forbids_is_dropped_not_sent() -> None:
 
     data = compose_week(KOLKATA, {"days_active": 4}, loud)
     assert data is not None
-    assert data["note"] == "Aanya asked why twice after a miss."
+    assert data["note"] == "Learner asked why twice after a miss."
     for key in ("headline", "note_accent", "worth_saying", "days_note"):
         assert key not in data, key
-    assert render("sunday_note", data)["subject"] == "Aanya's week"
+    assert render("sunday_note", data)["subject"] == "Learner's week"
 
 
 def test_the_stamp_reads_like_the_design() -> None:
@@ -506,7 +510,7 @@ def test_with_no_store_configured_the_pass_finds_nobody(monkeypatch: pytest.Monk
 FIRST_TURN = {
     "first_meeting": True,
     "context": {
-        "lifetime": {"learner": {"name": "Aanya Rao", "grade": "Class 8", "board": "CBSE"}},
+        "lifetime": {"learner": {"name": "Learner One", "grade": "Class 8", "board": "CBSE"}},
         "curriculum": {"nodeName": "Triangles", "subject": "Mathematics"},
         "turn": {"lastUserInput": "hi"},
     },
@@ -515,7 +519,7 @@ FIRST_TURN = {
 
 def test_welcome_data_reads_the_first_turn_packet() -> None:
     assert welcome_data(FIRST_TURN) == {
-        "name": "Aanya",
+        "name": "Learner",
         "board_short": "CBSE",
         "class_name": "8",
         "subject": "mathematics",
@@ -528,13 +532,13 @@ def test_welcome_data_reads_the_first_turn_packet() -> None:
 def test_the_first_meeting_sends_the_welcome_once(client: TestClient, auth: Any) -> None:
     """The sign-up completion signal is the first turn; the address is the token's, and a
     replayed first turn (a cleared browser) is a no-op."""
-    headers = auth("sub-aanya", email="aanya@example.test")
+    headers = auth("sub-learner", email="learner@example.test")
     r = client.post("/v1/capability/wobo.turn", json={"payload": FIRST_TURN}, headers=headers)
     assert r.status_code == 200, r.text
     [record] = sends()
-    assert (record.kind, record.learner_id, record.period) == ("welcome", "sub-aanya", "once")
+    assert (record.kind, record.learner_id, record.period) == ("welcome", "sub-learner", "once")
     assert record.key == idempotency_key(
-        "welcome", "aanya@example.test", "once", learner_id="sub-aanya"
+        "welcome", "learner@example.test", "once", learner_id="sub-learner"
     )
     r = client.post("/v1/capability/wobo.turn", json={"payload": FIRST_TURN}, headers=headers)
     assert r.status_code == 200
@@ -613,10 +617,10 @@ def test_the_welcome_carries_the_learners_own_one_click_link_and_their_clock(
 
 
 def test_the_welcome_reads_as_the_design() -> None:
-    out = render("welcome", welcome_data(FIRST_TURN) | {"daily_allowance": 40})
+    out = render("welcome", welcome_data(FIRST_TURN))
     assert out["subject"] == "Wobo is set up for CBSE class 8"
     html = out["html"]
-    assert "Hi Aanya. I’m Wobo." in html
+    assert "Hi Learner. I’m Wobo." in html
     assert (
         "Class 8, CBSE, mathematics first. I’ve already found this week’s chapter: Triangles."
         in html
@@ -625,7 +629,10 @@ def test_the_welcome_reads_as_the_design() -> None:
     for line in ("Ask the basic thing.", "Hold space and just talk.", "Try one."):
         assert line in html and line in out["text"]
     assert ">Ask your first question<" in html
-    assert "Free every day, forty questions a day, no card and no trial that ends." in html
+    # the copy law forbids a count of questions a day, in digits or in words: the free line says
+    # what the allowance feels like, and says the same thing whatever the account's allowance is
+    assert "Free every day, a fresh allowance each morning, no card and no trial that ends." in html
+    assert "questions a day" not in html and "questions a day" not in out["text"]
     assert 'href="https://heywobo.com/"' in html  # the button lands on home, a route that exists
     assert "background:#14142B;border-radius:22px" in html  # the navy hero card
     assert "color:#FFB629" in html  # marigold greeting
@@ -634,7 +641,8 @@ def test_the_welcome_reads_as_the_design() -> None:
     assert bare["subject"] == "You are in, Sam"
     assert "Tell me what you are studying and I will load your syllabus." in bare["html"]
     assert "already found" not in bare["html"]
-    assert "Free every day, no card and no trial that ends." in bare["html"]
+    free_line = "Free every day, a fresh allowance each morning, no card and no trial that ends."
+    assert free_line in bare["html"]
 
 
 # --- the win -------------------------------------------------------------------------------------
@@ -926,13 +934,13 @@ def test_every_default_link_lands_on_a_page_the_router_serves(kind: str) -> None
 
 # --- the wish ------------------------------------------------------------------------------------
 REPUBLIC_MORNING = datetime(2026, 1, 26, 3, 30, tzinfo=UTC)  # 09:00 in Kolkata
-TELANGANA = Family("L-aanya", "Aanya", "parent@example.test", timezone="Asia/Kolkata")
+TELANGANA = Family("L-learner", "Learner", "parent@example.test", timezone="Asia/Kolkata")
 
 
 def test_a_wish_goes_in_the_morning_of_the_familys_own_day(_dials: Any) -> None:
     """Republic Day, a civic day: follows the country the family told us, needs no choice, goes
     once, in Wobo's hand, with the learner's own off switch."""
-    _dials.put("L-aanya", prefs_mod.MailPreferences(country="IN", region="IN-TG"))
+    _dials.put("L-learner", prefs_mod.MailPreferences(country="IN", region="IN-TG"))
     sent: list[tuple[str, dict[str, Any]]] = []
 
     def capture(kind: str, to: str, data: dict[str, Any], **kw: Any) -> dict[str, Any]:
@@ -944,7 +952,7 @@ def test_a_wish_goes_in_the_morning_of_the_familys_own_day(_dials: Any) -> None:
     [(to, data)] = sent
     assert to == "parent@example.test"
     assert data["line"] == (
-        "Happy Republic Day, Aanya. I hope the morning is bright and the day is an easy one."
+        "Happy Republic Day, Learner. I hope the morning is bright and the day is an easy one."
     )
     assert data["subject"] == "Happy Republic Day" and data["stamp"] == "Monday, 9 am"
     assert data["chosen_calendar"] == "" and data["festival_name"] == "Republic Day"
@@ -952,7 +960,7 @@ def test_a_wish_goes_in_the_morning_of_the_familys_own_day(_dials: Any) -> None:
     [record] = sends()
     assert (record.kind, record.learner_id, record.period) == (
         "wish",
-        "L-aanya",
+        "L-learner",
         "republic-day-india:2026-01-26",
     )
     # the same morning again is a duplicate; the next day there is nothing to wish
@@ -970,7 +978,7 @@ def test_the_wish_reads_as_wobos_hand() -> None:
     out = render(
         "wish",
         {
-            "line": "Happy Diwali, Aanya. I hope the house is full of light tonight.",
+            "line": "Happy Diwali, Learner. I hope the house is full of light tonight.",
             "subject": "Happy Diwali",
             "festival_name": "Diwali",
             "chosen_calendar": "hindu",
@@ -978,11 +986,11 @@ def test_the_wish_reads_as_wobos_hand() -> None:
         },
     )
     assert out["subject"] == "Happy Diwali"
-    assert out["preheader"] == "Happy Diwali, Aanya. I hope the house is full of light tonight."
+    assert out["preheader"] == "Happy Diwali, Learner. I hope the house is full of light tonight."
     html = out["html"]
     assert "background:#FFF1D6;border-radius:18px" in html  # the marigold card
     assert "font:600 30px/1.2 Caveat,'Comic Sans MS',cursive" in html  # Wobo's hand
-    assert "Happy Diwali, Aanya. I hope the house is full of light tonight." in html
+    assert "Happy Diwali, Learner. I hope the house is full of light tonight." in html
     assert "&mdash; Wobo" in html and ">Sunday, 9 am<" in html
     assert "Nothing to do today. Come back when you come back." in html
     assert "your family chose to be wished on these days" in html
@@ -1000,10 +1008,10 @@ def test_a_religious_day_needs_the_familys_own_choice_and_the_moon_needs_a_perso
     _dials: Any, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     diwali_morning = datetime(2026, 11, 8, 3, 30, tzinfo=UTC)
-    _dials.put("L-aanya", prefs_mod.MailPreferences(country="IN", region="IN-TG"))
+    _dials.put("L-learner", prefs_mod.MailPreferences(country="IN", region="IN-TG"))
     assert run_wishes(diwali_morning, families=InMemoryFamilies([TELANGANA]))["sent"] == 0
     _dials.put(
-        "L-aanya",
+        "L-learner",
         prefs_mod.MailPreferences(country="IN", region="IN-TG", festival_calendar=("hindu",)),
     )
     report = run_wishes(diwali_morning, families=InMemoryFamilies([TELANGANA]))
@@ -1012,20 +1020,20 @@ def test_a_religious_day_needs_the_familys_own_choice_and_the_moon_needs_a_perso
     email_mod.reset_mail_log()
     eid_morning = datetime(2026, 3, 21, 3, 30, tzinfo=UTC)
     _dials.put(
-        "L-zara",
+        "L-learner",
         prefs_mod.MailPreferences(country="IN", festival_calendar=("muslim",)),
     )
-    zara = Family("L-zara", "Zara", "zara-parent@example.test")
-    assert run_wishes(eid_morning, families=InMemoryFamilies([zara]))["sent"] == 0
+    learner = Family("L-learner", "Learner", "learner-parent@example.test")
+    assert run_wishes(eid_morning, families=InMemoryFamilies([learner]))["sent"] == 0
     monkeypatch.setenv("MAIL_CONFIRMED_FESTIVALS", "eid-al-adha=2026-05-27, eid-al-fitr=2026-03-22")
-    assert run_wishes(eid_morning, families=InMemoryFamilies([zara]))["sent"] == 0  # wrong day
+    assert run_wishes(eid_morning, families=InMemoryFamilies([learner]))["sent"] == 0  # wrong day
     monkeypatch.setenv("MAIL_CONFIRMED_FESTIVALS", "eid-al-adha=2026-05-27,eid-al-fitr=2026-03-21")
-    report = run_wishes(eid_morning, families=InMemoryFamilies([zara]))
+    report = run_wishes(eid_morning, families=InMemoryFamilies([learner]))
     assert report["sent"] == 1 and sends()[0].period == "eid-al-fitr:2026-03-21"
 
 
 def test_the_wish_keeps_the_familys_clock_and_the_inbox_gap(_dials: Any) -> None:
-    _dials.put("L-aanya", prefs_mod.MailPreferences(country="IN", region="IN-TG"))
+    _dials.put("L-learner", prefs_mod.MailPreferences(country="IN", region="IN-TG"))
     families = InMemoryFamilies([TELANGANA])
     small_hours = datetime(2026, 1, 25, 20, 0, tzinfo=UTC)  # 01:30 in Kolkata
     assert run_wishes(small_hours, families=families)["skipped"] == {"quiet_hours": 1}
@@ -1035,7 +1043,7 @@ def test_the_wish_keeps_the_familys_clock_and_the_inbox_gap(_dials: Any) -> None
     mail_log().record(
         MailRecord(
             key="welcome:x",
-            learner_id="L-aanya",
+            learner_id="L-learner",
             kind="welcome",
             to_hash=email_mod.to_hash("parent@example.test"),
             period="once",
@@ -1045,10 +1053,10 @@ def test_the_wish_keeps_the_familys_clock_and_the_inbox_gap(_dials: Any) -> None
     )
     assert run_wishes(REPUBLIC_MORNING, families=families)["skipped"] == {"gap": 1}
     # the dials decide: the festivals switch, the learner's one-click stop
-    _dials.put("L-aanya", prefs_mod.MailPreferences(country="IN", festivals=False))
+    _dials.put("L-learner", prefs_mod.MailPreferences(country="IN", festivals=False))
     assert run_wishes(REPUBLIC_MORNING, families=families)["skipped"] == {"opted_out": 1}
-    _dials.put("L-aanya", prefs_mod.MailPreferences(country="IN"))
-    _dials.stop("L-aanya", ("wins", "festivals"))
+    _dials.put("L-learner", prefs_mod.MailPreferences(country="IN"))
+    _dials.stop("L-learner", ("wins", "festivals"))
     assert run_wishes(REPUBLIC_MORNING, families=families)["skipped"] == {"opted_out": 1}
     assert [r.kind for r in sends()] == ["welcome"]
 
@@ -1075,7 +1083,7 @@ def test_the_wishes_door_runs_the_pass(
     client: TestClient, monkeypatch: pytest.MonkeyPatch, _dials: Any
 ) -> None:
     assert client.post("/v1/internal/mail/wishes").status_code == 403
-    _dials.put("L-aanya", prefs_mod.MailPreferences(country="IN", region="IN-TG"))
+    _dials.put("L-learner", prefs_mod.MailPreferences(country="IN", region="IN-TG"))
     monkeypatch.setattr(jobs, "PostgrestFamilies", lambda: InMemoryFamilies([TELANGANA]))
     r = client.post(
         "/v1/internal/mail/wishes",

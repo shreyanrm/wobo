@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test test/*.test.ts src",
     "test:e2e": "playwright test",
+    "test:e2e:plan": "playwright test --config tests-plan/config.ts",
     "test:x-browser": "playwright test --config tests/x-browser.config.ts",
     "test:e2e:headed": "playwright test --headed"
   },

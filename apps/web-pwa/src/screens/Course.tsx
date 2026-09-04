@@ -48,6 +48,7 @@ import { AtomJourney } from './course/AtomJourney';
 import { Composing } from './course/Composing';
 import { type BarState, type LessonOutline, useAdvanceTarget } from './course/shared';
 import { WhatIf } from './course/WhatIf';
+import { PlacementCheck, usePlacementGate } from './onboarding/PlacementCheck';
 import './course/lesson.css';
 import { loadProfile } from './you/profile';
 
@@ -211,11 +212,40 @@ export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?
 
   const notes = view === 'notes';
 
+  // THE PLACEMENT GATE (curriculum/placement.ts). A topic whose prerequisites the learner has not
+  // covered gets a short look at the ground first: a few questions, never an exam, skippable at
+  // every one of them. What it settles is handed to the tutor through the placement module's own
+  // seam, so this screen only opens the door and gets out of the way. Free play and a course still
+  // downloading are never gated.
+  const placement = usePlacementGate(topic, completed, !sandbox && !needsDownload && !resolving);
+
   // Gated: hold a plain paper screen for the single frame before router.back() lands — no cold
   // skeleton, no white flash. The learner returns to where they were, download in flight. The same
   // paper holds while a cold address is being resolved against the world.
-  if (needsDownload || resolving) {
+  // The same paper holds for the frame the placement gate takes to decide, so a lesson that is
+  // about to be preceded by a check never flashes on screen first.
+  if (needsDownload || resolving || placement.status === 'planning') {
     return <div style={{ height: '100dvh', background: 'var(--paper)' }} />;
+  }
+
+  // The check is INSIDE the app, not in front of it. It used to return instead of the AppFrame, at
+  // 100dvh, with no nav rail, no back, no bottom bar and no way out but answering every question or
+  // the irreversible claim: a full-screen interstitial with one door, carrying the sentence
+  // "nothing here is a wall" printed on the wall. It sits in the same frame as the lesson it
+  // precedes, with the same crumb and the same way back, and "Not now" opens the lesson anyway.
+  if (placement.status === 'checking') {
+    return (
+      <AppFrame active="learn" bottom={<HoldToTalk />}>
+        <h1 className="ls-sr">{title}</h1>
+        <TopBar className="ls-topbar" crumb={crumb} />
+        <PlacementCheck
+          plan={placement.plan}
+          events={sdk.events}
+          onDone={placement.dismiss}
+          onSkip={placement.dismiss}
+        />
+      </AppFrame>
+    );
   }
 
   return (

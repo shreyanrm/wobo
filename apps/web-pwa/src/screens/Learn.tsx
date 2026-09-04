@@ -5,10 +5,10 @@
  *
  * The crumb (Learn · class · board) with the syllabus's provenance and the learner's initial; the
  * "Your subjects" marker and the headline naming the subject in front of them; the subject tiles,
- * the one in view outlined; the chapter rows in their four states (done, now, next, later) with
- * the mint bar on the chapter under way; and Wobo's line about a school that does things
- * differently. Subjects and chapters are the board's own, from the registry; states are the
- * progress store's truth; nothing is seeded.
+ * the one in view outlined; the chapter rows in their states (done, now, next, come-back-to,
+ * later) with the mint bar on the chapter under way; and Wobo's line about a school that does
+ * things differently. Subjects and chapters are the board's own, from the registry; a row's state
+ * is completion AND the mastery band together (screens/learn/mastery.ts); nothing is seeded.
  */
 
 import { DISCOVERY_COPY, labelFor } from '@wobo/sdk';
@@ -22,6 +22,7 @@ import { warmFromCache } from '../curriculum/warm';
 import type { Subject } from '../data/model';
 import { AppFrame } from '../shell/AppFrame';
 import { type Route, routeToPath, useRouter } from '../shell/router';
+import { useMastery } from '../store/mastery';
 import { useProgress } from '../store/progress';
 import { Avatar, Button, Card, CardFoot, Label, Tile, TopBar, WoboHead } from '../ui/primitives';
 import { defaultSubject, tileLine, unitLine, unitRows, unitState } from './learn/units';
@@ -34,6 +35,9 @@ export function Learn() {
   const world = useWorld();
   const revision = useRegistryRevision();
   const { completed, topicProgress } = useProgress();
+  // Bands and completion together decide every row: a chapter finished badly is not "Mastered",
+  // and "Next" never points past a topic still owed (screens/learn/mastery.ts).
+  const { bandOf, nextNodeId } = useMastery();
   const profile = loadProfile();
 
   // What this device already knows of the pinned syllabus, before any chapter is asked for.
@@ -55,8 +59,14 @@ export function Learn() {
   const subjects = useMemo(() => displaySubjects(), [world, revision]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `revision` stands in for the registry's contents
   const rowsOf = useCallback(
-    (s: Subject) => unitRows(chaptersBySubject[s.id] ?? [], { completed, topicProgress }),
-    [completed, topicProgress, revision],
+    (s: Subject) =>
+      unitRows(chaptersBySubject[s.id] ?? [], {
+        completed,
+        topicProgress,
+        bandOf,
+        platformNodeId: nextNodeId,
+      }),
+    [completed, topicProgress, bandOf, nextNodeId, revision],
   );
 
   // The subject in view: the one tapped, else the one with a chapter under way, else the first.

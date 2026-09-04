@@ -26,14 +26,17 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   CHART_BASELINE,
+  CLIMB_START,
   cardIndex,
   countAt,
   FILM_END,
   FILM_START,
   FORMS_END,
   floatDrift,
+  GAP_START,
   HERO_DELAY,
   HIGHLIGHT_START,
+  MASTERY_START,
   REPORT_START,
   REVEAL_START,
   SCRUB,
@@ -239,6 +242,116 @@ export function mountFilm(root: ParentNode): Disposer {
   };
 }
 
+// --- It teaches you ---------------------------------------------------------------------------------
+
+/**
+ * The gap: the shaky prerequisite is ringed, the chapter above it flinches, and a mint tick lands
+ * on the patched one.
+ *
+ * Fired ONCE on entry rather than scrubbed, which is what makes it safe: what moves is an opacity,
+ * a scale about a fixed origin, and a dash offset, and a dash offset is a geometric value that law
+ * v5 §8 cause 2 forbids scrubbing. Nothing in `page-styles.ts` transitions any of the three.
+ */
+export function mountGap(root: ParentNode): Disposer {
+  const section = root.querySelector<HTMLElement>('#teaches');
+  const weak = root.querySelector<SVGElement>('#pre-weak');
+  if (!section || !weak) return () => {};
+  const tweens: gsap.core.Animation[] = [];
+
+  const trigger = ScrollTrigger.create({
+    trigger: section,
+    start: GAP_START,
+    once: true,
+    onEnter() {
+      const tl = gsap.timeline();
+      tl.to(weak, { opacity: 1, duration: 0.45, ease: 'power2.out' }, 0.3)
+        .fromTo(
+          root.querySelector('#pre-a'),
+          { scale: 1 },
+          {
+            scale: 1.04,
+            transformOrigin: '113px 190px',
+            duration: 0.3,
+            yoyo: true,
+            repeat: 1,
+          },
+          0.3,
+        )
+        .to(root.querySelector('#pre-tick'), { opacity: 1, duration: 0.01 }, 1.1)
+        .to(
+          root.querySelector('#pre-tick'),
+          { strokeDashoffset: 0, duration: 0.5, ease: 'power2.out' },
+          1.1,
+        );
+      tweens.push(tl);
+    },
+  });
+
+  return killer(tweens, [trigger]);
+}
+
+/**
+ * Mastery: the curve draws itself, dips where the chapter slipped, and only then says mastered.
+ *
+ * The path publishes its own length as `--len` first (`measureDraw`), because the markup's 360 is
+ * the prototype's measurement of the same path and a browser's is authoritative.
+ */
+export function mountMastery(root: ParentNode): Disposer {
+  const curve = root.querySelector<SVGPathElement>('#mast-curve');
+  if (!curve) return () => {};
+  const tweens: gsap.core.Animation[] = [];
+
+  const trigger = ScrollTrigger.create({
+    trigger: curve,
+    start: MASTERY_START,
+    once: true,
+    onEnter() {
+      measureDraw(curve);
+      const tl = gsap.timeline();
+      tl.to(curve, { strokeDashoffset: 0, duration: 1.4, ease: 'power2.inOut' })
+        .to(root.querySelector('#mast-dip'), { opacity: 1, duration: 0.4 }, 0.5)
+        .to(root.querySelector('#mast-done'), { opacity: 1, duration: 0.5 }, 1.2);
+      tweens.push(tl);
+    },
+  });
+
+  return killer(tweens, [trigger]);
+}
+
+// --- The climb ---------------------------------------------------------------------------------------
+
+/**
+ * The climb's path draws itself as the section arrives — once, and only the pig stroke.
+ *
+ * GSAP owns the dash offset and nothing else here. The two drawings cross-fade on a CSS transition
+ * that the `.on` class alone drives (`page-styles.ts`), so opacity has exactly one owner and the
+ * switch cannot fight a tween — law v5 §8, cause 1.
+ */
+export function mountClimb(root: ParentNode): Disposer {
+  const section = root.querySelector<HTMLElement>('#climb');
+  const path = root.querySelector<SVGPathElement>('#climb svg[data-vibe="quest"] path.ink.pig');
+  if (!section || !path || typeof path.getTotalLength !== 'function') return () => {};
+  const tweens: gsap.core.Animation[] = [];
+
+  const trigger = ScrollTrigger.create({
+    trigger: section,
+    start: CLIMB_START,
+    once: true,
+    onEnter() {
+      const length = path.getTotalLength();
+      tweens.push(
+        gsap.fromTo(
+          path,
+          { strokeDasharray: length, strokeDashoffset: length },
+          { strokeDashoffset: 0, duration: 1.5, ease: 'power2.out' },
+        ),
+      );
+    },
+  });
+
+  return killer(tweens, [trigger]);
+}
+
 // --- The parent's report --------------------------------------------------------------------------
 
 /** The numbers count, the bars grow, the projection draws — once, as the card arrives. */
@@ -365,6 +478,16 @@ export function settleStill(root: ParentNode): void {
   }
   const proj = root.querySelector<SVGPathElement>('#proj');
   if (proj) proj.style.strokeDashoffset = '0';
+  // The two teaching chapters. A still page that shows the chapter without the gap it found, or
+  // the mastery curve without its ending, is not a calmer version of the argument — it is half of
+  // it. The climb's path is drawn in the markup already; only its dash offset would have moved.
+  for (const id of ['#pre-tick', '#mast-curve']) {
+    const el = root.querySelector<SVGElement>(id);
+    if (el) el.style.strokeDashoffset = '0';
+  }
+  for (const id of ['#pre-weak', '#pre-tick', '#mast-dip', '#mast-done']) {
+    root.querySelector<SVGElement>(id)?.setAttribute('opacity', '1');
+  }
   const nav = root.querySelector<HTMLElement>('#formsNav span');
   nav?.classList.add('on');
 }

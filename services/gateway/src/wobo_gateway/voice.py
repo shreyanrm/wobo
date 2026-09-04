@@ -419,13 +419,14 @@ def _charge_voice(request: Request, capability: str) -> None:
     TTS API. Both routes go through the same meter as every other turn (``budget.CAPABILITY_CLASS``
     keeps the classification in one dict), keyed on the same meter key the door derived.
     """
-    from wobo_gateway import budget, consent
+    from wobo_gateway import billing, budget, consent
 
     principal = request.state.principal
     profile = consent.get_profile(principal.subject, anonymous=principal.anonymous)
-    budget.charge(
-        request.state.meter_key, capability, profile.plan, anonymous=principal.anonymous
-    )
+    # The subscription, not the profile: the same derivation the capability route uses, so a paid
+    # learner is not cut off mid-sentence and a lapsed one does not keep the paid voice allowance.
+    plan = billing.metered_plan(principal, profile)
+    budget.charge(request.state.meter_key, capability, plan, anonymous=principal.anonymous)
 
 
 def register_voice(app: FastAPI) -> None:

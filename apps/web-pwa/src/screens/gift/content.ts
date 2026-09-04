@@ -1,26 +1,22 @@
 /**
  * The gift page's words, read out of `docs/copy/growth/gift-page.md`.
  *
- * That file is reviewed copy and it is written with template variables in it — `{{gift_length}}`,
- * `{{refund_days}}` — because a gift's length and its refund window are product decisions, not
- * prose. Two rules follow, and both are enforced here rather than left to whoever edits the page:
+ * That file is reviewed copy and it is written with template variables in it — `{{gift_length}}` —
+ * because a gift's length is a product decision, not prose. Two rules follow, and both are enforced
+ * here rather than left to whoever edits the page:
  *
- *  · a variable with a decided value is filled (the refund window is 14 days, stated in
- *    `docs/legal/refund-and-cancellation.md` §7);
+ *  · a variable with a decided value is filled;
  *  · a variable with no decision behind it becomes a visible blank, never a plausible-looking
  *    number. A gift page that says "three months" before anyone has decided three months is the
- *    kind of small lie that turns into a refund request.
+ *    kind of small lie a learner's parent finds out about after paying.
  *
  * Pure, and tested against the real file in `content.test.ts`.
  */
 
 import type { Block } from '../legal/markdown';
-import { REFUND_DAYS } from '../plans/prices';
 
 /** The variables that have a decision behind them. Anything missing renders as a blank. */
 export const GIFT_VALUES: Readonly<Record<string, string>> = {
-  // The copy writes the unit itself ("within {{refund_days}} days"), so the value is the number.
-  refund_days: `${REFUND_DAYS}`,
   // WOBO-PLAN §14 bills monthly, so a gift is a run of months rather than a fixed pack, and the
   // length is the giver's own choice at checkout. That is a decision, so it fills rather than
   // blanks — and it keeps the copy's rule that a gift costs what the same plan costs.

@@ -65,12 +65,24 @@ const PORT: Record<string, [Map<string, string[]>, string]> = {
 };
 
 /*
- * LAW v5 (DESIGN.md §0) reached this page in the prototype itself: site-parents.html now carries
- * the rule in its own words — "a wash tints a pill, a tick or a selected row — never a card, a
- * tile, a panel or a section" — drops `.art.lilac` entirely and paints `.art` as a tonal surface.
- * So there is no departure to record here: the sheet is still the prototype, declaration for
- * declaration, and `.wy-art.wy-lilac` is gone because its source is.
+ * LAW v5 (DESIGN.md §0) over site-parents.html, on COLOUR alone.
+ *
+ * The prototype wraps the parent's report in a lilac panel. On the white ground a wash behind a
+ * whole report is a section marking itself, and lilac is doing none of the four jobs a pigment is
+ * allowed — so the panel is a tonal surface here and `.art.lilac` has no counterpart at all. The
+ * report still floats on it on white paper under its own shadow, which is what makes it read as a
+ * thing a parent is handed.
+ *
+ * The prototype has already said this itself once, in its own words ("a wash tints a pill, a tick
+ * or a selected row — never a card, a tile, a panel or a section"), and has since been regenerated
+ * back to the cream set. THE LAW IS THE AUTHORITY, not whichever way the file last landed: this
+ * test holds the sheet to the prototype's SHAPE and to law v5's colour, and passes either way.
+ *
+ * A selector listed here is one this sheet adds to its source; everything else is held exactly.
  */
+const V5_ADDED: Record<string, string[]> = {
+  '.wy-art': ['background:var(--paper-2)'],
+};
 
 /** Element resets, the two lines the screen needs that the prototype drew as chrome, and the rail
  * kept in view on a page taller than the artboard. */
@@ -84,7 +96,12 @@ const OWN = new Set([
 describe('you.css is board 05, rule for rule', () => {
   it('ports every rule declaration for declaration', () => {
     for (const [mine, [source, theirs]] of Object.entries(PORT)) {
-      expect(sheet.get(mine), mine).toEqual(source.get(theirs));
+      const added = V5_ADDED[mine] ?? [];
+      const ported = (sheet.get(mine) ?? []).filter((d) => !added.includes(d));
+      // the prototype may already declare what law v5 asks for; either way it must not be missing
+      const want = (source.get(theirs) ?? []).filter((d) => !added.includes(d));
+      expect(ported, mine).toEqual(want);
+      for (const d of added) expect(sheet.get(mine), mine).toContain(d);
     }
   });
   it('law v5: the report panel is a tonal surface, and no rule washes anything in lilac', () => {

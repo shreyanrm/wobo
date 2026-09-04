@@ -2,9 +2,9 @@
  * Wobo's identity is LOCKED (DESIGN.md §4). This module encodes it so the lock is a fact in code,
  * not a note in a doc. Choreography is free (the Wobo-cute license) — identity is not.
  *
- * Wobo is the ink-visor wobot: a round body in ink carrying a cream visor, two Wobo-blue eyes and a
+ * Wobo is the ink-visor wobot: a round body in ink carrying a paper visor, two Wobo-blue eyes and a
  * pen tip in the same blue, rimmed by a half-pixel hairline in the opposite tone so the silhouette
- * stays crisp over any ground. On night the tones swap — a cream body carrying a night visor.
+ * stays crisp over any ground. On night the tones swap — a paper body carrying a night visor.
  *
  * You MAY NOT change: Wobo's form (one round ink body with a visor), the visor, the two eyes, the
  * pen tip, the hairline rim, or the tones below. The old vocabulary is retired with palette v4
@@ -22,7 +22,7 @@
 
 /** The four tones the rig renders Wobo in, for one theme. */
 export interface WoboTones {
-  /** Wobo's body — deep navy ink on cream paper, cream on night. */
+  /** Wobo's body — deep navy ink on white paper, the page's own ink on night. */
   body: string;
   /** The visor Wobo carries their eyes in — always the opposite tone to the body. */
   visor: string;
@@ -33,22 +33,29 @@ export interface WoboTones {
 }
 
 /**
- * Palette v4 (DESIGN.md §2/§4). Ink `#14142B` on cream, cream `#F3F0E8` on night; the visor takes
- * the ground it is not (cream `#FAF7F0` in light, night `#0F1226` in dark); the eyes are Wobo blue
- * `#2B45FF`, lifting to `#7C8CFF` on night for contrast.
+ * LAW v5 (DESIGN.md §0), which supersedes palette v4 on colour "everywhere: site, app, email,
+ * prototype". Wobo's own body was the last cream left in the product and it is on every page: the
+ * visor was `#FAF7F0` and the night body `#F3F0E8`, both drawn for the warm ground v5 replaced, so
+ * a character painted for cream paper was floating on white.
+ *
+ * The form is untouched — one round ink body, a visor, two eyes, a pen tip, a hairline rim — and
+ * those are still locked. What moved is only the four tones, onto v5's own paper: ink `#14142B`
+ * carrying a white `#FFFFFF` visor in light, and on night the ink of the page `#F4F4F7` carrying a
+ * `#0E0E16` visor. The rim keeps its job, the opposite tone at the same alpha. The eyes are Wobo
+ * blue `#2B45FF`, lifting to `#7C8CFF` on night for contrast, as they always were.
  */
 export const WOBO_TONES = Object.freeze({
   light: Object.freeze({
     body: '#14142B',
-    visor: '#FAF7F0',
+    visor: '#FFFFFF',
     eye: '#2B45FF',
-    hairline: 'rgba(250,247,240,0.55)',
+    hairline: 'rgba(255,255,255,0.55)',
   }) as Readonly<WoboTones>,
   dark: Object.freeze({
-    body: '#F3F0E8',
-    visor: '#0F1226',
+    body: '#F4F4F7',
+    visor: '#0E0E16',
     eye: '#7C8CFF',
-    hairline: 'rgba(15,18,38,0.40)',
+    hairline: 'rgba(14,14,22,0.40)',
   }) as Readonly<WoboTones>,
 });
 

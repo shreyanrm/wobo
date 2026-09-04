@@ -157,7 +157,7 @@ def test_a_bengali_family_in_delhi_gets_the_bengali_new_year(calendar: Calendar)
     prefs = MailPreferences(country="IN", region="IN-DL", festival_calendar=("bengali",))
     wish = calendar.wish_for(prefs, date(2026, 4, 15))
     assert wish is not None and wish.festival_id == "pohela-boishakh"
-    assert wish.line("Riya") == "Happy Bengali new year, Riya. I hope the year starts sweet."
+    assert wish.line("Learner") == "Happy Bengali new year, Learner. I hope the year starts sweet."
 
 
 def test_region_aliases_are_read_the_way_families_type_them(calendar: Calendar) -> None:
@@ -198,8 +198,8 @@ def test_a_festival_that_moves_with_the_moon_waits_for_the_days_confirmation(
     wish = calendar.wish_for(muslim, eid, confirmed=("eid-al-fitr",))
     assert wish is not None and wish.festival_id == "eid-al-fitr"
     assert (
-        wish.line("Zara")
-        == "Happy Eid, Zara. I hope the house is full and the food goes on all day."
+        wish.line("Learner")
+        == "Happy Eid, Learner. I hope the house is full and the food goes on all day."
     )
 
 
@@ -254,13 +254,13 @@ def test_never_more_than_one_wish_a_day(calendar: Calendar) -> None:
 def test_the_line_names_the_day_and_drops_the_name_cleanly(calendar: Calendar) -> None:
     wish = calendar.wish_for(MailPreferences(country="IN"), date(2026, 1, 26))
     assert wish is not None
-    assert wish.line("Aanya").startswith("Happy Republic Day, Aanya.")
+    assert wish.line("Learner").startswith("Happy Republic Day, Learner.")
     assert (
         wish.line(None)
         == "Happy Republic Day. I hope the morning is bright and the day is an easy one."
     )
     assert wish.line("   ") == wish.line(None)
-    assert "!" not in wish.line("Aanya")
+    assert "!" not in wish.line("Learner")
 
 
 def test_a_line_the_gate_refuses_is_dropped_not_sent(calendar: Calendar) -> None:

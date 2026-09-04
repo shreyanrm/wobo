@@ -86,7 +86,7 @@ def token_for(link: ParentLink) -> str:
 
 def invite(client: TestClient, auth: Any, **extra: Any) -> Any:
     return client.post(
-        INVITE, json={"email": PARENT, "learner_name": "Aanya Rao", **extra}, headers=auth()
+        INVITE, json={"email": PARENT, "learner_name": "Learner One", **extra}, headers=auth()
     )
 
 
@@ -115,7 +115,7 @@ def test_an_invite_writes_one_row_sends_one_mail_and_reports_the_status(
         INVITE,
         json={
             "email": " Parent@Example.test ",
-            "learner_name": "Aanya Rao",
+            "learner_name": "Learner One",
             "timezone": "Asia/Kolkata",
         },
         headers=auth(),
@@ -124,7 +124,7 @@ def test_an_invite_writes_one_row_sends_one_mail_and_reports_the_status(
     body = res.json()
     assert body["status"] == "invited" and body["sent"] is True
     assert body["parent_email"] == "p***@example.test"  # recognisable, not readable
-    assert body["learner_name"] == "Aanya" and body["timezone"] == "Asia/Kolkata"
+    assert body["learner_name"] == "Learner" and body["timezone"] == "Asia/Kolkata"
     assert "Nothing goes out until they say yes" in body["line"]
     link = only_link(_fresh)
     assert link.learner_id == "learner-under-test" and link.status == "invited"
@@ -155,7 +155,7 @@ def test_the_invite_renders_in_the_hand_with_no_vendor_and_no_gendered_pronoun(
     assert data["accept_url"] == f"https://api.heywobo.com{ACCEPT}?token={token}"
     assert data["decline_url"] == f"https://api.heywobo.com{DECLINE}?token={token}"
     out = render("parent_invite", data)
-    assert out["subject"] == "Aanya asked me to send you their Sunday notes"
+    assert out["subject"] == "Learner asked me to send you their Sunday notes"
     assert out["preheader"] == "One page a week. No dashboard, nothing to check daily."
     html, text = out["html"], out["text"]
     # the same paper as the welcome, one button each way, and nothing to unsubscribe from
@@ -245,7 +245,7 @@ def test_a_name_is_a_name_an_address_is_an_address_and_a_zone_is_canonical(
 ) -> None:
     assert parents.normalise_name("O'Brien Kelly") == "O'Brien"
     assert parents.normalise_name("Mary-Jane") == "Mary-Jane"
-    assert parents.normalise_name("Aanya Rao") == "Aanya"
+    assert parents.normalise_name("Learner One") == "Learner"
     assert parents.normalise_name("  ") is None
     for bad in ("Win-a-free-iPhone-at-bit.ly", "A.B", "Mary--Jane", "O''Brien", "42", "<b>"):
         with pytest.raises(parents.NotKept):
@@ -440,7 +440,7 @@ def test_the_parents_tap_links_the_family_once(
     # a GET is a question: the page says what the parent will get, and nothing changes
     page = client.get(ACCEPT, params={"token": token})  # no Authorization header at all
     assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
-    assert "Aanya asked me to send you their Sunday notes" in page.text
+    assert "Learner asked me to send you their Sunday notes" in page.text
     assert "Send me the Sunday notes" in page.text and 'method="post"' in page.text
     assert "Not their conversations with me" in page.text
     assert not VENDOR.search(page.text) and not GENDERED.search(page.text)
@@ -625,7 +625,7 @@ ROW = {
     "learner_id": "L",
     "parent_email_hash": "0" * 64,
     "parent_email": PARENT,
-    "learner_name": "Aanya",
+    "learner_name": "Learner",
     "timezone": None,
     "status": "linked",
     "invited_at": "2026-09-01T12:00:00Z",
@@ -787,8 +787,8 @@ def test_the_sunday_job_sees_a_linked_family_and_only_a_linked_one(
     one is not, and the parent's own stop link on the row rides into the note."""
     stop = "https://api.heywobo.com/v1/mail/stop?token=parents-own"
     for link in (
-        _row("aanya", "linked", timezone="Asia/Kolkata", unsubscribe_url=stop),
-        _row("vihaan", "invited", timezone="Asia/Kolkata"),
+        _row("learner", "linked", timezone="Asia/Kolkata", unsubscribe_url=stop),
+        _row("other", "invited", timezone="Asia/Kolkata"),
         _row("zara", "revoked", parent_email=None, timezone="Asia/Kolkata"),
     ):
         _fresh.rows[link.id] = link
@@ -799,30 +799,30 @@ def test_the_sunday_job_sees_a_linked_family_and_only_a_linked_one(
         return {"ok": True}
 
     families = jobs.LinkedFamilies()
-    assert [f.learner_id for f in families.linked_families()] == ["aanya"]
+    assert [f.learner_id for f in families.linked_families()] == ["learner"]
     assert jobs.PostgrestFamilies is jobs.LinkedFamilies  # the cron door's default source
     report = jobs.run_sunday(
         KOLKATA_SUNDAY_EVENING, week_source=FixedWeek(), digest=None, send=capture
     )
     assert report["checked"] == 1 and report["sent"] == 1, report
     [(to, data)] = sent
-    assert to == "aanya-parent@example.test"
-    assert data["learner_name"] == "Aanya" and data["unsubscribe_url"] == stop
+    assert to == "learner-parent@example.test"
+    assert data["learner_name"] == "Learner" and data["unsubscribe_url"] == stop
     assert data["stamp"] == "Sunday, 6:30 pm"
 
 
 def test_a_linked_parents_zone_comes_from_the_dials_when_the_link_has_none(
     _fresh: InMemoryParentLinkStore,
 ) -> None:
-    link = _row("aanya", "linked")
+    link = _row("learner", "linked")
     _fresh.rows[link.id] = link
     kwargs: dict[str, Any] = {"week_source": FixedWeek(), "digest": None, "dry_run": True}
     assert jobs.run_sunday(KOLKATA_SUNDAY_EVENING, **kwargs)["skipped"] == {"no_locality": 1}
-    prefs_mod.get_store().put("aanya", prefs_mod.MailPreferences(timezone="Asia/Kolkata"))
+    prefs_mod.get_store().put("learner", prefs_mod.MailPreferences(timezone="Asia/Kolkata"))
     assert jobs.run_sunday(KOLKATA_SUNDAY_EVENING, **kwargs)["would_send"] == 1
     # the family's dials decide the Sunday switch, and the stop link in the note flips it
     prefs_mod.get_store().put(
-        "aanya", prefs_mod.MailPreferences(timezone="Asia/Kolkata", sunday_note=False)
+        "learner", prefs_mod.MailPreferences(timezone="Asia/Kolkata", sunday_note=False)
     )
     assert jobs.run_sunday(KOLKATA_SUNDAY_EVENING, **kwargs)["skipped"] == {"opted_out": 1}
 

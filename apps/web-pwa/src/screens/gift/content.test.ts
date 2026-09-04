@@ -13,12 +13,6 @@ const SOURCE = readFileSync(
 );
 
 describe('fillTemplate', () => {
-  it('fills a variable that has a decision behind it', () => {
-    expect(fillTemplate('refundable within {{refund_days}} days')).toBe(
-      'refundable within 14 days',
-    );
-  });
-
   it('fills the gift length now that the giver chooses it at checkout', () => {
     // §14: a gift is a run of months the giver picks, so the slot has an answer and states it.
     expect(fillTemplate('Pro, for {{gift_length}}, for one learner.')).toBe(
@@ -66,8 +60,37 @@ describe('giftSections', () => {
     expect(button).toBe('Give Pro');
   });
 
-  it('carries the honest footnote, with the refund window filled in', () => {
-    expect(sectionText(sections['The honest footnote'])).toContain('14 days');
-    expect(sectionText(sections['The honest footnote'])).toContain('renews never');
+  it('carries the honest footnote, and it says what happens at the end', () => {
+    const footnote = sectionText(sections['The honest footnote']);
+    expect(footnote).toContain('renews never');
+    expect(footnote).toContain('goes back to the free plan');
+    expect(footnote).toContain('everything they learnt stays');
+  });
+});
+
+/**
+ * DESIGN.md §0, "cancel, never refund" (owner, 4 September 2026): no product surface may promise
+ * money back. The gift page is a selling surface, so the words are held out of the part of the copy
+ * it renders — the rules block below "## The page" may still point at the legal document, because
+ * nobody reads that on the site.
+ */
+describe('the gift page promises no money back', () => {
+  const sections = giftSections(parseBlocks(fillTemplate(SOURCE)));
+  // Every block the page renders, list items included, not just the paragraphs.
+  const rendered = JSON.stringify(sections);
+
+  it('says refund nowhere a buyer can read it', () => {
+    expect(/refund/i.test(rendered)).toBe(false);
+    expect(/money back/i.test(rendered)).toBe(false);
+  });
+
+  it('leaves no refund window variable behind to fill', () => {
+    expect(SOURCE).not.toContain('refund_days');
+    // and the value is gone with it, so a reappearing variable renders as the blank it now is
+    expect(fillTemplate('{{refund_days}}')).toBe('[refund days not decided yet]');
+  });
+
+  it('says instead that there is nothing to cancel, because nothing renews', () => {
+    expect(sectionText(sections['The honest footnote'])).toContain('nothing to cancel');
   });
 });

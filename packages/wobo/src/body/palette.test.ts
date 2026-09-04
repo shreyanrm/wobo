@@ -14,9 +14,9 @@ describe('the rig palette', () => {
 
   it('emits palette v4 on both grounds, and nothing warm', () => {
     expect(RIG_CSS).toContain(
-      `.${RIG_CLASS}{--wr-body:#14142B;--wr-visor:#FAF7F0;--wr-eye:#2B45FF;`,
+      `.${RIG_CLASS}{--wr-body:#14142B;--wr-visor:#FFFFFF;--wr-eye:#2B45FF;`,
     );
-    expect(RIG_CSS).toContain('--wr-body:#F3F0E8;--wr-visor:#0F1226;--wr-eye:#7C8CFF;');
+    expect(RIG_CSS).toContain('--wr-body:#F4F4F7;--wr-visor:#0E0E16;--wr-eye:#7C8CFF;');
     for (const retired of ['#FF5A1F', '#1A1A1F', '#EDEDF1', '#1F35E0', '#7B8CFF']) {
       expect(RIG_CSS).not.toContain(retired);
     }

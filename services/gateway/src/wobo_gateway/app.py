@@ -32,7 +32,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from wobo_gateway import budget, consent
+from wobo_gateway import billing, budget, consent
 from wobo_gateway.ask_public import LIMITED_PATHS as ASK_LIMITED_PATHS
 from wobo_gateway.ask_public import OPEN_PATHS as ASK_OPEN_PATHS
 from wobo_gateway.ask_public import register_public_ask
@@ -44,6 +44,8 @@ from wobo_gateway.auth import (
     dev_auth_requested,
     jwks_url,
 )
+from wobo_gateway.billing import LIMITED_PATHS as BILLING_LIMITED_PATHS
+from wobo_gateway.billing import register_billing
 from wobo_gateway.cache import CacheBackend, CacheEntry, InMemoryCache, cache_key
 from wobo_gateway.email import register_email
 from wobo_gateway.hospitality.api import register_mail_preferences
@@ -526,6 +528,7 @@ def stream_board_turn(
     request: CapabilityRequest,
     http: Request,
     profile: Any,
+    plan: str,
 ) -> Response:
     """One streamed turn: say, ink, action, ask, card, done.
 
@@ -542,10 +545,10 @@ def stream_board_turn(
     if resume is not None:
         turn = board_stream.recall(resume[0], meter)
         if turn is not None:
-            snap = budget.snapshot(meter, profile.plan, anonymous=principal.anonymous)
+            snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
             return _stream(turn, resume[1], budget.headers(snap, budget.classify(name)))
 
-    snap = budget.charge(meter, name, profile.plan, anonymous=principal.anonymous)
+    snap = budget.charge(meter, name, plan, anonymous=principal.anonymous)
     headers = budget.headers(snap, budget.classify(name))
 
     # Inbound safety runs before anything reaches a model, exactly as it does inside Gateway.invoke.
@@ -710,6 +713,9 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             or path in ASK_LIMITED_PATHS
             # The parent link: an invite sends mail, the parent's pages are unauthenticated.
             or path in PARENT_LIMITED_PATHS
+            # The plan: two of the three write to the database, and all three are free — a
+            # learner is never charged a turn for reading or ending what they pay for.
+            or path in BILLING_LIMITED_PATHS
             or path in _SOFT_AUTH_PATHS
         )
         oversized = _too_large(request)
@@ -802,13 +808,14 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         profile = consent.get_profile(principal.subject, anonymous=principal.anonymous)
         # The meter key, not the subject: an anonymous learner is counted per device address, so
         # showing them a per-subject number would show a full tank they do not have.
+        plan = billing.metered_plan(principal, profile)
         snap = budget.snapshot(
-            request.state.meter_key, profile.plan, anonymous=principal.anonymous
+            request.state.meter_key, plan, anonymous=principal.anonymous
         )
         return MeResponse(
             subject=principal.subject,
             anonymous=principal.anonymous,
-            plan=profile.plan,
+            plan=plan,
             consent_tier=profile.tier.value,
             budget=snap.as_dict(),
         )
@@ -884,8 +891,10 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         if name not in set(capabilities()):
             raise HTTPException(status_code=404, detail=f"unknown capability: {name}")
 
-        # Derived, never declared: the tier comes from the learner's stored record.
+        # Derived, never declared: the tier comes from the learner's stored record, and the plan
+        # from their subscription — which ends by itself when the period paid for does.
         profile = consent.get_profile(principal.subject, anonymous=principal.anonymous)
+        plan = billing.metered_plan(principal, profile)
 
         # Sign-up completion (WOBO-PLAN §14.1, "confirm everything"): the learner's first meeting
         # with Wobo is the moment the account became real. The welcome goes out on a background
@@ -896,7 +905,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
 
         # The board (BOARD.md §4). Same route, same door, same meter — only the body differs.
         if name == "wobo.turn" and wants_event_stream(http):
-            return stream_board_turn(gw, name, request, http, profile)
+            return stream_board_turn(gw, name, request, http, profile, plan)
         # A generation is the expensive half, and an anonymous subject is free to mint. Building
         # a whole lesson asks for an account first; talking to Wobo does not.
         if name.startswith("engine.") and principal.anonymous:
@@ -911,7 +920,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         # Counted ONCE, after the door and before the model. Anything that fails before the
         # provider is reached (a closed consent door, a busy queue, a provider error) is
         # refunded — a learner never pays for a call we did not serve.
-        snap = budget.charge(meter, name, profile.plan, anonymous=principal.anonymous)
+        snap = budget.charge(meter, name, plan, anonymous=principal.anonymous)
         headers = budget.headers(snap, budget.classify(name))
 
         # The curriculum registry (CURRICULUM.md §8). It rides this route rather than a router of
@@ -934,7 +943,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                     # tier. Without this seam the expensive half of the curriculum was free,
                     # and a cheap `curriculum.units` call could mint it (CURRICULUM.md §4.4).
                     charge=lambda capability: budget.charge(
-                        meter, capability, profile.plan, anonymous=principal.anonymous
+                        meter, capability, plan, anonymous=principal.anonymous
                     ),
                 )
             except curriculum_api.CurriculumError as exc:
@@ -1023,6 +1032,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     register_email(app)
     register_mail_preferences(app)
     register_parent_links(app)
+    register_billing(app)
     register_public_ask(app, gw)
 
     return app

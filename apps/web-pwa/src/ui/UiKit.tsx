@@ -8,6 +8,8 @@
  */
 
 import { type ReactNode, useEffect, useState } from 'react';
+import { planInWords } from '../screens/allowance-words';
+import { type Allowance, allowanceLine, allowanceShare } from '../screens/plans/allowance';
 import {
   AllowanceCard,
   AppShell,
@@ -31,6 +33,24 @@ import {
   WoboHead,
 } from './primitives';
 import './UiKit.css';
+
+/**
+ * THE GALLERY SPEAKS THE PRODUCT'S VOICE, not a sample of its own.
+ *
+ * /ui-kit is in `PLAIN_ROUTES` and answers 200, so every word on it is a word a reader can reach.
+ * Its allowance samples used to be typed out by hand — "25 of 40 turns left · resets 6:00 am",
+ * "Free · 40 turns a day" — which is the one raw allowance DESIGN.md §0 bans, rendered live on a
+ * public route. They are now derived from the very functions the product uses, so the gallery
+ * demonstrates the lawful sentence and can never drift from it again.
+ */
+const SAMPLE_ALLOWANCE: Allowance = {
+  known: true,
+  remaining: 25,
+  limit: 40,
+  resetsAt: new Date('2026-09-04T06:00:00'),
+};
+const SAMPLE_NOTE = allowanceLine(SAMPLE_ALLOWANCE);
+const SAMPLE_SHARE = allowanceShare(SAMPLE_ALLOWANCE) ?? undefined;
 
 const WEEK = [
   { label: 'M', on: true },
@@ -284,14 +304,10 @@ function Specimens() {
             <Sticker rotate={6} style={{ right: -14, top: -16 }}>
               free, every day
             </Sticker>
-            <AllowanceCard
-              title="Today's allowance"
-              progress={25 / 40}
-              note="25 of 40 turns left · resets 6:00 am"
-            />
+            <AllowanceCard title="Today's allowance" progress={SAMPLE_SHARE} note={SAMPLE_NOTE} />
           </div>
           <AllowanceCard title="Your plan">
-            <span style={{ fontSize: 14, color: 'var(--ink)' }}>Free · 40 turns a day</span>
+            <span style={{ fontSize: 14, color: 'var(--ink)' }}>{planInWords('Free', 1)}</span>
             <Button size="sm" style={{ justifySelf: 'start' }}>
               See Pro
             </Button>
@@ -301,7 +317,7 @@ function Specimens() {
 
       <Section name="TopBar">
         <TopBar
-          crumb="Tuesday · Class 8 · CBSE"
+          crumb="Tuesday · CBSE"
           right={
             <>
               <Chip>Streak · 7</Chip>
@@ -310,7 +326,7 @@ function Specimens() {
           }
         />
         <TopBar
-          crumb="You · Learner · Class 8 · CBSE"
+          crumb="You · CBSE · this week"
           right={
             <>
               <Segmented options={SPAN} value={span} onChange={setSpan} />
@@ -357,15 +373,11 @@ export function UiKit() {
           active="home"
           onNavigate={() => undefined}
           bottom={
-            <AllowanceCard
-              title="Today's allowance"
-              progress={25 / 40}
-              note="25 of 40 turns left · resets 6:00 am"
-            />
+            <AllowanceCard title="Today's allowance" progress={SAMPLE_SHARE} note={SAMPLE_NOTE} />
           }
         >
           <TopBar
-            crumb="Tuesday · Class 8 · CBSE"
+            crumb="Tuesday · CBSE"
             right={
               <>
                 <Chip>Streak · 7</Chip>

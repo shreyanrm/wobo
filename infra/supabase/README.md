@@ -22,7 +22,7 @@ client query. There are no cross-schema foreign keys; canonical references are o
 | `0001_extensions.sql` | pgvector, moddatetime, pgtap |
 | `0002_learner_operational_plane.sql` | the `learner` schema: tables, RLS, the outbox + `outbox_append` / `op_start_session`, grants |
 | `0003_realtime_and_storage.sql` | realtime publication (canvas/meter/mastery) + private storage buckets |
-| `0004_seed_dev.sql` | deterministic dev seed (mock subject "Aanya") |
+| `0004_seed_dev.sql` | deterministic dev seed (placeholder learner, never a name) |
 | `0005_learner_state_threads_relay.sql` | `learner_state` (XP/streak/topic progress/mind, device-merged) + `learner_threads` (Wobo conversation), RLS, `outbox_append_batch`, PostgREST exposure of `learner` |
 | `0006_wobo_rename_and_profile_fields.sql` | applied 2026-09-02 via MCP: `canvas_state.last_seen_by_wobo_at` (renamed), thread default `'wobo'`, `profiles_cache.birthdate` / `interests` / `plan` |
 | `0007_learner_state_streaks.sql` | streak columns on `learner_state` |

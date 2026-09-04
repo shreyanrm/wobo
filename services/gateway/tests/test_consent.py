@@ -7,7 +7,7 @@ type ``"elevated"`` and walk through an elevated-only door. These tests hold tha
 from __future__ import annotations
 
 import pytest
-from wobo_gateway import consent
+from wobo_gateway import budget, consent
 from wobo_gateway.app import Gateway, create_app
 from wobo_gateway.cache import InMemoryCache
 from wobo_gateway.providers import MockProvider
@@ -65,7 +65,9 @@ def test_me_reports_the_derived_tier(monkeypatch: pytest.MonkeyPatch, auth) -> N
     me = client().get("/v1/me", headers=auth("plus-learner")).json()
     assert me["consent_tier"] == "elevated"
     assert me["plan"] == "plus"
-    assert me["budget"]["turns_remaining"] == 400  # the plus dial, from the stored plan
+    # The plus dial, from the stored plan: the legacy name resolves to pro, which is five
+    # times free (budget.py _MULTIPLIER, and DESIGN.md §0 "Pro is five times the free allowance").
+    assert me["budget"]["turns_remaining"] == budget.limits_for("plus")[budget.TURN]
 
 
 # --- the lookup -----------------------------------------------------------------------

@@ -30,6 +30,15 @@ export const FORMS_END = '+=2400';
 /** The parent's report counts itself up as it crosses 76%, once. */
 export const REPORT_START = 'top 76%';
 
+/** The weak prerequisite is found as the teaching chapter crosses 62%, once. */
+export const GAP_START = 'top 62%';
+
+/** The mastery curve draws itself as it crosses 78%, once. */
+export const MASTERY_START = 'top 78%';
+
+/** The climb's path draws itself as the section crosses 70%, once. */
+export const CLIMB_START = 'top 70%';
+
 /** How much the scrub lags the scroll — the film follows the reader, it does not snap to them. */
 export const SCRUB = 0.8;
 

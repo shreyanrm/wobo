@@ -25,7 +25,7 @@ export interface CloseAction {
 /** The shared close, word for word from the prototypes. */
 export const CLOSE = {
   title: 'Wobo opens to families this term.',
-  hand: 'Be in the first group, free, with the whole tutor from day one.',
+  hand: 'Free to use every day, not just the first.',
   primary: { label: 'Get early access', to: { name: 'onboarding' } as Route },
   quiet: { label: "I'm a parent", href: '/for-parents' },
 } as const;

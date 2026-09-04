@@ -5,12 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <!--
       The browser chrome matches the page in BOTH themes. One fixed dark value painted a dark
-      address bar above a light app for every light-mode learner. These two are the palette v4 page
-      colours (src/ui/tokens.ts PAGE — cream paper, navy night); src/ui/theme.ts rewrites them when
-      the learner picks an explicit theme, so an override does not leave the chrome following the OS.
+      address bar above a light app for every light-mode learner. These two are law v5's page
+      colours (src/ui/tokens.ts PAGE — white paper, near-black night); src/ui/theme.ts rewrites them
+      when the learner picks an explicit theme, so an override does not leave the chrome following
+      the OS.
     -->
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FAF7F0" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F1226" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E0E16" />
     <meta
       name="description"
       content="{{APP_DESCRIPTION}}"
@@ -21,14 +22,15 @@
     <!--
       First paint, before any JS: the app's own paper, so a dark-mode learner on a slow phone never
       gets a white flash while the bundle downloads. Two declarations, nothing else — the real
-      palette arrives with src/ui/tokens.css.
+      palette arrives with src/ui/tokens.css. Law v5's ground is white, so the light value is
+      #FFFFFF and the flash it prevents is only ever the dark one.
     -->
     <style>
       :root { color-scheme: light dark; }
-      html, body { margin: 0; background: #FAF7F0; }
-      @media (prefers-color-scheme: dark) { html, body { background: #0F1226; } }
-      html[data-theme='light'], html[data-theme='light'] body { background: #FAF7F0; }
-      html[data-theme='dark'], html[data-theme='dark'] body { background: #0F1226; }
+      html, body { margin: 0; background: #FFFFFF; }
+      @media (prefers-color-scheme: dark) { html, body { background: #0E0E16; } }
+      html[data-theme='light'], html[data-theme='light'] body { background: #FFFFFF; }
+      html[data-theme='dark'], html[data-theme='dark'] body { background: #0E0E16; }
     </style>
     <!--
       Type: Poppins + Caveat (Wobo's hand), self-hosted out of /fonts and declared by

@@ -37,6 +37,7 @@ import { type Route, useRouter } from './shell/router';
 import { publicScreen } from './site/PublicRoutes';
 import { appSdk, GATEWAY_URL } from './store/app-sdk';
 import { machineRoomSnapshot } from './store/machine-room';
+import { MasteryProvider } from './store/mastery';
 import {
   forgetMatching,
   lifetimeSnapshot,
@@ -65,6 +66,7 @@ import {
   woboTurnPayload,
 } from './wobo/capabilities';
 import {
+  type AskOptions,
   appendToArchive,
   CHAT_PAGE,
   type ChatTurn,
@@ -506,14 +508,20 @@ function AppInner({ sdk }: { sdk: Sdk }) {
   };
 
   // A real Wobo turn: Wobo reasons over the page Wobo is plugged into, then speaks and acts on it.
-  const ask = async (text: string) => {
+  const ask = async (text: string, options: AskOptions = {}) => {
     // No connection — hold it rather than dropping it on the floor. It renders as a pending bubble
-    // on the chat page and the reconnect effect below drains the queue once, in order.
+    // on the chat page and the reconnect effect below drains the queue once, in order. A silent ask
+    // is Wobo's own question and has no bubble to hold: it is dropped, and the surface that raised
+    // it has already said its line to the learner.
     if (offlineRef.current) {
-      setPending((q) => [...q, { id: crypto.randomUUID(), text }]);
+      if (!options.silent) setPending((q) => [...q, { id: crypto.randomUUID(), text }]);
       return;
     }
-    const userTurn = say({ role: 'user', text });
+    // A silent ask still rides the same context window, because the model has to see what it is
+    // answering — it simply never becomes a learner bubble in the archive (wobo/chat.tsx).
+    const userTurn = options.silent
+      ? { id: mintTurnId(), role: 'user' as const, text }
+      : say({ role: 'user', text });
     setBusy(true);
     setMood('thinking');
     // Optimistic ink: Wobo reacts in <100ms — a point at what Wobo is looking at, before the model
@@ -574,7 +582,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     // renders it compactly so Wobo references it naturally ("3 reviews due", "how far to level 5").
     let bands: { band: string }[] = [];
     try {
-      bands = await sdk.kgtopg.mastery.getBands(sdk.config.mockSubjectId);
+      bands = await sdk.kgtopg.mastery.getBands(sdk.subjectId);
     } catch {
       // the mastery view is unavailable — the rest of the machine room still rides
     }
@@ -1064,7 +1072,9 @@ export function AppRuntime() {
     <MotionPrefConfig>
       <SdkProvider value={sdk}>
         <ProgressProvider>
-          <WithWobo sdk={sdk} />
+          <MasteryProvider>
+            <WithWobo sdk={sdk} />
+          </MasteryProvider>
         </ProgressProvider>
       </SdkProvider>
     </MotionPrefConfig>

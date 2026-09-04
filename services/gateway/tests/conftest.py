@@ -50,7 +50,7 @@ def mint(
 @pytest.fixture(autouse=True)
 def _gateway_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """A verifiable identity and empty meters for every test."""
-    from wobo_gateway import auth, budget, consent, voice
+    from wobo_gateway import auth, billing, budget, consent, voice
 
     monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
     # No Supabase project in tests: consent lookups must never touch the network.
@@ -60,6 +60,13 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
     budget.reset()
     consent.reset_cache()
+    # A fresh in-memory subscription store per test, and no cached plan: one test's cancel is
+    # never another test's allowance. The store is asked for BY NAME — billing.build_store no
+    # longer falls back to memory when a project is missing, because an unconfigured production
+    # deployment answering "you are on the free plan" to somebody who paid is the trap this whole
+    # module exists to close.
+    monkeypatch.setenv("SUBSCRIPTIONS_STORE", "memory")
+    billing.set_store(None)
     auth.reset_jwks_cache()
     voice.reset_tokens()
     # Mail: console transport, an empty in-memory send log, and background sends run inline so

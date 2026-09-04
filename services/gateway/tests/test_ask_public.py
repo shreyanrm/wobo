@@ -507,7 +507,7 @@ EXPECTED_CHIPS = {
     ],
     "/meet-wobo": [
         "Can you help with my school's textbook?",
-        "What if I don't understand your drawing?",
+        "Can you say it out loud instead of drawing it?",
         "Do you remember me?",
     ],
     "/for-parents": [
@@ -526,7 +526,7 @@ EXPECTED_CHIPS = {
         "Are you a boy or a girl?",
     ],
     "/subjects": [
-        "Which chapter is Class 8 CBSE maths on this week?",
+        "Which chapter is my CBSE maths class on this week?",
         "Can you teach Hindi?",
         "My school uses its own books",
     ],

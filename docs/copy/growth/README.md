@@ -4,7 +4,7 @@ Copy for the three product surfaces WOBO-PLAN §14 and §16 name and for which n
 
 | File | Surface | Source |
 |---|---|---|
-| [`save-flow.md`](save-flow.md) | What a payer sees between tapping cancel and being cancelled | §14 "Cancelling: a save flow with pause, a downgrade, or a gifted month, then a graceful exit with the data-deletion path visible" |
+| [`cancel-flow.md`](cancel-flow.md) | What a payer sees between tapping cancel and being cancelled: a confirmation, then done | `DESIGN.md` §0 "cancelling takes as many taps as subscribing, and the screen that does it offers no discount, no pause, no survey and no reason picker" (owner, 4 September 2026), which supersedes §14's save flow |
 | [`gifted-week.md`](gifted-week.md) | The gifted Pro week for someone who reached the payment page and left | §14 "Visited the payment page and left: a gifted Pro week, same for everyone in that state" |
 | [`gift-page.md`](gift-page.md) | Buying Wobo for someone else | §16 "the gift page" |
 

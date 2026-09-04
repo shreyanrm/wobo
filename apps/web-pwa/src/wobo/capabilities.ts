@@ -23,11 +23,13 @@ import {
   type TaskState,
   type WoboAssembledContext,
 } from '@wobo/wobo';
+import { clearPlacements } from '../curriculum/placement';
 import { chaptersBySubject, topicById } from '../curriculum/registry';
 import type { Topic } from '../data/model';
 import type { Router } from '../shell/router';
 import { clearMind, eraseFromBrain, preferredAnalogy } from '../store/mind';
 import type { ActionAttachment } from './paths/types';
+import { resetReteach } from './reteach';
 
 export type PermissionRung = 'recommend' | 'prepare' | 'execute_with_permission' | 'safe_automatic';
 
@@ -162,6 +164,13 @@ const CAPABILITIES: Record<CapabilityId, WoboCapability> = {
     // and until then Wobo says so, because "I forgot you" while a server still remembers is a lie.
     run: async () => {
       clearMind();
+      // The mind is not the only thing Wobo keeps. The placement check's record decides which
+      // ground is never asked about again (including anything the learner waved through with "I
+      // know this"), and the re-teach ladder's record decides which explanation comes next. Both
+      // are things Wobo knows about this learner, so "forget everything" has to reach both, or the
+      // sentence below is not true.
+      clearPlacements();
+      resetReteach();
       // MindObserver republishes the (now empty) dossier on its next pulse, so Wobo's very next turn
       // reasons from a blank slate — no stale context surviving the erase.
       const outcome = await eraseFromBrain();

@@ -188,9 +188,10 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           // The manifest cannot carry a media query, so it names the default (light) page colour —
           // matching background_color and the light `theme-color` tag. A dark value here painted
-          // the installed PWA's title bar black above a white app.
-          theme_color: '#FAF7F0',
-          background_color: '#FAF7F0',
+          // the installed PWA's title bar black above a white app. Law v5's paper is WHITE
+          // (DESIGN.md §0), and this is the same value as src/ui/tokens.ts PAGE.light.
+          theme_color: '#FFFFFF',
+          background_color: '#FFFFFF',
           lang: 'en',
           categories: ['education'],
           icons: [

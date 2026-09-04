@@ -156,14 +156,131 @@ export const FORMS = {
     added: '= the two small ones, added',
     drag: 'drag me',
     dragUnder: 'every number under it moves',
-    prose: [
-      'The monsoon arrived like a rumour, first in',
-      'the smell of the air, then everywhere at once,',
-      'the streets were rivers by evening.',
-    ] as readonly string[],
-    simile: 'simile',
-    comma: 'two sentences, one comma',
+    /**
+     * The marked-up paragraph, in pieces, because every mark rides its OWN words: the highlighter
+     * is a `<mark>`, the loop is a `::after` on the clause it circles, and neither can drift at
+     * another width or in another theme the way the hand-placed SVG annotations it replaced did
+     * (DESIGN.md §0, trap 5). The pieces run together as one sentence.
+     */
+    marked: {
+      lead: 'The monsoon ',
+      highlighted: 'arrived like a rumour',
+      tag: 'simile ✓',
+      mid: ', first in the smell of the air, then everywhere at once',
+      circled: ', the streets were rivers',
+      trail: ' by evening.',
+      note: 'two sentences, one comma',
+      fix: '→ “…at once. By evening the streets were rivers.”',
+    },
   },
+} as const;
+
+// --- It teaches you, not a class -------------------------------------------------------------------
+
+/** One of the three beats: a number, a claim, the argument for it, and what it comes down to. */
+export interface Beat {
+  n: string;
+  title: string;
+  body: string;
+  /** The line in Wobo's own hand. The second half is set in rose. */
+  said: { lead: string; em: string };
+  /** What the drawing beside it is, for anyone who cannot see it. */
+  art: string;
+}
+
+export const TEACHES = {
+  eyebrow: 'Not a course everyone takes',
+  /** The highlighter falls in the MIDDLE of this headline, so it carries a trail as well. */
+  title: {
+    lead: 'It teaches ',
+    mark: 'you',
+    trail: ', at your pace, until you actually have it.',
+  },
+  lede: 'A class moves on when the timetable says so. Wobo moves on when you have it, and before it starts it checks whether the ground under this chapter is solid.',
+  beats: [
+    {
+      n: '01',
+      title: 'It finds the hole before it builds on top of it.',
+      body: 'Most chapters stand on something older. Before teaching one, Wobo asks two or three quick questions about what it rests on. If something from an earlier year is shaky, it patches that first, in minutes, and then teaches the chapter your class is actually on.',
+      said: { lead: 'Nobody fails algebra. ', em: 'They failed fractions, two years earlier.' },
+      art: 'A chapter resting on earlier ideas, with the weak one found and patched',
+    },
+    {
+      n: '02',
+      title: 'If one way does not land, it tries a different one.',
+      body: 'Not the same explanation, louder. A second attempt is a different route: a drawing instead of a definition, a worked example instead of a rule, a thing to drag instead of a thing to read, and an analogy built from what you already care about.',
+      said: { lead: 'The same idea, ', em: 'explained the way you happen to think.' },
+      art: 'One idea, three different routes into it',
+    },
+    {
+      n: '03',
+      title: 'It does not move on until it stays learnt.',
+      body: 'Getting it right once is not knowing it. A chapter counts as done when it comes back right days later, unprompted, so Wobo brings it back at the moment you are about to forget it. Only then does the next chapter open.',
+      said: { lead: 'Finished means ', em: 'still true next week.' },
+      art: 'A chapter is done only when it comes back right days later',
+    },
+  ] as readonly Beat[],
+  /** The words inside the three drawings — Wobo's own hand, so they belong with the copy. */
+  gap: {
+    prerequisites: ['fractions', 'ratios', 'negatives'] as readonly string[],
+    chapter: 'this chapter',
+    weak: 'shaky — patched first',
+  },
+  routes: {
+    idea: 'idea',
+    ways: ['drawn', 'worked out', 'in your world'] as readonly string[],
+  },
+  mastery: {
+    days: ['today', '+2 days', '+1 week', '+3 weeks'] as readonly string[],
+    slipped: 'slipped — taught again',
+    done: 'mastered',
+  },
+} as const;
+
+// --- The climb -------------------------------------------------------------------------------------
+
+/** The two ways the same path can be dressed. The content underneath is identical. */
+export interface Vibe {
+  key: 'quest' | 'focus';
+  label: string;
+  /** What the drawing is, for anyone who cannot see it. */
+  art: string;
+}
+
+export const CLIMB = {
+  eyebrow: 'The long game',
+  title: { lead: 'A subject you can ', mark: 'see yourself climbing.' },
+  lede: 'Every chapter is a checkpoint on a path you can see. Something is waiting at the ones you finish, and a chapter ends with a proper test of the whole thing rather than another exercise. What is behind you stays unlocked, so a hard week never costs you ground.',
+  switchLabel: 'How it looks',
+  vibes: [
+    {
+      key: 'quest',
+      label: 'Quest',
+      art: 'The path, as a climb with checkpoints, a chest and a final challenge',
+    },
+    {
+      key: 'focus',
+      label: 'Focused',
+      art: 'The same path, as a plain progress list',
+    },
+  ] as readonly Vibe[],
+  /** The three things the climb marks, in Wobo's hand. */
+  marks: { reward: 'a reward', here: 'you are here', test: 'the chapter test' },
+  /** The same four chapters, as the plain list. */
+  rows: [
+    { title: 'Fractions on a number line', state: 'mastered' },
+    { title: 'Equivalent fractions', state: 'mastered' },
+    { title: 'Adding unlike denominators', state: 'in progress' },
+    { title: 'Mixed numbers', state: 'next' },
+  ],
+  gate: 'Chapter test opens when the four above hold',
+  same: { lead: 'Same chapters, same tutor, same standard. ', em: 'Only the look changes.' },
+  legend: [
+    { tone: 'var(--mint)', label: 'held a week later' },
+    { tone: 'var(--pig)', label: 'where you are' },
+    { tone: 'var(--marigold)', label: 'waiting at the next checkpoint' },
+    { tone: 'var(--ink)', label: 'the chapter test' },
+  ],
 } as const;
 
 // --- The film -------------------------------------------------------------------------------------

@@ -122,12 +122,52 @@ const NEVER: readonly { title: string; line: string }[] = [
   },
 ];
 
-const TODAY: readonly string[] = [
-  'TLS everywhere, encryption at rest, row-level access rules in the database',
-  'Secrets kept out of code, dependency scanning, review and automated gates on every change',
-  'Erase-everything for learners and parents, with a 30-day backup purge',
-  'Questions sent to model providers without identity; providers contractually barred from training on them',
-  'Consent flows for DPDP, COPPA and GDPR-K; neutral content rules',
+/**
+ * The four laws a child's tutor is built to, and the five things that actually protect the data.
+ * Both lists are design/prototypes/site-security.html's compliance section, word for word: a law
+ * is named with the promise it makes to a family, and a protection with the control behind it,
+ * because "we take security seriously" is not a control.
+ */
+const LAWS: readonly { title: string; line: string }[] = [
+  {
+    title: 'India · Digital Personal Data Protection Act 2023.',
+    line: "A parent's verifiable consent before a child's account opens, no profiling of a child for advertising, and erasure on request.",
+  },
+  {
+    title: 'United States · COPPA.',
+    line: 'Under 13 needs a parent, and the parent may see, correct or delete everything we hold.',
+  },
+  {
+    title: 'Europe and the United Kingdom · GDPR, including the rules for children.',
+    line: 'Access, correction, export and erasure, and consent asked at the age each country sets.',
+  },
+  {
+    title: 'California · CCPA and CPRA.',
+    line: 'Know what is held, have it deleted, and never have it sold, because we do not sell it to anyone.',
+  },
+];
+
+const PROTECTIONS: readonly { title: string; line: string }[] = [
+  {
+    title: 'AES-256 at rest.',
+    line: 'The database and every backup are encrypted with 256-bit keys managed by the hosting provider and rotated.',
+  },
+  {
+    title: 'TLS 1.2 or newer in transit.',
+    line: 'Every connection between a device, Wobo and anything behind it.',
+  },
+  {
+    title: 'Access rules inside the database.',
+    line: "A learner's rows are readable only by that learner, enforced by the database and not only by our code.",
+  },
+  {
+    title: 'Least privilege for people.',
+    line: "No standing access to a learner's data. Support access is a deliberate act and it is logged.",
+  },
+  {
+    title: 'Reviewed and gated.',
+    line: 'Every change is reviewed, dependencies are scanned, and secrets never live in the code.',
+  },
 ];
 
 const SCHEDULED: readonly string[] = [
@@ -151,7 +191,7 @@ const SUBS: readonly { role: string; line: string; region: string }[] = [
   },
   {
     role: 'AI model providers',
-    line: 'Answer the question without knowing who asked. No training on it.',
+    line: 'Answer the question without ever knowing whose it is.',
     region: 'US · EU',
   },
   {
@@ -690,38 +730,67 @@ export function Security() {
         <section className="st-section">
           <div className="st-wrap">
             <Reveal className="st-head">
-              <Label>Compliance posture</Label>
-              <h2>What's in place today, and what's scheduled. Dates only when they're real.</h2>
+              <Label>Compliance</Label>
+              <h2>The laws we are built to, and how the data is protected.</h2>
             </Reveal>
             <Reveal className="sc-posture">
               <div className="sc-col sc-today">
-                <h3>In place today</h3>
+                <h3>The laws we are built to</h3>
                 <ul>
-                  {TODAY.map((line) => (
-                    <li key={line}>
+                  {LAWS.map((law) => (
+                    <li key={law.title}>
                       <i>
                         <Tick />
                       </i>
-                      {line}
+                      <span>
+                        <b>{law.title}</b> {law.line}
+                      </span>
                     </li>
                   ))}
                 </ul>
               </div>
               <div className="sc-col sc-next">
-                <h3>Scheduled</h3>
+                <h3>How it is protected</h3>
                 <ul>
-                  {SCHEDULED.map((line) => (
-                    <li key={line}>
+                  {PROTECTIONS.map((item) => (
+                    <li key={item.title}>
                       <i />
-                      {line}
+                      <span>
+                        <b>{item.title}</b> {item.line}
+                      </span>
                     </li>
                   ))}
                 </ul>
                 <p className="sc-honest">
-                  We'll move each line up as it lands, with the date it landed. Ask us for the
-                  current status any time.
+                  Where a claim needs an outside auditor to be worth anything, we would rather show
+                  you the control than print a badge we have not earned.
                 </p>
               </div>
+            </Reveal>
+          </div>
+        </section>
+
+        {/*
+          The audits are their own paragraph rather than a second column: a family reading the two
+          lists above is owed the honest state of what has NOT been checked by an outsider yet, and
+          burying it in a "scheduled" column made it look like a feature list.
+        */}
+        <section className="pt-tight">
+          <div className="st-wrap">
+            <Reveal className="st-head">
+              <Label>Not yet</Label>
+              <h2>What an outsider has not checked yet.</h2>
+              <p>
+                Every line below is scheduled, and each one moves up with the date it landed. Ask us
+                for the current status any time.
+              </p>
+            </Reveal>
+            <Reveal className="sc-never">
+              {SCHEDULED.map((line) => (
+                <div key={line}>
+                  <span>{line}</span>
+                </div>
+              ))}
             </Reveal>
           </div>
         </section>
@@ -784,8 +853,7 @@ export function Security() {
                 <h3>Want the full security overview?</h3>
                 <p>
                   The named sub-processors, the region map, the incident-response plan and the
-                  current audit status, as one document. Written for a school's IT lead, readable by
-                  a parent.
+                  current audit status, as one document. Written plainly, and readable by anyone.
                 </p>
               </div>
               <RequestForm />

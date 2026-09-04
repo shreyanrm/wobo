@@ -427,7 +427,7 @@ export function Subjects() {
                     → "…at once. By evening the streets were rivers."
                   </text>
                   <text className="pt-hw pt-dim" x="60" y="290" fontSize="18">
-                    Wobo rewrites one line, you fix the rest.
+                    Wobo rewrites one line. You fix the rest.
                   </text>
                 </svg>
                 <Sticker rotate={4} style={{ left: 22, bottom: 18 }}>

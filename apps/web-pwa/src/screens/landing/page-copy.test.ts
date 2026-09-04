@@ -14,13 +14,14 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   ASK,
   ASK_ELSEWHERE,
   AUTH,
   assistants,
+  CLIMB,
   CLOSE,
   DEVICES,
   FAQ,
@@ -35,6 +36,7 @@ import {
   SAFE,
   STUDENTS,
   SUBJECTS,
+  TEACHES,
 } from './page-copy';
 
 const PROTOTYPE = readFileSync(
@@ -42,14 +44,55 @@ const PROTOTYPE = readFileSync(
   'utf8',
 );
 
-/** The prototype as plain text: entities decoded, whitespace flattened, so a wrap cannot fail us. */
-const SOURCE = PROTOTYPE.replace(/&amp;/g, '&')
-  .replace(/&nbsp;/g, ' ')
-  .replace(/&#39;/g, "'")
-  .replace(/&quot;/g, '"')
-  .replace(/\s+/g, ' ');
+/**
+ * The prototype as plain text: entities decoded, whitespace flattened, so a wrap cannot fail us.
+ *
+ * Every entity is decoded, named and numeric alike. A decoder that knew only four of them would
+ * quietly push real prototype copy into `OURS` — "simile ✓" and the marked paragraph's fix line
+ * are written as `&#10003;` and `&#8594; &ldquo;&hellip;&rdquo;` — and the verbatim check would
+ * stop being verbatim exactly where the prose is most decorated.
+ */
+const NAMED: Record<string, string> = {
+  amp: '&',
+  nbsp: ' ',
+  quot: '"',
+  apos: "'",
+  lt: '<',
+  gt: '>',
+  ldquo: '\u201c',
+  rdquo: '\u201d',
+  lsquo: '\u2018',
+  rsquo: '\u2019',
+  hellip: '\u2026',
+  mdash: '\u2014',
+  ndash: '\u2013',
+  times: '\u00d7',
+  deg: '\u00b0',
+  sup2: '\u00b2',
+};
+const SOURCE = PROTOTYPE.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, (whole, body: string) => {
+  if (body.startsWith('#x') || body.startsWith('#X'))
+    return String.fromCodePoint(Number.parseInt(body.slice(2), 16));
+  if (body.startsWith('#')) return String.fromCodePoint(Number(body.slice(1)));
+  return NAMED[body] ?? whole;
+}).replace(/\s+/g, ' ');
 
 const flat = (s: string) => s.replace(/\s+/g, ' ').trim();
+
+/**
+ * Which component renders which of the prototype's `<section id>`s, read out of the section files
+ * themselves. Nothing is listed by hand: a file that stops rendering an id drops out of the map,
+ * and the parity test below then fails with that id named.
+ */
+const SECTION_SOURCES = new Map<string, string>(
+  readdirSync(join(import.meta.dir, 'sections'))
+    .filter((name) => name.endsWith('.tsx'))
+    .flatMap((name) => {
+      const source = readFileSync(join(import.meta.dir, 'sections', name), 'utf8');
+      const id = source.match(/<section id="([a-z-]+)"/)?.[1];
+      return id ? [[id, name.replace(/\.tsx$/, '').toLowerCase()] as [string, string]] : [];
+    }),
+);
 
 /**
  * What this build says that the prototype does not, and why. Everything else must be verbatim.
@@ -81,7 +124,8 @@ function pageStrings(): string[] {
     if (value && typeof value === 'object') {
       for (const [key, entry] of Object.entries(value)) {
         // Addresses are ours; the prototype's nav and footer carry the same set.
-        if (key === 'href' || key === 'key' || key === 'suffix') continue;
+        // Addresses, keys and a legend swatch's colour are not sentences.
+        if (key === 'href' || key === 'key' || key === 'suffix' || key === 'tone') continue;
         walk(entry);
       }
     }
@@ -92,8 +136,10 @@ function pageStrings(): string[] {
     HERO_FORMS,
     LOOP,
     FORMS,
+    TEACHES,
     STUDENTS,
     PRACTICE,
+    CLIMB,
     PARENTS,
     SUBJECTS,
     SAFE,
@@ -198,6 +244,40 @@ describe('the landing copy', () => {
     expect(links[4]?.href).toBe(`https://grok.com/?q=${q}`);
     // Every one of them carries the question, so the assistant arrives with something to do.
     for (const link of links) expect(link.href).toContain(q);
+  });
+
+  /**
+   * THE ASSERTION THIS FILE WAS MISSING, and the reason two whole chapters shipped absent.
+   *
+   * Everything above proves app-copy ⊆ prototype: nothing on the page is invented. Nothing proved
+   * the other direction, so a section could be dropped from `Landing.tsx` and every test stayed
+   * green — which is exactly what happened to `#teaches` and `#climb`. This walks the prototype's
+   * own section ids and demands a component for each, and it reads `Landing.tsx` rather than a
+   * list kept beside it, because a list beside it drifts the same way the page did.
+   */
+  it('renders every chapter the prototype has, in the prototype’s order', () => {
+    const wanted = [...PROTOTYPE.matchAll(/<section id="([a-z-]+)"/g)].map((m) => m[1] as string);
+    expect(wanted.length).toBeGreaterThan(10);
+
+    const assembly = readFileSync(join(import.meta.dir, 'Landing.tsx'), 'utf8');
+    const rendered = [...assembly.matchAll(/^\s+<([A-Z][A-Za-z]*)\b/gm)].map((m) =>
+      (m[1] as string).toLowerCase(),
+    );
+    // A component may be named for its section or for what it draws; the section file is what
+    // carries the id, so the id is looked for there.
+    const missing = wanted.filter((id) => {
+      const source = SECTION_SOURCES.get(id);
+      return !source || !rendered.includes(source);
+    });
+    expect(missing).toEqual([]);
+
+    // And in the prototype's order, because these chapters are an argument, not a set.
+    const order = wanted.flatMap((id) => {
+      const source = SECTION_SOURCES.get(id);
+      const at = source ? rendered.indexOf(source) : -1;
+      return at >= 0 ? [at] : [];
+    });
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
   it('keeps the four answer forms and the four cards in step', () => {

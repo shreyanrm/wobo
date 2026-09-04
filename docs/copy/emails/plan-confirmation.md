@@ -20,7 +20,7 @@ Your {{plan_name}} plan is active.
 
 **What you pay.** {{plan_price}}, {{billing_period}}. The next charge is on {{renewal_date}} unless you cancel before then.
 **What changes now.** {{allowance_line}}
-**Cancelling.** Settings, plan, cancel. We offer you a pause or a smaller plan first; say no and it is done on the next screen. You keep {{plan_name}} until {{period_end_date}} and everything you have learnt stays either way.
+**Cancelling.** Settings, your plan, cancel. Two taps, no offer to stay and no reason to give. You keep {{plan_name}} until {{period_end_date}}, nothing renews after that, and everything you have learnt stays either way.
 
 {{renewal_notice_line}}
 
