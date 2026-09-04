@@ -743,3 +743,23 @@ needed it was asked and the answer is recorded beside the task.
       fourteen day withdrawal right in the EU, the EEA and the UK. Apple and Google refund their own
       purchases under their own policies whatever we write. FOR THE OWNER: this is the one place his
       ruling cannot be carried out in full, and the reason is law rather than taste
+
+### 10.13 Yearly plans (owner, 2026-09-04)
+- [x] **The canonical table** — `docs/PRICING.md`. One place every price is stated, with the rule
+      that makes the numbers honest: a year costs ten months
+- [x] **The plans page** — yearly and monthly, with a two-option control whose indicator only
+      translates. Yearly is first and yearly is the default. Pro reads ₹1,666 a month with
+      ₹19,992 billed annually underneath; Max reads ₹3,333 with ₹39,996. Free is unaffected
+- [x] Every price, every line of small print and the closing sentence read from one choice, so the
+      page cannot show a yearly price beside a monthly promise
+- [x] **Contrast bug fixed** — the annual line inherited a light-mode grey and was nearly invisible
+      on the dark Max card. Now 7.81 against its own ground
+- [x] **Donate re-priced** — a year now costs the YEARLY rate a parent pays, not twelve monthly
+      ones. The page claims "the price a parent pays, nothing added", so twelve monthly would have
+      made that sentence false
+- [ ] **Into the app**: `screens/plans/prices.ts` and the period switch on the real page. Held until
+      Wave 13 releases `screens/plans/**`, which it is editing right now
+- [ ] **The subscription record must store the period**, so the cancel screen can say "till the year
+      you paid for ends" instead of assuming a month. Wave 13 is building that record now
+- [ ] FOR THE OWNER: the rupee figures are yours. The dollar figures are derived by the same rule
+      (ten months for twelve, so $200 and $500 a year) and are open to being set differently

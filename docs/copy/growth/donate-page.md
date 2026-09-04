@@ -59,6 +59,7 @@ theirs.
 | Variable | Example | Notes |
 |---|---|---|
 | `place_lengths` | a month, a term, a year | Words, not a number of days |
+| `place_price` | the plan price for that length | A month is the monthly price. A year is the YEARLY price, not twelve monthly ones, because that is what a parent pays for a year. |
 | `support_mailbox` | support@heywobo.com | The one mailbox for everything |
 
 ## Rules

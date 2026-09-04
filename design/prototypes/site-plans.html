@@ -8,18 +8,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#FAF7F0; --paper-2:#F1EDE3; --paper-3:#E7E1D3; --ink:#14142B; --ink-2:#4E4E66; --ink-3:#8A8A9E;
-  --pig:#2B45FF; --violet:#7C5CFF; --rose:#FF6B57; --marigold:#FFB629; --mint:#22C48B; --lilac:#B7A6FF;
-  --pig-w:#E6EAFF; --rose-w:#FFE7E2; --marigold-w:#FFF1D6; --mint-w:#DDF6EC; --lilac-w:#EFEBFF;
-  --body:#14142B; --body-hi:#3A3A5C; --visor:#FAF7F0; --visor-lo:#E7E1D3; --eye:#2B45FF;
+  /* LAW v5 (DESIGN.md §0) — white paper, colour with a job. The ground is #FFFFFF; a section
+     never gets a tint to say it is a section. Character for character the token block at the top
+     of landing-v8.html, plus the washes and lilac these site pages already name. */
+  --paper:#FFFFFF; --paper-2:#F6F6F8; --paper-3:#ECECF0; --line:#E4E4EA;
+  --ink:#14142B; --ink-2:#55556B; --ink-3:#8A8A9E;
+  --pig:#2B45FF; --pig-soft:#EDF0FF; --marigold:#FFB629; --rose:#FF6B57; --mint:#12B981; --violet:#7C5CFF; --lilac:#B7A6FF;
+  --pig-w:#EDF0FF; --violet-w:#EFEBFF; --rose-w:#FFEDEB; --marigold-w:#FFF6E5; --mint-w:#E3F7F0; --lilac-w:#F6F4FF;
+  --body:#14142B; --body-hi:#3A3A5C; --visor:#FFFFFF; --visor-lo:#EDEDF2; --eye:#2B45FF;
   --sans:'Poppins',system-ui,-apple-system,sans-serif; --hand:'Caveat',cursive;
-  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:64px; --s6:120px;
+  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:72px; --s6:128px;
+  --gutter:clamp(20px, 5vw, 48px); --band:clamp(72px, 9vw, 132px); --colgap:clamp(32px, 5vw, 80px);
+  --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 10px 28px rgba(20,20,43,.07);
 }
 [data-theme="dark"]{
-  --paper:#0F1226; --paper-2:#181C3A; --paper-3:#22264A; --ink:#F3F0E8; --ink-2:#B8B6C6; --ink-3:#7C7B92;
-  --pig:#7C8CFF; --violet:#A996FF; --rose:#FF8A78; --marigold:#FFC85A; --mint:#4FE3BD; --lilac:#C9BDFF;
-  --pig-w:#1E2650; --rose-w:#3E2431; --marigold-w:#3E3320; --mint-w:#16362E; --lilac-w:#2A2650;
-  --body:#F3F0E8; --body-hi:#FFFFFF; --visor:#0F1226; --visor-lo:#1E2650; --eye:#7C8CFF;
+  /* night, designed on its own and never inverted */
+  --paper:#0E0E16; --paper-2:#17171F; --paper-3:#1F1F29; --line:#26262F;
+  --ink:#F4F4F7; --ink-2:#B4B4C2; --ink-3:#7E7E90;
+  --pig:#7C8CFF; --pig-soft:#1A1E3A; --marigold:#FFC85A; --rose:#FF8A78; --mint:#3DD9A4; --violet:#A996FF; --lilac:#C9BDFF;
+  --pig-w:#1A1E3A; --violet-w:#2C293E; --rose-w:#38272C; --marigold-w:#383027; --mint-w:#1C3232; --lilac-w:#302E3E;
+  --body:#F4F4F7; --body-hi:#FFFFFF; --visor:#0E0E16; --visor-lo:#1F1F29; --eye:#7C8CFF;
+  --shadow:0 24px 60px rgba(0,0,0,.5); --lift:0 10px 28px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -137,6 +146,25 @@ footer a{display:block;padding:4px 0}
 footer .wm svg{height:22px;color:var(--paper)}
 @media (max-width:900px){footer .wrap{grid-template-columns:1fr 1fr}}
 @media (prefers-reduced-motion:reduce){.blink{animation:none}.allow .bar i{transition:none}}
+
+/* ── how you would like to pay ───────────────────────────────────────────────
+   Yearly is first and yearly is the default, because it is the better deal and
+   hiding it behind a toggle would be the sort of thing this product exists not
+   to do. The pill only ever translates: transitioning its width would be a
+   layout property animating, which is one of the three causes of jitter in
+   DESIGN.md §0. Both segments are the same width so a translate is enough. */
+.pl-per{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin:0 0 var(--s4)}
+.pl-seg{position:relative;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:264px;background:var(--paper-2);padding:4px;border-radius:999px}
+.pl-pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc(50% - 4px);border-radius:999px;background:var(--ink);transform:translateX(0);transition:transform .34s cubic-bezier(.2,.8,.2,1)}
+[data-period="m"] .pl-pill{transform:translateX(100%)}
+.pl-seg button{position:relative;z-index:1;font:500 14px/1 var(--sans);border:0;background:transparent;color:var(--ink-2);padding:11px 8px;border-radius:999px;cursor:pointer;min-height:42px}
+.pl-seg button[aria-pressed="true"]{color:var(--paper)}
+.pl-save{font:500 13px/1 var(--sans);color:#5A3B00;background:var(--marigold-w);padding:9px 13px;border-radius:999px;white-space:nowrap}
+[data-theme="dark"] .pl-save{color:var(--marigold)}
+[data-period="m"] .pl-save{opacity:.42}
+.pl-billed{font:400 13px/1.35 var(--sans);color:var(--ink-2);margin-top:6px;font-variant-numeric:tabular-nums}
+.plan.max .pl-billed{color:#A9A9BD}  /* the Max card is dark in both themes */
+@media (prefers-reduced-motion:reduce){.pl-pill{transition:none}}
 </style>
 </head>
 <body>
@@ -150,7 +178,7 @@ footer .wm svg{height:22px;color:var(--paper)}
 <header><div class="wrap">
   <a class="wm" href="#"><svg viewBox="0 0 1160 340"><use href="#wm"/></svg></a>
   <nav><a href="#">Meet Wobo</a><a href="#">How it works</a><a href="#">For parents</a><a href="#">For students</a><a href="#">Subjects</a><a class="on" href="#">Plans</a></nav>
-  <div class="cta"><a class="btn quiet" href="#">Sign in</a><a class="btn pig" href="#">Get started</a></div>
+  <div class="cta"><a class="btn quiet" href="#">Sign in</a><a class="btn pig" href="#">Get early access</a></div>
 </div></header>
 
 <section class="hero"><div class="wrap">
@@ -158,9 +186,18 @@ footer .wm svg{height:22px;color:var(--paper)}
   <h1>Free every day. <em>More when exams get close.</em></h1>
   <p class="sub">Every learner gets a daily allowance of questions, forever, with no card and no trial that ends. Pro and Max raise it for the weeks that need it. Cancelling takes as many taps as subscribing.</p>
   <div class="allow reveal" id="allow"><span class="sticker">free, every day</span><b>Today's allowance</b><div class="bar"><i></i></div><span>Today's questions · resets 6:00 am</span><div class="hand">enough for a normal evening, and the next one, and the one after</div></div>
+
 </div></section>
 
 <section><div class="wrap">
+  <div class="pl-per reveal">
+    <div class="pl-seg" role="group" aria-label="How you would like to pay">
+      <span class="pl-pill" aria-hidden="true"></span>
+      <button id="plY" type="button" aria-pressed="true">Yearly</button>
+      <button id="plM" type="button" aria-pressed="false">Monthly</button>
+    </div>
+    <span class="pl-save">two months free</span>
+  </div>
   <div class="plans reveal">
     <div class="plan">
       <div class="name">Free</div>
@@ -172,13 +209,14 @@ footer .wm svg{height:22px;color:var(--paper)}
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>Practice, the week, the Sunday note</li>
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>One linked parent</li>
       </ul>
-      <a class="btn quiet" href="#" style="background:var(--paper)">Start learning for free</a>
+      <a class="btn quiet" href="#" style="background:var(--paper)">Get early access</a>
       <div class="fine">No card. No trial that ends.</div>
     </div>
     <div class="plan pro">
       <span class="best">most families</span>
       <div class="name">Pro</div>
-      <div class="price"><span data-in="₹1,999" data-ww="$20">₹1,999</span><small>a month</small></div>
+      <div class="price"><span class="pl-amt" data-y-in="₹1,666" data-y-ww="$16.67" data-m-in="₹1,999" data-m-ww="$20">₹1,666</span><small>a month</small></div>
+      <div class="pl-billed" data-y-in="₹19,992 billed annually" data-y-ww="$200 billed annually" data-m-in="billed monthly" data-m-ww="billed monthly">₹19,992 billed annually</div>
       <div class="x">five times the questions</div>
       <p>For the term with a test every fortnight. The same tutor, asked five times as often.</p>
       <ul>
@@ -188,11 +226,12 @@ footer .wm svg{height:22px;color:var(--paper)}
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>Everything in Free</li>
       </ul>
       <a class="btn pig" href="#">Choose Pro</a>
-      <div class="fine">Monthly. Cancel in two taps, keep it till the month ends.</div>
+      <div class="fine" data-y-in="Yearly. Cancel in two taps, keep it till the year you paid for ends." data-y-ww="Yearly. Cancel in two taps, keep it till the year you paid for ends." data-m-in="Monthly. Cancel in two taps, keep it till the month ends." data-m-ww="Monthly. Cancel in two taps, keep it till the month ends.">Yearly. Cancel in two taps, keep it till the year you paid for ends.</div>
     </div>
     <div class="plan max">
       <div class="name">Max</div>
-      <div class="price"><span data-in="₹3,999" data-ww="$50">₹3,999</span><small>a month</small></div>
+      <div class="price"><span class="pl-amt" data-y-in="₹3,333" data-y-ww="$41.67" data-m-in="₹3,999" data-m-ww="$50">₹3,333</span><small>a month</small></div>
+      <div class="pl-billed" data-y-in="₹39,996 billed annually" data-y-ww="$500 billed annually" data-m-in="billed monthly" data-m-ww="billed monthly">₹39,996 billed annually</div>
       <div class="x">twenty times the questions</div>
       <p>Board year. So many questions that nobody counts them.</p>
       <ul>
@@ -202,10 +241,10 @@ footer .wm svg{height:22px;color:var(--paper)}
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>Everything in Pro</li>
       </ul>
       <a class="btn" href="#">Choose Max</a>
-      <div class="fine">Monthly. Same two taps to cancel.</div>
+      <div class="fine" data-y-in="Yearly. Same two taps to cancel." data-y-ww="Yearly. Same two taps to cancel." data-m-in="Monthly. Same two taps to cancel." data-m-ww="Monthly. Same two taps to cancel.">Yearly. Same two taps to cancel.</div>
     </div>
   </div>
-  <p class="lede" style="max-width:60ch;margin:var(--s4) auto 0;text-align:center;color:var(--ink-2)">Same price for everyone in your country, never varied by behaviour or device. Cancelling takes as many taps as subscribing, and you keep the plan until the month you paid for ends.</p>
+  <p class="lede" style="max-width:60ch;margin:var(--s4) auto 0;text-align:center;color:var(--ink-2)">Same price for everyone in your country, never varied by behaviour or device. <span data-y-in="Cancelling takes as many taps as subscribing, and you keep the plan until the year you paid for ends." data-y-ww="Cancelling takes as many taps as subscribing, and you keep the plan until the year you paid for ends." data-m-in="Cancelling takes as many taps as subscribing, and you keep the plan until the month you paid for ends." data-m-ww="Cancelling takes as many taps as subscribing, and you keep the plan until the month you paid for ends.">Cancelling takes as many taps as subscribing, and you keep the plan until the year you paid for ends.</span></p>
 </div></section>
 
 <section><div class="wrap">
@@ -244,9 +283,9 @@ footer .wm svg{height:22px;color:var(--paper)}
 </div></section>
 
 <div class="close"><div class="wrap">
-  <h2>Start free. Decide later.</h2>
-  <span class="hand">Free to start, and free every day after. So is the fortieth.</span>
-  <div class="row"><a class="btn" href="#">Start learning for free</a><a class="btn q" href="#">Gift Wobo</a></div>
+  <h2>Free every day, from the day it opens.</h2>
+  <span class="hand">No card now. No card then either.</span>
+  <div class="row"><a class="btn" href="#">Get early access</a><a class="btn q" href="#">Gift Wobo</a></div>
 </div></div>
 <footer><div class="wrap">
   <div><div class="wm"><svg viewBox="0 0 1160 340" style="width:120px"><use href="#wm"/></svg></div><p style="margin-top:10px;max-width:28ch">A tutor that draws, never judges, and is always there.</p></div>
@@ -271,6 +310,25 @@ if (!rm && 'IntersectionObserver' in window) {
 const zone = (Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
 const inIndia = zone.includes('kolkata') || zone.includes('calcutta');
 document.querySelectorAll('[data-in]').forEach((el) => { el.textContent = inIndia ? el.dataset.in : el.dataset.ww; });
+
+/* Yearly or monthly, here or elsewhere: four values on one element, and one
+   place that chooses between them. Every price, every line of small print and
+   the closing sentence all read from the same choice, so the page can never
+   show a yearly price beside a monthly promise. */
+let plPeriod = 'y';
+function plPaint() {
+  const key = plPeriod === 'y' ? (inIndia ? 'yIn' : 'yWw') : (inIndia ? 'mIn' : 'mWw');
+  document.querySelectorAll('[data-y-in]').forEach((el) => {
+    const v = el.dataset[key];
+    if (v) el.textContent = v;
+  });
+  document.documentElement.dataset.period = plPeriod;
+  plY.setAttribute('aria-pressed', String(plPeriod === 'y'));
+  plM.setAttribute('aria-pressed', String(plPeriod === 'm'));
+}
+plY.addEventListener('click', () => { plPeriod = 'y'; plPaint(); });
+plM.addEventListener('click', () => { plPeriod = 'm'; plPaint(); });
+plPaint();
 </script>
 </body>
 </html>
