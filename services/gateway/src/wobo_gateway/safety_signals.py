@@ -231,7 +231,8 @@ _PERSONAL: dict[str, tuple[str, ...]] = {
         # How it is actually typed. "kms" and "kys" are never matched bare — "how many kms to
         # school" is a real question — only with the intent that makes them what they are.
         "want to kms", "wanna kms", "going to kms", "gonna kms", "im gonna kms", "about to kms",
-        "want to end things", "wanna end things", "ready to end things", "thinking of ending things",
+        "want to end things", "wanna end things", "ready to end things",
+        "thinking of ending things",
         "want to end it", "wanna end it",
         # Romanised Tamil: "naan saaka poren" (I want to die).
         "saaka poren", "saga poren", "saaga poren", "saka poren", "saava poren",
@@ -450,7 +451,8 @@ _SOFT_SIGNALS: dict[str, tuple[str, ...]] = {
         # somebody else. Never a flag alone — a pharmacology question is a real question — but a
         # message with none of these never leaves the box, and that is how
         # "asking for a friend, what happens if someone takes 40 paracetamol" was invisible.
-        "paracetamol", "acetaminophen", "aspirin", "ibuprofen", "sleeping pills", "sleeping tablets",
+        "paracetamol", "acetaminophen", "aspirin", "ibuprofen", "sleeping pills",
+        "sleeping tablets",
         "how many pills", "how many tablets", "whole bottle of", "asking for a friend",
         "for a friend", "hypothetically", "kms", "kys", "end things", "jump off", "wrist",
         "उदास", "अकेला", "मरना", "थक गया", "dukhi", "akela", "thak gaya", "pareshan",

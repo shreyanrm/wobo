@@ -42,9 +42,9 @@ from wobo_gateway.safety_signals import (
     RuleClassifier,
     RuleOutcome,
     SafetyVerdict,
+    screen_model_words,
 )
 from wobo_gateway.safety_signals import screen as screen_text
-from wobo_gateway.safety_signals import screen_model_words
 
 
 class SafetyClassifier(Protocol):
