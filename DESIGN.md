@@ -55,6 +55,11 @@ saw as jitter on 2026-09-04.
   not "begin tonight".
 - **Drawing is one part.** Never let a surface imply the board is the whole product: it also
   films, simulates, speaks, practises, remembers and reports.
+- **Cancel, never refund.** (owner, 2026-09-04) We do not offer refunds. A subscriber cancels, keeps
+  the plan until the period already paid for ends, and nothing renews. No product surface may promise
+  money back. The narrow refunds that remain are the ones the law requires and they live in the legal
+  documents, not on a page that sells. Cancelling takes as many taps as subscribing, and the screen
+  that does it offers no discount, no pause, no survey and no reason picker.
 
 ### The five traps this repo has already paid for
 Every one of these produced a bug the owner saw with his own eyes. They are cheap to avoid and

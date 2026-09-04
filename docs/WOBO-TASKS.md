@@ -717,6 +717,29 @@ needed it was asked and the answer is recorded beside the task.
 - [ ] **Wave 11, queued** — port `app-climb.html` into the app: the map, the two vibes, the debt loop
       and the bridge, reading the state Wave 10 makes real. Blocked only on Wave 9 releasing the app
       screens
+- [ ] **Wave 13** `wf_9d78a813-810` — cancel, never refund (owner, 2026-09-04: "we dont do refunds,
+      they can cancel if they want to, and make sure that feature is also implemented"). Three owners:
+      the subscription record plus a migration at 0014 and the cancel / resume / read endpoints with
+      the meter falling to free by itself; Settings and Your plan and a two-tap cancel with no
+      retention maze; and the copy and the legal documents, where every discretionary refund promise
+      goes and only the statutory ones remain
 - [ ] **Wave 12, queued** — the Donate page in React beside Gift, plus its route, its footer entry and
       its sitemap line. Blocked on the four policy lines and on Wave 9 releasing `screens/site/`
 
+### 10.12 Cancel, never refund (owner, 2026-09-04)
+- [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
+      "Settings → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
+      Settings and Your plan, no cancel control, no subscription record, no period end and no
+      endpoint. `screens/pitch/Security.tsx:118` prints the same promise a second way. Wave 13 builds it
+- [ ] **`profiles_cache.plan` still checks `in ('free','plus')`** while `budget.py` prices free, pro
+      and max. The constraint and the code disagree today
+- [x] **The rule is written into the copy law** — no product surface may promise money back
+- [ ] **Every discretionary refund promise comes out**: the gift page's "refundable within fourteen
+      days if it is unopened" and its `refund_days` variable, the REFUND WINDOW constant in
+      `screens/plans/prices.ts:240`, and the goodwill wording through
+      `docs/legal/refund-and-cancellation.md`
+- [ ] **What may not be removed, because it is statutory, not goodwill**: a charge taken after
+      cancelling, a duplicate charge, an unauthorised charge, a service we did not supply, and the
+      fourteen day withdrawal right in the EU, the EEA and the UK. Apple and Google refund their own
+      purchases under their own policies whatever we write. FOR THE OWNER: this is the one place his
+      ruling cannot be carried out in full, and the reason is law rather than taste
