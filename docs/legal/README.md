@@ -8,7 +8,7 @@ Draft of 3 September 2026, with `refund-and-cancellation.md` revised on 4 Septem
 >
 > It is written to be read by a fourteen-year-old and by their parent, not by a lawyer, and then checked by a lawyer.
 >
-> Every line that depends on the law of a particular country is tagged `[REVIEW]`. There are 99 of them. Each one carries its own question, naming the statute, the decision or the figure to confirm, so a specialist can answer it without first working out what was meant.
+> Every line that depends on the law of a particular country is tagged `[REVIEW]`. There are 100 of them. Each one carries its own question, naming the statute, the decision or the figure to confirm, so a specialist can answer it without first working out what was meant.
 
 ---
 
@@ -130,13 +130,13 @@ Give this to counsel with the ten documents. It is ordered by what would hurt mo
 
 ## 5. Where the `[REVIEW]` tags are
 
-99 tags across the ten documents. Every one of them names a statute, a decision or a figure to confirm; there are no bare tags left, because a tag with no question attached is a bill for a guess.
+100 tags across the ten documents. Every one of them names a statute, a decision or a figure to confirm; there are no bare tags left, because a tag with no question attached is a bill for a guess.
 
 | File | Tags |
 |---|---|
 | `privacy-policy.md` | 24 |
 | `terms-of-service.md` | 13 |
-| `refund-and-cancellation.md` | 13 |
+| `refund-and-cancellation.md` | 14 |
 | `parental-consent.md` | 11 |
 | `childrens-privacy.md` | 10 |
 | `accessibility-statement.md` | 8 |

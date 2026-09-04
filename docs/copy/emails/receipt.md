@@ -34,7 +34,7 @@ Receipt for your Wobo plan.
 
 Billed by [Company legal name], [postal address]. {{tax_id_line}}
 
-To change or cancel your plan: settings, then plan. For anything that looks wrong here, reply with this receipt number and a person will look at it.
+To cancel your plan: open You, then the card called Your plan. For anything that looks wrong here, reply with this receipt number and a person will look at it.
 
 ## Variables
 | Variable | Example | Notes |

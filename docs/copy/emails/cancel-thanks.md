@@ -21,7 +21,7 @@ Your {{plan_name}} is cancelled. Nothing else to do, and you will not be charged
 **Until {{period_end_date}}** you still have Pro.
 **After that** the account goes back to the free plan. Every topic, board, note and bit of progress stays exactly where it is, free, for as long as you want it.
 
-If it was a mistake, one tap in settings puts the plan back, any time before {{period_end_date}}. After that there is nothing to put back.
+If it was a mistake, one tap on the Your plan card in You puts the plan back, any time before {{period_end_date}}. After that there is nothing to put back.
 
 If you want your data instead, or want the account gone entirely, both are one button in settings, data and privacy. We delete your account, your learning history and your boards, and it cannot be undone. The only thing we keep is the billing records the law requires us to hold, and backups age out within [n] days.
 

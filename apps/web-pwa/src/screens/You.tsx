@@ -648,9 +648,11 @@ export function You() {
           </Card>
         </div>
 
-        {/* your plan — the panel the plans page points at: "Settings → Your plan → Cancel". The
-            Cancel is on the panel itself, so the confirmation is one tap away and the whole cancel
-            is two, which is the count that page prints. */}
+        {/* your plan — the panel the plans page points at: "You → Your plan → Cancel". The Cancel
+            is on the panel itself, so the confirmation is one tap away and the whole cancel is
+            two, which is the count that page prints. The tab is You (ui/primitives/AppShell.tsx);
+            the card above is tagged Settings and is a SIBLING of this one, never its parent, which
+            is why no surface tells anyone to look inside a Settings screen for their plan. */}
         <div ref={planRef}>
           <PlanPanel planId={planId} onSeePlans={() => router.navigate({ name: 'plans' })} />
         </div>

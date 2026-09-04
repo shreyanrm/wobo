@@ -308,7 +308,7 @@ This is the section that changes the legal text, so it is written as rules rathe
 
 **How the legal text must differ.**
 
-- The web terms describe our own billing, our own refund policy, and cancellation through the account page.
+- The web terms describe our own billing and our own cancellation, which lives on the You screen, on the card called Your plan. There is no goodwill refund policy to describe: the owner's ruling of 4 September 2026 is cancel, never refund, and the only refunds left are the ones the law requires, listed in `docs/legal/refund-and-cancellation.md` section 5.
 - The iOS terms must say the subscription is billed by the App Store, that it renews unless cancelled at least 24 hours before the period ends, that cancellation is managed in the device's account settings, and that refunds are handled by the store, not by us. Apple's own model text for auto-renewing subscriptions is required near the purchase control, and Brilliant's two consent checkboxes that plan §16 tells us to keep (terms and privacy; the recurring-charge disclosure naming the amount, the renewal and the cancellation) satisfy this cleanly.
 - The Android terms say the same with the Play billing equivalents.
 - One privacy policy serves all platforms, and it names recipients only as "third-party AI and infrastructure providers" (plan §17).

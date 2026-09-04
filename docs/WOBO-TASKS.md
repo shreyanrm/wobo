@@ -728,7 +728,7 @@ needed it was asked and the answer is recorded beside the task.
 
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
-      "Settings → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
+      "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
       Settings and Your plan, no cancel control, no subscription record, no period end and no
       endpoint. `screens/pitch/Security.tsx:118` prints the same promise a second way. Wave 13 builds it
 - [ ] **`profiles_cache.plan` still checks `in ('free','plus')`** while `budget.py` prices free, pro

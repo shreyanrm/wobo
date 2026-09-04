@@ -140,7 +140,7 @@ export function faqItems(_tiers: readonly PlanTier[] = PLAN_TIERS): FaqItem[] {
     {
       question: 'How do I cancel?',
       answer:
-        'Settings → Your plan → Cancel. Two taps, no call, no offer to stay, no reason to give. You keep the plan until the month you paid for ends, nothing renews after that, and everything you learnt stays. Change your mind before that date and one tap puts the plan back.',
+        'You → Your plan → Cancel. Two taps, no call, no offer to stay, no reason to give. You keep the plan until the month you paid for ends, nothing renews after that, and everything you learnt stays. Change your mind before that date and one tap puts the plan back.',
     },
     {
       question: 'Do you give money back?',

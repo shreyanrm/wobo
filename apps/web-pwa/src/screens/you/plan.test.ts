@@ -30,6 +30,7 @@ import {
 import {
   allowanceLine,
   CANCEL_FAILED,
+  CONFIRM_TITLE,
   CONTROL_IDS,
   type ControlId,
   confirmationLines,
@@ -478,6 +479,99 @@ describe('the confirmation is a real dialog', () => {
     ]) {
       expect([label, code(PANEL).includes(label)]).toEqual([label, false]);
     }
+  });
+});
+
+// --- the route the copy names is the route the product has ----------------------------------------
+
+const DOCS = new URL('../../../../../docs/', import.meta.url).pathname;
+const doc = (path: string): string => readFileSync(join(DOCS, path), 'utf8');
+
+describe('every instruction names a door that exists', () => {
+  /**
+   * There is no screen, route or nav item called Settings. The four doors are Home, Learn,
+   * Practice and You (`ui/primitives/AppShell.tsx`), the plan lives at /you, and "Your plan" is a
+   * card on that screen — a SIBLING of the card tagged Settings, not something inside it. So
+   * "Settings → Your plan → Cancel" named a container that does not exist and a nesting that is
+   * not there, and it was stated as fact on the plans page, in two help articles, in the terms, in
+   * the cancellation document and in three emails. The cancel itself was always two taps; the
+   * directions to it were the broken part.
+   */
+  const SHELL = readFileSync(join(HERE, '..', '..', 'ui', 'primitives', 'AppShell.tsx'), 'utf8');
+
+  it('the tab really is called You, which is what the copy now says', () => {
+    expect(SHELL).toContain("{ id: 'you', label: 'You', path: '/you' }");
+    expect(SHELL).not.toMatch(/label: 'Settings'/);
+  });
+
+  it('no surface sends a learner to a Settings screen to cancel', () => {
+    const surfaces: [string, string][] = [
+      ['screens/plans/copy.ts', readFileSync(join(HERE, '..', 'plans', 'copy.ts'), 'utf8')],
+      ['help 09-plans-and-billing', doc('copy/help-centre/wobo-basics/09-plans-and-billing.md')],
+      ['legal/refund-and-cancellation', doc('legal/refund-and-cancellation.md')],
+      ['copy/growth/cancel-flow', doc('copy/growth/cancel-flow.md')],
+      ['emails/plan-confirmation', doc('copy/emails/plan-confirmation.md')],
+      ['emails/receipt', doc('copy/emails/receipt.md')],
+    ];
+    for (const [name, source] of surfaces) {
+      expect([name, /Settings\s*(?:→|,|>)\s*(?:then\s+)?your plan/i.test(source)]).toEqual([
+        name,
+        false,
+      ]);
+    }
+  });
+
+  it('the plans page prints the route the product has', () => {
+    const copy = readFileSync(join(HERE, '..', 'plans', 'copy.ts'), 'utf8');
+    expect(copy).toContain('You → Your plan → Cancel');
+  });
+});
+
+describe('the plan of record no longer prescribes what the owner banned', () => {
+  it('WOBO-PLAN does not sanction a save flow, and says why', () => {
+    const plan = doc('WOBO-PLAN.md');
+    expect(plan).not.toContain('a save flow with pause, a downgrade, or a gifted month');
+    expect(plan).toContain('Cancelling is not a growth surface');
+  });
+
+  it('PLATFORMS does not send the web terms to a refund policy or an account page', () => {
+    const platforms = doc('PLATFORMS.md');
+    expect(platforms).not.toContain('our own refund policy, and cancellation through the account');
+    expect(platforms).toContain('cancel, never refund');
+  });
+
+  it('the cancel spec describes the screen that was built', () => {
+    const spec = doc('copy/growth/cancel-flow.md');
+    // The spec used to carry a "done" screen with Export and Delete on it that the panel never
+    // had, and a failure screen with different words. Both are now the panel's own.
+    expect(spec).toContain(CONFIRM_TITLE);
+    expect(spec).toContain(CANCEL_FAILED);
+    expect(spec).toContain('there is no screen 2');
+    expect(spec).not.toContain('[Export everything] · [Delete my account and data]');
+  });
+});
+
+describe('nothing tells a learner their plan renews', () => {
+  it('no line the panel can print says it, because nothing in the product does it', () => {
+    const printed = [
+      ...panelLines(settled(PRO), NOW),
+      ...panelLines(settled(CANCELLING), NOW),
+      ...panelLines(settled(subscription({ plan: 'free', status: 'free' })), NOW),
+      ...confirmationLines(PRO),
+      ...panelLines(unread('pro'), NOW),
+      CANCEL_FAILED,
+      UNREADABLE,
+      WORK_STAYS,
+      ...Object.values(STORE_LINES),
+    ];
+    for (const line of printed) expect([line, /renew/i.test(line)]).toEqual([line, false]);
+  });
+
+  it('and the spec and the help article do not either', () => {
+    expect(doc('copy/growth/cancel-flow.md')).toContain('Nothing here says a plan renews');
+    expect(doc('copy/help-centre/wobo-basics/09-plans-and-billing.md')).not.toContain(
+      'annual or family plan',
+    );
   });
 });
 

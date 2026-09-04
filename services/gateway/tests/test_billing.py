@@ -1,9 +1,9 @@
 """The cancel, driven through the real app with the real door.
 
-The plans page already promises this in the learner's own words — "Settings → Your plan → Cancel.
-Two taps, no call, no 'are you sure' maze. You keep the plan until the month you paid for ends" —
-and there are no refunds, so it is the only door out. Every requirement in that sentence is a test
-here: nothing taken away early, nothing renewed after, everything learnt kept, reversible before
+The plans page already promises this in the learner's own words — "You → Your plan → Cancel. Two
+taps, no call, no 'are you sure' maze. You keep the plan until the month you paid for ends" — and
+there are no refunds, so it is the only door out. Every requirement in that sentence is a test
+here: nothing taken away early, nothing charged after, everything learnt kept, reversible before
 the period ends, idempotent, honest under failure, and a store subscription refused clearly enough
 that the app can say where it IS cancelled.
 
@@ -594,7 +594,12 @@ def test_an_unconfigured_deployment_refuses_rather_than_answering_free(
     misconfigured. With no refund behind it that is a trap, so an unconfigured store now raises and
     both routes answer 503 with the plan unchanged.
     """
-    for key in ("SUBSCRIPTIONS_STORE", "SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_KEY"):
+    for key in (
+        "SUBSCRIPTIONS_STORE",
+        "SUPABASE_URL",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "SUPABASE_SERVICE_KEY",
+    ):
         monkeypatch.delenv(key, raising=False)
 
     built = billing.build_store()

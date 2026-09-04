@@ -19,12 +19,11 @@ Draft of 4 September 2026. Version 0.2. Written by the Wobo team, not yet review
 | Plan | What it is |
 |---|---|
 | Free | Wobo, with a daily allowance of tutoring turns and generated lessons. The allowance and its reset time are shown in the app |
-| Plus, monthly | higher limits and the paid features, billed every month |
-| Plus, annual | the same, billed once a year, at a lower price per month |
-| Family | Plus for up to [number] learners under one payment |
+| Pro, monthly | a higher daily allowance and spoken replies, billed every month, for one learner |
+| Max, monthly | a higher allowance again, and two learners on one plan, billed every month |
 | Gift | a fixed period bought for someone else, which does not renew |
 
-The benefits of each plan are listed on the plans page before you buy, with what is included and what is not.
+This table is the plans page, and it is kept the same as `apps/web-pwa/src/screens/plans/prices.ts`, which is the one place a tier or a price is written down. There is no annual plan and no family plan; if either is ever sold, it is added here in the same change that adds it there. The benefits of each plan are listed on the plans page before you buy, with what is included and what is not.
 
 ## 2. Before you pay
 
@@ -44,8 +43,8 @@ After you pay, we email you the same information again, with the receipt.
 
 ## 3. Renewals
 
-- A monthly plan renews every month on the same date. An annual plan renews every year on the same date.
-- We send a reminder before an annual renewal, at least [30 days] ahead, with the amount and the date, and a link to cancel. [REVIEW: notice windows required by US state automatic-renewal laws, and by the EU where a contract auto-renews.]
+- A monthly plan renews every month on the same date. Every plan we sell is monthly.
+- We send a reminder before a renewal, at least [7 days] ahead, with the amount and the date, and a link to cancel. [REVIEW: notice windows required by US state automatic-renewal laws, and by the EU where a contract auto-renews. Also confirm, before this document is published against a live checkout, that the reminder is actually sent: `docs/copy/emails/renewal-reminder-7-days.md` is written but nothing in `services/gateway` sends it, because nothing renews yet.]
 - If the price changes, we tell you at least [30 days] before the renewal it applies to, and you can cancel before it takes effect. A price change never applies to a term you have already paid for. [REVIEW: the notice period a price change requires in each market, whether the change needs the subscriber's affirmative consent rather than silence, and the US state automatic-renewal rules on notifying a material change to a recurring charge.]
 - If a payment fails we retry, tell you, and give you [7 days] to fix it before the plan drops back to free. Nothing is deleted.
 
@@ -55,7 +54,7 @@ After you pay, we email you the same information again, with the receipt.
 
 Cancelling is the main thing this document is about, so it is written out in full.
 
-**Where it is.** Settings, then your plan, then cancel. Two taps: the control, and one confirmation that states exactly what is about to happen. By writing to support@heywobo.com works too, and we will do it for you.
+**Where it is.** Open You, the last of the four doors in Wobo, and find the card called Your plan. Cancel is on it. Two taps: the control, and one confirmation that states exactly what is about to happen. Writing to support@heywobo.com works too, and we will do it for you.
 
 **What we do not do on the way out.** No phone call. No chat with a person. No reason to pick, no survey, no discount to stay, no pause offered instead, no second screen asking whether you are sure. The confirmation is a confirmation, not a negotiation. [REVIEW: the FTC's negative-option rule and its litigation history, and California's requirement that cancellation be available by the same route used to sign up.]
 
@@ -115,7 +114,8 @@ Prices include tax where we are required to show them that way, and add it at ch
 
 - **Upgrading** takes effect at once, and we charge the difference for the rest of the period.
 - **Downgrading** takes effect at the end of the period you have paid for.
-- Neither is offered to you as a way of talking you out of cancelling. They live in settings, next to the plan, for whenever you want them.
+- Neither is ever offered to you as a way of talking you out of cancelling. The cancel confirmation carries no plan change, no pause and no discount, and it never will.
+- [REVIEW: there is no upgrade or downgrade control in the product today — the Your plan card offers cancel, resume and a door to the plans page, and nothing else. Both bullets above describe what happens at a checkout that is not open. When one is built, say where the control is; until then this document must not say it is anywhere.]
 
 ## 9. If we end it
 

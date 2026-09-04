@@ -17,6 +17,7 @@
 import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { PLAN_TIERS } from '../plans/prices';
 
 const DIR = new URL('../../../../../docs/legal/', import.meta.url).pathname;
 const read = (file: string): string => readFileSync(join(DIR, file), 'utf8');
@@ -39,7 +40,13 @@ describe('the cancellation document', () => {
   });
 
   it('says the cancel is two taps, and offers nothing on the way out', () => {
-    expect(MONEY).toContain('Settings, then your plan, then cancel');
+    // It names the route the product HAS. There is no screen, route or nav item called Settings:
+    // the four doors are Home, Learn, Practice and You (ui/primitives/AppShell.tsx), and Your plan
+    // is a card on You. "Settings, then your plan" named a container and a nesting that were not
+    // there, in the one document a subscriber is sent to when they want out.
+    expect(MONEY).toContain('Open You');
+    expect(MONEY).toContain('the card called Your plan');
+    expect(MONEY).not.toContain('Settings, then your plan');
     expect(MONEY).toContain('Two taps');
     for (const dark of [
       'no survey',
@@ -85,6 +92,32 @@ describe('the cancellation document', () => {
     }
     // and the stores refund their own purchases whatever we write
     expect(MONEY).toContain('which apply whatever this document says');
+  });
+
+  it('sells the plans the product sells, and no others', () => {
+    // The contract's own table of what you can buy named Plus monthly, Plus annual and Family —
+    // three plans that do not exist — and omitted the two that do. It is read off the same list
+    // the plans page renders, so the two cannot drift again without this failing.
+    const table = MONEY.slice(MONEY.indexOf('## 1. What you can buy'), MONEY.indexOf('## 2.'));
+    for (const tier of PLAN_TIERS) {
+      expect([tier.name, table.includes(`| ${tier.name}`)]).toEqual([tier.name, true]);
+    }
+    for (const absent of ['Plus, monthly', 'Plus, annual', '| Family']) {
+      expect([absent, table.includes(absent)]).toEqual([absent, false]);
+    }
+    // and nothing anywhere in the document sells a cadence the price list does not
+    expect(MONEY).not.toContain('an annual renewal');
+    expect(MONEY).toContain('There is no annual plan and no family plan');
+  });
+
+  it('promises no control that is not in the product', () => {
+    // Section 8 replaced a retention line with a NEW promise — that upgrade and downgrade "live in
+    // settings, next to the plan" — in a document that forms part of the terms. They do not: the
+    // Your plan card's controls are a closed list of six in screens/you/plan.ts, and none of them
+    // changes a tier.
+    expect(MONEY).not.toContain('They live in settings, next to the plan');
+    expect(MONEY).not.toContain('for whenever you want them');
+    expect(MONEY).toContain('there is no upgrade or downgrade control in the product today');
   });
 
   it('leaves the India duties in place, because they are duties', () => {

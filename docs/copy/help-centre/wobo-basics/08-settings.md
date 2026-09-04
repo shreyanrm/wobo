@@ -29,7 +29,7 @@ Create, view or revoke the weekly summary link for a parent, and set how often i
 **Data and privacy**
 What Wobo remembers, consent, exporting everything, and deleting your account.
 
-**Plan**
-Your current plan, turns left today, billing history and cancelling.
+**Your plan**
+Which plan you are on, what its day carries, the date it runs to, and Cancel. Cancelling takes two taps and a plan already ending can be put back in one. [Owner: there is no billing history in the product and no turns-left count on this screen; the daily allowance appears where you are asking, not in settings. Neither is described here until it is built.]
 
 **Related:** Your privacy and your data.

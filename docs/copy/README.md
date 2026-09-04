@@ -33,7 +33,9 @@ Rules 9 to 12 are enforced, not just written: `services/gateway/tests/test_copy_
 
 ## Placeholders the owner fills
 
-`[Company legal name]` · `[postal address]` · `[support email]` · `[privacy email]` · `[careers email]` · `[Team placeholder]` · `[amount]` wherever a price appears · `[n]` the number of days a backup takes to age out, in the deletion sentence.
+`[careers email]` · `[Team placeholder]` · `[amount]` wherever a price appears · `[n]` the number of days a backup takes to age out, in the deletion sentence.
+
+Four of these are DECIDED and are filled in at render time rather than shown as a gap — `[support email]`, `[privacy email]`, `[Company legal name]` and `[postal address]`. They stay written as brackets in this directory on purpose: `apps/web-pwa/src/screens/site/identity.ts` holds the single answer and every renderer resolves the slot through it, so the address lives in one file instead of a hundred sentences. Do not paste the value into an article.
 
 
 Sender identity, URLs and prices come from configuration, never from a hard-coded string in a template.
