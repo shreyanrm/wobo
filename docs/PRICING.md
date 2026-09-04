@@ -30,6 +30,20 @@ $50 is $500, and the per-month figure is the annual total divided by twelve. FOR
 rupee figures are his (1,666 and 3,333); the dollar figures are derived and are open to being set
 differently.
 
+## Where each number is allowed to appear (owner, 2026-09-04)
+
+**The plans page shows the amount and the words, never the total.** Under ₹1,666 it says
+"billed annually", in small letters, and nothing else. The annual total is not a selling number; it
+is the thing being agreed to, so it appears **at checkout**, where the reader is deciding to pay it
+rather than deciding to compare it. The monthly period keeps its own line, "billed monthly", so the
+card cannot change height when the switch is used.
+
+| Surface | Shows the per-month amount | Shows the words | Shows the annual total |
+|---|---|---|---|
+| Plans page | yes | yes | **no** |
+| Checkout | yes | yes | **yes, the exact amount and the date of the charge** |
+| Gift and Donate | the price for the length chosen | yes | yes, because the whole amount is paid at once |
+
 ## What the page does with it
 
 - **Yearly is the default and yearly is listed first.** It is the better deal, and putting the worse
@@ -53,5 +67,7 @@ differently.
 ## Still to build
 
 - [ ] The table above, into `screens/plans/prices.ts`, with the period switch on the real page
+- [ ] **The annual total onto the checkout screen** (`screens/plans/Checkout.tsx`), stated as the
+      exact amount and the date it will be taken. It must not appear on the plans page
 - [ ] A subscription record that stores the period, so the cancel screen can say "till the year you
       paid for ends" rather than guessing
