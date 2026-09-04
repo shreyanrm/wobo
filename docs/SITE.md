@@ -4,11 +4,15 @@ Owner brief (2026-09-03): "a lot of internal pages explaining everything in deta
 
 ## 1. Navigation
 
-**Top bar.** Wordmark · How it works · Subjects · For parents · For students · Plans · | · Sign in · Get early access.
+**Top bar.** Wordmark · Meet Wobo · Subjects · How it works · For parents · For students · Plans · | · Sign in · the one call to action.
 
-The last item is a promotion, not an invitation: until the product opens, every door on the site asks for an address, never for a first lesson (DESIGN.md §0, copy law).
+The order is the order the doubts arrive (docs/SELL.md §3), not the order the pages were built: "what even is this" first, then "will it work for MY board", which is the single biggest qualifier and used to sit fifth. A nav is not a sitemap, so six items is the ceiling and the security page stays out of the bar, one tap away from the footer, the parents page and the legal set.
 
-**Footer.** Wobo (Meet Wobo, How it works, Subjects, Plans, Gift Wobo) · For (Parents, Students, Schools) · Help (Help centre, Contact, Questions) · Company (About, Security and trust, Terms, Privacy, Children's privacy, Cookies, Accessibility).
+The loud door is not written here, and it is not written on a page either. It lives in one constant, `apps/web-pwa/src/screens/site/cta.ts`, and every surface reads it from there, so a header and a plans page can never again say two different things about whether we are open. We are open (owner, 2026-09-04): the door invites, and no surface may imply a waitlist.
+
+**Footer.** Wobo (Meet Wobo, How it works, Subjects, Plans, Gift Wobo, Donate Wobo) · For (Parents, Students) · Help (Help centre, Contact, Questions) · Company (About, Security and trust, Terms, Privacy, Children's privacy, Cookies, Accessibility).
+
+"Schools" came out of the second column. It pointed at `/schools`, there has never been a route for it, and it therefore answered with the 404 on every public page the footer appears on — a dead control in the chrome, which is the friction docs/SELL.md §8 names first. `screens/site/handoffs.test.ts` now walks every address in the nav and the footer through the router, so a second one cannot be added by hand.
 
 Every page shares the site shell (header, footer, cursor ribbon, depth layer, Lenis scroll), the spacing scale, and the rule that the mechanism is never explained ("every board on demand" stays a secret; pages say "it teaches what your school teaches").
 

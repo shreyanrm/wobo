@@ -21,6 +21,6 @@ Ink that Wobo draws on a screen and lets fade is not stored. Voice is used to un
 
 Settings has a memory page. Everything Wobo knows about you is listed there in plain sentences, and each line has a delete next to it. Deleting a line takes effect on your next turn.
 
-On a learner account under 18, some memory is off until a parent has given consent. Wobo works either way; it just remembers less.
+Memory works the same way at every age today. There is no consent switch on it yet, so nothing on this page waits for a parent to agree to it, and we would rather tell you that than describe a switch you cannot find. Deleting a line, or erasing what Wobo remembers from settings, is the control you have.
 
 **Related:** Your privacy and your data.

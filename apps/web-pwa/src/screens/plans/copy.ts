@@ -8,7 +8,8 @@
  * typed, so the table reads the same in a screen reader as it does on screen.
  */
 
-import { PLAN_TIERS, type PlanTier, tierById } from './prices';
+import { CTA } from '../site/cta';
+import { DEFAULT_PERIOD, type Period, PLAN_TIERS, type PlanTier, tierById } from './prices';
 
 /** A cell: included, not included, the same on every plan, or a figure in words. */
 export type Benefit = boolean | 'same' | string;
@@ -63,6 +64,21 @@ export const PLANS_PAGE = {
     title: "Today's allowance",
     hand: 'enough for a normal evening, and the next one, and the one after',
   },
+  /**
+   * The sentence that closes the cards. Its second half reads from the period the reader chose, so
+   * the page can never show a yearly price beside a monthly promise.
+   */
+  same: 'Same price for everyone in your country, never varied by behaviour or device.',
+  keepIt: {
+    yearly:
+      'Cancelling takes as many taps as subscribing, and you keep the plan until the year you paid for ends.',
+    monthly:
+      'Cancelling takes as many taps as subscribing, and you keep the plan until the month you paid for ends.',
+  } as Readonly<Record<Period, string>>,
+  /** The control above the cards, in words. Yearly is first, and yearly is what the page opens on. */
+  period: {
+    legend: 'How you would like to pay',
+  },
   table: {
     eyebrow: 'The honest table',
     title: 'What changes between plans, and what never does.',
@@ -72,26 +88,64 @@ export const PLANS_PAGE = {
     same: 'same',
     no: '—',
   },
+  /**
+   * A PREVIEW OF THE CHECKOUT SCREEN, drawn on the plans page. It is not the checkout, and it must
+   * not behave like one.
+   *
+   * Two rulings shape what it may say. docs/PRICING.md (owner, 2026-09-04): the plans page shows
+   * the per-month amount and the words, and NEVER the annual total — "The annual total ... must
+   * not appear on the plans page". It briefly did, twice, in `Today ₹19,992` and in a sentence
+   * naming the day the next one would be taken. And `services/gateway/src/wobo_gateway/billing.py`
+   * rule 2, in capitals: "NOTHING IN THIS REPO RENEWS A SUBSCRIPTION, and no user-facing line may
+   * say one does." So there is no total here, no date of a charge nobody can take, and the second
+   * box consents to the length being bought rather than to a renewal that does not exist.
+   */
   checkout: {
     eyebrow: 'At checkout',
     title: 'Two boxes, both in plain words.',
-    lead: 'We ask for exactly two things before taking money: that the person paying is an adult who agrees to the terms, and that they know what a month costs and how to stop it. Nothing pre-ticked.',
+    lead: {
+      yearly:
+        'We ask for exactly two things before taking money: that the person paying is an adult who agrees to the terms, and that they know what a year costs and how to stop it. Nothing pre-ticked.',
+      monthly:
+        'We ask for exactly two things before taking money: that the person paying is an adult who agrees to the terms, and that they know what a month costs and how to stop it. Nothing pre-ticked.',
+    } as Readonly<Record<Period, string>>,
     say: 'Same price for everyone in your country.',
     sayEm: 'Always.',
-    learners: { 1: 'one learner', 2: 'two learners' } as Record<number, string>,
+    /** docs/PRICING.md: "a subscription covers exactly one learner on every plan and every period". */
+    learners: { 1: 'one learner' } as Record<number, string>,
     perMonth: '/ month',
+    /** The words for the period, which is the whole of what this page may say about the money. */
+    billed: 'Billed',
     starts: 'Starts',
     startsValue: 'today',
-    renews: 'Renews',
-    renewsSuffix: 'unless you cancel',
     terms: "I'm 18 or over and I agree to the terms.",
     termsNote: 'The terms, in plain words first, are one tap away.',
-    renewal:
-      'I understand this renews monthly and I can cancel in Settings, in two taps, any time.',
+    /**
+     * The second box. It used to say "I understand this renews yearly", which billing.py forbids
+     * in capitals: nothing here renews, there is no provider, no webhook and no sweep, and the
+     * copy law (DESIGN.md §0) forbids describing a mechanism we cannot show. It consents to the
+     * length being bought and to knowing the way out, both of which are true.
+     */
+    renewal: {
+      yearly: 'I understand I am paying for a year, and I can cancel in Settings, in two taps.',
+      monthly: 'I understand I am paying for a month, and I can cancel in Settings, in two taps.',
+    } as Readonly<Record<Period, string>>,
     /** `{plan}` is the tier's name. */
-    renewalNote: 'You keep {plan} until the month you paid for ends.',
-    today: 'Today',
+    renewalNote: {
+      yearly: 'You keep {plan} until the year you paid for ends.',
+      monthly: 'You keep {plan} until the month you paid for ends.',
+    } as Readonly<Record<Period, string>>,
+    /**
+     * THE DOOR THAT IS NOT OPEN. The control was a live, saturated pig button reading "Pay with
+     * the payment provider", sitting under a stated sum, that navigated to a page whose headline
+     * is "Paying is not open yet." A button that cannot work carries `soon` and says why; it
+     * does not promise a payment and deliver an apology.
+     */
     pay: 'Pay with the payment provider',
+    soon: 'soon',
+    paySoon:
+      'The payment page is not open yet, so nothing here can take money. Nothing is charged and no card is asked for.',
+    payMore: 'What checkout will ask for',
     fine: "Card or UPI, on the provider's own page. We never see or store the details.",
   },
   gift: {
@@ -105,11 +159,17 @@ export const PLANS_PAGE = {
     eyebrow: 'Questions',
     title: 'The money questions, answered straight.',
   },
+  /**
+   * The plans close, as four plain strings. `Plans.tsx` RENDERS it from `site/handoffs.ts` — one
+   * page, one job, one primary — and these mirror that entry so `period.test.ts` can hold the close
+   * to the period rule alongside the rest of the page's copy. `handoffs.test.ts` fails if the two
+   * ever say different things.
+   */
   close: {
-    title: 'Free every day, from the day it opens.',
-    hand: 'No card now. No card then either.',
-    primary: 'Get early access',
-    quiet: 'Gift Wobo',
+    title: 'Free every day, from the first day.',
+    hand: 'No card now. No card later.',
+    primary: 'Choose a plan',
+    quiet: `${CTA.label} instead`,
   },
 } as const;
 
@@ -123,9 +183,14 @@ export interface FaqItem {
  * price per country: law v5 infers where a reader is from the browser and never offers a switch,
  * so the honest answer is that the page already shows the right money.
  *
- * The parameter stays so a caller can ask the questions of a different set of tiers.
+ * The two answers about cancelling READ FROM THE PERIOD the reader chose, for the same reason the
+ * cards do: a page showing a yearly price beside "you keep it until the month you paid for ends"
+ * would be telling somebody the wrong thing about their own money. What a canceller actually keeps
+ * is the period already paid for (screens/you/billing.ts stores its end date and nothing else), so
+ * these words and that record say the same thing.
  */
-export function faqItems(_tiers: readonly PlanTier[] = PLAN_TIERS): FaqItem[] {
+export function faqItems(period: Period = DEFAULT_PERIOD): FaqItem[] {
+  const kept = period === 'yearly' ? 'year' : 'month';
   return [
     {
       question: 'What happens when the free allowance runs out for the day?',
@@ -139,13 +204,11 @@ export function faqItems(_tiers: readonly PlanTier[] = PLAN_TIERS): FaqItem[] {
     },
     {
       question: 'How do I cancel?',
-      answer:
-        'You → Your plan → Cancel. Two taps, no call, no offer to stay, no reason to give. You keep the plan until the month you paid for ends, nothing renews after that, and everything you learnt stays. Change your mind before that date and one tap puts the plan back.',
+      answer: `You → Your plan → Cancel. Two taps, no call, no offer to stay, no reason to give. You keep the plan until the ${kept} you paid for ends, nothing renews after that, and everything you learnt stays. Change your mind before that date and one tap puts the plan back.`,
     },
     {
       question: 'Do you give money back?',
-      answer:
-        'No. Cancelling is the answer instead: you keep the plan to the end of the month you paid for and nothing renews. Where the law gives you a refund you still have it, and the cancellation document lists every case.',
+      answer: `No. Cancelling is the answer instead: you keep the plan to the end of the ${kept} you paid for and nothing renews. Where the law gives you a refund you still have it, and the cancellation document lists every case.`,
     },
     {
       question: 'Do prices change by country?',
@@ -155,25 +218,35 @@ export function faqItems(_tiers: readonly PlanTier[] = PLAN_TIERS): FaqItem[] {
     {
       question: 'Can two children share one plan?',
       answer:
-        "Pro is for one learner, because the Sunday note and the memory are personal. Max includes two learners, each with their own note. Families with three or more: write to us and we'll sort it.",
+        "No. A plan covers one learner, on every plan and every period, because the Sunday note and the memory are personal to the child they are about. A second child needs a second plan. Families with two or more: write to us and we'll sort it.",
     },
     {
+      // There is no /schools route and there is no school product: CONTEXT.md:38 — "Learners only —
+      // no teachers, no schools inside it." The answer used to describe a teacher's view and a
+      // data-processing agreement and send the reader to a page that answers with the 404 screen.
       question: 'Are there discounts for schools?',
       answer:
-        "Schools get a separate plan with a teacher's view and a data-processing agreement. It's on the Schools page, or write to us.",
+        'Not yet. Wobo is built around one learner and the parent who reads their Sunday note, so there is no classroom plan to sell and no teacher view to show you. If you teach, write to us and we will tell you honestly where it stands.',
     },
   ];
 }
 
 export const CHECKOUT_PAGE = {
-  title: 'Checkout opens with launch.',
-  lead: 'The prices are set and printed on the plans page, but the payment page is not open yet, so nothing can be charged. When it opens, this is where the amount, the tax, the renewal date and the two consent boxes will sit, together, above the payment control.',
-  /** What a visitor can actually do today. */
-  cta: 'Get early access',
+  /*
+    It said "Checkout opens with launch." until 2026-09-04. We are open — anyone can sign up and
+    use Wobo today (DESIGN.md §0) — so a page that dates itself to a launch is dating itself to
+    something that has already happened, and a reader is left to work out which of the two is
+    true. What is actually not built is PAYING, so that is what the page says.
+  */
+  title: 'Paying is not open yet.',
+  lead: 'The prices are set and printed on the plans page, but the payment page is not open yet, so nothing can be charged. When it opens, this is where the amount, the tax, the day it is taken and the two consent boxes will sit, together, above the payment control.',
+  /** What a visitor can actually do today, in the site's one phrase. */
+  cta: CTA.label,
   back: 'Back to plans',
   promises: [
     'One price for everyone in a country, on the same purchase route.',
-    'The amount, the tax and the renewal date shown together, before the payment control.',
+    'The amount, the tax and the day it is taken, shown together, before the payment control.',
+    'On a yearly plan, the whole sum for the year and the day it is taken, before it is taken.',
     'Two separate consent boxes, both unticked, and neither pre-ticked for you.',
     'A receipt by email with the same information again.',
   ],

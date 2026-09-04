@@ -13,6 +13,10 @@ Two verification paths, chosen by the token's own ``alg`` header:
 The algorithm allowlist is closed on purpose: a token may not talk us into ``none``, and an
 ``HS`` token can never be verified against a public key (the classic confusion attack).
 
+Three claims are checked, not two: signature, audience AND issuer. Every Supabase project on
+earth writes the audience ``authenticated``, so on a shared-secret project the audience proves
+nothing about origin — :func:`expected_issuer` pins the token to our own auth server.
+
 The dev seam (``X-Wobo-Dev-Subject``) exists so local development and the test suite do not
 need a Supabase project. It requires an explicit ``DEV_AUTH=1`` and is refused outright when
 ``ENV=prod`` — see ``app.validate_env``, which also refuses to boot prod without a secret or
@@ -108,6 +112,33 @@ def expected_audience() -> str:
     return os.getenv("SUPABASE_JWT_AUD", "authenticated")
 
 
+def expected_issuer() -> str | None:
+    """The ONE issuer whose tokens this gateway accepts, or None when no project is configured.
+
+    Audience alone is not identity. Supabase's audience is the literal string ``authenticated``
+    on every project in the world, so on an HS256 project — where the key is a shared secret
+    rather than a public key set — a token minted by anything that has ever held that secret for
+    any purpose (a webhook signer, an old service, a leaked backup) verified here as a learner.
+    Pinning ``iss`` closes that: the token must say it came from OUR auth server.
+
+    Derived from ``SUPABASE_URL`` (``<project>/auth/v1``, which is what GoTrue writes), or set
+    outright with ``SUPABASE_JWT_ISS``, or recovered from ``SUPABASE_JWKS_URL`` for a deployment
+    that configures only the key set. None means "nothing to pin against", which happens in local
+    development and the test suite; :func:`wobo_gateway.app.validate_env` refuses that in prod.
+    """
+    explicit = os.getenv("SUPABASE_JWT_ISS")
+    if explicit:
+        return explicit.rstrip("/")
+    base = os.getenv("SUPABASE_URL")
+    if base:
+        return f"{base.rstrip('/')}/auth/v1"
+    jwks = os.getenv("SUPABASE_JWKS_URL")
+    suffix = "/.well-known/jwks.json"
+    if jwks and jwks.endswith(suffix):
+        return jwks[: -len(suffix)]
+    return None
+
+
 def _fetch_jwks(url: str) -> dict[str, Any]:
     """Read the key set over HTTPS. Split out so tests can substitute it without a network."""
     request = urllib.request.Request(url, headers={"Accept": "application/json"})
@@ -175,13 +206,24 @@ def verify_token(token: str) -> Principal:
     else:
         raise AuthError()
 
+    # The issuer is pinned whenever the deployment tells us what it is. PyJWT treats
+    # ``issuer=None`` as "do not check", so the require list only grows when there is something
+    # to check against — otherwise a local run with no project would refuse every token it mints.
+    issuer = expected_issuer()
+    required = ["exp", "sub", "iss"] if issuer else ["exp", "sub"]
     try:
         claims = jwt.decode(
             token,
             key,
             algorithms=[alg],
             audience=expected_audience(),
-            options={"require": ["exp", "sub"], "verify_aud": True, "verify_exp": True},
+            issuer=issuer,
+            options={
+                "require": required,
+                "verify_aud": True,
+                "verify_exp": True,
+                "verify_iss": issuer is not None,
+            },
         )
     except jwt.PyJWTError as exc:
         raise AuthError() from exc

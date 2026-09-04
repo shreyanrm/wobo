@@ -34,7 +34,7 @@ export function Contact() {
   const href = useMemo(() => mailtoHref(CONTACT.address, reason, message), [reason, message]);
 
   return (
-    <SiteShell current="contact" title="Contact — Wobo" label={CONTACT.title}>
+    <SiteShell current="contact" title="Contact · Wobo" label={CONTACT.title}>
       <section className="st-page-hero">
         <div className="st-wrap">
           <Label>{CONTACT.eyebrow}</Label>
@@ -94,7 +94,7 @@ export function Contact() {
         </div>
       </section>
 
-      <ClosePanel />
+      <ClosePanel page="contact" />
     </SiteShell>
   );
 }

@@ -616,6 +616,7 @@ def test_the_interactive_docs_are_shut_in_prod(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setenv("ENV", "prod")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "a-secret-long-enough-for-hs256-in-a-test")
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.co")
     client = TestClient(create_app())
     for path in ("/openapi.json", "/docs", "/redoc"):
         assert client.get(path).status_code == 404, f"{path} publishes the internal API shape"

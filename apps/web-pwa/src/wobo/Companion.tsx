@@ -42,6 +42,7 @@ import {
   useTutor,
 } from './tutor';
 import { useWoboVoice } from './voice';
+import { withHelplines } from './helplines';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -102,7 +103,9 @@ function Handwritten({ text, animate }: { text: string; animate: boolean }) {
         color: 'var(--wobo-ink)',
       }}
     >
-      {text.slice(0, shown)}
+      {/* Once the line has finished writing itself, the helpline numbers in it become pressable.
+          Mid-animation it stays plain text: a half-written number is not a number to dial. */}
+      {shown >= text.length ? withHelplines(text) : text.slice(0, shown)}
       {shown < text.length && <span style={{ opacity: 0.4 }}>|</span>}
     </span>
   );

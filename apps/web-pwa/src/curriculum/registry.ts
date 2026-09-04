@@ -116,8 +116,29 @@ function syncWorld(): void {
 
 // --- shaping --------------------------------------------------------------------------------------
 
-/** A curriculum topic node, in the app's topic shape. Its blurb is its first objective, verbatim. */
+/**
+ * A curriculum topic node, in the app's topic shape. Its blurb is its first objective, verbatim.
+ *
+ * THE KIND IS READ, NOT ASSUMED. This used to hardcode `'syllabus'` on every node the brain served,
+ * which quietly made three of the four `TopicKind`s unreachable and with them everything downstream
+ * that keys off one: the climb's reward node (`screens/learn/climb-map.ts`) and the home's
+ * out-of-syllabus quest (`screens/home/stops.ts`) were both dead code on every real chapter.
+ *
+ * The wire does say. `own` is true for a node the LEARNER put there themselves
+ * (`packages/sdk/src/curriculum/overlay.ts` stamps it on every `add` op;
+ * `curriculum/OverlayEditor.tsx` is where they do it). But `own` alone is not the distinction
+ * wanted: on a PERSONAL framework — a syllabus the learner wrote from scratch — every node is
+ * theirs, and a climb where every stop is "something extra" says nothing at all. So the rule is
+ * `own` AGAINST a board that is not: a topic they added to a syllabus somebody else set is
+ * `custom`; on their own syllabus, everything is ordinary. Nothing is invented, and no other kind
+ * is claimed until something real produces one.
+ */
 export function topicOf(node: CurriculumNode, chapterId: string): Topic {
+  // Their own syllabus, either way it is recorded: `personal` is the flag `adoptOwnSyllabus` sets,
+  // and `status` is the brain's own label for the same fact (CURRICULUM.md §5). A world written by
+  // an older build carries only the second, so both are read.
+  const world = loadWorld();
+  const ownBoard = world?.personal === true || world?.status === 'personal';
   const topic: Topic = {
     id: node.id,
     chapterId,
@@ -126,7 +147,7 @@ export function topicOf(node: CurriculumNode, chapterId: string): Topic {
     // Empty as it arrives: a node says nothing about what sits under it. The edges are derived
     // from the whole subject once it is in memory, by `applyPrereqs` below (curriculum/prereq.ts).
     prereqTopicIds: [],
-    kind: 'syllabus',
+    kind: node.own && !ownBoard ? 'custom' : 'syllabus',
     xp: TOPIC_XP,
   };
   const concept = node.conceptIds[0];

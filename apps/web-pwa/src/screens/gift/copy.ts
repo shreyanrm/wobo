@@ -46,6 +46,16 @@ export const GIFT_PAGE = {
   testimonialsEmpty:
     'Nothing here yet. We will publish what learners and parents say when they have said it and agreed to it being shown, and not before.',
   closingTitle: 'Give someone a tutor who sits beside them.',
-  cta: 'Give Plus',
-  ctaNote: 'Checkout opens with launch, and nothing can be charged before then.',
+  /**
+   * THE BUTTON NAMED A PLAN WE DO NOT SELL. It read "Give Plus". `plans/prices.ts` defines exactly
+   * three tiers — Free, Pro and Max — and this page's own cards are labelled "Pro, by the month"
+   * and "Max, by the month", so a buyer was asked to give Plus for a product called Pro, on the
+   * page that takes money. It also rendered three times in two weights and two colours, which made
+   * it unclear whether the three were one action or three: the hero now carries the page's ONE
+   * primary (docs/SELL.md §6) and each card names the plan it actually gives (`cardCta`).
+   */
+  cta: 'Give Wobo',
+  /** Each card's own door, so the two never read as the same button. */
+  cardCta: (planName: string) => `Give ${planName.split(',')[0]}`,
+  ctaNote: 'Paying is not open yet, and nothing can be charged before it is.',
 } as const;

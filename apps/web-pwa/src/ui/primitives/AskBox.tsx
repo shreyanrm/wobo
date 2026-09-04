@@ -1,5 +1,5 @@
 import { type FormEvent, useState } from 'react';
-import { Button } from './Button';
+import { Button, type ButtonTone } from './Button';
 import { MicIcon } from './icons';
 
 export interface AskBoxProps {
@@ -20,11 +20,18 @@ export interface AskBoxProps {
   micLabel?: string;
   /** The input's accessible name. */
   label?: string;
+  /**
+   * The Ask button's colour. `pig` inside the app, where this box IS the front door and the one
+   * pointer on the screen. A public page passes `ink`: there the conversion is the close panel, and
+   * a pig pill sitting a screen above it puts two saturated calls to action at the point of
+   * decision, which converts worse than one (docs/SELL.md §6, DESIGN.md §0 "one per view").
+   */
+  tone?: ButtonTone;
   autoFocus?: boolean;
   className?: string;
 }
 
-/** The front door: an input on paper-2, the mic on paper, and the one pig button. */
+/** The front door: an input on paper-2, the mic on paper, and one Ask button. */
 export function AskBox({
   placeholder,
   value,
@@ -35,6 +42,7 @@ export function AskBox({
   askLabel = 'Ask',
   micLabel = 'Hold to talk to Wobo',
   label,
+  tone = 'pig',
   autoFocus,
   className,
 }: AskBoxProps) {
@@ -67,7 +75,7 @@ export function AskBox({
           <MicIcon />
         </button>
       )}
-      <Button tone="pig" size="sm" type="submit">
+      <Button tone={tone} size="sm" type="submit">
         {askLabel}
       </Button>
     </form>

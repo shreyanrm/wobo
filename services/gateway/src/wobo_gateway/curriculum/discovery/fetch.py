@@ -12,7 +12,9 @@ trusted to the caller:
    runs is not a document we can cite, so it is a refusal and the own-syllabus path.
 4. **No inside voice.** Loopback, private and link-local addresses are refused before a socket
    opens: this fetcher takes a URL chosen by a model, and a model that has been talked into
-   naming ``http://169.254.169.254`` must reach nothing.
+   naming ``http://169.254.169.254`` must reach nothing. That door is :func:`check_target`, and
+   it is the door for the first URL **and every redirect target** — a public-looking name that
+   resolves inward is an inside address wearing an outside name.
 
 **Page anchors** are what make ``source_ref`` honest. A PDF page is a page. An HTML document has
 no pages, so its headings become the anchors and a node's ``source_ref`` carries a section rather
@@ -184,6 +186,32 @@ def check_url(url: str) -> str:
     return url
 
 
+def check_target(url: str) -> str:
+    """The whole door for a URL we are about to OPEN: what it says, then where it points.
+
+    :func:`check_url` reads the URL itself. This also resolves it, because a public-looking
+    hostname that answers with ``10.0.0.5`` or ``169.254.169.254`` is an inside address wearing
+    an outside name. Every socket this module opens goes through here — the first request and
+    **every redirect target**. The redirect half used to call ``check_url`` alone, so a redirect
+    to a public-looking name that resolved inward was followed; the URL the model chose was
+    checked and the URL we actually fetched was not.
+
+    What this does not close is DNS rebinding. Between this resolution and the connection the
+    name may answer differently, and urllib resolves again when it connects, so a server that
+    returns a public address here and a private one a moment later is still followed. Closing
+    that needs a connector that dials the literal address resolved here while keeping the ``Host``
+    header — which urllib does not offer and which would need its own HTTPS verification path.
+    Until then the window stands, bounded by the fact that this fetcher is reachable only from
+    the discovery job, reads at most :attr:`FetchBudget.max_bytes`, and never echoes the body to
+    a learner: the extractor must recognise it as a syllabus first.
+    """
+    check_url(url)
+    host = urlparse(url).hostname or ""
+    if not _resolves_public(host):
+        raise FetchRefused("private_address", host)
+    return url
+
+
 def _resolves_public(host: str) -> bool:
     """DNS guard for the real opener: a public name that resolves inward is still inward."""
     try:
@@ -201,24 +229,34 @@ def _resolves_public(host: str) -> bool:
 
 
 # --- the default opener (the only urllib in this module) --------------------------------
-def default_opener(url: str, *, budget: FetchBudget) -> RawResponse:
-    """One GET, redirect-limited, size-capped, with no JavaScript anywhere near it."""
-    import urllib.error
-    import urllib.request
+def redirect_handler(budget: FetchBudget) -> Any:
+    """The redirect policy for one fetch: a ceiling on hops, and the full door on every hop.
 
-    check_url(url)
-    host = urlparse(url).hostname or ""
-    if not _resolves_public(host):
-        raise FetchRefused("private_address", host)
+    Module level and returned rather than nested inside the opener so the policy can be tested
+    without a socket — the check that was missing here is not a check anyone can see from the
+    outside.
+    """
+    import urllib.request
 
     class _LimitedRedirects(urllib.request.HTTPRedirectHandler):
         max_redirections = budget.max_redirects
 
         def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
-            check_url(newurl)
+            check_target(newurl)
             return super().redirect_request(req, fp, code, msg, headers, newurl)
 
-    opener = urllib.request.build_opener(_LimitedRedirects)
+    return _LimitedRedirects
+
+
+
+def default_opener(url: str, *, budget: FetchBudget) -> RawResponse:
+    """One GET, redirect-limited, size-capped, with no JavaScript anywhere near it."""
+    import urllib.error
+    import urllib.request
+
+    check_target(url)
+
+    opener = urllib.request.build_opener(redirect_handler(budget))
     request = urllib.request.Request(  # noqa: S310 — scheme is checked above
         url, headers={"User-Agent": USER_AGENT, "Accept": ACCEPT}
     )

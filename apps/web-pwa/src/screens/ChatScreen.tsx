@@ -17,6 +17,7 @@ import { AppFrame } from '../shell/AppFrame';
 import { OFFLINE_LINE } from '../shell/resilience';
 import { AskBox, Avatar, Card, Chip, Tag, TopBar, WoboHead } from '../ui/primitives';
 import { useWoboChat } from '../wobo/chat';
+import { withHelplines } from '../wobo/helplines';
 import { holdToTalkEnd, holdToTalkStart } from '../wobo/hold';
 import { TurnAttachments } from '../wobo/paths';
 import { MuteButton } from '../wobo/speech';
@@ -157,7 +158,11 @@ export function ChatScreen() {
                     </div>
                   ) : (
                     <div key={t.id} className="ch-turn">
-                      <div className="ch-said">{t.text}</div>
+                      {/* Wobo's own words. `withHelplines` makes the two helpline numbers in a
+                          crisis reply pressable and leaves every other line exactly as it was: a
+                          child in distress on a phone should not have to copy a number out of a
+                          paragraph by hand. */}
+                      <div className="ch-said">{withHelplines(t.text)}</div>
                       {/* the five paths land in the thread itself — sims, drawings, action cards */}
                       {t.extras && <TurnAttachments turn={t} />}
                     </div>

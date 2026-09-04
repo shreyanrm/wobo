@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      The operator console. A SEPARATE document with a separate module graph, built by
+      vite.admin.config.ts into dist-admin/ and deliberately absent from the public build — see
+      that file for why it is not a route inside the learner app.
+
+      No search engine, no archive, no snippet, no cached copy: an admin surface must not be
+      discoverable, and `noarchive` matters as much as `noindex` because a cached copy of a
+      console is a map of what to attack.
+    -->
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+    <!-- The address bar follows the page in both themes, as the app's does. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FFFFFF" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E0E16" />
+    <title>Wobo console</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      :root { color-scheme: light dark; }
+      html, body { margin: 0; background: #FFFFFF; }
+      @media (prefers-color-scheme: dark) { html, body { background: #0E0E16; } }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/admin/main.tsx"></script>
+  </body>
+</html>

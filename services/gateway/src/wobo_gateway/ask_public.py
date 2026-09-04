@@ -50,12 +50,17 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field
 
-from wobo_gateway import budget
+from wobo_gateway import budget, ledger, spend
 from wobo_gateway.cache import cache_key
 from wobo_gateway.hospitality.copy import POLITICAL_FRAMING, PRONOUNS, RELIGIOUS_FRAMING, words
 from wobo_gateway.providers import max_tokens_for, timeout_for
 from wobo_gateway.registry import ConsentTier, policy
-from wobo_gateway.safety import CATEGORY_CRISIS, CRISIS_SAY, MODERATION_SAY
+from wobo_gateway.safety import (
+    CATEGORY_CRISIS,
+    CRISIS_SAY,
+    DEFAULT_CLASSIFIER,
+    MODERATION_SAY,
+)
 from wobo_gateway.telemetry import record_cost
 
 if TYPE_CHECKING:
@@ -77,7 +82,7 @@ LIMITED_PATHS: frozenset[str] = OPEN_PATHS
 HELP_EMAIL = os.getenv("ASK_HELP_EMAIL", "support@heywobo.com")
 
 #: The one honest line (SITE.md: Wobo says what it does not know rather than guessing).
-HONEST_LINE = f"I don't know that one — a person can: {HELP_EMAIL}"
+HONEST_LINE = f"I don't know that one, but a person can: {HELP_EMAIL}"
 
 # --- the dials -----------------------------------------------------------------------------------
 _DIALS: dict[str, tuple[str, int]] = {
@@ -914,13 +919,40 @@ def three_sentences(text: str) -> str:
     return " ".join(parts[:_MAX_SENTENCES])
 
 
+#: The classifier the outbound screen uses. A seam, like the gateway's own: the public box is
+#: reached from a module function rather than from a Gateway instance, so it names the default
+#: here and a test can put its own classifier in.
+_classifier: Any = DEFAULT_CLASSIFIER
+
+
+def set_classifier(classifier: Any | None) -> None:
+    """Test seam: replace the safety classifier the outbound screen uses."""
+    global _classifier
+    _classifier = classifier or DEFAULT_CLASSIFIER
+
+
+def screen_answer(text: str) -> bool:
+    """True when a line must not go in front of a visitor for a child-safety reason."""
+    return bool(_classifier.classify(text).flagged)
+
+
 def _fit(answer: str) -> str:
-    """Wobo's house style and the laws, enforced after the model rather than trusted to it."""
+    """Wobo's house style and the laws, enforced after the model rather than trusted to it.
+
+    The child-safety screen runs here too. This box is the ONE surface a child with no account
+    and no age gate can type into, and until now the only thing standing between a model's words
+    and that child was :func:`not_served`, which looks for a vendor name and a pronoun — not for
+    anything that could hurt them. A flagged line is never served: the visitor gets the honest
+    line and a person's address, which is the right answer to a help question Wobo cannot answer
+    safely.
+    """
     text = _EMOJI.sub("", answer).replace("!", ".").strip()
     text = " ".join(text.split())
     if not text or text.strip('."\' ').upper().startswith("UNKNOWN"):
         return HONEST_LINE
     if not_served(text):
+        return HONEST_LINE
+    if screen_answer(text):
         return HONEST_LINE
     return three_sentences(text)
 
@@ -1110,9 +1142,32 @@ def register_public_ask(app: FastAPI, gateway: Gateway) -> None:
                 meter.refund_global()
             return limited(exc, "limited")
 
+        # The public box has no account behind it, so every row it writes is a stranger's: no
+        # plan, no learner, and `anonymous` true. Recording that honestly is the point — "what
+        # does the open box cost us" is a question the owner will ask, and it cannot be answered
+        # if an anonymous visitor's spend is indistinguishable from a member's.
+        ledger.mark(anonymous=True)
         try:
             result = gateway.invoke(
                 CAPABILITY, CapabilityRequest(payload=payload), ConsentTier.UN_ELEVATED
+            )
+        except spend.SpendCeilingReached as exc:
+            # THE PLATFORM'S DAY IS SPENT, WHICH IS NOT A FAULT. The bare handler below used to
+            # swallow this and answer 503 ``ask_unavailable``, which tripped the SERVER_ERROR
+            # alarm at severity CRITICAL — so the owner was paged with a server error every time
+            # his own limiter did its job, on the one open box a child can reach. An alarm that
+            # cries wolf on correct behaviour is the alarm that gets muted. It goes out through
+            # the same 429 path every other refusal here uses, in Wobo's own words.
+            if charged:
+                meter.refund_global()
+            _log(key, page, "limited_spend")
+            return JSONResponse(
+                status_code=429,
+                content={"code": "spend_ceiling", "message": exc.message},
+                headers={
+                    "Retry-After": "3600",
+                    "X-Wobo-Budget-Reset": exc.reset_at.isoformat(),
+                },
             )
         except Exception:
             if charged:
@@ -1126,6 +1181,13 @@ def register_public_ask(app: FastAPI, gateway: Gateway) -> None:
         output = result.output if isinstance(result.output, dict) else {}
         answer = str(output.get("answer") or HONEST_LINE)
         sources = [s for s in (output.get("sources") or []) if isinstance(s, str)]
+        # The screen again, at the door. _fit already ran it on both answer producers; this
+        # catches the two ways an answer arrives without passing through them — an entry that was
+        # already in the cache, and any producer added later that forgets. A child at this box has
+        # no account and no age gate, so the last thing between a model and them is here.
+        if answer != HONEST_LINE and screen_answer(answer):
+            _log(key, page, "screened")
+            answer, sources = HONEST_LINE, []
         if answer == HONEST_LINE:
             sources = []
         _log(key, page, "answered" if sources else "unknown", len(sources))
@@ -1161,8 +1223,10 @@ __all__ = [
     "register_public_ask",
     "reset",
     "run_help_answer",
+    "screen_answer",
     "scrub",
     "set_clock",
+    "set_classifier",
     "set_index",
     "suggestions_for",
     "terms_of",

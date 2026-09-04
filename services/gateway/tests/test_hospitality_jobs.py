@@ -625,7 +625,12 @@ def test_the_welcome_reads_as_the_design() -> None:
         "Class 8, CBSE, mathematics first. I’ve already found this week’s chapter: Triangles."
         in html
     )
-    assert "Three things to try tonight" in html
+    # NEVER A LATE HOUR (owner's standing law; ``hours.test.ts`` is the guard on the web side).
+    # This line used to read "Three things to try tonight" and the shipped template was correctly
+    # changed to "first" — leaving a test that demanded the banned word come back. A test is not
+    # allowed to be the last place a broken law survives.
+    assert "Three things to try first" in html
+    assert "tonight" not in html.lower() and "tonight" not in out["text"].lower()
     for line in ("Ask the basic thing.", "Hold space and just talk.", "Try one."):
         assert line in html and line in out["text"]
     assert ">Ask your first question<" in html

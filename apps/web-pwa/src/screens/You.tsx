@@ -507,7 +507,7 @@ export function You() {
               <p style={{ color: 'var(--ink)' }}>{link.line}</p>
             ) : (
               <p style={{ color: 'var(--ink)' }}>
-                They get the Sunday note and{' '}
+                They get the Sunday note, and nothing else. You can{' '}
                 <a
                   href="/parent"
                   onClick={(e) => {
@@ -515,9 +515,9 @@ export function You() {
                     router.navigate({ name: 'parent' });
                   }}
                 >
-                  a read-only view of every lesson
-                </a>
-                . Nothing else, nothing hidden.
+                  see the week the way they will
+                </a>{' '}
+                before you send it.
               </p>
             )}
             {inviting ? (
@@ -607,7 +607,7 @@ export function You() {
                 {prefs.about ? <p>{prefs.about}</p> : null}
               </div>
             ) : null}
-            <ToggleRow title="Your data" hint="Export or delete everything, any time">
+            <ToggleRow title="Your data" hint="See what Wobo remembers, or erase it">
               <Button
                 size="sm"
                 tone="quiet"
@@ -620,8 +620,21 @@ export function You() {
             {confirming ? (
               <div style={{ display: 'grid', gap: 12, paddingBottom: 14 }}>
                 <p>
-                  this deletes your name, photo, progress, and settings — from this device and from
-                  your account on our servers. it cannot be undone.
+                  this deletes your name, photo, progress, settings, what Wobo remembers about you,
+                  your mail choices and the parent link, from this device and from your account on
+                  our servers. it cannot be undone.
+                </p>
+                {/*
+                  HONESTY (docs/conformance/privacy-and-children.md §J). The erase reaches 6 of the
+                  22 durable stores. Your individual practice answers, your board ink, your session
+                  rows, an uploaded syllabus and the account itself are NOT reached, and this line
+                  must not imply they are. The help centre says the same in full, and says where to
+                  write to have the rest done by hand.
+                */}
+                <p>
+                  it does not yet reach your answers to practice questions, your ink on the board,
+                  or a syllabus you uploaded, and your account itself stays open. write to
+                  support@heywobo.com to have those removed too.
                 </p>
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <Button size="sm" onClick={startOver} disabled={erasing}>

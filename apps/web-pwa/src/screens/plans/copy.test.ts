@@ -6,14 +6,16 @@
  *
  * It also holds law v5's copy law (DESIGN.md §0) over the whole page: no raw allowance anywhere
  * ("40 questions a day"), no grade gate ("class 4 to 12"), no invented learner, no country switch,
- * and a close that asks for early access rather than inviting someone into a product that has not
- * opened.
+ * and a door that says what the product actually is. WE ARE OPEN (owner, 2026-09-04): "Get early
+ * access" is retired, `screens/site/cta.ts` holds the one phrase every public surface uses, and
+ * nothing here may imply a wait list.
  */
 
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GIFT_FOR, GIFT_PAGE } from '../gift/copy';
+import { CTA, RETIRED_CTA } from '../site/cta';
 import { BENEFITS, CHECKOUT_PAGE, faqItems, PLANS_PAGE } from './copy';
 import {
   BEST_FOR,
@@ -22,6 +24,8 @@ import {
   GIFT_OPTIONS,
   giftTier,
   type Market,
+  PERIODS,
+  type Period,
   PLAN_TIERS,
   type PlanTier,
   priceLabel,
@@ -51,7 +55,7 @@ function everyString(): [string, string][] {
   walk('PLANS_PAGE', PLANS_PAGE);
   walk('CHECKOUT_PAGE', CHECKOUT_PAGE);
   walk('BENEFITS', BENEFITS);
-  walk('FAQ', faqItems());
+  for (const period of PERIODS) walk(`FAQ.${period}`, faqItems(period));
   walk('GIFT_PAGE', GIFT_PAGE);
   walk('GIFT_FOR', GIFT_FOR);
   walk('PLAN_TIERS', PLAN_TIERS);
@@ -97,17 +101,20 @@ describe('the copy laws', () => {
  * Its WORDING is held by the law rather than by a diff. The two differ on purpose in three
  * places.
 
- *  · Every DOOR and the CLOSE are law v5's: the prototype still invites a reader to "start
- *    learning for free" into a product that has not opened, and promote-before-you-invite makes
- *    that an ask for early access. Those strings are asserted against the law below, never
+ *  · Every DOOR and the CLOSE are law v5's: the prototype writes its own invitations, and the one
+ *    phrase every public surface uses now lives in `screens/site/cta.ts` so that no two pages can
+ *    disagree about whether we are open. Those strings are asserted against the law below, never
  *    against the mock-up.
- * And two more: The prototype's cards describe a product where every tier carries one learner and
- * nothing at all is gated; WOBO-PLAN §14 says Max carries two learners and that voice and
- * past-paper sets are the paid extras, and a prototype does not get to change the deal. And the
+ * And two more: the prototype's cards describe a product where nothing at all is gated, and voice
+ * and past-paper sets are the paid extras here. ONE LEARNER PER PLAN IS THE PROTOTYPE'S AND THE
+ * CANON'S. Max carried two here, cited to WOBO-PLAN §14 — which says nothing about learners at all
+ * (its "Prices" paragraph, owner 2026-09-03, names the tiers, the figures and the cadence and
+ * stops there). The one canonical sentence is docs/PRICING.md, "The rule": "a subscription covers
+ * exactly one learner on every plan and every period", and it is asserted below. And the
  * prototype's phrasing for a multiple ("five times the questions") is written here in law v5's
  * own words ("five times the free allowance"). Everything the law does govern — no raw allowance,
- * no grade gate, no invented learner, no country switch, early access rather than an invitation —
- * is asserted in full further down.
+ * no grade gate, no invented learner, no country switch, one call to action — is asserted in full
+ * further down.
  */
 describe('the plans page is the prototype', () => {
   const inProto = (label: string, text: string): void => {
@@ -124,15 +131,21 @@ describe('the plans page is the prototype', () => {
   it("draws the three cards in the prototype's frame", () => {
     for (const tier of PLAN_TIERS) {
       inProto(`${tier.id}.name`, `<div class="name">${tier.name}</div>`);
-      // the fine line is the prototype's words; the mock-up now carries its cadences as data
-      // attributes on that div, so the words are asserted rather than the tag around them
-      inProto(`${tier.id}.fine`, tier.fine);
+      // the fine line is the prototype's words; the mock-up carries its cadences as data
+      // attributes on that div, so the words are asserted rather than the tag around them — and
+      // both periods' words are the mock-up's, since both are on that div
+      for (const period of PERIODS) inProto(`${tier.id}.fine.${period}`, tier.fine[period]);
       expect([`${tier.id}.lines`, tier.lines.length]).toEqual([`${tier.id}.lines`, 4]);
-      // the card's door is the law's, not the mock-up's
-      expect([`${tier.id}.cta`, /early access|choose/i.test(tier.cta)]).toEqual([
+      // The card's door is the law's, not the mock-up's. A paid tier's door names the plan it
+      // buys; the free tier's door is THE call to action, read from `screens/site/cta.ts`, so the
+      // plans page cannot say a different thing from the front page about whether we are open.
+      const door = tier.price ? new RegExp(`^Choose ${tier.name}$`) : new RegExp(`^${CTA.label}$`);
+      expect([`${tier.id}.cta`, tier.cta, door.test(tier.cta)]).toEqual([
         `${tier.id}.cta`,
+        tier.cta,
         true,
       ]);
+      expect([`${tier.id}.cta`, tier.cta.includes(RETIRED_CTA)]).toEqual([`${tier.id}.cta`, false]);
     }
     inProto('best', `<span class="best">${BEST_FOR}</span>`);
   });
@@ -236,6 +249,17 @@ describe('the honest table', () => {
     );
   });
 
+  it('carries exactly one learner on every plan, which is the canonical rule', () => {
+    // docs/PRICING.md, "The rule": "a subscription covers exactly one learner on every plan and
+    // every period". Max carried two, so /plans said "Learners on the plan: 2", "two learners on
+    // one plan" and, at checkout, "two learners" — on the page that takes money, in both markets
+    // and on both periods, against the one document that is allowed to set that number.
+    for (const tier of PLAN_TIERS) expect([tier.id, tier.learners]).toEqual([tier.id, 1]);
+    for (const [label, text] of STRINGS) {
+      expect([label, /\btwo learners\b/i.test(text)]).toEqual([label, false]);
+    }
+  });
+
   it('never offers free something a paid tier does not have', () => {
     for (const row of BENEFITS) {
       if (row.free === true || row.free === 'same') {
@@ -247,14 +271,46 @@ describe('the honest table', () => {
 });
 
 describe('the consent boxes', () => {
-  it('say the adult agrees to the terms in one, and the renewal and the cancel in the other', () => {
+  it('say the adult agrees to the terms in one, and what is being paid for in the other', () => {
     expect(PLANS_PAGE.checkout.terms).toContain('agree to the terms');
-    expect(PLANS_PAGE.checkout.renewal).toContain('renews monthly');
-    expect(PLANS_PAGE.checkout.renewal).toContain('cancel');
+    // the second box names the period being bought, so it can never consent to the other one
+    expect(PLANS_PAGE.checkout.renewal.yearly).toContain('a year');
+    expect(PLANS_PAGE.checkout.renewal.monthly).toContain('a month');
+    for (const period of PERIODS) expect(PLANS_PAGE.checkout.renewal[period]).toContain('cancel');
+  });
+
+  it('never tells anybody their subscription renews itself, because none of them does', () => {
+    // `services/gateway/src/wobo_gateway/billing.py` rule 2, in capitals: "NOTHING IN THIS REPO
+    // RENEWS A SUBSCRIPTION, and no user-facing line may say one does. There is no payment
+    // provider, no webhook and no scheduled sweep". `screens/you/billing.ts` repeats it. The
+    // second consent box said "I understand this renews yearly", and the checkout preview named
+    // the day of a charge nobody can take. The only lines allowed to carry the word are the ones
+    // that DENY a renewal, and the legal document's own title.
+    const denies = /(nothing|never|no)\s+\w*\s*renew|renews\s+never/i;
+    const allowed = new Set<string>([CHECKOUT_PAGE.cancelling]);
+    for (const [label, text] of STRINGS) {
+      if (allowed.has(text) || denies.test(text)) continue;
+      expect([label, /\brenew(s|ing|al|als)?\b/i.test(text)]).toEqual([label, false]);
+    }
   });
 });
 
 describe('the money questions', () => {
+  it('sends nobody to a page that is not there', () => {
+    // The schools answer used to end "It's on the Schools page, or write to us." There is no
+    // /schools route: the address answers with the 404 screen. It also described a teacher's view
+    // and a data-processing agreement, and CONTEXT.md:38 is "Learners only — no teachers, no
+    // schools inside it", so it was selling a product this repo does not have.
+    const schools = faqItems().find((i) => i.question === 'Are there discounts for schools?');
+    expect(schools?.answer).not.toMatch(/schools page/i);
+    expect(schools?.answer).not.toMatch(/teacher's view|data-processing agreement/i);
+    expect(schools?.answer).toMatch(/^Not yet\./);
+    // and no answer on the page names a page the site does not have
+    for (const item of faqItems()) {
+      expect([item.question, /\/schools\b/.test(item.answer)]).toEqual([item.question, false]);
+    }
+  });
+
   it('answer the country question without a switch and without reciting a price', () => {
     const answer = faqItems().find((i) => i.question === 'Do prices change by country?')?.answer;
     expect(answer).toContain('without asking where you are');
@@ -268,14 +324,19 @@ describe('the money questions', () => {
  * because the site is what a buyer reads before there is a settings screen to try.
  */
 describe('cancel, never refund', () => {
-  const answer = (question: string): string =>
-    faqItems().find((i) => i.question === question)?.answer ?? '';
+  const answer = (question: string, period: Period = 'monthly'): string =>
+    faqItems(period).find((i) => i.question === question)?.answer ?? '';
   const cancel = answer('How do I cancel?');
   const money = answer('Do you give money back?');
 
   it('promises money back nowhere on the page', () => {
     // the two exceptions are the name of the legal document and the answer that says no
-    const allowed = new Set<string>([CHECKOUT_PAGE.cancelling, 'Do you give money back?', money]);
+    const allowed = new Set<string>([
+      CHECKOUT_PAGE.cancelling,
+      'Do you give money back?',
+      money,
+      answer('Do you give money back?', 'yearly'),
+    ]);
     for (const [label, text] of STRINGS) {
       if (allowed.has(text)) continue;
       expect([label, /refund|money back/i.test(text)]).toEqual([label, false]);
@@ -291,6 +352,8 @@ describe('cancel, never refund', () => {
   it('tells a canceller everything that happens to them', () => {
     expect(cancel).toContain('Two taps');
     expect(cancel).toContain('until the month you paid for ends');
+    // and the same answer, asked on the yearly period, keeps the plan for the year that was paid
+    expect(answer('How do I cancel?', 'yearly')).toContain('until the year you paid for ends');
     expect(cancel).toContain('nothing renews');
     expect(cancel).toContain('everything you learnt stays');
     expect(cancel).toContain('puts the plan back');
@@ -325,10 +388,19 @@ describe('law v5 over the whole plans page', () => {
     }
   });
 
-  it('closes on early access rather than an invitation to begin tonight', () => {
-    expect(PLANS_PAGE.close.primary).toBe('Get early access');
+  /**
+   * We are open (DESIGN.md §0, owner, 2026-09-04). The plans page's own job is selling a plan, so
+   * its primary is the transaction and "Start free" is the quiet second — never a wait list, and
+   * never an invitation to a late night.
+   */
+  it('closes on the plan it sells, and asks nobody to wait or to stay up', () => {
+    expect(PLANS_PAGE.close.primary).toBe('Choose a plan');
+    expect(PLANS_PAGE.close.quiet).toBe('Start free instead');
     for (const [label, text] of STRINGS) {
-      expect([label, /begin tonight|tonight/i.test(text)]).toEqual([label, false]);
+      expect([label, /begin tonight|tonight|early access|waitlist/i.test(text)]).toEqual([
+        label,
+        false,
+      ]);
     }
   });
 

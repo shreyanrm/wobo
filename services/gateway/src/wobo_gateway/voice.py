@@ -43,6 +43,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 import os
 import secrets
 import threading
@@ -55,6 +56,8 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from pydantic import BaseModel, Field
 
 from wobo_gateway.wobo import WOBO_PERSONA
+
+logger = logging.getLogger("wobo.gateway.voice")
 
 # The typed-turn streaming voice reads Wobo's EXACT line aloud (verified verbatim against Gemini
 # Live),
@@ -412,20 +415,43 @@ class TtsBody(BaseModel):
 
 
 def _charge_voice(request: Request, capability: str) -> None:
-    """Meter one voice call against the learner's day.
+    """Meter one voice call against the learner's day AND against the platform's.
 
     Voice is a PAID API, and until now the meter was charged in exactly one place — the capability
     route — so a learner with a fully spent day still minted relay tokens and still reached the
     TTS API. Both routes go through the same meter as every other turn (``budget.CAPABILITY_CLASS``
     keeps the classification in one dict), keyed on the same meter key the door derived.
+
+    **AND THE PLATFORM'S CEILING, which voice was outside.** ``spend.py`` is the daily USD limit
+    described as covering the platform, and voice reached neither half of it: no cost was recorded
+    into the accumulator, and nothing here ever asked :func:`spend.verdict`, so the only cap on the
+    three most expensive seams in the product was a per-learner CALL count. Verified on 2026-09-04
+    with the day at 200 % of the ceiling: ``POST /v1/voice/tts`` still ran to the key check.
+
+    The ceiling is asked BEFORE the learner's meter, exactly as ``stream_board_turn`` does it: a
+    learner refused because the platform is out of money must not also lose one of their own turns
+    for it. There is no DEGRADE rung here — there is no cheaper voice — so degrade serves.
+
+    Gating this route is what puts the two WEBSOCKETS inside the ceiling too. Neither has HTTP
+    middleware of its own, and both refuse to open without a single-use token minted by
+    ``/v1/voice/session``, which comes through here.
     """
-    from wobo_gateway import billing, budget, consent
+    from wobo_gateway import billing, budget, consent, spend
 
     principal = request.state.principal
     profile = consent.get_profile(principal.subject, anonymous=principal.anonymous)
     # The subscription, not the profile: the same derivation the capability route uses, so a paid
     # learner is not cut off mid-sentence and a lapsed one does not keep the paid voice allowance.
     plan = billing.metered_plan(principal, profile)
+    priority = spend.priority_for(
+        anonymous=principal.anonymous, signed_in=bool(principal.subject), plan=plan
+    )
+    if spend.verdict(priority) is spend.Verdict.REFUSE:
+        logger.warning(
+            "spend ceiling refused a voice call",
+            extra={"fields": {"capability": capability, **spend.state().as_dict()}},
+        )
+        raise spend.SpendCeilingReached(priority, capability=capability)
     budget.charge(request.state.meter_key, capability, plan, anonymous=principal.anonymous)
 
 

@@ -371,3 +371,57 @@ def test_the_patterns_are_honest(
     for line in allowed:
         hit = next((p.search(line) for p in patterns if p.search(line)), None)
         assert hit is None, f"fired on a legitimate line: {line!r} matched {hit.group(0)!r}"  # type: ignore[union-attr]
+
+
+# --- rule 4: no em dash, in anything the product SAYS to a person -----------------------------
+#
+# The owner's standing law, and it was enforced unevenly and in one place inverted. Wobo's crisis
+# line carried an em dash in the sentence a child in distress reads; so did the moderation line and
+# the outbound replacement. ``test_billing.py`` asserted `"—" not in line` for billing copy while
+# ``test_ask_public.py`` asserted the public Ask box's HONEST_LINE *was* exactly
+# "I don't know that one — a person can: support@heywobo.com" — a test locking the banned character
+# into the line every visitor to the open box reads.
+#
+# SCOPE, stated so nobody has to guess it later: the strings the product SPEAKS — the safety copy,
+# the public Ask box's lines, and the rendered body of every transactional email. Not code
+# comments, not docstrings, not the design archive. The ONE exception is the sign-off "— Wobo",
+# which is a signature dash rather than a dash inside a sentence, and is the house style of every
+# email in the deck; changing it is a design decision and belongs to the owner, not to this file.
+
+SIGN_OFF = "— Wobo"
+
+
+def _speaking_lines() -> Iterator[tuple[str, str]]:
+    from wobo_gateway import ask_public, safety
+    from wobo_gateway.email_templates import TEMPLATES, render
+
+    for name in ("CRISIS_SAY", "MODERATION_SAY", "OUTBOUND_REPLACEMENT_SAY", "OUTAGE_SAY"):
+        yield f"safety.{name}", getattr(safety, name)
+    for i, line in enumerate(ask_public.PUBLIC_STRINGS):
+        yield f"ask_public.PUBLIC_STRINGS[{i}]", line
+
+    data = {
+        "name": "Learner", "first_name": "Learner", "topic": "triangles", "chapter": "Triangles",
+        "board": "CBSE", "grade": "8", "subject": "mathematics", "cta_url": "/learn",
+        "streak_days": 3, "amount": "499", "plan": "pro", "learner_name": "Learner",
+        "code": "123456", "link": "https://heywobo.com/x",
+    }
+    for name in TEMPLATES:
+        out = render(name, data)
+        for part in ("subject", "text", "html"):
+            for line in str(out.get(part) or "").split("\n"):
+                if SIGN_OFF not in line:
+                    yield f"email:{name}.{part}", line
+
+
+def test_no_em_dash_in_anything_the_product_says() -> None:
+    hits = [f"{where}: {line.strip()[:120]}" for where, line in _speaking_lines() if "—" in line]
+    assert not hits, "em dashes in spoken copy (owner's standing law):\n" + "\n".join(hits)
+
+
+def test_the_em_dash_rule_reaches_the_line_a_child_in_distress_reads() -> None:
+    """Pinned at the sentence that matters most: this one carried an em dash at HEAD."""
+    from wobo_gateway import safety
+
+    assert "—" not in safety.CRISIS_SAY
+    assert "Childline" in safety.CRISIS_SAY  # still the line, not a line with the help removed

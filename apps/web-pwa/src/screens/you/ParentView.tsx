@@ -9,6 +9,15 @@
  *
  * Inside the app it is the learner's own preview, reached from the Parents card: "show mom what I
  * just cracked" starts with knowing what mom will see.
+ *
+ * WHAT THIS PAGE IS NOT, and why the page now says so out loud. Everything below is read from
+ * `loadProfile()` and `useProgress()` — localStorage on THIS device. It is the learner's preview
+ * and it cannot be a parent's view: a parent has no account, no session and no route to a
+ * server-side read, so a parent opening this on their own phone would see their own empty
+ * storage. The Sunday note used to link here ("see the full picture") and no longer does
+ * (`email_templates.parent_report`): the note carries the week itself, because it is the only
+ * thing a parent can actually receive today. A real parent view needs a parent session and a
+ * decision about what a parent may read, and both are the owner's.
  */
 
 import { useWoboBus } from '@wobo/wobo';
@@ -125,6 +134,12 @@ export function ParentView() {
             </svg>
             Questions word for word: shared only if {firstName || profile.name} allows
           </div>
+          {/* Said on the screen, not only in the file: this is a preview drawn from THIS device.
+              A page that looks like a parent's report and is not one is worse than no page. */}
+          <p className="wy-preview">
+            This is a preview of what a parent would see, drawn from this device. Parents do not
+            have their own login yet, so the weekly note we email them is the whole picture today.
+          </p>
         </div>
       </div>
     </AppShell>

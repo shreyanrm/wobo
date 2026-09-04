@@ -30,19 +30,26 @@ import {
   SERVER_ERROR_WOBO,
   ServerErrorArt,
 } from './art';
-import { StateScene } from './Scene';
+import { type SceneAction, StateScene } from './Scene';
 import { resetClock, resetDay } from './select';
 
-export function NotFound({ onHome, onAsk }: { onHome: () => void; onAsk: () => void }) {
+/**
+ * The 404. It is a PUBLIC page as well as an app one — it is the address every mistyped link, every
+ * truncated share and every renamed route lands on — so it is the one state scene whose doors are
+ * decided by who is standing in front of it (`StateHost.NotFoundScreen`).
+ *
+ * A stranger used to be offered "Back to learning" and "Ask Wobo", both of which are the inside of
+ * a product they have no account for. Now a visitor gets the site's one call to action and the
+ * front page (docs/SELL.md §6), and a started learner still gets their own two doors. Either way
+ * the page has one job — put a lost person somewhere useful — and one primary.
+ */
+export function NotFound({ actions }: { actions: readonly SceneAction[] }) {
   return (
     <StateScene
       code="404"
       title="This page isn't here"
       body="Wobo looked around and couldn't find it. It may have moved, or the link had a slip in it."
-      actions={[
-        { label: 'Back to learning', onSelect: onHome, primary: true },
-        { label: 'Ask Wobo', onSelect: onAsk },
-      ]}
+      actions={actions}
       art={
         <InkScene
           label="A dotted path drawn across a map ends at a question mark, and Wobo looks for it"
@@ -60,12 +67,12 @@ export function ServerError({ onRetry, onHome }: { onRetry: () => void; onHome: 
     <StateScene
       code="500"
       title="Something on our side broke"
-      body="Not you. Wobo has already told us, and your place is saved. Try again in a moment."
+      body="Not you, and your place is saved. Try again in a moment."
       actions={[
         { label: 'Try again', onSelect: onRetry, primary: true },
         { label: 'Back to learning', onSelect: onHome },
       ]}
-      note="If it keeps happening, the flag in the corner sends us the details."
+      note="If it keeps happening, write to support@heywobo.com and say what you were doing."
       art={
         <InkScene
           label="A line Wobo was drawing wobbles and breaks, and Wobo shakes it off"

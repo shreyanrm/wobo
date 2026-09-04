@@ -1,0 +1,1800 @@
+"""The console's door: who is an admin, how a console session opens, and the trail it leaves.
+
+This module is the security boundary of the operator console. Everything behind ``/v1/admin`` can
+see every learner in the product, and the product serves children, so this file is written as if
+the attacker already has a learner's token, a stolen laptop and the front-end source.
+
+THE FIVE RULINGS, each one a decision and not a default.
+
+1. AN ADMIN IS A ROW, NEVER A CLAIM.
+   :func:`admin_for` reads ``ops.admins`` with the service role. Nothing in a token makes anybody
+   an admin: Supabase's ``user_metadata`` is writable by the user it describes, so a ``role``
+   claim is an authorisation the attacker fills in himself. Being signed in — even as a real,
+   verified, paying learner — is never sufficient for a single byte behind this door.
+
+2. THE FACTOR IS THE PRODUCT'S OWN SIGN-IN, PLUS TOTP.
+   No password store is invented here. ``auth.py`` has already verified a Supabase access token by
+   signature, audience and issuer before this module is reached; this module adds (a) the register
+   check and (b) an assurance-level check, ``aal == "aal2"``, which Supabase writes only after a
+   TOTP factor has actually been verified. See :func:`mfa_enforced` for the one switch and where
+   it is refused.
+
+3. THE CONSOLE SESSION IS SHORT, SERVER-SIDE AND REVOCABLE.
+   A Supabase access token cannot be cancelled before it expires and refreshes itself all day. So
+   a second session sits on top: an opaque token, only its SHA-256 stored, thirty minutes by
+   default, no refresh, killable by a row update. An admin request needs the Supabase token AND
+   this session AND an active register row. Any one missing is a refusal.
+
+4. NO AUDIT, NO ACCESS.
+   :func:`guard` writes the trail BEFORE the endpoint runs, and if the trail cannot be written the
+   request is refused. An audit that may be silently dropped under load is not an audit. Reads are
+   recorded as carefully as writes, because the risk in a console over children's data is somebody
+   LOOKING, and looking leaves no other mark.
+
+5. THE GUARD IS CARRIED BY THE ROUTER, NOT BY THE AUTHOR.
+   :func:`admin_router` returns an ``APIRouter`` whose ``dependencies`` already contain
+   :func:`guard`. A new endpoint added to it is protected because of where it lives, not because
+   somebody remembered a decorator. ``tests/test_admin_guard.py`` walks the built app and fails if
+   any ``/v1/admin`` route is ever mounted without it.
+
+WHAT IS NOT DONE HERE, said plainly. The step-up check proves a FRESH aal2 token, not a fresh
+challenge driven by this server — the gateway never holds the user's factor. The console runs
+``supabase.auth.mfa.challengeAndVerify()`` itself and posts the resulting new access token to
+``POST /v1/admin/session/reauth``; we verify it is aal2 and that its ``iat`` is inside
+``ADMIN_REAUTH_TOKEN_MAX_AGE_S``. That is a real second proof, and it is weaker than a
+server-driven challenge would be. It is written down rather than glossed.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import logging
+import os
+import re
+import secrets
+import threading
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from typing import Annotated, Any, Protocol
+
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
+from fastapi.routing import APIRoute
+
+from wobo_gateway.auth import dev_auth_requested
+
+logger = logging.getLogger("wobo.admin")
+
+#: One prefix, and the app's limiter keys off it. Nothing admin lives outside it.
+ADMIN_PREFIX = "/v1/admin"
+
+#: The header the console sends its session token in.
+SESSION_HEADER = "x-wobo-admin-session"
+
+#: The cookie the same token is ALSO set in. Both are accepted, and here is the honest reasoning
+#: for carrying two rather than picking one:
+#:
+#:   * A COOKIE is better against a script that gets into the page: HttpOnly means the token
+#:     cannot be read back out. It is worse across origins — SameSite=Strict means the browser
+#:     will not send it at all when the console and the gateway are on different sites, which is
+#:     exactly the deployment this product has today (a Vercel front end, a Railway gateway).
+#:   * A HEADER is the reverse: it works across origins, and a script in the page can read it.
+#:
+#: Neither is a CSRF exposure here, and that is not luck. Every admin request must ALSO carry a
+#: verified Supabase access token in ``Authorization`` (the app's middleware refuses ``/v1``
+#: without one before this module is reached), and a cross-site request cannot set that header.
+#: So a browser silently attaching the cookie to somebody else's form post achieves nothing.
+SESSION_COOKIE = "wobo_admin_session"
+
+_SCHEMA = "ops"
+_HTTP_TIMEOUT_S = 5.0
+_UUID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+
+# --- levels and permissions ----------------------------------------------------------------------
+#
+# "me and my team" is not one permission. Somebody who is looking at the spend does not need the
+# power to change what a learner is charged, and exactly one person needs the power to add the
+# next admin. Three levels, and the vocabulary below is what every route names.
+VIEWER = "viewer"
+OPERATOR = "operator"
+OWNER = "owner"
+ROLES: tuple[str, ...] = (VIEWER, OPERATOR, OWNER)
+
+#: Look at the console's own aggregates: spend, usage, model mix, alerts, counts.
+CONSOLE_READ = "console.read"
+#: Look at one named learner's operational record (plan, meter, support case). Always audited.
+LEARNER_READ = "learner.read"
+#: Change a learner's data, plan or money. Step-up required, always audited.
+LEARNER_ACT = "learner.act"
+#: Act on a support case: reply, resolve, escalate. Step-up required.
+SUPPORT_ACT = "support.act"
+#: Change the admin register itself. Step-up required, and only an owner has it.
+ADMIN_MANAGE = "admin.manage"
+
+# THE LOWEST SEAT DOES NOT READ A CHILD'S CONTACT DETAILS. ``viewer`` is described to the person
+# holding it as "see everything in the console, and change nothing", and it used to carry
+# LEARNER_READ — which is ``GET /v1/admin/reports/who``, and which answers with a learner's real
+# subject id and the address a parent typed on a refund request. Reading is exactly the risk this
+# console is written against: the harm in a console over children's data is somebody LOOKING, and
+# looking leaves no other mark. So the aggregates (money, models, queues, counts) are the viewer
+# seat, and identifying one named person is the seat that also has to answer for what it did with
+# the answer. The desks follow from this table and need no edit of their own.
+PERMISSIONS: dict[str, frozenset[str]] = {
+    VIEWER: frozenset({CONSOLE_READ}),
+    OPERATOR: frozenset({CONSOLE_READ, LEARNER_READ, LEARNER_ACT, SUPPORT_ACT}),
+    OWNER: frozenset({CONSOLE_READ, LEARNER_READ, LEARNER_ACT, SUPPORT_ACT, ADMIN_MANAGE}),
+}
+
+#: Permissions that change something. Every one of them needs a step-up inside the reauth window.
+#: Derived rather than listed a second time, so adding a write permission cannot forget the rule.
+WRITE_PERMISSIONS: frozenset[str] = frozenset({LEARNER_ACT, SUPPORT_ACT, ADMIN_MANAGE})
+
+
+def permissions_for(role: str) -> frozenset[str]:
+    return PERMISSIONS.get(role, frozenset())
+
+
+# --- errors ---------------------------------------------------------------------------------------
+class AdminDenied(Exception):
+    """A refusal, with the code that goes to the audit and the message that goes to the screen.
+
+    The message is deliberately NOT a description of why for a caller who is not in the register.
+    Somebody probing this door with a learner's token learns only that it is not for them; the
+    difference between "expired session" and "not an admin" is told only to people who are
+    already admins, because that difference is useful to an attacker and useless to a stranger.
+    """
+
+    def __init__(self, code: str, message: str, *, status: int = 403) -> None:
+        self.code = code
+        self.status = status
+        self.message = message
+        super().__init__(f"{code}: {message}")
+
+    def http(self) -> HTTPException:
+        return HTTPException(
+            status_code=self.status, detail={"code": self.code, "message": self.message}
+        )
+
+
+#: What a caller who is not in the register is told. One sentence, no detail, same for every cause.
+NOT_FOR_YOU = "This area is not available on this account."
+
+
+class StoreUnavailable(Exception):
+    """The register or the trail could not be reached. The door stays shut; nothing is assumed."""
+
+
+class BadIdentifier(StoreUnavailable):
+    """The VALUE was not an id. The store is fine; the input was not, and they are different facts.
+
+    A subclass of :class:`StoreUnavailable` on purpose, so every existing ``except`` keeps failing
+    closed and nothing can accidentally start serving on a malformed id. Routes that take an id
+    from a caller catch this one FIRST and answer 400 — "that is not an id" — instead of 503, "I
+    could not read the trail just now".
+
+    That distinction is the console's own honesty rule turned on the operator's inputs. During an
+    incident, "the console is blind" and "you typed it wrong" lead to completely different next
+    hours, and a console built so an operator can tell "we could not ask" from "it is fine" must
+    not fold the third case into the first.
+    """
+
+
+# --- the records ----------------------------------------------------------------------------------
+@dataclass(frozen=True)
+class Admin:
+    id: str
+    subject_id: str
+    email: str
+    role: str
+    status: str = "active"
+    mfa_required: bool = True
+
+    @property
+    def active(self) -> bool:
+        return self.status == "active"
+
+    def may(self, permission: str) -> bool:
+        return permission in permissions_for(self.role)
+
+
+@dataclass(frozen=True)
+class AdminSession:
+    id: str
+    admin_id: str
+    issued_at: datetime
+    expires_at: datetime
+    reauth_at: datetime | None = None
+    revoked_at: datetime | None = None
+
+    def live(self, now: datetime) -> bool:
+        return self.revoked_at is None and now < self.expires_at
+
+    def stepped_up(self, now: datetime, window_s: float) -> bool:
+        if self.reauth_at is None:
+            return False
+        return (now - self.reauth_at).total_seconds() <= window_s
+
+
+@dataclass(frozen=True)
+class AdminContext:
+    """What a guarded route knows about its caller. Passed to routes, never built by them."""
+
+    admin: Admin
+    session: AdminSession
+    request: Request
+    ip_hash: str | None = None
+    user_agent: str | None = None
+
+    def require(self, permission: str) -> None:
+        if not self.admin.may(permission):
+            raise AdminDenied("not_permitted", f"Your access does not include {permission}.")
+        if permission in WRITE_PERMISSIONS and not self.session.stepped_up(
+            datetime.now(UTC), reauth_window_s()
+        ):
+            raise AdminDenied(
+                "reauth_required",
+                "Confirm it is you before changing anything. Re-enter your code and try again.",
+                status=401,
+            )
+
+    def audit(
+        self,
+        action: str,
+        *,
+        resource_type: str | None = None,
+        resource_id: str | None = None,
+        decision: str = "allowed",
+        status_code: int | None = None,
+        detail: dict[str, Any] | None = None,
+    ) -> None:
+        """Record something more specific than "a request happened" — which learner was opened."""
+        record_audit(
+            get_store(),
+            action=action,
+            actor=self.admin,
+            session_id=self.session.id,
+            request=self.request,
+            resource_type=resource_type,
+            resource_id=resource_id,
+            decision=decision,
+            status_code=status_code,
+            detail=detail,
+            ip_hash=self.ip_hash,
+            user_agent=self.user_agent,
+        )
+
+
+# --- environment ----------------------------------------------------------------------------------
+def _env(name: str, default: str) -> str:
+    return (os.getenv(name) or default).strip()
+
+
+def _on(value: str) -> bool:
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+def session_ttl_s() -> int:
+    """Thirty minutes, and no refresh. A console over every child in the product does not idle."""
+    return max(60, int(_env("ADMIN_SESSION_TTL_S", "1800")))
+
+
+def reauth_window_s() -> int:
+    """How long a step-up counts for. Five minutes: long enough for a task, short enough that a
+    walked-away laptop cannot spend."""
+    return max(30, int(_env("ADMIN_REAUTH_WINDOW_S", "300")))
+
+
+def reauth_token_max_age_s() -> int:
+    """How fresh the re-authenticated token has to be. Two minutes."""
+    return max(30, int(_env("ADMIN_REAUTH_TOKEN_MAX_AGE_S", "120")))
+
+
+def is_prod() -> bool:
+    return _env("ENV", "dev").lower() == "prod"
+
+
+def mfa_enforced() -> bool:
+    """A second factor, and in prod there is no switch that turns it off.
+
+    Off prod, ``ADMIN_REQUIRE_MFA=0`` relaxes it so a local run does not need a TOTP app; the
+    default is still on. In prod the environment is not consulted at all, because "the console
+    that can read every child was single-factor because somebody set a variable" is not a sentence
+    this repo is going to contain. :func:`validate_admin_env` refuses the variable at boot so the
+    operator is told rather than quietly overruled.
+    """
+    if is_prod():
+        return True
+    return _on(_env("ADMIN_REQUIRE_MFA", "1"))
+
+
+def _project_configured() -> bool:
+    """Would :func:`build_store` reach a REAL register? A project url and a service-role key.
+
+    Without both, ``build_store`` returns :class:`UnconfiguredAdminStore`, which refuses every
+    call — so a local run with the dev seam on has nothing to reach and nothing to protect.
+    """
+    return bool(
+        os.getenv("SUPABASE_URL")
+        and (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY"))
+    )
+
+
+def validate_admin_env() -> None:
+    """Fail fast: the console must never boot on a relaxed setting, a memory store, or a dev seam.
+
+    Called from :func:`wobo_gateway.app.validate_env` at start-up, not only from
+    :func:`build_store`. That matters: ``build_store`` runs lazily on the FIRST admin request, so
+    a gateway misconfigured this way used to boot, serve every learner for a week, and surface the
+    problem as a 500 the first time somebody opened the console. It failed closed, which is the
+    important half, but it told the operator at the worst possible moment.
+    """
+    # THE DEV SEAM AND A REAL REGISTER MUST NEVER MEET, at any ENV.
+    #
+    # ``auth.authenticate`` mints a Principal straight from ``X-Wobo-Dev-Subject`` when DEV_AUTH is
+    # on, with no token and no signature — and ``app.validate_env`` only refuses that combination
+    # in prod. So on a staging box (ENV=stg, DEV_AUTH=1), which usually points at the PRODUCTION
+    # Supabase project, one header naming a registered admin's subject was a console session: the
+    # register's own claim that a principal is "never from a header" was false everywhere but prod.
+    # The second factor was the only thing left standing, and an admin row with mfa_required=false
+    # (or ADMIN_REQUIRE_MFA=0, which is permitted off prod) takes that away too.
+    #
+    # The rule, therefore, is about the STORE and not about the environment: a header-asserted
+    # identity may reach a throwaway in-memory register, and may never reach a real one.
+    if (
+        dev_auth_requested()
+        and _project_configured()
+        and _env("ADMIN_STORE", "").lower() != "memory"
+    ):
+        raise RuntimeError(
+            "DEV_AUTH is refused while the admin console has a real register: the dev header "
+            "asserts an identity with no proof, so it would be an unauthenticated console over "
+            "whatever project SUPABASE_URL points at. Unset DEV_AUTH, or set ADMIN_STORE=memory "
+            "for local work."
+        )
+    if not is_prod():
+        return
+    if not _on(_env("ADMIN_REQUIRE_MFA", "1")):
+        raise RuntimeError(
+            "ADMIN_REQUIRE_MFA=0 is refused when ENV=prod: the admin console is never single-factor"
+        )
+    if _env("ADMIN_STORE", "").lower() == "memory":
+        raise RuntimeError(
+            "ADMIN_STORE=memory is refused when ENV=prod: an admin register held in one process's "
+            "memory is a register anybody can rebuild by restarting the container"
+        )
+
+
+_IP_SALT = os.getenv("IP_LOG_SALT", "").encode() or os.urandom(16)
+
+
+def ip_fingerprint(ip: str) -> str:
+    """The same posture as the request log: a keyed digest, never the address.
+
+    Our learners are minors and our admins are people; an investigation only ever asks "the same
+    caller or not", which a digest answers without a table full of home addresses.
+    """
+    return hashlib.blake2b(ip.encode(), key=_IP_SALT[:64], digest_size=8).hexdigest()
+
+
+def client_ip(request: Request) -> str:
+    """The last hop, matching ``app._client_ip``: every proxy APPENDS, so the first entry in
+    ``X-Forwarded-For`` is whatever the caller typed and the last is what our platform wrote."""
+    if os.getenv("TRUST_PROXY") == "1":
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            hops = [hop.strip() for hop in forwarded.split(",") if hop.strip()]
+            if hops:
+                return hops[-1]
+    return request.client.host if request.client else "unknown"
+
+
+def session_token(request: Request) -> str:
+    """The console session token, from the header or the cookie. Never from a query string.
+
+    A credential in a URL is a credential in the access log, in the referrer of every outbound
+    link, and in the browser history of whichever machine the operator happened to be at.
+    """
+    header = (request.headers.get(SESSION_HEADER) or "").strip()
+    if header:
+        return header
+    return (request.cookies.get(SESSION_COOKIE) or "").strip()
+
+
+def hash_token(token: str) -> str:
+    """SHA-256 hex. The token is opaque and high-entropy, so a plain digest is the right shape:
+    there is no dictionary to attack and nothing to slow an attacker down for."""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+# --- the store seam ------------------------------------------------------------------------------
+class AdminStore(Protocol):
+    def admin_by_subject(self, subject: str) -> Admin | None: ...
+
+    def admin_by_id(self, admin_id: str) -> Admin | None: ...
+
+    def list_admins(self) -> list[Admin]: ...
+
+    def upsert_admin(
+        self, *, subject_id: str, email: str, role: str, granted_by: str | None, mfa_required: bool
+    ) -> Admin: ...
+
+    def set_admin_status(self, admin_id: str, status: str) -> Admin | None: ...
+
+    def touch_admin(self, admin_id: str, when: datetime) -> None: ...
+
+    def create_session(
+        self,
+        *,
+        admin_id: str,
+        token_hash: str,
+        expires_at: datetime,
+        reauth_at: datetime | None,
+        ip_hash: str | None,
+        user_agent: str | None,
+    ) -> AdminSession: ...
+
+    def session_by_token_hash(self, token_hash: str) -> AdminSession | None: ...
+
+    def mark_session_used(self, session_id: str, when: datetime) -> None: ...
+
+    def mark_reauth(self, session_id: str, when: datetime) -> AdminSession | None: ...
+
+    def revoke_session(self, session_id: str, when: datetime, reason: str) -> None: ...
+
+    def insert_audit(self, row: dict[str, Any]) -> None: ...
+
+    def list_audit(self, *, limit: int, actor_subject: str | None) -> list[dict[str, Any]]: ...
+
+
+class UnconfiguredAdminStore:
+    """No project configured, so no admin exists. Every call raises and the door stays shut.
+
+    This is the opposite of the billing store's posture and for the opposite reason: an
+    unconfigured subscription store that guesses "free" costs a learner money, and an unconfigured
+    ADMIN store that guesses anything costs every learner their privacy. Fail closed, loudly.
+    """
+
+    def _refuse(self) -> StoreUnavailable:
+        return StoreUnavailable("no admin store is configured")
+
+    def __getattr__(self, _name: str) -> Any:
+        def call(*_a: Any, **_k: Any) -> Any:
+            raise self._refuse()
+
+        return call
+
+
+class InMemoryAdminStore:
+    """The suite's store and a local run. Refused in prod by :func:`validate_admin_env`."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.admins: dict[str, Admin] = {}
+        self.sessions: dict[str, dict[str, Any]] = {}
+        self.audit: list[dict[str, Any]] = []
+
+    # -- register
+    def admin_by_subject(self, subject: str) -> Admin | None:
+        with self._lock:
+            for admin in self.admins.values():
+                if admin.subject_id == subject:
+                    return admin
+        return None
+
+    def admin_by_id(self, admin_id: str) -> Admin | None:
+        with self._lock:
+            return self.admins.get(admin_id)
+
+    def list_admins(self) -> list[Admin]:
+        with self._lock:
+            return sorted(self.admins.values(), key=lambda a: a.email)
+
+    def upsert_admin(
+        self, *, subject_id: str, email: str, role: str, granted_by: str | None, mfa_required: bool
+    ) -> Admin:
+        with self._lock:
+            for existing in self.admins.values():
+                if existing.subject_id == subject_id:
+                    updated = Admin(
+                        id=existing.id,
+                        subject_id=subject_id,
+                        email=email,
+                        role=role,
+                        status="active",
+                        mfa_required=mfa_required,
+                    )
+                    self.admins[existing.id] = updated
+                    return updated
+            admin_id = secrets.token_hex(16)
+            admin = Admin(
+                id=admin_id,
+                subject_id=subject_id,
+                email=email,
+                role=role,
+                status="active",
+                mfa_required=mfa_required,
+            )
+            self.admins[admin_id] = admin
+            return admin
+
+    def set_admin_status(self, admin_id: str, status: str) -> Admin | None:
+        with self._lock:
+            current = self.admins.get(admin_id)
+            if current is None:
+                return None
+            updated = Admin(
+                id=current.id,
+                subject_id=current.subject_id,
+                email=current.email,
+                role=current.role,
+                status=status,
+                mfa_required=current.mfa_required,
+            )
+            self.admins[admin_id] = updated
+            return updated
+
+    def touch_admin(self, admin_id: str, when: datetime) -> None:
+        return None
+
+    # -- sessions
+    def create_session(
+        self,
+        *,
+        admin_id: str,
+        token_hash: str,
+        expires_at: datetime,
+        reauth_at: datetime | None,
+        ip_hash: str | None,
+        user_agent: str | None,
+    ) -> AdminSession:
+        with self._lock:
+            session = AdminSession(
+                id=secrets.token_hex(16),
+                admin_id=admin_id,
+                issued_at=datetime.now(UTC),
+                expires_at=expires_at,
+                reauth_at=reauth_at,
+            )
+            self.sessions[token_hash] = {"session": session, "ip_hash": ip_hash, "ua": user_agent}
+            return session
+
+    def _find_session(self, session_id: str) -> str | None:
+        for key, held in self.sessions.items():
+            if held["session"].id == session_id:
+                return key
+        return None
+
+    def session_by_token_hash(self, token_hash: str) -> AdminSession | None:
+        with self._lock:
+            held = self.sessions.get(token_hash)
+            return held["session"] if held else None
+
+    def mark_session_used(self, session_id: str, when: datetime) -> None:
+        return None
+
+    def mark_reauth(self, session_id: str, when: datetime) -> AdminSession | None:
+        with self._lock:
+            key = self._find_session(session_id)
+            if key is None:
+                return None
+            current: AdminSession = self.sessions[key]["session"]
+            updated = AdminSession(
+                id=current.id,
+                admin_id=current.admin_id,
+                issued_at=current.issued_at,
+                expires_at=current.expires_at,
+                reauth_at=when,
+                revoked_at=current.revoked_at,
+            )
+            self.sessions[key]["session"] = updated
+            return updated
+
+    def revoke_session(self, session_id: str, when: datetime, reason: str) -> None:
+        with self._lock:
+            key = self._find_session(session_id)
+            if key is None:
+                return None
+            current: AdminSession = self.sessions[key]["session"]
+            self.sessions[key]["session"] = AdminSession(
+                id=current.id,
+                admin_id=current.admin_id,
+                issued_at=current.issued_at,
+                expires_at=current.expires_at,
+                reauth_at=current.reauth_at,
+                revoked_at=when,
+            )
+        return None
+
+    # -- audit
+    def insert_audit(self, row: dict[str, Any]) -> None:
+        with self._lock:
+            self.audit.append(dict(row))
+
+    def list_audit(self, *, limit: int, actor_subject: str | None) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = [r for r in self.audit if actor_subject in (None, r.get("actor_subject"))]
+            return list(reversed(rows))[:limit]
+
+
+def _request(url: str, key: str, method: str, *, body: Any = None, want_rows: bool) -> Any:
+    """One PostgREST call against the ``ops`` schema. Split out so tests substitute it."""
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Accept": "application/json",
+        "Accept-Profile": _SCHEMA,
+        "Content-Profile": _SCHEMA,
+        "Prefer": "return=representation" if want_rows else "return=minimal",
+    }
+    data = None
+    if body is not None:
+        data = json.dumps(body).encode()
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, data=data, headers=headers, method=method)
+    with urllib.request.urlopen(request, timeout=_HTTP_TIMEOUT_S) as response:  # noqa: S310
+        raw = response.read().decode() or ""
+    if not want_rows or not raw.strip():
+        return []
+    return json.loads(raw)
+
+
+_NETWORK_ERRORS = (urllib.error.URLError, TimeoutError, ValueError, OSError)
+
+
+def _when(value: Any) -> datetime | None:
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value.astimezone(UTC)
+    try:
+        text = str(value).replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    return parsed.astimezone(UTC) if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+
+
+def _iso(moment: datetime | None) -> str | None:
+    return moment.astimezone(UTC).isoformat() if moment else None
+
+
+def _admin_from_row(row: dict[str, Any]) -> Admin | None:
+    subject = str(row.get("subject_id") or "")
+    if not subject:
+        return None
+    return Admin(
+        id=str(row.get("id") or ""),
+        subject_id=subject,
+        email=str(row.get("email") or ""),
+        role=str(row.get("role") or VIEWER),
+        status=str(row.get("status") or "active"),
+        mfa_required=row.get("mfa_required") is not False,
+    )
+
+
+def _session_from_row(row: dict[str, Any]) -> AdminSession | None:
+    expires = _when(row.get("expires_at"))
+    if expires is None:
+        return None
+    return AdminSession(
+        id=str(row.get("id") or ""),
+        admin_id=str(row.get("admin_id") or ""),
+        issued_at=_when(row.get("issued_at")) or datetime.now(UTC),
+        expires_at=expires,
+        reauth_at=_when(row.get("reauth_at")),
+        revoked_at=_when(row.get("revoked_at")),
+    )
+
+
+class PostgrestAdminStore:
+    """``ops.*`` over PostgREST with the service-role key.
+
+    The learner role holds no grant on ``ops.admins`` or ``ops.admin_sessions`` at all (migration
+    0015), so nothing but this class can read or change them, and ``ops.admin_audit`` refuses
+    UPDATE and DELETE even to this key.
+    """
+
+    def __init__(self, base_url: str, service_key: str, *, request: Any = None) -> None:
+        if not base_url or not service_key:
+            raise ValueError("PostgrestAdminStore needs a project URL and a service key")
+        self.base = base_url.rstrip("/")
+        self._key = service_key
+        self._request = request or _request
+
+    def _url(self, table: str, params: dict[str, str]) -> str:
+        encoded = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
+        return f"{self.base}/rest/v1/{table}?{encoded}"
+
+    def _call(
+        self, method: str, table: str, params: dict[str, str], *, body: Any = None
+    ) -> list[dict[str, Any]]:
+        try:
+            rows = self._request(
+                self._url(table, params), self._key, method, body=body, want_rows=True
+            )
+        except _NETWORK_ERRORS as exc:
+            logger.warning(
+                "admin: store call failed",
+                extra={"fields": {"method": method, "table": table, "error": str(exc)}},
+            )
+            raise StoreUnavailable(str(exc)) from exc
+        return [row for row in rows if isinstance(row, dict)] if isinstance(rows, list) else []
+
+    @staticmethod
+    def _uuid(value: str) -> str:
+        """A filter value is interpolated into a query string, so it is checked, never trusted.
+
+        PostgREST's filter grammar has its own metacharacters (``,``, ``.``, ``(``): a value that
+        carried them could change which rows a filter matches. Every id this class puts into a
+        filter is a uuid or it is not used at all.
+        """
+        if not _UUID_RE.match(value or ""):
+            raise BadIdentifier("that is not an id I can look up")
+        return value
+
+    @staticmethod
+    def _digest(value: str) -> str:
+        if not re.fullmatch(r"[0-9a-f]{64}", value or ""):
+            raise BadIdentifier("that is not a token I can look up")
+        return value
+
+    def admin_by_subject(self, subject: str) -> Admin | None:
+        rows = self._call(
+            "GET",
+            "admins",
+            {"select": "*", "subject_id": f"eq.{self._uuid(subject)}", "limit": "1"},
+        )
+        return _admin_from_row(rows[0]) if rows else None
+
+    def admin_by_id(self, admin_id: str) -> Admin | None:
+        rows = self._call(
+            "GET", "admins", {"select": "*", "id": f"eq.{self._uuid(admin_id)}", "limit": "1"}
+        )
+        return _admin_from_row(rows[0]) if rows else None
+
+    def list_admins(self) -> list[Admin]:
+        rows = self._call("GET", "admins", {"select": "*", "order": "email.asc", "limit": "200"})
+        return [a for a in (_admin_from_row(r) for r in rows) if a is not None]
+
+    def upsert_admin(
+        self, *, subject_id: str, email: str, role: str, granted_by: str | None, mfa_required: bool
+    ) -> Admin:
+        body = {
+            "subject_id": self._uuid(subject_id),
+            "email": email,
+            "role": role,
+            "status": "active",
+            "mfa_required": mfa_required,
+            "granted_by": granted_by,
+            "updated_at": _iso(datetime.now(UTC)),
+        }
+        rows = self._call(
+            "POST",
+            "admins",
+            {"select": "*", "on_conflict": "subject_id"},
+            body=[body],
+        )
+        admin = _admin_from_row(rows[0]) if rows else None
+        if admin is None:
+            raise StoreUnavailable("the grant did not land")
+        return admin
+
+    def set_admin_status(self, admin_id: str, status: str) -> Admin | None:
+        rows = self._call(
+            "PATCH",
+            "admins",
+            {"id": f"eq.{self._uuid(admin_id)}", "select": "*"},
+            body={"status": status, "updated_at": _iso(datetime.now(UTC))},
+        )
+        return _admin_from_row(rows[0]) if rows else None
+
+    def touch_admin(self, admin_id: str, when: datetime) -> None:
+        self._call(
+            "PATCH",
+            "admins",
+            {"id": f"eq.{self._uuid(admin_id)}", "select": "id"},
+            body={"last_seen_at": _iso(when)},
+        )
+
+    def create_session(
+        self,
+        *,
+        admin_id: str,
+        token_hash: str,
+        expires_at: datetime,
+        reauth_at: datetime | None,
+        ip_hash: str | None,
+        user_agent: str | None,
+    ) -> AdminSession:
+        rows = self._call(
+            "POST",
+            "admin_sessions",
+            {"select": "*"},
+            body=[
+                {
+                    "admin_id": self._uuid(admin_id),
+                    "token_hash": self._digest(token_hash),
+                    "expires_at": _iso(expires_at),
+                    "reauth_at": _iso(reauth_at),
+                    "ip_hash": ip_hash,
+                    "user_agent": user_agent,
+                }
+            ],
+        )
+        session = _session_from_row(rows[0]) if rows else None
+        if session is None:
+            raise StoreUnavailable("the session did not open")
+        return session
+
+    def session_by_token_hash(self, token_hash: str) -> AdminSession | None:
+        rows = self._call(
+            "GET",
+            "admin_sessions",
+            {"select": "*", "token_hash": f"eq.{self._digest(token_hash)}", "limit": "1"},
+        )
+        return _session_from_row(rows[0]) if rows else None
+
+    def mark_session_used(self, session_id: str, when: datetime) -> None:
+        self._call(
+            "PATCH",
+            "admin_sessions",
+            {"id": f"eq.{self._uuid(session_id)}", "select": "id"},
+            body={"last_used_at": _iso(when)},
+        )
+
+    def mark_reauth(self, session_id: str, when: datetime) -> AdminSession | None:
+        rows = self._call(
+            "PATCH",
+            "admin_sessions",
+            {"id": f"eq.{self._uuid(session_id)}", "select": "*"},
+            body={"reauth_at": _iso(when)},
+        )
+        return _session_from_row(rows[0]) if rows else None
+
+    def revoke_session(self, session_id: str, when: datetime, reason: str) -> None:
+        self._call(
+            "PATCH",
+            "admin_sessions",
+            {"id": f"eq.{self._uuid(session_id)}", "select": "id"},
+            body={"revoked_at": _iso(when), "revoked_reason": reason[:200]},
+        )
+
+    def insert_audit(self, row: dict[str, Any]) -> None:
+        self._call("POST", "admin_audit", {"select": "id"}, body=[row])
+
+    def list_audit(self, *, limit: int, actor_subject: str | None) -> list[dict[str, Any]]:
+        params = {"select": "*", "order": "id.desc", "limit": str(max(1, min(limit, 500)))}
+        if actor_subject:
+            params["actor_subject"] = f"eq.{self._uuid(actor_subject)}"
+        return self._call("GET", "admin_audit", params)
+
+
+_store: AdminStore | None = None
+_store_lock = threading.Lock()
+
+
+def build_store() -> AdminStore:
+    """The project store when configured; a refusing store when not. Never a permissive guess."""
+    validate_admin_env()
+    if _env("ADMIN_STORE", "").lower() == "memory":
+        return InMemoryAdminStore()
+    base = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
+    if base and key:
+        return PostgrestAdminStore(base, key)
+    logger.error(
+        "admin: no project configured — the console will refuse every request. Set SUPABASE_URL "
+        "and SUPABASE_SERVICE_ROLE_KEY, or ADMIN_STORE=memory (never in prod) for local work."
+    )
+    return UnconfiguredAdminStore()
+
+
+def get_store() -> AdminStore:
+    global _store
+    if _store is None:
+        with _store_lock:
+            if _store is None:
+                _store = build_store()
+    return _store
+
+
+def set_store(store: AdminStore | None) -> None:
+    """Test and operator seam."""
+    global _store
+    with _store_lock:
+        _store = store
+
+
+# --- the trail -----------------------------------------------------------------------------------
+def record_audit(
+    store: AdminStore,
+    *,
+    action: str,
+    actor_subject: str | None = None,
+    actor: Admin | None = None,
+    session_id: str | None = None,
+    request: Request | None = None,
+    resource_type: str | None = None,
+    resource_id: str | None = None,
+    decision: str = "allowed",
+    status_code: int | None = None,
+    detail: dict[str, Any] | None = None,
+    ip_hash: str | None = None,
+    user_agent: str | None = None,
+) -> None:
+    """Write one row. Raises :class:`StoreUnavailable` — the caller decides, and the guard denies.
+
+    Nothing a learner wrote goes in ``detail``: the console's job is to know that a learner has a
+    problem, not to read their homework, and a trail full of quoted content is a second copy of
+    everything the console was built to touch carefully.
+    """
+    row: dict[str, Any] = {
+        "action": action[:120],
+        "actor_subject": (actor.subject_id if actor else actor_subject) or "",
+        "actor_admin_id": actor.id if actor else None,
+        "actor_email": actor.email if actor else None,
+        "actor_role": actor.role if actor else None,
+        "session_id": session_id,
+        "resource_type": resource_type,
+        "resource_id": resource_id[:200] if resource_id else None,
+        "decision": decision,
+        "detail": detail or {},
+    }
+    if request is not None:
+        row["method"] = request.method
+        row["path"] = request.url.path[:512]
+        row["ip_hash"] = ip_hash if ip_hash is not None else ip_fingerprint(client_ip(request))
+        row["user_agent"] = (
+            user_agent
+            if user_agent is not None
+            else (request.headers.get("user-agent") or "")[:256] or None
+        )
+    if status_code is not None:
+        row["status_code"] = status_code
+    store.insert_audit(row)
+
+
+# --- the login limiter ---------------------------------------------------------------------------
+#
+# The console's own bucket, on top of the app's. Two windows, because they answer two questions:
+# a per-subject window bounds one signed-in account, and a per-address window bounds somebody
+# working through a list of stolen tokens from one machine. Both are fixed-window and per process,
+# like the rest of the gateway's limiters; the note in app.py about Redis applies here too.
+_hits: dict[tuple[str, int], int] = {}
+_hits_lock = threading.Lock()
+
+
+def _over(key: str, ceiling: int) -> bool:
+    window = int(time.time() // 60)
+    bucket = (key, window)
+    with _hits_lock:
+        if len(_hits) > 4096:
+            for stale in [b for b in _hits if b[1] < window]:
+                del _hits[stale]
+        _hits[bucket] = _hits.get(bucket, 0) + 1
+        return _hits[bucket] > ceiling
+
+
+def reset_limiter() -> None:
+    """Test seam."""
+    with _hits_lock:
+        _hits.clear()
+
+
+def _login_ceiling() -> int:
+    return max(1, int(_env("ADMIN_LOGIN_LIMIT_PER_MINUTE", "5")))
+
+
+def _request_ceiling() -> int:
+    return max(1, int(_env("ADMIN_RATE_LIMIT_PER_MINUTE", "60")))
+
+
+def _too_many() -> AdminDenied:
+    """A fresh exception each time — a shared instance accumulates one traceback per raise."""
+    return AdminDenied(
+        "too_many_attempts", "Too many attempts. Wait a minute and try again.", status=429
+    )
+
+
+# --- the guard -----------------------------------------------------------------------------------
+def _principal(request: Request) -> Any:
+    """The verified learner-grade identity the middleware already established. Never a header."""
+    return getattr(request.state, "principal", None)
+
+
+def _claim_aal(principal: Any) -> str:
+    claims = getattr(principal, "claims", None) or {}
+    return str(claims.get("aal") or "")
+
+
+def _refuse_stranger(request: Request, code: str, subject: str | None) -> AdminDenied:
+    """One refusal, one log line, and NO audit row.
+
+    A stranger's failed knock must not be able to write to the audit table — that is a
+    denial-of-service on the trail itself, and the trail is append-only so it cannot be tidied up
+    afterwards. Callers who are actually in the register DO get audited on refusal (that is the
+    interesting case: a suspended admin, an expired session, a missing step-up).
+    """
+    logger.warning(
+        "admin: refused",
+        extra={
+            "fields": {
+                "code": code,
+                "path": request.url.path,
+                "subject_present": bool(subject),
+                "ip": ip_fingerprint(client_ip(request)),
+            }
+        },
+    )
+    return AdminDenied(code, NOT_FOR_YOU)
+
+
+def resolve_context(request: Request) -> AdminContext:
+    """Turn a request into an :class:`AdminContext`, or raise. The whole door, in one function.
+
+    Order matters and is deliberate:
+      1. limiter — before any store call, so a flood costs the database nothing;
+      2. verified principal — set by the app middleware from a signed token, never from a header;
+      3. the REGISTER — a row, active; a learner token alone stops here;
+      4. the second factor — aal2 when this admin requires it;
+      5. the console session — present, ours, live, and belonging to this same admin;
+      6. the audit — written before the endpoint runs, and a failure to write is a refusal.
+    """
+    now = datetime.now(UTC)
+    ip = client_ip(request)
+    ip_hash = ip_fingerprint(ip)
+    principal = _principal(request)
+    subject = getattr(principal, "subject", None)
+    ua = (request.headers.get("user-agent") or "")[:256] or None
+
+    if _over(f"admin:{subject or ip_hash}", _request_ceiling()):
+        raise _too_many()
+
+    if principal is None or not subject or getattr(principal, "anonymous", False):
+        raise _refuse_stranger(request, "no_identity", subject)
+
+    store = get_store()
+    try:
+        admin = store.admin_by_subject(subject)
+    except StoreUnavailable as exc:
+        # The register could not be read, so we do not know who this is. Not knowing is a refusal.
+        logger.error("admin: register unreadable", extra={"fields": {"error": str(exc)}})
+        raise AdminDenied(
+            "register_unavailable",
+            "I could not check your access just now. Nothing has changed.",
+            status=503,
+        ) from exc
+
+    if admin is None:
+        raise _refuse_stranger(request, "not_registered", subject)
+    if not admin.active:
+        raise _refuse_stranger(request, "suspended", subject)
+
+    if mfa_enforced() and admin.mfa_required and _claim_aal(principal) != "aal2":
+        _audit_denial(store, request, admin, "admin.denied.mfa", ip_hash, ua)
+        raise AdminDenied(
+            "mfa_required",
+            "This console needs your second factor. Enrol or enter your code, then sign in again.",
+            status=401,
+        )
+
+    token = session_token(request)
+    if not token:
+        _audit_denial(store, request, admin, "admin.denied.no_session", ip_hash, ua)
+        raise AdminDenied(
+            "admin_session_required", "Open the console again to continue.", status=401
+        )
+
+    try:
+        session = store.session_by_token_hash(hash_token(token))
+    except StoreUnavailable as exc:
+        raise AdminDenied(
+            "register_unavailable",
+            "I could not check your session just now. Nothing has changed.",
+            status=503,
+        ) from exc
+
+    # A session that is not ours, not live, or belongs to a DIFFERENT admin. The last one is the
+    # one worth naming: without it, any admin's leaked session token would work for any other
+    # signed-in admin, which quietly collapses the three levels into one.
+    if session is None or not session.live(now) or session.admin_id != admin.id:
+        _audit_denial(store, request, admin, "admin.denied.session", ip_hash, ua)
+        raise AdminDenied("admin_session_expired", "Your console session has ended.", status=401)
+
+    try:
+        record_audit(
+            store,
+            action="admin.request",
+            actor=admin,
+            session_id=session.id,
+            request=request,
+            ip_hash=ip_hash,
+            user_agent=ua,
+        )
+    except StoreUnavailable as exc:
+        # No audit, no access. A console that can look at children without leaving a mark is
+        # exactly the thing this module exists to prevent, so an unwritable trail closes the door.
+        logger.error("admin: audit unwritable, refusing", extra={"fields": {"error": str(exc)}})
+        raise AdminDenied(
+            "audit_unavailable",
+            "I could not record this, so I did not do it. Try again in a moment.",
+            status=503,
+        ) from exc
+
+    try:
+        store.mark_session_used(session.id, now)
+        store.touch_admin(admin.id, now)
+    except StoreUnavailable:
+        # Bookkeeping, not the door: the request already has its audit row.
+        logger.warning("admin: could not update session bookkeeping")
+
+    return AdminContext(
+        admin=admin, session=session, request=request, ip_hash=ip_hash, user_agent=ua
+    )
+
+
+def _audit_denial(
+    store: AdminStore,
+    request: Request,
+    admin: Admin,
+    action: str,
+    ip_hash: str,
+    user_agent: str | None,
+) -> None:
+    """A refusal of somebody who IS in the register. Worth recording, and the limiter bounds it."""
+    try:
+        record_audit(
+            store,
+            action=action,
+            actor=admin,
+            request=request,
+            decision="denied",
+            ip_hash=ip_hash,
+            user_agent=user_agent,
+        )
+    except StoreUnavailable:
+        logger.error("admin: could not record a denial")
+
+
+def guard(request: Request) -> AdminContext:
+    """The one dependency. Carried by :func:`admin_router`, so no route can be added without it."""
+    try:
+        return resolve_context(request)
+    except AdminDenied as denied:
+        raise denied.http() from denied
+
+
+def requires(permission: str) -> Any:
+    """Dependency factory: this endpoint needs this permission (and a step-up if it writes)."""
+
+    def dependency(ctx: Annotated[AdminContext, Depends(guard)]) -> AdminContext:
+        try:
+            ctx.require(permission)
+        except AdminDenied as denied:
+            ctx.audit(
+                f"admin.denied.{denied.code}", decision="denied", detail={"permission": permission}
+            )
+            raise denied.http() from denied
+        return ctx
+
+    return dependency
+
+
+def admin_router(**kwargs: Any) -> APIRouter:
+    """An admin router is guarded BY CONSTRUCTION, and invisible to the published spec.
+
+    ``dependencies`` is on the router, not on each route, so an endpoint added here tomorrow by
+    somebody who has never read this file is behind the door anyway.
+
+    ``include_in_schema=False`` is the second half of the same rule, and it is a SECURITY setting
+    rather than a tidiness one. ``GET /openapi.json`` is not under ``/v1``, so the app's front
+    door never sees it: off prod it answers 200 to anybody, and every admin path it lists publishes
+    the operator API map — the route names, the methods and the request and response schemas —
+    without a single console module having to leak. FastAPI ANDs a router's flag into every route
+    added to it, so a desk written tomorrow is out of the spec for the same reason it is guarded:
+    where it lives. :func:`assert_admin_surface` refuses to boot if either half is ever undone.
+    """
+    deps = list(kwargs.pop("dependencies", []) or [])
+    kwargs.setdefault("include_in_schema", False)
+    return APIRouter(prefix=ADMIN_PREFIX, dependencies=[Depends(guard), *deps], **kwargs)
+
+
+def route_dependencies(route: Any) -> list[Any]:
+    """Every callable in a route's dependency tree, flattened. Used by the guard test."""
+    found: list[Any] = []
+    dependant = getattr(route, "dependant", None)
+    if dependant is None:
+        return found
+    stack = [dependant]
+    while stack:
+        node = stack.pop()
+        call = getattr(node, "call", None)
+        if call is not None:
+            found.append(call)
+        stack.extend(getattr(node, "dependencies", []) or [])
+    return found
+
+
+def iter_api_routes(app: FastAPI) -> list[tuple[str, Any, list[Any]]]:
+    """Every reachable route in a built app, as ``(path, route, dependencies added on the way)``.
+
+    ``app.routes`` is not a flat list. FastAPI wraps an included router in a holder object rather
+    than copying its routes up, and a mounted sub-application is a third shape again — so a check
+    that only reads ``app.routes`` sees the admin router as ONE opaque entry and happily reports
+    that nothing is unguarded. Walking the tree is what makes the guard test mean anything.
+    """
+    found: list[tuple[str, Any, list[Any]]] = []
+    stack: list[tuple[Any, str, tuple[Any, ...]]] = [(app.router, "", ())]
+    seen: set[int] = set()
+    while stack:
+        node, prefix, inherited = stack.pop()
+        if id(node) in seen:
+            continue
+        seen.add(id(node))
+        for route in getattr(node, "routes", []) or []:
+            context = getattr(route, "include_context", None)
+            if context is not None:  # an included router: unwrap it, keep its added prefix and deps
+                sub = getattr(context, "included_router", None) or getattr(
+                    route, "original_router", None
+                )
+                added = tuple(getattr(context, "dependencies", []) or [])
+                stack.append(
+                    (sub, prefix + (getattr(context, "prefix", "") or ""), inherited + added)
+                )
+                continue
+            path = getattr(route, "path", None)
+            if path is None:
+                continue
+            if getattr(route, "routes", None) and not isinstance(route, APIRoute):
+                stack.append((route, prefix + path, inherited))  # a Mount
+                continue
+            found.append((prefix + path, route, list(inherited)))
+    return found
+
+
+def unguarded_admin_routes(app: FastAPI) -> list[str]:
+    """Admin endpoints NOT behind :func:`guard`, as ``"METHOD /path"``. Only the login belongs here.
+
+    Method by method rather than path by path, because ``/v1/admin/session`` is deliberately two
+    different things: ``POST`` is the login and cannot require the session it issues, while ``GET``
+    and ``DELETE`` on the same path are ordinary guarded endpoints. A path-level check would let
+    the second and third hide behind the first.
+    """
+    loose: list[str] = []
+    for path, route, inherited in iter_api_routes(app):
+        if not path.startswith(ADMIN_PREFIX):
+            continue
+        methods = sorted(getattr(route, "methods", None) or {"?"})
+        if not isinstance(route, APIRoute):
+            loose.extend(f"{m} {path}" for m in methods)
+            continue
+        # A guard applied at include time counts too — what matters is that the check runs, not
+        # which of the two places it was declared in.
+        include_time = [getattr(d, "dependency", None) for d in inherited]
+        if guard not in route_dependencies(route) and guard not in include_time:
+            loose.extend(f"{m} {path}" for m in methods if m != "HEAD")
+    return sorted(set(loose))
+
+
+def schema_visible_admin_routes(app: FastAPI) -> list[str]:
+    """Admin endpoints that would appear in ``/openapi.json``, as ``"METHOD /path"``.
+
+    The published spec is not under ``/v1``, so the app's front door never sees a request for it
+    and off prod it answers 200 to anybody. An admin path listed there hands a stranger the
+    operator API map — every route, every method, every request and response schema — which is the
+    same disclosure the console bundle is kept separate to prevent, for the price of one curl.
+    """
+    seen: list[str] = []
+    for path, route, _ in iter_api_routes(app):
+        if not path.startswith(ADMIN_PREFIX):
+            continue
+        if not getattr(route, "include_in_schema", False):
+            continue
+        methods = sorted(getattr(route, "methods", None) or {"?"})
+        seen.extend(f"{m} {path}" for m in methods if m != "HEAD")
+    return sorted(set(seen))
+
+
+#: The one admin endpoint that cannot be behind the console-session guard: the login is what
+#: ISSUES that session. It carries its own register check, its own second-factor check and its own
+#: strict limiter. Adding to this tuple is a security decision, not a formality.
+UNGUARDED_BY_DESIGN: tuple[str, ...] = (f"POST {ADMIN_PREFIX}/session",)
+
+
+def assert_admin_surface(app: FastAPI) -> None:
+    """Refuse to boot with an admin route that is unguarded or published. Called by ``create_app``.
+
+    ``test_admin_guard.py`` already walks the built app and fails on either fault, and a test is a
+    thing somebody can skip, mark xfail or never run on the box that deploys. This is the same two
+    checks at start-up, where the consequence is a gateway that will not serve rather than a
+    console that quietly serves the wrong person. It costs one walk of the route tree, once.
+    """
+    loose = [r for r in unguarded_admin_routes(app) if r not in UNGUARDED_BY_DESIGN]
+    if loose:
+        raise RuntimeError(
+            "admin routes mounted without the console guard: "
+            + ", ".join(loose)
+            + ". Hang them off admin_auth.admin_router(), which carries the guard, rather than on "
+            "the app directly."
+        )
+    published = schema_visible_admin_routes(app)
+    if published:
+        raise RuntimeError(
+            "admin routes would be published in /openapi.json: "
+            + ", ".join(published)
+            + ". The operator API map is not a public document; mount them on "
+            "admin_auth.admin_router(), which sets include_in_schema=False."
+        )
+
+
+# --- opening and closing a session ---------------------------------------------------------------
+@dataclass(frozen=True)
+class OpenedSession:
+    token: str
+    session: AdminSession
+    admin: Admin
+
+
+def open_session(request: Request) -> OpenedSession:
+    """The login. The FACTOR is already proved by the Supabase token; this is the REGISTER check.
+
+    Nothing here mints a credential for somebody who was not already signed in to the product: a
+    console session is only ever issued to a verified subject that has a row in ``ops.admins``.
+    """
+    now = datetime.now(UTC)
+    ip = client_ip(request)
+    ip_hash = ip_fingerprint(ip)
+    ua = (request.headers.get("user-agent") or "")[:256] or None
+    principal = _principal(request)
+    subject = getattr(principal, "subject", None)
+
+    # The login path gets the strict bucket, keyed BOTH ways: by the account being used and by
+    # the machine using it. One stolen token cannot be retried all day, and one machine cannot
+    # work through a list of them.
+    if _over(f"login-sub:{subject or 'anon'}", _login_ceiling()) or _over(
+        f"login-ip:{ip_hash}", _login_ceiling()
+    ):
+        raise _too_many()
+
+    if principal is None or not subject or getattr(principal, "anonymous", False):
+        raise _refuse_stranger(request, "no_identity", subject)
+
+    store = get_store()
+    try:
+        admin = store.admin_by_subject(subject)
+    except StoreUnavailable as exc:
+        raise AdminDenied(
+            "register_unavailable", "I could not check your access just now.", status=503
+        ) from exc
+
+    if admin is None or not admin.active:
+        raise _refuse_stranger(request, "not_registered", subject)
+
+    aal = _claim_aal(principal)
+    if mfa_enforced() and admin.mfa_required and aal != "aal2":
+        _audit_denial(store, request, admin, "admin.session.denied.mfa", ip_hash, ua)
+        raise AdminDenied(
+            "mfa_required",
+            "This console needs your second factor. Enrol it in your account, then sign in again.",
+            status=401,
+        )
+
+    token = secrets.token_urlsafe(32)
+    expires = now + timedelta(seconds=session_ttl_s())
+    # The sign-in itself counts as the first step-up: the token that opened this session was
+    # minted moments ago and (in prod) carried aal2. Writes stay available for the reauth window
+    # and then need proving again.
+    try:
+        session = store.create_session(
+            admin_id=admin.id,
+            token_hash=hash_token(token),
+            expires_at=expires,
+            reauth_at=now,
+            ip_hash=ip_hash,
+            user_agent=ua,
+        )
+        record_audit(
+            store,
+            action="admin.session.open",
+            actor=admin,
+            session_id=session.id,
+            request=request,
+            ip_hash=ip_hash,
+            user_agent=ua,
+            detail={"aal": aal or "unknown", "ttl_s": session_ttl_s()},
+        )
+    except StoreUnavailable as exc:
+        raise AdminDenied(
+            "audit_unavailable", "I could not open the console just now.", status=503
+        ) from exc
+    return OpenedSession(token=token, session=session, admin=admin)
+
+
+def _token_issued_at(principal: Any) -> datetime | None:
+    claims = getattr(principal, "claims", None) or {}
+    issued = claims.get("iat")
+    if not isinstance(issued, int | float):
+        return None
+    return datetime.fromtimestamp(float(issued), tz=UTC)
+
+
+def step_up(ctx: AdminContext) -> AdminSession:
+    """Prove it is still you, before changing a learner's data or their money.
+
+    What is checked, and what that is worth: the access token on THIS request must carry ``aal2``
+    (Supabase writes that only after a TOTP factor has been verified) and must have been minted
+    inside :func:`reauth_token_max_age_s`. The console gets such a token by running
+    ``supabase.auth.mfa.challengeAndVerify()`` immediately before calling here, so a stale tab
+    cannot satisfy it and neither can the token the session was opened with an hour ago.
+    """
+    now = datetime.now(UTC)
+    principal = _principal(ctx.request)
+    store = get_store()
+    if mfa_enforced() and ctx.admin.mfa_required and _claim_aal(principal) != "aal2":
+        ctx.audit("admin.reauth.denied", decision="denied", detail={"reason": "aal"})
+        raise AdminDenied("mfa_required", "Enter the code from your authenticator.", status=401)
+    issued = _token_issued_at(principal)
+    if issued is None or (now - issued).total_seconds() > reauth_token_max_age_s():
+        ctx.audit("admin.reauth.denied", decision="denied", detail={"reason": "stale_token"})
+        raise AdminDenied(
+            "reauth_required",
+            "Confirm it is you again — that sign-in is too old to authorise a change.",
+            status=401,
+        )
+    try:
+        session = store.mark_reauth(ctx.session.id, now)
+    except StoreUnavailable as exc:
+        raise AdminDenied("register_unavailable", "Nothing has changed.", status=503) from exc
+    if session is None:
+        raise AdminDenied("admin_session_expired", "Your console session has ended.", status=401)
+    ctx.audit("admin.reauth", detail={"window_s": reauth_window_s()})
+    return session
+
+
+# --- the routes this module owns -----------------------------------------------------------------
+_ROLE_WORDS = {
+    VIEWER: (
+        "You can see the console's figures and queues, change nothing, and identify nobody."
+    ),
+    OPERATOR: "You can see everything, and act on a learner's case, plan or flag.",
+    OWNER: "You can see everything, act, and change who else has access.",
+}
+
+
+def _identity_view(admin: Admin) -> dict[str, Any]:
+    """The corner of the console's shell: an id, a name, and what this seat may see.
+
+    THE ADDRESS IS NOT IN IT. A console shell needs a word to greet somebody by, not a mailbox, so
+    only the local part goes out — "show the least that does the job". The full address stays in
+    the register and in the audit trail, where a real investigation can reach it.
+    """
+    display = admin.email.split("@", 1)[0] if "@" in admin.email else admin.email
+    return {
+        "id": admin.id,
+        "display": display,
+        "scopes": sorted(permissions_for(admin.role)),
+    }
+
+
+def _admin_view(admin: Admin) -> dict[str, Any]:
+    return {
+        "id": admin.id,
+        "email": admin.email,
+        "role": admin.role,
+        "status": admin.status,
+        "mfa_required": admin.mfa_required,
+        "permissions": sorted(permissions_for(admin.role)),
+    }
+
+
+#: The guarded caller, as an annotation rather than a default value. ``Annotated`` is the point:
+#: ``ctx: Guarded`` puts a function CALL in a default argument, which is
+#: evaluated once at import and is a genuine footgun everywhere except FastAPI. This spelling says
+#: the same thing to FastAPI and nothing surprising to a reader.
+Guarded = Annotated[AdminContext, Depends(guard)]
+CanRead = Annotated[AdminContext, Depends(requires(CONSOLE_READ))]
+CanManage = Annotated[AdminContext, Depends(requires(ADMIN_MANAGE))]
+
+
+def register_admin(app: FastAPI) -> None:
+    """Mount the console's door. Every route below is guarded by the router that carries them."""
+
+    # The login is the ONE admin path that cannot be behind the console-session guard, because it
+    # is what issues the session. It is not on the admin router for that reason, and it carries its
+    # own register check, its own MFA check and its own strict limiter (open_session). It is also
+    # the reason `unguarded_admin_routes` is a test rather than a comment: this is the exception,
+    # and the test proves it is the ONLY one.
+    # ``include_in_schema=False`` for the same reason the router carries it: the login is the
+    # one admin path mounted straight on the app, so it is the one that would otherwise still
+    # appear in ``/openapi.json`` and name the door.
+    @app.post(f"{ADMIN_PREFIX}/session", tags=["admin"], include_in_schema=False)
+    def open_console_session(request: Request, response: Response) -> dict[str, Any]:
+        """Exchange a verified, second-factored product sign-in for a short console session."""
+        try:
+            opened = open_session(request)
+        except AdminDenied as denied:
+            raise denied.http() from denied
+        # Set on the cookie AND returned in the body: see SESSION_COOKIE for why both, and why
+        # neither is a CSRF exposure. The cookie is HttpOnly (a script in the page cannot read it),
+        # Secure off dev, SameSite=Strict, and scoped to the admin prefix so it is never attached
+        # to a learner route.
+        response.set_cookie(
+            SESSION_COOKIE,
+            opened.token,
+            max_age=session_ttl_s(),
+            httponly=True,
+            secure=is_prod(),
+            samesite="strict",
+            path=ADMIN_PREFIX,
+        )
+        return {
+            # Shown to the client exactly once; only its digest is stored. A console that can take
+            # the header path should keep this in memory, never in localStorage, so a script
+            # injected into any other tab has nothing to read.
+            "session_token": opened.token,
+            "expires_at": _iso(opened.session.expires_at),
+            "admin": _admin_view(opened.admin),
+            "identity": _identity_view(opened.admin),
+            "line": _ROLE_WORDS.get(opened.admin.role, ""),
+        }
+
+    router = admin_router(tags=["admin"])
+
+    def _who(ctx: AdminContext) -> dict[str, Any]:
+        now = datetime.now(UTC)
+        return {
+            "admin": _admin_view(ctx.admin),
+            "identity": _identity_view(ctx.admin),
+            "session": {
+                "expires_at": _iso(ctx.session.expires_at),
+                "stepped_up": ctx.session.stepped_up(now, reauth_window_s()),
+                "reauth_at": _iso(ctx.session.reauth_at),
+            },
+            "line": _ROLE_WORDS.get(ctx.admin.role, ""),
+        }
+
+    @router.get("/session")
+    def read_console_session(ctx: Guarded) -> dict[str, Any]:
+        """Who the SERVER says is looking. The console believes this and nothing it holds itself."""
+        return _who(ctx)
+
+    @router.delete("/session")
+    def close_console_session(
+        response: Response, ctx: Guarded
+    ) -> dict[str, Any]:
+        """Close the console. The row is revoked, so the token is dead on the next request."""
+        ctx.audit("admin.session.end")
+        try:
+            get_store().revoke_session(ctx.session.id, datetime.now(UTC), "signed out")
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "I could not close that just now.", status=503
+            ).http() from exc
+        response.delete_cookie(SESSION_COOKIE, path=ADMIN_PREFIX)
+        return {"ended": True}
+
+    @router.get("/whoami")
+    def whoami(ctx: Guarded) -> dict[str, Any]:
+        """Alias of ``GET /session``, kept because it is the name an operator reaches for."""
+        return _who(ctx)
+
+    @router.post("/session/reauth")
+    def reauth(ctx: Guarded) -> dict[str, Any]:
+        """Step up. Send this with a token minted by a fresh authenticator challenge."""
+        try:
+            session = step_up(ctx)
+        except AdminDenied as denied:
+            raise denied.http() from denied
+        return {
+            "stepped_up": True,
+            "reauth_at": _iso(session.reauth_at),
+            "window_s": reauth_window_s(),
+        }
+
+    @router.get("/audit")
+    def read_audit(
+        request: Request,
+        ctx: CanRead,
+        limit: int = 100,
+    ) -> dict[str, Any]:
+        """The trail, newest first. No admin can change it, and only an owner reads all of it.
+
+        Reading the trail is itself audited — including reading your own, which is the point:
+        there is no view of this console that leaves no mark.
+
+        WHO SEES WHOSE ROWS. A row names the actor's full address, their subject id, their session,
+        their address fingerprint and every path they opened. Read across everybody, that is a
+        complete surveillance record of the owner's working day handed to the lowest seat in the
+        register — while ``_identity_view`` two hundred lines up goes to deliberate trouble to
+        strip the domain off an admin's own address, on the grounds that a shell needs a word to
+        greet somebody by and not a mailbox. Both cannot be the rule. So:
+
+        * ``admin.manage`` (owner) reads the whole trail, and may filter it by actor. Somebody has
+          to be able to answer "who looked at this child's record", and that somebody is the person
+          who can also revoke the seat that did it.
+        * every other seat reads THEIR OWN rows, whatever they ask for. That is the transparency
+          half of the original rule — you can always see what was written down about you — with the
+          surveillance half removed.
+
+        ``scope`` says which of the two happened, so the console never presents a filtered trail as
+        if it were the whole one.
+        """
+        asked = (request.query_params.get("actor") or "").strip() or None
+        may_read_all = ctx.admin.may(ADMIN_MANAGE)
+        actor = asked if may_read_all else ctx.admin.subject_id
+        if actor and not _UUID_RE.match(actor):
+            # A typo is not an outage. 400 here, and the operator is told which of the two it is.
+            raise AdminDenied(
+                "not_an_id",
+                "That is not an account id, so there is nothing to filter the trail by.",
+                status=400,
+            ).http()
+        ctx.audit(
+            "admin.audit.read",
+            detail={
+                "limit": limit,
+                "filtered": bool(actor),
+                "scope": "all" if may_read_all and not actor else ("actor" if actor else "all"),
+            },
+        )
+        try:
+            rows = get_store().list_audit(limit=max(1, min(limit, 500)), actor_subject=actor)
+        except BadIdentifier as exc:
+            raise AdminDenied(
+                "not_an_id",
+                "That is not an account id, so there is nothing to filter the trail by.",
+                status=400,
+            ).http() from exc
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "I could not read the trail just now.", status=503
+            ).http() from exc
+        return {
+            "rows": rows,
+            "count": len(rows),
+            "append_only": True,
+            # "everybody's" or "only yours". The console prints this beside the table: a trail that
+            # is one person's, shown as though it were the whole register's, is its own small lie.
+            "scope": "everyone" if may_read_all else "self",
+            "actor": actor,
+        }
+
+    @router.get("/admins")
+    def list_admins(ctx: CanManage) -> dict[str, Any]:
+        """Who has access. Owner only: a viewer does not need the list of people to target."""
+        ctx.audit("admin.register.read")
+        try:
+            rows = get_store().list_admins()
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "I could not read the register just now.", status=503
+            ).http() from exc
+        return {"admins": [_admin_view(a) for a in rows], "roles": list(ROLES)}
+
+    @router.post("/admins")
+    def grant_admin(
+        body: dict[str, Any], ctx: CanManage
+    ) -> dict[str, Any]:
+        """Add somebody, or change their level. Owner only, stepped up, and always audited."""
+        subject = str(body.get("subject_id") or "").strip()
+        email = str(body.get("email") or "").strip()
+        role = str(body.get("role") or VIEWER).strip()
+        if role not in ROLES or not _UUID_RE.match(subject) or "@" not in email:
+            raise AdminDenied(
+                "not_a_grant",
+                "I need the person's account id, their address, and one of: "
+                + ", ".join(ROLES)
+                + ".",
+                status=400,
+            ).http()
+        try:
+            admin = get_store().upsert_admin(
+                subject_id=subject,
+                email=email,
+                role=role,
+                granted_by=ctx.admin.id,
+                # Never granted without a second factor. The new admin's first sign-in will be
+                # refused until they enrol one, which is the correct order.
+                mfa_required=True,
+            )
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "Nothing has changed.", status=503
+            ).http() from exc
+        ctx.audit(
+            "admin.grant",
+            resource_type="admin",
+            resource_id=admin.id,
+            detail={"role": role},
+        )
+        return {"admin": _admin_view(admin), "granted": True}
+
+    @router.post("/admins/{admin_id}/suspend")
+    def suspend_admin(
+        admin_id: str, ctx: CanManage
+    ) -> dict[str, Any]:
+        """Take access away. The row stays, suspended, so their trail keeps a name beside it."""
+        if admin_id == ctx.admin.id:
+            # Not a safety rail for its own sake: an owner who suspends themselves locks the last
+            # door in the building, and there is no way back in except a hand-run SQL statement.
+            raise AdminDenied(
+                "not_yourself",
+                "You cannot suspend your own access. Ask another owner to do it.",
+                status=400,
+            ).http()
+        try:
+            admin = get_store().set_admin_status(admin_id, "suspended")
+        except BadIdentifier as exc:
+            # "That is not an id" and "the register is unreachable" are different facts, and an
+            # owner mid-incident needs to know which one they are looking at.
+            raise AdminDenied(
+                "not_an_id", "That is not an admin id, so nothing was changed.", status=400
+            ).http() from exc
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "Nothing has changed.", status=503
+            ).http() from exc
+        if admin is None:
+            raise AdminDenied(
+                "no_such_admin", "There is no such person in the register.", status=404
+            ).http()
+        ctx.audit("admin.suspend", resource_type="admin", resource_id=admin.id)
+        return {"admin": _admin_view(admin), "suspended": True}
+
+    app.include_router(router)
+
+
+__all__ = [
+    "ADMIN_MANAGE",
+    "ADMIN_PREFIX",
+    "BadIdentifier",
+    "CONSOLE_READ",
+    "LEARNER_ACT",
+    "LEARNER_READ",
+    "OPERATOR",
+    "OWNER",
+    "PERMISSIONS",
+    "ROLES",
+    "SESSION_COOKIE",
+    "SESSION_HEADER",
+    "SUPPORT_ACT",
+    "VIEWER",
+    "WRITE_PERMISSIONS",
+    "Admin",
+    "AdminContext",
+    "AdminDenied",
+    "AdminSession",
+    "AdminStore",
+    "InMemoryAdminStore",
+    "PostgrestAdminStore",
+    "StoreUnavailable",
+    "UnconfiguredAdminStore",
+    "admin_router",
+    "build_store",
+    "get_store",
+    "guard",
+    "iter_api_routes",
+    "hash_token",
+    "mfa_enforced",
+    "open_session",
+    "permissions_for",
+    "reauth_window_s",
+    "record_audit",
+    "register_admin",
+    "requires",
+    "reset_limiter",
+    "resolve_context",
+    "session_token",
+    "session_ttl_s",
+    "set_store",
+    "step_up",
+    "unguarded_admin_routes",
+    "validate_admin_env",
+]

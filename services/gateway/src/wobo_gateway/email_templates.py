@@ -592,12 +592,23 @@ def parent_report(data: dict[str, Any]) -> dict[str, str]:
           f'<span style="color:{ULTRA};font-weight:700;">trajectory &nbsp;</span>{trajectory}'
           "</div>"
     )
+    # THE LINK THAT WENT NOWHERE. This used to close with "see the full picture" pointing at
+    # ``/parent``, and ``ParentView`` renders from ``loadProfile()`` and ``useProgress()`` — both
+    # localStorage on the VIEWER's own device. A parent opening it on their own phone reached a
+    # page that drew their own empty storage: the product emailed a parent a link to a blank page
+    # about their child. Until a parent has a session of their own and a server-backed read (a
+    # product AND legal decision, not a template's), THIS EMAIL IS THE REPORT. It carries the
+    # week itself, and the only route to a person is the one that actually answers.
+    body += _p(
+        "this note is the whole report for now. a parent does not have a login yet, so there is "
+        f"no fuller view to open. reply to this, or write to {REPLY_TO}, and a person answers."
+    )
     html_out = _shell(
         preheader=f"{data.get('learner_name', 'your child')}'s week, in one calm view.",
         heading=f"{learner}'s week",
         body=body,
-        cta_label="see the full picture",
-        cta_url=_link(data, "cta_url", "/parent"),
+        cta_label="write to us",
+        cta_url=_link(data, "cta_url", "/contact"),
         unsubscribe_url=_unsubscribe(data),
         postal_address=_postal(data),
     )
@@ -606,7 +617,8 @@ def parent_report(data: dict[str, Any]) -> dict[str, str]:
         + "".join(f"- {lbl}: {val} ({pct}%)\n" for lbl, val, pct in strengths)
         + "\nworth a nudge: " + ", ".join(focus) + "\n\n"
         f"trajectory: {data.get('trajectory', '')}\n\n"
-        f"see the full picture: {_link(data, 'cta_url', '/parent')}\n\n"
+        "this note is the whole report for now: a parent does not have a login yet. "
+        f"reply to this, or write to {REPLY_TO}, and a person answers.\n\n"
         "— Wobo"
     )
     return {"subject": f"{data.get('learner_name', 'your child')}'s week at Wobo",
@@ -952,14 +964,14 @@ def welcome(data: dict[str, Any]) -> dict[str, Any]:
             if isinstance(chapter, str) and chapter.strip():
                 setup = setup[:-1] + f": {chapter.strip()}."
         setup += (
-            " Ask me anything from it, any time. I draw it, film it, build it to drag, or say it —"
-            " whichever the idea needs — then set the practice after."
+            " Ask me anything from it, any time. I draw it, film it, build it to drag, or say it,"
+            " whichever the idea needs, then set the practice after."
         )
     else:
         setup = (
             "Tell me what you are studying and I will load your syllabus. "
             "Then ask me anything from it, any time. I draw it, film it, build it to drag, or say "
-            "it — whichever the idea needs — then set the practice after."
+            "it, whichever the idea needs, then set the practice after."
         )
     # The copy law forbids a count of questions a day, in digits or in words: the allowance is
     # described by how it feels, never measured. Free carries no multiplier at all.
@@ -993,7 +1005,7 @@ def welcome(data: dict[str, Any]) -> dict[str, Any]:
     )
     rows += (
         '<tr><td style="padding:26px 32px 0">'
-        f'<div style="font:700 24px/1.15 {_HAND};letter-spacing:-.5px">Three things to try tonight</div>'
+        f'<div style="font:700 24px/1.15 {_HAND};letter-spacing:-.5px">Three things to try first</div>'
         f'<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-top:14px">{things}</table>'
         "</td></tr>"
     )
@@ -1026,7 +1038,7 @@ def welcome(data: dict[str, Any]) -> dict[str, Any]:
             "",
             setup,
             "",
-            "Three things to try tonight",
+            "Three things to try first",
             *(f"{i}. {title} {line}" for i, (title, line) in enumerate(_WELCOME_THINGS, start=1)),
             "",
             f"Ask your first question: {cta}",

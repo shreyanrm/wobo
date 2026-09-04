@@ -75,7 +75,7 @@ header .cta{display:flex;gap:8px}
 @media (prefers-reduced-motion:reduce){.shield .draw{animation:none;stroke-dashoffset:0}.shield .fill,.shield .eyes,.shield .hw{animation:none;opacity:1}.shield .blink{animation:none}}
 
 /* sections */
-section{padding:clamp(56px,7vw,92px) 0}
+section{padding:calc(var(--band) / 2) 0}
 section.tight{padding:var(--s4) 0}
 .head{display:grid;gap:var(--s2);max-width:64ch;margin-bottom:var(--s4)}
 .head h2{font:700 clamp(28px,3.4vw,42px)/1.08 var(--sans)}
@@ -289,7 +289,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
       <div><i>2</i><div><b>Why</b><span>To teach the right chapter, remember where a lesson stopped, and write the Sunday note.</span></div></div>
       <div><i>3</i><div><b>Where it lives</b><span>Encrypted, in a managed database in a named region, behind row-level access rules.</span></div></div>
       <div><i>4</i><div><b>Who sees it</b><span>The learner, a linked parent, and nobody at Wobo without a logged reason.</span></div></div>
-      <div><i>5</i><div><b>How to delete it</b><span>You, in Settings, any time. Gone from live systems at once and from backups within 30 days.</span></div></div>
+      <div><i>5</i><div><b>How to delete it</b><span>You, in Settings, any time. Gone from live systems at once, and out of the backups behind them as those roll over.</span></div></div>
     </div>
   </div>
 </div></section>
@@ -311,7 +311,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
   <div class="grid3 reveal">
     <div class="tile pig"><svg viewBox="0 0 44 44"><rect x="8" y="19" width="28" height="19" rx="5"/><path d="M14 19 v-5 a8 8 0 0 1 16 0 v5"/></svg><h3>Encrypted on the way</h3><p>Every connection uses TLS 1.2 or newer.</p><span class="gloss">In plain words: nobody on the same Wi-Fi can read it.</span></div>
     <div class="tile mint"><svg viewBox="0 0 44 44"><ellipse cx="22" cy="12" rx="13" ry="5"/><path d="M9 12 v20 c0 3 6 5 13 5 s13 -2 13 -5 v-20 M9 22 c0 3 6 5 13 5 s13 -2 13 -5"/></svg><h3>Encrypted where it sits</h3><p>The database and its backups are encrypted at rest, keys managed by the hosting provider and rotated.</p><span class="gloss">In plain words: a stolen disk is unreadable.</span></div>
-    <div class="tile marigold"><svg viewBox="0 0 44 44"><circle cx="22" cy="16" r="7"/><path d="M8 38 c2 -9 26 -9 28 0"/><path d="M30 8 l6 6" /></svg><h3>Only your own rows</h3><p>Access rules live inside the database itself, so a learner can read their rows and nobody else's, even if our app made a mistake.</p><span class="gloss">In plain words: the lock is on the drawer, not just the door.</span></div>
+    <div class="tile marigold"><svg viewBox="0 0 44 44"><circle cx="22" cy="16" r="7"/><path d="M8 38 c2 -9 26 -9 28 0"/><path d="M30 8 l6 6" /></svg><h3>Only your own rows</h3><p>Access rules live inside the database itself, so a row is scoped to the learner it belongs to rather than to whoever asks for it.</p><span class="gloss">In plain words: the lock is on the drawer, not just the door.</span></div>
     <div class="tile"><svg viewBox="0 0 44 44"><path d="M8 34 h28 M12 34 v-12 M20 34 v-18 M28 34 v-8 M36 34 v-22"/></svg><h3>Least privilege</h3><p>Staff have no standing access to learner data. A break-glass path exists for support, and every use of it is written to a log the founder reviews.</p></div>
     <div class="tile"><svg viewBox="0 0 44 44"><path d="M22 6 a16 16 0 1 1 -11 4"/><path d="M8 6 v8 h8"/></svg><h3>Backups that restore</h3><p>Daily backups, kept for 30 days, and a restore we actually rehearse.</p></div>
         <div class="tile"><svg viewBox="0 0 44 44"><path d="M10 30 l8 -8 l6 6 l12 -14"/><path d="M28 14 h8 v8"/></svg><h3>Built carefully</h3><p>Every change is reviewed and gated by automated checks. Dependencies are scanned. Secrets never live in the code.</p></div>
@@ -330,7 +330,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 </div></section>
 
 <section><div class="wrap">
-  <div class="head reveal"><span class="label">Children first</span><h2>Built for a ten-year-old at 9 pm, so the rules are stricter than the law asks.</h2></div>
+  <div class="head reveal"><span class="label">Children first</span><h2>Built for a child on their own, so the rules are stricter than the law asks.</h2></div>
   <div class="children reveal">
     <div class="card"><div class="hand">A parent can see everything. A stranger can see nothing. <span style="color:var(--rose)">Wobo has no opinions about anything but the chapter.</span></div><p style="color:var(--ink-2)">Neutral by design: no politics, no religion, no ads, no nudges to buy. When a question strays outside school, Wobo says so kindly and comes back to the lesson.</p></div>
     <ul>
@@ -346,8 +346,8 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
   <div class="head reveal"><span class="label">Who can see what</span><h2>Four kinds of people, one honest table.</h2></div>
   <div class="who reveal">
     <div class="r h"><div>Data</div><div>Learner</div><div>Linked parent</div><div>Wobo staff</div></div>
-    <div class="r"><div>Lessons and progress</div><div><span class="y"><i></i>yes</span></div><div><span class="y"><i></i>yes</span></div><div><span class="l"><i></i>break-glass, logged</span></div></div>
-    <div class="r"><div>Typed questions, word for word</div><div><span class="y"><i></i>yes</span></div><div><span class="l"><i></i>if the learner allows</span></div><div><span class="l"><i></i>break-glass, logged</span></div></div>
+    <div class="r"><div>Lessons and progress</div><div><span class="y"><i></i>yes</span></div><div><span class="y"><i></i>yes</span></div><div><span class="l"><i></i>with production access</span></div></div>
+    <div class="r"><div>Typed questions, word for word</div><div><span class="y"><i></i>yes</span></div><div><span class="l"><i></i>if the learner allows</span></div><div><span class="l"><i></i>with production access</span></div></div>
     <div class="r"><div>Voice</div><div><span class="n"><i></i> not stored</span></div><div><span class="n"><i></i></span></div><div><span class="n"><i></i></span></div></div>
     <div class="r"><div>The Sunday note</div><div><span class="y"><i></i>yes</span></div><div><span class="y"><i></i>yes</span></div><div><span class="n"><i></i></span></div></div>
     <div class="r"><div>Email and payment status</div><div><span class="y"><i></i>yes</span></div><div><span class="y"><i></i>yes</span></div><div><span class="l"><i></i>support, logged</span></div></div>
@@ -377,7 +377,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
     <div class="col next"><h3>How it is protected</h3><ul>
       <li><i></i><b>AES-256 at rest.</b> The database and every backup are encrypted with 256-bit keys managed by the hosting provider and rotated.</li>
       <li><i></i><b>TLS 1.2 or newer in transit.</b> Every connection between a device, Wobo and anything behind it.</li>
-      <li><i></i><b>Access rules inside the database.</b> A learner's rows are readable only by that learner, enforced by the database and not only by our code.</li>
+      <li><i></i><b>Access rules inside the database.</b> A row is scoped to the learner it belongs to by the database itself, not only by the app that asks for it.</li>
       <li><i></i><b>Least privilege for people.</b> No standing access to a learner's data. Support access is a deliberate act and it is logged.</li>
       <li><i></i><b>Reviewed and gated.</b> Every change is reviewed, dependencies are scanned, and secrets never live in the code.</li>
     </ul><p class="honest">Where a claim needs an outside auditor to be worth anything, we would rather show you the control than print a badge we have not earned.</p></div>
@@ -428,7 +428,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 </div></section>
 
 <div class="close"><div class="wrap">
-  <h2>Confident? Start this evening.</h2>
+  <h2>Confident? Start whenever you like.</h2>
   <span class="hand">Free to use every day, not just the first.</span>
   <div class="row"><a class="btn" href="#">Start learning for free</a><a class="btn q" href="#">I'm a parent</a></div>
 </div></div>

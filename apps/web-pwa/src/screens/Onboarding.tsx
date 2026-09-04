@@ -764,8 +764,8 @@ export function Onboarding() {
               .
             </h1>
             <p className="ob-sub">
-              Enough questions for a normal evening, every day, for free. Hold space to talk to me,
-              or just type. I'll be here at 10 pm and at 6 am.
+              Enough questions for a normal day, every day, for free. Hold space to talk to me,
+              or just type. I'll be here whenever you want me.
             </p>
             <div className="ob-allow">
               <b>Today's allowance</b>

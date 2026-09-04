@@ -581,20 +581,33 @@ export const SAFE = {
       href: '/legal/childrens-privacy',
     },
     {
-      title: 'Encrypted, and locked at the row',
-      body: 'Everything travels over TLS and sits encrypted at rest, and the database carries its own per-learner access rules underneath the app, so a row is scoped to the learner it belongs to rather than to whoever asks for it.',
+      title: 'Locked at the row',
+      // "sits encrypted at rest" was here. Nothing in this repository evidences the cipher or the
+      // key management, and `docs/legal/privacy-policy.md` section 10 — live on this same site —
+      // says in as many words that we have not read the project's settings and make no claim of
+      // our own about them. The row-level rule IS ours and IS in the migrations, so that is what
+      // the card claims, and the transport claim stays because TLS is ours to state.
+      body: 'Everything travels over TLS, and the database carries its own per-learner access rules underneath the app, so a row is scoped to the learner it belongs to rather than to whoever asks for it.',
       proof: 'How it is protected →',
       href: '/security',
     },
     {
-      title: 'Erase everything, in one tap',
-      body: 'Memory, progress, account. Gone from live systems at once, and out of the backups behind them as those roll over, for the learner or a linked parent.',
+      title: 'Erase the learning, in one tap',
+      // "Memory, progress, account" — the account is not among them. POST /v1/me/erase clears
+      // memory, the twin summary, threads, boards, mail preferences and parent links; nothing in
+      // the gateway, the SDK or the app calls the auth admin API, so no code deletes an account.
+      body: 'Memory, saved boards and threads, and the parent link. Gone from live systems at once, and out of the backups behind them as those roll over. Deleting the account itself is done by a person when you ask.',
       proof: 'The erase button →',
       href: '/legal/privacy-policy',
     },
     {
-      title: 'Built to the law wherever you are',
-      body: "India's Digital Personal Data Protection Act, COPPA for children in the United States, and the GDPR's rules for children in Europe and the United Kingdom. The consent a family gives is the one their own law requires.",
+      title: 'The laws we are building to',
+      // "The consent a family gives is the one their own law requires." No consent is taken from
+      // any family, in any market: `consent_tier` is read on every capability call and written by
+      // nothing, so every learner sits permanently on un_elevated. The sentence asserted
+      // per-jurisdiction consent handling as a shipped property. The laws are still named,
+      // because naming an obligation is not a claim to have met it, and the gap is named too.
+      body: "India's Digital Personal Data Protection Act, COPPA for children in the United States, and the GDPR's rules for children in Europe and the United Kingdom. There is no consent gate in Wobo yet, and we say so on the security page rather than implying one here.",
       proof: 'How we comply →',
       href: '/security',
     },

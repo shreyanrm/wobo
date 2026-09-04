@@ -1,0 +1,585 @@
+/*
+ * The console's own skin. Law v5 (DESIGN.md §0): white ground, one spacing rhythm, no border
+ * lines — surfaces separate by tone — and every accent doing exactly one job.
+ *
+ * This is an OPERATOR tool, so the craft here is information design rather than persuasion. Three
+ * consequences run through the whole file:
+ *   1. Semantic colour is kept away from the brand. mint / marigold / rose mean ok / warning /
+ *      critical and mean nothing else; pig (Wobo blue) stays the pointer — the selected desk, the
+ *      focus ring — and never encodes a state. A colour that means two things is trap 1 in
+ *      DESIGN.md, and this repo has already paid for it.
+ *   2. Tabular numerals wherever a column of figures lines up, so a digit never moves sideways
+ *      between reads.
+ *   3. Every table scrolls inside its own container. The page never scrolls sideways at 390.
+ *
+ * Every class is namespaced `ac-` (admin console). Trap 1 again: `.sub`, `.quiet` and `.ask` each
+ * meant two things in this repo and each printed a stray box.
+ */
+
+.ac {
+  --rail: 232px;
+  --pad: clamp(20px, 4vw, 40px);
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 15px / 1.5 var(--sans);
+}
+
+/* --- the top bar ------------------------------------------------------------------------------ */
+.ac-top {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  padding: 14px var(--pad);
+  background: var(--paper);
+}
+.ac-mark {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: 17px;
+}
+.ac-chip {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--paper-3);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.ac-chip[data-tone="warn"] {
+  background: var(--marigold-w);
+  color: var(--ink);
+}
+.ac-top-end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ac-who {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.ac-out {
+  font: 500 13px / 1 var(--sans);
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink);
+  cursor: pointer;
+}
+.ac-out:hover {
+  background: var(--paper-3);
+}
+
+/* --- the summary strip: is anything wrong right now --------------------------------------------- */
+.ac-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(228px, 1fr));
+  gap: 12px;
+  padding: 4px var(--pad) 0;
+}
+.ac-tile {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--paper-2);
+}
+.ac-tile-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  letter-spacing: 0.01em;
+}
+.ac-tile-value {
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.ac-tile-detail {
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+/* State is encoded in FORM as well as colour — a 4px bar down the left edge — so the strip still
+   reads for an operator who cannot separate the hues, and in a screenshot printed in grey. */
+.ac-tile[data-tone] {
+  border-left: 4px solid transparent;
+}
+.ac-tile[data-tone="ok"] {
+  border-left-color: var(--mint);
+}
+.ac-tile[data-tone="warn"] {
+  border-left-color: var(--marigold);
+  background: var(--marigold-w);
+}
+.ac-tile[data-tone="critical"] {
+  border-left-color: var(--rose);
+  background: var(--rose-w);
+}
+.ac-tile[data-tone="unknown"] {
+  border-left-color: var(--ink-3);
+}
+.ac-tile[data-tone="critical"] .ac-tile-value,
+.ac-tile[data-tone="warn"] .ac-tile-value {
+  font-weight: 700;
+}
+
+/* --- the body: a rail of desks, and the desk ----------------------------------------------------- */
+.ac-body {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  gap: var(--s3);
+  padding: var(--s3) var(--pad) var(--s5);
+  align-items: start;
+}
+.ac-rail {
+  display: grid;
+  gap: 2px;
+  position: sticky;
+  top: var(--s2);
+}
+.ac-desk {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  font: 500 14px / 1.2 var(--sans);
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-2);
+  cursor: pointer;
+}
+.ac-desk:hover {
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.ac-desk[aria-current="page"] {
+  background: var(--pig-soft);
+  color: var(--ink);
+  font-weight: 600;
+}
+/* A dot per desk saying whether anything is behind it. Second channel again: an operator can see
+   at a glance which desks are live without reading the word. */
+.ac-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--mint);
+}
+.ac-dot[data-supply="none"] {
+  background: var(--ink-3);
+}
+.ac-desk-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+.ac-main {
+  display: grid;
+  gap: var(--s3);
+  min-width: 0;
+}
+.ac-head {
+  display: grid;
+  gap: 6px;
+}
+.ac-head h1 {
+  font-size: clamp(24px, 3vw, 30px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.ac-head p {
+  font-size: 14px;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+.ac-panels {
+  display: grid;
+  gap: 14px;
+}
+
+/* --- a panel ------------------------------------------------------------------------------------ */
+.ac-panel {
+  display: grid;
+  gap: 10px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  background: var(--paper-2);
+  min-width: 0;
+}
+.ac-panel-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.ac-figure {
+  font-size: clamp(30px, 5vw, 40px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+}
+.ac-figure[data-tone="critical"] {
+  color: var(--rose);
+}
+.ac-figure[data-tone="warn"] {
+  color: var(--marigold);
+}
+.ac-figure[data-tone="unknown"] {
+  color: var(--ink-3);
+}
+.ac-note {
+  font-size: 13px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The provenance line. Every panel that shows a number carries one: where it came from, and when
+   it was read. A number with no provenance on an operator screen is how a wrong decision is made. */
+.ac-prov {
+  display: grid;
+  gap: 3px;
+  font-size: 11.5px;
+  color: var(--ink-3);
+}
+.ac-prov code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+}
+.ac-caveat {
+  color: var(--ink-2);
+  max-width: 78ch;
+}
+
+/* Tables scroll in their own container, so a wide column never pushes the page sideways. */
+.ac-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.ac-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 520px;
+}
+.ac-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--ink-3);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0 14px 8px 0;
+}
+.ac-table td {
+  padding: 9px 14px 9px 0;
+  vertical-align: top;
+  font-variant-numeric: tabular-nums;
+  /* The one hairline law v5 allows: a separator between list rows, never a box. */
+  border-top: 1px solid var(--line);
+}
+.ac-table td:first-child {
+  font-weight: 600;
+}
+.ac-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+.ac-state::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-3);
+}
+.ac-row[data-tone="ok"] .ac-state::before {
+  background: var(--mint);
+}
+.ac-row[data-tone="warn"] .ac-state::before {
+  background: var(--marigold);
+}
+.ac-row[data-tone="critical"] .ac-state::before {
+  background: var(--rose);
+}
+.ac-row[data-tone="warn"] .ac-state {
+  color: var(--ink);
+}
+.ac-row[data-tone="critical"] .ac-state {
+  color: var(--rose);
+}
+
+/* --- a desk with nothing behind it --------------------------------------------------------------- */
+.ac-absent {
+  background: var(--paper);
+  box-shadow: inset 0 0 0 2px var(--paper-3);
+}
+.ac-absent-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.ac-absent p {
+  font-size: 14px;
+  color: var(--ink-2);
+  max-width: 76ch;
+}
+.ac-fill {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--paper-2);
+}
+.ac-fill-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.ac-fill p {
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+/* --- the door ------------------------------------------------------------------------------------ */
+.ac-door {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--pad);
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 15px / 1.5 var(--sans);
+}
+.ac-door-card {
+  width: min(420px, 100%);
+  display: grid;
+  gap: var(--s2);
+}
+.ac-door h1 {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.ac-door-sub {
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.ac-form {
+  display: grid;
+  gap: 10px;
+}
+.ac-field {
+  display: grid;
+  gap: 5px;
+}
+.ac-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.ac-field input {
+  font: 400 15px / 1 var(--sans);
+  padding: 13px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--paper-2);
+  color: var(--ink);
+}
+.ac-field input:focus-visible {
+  outline: 3px solid var(--pig);
+  outline-offset: 2px;
+}
+.ac-go {
+  font: 600 15px / 1 var(--sans);
+  padding: 14px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--pig);
+  color: #fff;
+  cursor: pointer;
+}
+.ac-go[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+.ac-refused {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--rose-w);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+.ac-diag {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--paper-2);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.ac-diag strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* --- 834 and below: the rail lies down ------------------------------------------------------------ */
+@media (max-width: 900px) {
+  .ac-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ac-rail {
+    position: static;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .ac-desk-count {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ac-desk,
+  .ac-out,
+  .ac-go {
+    transition:
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+}
+
+/* --------------------------------------------------------------------------------------------- */
+/* The queue desks' one action strip (`QueueActions.tsx`). Namespaced `aq-`, not `ac-`, so it can  */
+/* never collide with the shell's classes — trap 1 in DESIGN.md, which this repo has paid for      */
+/* twice. Same tokens, same rhythm, same rules: pig stays the pointer and never a state, rose is   */
+/* the thing that needs care, and the confirmation a refund asks for is the only loud thing here.  */
+/* --------------------------------------------------------------------------------------------- */
+.aq {
+  gap: 14px;
+}
+.aq-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  min-width: 0;
+}
+.aq-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+.aq-field > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.aq-wide {
+  flex-basis: 100%;
+}
+.aq-field select,
+.aq-field input {
+  font: 400 14px / 1.4 var(--sans);
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--ink);
+  min-width: 0;
+  width: 100%;
+}
+.aq-field select:focus-visible,
+.aq-field input:focus-visible,
+.aq-do:focus-visible,
+.aq-quiet:focus-visible {
+  outline: 3px solid var(--pig);
+  outline-offset: 2px;
+}
+.aq-do {
+  font: 600 14px / 1 var(--sans);
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--pig);
+  color: #fff;
+  cursor: pointer;
+}
+.aq-do[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.aq-quiet {
+  font: 600 13px / 1 var(--sans);
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--paper-3);
+  color: var(--ink-2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.aq-quiet[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+/* The one loud thing on the desk, and only where money is. Rose is "needs care", nothing else. */
+.aq-confirm {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--rose-w);
+  font-size: 13px;
+  color: var(--ink);
+}
+.aq-confirm input {
+  margin-top: 2px;
+  flex: none;
+  accent-color: var(--pig);
+}
+.aq-said {
+  font-size: 13px;
+  color: var(--ink-2);
+}
+/* An identity, held on screen only while the operator is looking at it. Marigold: earned, and
+   worth noticing — this look is a line in the audit trail and the label says so. */
+.aq-who {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--marigold-w);
+}
+.aq-who-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.aq-who code {
+  font: 400 13px / 1.4 var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}

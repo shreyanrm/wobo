@@ -232,12 +232,14 @@ def _forget_in_process(subject: str) -> tuple[int, int]:
     return prefs_gone, links_gone
 
 
-def erase(subject: str, *, meter_key: str) -> Erasure:
+def erase(subject: str, *, board_key: str) -> Erasure:
     """Everything the brain holds about one learner, gone — durable store and process alike.
 
-    ``meter_key`` is what the in-process stores are keyed on (an anonymous learner is counted per
-    device, so their remembered turns are not under their subject), and it comes from the door,
-    never from a body.
+    ``board_key`` is what a remembered board turn is owned by (:func:`wobo_gateway.app.board_key`
+    — an anonymous learner's turns hang off their device address AND their subject, not their
+    subject alone), and it comes from the door, never from a body. It is deliberately not the
+    meter key: keyed on the address alone, one anonymous child pressing "forget me" erased the
+    turns of every other anonymous child on the same home or school connection.
     """
     from wobo_gateway import voice
     from wobo_gateway.board import stream as board_stream
@@ -248,7 +250,7 @@ def erase(subject: str, *, meter_key: str) -> Erasure:
     out.parent_links += links_gone
     # Cached generations keyed to this learner: the board turns still replayable in the resume
     # window carry the learner's own words and Wobo's answer to them.
-    out.boards = board_stream.forget(meter_key)
+    out.boards = board_stream.forget(board_key)
     # An outstanding voice token is a session about to be opened as them; forgetting a learner
     # must not leave one of those lying around.
     voice.forget(subject)

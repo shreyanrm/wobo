@@ -1,0 +1,21 @@
+-- 0016 — deliberately empty. This number was skipped, and this file records that it was.
+--
+-- WHY A FILE FOR NOTHING. On 2026-09-04 the directory ran 0001..0015 and then jumped to 0017, and
+-- no 0016 existed anywhere: not on disk, not in any branch, and not in git history
+-- (`git log --all --diff-filter=A -- 'infra/supabase/migrations/0016*'` returns nothing). From the
+-- directory alone nobody could tell whether a migration had been WRITTEN AND LOST or a number had
+-- simply been skipped by hand — and the only way anyone knows what has been applied to the project
+-- is by reading these names in order. An unexplained hole in that sequence is the kind of thing
+-- that gets discovered during an incident.
+--
+-- The alternative was renaming 0017 and 0018. That is worse: both are already named in the
+-- gateway's schema-contract tests and in `docs/OPERATIONS.md`, and a migration's number is how an
+-- operator refers to it in a runbook. Renumbering applied-or-about-to-be-applied SQL to close a
+-- cosmetic gap trades a documented hole for an undocumented rename.
+--
+-- So the number is spent here, on nothing, on the record. `test_migration_sequence.py` is what
+-- stops the next gap from going unexplained.
+--
+-- This file makes NO schema change. It is safe to apply, safe to re-apply, and safe to skip.
+
+-- (no statements)

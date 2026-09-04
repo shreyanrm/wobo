@@ -118,6 +118,16 @@ real fix. Every one is traceable to the domain row in brackets.
    This is the one surface a child with no account and no age gate can type into. *Smallest fix: add
    one string to the frozenset.* [content 1.2, 1.11, corrected after challenge C1]
 
+   **CLOSED 2026-09-04, but NOT by the smallest fix, and the smallest fix was wrong.** The finding
+   was right: there was no outbound screen on the public box. The prescription was not. Adding
+   `help.answer` to `LEARNER_FACING_CAPABILITIES` would route the public box through
+   `Gateway.invoke`'s outbound screen, whose flagged replacement is Wobo's own
+   `OUTBOUND_REPLACEMENT_SAY` — so a screened help answer would come back to a stranger as "let me
+   put that differently. ask me once more.", which is a tutoring line on a help page and is not the
+   honest line that box is built around. What shipped instead is a screen inside `ask_public`
+   itself, in both answer producers (`_fit`) and again at the door after the cache, both of which
+   answer with `HONEST_LINE`. Do not apply the one-string fix on top of it.
+
 8. **Erasure reaches 6 of 22 durable stores, and there is no account deletion at all.** Every answer
    the child gave, their handwriting, their sessions, their uploaded syllabus and the account itself
    survive "start over", while five documents promise a download that does not exist. *Smallest fix:

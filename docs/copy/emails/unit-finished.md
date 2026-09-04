@@ -20,7 +20,7 @@ Alternates: That is the whole of {{unit_name}} · {{unit_name}}, all of it
 
 {{wobo_note}}
 
-I drew this while you worked through it. It is the whole chapter on one board, which is a useful thing to look at the night before an exam.
+I drew this while you worked through it. It is the whole chapter on one board, which is a useful thing to look at when the exam comes round.
 
 [Open the chapter board]
 

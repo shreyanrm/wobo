@@ -91,6 +91,11 @@ const OWN = new Set([
   '.wy-strengths p',
   '.wy-you .wk-card>p a',
   '.wy-shell .wk-rail',
+  // The honest line on the parent PREVIEW. The prototype draws a parent's report; the app cannot
+  // serve one, because ParentView reads localStorage on the viewer's own device and a parent has
+  // no session. The page says so rather than looking like the report it is not, which is a
+  // sentence the drawing had no reason to carry.
+  '.wy-mock .wy-preview',
 ]);
 
 describe('you.css is board 05, rule for rule', () => {

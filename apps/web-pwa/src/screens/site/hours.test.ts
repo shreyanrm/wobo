@@ -18,16 +18,22 @@ import { join } from 'node:path';
 
 const ROOT = new URL('../..', import.meta.url).pathname;
 
-/** The public surfaces. Behind the door a late hour may legitimately appear (a clock, a reminder). */
-const PUBLIC_DIRS = [
-  'screens/landing',
-  'screens/site',
-  'screens/pitch',
-  'screens/plans',
-  'screens/gift',
-  'screens/donate',
-  'screens/contact',
-];
+/**
+ * The surfaces a PERSON reads, which is every screen and every component — not the seven marketing
+ * directories this used to list.
+ *
+ * THE HOLE THAT LIST LEFT. `screens/Onboarding.tsx` shipped "I'll be here at 10 pm and at 6 am." in
+ * the copy every new learner reads on their first meeting with Wobo, and `screens/Home.tsx` shipped
+ * `intent: 'figure out tonight'`. Neither was scanned, because neither is a marketing page. So the
+ * law was enforced on the pages the OWNER is shown and not on the screen a CHILD actually meets,
+ * which is the opposite of the way round it should have been: the reason for the rule is a child at
+ * a table late, and the child is behind the door.
+ *
+ * `engines/` and `wobo/` are deliberately outside this walk. They carry CURRICULUM: India's
+ * independence at midnight is a date in a history lesson, not a picture of a child studying late,
+ * and a law that refuses to teach 1947 is a law nobody will keep.
+ */
+const PUBLIC_DIRS = ['screens', 'components'];
 
 /** Each pattern with the phrase that replaces it, so a failure teaches rather than only refusing. */
 const BANNED: ReadonlyArray<readonly [RegExp, string]> = [

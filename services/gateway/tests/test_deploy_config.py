@@ -67,16 +67,44 @@ def test_ignore_files_keep_runtime_content_in_the_build_context(ignore_file: str
         )
 
 
+#: The first aiohttp that carries no known advisory. 3.14.1 shipped with three — PYSEC-2026-3545
+#: (fixed in 3.14.3), PYSEC-2026-3546 and PYSEC-2026-3547 (fixed in 3.14.2) — and it is a RUNTIME
+#: dependency of the live voice relay, not a build tool. Raise this when the next one lands.
+AIOHTTP_FLOOR = (3, 14, 3)
+
+
+def _version(raw: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in re.findall(r"\d+", raw)[:3])
+
+
 def test_aiohttp_is_a_declared_gateway_dependency() -> None:
     """voice.py imports aiohttp directly; it must not depend on litellm's transitive copy."""
     voice = (REPO / "services/gateway/src/wobo_gateway/voice.py").read_text(encoding="utf-8")
     assert "import aiohttp" in voice
     pyproject = (REPO / "services/gateway/pyproject.toml").read_text(encoding="utf-8")
-    assert re.search(r'^\s*"aiohttp>=', pyproject, re.M), (
+    declared = re.search(r'^\s*"aiohttp>=([0-9.]+)"', pyproject, re.M)
+    assert declared, (
         "aiohttp is imported by voice.py but not declared in services/gateway/pyproject.toml"
     )
+    assert _version(declared.group(1)) >= AIOHTTP_FLOOR, (
+        f"the aiohttp floor is {declared.group(1)}, below {'.'.join(map(str, AIOHTTP_FLOOR))}: a "
+        "floor a resolver can satisfy with a known-vulnerable release is not a floor"
+    )
     lock = (REPO / "uv.lock").read_text(encoding="utf-8")
-    assert '{ name = "aiohttp", specifier = ">=3.9" }' in lock, "uv.lock is stale — run `uv lock`"
+    assert f'{{ name = "aiohttp", specifier = ">={declared.group(1)}" }}' in lock, (
+        "uv.lock is stale — run `uv lock`"
+    )
+
+
+def test_the_locked_aiohttp_is_not_a_known_vulnerable_release() -> None:
+    """The floor says what we will accept; the lock says what we will actually ship."""
+    lock = (REPO / "uv.lock").read_text(encoding="utf-8")
+    resolved = re.search(r'name = "aiohttp"\nversion = "([0-9.]+)"', lock)
+    assert resolved, "aiohttp is not in uv.lock at all"
+    assert _version(resolved.group(1)) >= AIOHTTP_FLOOR, (
+        f"uv.lock pins aiohttp {resolved.group(1)}, which carries known advisories on the live "
+        "voice path"
+    )
 
 
 def test_render_worker_python_is_in_the_lint_path() -> None:

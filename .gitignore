@@ -17,6 +17,8 @@ node_modules/
 .bun/
 bun.lockb.bak
 dist/
+# The operator console's own build output. Never part of the public deploy.
+dist-admin/
 build/
 .next/
 .expo/

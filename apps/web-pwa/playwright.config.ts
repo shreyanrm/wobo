@@ -16,6 +16,25 @@ import { defineConfig, devices } from '@playwright/test';
 
 const PORT = Number(process.env.WOBO_E2E_PORT ?? 5199);
 
+/**
+ * THE DOORS NEED A SECOND SERVER, and that is why there are two.
+ *
+ * The hermetic server below runs `VITE_DEV_AUTH=true` with blank Supabase vars, which is exactly
+ * right for every other spec — no account layer, so onboarding skips the sign-in beat and no auth
+ * request leaves the browser. But `client.ts` reads those same vars, so under them `/sign-in` and
+ * `/sign-up` render ZERO controls: no field, no rule, no providers, no form, and a tab order of
+ * skip link, wordmark, other door. Everything the two doors are — the ruled line, the pigment
+ * drawn across on focus, the invalid state, the `soon` chips, the tab order — is unreachable from
+ * this suite, so a regression to any of it would have shipped in silence.
+ *
+ * The auth server flips `VITE_DEV_AUTH=false` and gives the keys a shape rather than a project:
+ * the URL is a closed loopback port, so `sdk.account` exists and the doors light up, and nothing
+ * can reach a real service even if something tried. `auth-doors.spec.ts` runs against this one and
+ * nothing else does. `globalSetup` still checks `projects[0]`, which is the hermetic project.
+ */
+const AUTH_PORT = PORT + 1;
+const AUTH_ORIGIN = `http://localhost:${AUTH_PORT}`;
+
 export default defineConfig({
   testDir: './tests',
   // The cross-browser matrix lives beside the journey specs but is a separate suite with its own
@@ -40,25 +59,56 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     actionTimeout: 15_000,
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
-  webServer: {
-    // Hermetic: force the keyless mock provider, no gateway and NO account layer so the suite
-    // never touches a network service (dev's .env sets LLM_MODE=live + a gateway URL, and
-    // .env.local carries real Supabase keys). Turns fall to the deterministic classifier;
-    // TTS/voice no-op without a gateway URL; blank Supabase vars make `sdk.account` absent, so
-    // onboarding skips the mandatory sign-in beat and no auth request ever leaves the browser.
-    command: [
-      'VITE_LLM_MODE=mock',
-      'VITE_GATEWAY_URL=',
-      'VITE_DEV_AUTH=true',
-      'VITE_PERSIST_MODE=local',
-      'VITE_SUPABASE_URL=',
-      'VITE_SUPABASE_ANON_KEY=',
-      'VITE_SUPABASE_DEV_JWT=',
-      `bunx vite --port ${PORT} --strictPort`,
-    ].join(' '),
-    url: `http://localhost:${PORT}/`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
-  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      testIgnore: ['auth-doors.spec.ts'],
+    },
+    {
+      name: 'auth',
+      testMatch: ['auth-doors.spec.ts'],
+      use: { ...devices['Desktop Chrome'], baseURL: AUTH_ORIGIN },
+    },
+  ],
+  webServer: [
+    {
+      // Hermetic: force the keyless mock provider, no gateway and NO account layer so the suite
+      // never touches a network service (dev's .env sets LLM_MODE=live + a gateway URL, and
+      // .env.local carries real Supabase keys). Turns fall to the deterministic classifier;
+      // TTS/voice no-op without a gateway URL; blank Supabase vars make `sdk.account` absent, so
+      // onboarding skips the mandatory sign-in beat and no auth request ever leaves the browser.
+      command: [
+        'VITE_LLM_MODE=mock',
+        'VITE_GATEWAY_URL=',
+        'VITE_DEV_AUTH=true',
+        'VITE_PERSIST_MODE=local',
+        'VITE_SUPABASE_URL=',
+        'VITE_SUPABASE_ANON_KEY=',
+        'VITE_SUPABASE_DEV_JWT=',
+        `bunx vite --port ${PORT} --strictPort`,
+      ].join(' '),
+      url: `http://localhost:${PORT}/`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      // The doors, lit. Live auth with keys that name a closed loopback port: `sdk.account` is
+      // built (so the ways in are wired and the page draws its controls) and no request can reach
+      // anything. The anon key is a shape, not a secret.
+      command: [
+        'VITE_LLM_MODE=mock',
+        'VITE_GATEWAY_URL=',
+        'VITE_DEV_AUTH=false',
+        'VITE_PERSIST_MODE=local',
+        `VITE_SUPABASE_URL=http://127.0.0.1:${PORT + 2}`,
+        'VITE_SUPABASE_ANON_KEY=e2e-not-a-real-key',
+        'VITE_SUPABASE_DEV_JWT=',
+        `bunx vite --port ${AUTH_PORT} --strictPort`,
+      ].join(' '),
+      url: `${AUTH_ORIGIN}/`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+  ],
 });

@@ -87,7 +87,10 @@ class Turn:
     """One planned turn, replayable while it is still in the store."""
 
     id: str
-    meter_key: str
+    #: Who owns this turn — ``app.board_key``, not the meter key. An anonymous learner's meter is
+    #: their device address (one string for a whole school), and ownership may not be, or two
+    #: children on one connection can resume and interrupt each other's board.
+    owner: str
     events: list[Event] = field(default_factory=list)
     created: float = field(default_factory=time.monotonic)
     #: Set when the learner cut Wobo off (BOARD.md §4). Once set, this turn never streams another
@@ -116,19 +119,20 @@ def remember(turn: Turn) -> None:
         _turns[turn.id] = turn
 
 
-def recall(turn_id: str, meter_key: str) -> Turn | None:
-    """A turn this caller may resume. Ownership is the meter key, so a resume is never a way to
-    read somebody else's board."""
+def recall(turn_id: str, owner: str) -> Turn | None:
+    """A turn this caller may resume. Ownership is the door's ``board_key`` — the meter key AND
+    the verified subject — so a resume is never a way to read somebody else's board, not even
+    another anonymous child's on the same address."""
     with _lock:
         turn = _turns.get(turn_id)
         if turn is None:
             return None
-        if turn.meter_key != meter_key or time.monotonic() - turn.created > TURN_TTL_S:
+        if turn.owner != owner or time.monotonic() - turn.created > TURN_TTL_S:
             return None
         return turn
 
 
-def interrupt(turn_id: str, meter_key: str, at: str | None = None) -> Turn | None:
+def interrupt(turn_id: str, owner: str, at: str | None = None) -> Turn | None:
     """The learner stopped Wobo. Mark the turn so the stream stops, and hand back what to say.
 
     BOARD.md §4: on an interrupt the hand stops the pen mid-stroke and the voice mid-sentence,
@@ -137,12 +141,12 @@ def interrupt(turn_id: str, meter_key: str, at: str | None = None) -> Turn | Non
     abort the brain never heard, so a reconnect happily carried on drawing over a learner who
     had asked Wobo to stop.
 
-    Ownership is the meter key, exactly as :func:`recall` has it: an interrupt is not a way to
-    reach into somebody else's turn. An unknown or expired turn is ``None``, and interrupting an
+    Ownership is the ``board_key``, exactly as :func:`recall` has it: an interrupt is not a way
+    to reach into somebody else's turn. An unknown or expired turn is ``None``, and interrupting an
     already-interrupted turn is a no-op that still acknowledges (a tap and a spoken "stop" that
     arrive together must not race into two different answers).
     """
-    turn = recall(turn_id, meter_key)
+    turn = recall(turn_id, owner)
     if turn is None:
         return None
     with _lock:
@@ -154,11 +158,11 @@ def interrupt(turn_id: str, meter_key: str, at: str | None = None) -> Turn | Non
     return turn
 
 
-def forget(meter_key: str) -> int:
+def forget(owner: str) -> int:
     """Drop every turn remembered for one learner, and say how many. The erase route calls this:
     a turn in the resume window is a cached generation with the learner's own words in it."""
     with _lock:
-        mine = [k for k, v in _turns.items() if v.meter_key == meter_key]
+        mine = [k for k, v in _turns.items() if v.owner == owner]
         for key in mine:
             del _turns[key]
     return len(mine)
@@ -441,8 +445,8 @@ def record_onsets(turn: Turn, measured: Onsets) -> Onsets:
     return measured
 
 
-def new_turn(meter_key: str, events: list[Event]) -> Turn:
-    turn = Turn(id=secrets.token_urlsafe(9), meter_key=meter_key, events=events)
+def new_turn(owner: str, events: list[Event]) -> Turn:
+    turn = Turn(id=secrets.token_urlsafe(9), owner=owner, events=events)
     remember(turn)
     # Measured on the way out, on every turn, streamed or replayed from the same plan — a budget
     # nobody measures is a budget nobody keeps.

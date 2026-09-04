@@ -23,7 +23,7 @@ Your {{plan_name}} is cancelled. Nothing else to do, and you will not be charged
 
 If it was a mistake, one tap on the Your plan card in You puts the plan back, any time before {{period_end_date}}. After that there is nothing to put back.
 
-If you want your data instead, or want the account gone entirely, both are one button in settings, data and privacy. We delete your account, your learning history and your boards, and it cannot be undone. The only thing we keep is the billing records the law requires us to hold, and backups age out within [n] days.
+If you want the data gone instead, settings, your data, erases what Wobo remembers and the progress it built. A copy of your data, and closing the account itself, are not buttons yet: write to support@heywobo.com and we do both by hand. The only thing we keep either way is the billing records the law requires us to hold.
 
 [Settings]
 

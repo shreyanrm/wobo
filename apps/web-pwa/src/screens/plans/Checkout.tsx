@@ -14,11 +14,11 @@ import { legalPath } from '../legal/catalog';
 import { ClosePanel } from '../site/ClosePanel';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
-import { CHECKOUT_PAGE, PLANS_PAGE } from './copy';
+import { CHECKOUT_PAGE } from './copy';
 
 export function Checkout() {
   return (
-    <SiteShell current="plans" title="Checkout — Wobo">
+    <SiteShell current="plans" title="Checkout · Wobo">
       <section className="st-page-hero">
         <div className="st-wrap">
           <nav className="st-crumb" aria-label="Where this page sits">
@@ -48,12 +48,7 @@ export function Checkout() {
           </p>
         </div>
       </section>
-      <ClosePanel
-        title={PLANS_PAGE.close.title}
-        hand={PLANS_PAGE.close.hand}
-        primary={{ label: PLANS_PAGE.close.primary, to: { name: 'onboarding' } }}
-        quiet={{ label: PLANS_PAGE.close.quiet, to: { name: 'gift' } }}
-      />
+      <ClosePanel page="checkout" />
     </SiteShell>
   );
 }

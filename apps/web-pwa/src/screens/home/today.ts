@@ -127,7 +127,7 @@ export function continueLine(l: Lesson): string {
 // --- the home's own words ----------------------------------------------------------------------
 
 /** The one question the home asks, the way the greeting ends it. */
-export const HOME_QUESTION = 'what are we figuring out this evening?';
+export const HOME_QUESTION = 'what are we figuring out today?';
 
 /** The words in the ask box — the door to the one conversation. */
 export const ASK_PLACEHOLDER = 'Ask anything from your syllabus, or paste question 7';

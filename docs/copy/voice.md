@@ -73,7 +73,7 @@ rather than by quoting the strings it forbids, so it passes its own scan.
    may sign up and see for themselves. A single class named by the reader ("class 9 CBSE, we are
    on quadrilaterals") is the reader speaking, and is fine.
 3. **No raw allowance.** Never a count of questions a day, in digits or in words. Say what it
-   feels like: "a daily allowance that resets each morning", "enough for a normal evening". Free
+   feels like: "a daily allowance that refills once a day", "enough for a normal evening". Free
    carries no multiplier at all; **Pro is five times the free allowance**, **Max is twenty
    times**. Never "unlimited" and never "no daily limit".
 4. **Location is inferred, never asked.** No country switch anywhere. The browser's time zone, or
@@ -83,8 +83,21 @@ rather than by quoting the strings it forbids, so it passes its own scan.
    sentence says Wobo draws, a neighbouring line names another form: it films, simulates, speaks,
    practises, remembers and reports. "Drawing is one of five things Wobo does with a question."
 
-And one more, standing until the product opens: **promote before you invite.** The closing call on
-a marketing surface is early access, not "begin tonight".
+And three more, settled by the owner on 2026-09-04.
+
+6. **We are open, and the call is "Start free".** Anyone can sign up and use Wobo today, so no
+   surface may imply a waitlist and the promotional door is retired. Do not write the phrase into
+   copy at all: it lives in one constant, `screens/site/cta.ts`, and every surface reads it there,
+   so it can never drift apart across pages again.
+7. **Never name a late hour.** Not "10 pm", not "tonight", not "midnight", not "when everyone is
+   asleep". Children go to bed early, and a page that pictures a child studying late describes the
+   problem rather than the answer. Say availability and choice instead, and vary it: after school,
+   over the weekend, on a holiday, between classes, on the way home, in the school break, whenever
+   they want, wherever they are, the way they want it explained.
+8. **Never sell by running anything down.** Not a teacher, not a school, not a tuition centre, not
+   another product. No comparison, no price against anyone else's, and no implication. We say what
+   Wobo can do and let the reader judge. A doubt is cleared any time; learning happens a bit at a
+   time, so the week before an exam is revision and never a cram. `docs/SELL.md` is the doctrine.
 
 ## 9. Money and minors
 
@@ -96,11 +109,11 @@ a marketing surface is early access, not "begin tonight".
 
 ## 10. Words
 
-**Use:** board (the syllabus, and the drawing surface — context makes it clear), the plane, a lesson, a unit, a topic, practice, boss battle, your place, saved, mastered, a flag, the parent link, your progress, turns, your daily allowance, plan, Free, Pro, Max, early access.
+**Use:** board (the syllabus, and the drawing surface — context makes it clear), the plane, a lesson, a unit, a topic, practice, boss battle, your place, saved, mastered, the parent link, your progress, turns, your daily allowance, plan, Free, Pro, Max.
 
 **Avoid:** users, content, engagement, journey, unlock your potential, supercharge, seamless, revolutionary, AI-powered, leverage, gamified, crush it, level up (as praise), oops, uh-oh, sorry for the inconvenience.
 
-**Never:** a gendered pronoun for Wobo, in any form. A provider name. An exclamation mark. An emoji. An invented learner's name. A class or age range. A raw allowance number. "Unlimited". A country switch. "Start this evening" while the product is still opening.
+**Never:** a gendered pronoun for Wobo, in any form. A provider name. An exclamation mark. An emoji. An invented learner's name. A class or age range. A raw allowance number. "Unlimited". A country switch. A late hour, in any form. A word against a teacher, a school or a tuition centre.
 
 ## 11. Quick comparisons
 
@@ -120,9 +133,11 @@ The left column quotes copy we do not ship, so it is the one place in this copy 
 | Hey there, learner! | Hello {{first_name}}. |
 | A class range, or an age range. | Every subject your board sets. |
 | An invented learner's name in an example. | Your child finished the chapter. |
-| A raw allowance count, in digits or in words. | A daily allowance, free, and it resets every morning. |
+| A raw allowance count, in digits or in words. | A daily allowance, free, and it refills once a day. |
 | Choose your country. | (Nothing. The time zone already said.) |
-| Start this evening. | Get early access. |
+| A door that asks the reader to wait for a product that is already open. | Start free. |
+| A late hour, or a clock reading, in front of a stuck child. | You're stuck, and it's the weekend. |
+| Better than a tutor, and cheaper. | It draws the answer, changes method when one misses, and does not move on until it stays learnt. |
 
 ## 12. The last check
 

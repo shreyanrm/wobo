@@ -10,7 +10,7 @@ What is saved is the drawing itself, not a photograph of it. So a saved board st
 
 **Finding it again**
 
-Notes lives behind the "you" affordance. Search it by topic, by what you asked, or just by scrolling. Boards are grouped by subject and chapter.
+Notes is a tab on the lesson screen, beside the lesson itself. Your kept boards are listed newest first, with the date each was saved, and tapping one draws it again. There is no search and no grouping by subject yet, and the newest twenty-four are the ones kept: save a twenty-fifth and the oldest drops off.
 
 **Sharing**
 
@@ -18,10 +18,10 @@ Share turns a board into a clean image with a small Wobo mark on it, ready to se
 
 **"Show mum what I just cracked"**
 
-After a boss or a genuinely hard problem, Wobo offers to send that board to your parent link, if one exists. It sends the board and one line about what it was. Nothing else.
+Ask Wobo and it will write the note for you, in its own words, and hand it to you to send. Wobo never sends it for you, and there is no way to push a single board down the parent link: the weekly note is the only thing that goes out on its own.
 
-**Deleting**
+**Clearing them**
 
-Delete any saved board from notes. It goes for good.
+There is no delete on a single note yet. Settings, your data, erase and start over clears the whole set along with everything else on the device.
 
 **Related:** The parent link.

@@ -176,7 +176,7 @@ export function Home() {
       route: 'home',
       state: {
         title: 'today',
-        intent: 'figure out tonight',
+        intent: 'figure out today',
         line,
         continue: plan.continue?.topic.name,
         next: plan.next?.topic.name,

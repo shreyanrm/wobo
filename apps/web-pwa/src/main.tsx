@@ -12,6 +12,7 @@ import { migrateLegacyKeys } from './store/legacy-keys';
 import { initAccess } from './ui/access';
 import { initMotion } from './ui/motion';
 import { initTheme } from './ui/theme';
+import { initVibe } from './ui/viewPref';
 // Palette v4 — the paper, the inks, the pigments, the two faces, and the page's base (DESIGN.md §2).
 import './ui/tokens.css';
 import { LEGACY_TOKEN_BRIDGE } from './ui/tokens';
@@ -51,6 +52,9 @@ html { scrollbar-width: none; }
 initTheme();
 initMotion();
 initAccess();
+// How the climb looks — Quest or Focused. Stamped on the root HERE, before the first render, so
+// the map's first paint is already the learner's own vibe rather than a default it flips out of.
+initVibe();
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root');

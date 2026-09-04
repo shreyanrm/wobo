@@ -1,23 +1,25 @@
-# Flagging something that is wrong
+# Telling us something is wrong
 
-**If anything Wobo shows you looks wrong, flag it. We read every one, and we write back when it is fixed.**
+**If anything Wobo shows you looks wrong, write to support@heywobo.com and tell us. A person reads every message, and you get an answer.**
 
-There is a quiet flag on every lesson, question, board and diagram. You can also just say "this is wrong" out loud and Wobo raises the same flag for you.
+There is no flag button in Wobo yet. We would rather say that on this page than draw one here and leave you hunting for it on the screen.
 
-**What happens when you flag**
+**What to send**
 
-1. Wobo takes a clean picture of exactly what you were looking at. Our own renderer draws it, so it captures the real state, including the values you had set.
-2. You can draw on that picture with Wobo's ink tools: pen, circle, box. There is a blur tool for anything personal that happened to be on screen.
-3. Pick what kind of thing it is: something is wrong, I have a question, or this could be better.
-4. Add a line about it, in your own words. One sentence is enough.
-5. Send.
+1. What you were looking at: the subject, the topic, and the question or the board, if you can name them.
+2. What looks wrong, in your own words. One sentence is enough.
+3. A screenshot, if you can take one. Your device takes a better one than we could.
 
-**What we do**
+**If you think a question marked you wrong**
 
-Every flag lands in front of a person. If you were right, we fix the content and Wobo writes to tell you it is fixed, with a note about what changed. If we think the content was right, we say why, plainly.
+On an equation practice question there is a control on the question itself: "I think I'm right". Wobo re-checks your answer against the equation, and where the proof is on your side the mark changes and the question is not asked again. That control is on equation practice today, and not yet on every kind of question.
 
-**Flagging is not complaining**
+**What we do with what you send**
 
-The things learners flag are the fastest way this gets better, and a flagged mistake is worth more to us than a lesson nobody questioned. Flag freely.
+We read it, we work out whether the content was wrong, and we fix what was. If we think the content was right, we say why, plainly.
+
+**What does not exist yet**
+
+Three things do not exist yet: a control on a lesson, a board or a diagram that you can press; a queue behind it; and a message back to you when a report is settled. All three are things we want, none of them is built, and the mailbox is the whole route today.
 
 **Related:** How a lesson gets made.

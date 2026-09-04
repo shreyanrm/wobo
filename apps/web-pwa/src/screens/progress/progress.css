@@ -1,0 +1,200 @@
+/* biome-ignore-all format: the rules are written to be read as a sheet, one idea per line */
+/* biome-ignore-all lint/style/noDescendingSpecificity: every selector here is inside its own `wp-`
+   block and none of them can match the same element, so "descending" is a shape the linter sees and
+   the cascade never does. The alternative — hoisting `.wp-kpi > b` above `.wp-subjects > li > b`
+   because a counter says so — would scatter the sheet and hide the one thing worth reading in it,
+   which is that each surface's rules sit together. */
+/*
+ * THE PROGRESS SURFACES — the constellation and the report, on law v5's white ground.
+ *
+ * Every class is `wp-` prefixed. That is not a style choice: this repo has already paid for a short
+ * class name meaning one thing in a shell and another in a section (DESIGN.md §0, trap 1), and
+ * these two surfaces are meant to be mountable inside another screen, so every rule here has to be
+ * unable to reach anything it does not own. For the same reason every nested rule uses a CHILD
+ * selector — `.wp-kpi > b`, never `.wp-kpi b` — because a descendant selector reaching an inner
+ * wrapper is trap 3, and it is what collapsed a row of numbers into a column of single words.
+ *
+ * Colour does one job apiece and never marks a surface:
+ *   pig       where the learner is standing, and the line their own record has already drawn
+ *   mint      what is behind them, and the projection they are on course for
+ *   rose      what needs another pass
+ *   marigold  an achievement genuinely earned, and the focus ring
+ *   ink-3     what has not been started, which is a fact and not a failure
+ * Panels are `paper-2`. No wash marks a card, a tile, a panel or a section.
+ *
+ * Motion: one arrival, one pulse on the single pointer, one ignite for a star earned since the last
+ * visit. Nothing is scrubbed by scroll, so nothing can jitter, and every animation is off both for
+ * `prefers-reduced-motion` and for the app's own switch (`[data-motion="reduce"]`).
+ */
+
+.wp-wrap{display:grid;gap:calc(var(--band)/2);min-width:0}
+.wp-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;min-width:0}
+.wp-head > h2{font:600 clamp(22px,3.4vw,30px)/1.15 var(--sans);min-width:0}
+.wp-head > .wp-spacer{margin-left:auto}
+.wp-lede{color:var(--ink-2);font-size:14px;max-width:62ch}
+
+/* ── the constellation ──────────────────────────────────────────────────────────────────────── */
+.wp-sky{margin:0;display:grid;gap:16px;min-width:0}
+/* the map is a hero, not a banner: the panel stops at a size a picture can be read at, and the
+   drawing fills it edge to edge rather than floating in a field of grey */
+.wp-sky-stage{background:var(--paper-2);border-radius:28px;padding:clamp(8px,2vw,20px);min-width:0;max-width:980px}
+/* the plot is the SVG's own box, so a percentage inside it is the same point in the drawing */
+.wp-sky-plot{position:relative;min-width:0}
+.wp-sky-plot > svg{width:100%;height:auto;display:block;overflow:visible}
+/* a name rides the picture at a percentage of the plot, capped to the room it has on its own side.
+   `overflow-wrap:anywhere` is the guarantee behind the cap: a single unbreakable word longer than
+   its side breaks rather than pushing the page sideways. */
+.wp-sky-name{position:absolute;font:500 13px/1.25 var(--sans);color:var(--ink-3);pointer-events:none;overflow-wrap:anywhere}
+.wp-edge{fill:none;stroke:var(--line);stroke-width:2}
+.wp-edge.wp-lit{stroke-width:2.5}
+/* a star takes a click as a convenience; it is never focusable, because the list below is this
+   map's keyboard path and two sets of controls carrying the same rows help nobody */
+.wp-star{cursor:pointer}
+.wp-star-hit{fill:transparent}
+.wp-core-out{fill:var(--paper-2);stroke:var(--ink-3);stroke-width:2.5}
+.wp-core-part{fill:var(--paper-2);stroke-width:3}
+.wp-core-debt{fill:var(--paper-2);stroke:var(--rose);stroke-width:3;stroke-dasharray:4 4}
+.wp-core-now{fill:var(--pig);stroke:var(--paper-2);stroke-width:3}
+.wp-ring{fill:none;stroke:var(--pig);stroke-width:2}
+.wp-pick-ring{fill:none;stroke:var(--ink);stroke-width:2.5}
+.wp-legend{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.wp-legend > li{display:inline-flex;align-items:center;gap:8px;background:var(--paper-2);border-radius:999px;padding:8px 14px;font:500 13px/1 var(--sans);color:var(--ink-2)}
+.wp-legend > li > svg{width:16px;height:16px;flex:none;display:block}
+.wp-subjects{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.wp-subjects > li{background:var(--paper-2);border-radius:999px;padding:8px 14px;font:500 13px/1.3 var(--sans);color:var(--ink-2)}
+.wp-subjects > li > b{color:var(--ink);font-weight:600}
+
+/* the card a star opens — a fact sheet, not a tooltip that vanishes on the way to it */
+.wp-pick{background:var(--paper-2);border-radius:22px;padding:20px;display:grid;gap:10px;min-width:0}
+.wp-pick > h3{font:600 18px/1.25 var(--sans)}
+.wp-pick > p{font-size:14px;color:var(--ink-2)}
+.wp-pick-where{font:500 13px/1.4 var(--sans);color:var(--ink-3)}
+.wp-pick-state{justify-self:start;font:500 13px/1 var(--sans);padding:8px 12px;border-radius:999px;background:var(--paper);color:var(--ink)}
+.wp-pick-close{justify-self:start;border:0;background:var(--paper);color:var(--ink);font:500 14px/1 var(--sans);padding:12px 16px;border-radius:12px;cursor:pointer;min-height:44px}
+.wp-pick-list{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.wp-pick-list > li{font-size:14px;color:var(--ink-2);padding:8px 0}
+.wp-pick-list > li + li{border-top:2px solid var(--paper-3)}
+
+/* ── the report ─────────────────────────────────────────────────────────────────────────────── */
+.wp-report{background:var(--paper-2);border-radius:28px;padding:clamp(18px,3vw,28px);display:grid;gap:22px;min-width:0}
+.wp-report-head{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--ink-3);min-width:0;flex-wrap:wrap}
+.wp-report-head > b{color:var(--ink);font:600 15px/1.2 var(--sans)}
+.wp-report-head > .wp-spacer{margin-left:auto}
+
+.wp-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.wp-kpi{min-width:0;background:var(--paper);border-radius:18px;padding:16px;display:grid;gap:6px;align-content:start}
+.wp-kpi > span{font:500 11px/1.2 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.wp-kpi > b{font:700 clamp(22px,3vw,28px)/1 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink)}
+.wp-kpi > b > i{font:inherit;font-style:normal;color:var(--ink-3)}
+.wp-kpi > em{font-style:normal;font-size:13px;line-height:1.35;color:var(--ink-2)}
+
+/* a seven-bar week stretched across a laptop is a fence, not a chart: the reading width is capped
+   and the panel round it keeps the air */
+.wp-chart{display:grid;gap:10px;min-width:0;max-width:760px}
+.wp-chart-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+.wp-chart-top > b{color:var(--ink);font:600 14px/1.2 var(--sans)}
+.wp-chart-top > .wp-spacer{margin-left:auto}
+.wp-bars{display:flex;align-items:flex-end;gap:6px;height:132px;min-width:0}
+.wp-bars > i{flex:1 1 0;min-width:2px;background:var(--pig);border-radius:8px 8px 4px 4px;display:block}
+.wp-bars > i.wp-quiet{background:var(--paper-3)}
+.wp-axis{display:flex;gap:6px;min-width:0}
+.wp-axis > span{flex:1 1 0;min-width:0;text-align:center;font:500 12px/1.4 var(--sans);color:var(--ink-3);overflow:hidden}
+
+.wp-proj{display:grid;gap:10px;min-width:0}
+.wp-proj > svg{width:100%;height:auto;display:block;max-width:680px}
+.wp-proj-line{font:500 clamp(16px,2.2vw,19px)/1.4 var(--sans);color:var(--ink);letter-spacing:-.01em}
+.wp-proj-sub{font-size:13px;color:var(--ink-2)}
+.wp-obs{fill:none;stroke:var(--pig);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.wp-obs-fill{fill:var(--pig);opacity:.1}
+.wp-fore{fill:none;stroke:var(--mint);stroke-width:3;stroke-linecap:round;stroke-dasharray:7 8}
+.wp-now-dot{fill:var(--pig)}
+.wp-end-dot{fill:var(--mint)}
+.wp-base{stroke:var(--paper-3);stroke-width:2}
+
+/* three panels on a laptop, two on a tablet, one on a phone. 250px is the width at which a topic
+   title stops breaking into four lines, which is the whole reason the number is not smaller.
+   `align-items:start` lets each panel end where its own list ends rather than matching the tallest. */
+.wp-lists{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;align-items:start}
+.wp-panel{min-width:0;background:var(--paper);border-radius:18px;padding:16px;display:grid;gap:10px;align-content:start}
+.wp-panel > span{font:500 11px/1.2 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.wp-panel > p{font-size:14px;line-height:1.5;color:var(--ink-2)}
+.wp-rows{list-style:none;margin:0;padding:0;display:grid}
+.wp-rows > li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:9px 0;font-size:14px;color:var(--ink)}
+.wp-rows > li + li{border-top:2px solid var(--paper-2)}
+.wp-rows > li > span{min-width:0}
+.wp-rows > li > span > i{display:block;font-style:normal;font-size:13px;color:var(--ink-3)}
+/* the right column holds a SHORT fact — "2 of 3", "coming back", "not started" — and nowrap keeps
+   it on one line. Trap 4 (DESIGN.md §0) is nowrap on something LONG; anything that could grow into
+   a phrase belongs in the left column, which wraps. */
+.wp-rows > li > b{font:600 13px/1.2 var(--sans);font-variant-numeric:tabular-nums;color:var(--ink-2);white-space:nowrap}
+.wp-rows.wp-mint > li > b{color:var(--mint)}
+.wp-rows.wp-rose > li > b{color:var(--rose)}
+
+/* the map, as a list of controls — the accessible path at every width, the only one on a phone */
+.wp-map-rows{list-style:none;margin:0;padding:0;display:grid}
+.wp-map-rows > li + li{border-top:2px solid var(--paper-2)}
+.wp-map-rows > li > button{width:100%;border:0;background:transparent;cursor:pointer;text-align:left;font:inherit;color:var(--ink);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:12px 8px;min-height:44px;border-radius:12px}
+.wp-map-rows > li > button:hover{background:var(--paper-2)}
+.wp-map-rows > li > button[aria-pressed="true"]{background:var(--paper-2)}
+.wp-map-rows > li > button:focus-visible{outline:3px solid var(--marigold);outline-offset:-3px}
+.wp-map-rows > li > button > span{min-width:0;font-size:15px}
+.wp-map-rows > li > button > span > i{display:block;font-style:normal;font-size:13px;color:var(--ink-3)}
+.wp-map-rows > li > button > b{font:500 13px/1.2 var(--sans);color:var(--ink-2)}
+
+.wp-badges{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.wp-badges > li{display:inline-flex;align-items:center;gap:8px;background:var(--paper);border-radius:999px;padding:10px 14px;font:500 13px/1.3 var(--sans);color:var(--ink)}
+.wp-badges > li > svg{width:16px;height:16px;flex:none;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;display:block}
+
+.wp-note{background:var(--paper);border-radius:18px;padding:16px 18px;font-family:var(--hand);font-weight:600;font-size:clamp(19px,2.6vw,22px);line-height:1.2;color:var(--ink)}
+.wp-note > em{font-style:normal;color:var(--rose)}
+
+.wp-empty{background:var(--paper-2);border-radius:22px;padding:22px;display:grid;gap:8px;color:var(--ink-2);font-size:14px;line-height:1.5}
+.wp-empty > b{color:var(--ink);font:600 16px/1.3 var(--sans)}
+
+/* ── phone ──────────────────────────────────────────────────────────────────────────────────── */
+@media (max-width:640px){
+  /* the picture is barely 330px across here: a name laid over it would sit on the stars it names,
+     and the subject roll-up below already says the same thing with its counts */
+  .wp-sky-name{display:none}
+  /* the box is wide because the names need room on either side. With the names gone that room is
+     empty, so the drawing is scaled up into it and the empty margin is cropped away. The stars
+     reach 21% and 79% across and 14% and 86% down, so nothing of the map itself is ever cut. */
+  .wp-sky-plot{overflow:hidden;border-radius:20px}
+  .wp-sky-plot > svg{transform:scale(1.3)}
+  .wp-kpis{grid-template-columns:1fr;gap:8px}
+  .wp-kpi{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .wp-kpi > b{font-size:22px}
+  .wp-kpi > em{flex-basis:100%}
+  .wp-bars{height:104px;gap:4px}
+  .wp-axis{gap:4px}
+}
+
+/* ── motion ─────────────────────────────────────────────────────────────────────────────────────
+   Three animations, all of them meaning: the sky arriving, the one pointer breathing, and a star
+   earned since the last visit catching light once. None of them is driven by scroll and none of
+   them shares a property with a transition, so there is nothing here that can stutter. */
+@keyframes wp-arrive{from{opacity:0;transform:scale(.55)}to{opacity:1;transform:none}}
+@keyframes wp-grow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes wp-draw{from{stroke-dashoffset:var(--wp-len,0)}to{stroke-dashoffset:0}}
+@keyframes wp-pulse{0%{opacity:.55;transform:scale(1)}70%{opacity:0;transform:scale(2.1)}100%{opacity:0;transform:scale(2.1)}}
+@keyframes wp-ignite{from{opacity:.85;transform:scale(.4)}to{opacity:0;transform:scale(3.4)}}
+.wp-star > g{transform-box:fill-box;transform-origin:center;animation:wp-arrive .5s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--wp-i,0) * 14ms)}
+.wp-pulse{transform-box:fill-box;transform-origin:center;animation:wp-pulse 2.6s cubic-bezier(.2,.8,.2,1) infinite}
+.wp-ignite{transform-box:fill-box;transform-origin:center;animation:wp-ignite .75s cubic-bezier(.2,.8,.2,1) both}
+/* the bars grow on a TRANSFORM, never on height: height is a layout property, and scrubbing one is
+   cause 2 of the jitter this repo has already paid for (DESIGN.md §0). Same picture, composited. */
+.wp-bars > i{transform-origin:bottom;animation:wp-grow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--wp-i,0) * 45ms)}
+/* the observed stretch draws itself on. Its own dash is the only owner of that property, and the
+   forecast's dash pattern is static, so the two can never fight over it. */
+.wp-obs{stroke-dasharray:var(--wp-len,0);animation:wp-draw 1s cubic-bezier(.2,.8,.2,1) both;animation-delay:.15s}
+@media (prefers-reduced-motion:reduce){
+  .wp-star > g,.wp-pulse,.wp-ignite,.wp-bars > i{animation:none}
+  .wp-obs{stroke-dasharray:none;animation:none}
+  .wp-pulse,.wp-ignite{display:none}
+}
+[data-motion="reduce"] .wp-star > g,
+[data-motion="reduce"] .wp-pulse,
+[data-motion="reduce"] .wp-ignite,
+[data-motion="reduce"] .wp-bars > i{animation:none}
+[data-motion="reduce"] .wp-obs{stroke-dasharray:none;animation:none}
+[data-motion="reduce"] .wp-pulse,[data-motion="reduce"] .wp-ignite{display:none}

@@ -4,7 +4,7 @@
 
 **How it works**
 
-A day counts when you do something real: a lesson, a practice run, a boss. Asking Wobo one question counts too. The day rolls over at midnight where you are.
+A day counts when you do something real: a lesson, a practice run, a boss. Asking Wobo one question counts too. Your day rolls over overnight, on your own clock.
 
 **Rest is part of it**
 

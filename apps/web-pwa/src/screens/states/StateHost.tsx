@@ -15,12 +15,15 @@
  */
 
 import { Component, type ReactNode, useCallback, useEffect, useState } from 'react';
+import { ONBOARDED_KEY } from '../../shell/public-routes';
 import { useConnectivity } from '../../shell/resilience';
-import { useRouter } from '../../shell/router';
+import { type Route, useRouter } from '../../shell/router';
 import { useProgress } from '../../store/progress';
 import { readNotes } from '../../wobo/board-notes';
 import { lessonView } from '../../wobo/lesson-view';
 import { todayPlan } from '../home/today';
+import { HANDOFFS } from '../site/handoffs';
+import { hrefRoute } from '../site/nav';
 import { DailyLimit, ExpiredLink, Maintenance, NotFound, Offline, ServerError } from './pages';
 import { clearFailure, type Failure, reportFailure, selectState, useFailure } from './select';
 import { ensureStateStyles } from './styles';
@@ -140,21 +143,58 @@ export function StateLayer({ children }: { children: ReactNode }) {
 }
 
 /**
- * The 404 as a screen of its own, with its two doors wired.
+ * The 404 as a screen of its own, with its two doors wired to WHOEVER IS STANDING ON IT.
  *
- * It is a route rather than an overlay because it IS the address: the learner asked for something
+ * It is a route rather than an overlay because it IS the address: the person asked for something
  * that is not here, and the back button should take them off it the way it takes them off any other
- * page.
+ * page. And it is a PUBLIC page — the address a mistyped link, a truncated share and every renamed
+ * route lands on — so most of the people who reach it have no account.
+ *
+ * They used to be offered "Back to learning" and "Ask Wobo", which are both the inside of a product
+ * they have never opened: the page dead-ended for exactly the visitor it exists to catch. Now the
+ * doors are read from the same handoff table every other public page closes on (docs/SELL.md §6) —
+ * the one call to action, and the front page — while a learner who has finished setup on this
+ * device still gets their own two. One job, one primary, either way.
+ *
+ * WHICH ONE is decided by the same sentinel the root boots from (`shell/public-routes`), and by
+ * that alone: asking the identity layer would be a question this screen has no business waiting on,
+ * and a signed-out learner who has started before is still better served by "back to learning".
  */
 export function NotFoundScreen() {
   const router = useRouter();
   useEffect(() => {
     ensureStateStyles();
   }, []);
-  return (
-    <NotFound
-      onHome={() => router.navigate({ name: 'home' })}
-      onAsk={() => router.navigate({ name: 'chat' })}
-    />
-  );
+  const started = hasStarted();
+  const close = HANDOFFS.notfound;
+  // `hrefRoute`, not `pathToRoute`: on the public site "/" is the FRONT DOOR, not a signed-in
+  // learner's home screen, and this is the branch for somebody who has never signed in.
+  const go = (action: { to?: Route; href?: string }) => () => {
+    router.navigate(action.to ?? (action.href ? (hrefRoute(action.href) ?? LANDING) : LANDING));
+  };
+  const actions = started
+    ? [
+        {
+          label: 'Back to learning',
+          onSelect: () => router.navigate({ name: 'home' }),
+          primary: true,
+        },
+        { label: 'Ask Wobo', onSelect: () => router.navigate({ name: 'chat' }) },
+      ]
+    : [
+        { label: close.primary.label, onSelect: go(close.primary), primary: true },
+        { label: close.quiet.label, onSelect: go(close.quiet) },
+      ];
+  return <NotFound actions={actions} />;
+}
+
+const LANDING: Route = { name: 'landing' };
+
+/** Has anyone finished setup on this device? The one sentinel `App.tsx` boots from. */
+function hasStarted(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(ONBOARDED_KEY) !== null;
+  } catch {
+    return false; // storage blocked: treat the visitor as new, which is the safe guess
+  }
 }

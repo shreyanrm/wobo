@@ -76,7 +76,7 @@ header .cta{display:flex;gap:8px}
 .allow .sticker{position:absolute;right:-14px;top:-16px;background:var(--marigold);color:#14142B;font-family:var(--hand);font-weight:700;font-size:22px;padding:6px 14px;border-radius:12px;transform:rotate(6deg);box-shadow:0 10px 20px rgba(20,20,43,.12)}
 
 /* plans */
-section{padding:clamp(56px,7vw,92px) 0}
+section{padding:calc(var(--band) / 2) 0}
 .plans{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);align-items:start}
 .plan{border-radius:28px;padding:var(--s3);display:grid;gap:14px;background:var(--paper-2);position:relative}
 .plan.pro{background:var(--pig-w)}.plan.max{background:var(--ink);color:var(--paper)}
@@ -192,7 +192,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 <header><div class="wrap">
   <a class="wm" href="#"><svg viewBox="0 0 1160 340"><use href="#wm"/></svg></a>
   <nav><a href="#">Meet Wobo</a><a href="#">How it works</a><a href="#">For parents</a><a href="#">For students</a><a href="#">Subjects</a><a class="on" href="#">Plans</a></nav>
-  <div class="cta"><a class="btn quiet" href="#">Sign in</a><a class="btn pig" href="#">Get early access</a></div>
+  <div class="cta"><a class="btn quiet" href="#">Sign in</a><a class="btn pig" href="#">Start free</a></div>
 </div></header>
 
 <section class="hero"><div class="wrap">
@@ -216,14 +216,14 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
     <div class="plan">
       <div class="name">Free</div>
       <div class="price"><span data-in="₹0" data-ww="$0">₹0</span><small>forever</small></div>
-      <p>The whole tutor. Every subject, the drawn board, the films, the practice, the Sunday note and a linked parent, with a daily allowance that resets every morning.</p>
+      <p>The whole tutor. Every subject, the drawn board, the films, the practice, the Sunday note and a linked parent, with a daily allowance that refills once a day.</p>
       <ul>
-        <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>A daily allowance, reset each morning</li>
+        <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>A daily allowance, refilled once a day</li>
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>Every subject your board sets</li>
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>Practice, the week, the Sunday note</li>
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>One linked parent</li>
       </ul>
-      <a class="btn quiet" href="#" style="background:var(--paper)">Get early access</a>
+      <a class="btn quiet" href="#" style="background:var(--paper)">Start free</a>
       <div class="fine">No card. No trial that ends.</div>
     </div>
     <div class="plan pro">
@@ -232,7 +232,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
       <div class="price"><span class="pl-amt" data-y-in="₹1,666" data-y-ww="$16.67" data-m-in="₹1,999" data-m-ww="$20">₹1,666</span><small>a month</small></div>
       <div class="pl-billed" data-y-in="billed annually" data-y-ww="billed annually" data-m-in="billed monthly" data-m-ww="billed monthly">billed annually</div>
       <div class="x">five times the questions</div>
-      <p>For the term with a test every fortnight. The same tutor, asked five times as often.</p>
+      <p>For a learner who leans on it most days. The same tutor, asked five times as often.</p>
       <ul>
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>Five times the questions</li>
         <li><i><svg viewBox="0 0 12 12"><path d="M2 6 l3 3 l5 -6"/></svg></i>The same tutor, nothing unlocked</li>
@@ -299,7 +299,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 <div class="close"><div class="wrap">
   <h2>Free every day, from the day it opens.</h2>
   <span class="hand">No card now. No card then either.</span>
-  <div class="row"><a class="btn" href="#">Get early access</a><a class="btn q" href="#">Gift Wobo</a></div>
+  <div class="row"><a class="btn" href="#">Start free</a><a class="btn q" href="#">Gift Wobo</a></div>
 </div></div>
 <footer><div class="wrap">
   <div><div class="wm"><svg viewBox="0 0 1160 340" style="width:120px"><use href="#wm"/></svg></div><p style="margin-top:10px;max-width:28ch">A tutor that draws, never judges, and is always there.</p></div>

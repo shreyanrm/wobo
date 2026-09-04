@@ -714,14 +714,19 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         safety?: { flagged?: boolean; category?: string; severity?: string; action?: string };
       };
       // The gateway's child-safety pass flagged this turn — record it on the event backbone.
+      // `escalated_to: 'guardian'` used to ride along on every crisis. Nothing anywhere read it:
+      // no mail, no job, no queue, no review surface. It said the product tells a parent, and the
+      // product does not. Whether it ever should is the owner's call and a legal one; until it is
+      // made and built, this records what actually happened and claims nothing else. A crisis is
+      // 'logged' because that is all that happens to it — the child is answered with support, and
+      // the flag is written here.
       if (output.safety?.flagged) {
         const s = output.safety;
         sdk.events.record('safety.flag.raised.v1', {
           surface: 'wobo_chat',
           category: s.category === 'crisis' ? 'crisis' : 'moderation',
           severity: s.severity === 'low' || s.severity === 'high' ? s.severity : 'medium',
-          action: s.action === 'escalated' ? 'escalated' : 'blocked',
-          ...(s.category === 'crisis' ? { escalated_to: 'guardian' as const } : {}),
+          action: s.category === 'crisis' ? 'logged' : 'blocked',
         });
       }
       const actions = parseActions(output.actions ?? []);

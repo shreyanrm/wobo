@@ -71,7 +71,7 @@ export function Gift() {
   const market = useMemo(() => readMarket(), []);
 
   return (
-    <SiteShell current="gift" title="Gift — Wobo">
+    <SiteShell current="gift" title="Gift · Wobo">
       <section className="st-page-hero">
         <div className="st-wrap">
           <Label>{GIFT_PAGE.eyebrow}</Label>
@@ -122,12 +122,8 @@ export function Gift() {
                       You never see their work unless they show you
                     </li>
                   </ul>
-                  <button
-                    type="button"
-                    className={tier.id === 'max' ? 'st-btn' : 'st-btn st-pig'}
-                    onClick={give}
-                  >
-                    {GIFT_PAGE.cta}
+                  <button type="button" className="st-btn" onClick={give}>
+                    {GIFT_PAGE.cardCta(option.name)}
                   </button>
                   <div className="pl-fine">{GIFT_CADENCE}</div>
                 </div>
@@ -198,7 +194,7 @@ export function Gift() {
                   <Tick />
                   <span>
                     {row.label}
-                    {typeof row.pro === 'string' && row.pro !== 'same' ? ` — ${row.pro}` : ''}
+                    {typeof row.pro === 'string' && row.pro !== 'same' ? `: ${row.pro}` : ''}
                   </span>
                 </li>
               ))}
@@ -249,16 +245,17 @@ export function Gift() {
         </div>
       </section>
 
-      <ClosePanel
-        title={GIFT_PAGE.closingTitle}
-        hand={null}
-        primary={{ label: GIFT_PAGE.cta, onClick: give }}
-        quiet={{
-          label: CHECKOUT_PAGE.cancelling,
-          href: legalPath('refund-and-cancellation'),
-        }}
-      >
+      <ClosePanel page="gift" title={GIFT_PAGE.closingTitle}>
         <Markdown blocks={SECTIONS['The honest footnote'] ?? []} known={[]} />
+        {/* The money document. It used to be the close's QUIET ACTION, which put a legal
+            document at the same weight as the gift itself; SELL.md §6 gives the close one
+            primary and one quiet second, so the document goes here, in the fine print, where a
+            buyer who wants it still finds it. */}
+        <p>
+          <SiteLink href={legalPath('refund-and-cancellation')} className="st-link">
+            {CHECKOUT_PAGE.cancelling}
+          </SiteLink>
+        </p>
       </ClosePanel>
     </SiteShell>
   );

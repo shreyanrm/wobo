@@ -7,7 +7,11 @@ dependencies = [
     # The live voice relay (voice.py) imports aiohttp for its two upstream websockets. It
     # arrived transitively via litellm; declared here so a litellm dependency change cannot
     # silently break the voice path.
-    "aiohttp>=3.9",
+    # The floor is 3.14.3, not 3.9: 3.14.1 shipped with PYSEC-2026-3545 (fixed in 3.14.3) and
+    # PYSEC-2026-3546/3547 (fixed in 3.14.2), and this is a RUNTIME dependency on the live voice
+    # path, not a build tool. A floor a resolver can satisfy with a known-vulnerable release is
+    # not a floor.
+    "aiohttp>=3.14.3",
     # wobo-contracts is NOT declared here: no gateway module imports it. The event contract
     # is validated where events are written — the client's SDK against @wobo/contracts — and
     # the gateway has no server-side ingest point to validate at. It still resolves into the

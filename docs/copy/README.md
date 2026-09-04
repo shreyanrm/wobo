@@ -27,7 +27,10 @@ Everything Wobo writes to a person, and the rules that govern it. Written agains
 11. **No raw allowance.** No count of questions a day, in digits or in words. Free carries no multiplier; Pro is five times the free allowance and Max is twenty times. Never "unlimited", never "no daily limit".
 12. **Location is inferred.** No country switch. The browser's time zone, or the request's country on the server, chooses the currency.
 13. **Drawing is one part.** Wherever a line says Wobo draws, a neighbouring line names another form: it films, simulates, speaks, practises, remembers and reports.
-14. **Promote before you invite.** Until the product opens, the closing call on a marketing surface is early access.
+14. **We are open, and the call is "Start free".** (owner, 2026-09-04) Anyone can sign up and use Wobo today, so no surface may imply a waitlist and the promotional door is retired. The phrase is not written in copy at all: it lives in one constant, `apps/web-pwa/src/screens/site/cta.ts`, and every surface reads it from there.
+15. **Never name a late hour.** No "10 pm", no "tonight", no "midnight", no "when everyone is asleep". Children go to bed early, and a page that pictures a child studying late describes the problem rather than the answer. Say availability and choice, and vary it: after school, over the weekend, on a holiday, between classes, on the way home, whenever they want, wherever they are.
+16. **A doubt is any time; learning is not the night before.** Wobo clears a doubt the moment it appears and teaches a subject a bit at a time, so the week before an exam is revision. We are not a cramming tool and are never marketed as one.
+17. **Never sell by running anything down.** Not a teacher, not a school, not a tuition centre, not another product. No comparison, no price against anyone else's, no implication. We say what Wobo can do and let the reader judge. The conversion doctrine is `docs/SELL.md`.
 
 Rules 9 to 12 are enforced, not just written: `services/gateway/tests/test_copy_law.py` scans every file in this directory, the email templates and the public ask suggestions on each run, and fails the build. `voice.md` §8 is the long form.
 

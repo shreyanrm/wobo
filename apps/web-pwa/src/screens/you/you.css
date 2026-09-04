@@ -30,6 +30,7 @@
 .wy-mock .wy-note em{font-style:normal;color:var(--rose)}
 .wy-mock .wy-lock{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-3)}
 .wy-mock .wy-lock svg{width:16px;height:16px;fill:none;stroke:var(--ink-3);stroke-width:2.4;stroke-linecap:round}
+.wy-mock .wy-preview{margin:12px 0 0;font-size:13px;line-height:1.5;color:var(--ink-3)}
 
 /* the parent's view sits in the site's art panel (site-parents · .art).
    Law v5 caught up with this one in the prototype itself: site-parents.html now says, in its own

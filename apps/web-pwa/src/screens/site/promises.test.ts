@@ -19,8 +19,16 @@
  * So this guard never has to be remembered, and never outlives its own reason.
  *
  * Scope: the reviewed copy that compiles into /about and /help (`docs/copy/**`), the legal set that
- * renders at /legal/* (`docs/legal/**`), and the error screens. Other public screens belong to other
- * work and are deliberately not scanned here.
+ * renders at /legal/* (`docs/legal/**`), the error screens, and — added 2026-09-04 — the three
+ * highest-traffic marketing surfaces: `/security`, the landing copy, and the pitch pages.
+ *
+ * WHY THAT LAST PART WAS ADDED. The scope used to stop at `docs/**` and say "other public screens
+ * belong to other work". That was a defensible territory call and it made the claim built on top
+ * of it false: the honesty law was enforced on the legal and help copy and NOT on /security, the
+ * landing page or the pitch pages, which is exactly where the load-bearing promises live. Nine
+ * claims the honesty wave itself verified as false were still live at /security a week later,
+ * standing on that argument. A guard whose scope excludes the pages that make the claims is a
+ * guard that reports "every place" while checking some places.
  */
 
 import { describe, expect, it } from 'bun:test';
@@ -54,6 +62,14 @@ function publishedLines(): { file: string; line: string }[] {
     // documents beside it), and it has to be able to NAME a promise in order to ask about it.
     ...filesUnder(join(REPO, 'docs', 'legal'), /\.md$/).filter((f) => !f.endsWith('README.md')),
     join(REPO, 'apps', 'web-pwa', 'src', 'screens', 'states', 'pages.tsx'),
+    // The marketing surfaces. A `.tsx` file is scanned the same way a markdown one is: the rules
+    // read SENTENCES, and a sentence in a string literal is a sentence a reader sees.
+    ...filesUnder(join(REPO, 'apps', 'web-pwa', 'src', 'screens', 'pitch'), /\.tsx?$/).filter(
+      (f) => !/\.test\./.test(f),
+    ),
+    ...filesUnder(join(REPO, 'apps', 'web-pwa', 'src', 'screens', 'landing'), /\.tsx?$/).filter(
+      (f) => !/\.test\./.test(f),
+    ),
   ];
   const out: { file: string; line: string }[] = [];
   for (const file of files) {
@@ -66,6 +82,13 @@ function publishedLines(): { file: string; line: string }[] {
     // A `[REVIEW: ...]` note is a message to counsel about a doubt, not a promise to a reader, and
     // the site strips it before rendering (`markdown.ts` stripReviewTags). It is not copy.
     body = body.replace(/\[REVIEW:[^\]]*\]/gi, '');
+    // Nor is a CODE COMMENT. A comment that records why a claim was removed has to be able to
+    // quote the claim, exactly as `docs/legal/README.md` does and as `hours.test.ts` allows; a law
+    // that fires on the note explaining itself teaches people to delete the note. Only rendered
+    // copy counts, so comments come out of the `.ts`/`.tsx` sources before the rules read them.
+    if (/\.tsx?$/.test(file)) {
+      body = body.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    }
     for (const raw of body.split('\n')) {
       // A markdown table row is ONE unit: a two-column table puts the promise in the left cell and
       // the honest answer in the right one, and splitting on the pipe would read the promise alone.
@@ -118,10 +141,21 @@ const RULES: Rule[] = [
   {
     what: 'a flag control on content',
     promises:
-      /(a quiet flag|flag control|the flag in the corner|raises the (same )?flag|every flag lands|flag it\b)/i,
+      /(a quiet flag|flag control|the flag in the corner|raises the (same )?flag|every flag lands|flag it\b|your flag\b|submits? a flag|flagging\b|read every one of these)/i,
     /*
-      The promise is a CONTROL a child can find, so the probe looks in the app and not in the
-      gateway. As of 2026-09-04 a `POST /v1/flags` intake exists in
+      THE RULE THAT SWITCHED ITSELF OFF. The probe was `/v1\/flags|raiseFlag|FlagControl/` over all
+      of `apps/web-pwa/src`, and it MATCHED — on `admin/desks.ts:120`, a provenance string in the
+      ADMIN console reading "written by wobo_gateway.reports at POST /v1/flags". Not a control a
+      child can press: a sentence about one. So the rule concluded somebody had built it and turned
+      itself off, on the one promise it was named for. Proved on 2026-09-04 by appending the
+      register's own sentence to `docs/legal/safety-and-content.md` and running the guard: 6 pass,
+      0 fail. A guard built to fail closed failed open.
+
+      Two things changed. The dirs exclude `admin/`, because the console is not a learner surface
+      and nothing a child presses will ever live there. And the pattern wants a CALL rather than a
+      mention: an identifier a component would define, or the path as a quoted string literal.
+
+      As of 2026-09-04 a `POST /v1/flags` intake exists in
       `services/gateway/src/wobo_gateway/reports.py` and nothing in the learner app calls it, so
       the endpoint is real and the control the copy promised still is not. The day a component
       posts to it, this rule turns itself off and the "there is no flag control" copy in
@@ -129,8 +163,8 @@ const RULES: Rule[] = [
       `docs/legal/community-and-flags.md` section 2 has to be rewritten in the same commit.
     */
     probe: {
-      pattern: /v1\/flags|raiseFlag|FlagControl/,
-      dirs: ['apps/web-pwa/src'],
+      pattern: /raiseFlag|FlagControl|FlagButton|["'`]\/v1\/flags["'`]/,
+      dirs: ['apps/web-pwa/src/screens', 'apps/web-pwa/src/components', 'apps/web-pwa/src/ui'],
       ext: /\.(ts|tsx)$/,
     },
     instead: 'point the reader at support@heywobo.com, or build the control first',
@@ -150,7 +184,7 @@ const RULES: Rule[] = [
   {
     what: 'a consent gate in front of memory, voice, photographs or the parent link',
     promises:
-      /(before consent\b|until a parent has (given )?consent|needs? a parent'?s consent before|if the parent has allowed|parent has allowed them|switches on memory)/i,
+      /(before consent\b|until a parent has (given )?consent|needs? a parent'?s consent before|(verifiable )?consent before (a|the|an) (child|account|learner)|if the parent has allowed|parent has allowed them|switches on memory)/i,
     /*
       Something that WRITES the tier the gateway already enforces, or the grant table
       `docs/CONSENT-PLAN.md` section 2 proposes. A bare mention of `consent_tier` is not enough:

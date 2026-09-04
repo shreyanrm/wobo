@@ -183,7 +183,10 @@ def test_a_question_outside_the_articles_gets_the_honest_line(client: TestClient
         assert res.status_code == 200, res.text
         assert res.json()["answer"] == HONEST_LINE
         assert res.json()["sources"] == []
-    assert HONEST_LINE == "I don't know that one — a person can: support@heywobo.com"
+    # No em dash (owner's standing law). This assertion used to LOCK one into the line every
+    # visitor to the public box reads, which is the law enforced backwards.
+    assert HONEST_LINE == "I don't know that one, but a person can: support@heywobo.com"
+    assert "—" not in HONEST_LINE
 
 
 def test_an_empty_index_answers_everything_honestly(monkeypatch: pytest.MonkeyPatch) -> None:

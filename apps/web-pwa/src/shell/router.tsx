@@ -107,6 +107,20 @@ export function routeToPath(route: Route): string {
   }
 }
 
+/**
+ * The one address a crawler should index this route at, absolute.
+ *
+ * `landing` and `home` are both the front door and both answer at `/`, which is the address
+ * `public/sitemap.xml` publishes, so both canonicalise there. `/landing` still resolves — an old
+ * link never breaks — it simply is not the address of record any more.
+ */
+export function canonicalUrl(route: Route, origin?: string): string {
+  const env = (import.meta as { env?: Record<string, string | undefined> }).env ?? {};
+  const base = (origin ?? env.VITE_APP_URL ?? 'https://heywobo.com').replace(/\/+$/, '');
+  const path = route.name === 'landing' ? '/' : routeToPath(route);
+  return `${base}${path}`;
+}
+
 const PLAIN_ROUTES = new Set([
   'landing',
   'onboarding',
@@ -207,7 +221,12 @@ export function routeFromPath(path: string): Route {
  * jump — is entered as a new top so the transition still reads in the right direction.
  */
 export function applyPop(stack: Route[], path: string): Route[] {
-  const next = routeFromPath(path);
+  // A BARE '/' CARRIES NO INTENTION, going back as much as coming in. `bootRoute` already reads it
+  // that way on a cold load — the app's own initial wins — and a pop has to agree, or a visitor who
+  // arrived on the front page, walked to /for-parents and pressed back would land on the app's home
+  // screen instead of the page they came from. The front door of this session is `stack[0]`.
+  const next =
+    path === '/' || path === '' ? ((stack[0] as Route | undefined) ?? HOME) : routeFromPath(path);
   const top = stack[stack.length - 1];
   if (top && routeToPath(top) === routeToPath(next)) return stack;
   const below = stack[stack.length - 2];
@@ -276,12 +295,36 @@ export function RouterProvider({ initial, children }: { initial: Route; children
   // twice, and two pushState calls would take two backs to undo).
   const depth = useRef(1);
 
-  // The address of the first screen, written once: a deep link keeps its URL, and a boot that
-  // ignored the path (a bare '/', an onboarding lock) corrects the bar to what is actually shown.
+  // The address of the first screen, written once: a deep link keeps its URL, and a boot that was
+  // locked to another screen corrects the bar to what is actually shown.
+  //
+  // A BARE '/' IS LEFT ALONE. It used to be rewritten to the booted route's own path, so a stranger
+  // who typed heywobo.com got `/landing` in the bar — an address `public/sitemap.xml` does not
+  // contain (the sitemap declares `https://heywobo.com/`), which every share and every bookmark of
+  // the front page then propagated. `/` is the address we publish, so `/` is the address they keep.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the boot entry is written once, on mount
   useEffect(() => {
-    writePath(routeToPath(stack[0] as Route), 1, 'replace');
+    const here = typeof window === 'undefined' ? '' : window.location.pathname;
+    const bare = here === '/' || here === '';
+    writePath(bare ? '/' : routeToPath(stack[0] as Route), 1, 'replace');
   }, []);
+
+  // ONE PAGE, ONE DECLARED ADDRESS. There was no <link rel="canonical"> anywhere in the app, so
+  // the front page was reachable at both `/` and `/landing` with nothing saying which one it is,
+  // and a crawler had to guess. The tag is written on every route change: `landing` canonicalises
+  // to `/`, which is what the sitemap publishes, and every other page declares its own path.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const route = stack[stack.length - 1] as Route | undefined;
+    if (!route) return;
+    let tag = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (!tag) {
+      tag = document.createElement('link');
+      tag.rel = 'canonical';
+      document.head.appendChild(tag);
+    }
+    tag.href = canonicalUrl(route);
+  }, [stack]);
 
   // The browser (or Android) moved through history — the stack follows it, never the other way.
   useEffect(() => {

@@ -80,7 +80,11 @@ describe("forget everything — Wobo asks before Wobo wipes the learner's memory
       {},
     );
     expect(loadMind().facts).toEqual([]);
-    expect(said).toContain('cleared everything');
+    // The line was "cleared everything" until the copy grew honest about WHAT it clears: the
+    // memory goes, here and on the server, and the progress record is a separate erase in
+    // Settings. What this asserts is the promise, not the sentence it was once made in.
+    expect(said).toContain('cleared what I remember about you');
+    expect(said).toContain('Your progress record is separate');
   });
 });
 

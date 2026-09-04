@@ -72,7 +72,7 @@ header .cta{display:flex;gap:8px}
 @media (max-width:900px){.hero .wrap{grid-template-columns:1fr;min-height:0}.hero .big{order:-1}.hero .big svg{width:min(70%,300px)}.hero .bubble{right:0;top:-6px;font-size:22px;max-width:220px}}
 
 /* chapters */
-section{padding:clamp(56px,7vw,92px) 0}
+section{padding:calc(var(--band) / 2) 0}
 .chapter{display:grid;grid-template-columns:1fr 1fr;gap:var(--s5);align-items:center}
 .chapter.flip .art{order:-1}
 .chapter .num{font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)}
@@ -80,6 +80,18 @@ section{padding:clamp(56px,7vw,92px) 0}
 .chapter h2 .hl{position:relative;white-space:nowrap}
 .chapter h2 .hl::before{content:"";position:absolute;left:-.1em;right:-.1em;bottom:.08em;height:.5em;background:var(--marigold);opacity:.55;border-radius:6px;z-index:-1;transform-origin:left;transform:scaleX(0);transition:transform .8s cubic-bezier(.6,0,.2,1) .2s}
 .chapter.on h2 .hl::before{transform:scaleX(1)}
+/* TRAP 4 (DESIGN.md section 0): white-space:nowrap on anything long. The mark above has to ride one
+   unbroken line, because an absolutely positioned bar cannot follow an inline that wraps - and on a
+   phone a long highlighted phrase is wider than the phone, which forces the whole page sideways
+   (site-students.html measured 461px inside a 390px window). Below the phone breakpoint the mark
+   becomes the span's own painted background with box-decoration-break:clone, which wraps with the
+   words, sized from the line box and centred (100% 92%, trap 5) so a superscript is contained.
+   This block is shared with site-students.html: the two pages are the source of one rule in the
+   pitch sheet, so they carry it identically. */
+@media (max-width:560px){
+  .chapter h2 .hl{white-space:normal;border-radius:6px;background-image:linear-gradient(color-mix(in srgb,var(--marigold) 55%,transparent),color-mix(in srgb,var(--marigold) 55%,transparent));background-size:100% 92%;background-position:0 50%;background-repeat:no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .chapter h2 .hl::before{display:none}
+}
 .chapter p{color:var(--ink-2);font-size:18px;margin-top:var(--s2);max-width:46ch}
 .chapter ul{margin:var(--s3) 0 0;padding:0;list-style:none;display:grid;gap:12px}
 .chapter li{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start;font-size:16px;color:var(--ink-2)}
@@ -280,10 +292,10 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 
 <section><div class="wrap">
   <div class="chapter reveal" style="grid-template-columns:1fr;gap:0">
-    <div><div class="num">04</div><h2>What it <span class="hl">never</span> does.</h2><p>Three rules we'd put in a contract, because a tutor a ten-year-old talks to at 9 pm has to be safe by design, not by promise.</p></div>
+    <div><div class="num">04</div><h2>What it <span class="hl">never</span> does.</h2><p>Three rules we'd put in a contract, because a tutor a child talks to on their own has to be safe by design, not by promise.</p></div>
   </div>
   <div class="never reveal">
-    <div><span class="x">✗</span><b>Make you feel small</b><span>Wobo never says wrong. It rings the gap and waits. No sighing, no red ink, no scores you didn't ask for.</span></div>
+    <div><span class="x">✗</span><b>Make you feel small</b><span>Wobo never says wrong. It rings the gap and waits. No red ink, no scores you didn't ask for.</span></div>
     <div><span class="x">✗</span><b>Have opinions</b><span>Politics, religion, anything contested: Wobo stays neutral and steers back to the chapter, kindly.</span></div>
     <div><span class="x">✗</span><b>Sell you anything</b><span>No ads, no nudges, no "premium" pop-ups mid-lesson. Wobo is paid for by families, not by advertisers.</span></div>
   </div>
@@ -316,7 +328,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 </div></section>
 
 <div class="close"><div class="wrap">
-  <h2>Start this evening.</h2>
+  <h2>Start whenever they want.</h2>
   <span class="hand">Free to use every day, not just the first.</span>
   <div class="row"><a class="btn" href="#">Start learning for free</a><a class="btn q" href="#">I'm a parent</a></div>
 </div></div>

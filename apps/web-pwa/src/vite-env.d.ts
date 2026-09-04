@@ -18,6 +18,12 @@ interface ImportMetaEnv {
   readonly VITE_LLM_MODE?: 'mock' | 'live';
   /** Base URL of the gateway (no trailing slash), e.g. https://gateway.example.com. */
   readonly VITE_GATEWAY_URL?: string;
+  /**
+   * Where the OPERATOR CONSOLE talks to the brain. Falls back to VITE_GATEWAY_URL, so a local run
+   * needs no new configuration; it exists so the console can be pointed at a private origin that
+   * the learner app never touches.
+   */
+  readonly VITE_ADMIN_GATEWAY_URL?: string;
   /** Where this app is served from, for links a learner shares. Brand-neutral by env (plan §8). */
   readonly VITE_PUBLIC_ORIGIN?: string;
   /** Origin used to build invite links; falls back to `window.location.origin`. */

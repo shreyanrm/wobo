@@ -94,7 +94,7 @@ header .cta{display:flex;gap:8px}
 @media (max-width:900px){.boards{grid-template-columns:1fr}}
 
 /* subject chapters */
-section{padding:clamp(56px,7vw,92px) 0}
+section{padding:calc(var(--band) / 2) 0}
 .chapter{display:grid;grid-template-columns:1fr 1fr;gap:var(--s5);align-items:center}
 .chapter.flip .art{order:-1}
 .chapter .k{display:inline-flex;align-items:center;gap:8px;font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
@@ -185,7 +185,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
     <a class="lilac" href="#english"><svg viewBox="0 0 200 150"><path class="ink thin" d="M24 40 h150 M24 62 h130 M24 84 h150 M24 106 h100"/><rect x="60" y="52" width="70" height="18" rx="6" fill="var(--marigold)" opacity=".6"/><path class="ink pig" d="M120 96 c10 -14 30 -14 40 0" /><text class="hw pig" x="130" y="128" font-size="18">metaphor</text></svg><b>English</b><span>Reading, writing, grammar, marked up.</span><span class="go">See a lesson →</span></a>
   </div>
   <div class="boards reveal">
-    <div><span class="label">Boards</span><h2 style="margin-top:8px">CBSE, ICSE, every state board, and the syllabus your school wrote itself.</h2><p>Type your board and Wobo finds it, with the year's official syllabus behind it. Not listed? Paste your school's syllabus and Wobo builds the plan from that, unit by unit.</p></div>
+    <div><span class="label">Boards</span><h2 style="margin-top:8px">The boards whose chapter lists we hold, and the syllabus your school wrote itself.</h2><p>Type your board and Wobo finds it, with the year's official syllabus behind it. Not listed? Paste your school's syllabus and Wobo builds the plan from that, unit by unit.</p></div>
     <div class="typeahead" aria-hidden="true">
       <div class="in">tel<i></i></div>
       <div class="opt on"><b><mark>Tel</mark>angana State Board (BSE)</b><span>secondary</span></div>
@@ -263,7 +263,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 </div></section>
 
 <div class="close"><div class="wrap">
-  <h2>Your subject, this evening.</h2>
+  <h2>Your subject, whenever you like.</h2>
   <span class="hand">Free to use every day, not just the first.</span>
   <div class="row"><a class="btn" href="#">Start learning for free</a><a class="btn q" href="#">I'm a parent</a></div>
 </div></div>

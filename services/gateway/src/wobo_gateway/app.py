@@ -13,6 +13,18 @@ middleware — a verified Supabase subject, or nothing. The consent tier is deri
 subject (:mod:`wobo_gateway.consent`), never read from the body; the free tier is
 metered against it (:mod:`wobo_gateway.budget`); the rate limiter keys on it, so one
 proxy IP is no longer one bucket for every learner on the platform.
+
+Money posture: ``budget`` caps how often a LEARNER may ask; :mod:`wobo_gateway.spend` caps how
+much the PLATFORM may spend in a day, and this module is where that ceiling is enforced — once
+in :meth:`Gateway.invoke` and once in :func:`stream_board_turn`, both after the cache and before
+any provider is reached. Past a lane's line a caller is served on a cheaper model rather than
+refused; past its refuse line it gets Wobo's honest line rather than an error.
+
+Alarm posture: :mod:`wobo_gateway.alerts` raises one greppable line, and one webhook when the
+owner has set ``ALERT_WEBHOOK_URL``, for the six things worth waking someone — a 5xx, a
+safety-gate hit, a spend threshold, an auth-failure burst, a provider outage, and a start-up.
+``/healthz`` answers from :mod:`wobo_gateway.health`, which reports whether the product would
+actually work rather than only that the process is up.
 """
 
 from __future__ import annotations
@@ -32,7 +44,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from wobo_gateway import billing, budget, consent
+from wobo_gateway import (
+    admin_auth,
+    alerts,
+    billing,
+    budget,
+    consent,
+    health,
+    ledger,
+    safety_model,
+    spend,
+)
+from wobo_gateway.admin_auth import ADMIN_PREFIX, assert_admin_surface, register_admin
 from wobo_gateway.ask_public import LIMITED_PATHS as ASK_LIMITED_PATHS
 from wobo_gateway.ask_public import OPEN_PATHS as ASK_OPEN_PATHS
 from wobo_gateway.ask_public import register_public_ask
@@ -42,11 +65,14 @@ from wobo_gateway.auth import (
     authenticate,
     dev_auth_enabled,
     dev_auth_requested,
+    expected_issuer,
     jwks_url,
 )
 from wobo_gateway.billing import LIMITED_PATHS as BILLING_LIMITED_PATHS
 from wobo_gateway.billing import register_billing
 from wobo_gateway.cache import CacheBackend, CacheEntry, InMemoryCache, cache_key
+from wobo_gateway.console_api import register_console
+from wobo_gateway.desks_api import register_desks
 from wobo_gateway.email import register_email
 from wobo_gateway.hospitality.api import register_mail_preferences
 from wobo_gateway.hospitality.jobs import welcome_after_first_meeting
@@ -61,8 +87,11 @@ from wobo_gateway.registry import (
     capabilities,
     policy,
 )
-from wobo_gateway.routing import resolve, resolve_any
+from wobo_gateway.reports import LIMITED_PATHS as REPORT_LIMITED_PATHS
+from wobo_gateway.reports import register_reports
+from wobo_gateway.routing import resolve, resolve_any, tier_fallbacks, tier_primary
 from wobo_gateway.safety import (
+    CATEGORY_CRISIS,
     DEFAULT_CLASSIFIER,
     LEARNER_FACING_CAPABILITIES,
     SafetyClassifier,
@@ -137,6 +166,9 @@ def validate_env() -> None:
             logger.warning("OPENAI_API_KEY missing: cross-check fallbacks will fail over")
         if not (os.getenv("GOOGLE_AI_API_KEY") or os.getenv("GEMINI_API_KEY")):
             logger.warning("GOOGLE_AI_API_KEY missing: voice and imagery stay unavailable")
+        # The child-safety screen's model layer. Off in live mode is allowed, but only by saying
+        # so out loud (SAFETY_MODEL=off) — it must never be off because nobody looked.
+        safety_model.assert_configured()
     if env == "prod":
         # Fail closed. Prod must be able to verify a real token, and the dev seam — a header
         # that asserts an identity with no proof — must not exist there at any setting.
@@ -147,6 +179,19 @@ def validate_env() -> None:
                 "ENV=prod requires SUPABASE_JWT_SECRET (HS256 projects) or "
                 "SUPABASE_JWKS_URL/SUPABASE_URL (JWKS projects) to verify learner tokens"
             )
+        # A verified signature with an unpinned issuer is not an identity: every Supabase project
+        # writes the audience "authenticated", so on a shared-secret project anything that has
+        # ever held the secret can mint a learner. Prod must know whose tokens it accepts.
+        if not expected_issuer():
+            raise RuntimeError(
+                "ENV=prod requires SUPABASE_URL (or SUPABASE_JWT_ISS) so the token issuer can be "
+                "checked: an unpinned issuer accepts any token minted with our secret"
+            )
+    # The operator console's own environment, checked HERE and not only inside build_store().
+    # build_store runs lazily on the first admin request, so a gateway with ADMIN_REQUIRE_MFA=0 in
+    # prod used to boot fine, serve every learner, and surface the misconfiguration as a 500 the
+    # first time somebody opened the console. Fail-closed either way; told at deploy is the point.
+    admin_auth.validate_admin_env()
 
 
 def _cors_origins() -> list[str]:
@@ -244,11 +289,19 @@ class Gateway:
         request: CapabilityRequest,
         consent_tier: ConsentTier = ConsentTier.UN_ELEVATED,
         subject: str | None = None,
+        priority: spend.Priority = spend.Priority.STRANGER,
     ) -> CapabilityResponse:
         # subject is the VERIFIED subject from the door (never payload-supplied), and
         # consent_tier is the SERVER-DERIVED tier (consent.get_tier of the verified subject),
         # passed in as its own argument. It defaults to least privilege so a caller that forgets
         # it gets the un-elevated door, never the elevated one. request.consent_tier is ignored.
+        #
+        # priority is the lane the platform's daily money ceiling sheds load in (spend.py). It
+        # defaults to STRANGER for the same reason consent_tier defaults to un-elevated: a
+        # caller that does not name itself gets the lane that is shed FIRST, so a forgotten
+        # argument costs the owner nothing and never spends a paying learner's headroom. The
+        # authenticated capability route names the real lane; the public Ask box and the cron
+        # jobs take this default, which is exactly what they are.
         pol = policy(capability)
         if not pol.allows(consent_tier):
             raise ConsentDenied(capability, consent_tier)
@@ -261,12 +314,12 @@ class Gateway:
             output = moderate(str(request.payload.get("text") or ""), self.classifier)
             emit(
                 self.sink,
-                TelemetryEvent(capability, spec.track.value, "safety.keyword", 0.0, 0, False),
+                TelemetryEvent(capability, spec.track.value, "safety.screen", 0.0, 0, False),
             )
             return CapabilityResponse(
                 capability=capability,
                 track=spec.track.value,
-                model="safety.keyword",
+                model="safety.screen",
                 cache_hit=False,
                 latency_ms=0.0,
                 tokens=0,
@@ -281,14 +334,21 @@ class Gateway:
         if capability in LEARNER_FACING_CAPABILITIES:
             gated = screen_inbound(request.payload, self.classifier)
             if gated is not None:
+                category = str(gated["safety"]["category"])
                 logger.warning(
                     "turn gated by safety",
-                    extra={
-                        "fields": {
-                            "capability": capability,
-                            "category": gated["safety"]["category"],
-                        }
-                    },
+                    extra={"fields": {"capability": capability, "category": category}},
+                )
+                # The alarm, not just the log: a crisis category is a child in trouble and it is
+                # the one thing in this service worth a person's attention within minutes. The
+                # learner's words are NEVER carried — only the category and the capability.
+                alerts.alert(
+                    alerts.SAFETY_GATE,
+                    f"the safety gate stopped something on the way in to {capability}",
+                    severity=alerts.CRITICAL if category == CATEGORY_CRISIS else alerts.WARN,
+                    capability=capability,
+                    category=category,
+                    direction="inbound",
                 )
                 emit(
                     self.sink,
@@ -312,6 +372,21 @@ class Gateway:
                 self.sink,
                 TelemetryEvent(capability, spec.track.value, cached.model, 0.0, 0, True),
             )
+            # A cache hit never reaches ``telemetry.record_cost``, so without this line the
+            # ledger would only ever see the expensive half of the traffic and every per-turn
+            # cost it derived would be too high. The turn WAS served and it cost zero — a real
+            # figure, not an unpriced one — and the cache is the single biggest reason a free day
+            # is affordable at all, so it has to be visible in the arithmetic that prices one.
+            ledger.record(
+                capability=capability,
+                model_served=cached.model,
+                model_requested=cached.model,
+                track=spec.track.value,
+                cost_usd=0.0,
+                cost_source=ledger.NO_PROVIDER_CHARGE,
+                latency_ms=0,
+                cache_hit=True,
+            )
             return CapabilityResponse(
                 capability=capability,
                 track=spec.track.value,
@@ -322,17 +397,70 @@ class Gateway:
                 output=cached.output,
             )
 
-        fallbacks = tuple(resolve_any(name).provider_model for name in pol.fallback)
+        # The platform's daily money ceiling (spend.py), asked HERE and not a line earlier: a
+        # cache hit above costs nothing, so it is served whatever the day looks like, and a
+        # refusal never lands on a learner we could have answered for free.
+        verdict = spend.verdict(priority)
+        if verdict is spend.Verdict.REFUSE:
+            logger.warning(
+                "spend ceiling refused a call",
+                extra={
+                    "fields": {
+                        "capability": capability,
+                        "priority": priority.value,
+                        **spend.state().as_dict(),
+                    }
+                },
+            )
+            raise spend.SpendCeilingReached(priority, capability=capability)
+        fallback_names = pol.fallback
+        if verdict is spend.Verdict.DEGRADE:
+            # Degrade rather than break: one rung DOWN the routing ladder, same track, same
+            # capability, same safety screens. A cheaper answer beats no answer.
+            cheaper = spend.cheaper_tier(pol.tier)
+            if cheaper is not None:
+                spec = resolve(tier_primary(cheaper), pol.track)
+                fallback_names = tier_fallbacks(cheaper)
+                logger.warning(
+                    "spend ceiling degraded a call",
+                    extra={
+                        "fields": {
+                            "capability": capability,
+                            "priority": priority.value,
+                            "from_tier": pol.tier.value,
+                            "to_tier": cheaper.value,
+                            **spend.state().as_dict(),
+                        }
+                    },
+                )
+
+        fallbacks = tuple(resolve_any(name).provider_model for name in fallback_names)
         start = time.perf_counter()
-        result = self.provider.complete(
-            provider_model=spec.provider_model,
-            capability=capability,
-            payload=request.payload,
-            fallbacks=fallbacks,
-            # The VERIFIED subject, as its own argument. The engine's one-generation-at-a-time
-            # slot keys on this; it used to key on payload["user"], which the caller writes.
-            subject=subject,
-        )
+        try:
+            result = self.provider.complete(
+                provider_model=spec.provider_model,
+                capability=capability,
+                payload=request.payload,
+                fallbacks=fallbacks,
+                # The VERIFIED subject, as its own argument. The engine's one-generation-at-a-time
+                # slot keys on this; it used to key on payload["user"], which the caller writes.
+                subject=subject,
+            )
+        except Exception as exc:
+            # A provider that refused or timed out. Recorded so /healthz can tell a run of them
+            # from a single bad minute, and alerted so somebody hears about an outage that would
+            # otherwise only ever be a 500 in a log nobody reads.
+            health.record_provider(False)
+            alerts.alert(
+                alerts.PROVIDER_OUTAGE,
+                f"a model call for {capability} failed: {type(exc).__name__}",
+                severity=alerts.WARN,
+                capability=capability,
+                model=spec.provider_model,
+                error=type(exc).__name__,
+            )
+            raise
+        health.record_provider(True)
         latency_ms = (time.perf_counter() - start) * 1000
 
         output = result.output
@@ -430,15 +558,103 @@ def _ip_fingerprint(ip: str) -> str:
     return hashlib.blake2b(ip.encode(), key=_IP_LOG_SALT[:64], digest_size=8).hexdigest()
 
 
-def _too_large(request: Request) -> bool:
-    """Is the declared body bigger than we will ever read? Cheap, before anything parses it."""
+# The gateway is not only a JSON API: it serves real HTML to people who are not signed in —
+# the parent's accept and decline pages, and the one-click mail stop reached from a mail footer.
+# Those went out with no CSP, no framing refusal and no nosniff, so a parent's opt-out page could
+# be framed invisibly into somebody else's and clicked through. One header block for the whole
+# origin, JSON included, because the cost is a few bytes and the alternative is remembering.
+#
+# `default-src 'none'` is the right default for pages that load nothing: no scripts, no images,
+# no fonts, no network. `style-src 'unsafe-inline'` is what the one inline <style> block in those
+# pages needs, and `form-action 'self'` is what their one button needs — the page posts its token
+# back to us and nowhere else.
+_SECURITY_HEADERS: dict[str, str] = {
+    "Content-Security-Policy": (
+        "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; "
+        "base-uri 'none'; frame-ancestors 'none'"
+    ),
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cross-Origin-Opener-Policy": "same-origin",
+}
+# Two years, subdomains included. Sent only when the request actually arrived over TLS: over
+# plain http the header is meaningless and browsers ignore it.
+_HSTS = "max-age=63072000; includeSubDomains"
+
+
+def _over_tls(request: Request) -> bool:
+    """Did this request reach us over https?
+
+    Our container runs uvicorn with ``--forwarded-allow-ips ''`` (see the Dockerfile), so uvicorn
+    never rewrites the scheme from a header and ``request.url.scheme`` is the SOCKET's scheme —
+    plain http behind the platform's TLS terminator. The forwarded proto is therefore read here.
+    It is caller-controllable, and harmlessly so: the only thing a forged value can do is make
+    the caller's own browser insist on https for our own domain.
+    """
+    if request.url.scheme == "https":
+        return True
+    forwarded = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
+    return forwarded == "https"
+
+
+def _secured(response: Response, request: Request) -> Response:
+    """Every response the gateway sends, hardened. Set, never overwritten, so a route that has
+    already made a stricter decision for itself keeps it."""
+    for header, value in _SECURITY_HEADERS.items():
+        response.headers.setdefault(header, value)
+    if _over_tls(request):
+        response.headers.setdefault("Strict-Transport-Security", _HSTS)
+    return response
+
+
+def _declared_size(request: Request) -> int | None:
+    """What the client SAYS the body weighs, or None when it declined to say.
+
+    A ``Content-Length`` that is too big is refused on the spot, before a byte is read: the
+    server's framing will not deliver more than a declared length, so an honest header is a free
+    answer and a lying small one cannot smuggle a large body past it.
+    """
     declared = request.headers.get("content-length")
     if not declared:
-        return False
+        return None
     try:
-        return int(declared) > _MAX_BODY_BYTES
+        return int(declared)
     except ValueError:
+        return None
+
+
+_BODY_METHODS = frozenset({"POST", "PUT", "PATCH"})
+
+
+async def _over_the_ceiling(request: Request) -> bool:
+    """Is this body bigger than we will ever read? Declared when it can be, COUNTED when it cannot.
+
+    The cap used to be the ``Content-Length`` header alone, and the header is written by the
+    caller: a chunked ``POST`` simply omits it, and ~400 KB of context — well past the 256 KB
+    ceiling — was read, parsed and served. A ceiling a client opts out of by leaving out a header
+    is not a ceiling, so when no length is declared the bytes are counted off the wire and the
+    read stops the moment the total passes the cap. Nothing downstream ever sees them.
+
+    The drained body is handed to the route through Starlette's own request cache
+    (``_body``, the attribute :meth:`starlette.requests.Request.body` fills), which
+    ``BaseHTTPMiddleware`` replays to the app underneath us. Without that the route would read an
+    empty body: consuming the stream here consumes it for everyone.
+    """
+    declared = _declared_size(request)
+    if declared is not None:
+        return declared > _MAX_BODY_BYTES
+    if request.method not in _BODY_METHODS:
         return False
+    chunks: list[bytes] = []
+    total = 0
+    async for chunk in request.stream():
+        total += len(chunk)
+        if total > _MAX_BODY_BYTES:
+            return True  # stop reading: the rest of this body is never coming into memory
+        chunks.append(chunk)
+    request._body = b"".join(chunks)  # noqa: SLF001 — the cache Request.body() itself fills
+    return False
 
 
 def meter_key(principal: Principal | None, request: Request) -> str:
@@ -456,6 +672,25 @@ def meter_key(principal: Principal | None, request: Request) -> str:
     if principal.anonymous:
         return f"anon:{_client_ip(request)}"
     return f"sub:{principal.subject}"
+
+
+def board_key(principal: Principal | None, request: Request) -> str:
+    """Who OWNS a remembered board turn — which is not the same question as who pays for it.
+
+    :func:`meter_key` counts anonymous learners per device address on purpose (a fresh anonymous
+    subject costs an attacker one HTTP call, so per-subject counters are arithmetic rather than
+    limits). Ownership must not be that key. Two children behind one home or school NAT share an
+    address, and keying a turn on the address alone let either of them resume or interrupt the
+    other's board — demonstrated, and the reason this function exists.
+
+    So: the meter stays on the address (the anti-abuse property is untouched) and ownership is
+    the address AND the verified subject. A stranger who mints a new anonymous subject gets the
+    same allowance as before and reaches nobody else's turn.
+    """
+    key = meter_key(principal, request)
+    if principal is None or not principal.anonymous:
+        return key
+    return f"{key}#{principal.subject}"
 
 
 class MeResponse(BaseModel):
@@ -512,13 +747,13 @@ def _stream(turn: Any, after: int, headers: dict[str, str]) -> StreamingResponse
     )
 
 
-def _one_shot_turn(say: str, meter: str, headers: dict[str, str]) -> StreamingResponse:
+def _one_shot_turn(say: str, owner: str, headers: dict[str, str]) -> StreamingResponse:
     """A turn with nothing to draw — Wobo's line and a close, in the same envelope."""
     from wobo_gateway.board import stream as board_stream
     from wobo_gateway.board.planner import Plan
 
     plan = Plan(say=say, presentation="screen")
-    turn = board_stream.new_turn(meter, board_stream.build_events(plan))
+    turn = board_stream.new_turn(owner, board_stream.build_events(plan))
     return _stream(turn, -1, headers)
 
 
@@ -540,13 +775,43 @@ def stream_board_turn(
 
     principal: Principal = http.state.principal
     meter = http.state.meter_key
+    # The meter counts per address for anonymous learners; ownership does not (see board_key).
+    owner = http.state.board_key
+
+    # The lane the platform's money ceiling sheds load in, read before ``plan`` is rebound to a
+    # board Plan below. Derived from the door, never from the body.
+    priority = spend.priority_for(
+        anonymous=principal.anonymous, signed_in=bool(principal.subject), plan=plan
+    )
+    # Name the caller for the usage ledger, on the same three facts the lane above is derived
+    # from and from the same verified source. A board turn makes model calls in several places
+    # (the planner, the five-path fallback, the narration), and every row any of them writes now
+    # carries the plan, the anonymity and the learner pseudonym without an argument being threaded
+    # through them. The learner reaches the ledger only as a salted digest of the meter key.
+    ledger.mark(plan=plan, anonymous=principal.anonymous, meter_key=meter)
 
     resume = board_stream.parse_last_event_id(http.headers.get("last-event-id"))
     if resume is not None:
-        turn = board_stream.recall(resume[0], meter)
+        turn = board_stream.recall(resume[0], owner)
         if turn is not None:
             snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
             return _stream(turn, resume[1], budget.headers(snap, budget.classify(name)))
+
+    # The money ceiling, BEFORE the meter: a learner refused because the platform is out of
+    # money must not also lose one of their own turns for it. They get Wobo's own line over the
+    # ordinary stream rather than an error, because a child asking a question deserves an answer
+    # in a voice they know even when the answer is "not today".
+    verdict = spend.verdict(priority)
+    if verdict is spend.Verdict.REFUSE:
+        refused = spend.SpendCeilingReached(priority, capability=name)
+        logger.warning(
+            "spend ceiling refused a board turn",
+            extra={"fields": {"priority": priority.value, **spend.state().as_dict()}},
+        )
+        snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
+        return _one_shot_turn(
+            refused.message, owner, budget.headers(snap, budget.classify(name))
+        )
 
     snap = budget.charge(meter, name, plan, anonymous=principal.anonymous)
     headers = budget.headers(snap, budget.classify(name))
@@ -554,34 +819,78 @@ def stream_board_turn(
     # Inbound safety runs before anything reaches a model, exactly as it does inside Gateway.invoke.
     gated = screen_wobo_inbound(request.payload, gw.classifier)
     if gated is not None:
-        logger.warning(
-            "board turn gated by safety",
-            extra={"fields": {"category": gated["safety"]["category"]}},
+        category = str(gated["safety"]["category"])
+        logger.warning("board turn gated by safety", extra={"fields": {"category": category}})
+        alerts.alert(
+            alerts.SAFETY_GATE,
+            "the safety gate stopped something on the way in to a board turn",
+            severity=alerts.CRITICAL if category == CATEGORY_CRISIS else alerts.WARN,
+            capability=name,
+            category=category,
+            direction="inbound",
         )
-        return _one_shot_turn(str(gated.get("say") or ""), meter, headers)
+        # NOTHING IS CHARGED FOR A DISCLOSURE. The meter is charged above, before the screen
+        # runs, because the screen needs the payload the meter's headers are built beside — so
+        # the charge is GIVEN BACK here. Until 2026-09-04 it was not, on either live path, while
+        # the published line read "the turn never reaches a model. Nothing is charged, nothing is
+        # counted." A child who told Wobo their father hits them paid one of their daily turns
+        # for saying it, and the headers on the answer told them so.
+        budget.refund(meter, name)
+        snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
+        return _one_shot_turn(
+            str(gated.get("say") or ""), owner, budget.headers(snap, budget.classify(name))
+        )
 
     live = os.getenv("LLM_MODE", "mock").lower() == "live"
     try:
         from wobo_gateway.wobo import board_plan_for
 
-        model_plan = board_plan_for(request.payload, live=live)
+        # Degrade rather than break: past this lane's degrade line the expensive half of a board
+        # turn — planning what to DRAW, on the generate tier — is skipped, and the turn falls to
+        # the ordinary five-path answer below, which is itself served on a cheaper tier by
+        # Gateway.invoke. The learner still gets Wobo's answer; they just do not get the drawing.
+        if verdict is spend.Verdict.DEGRADE:
+            logger.warning(
+                "spend ceiling degraded a board turn to a spoken answer",
+                extra={"fields": {"priority": priority.value, **spend.state().as_dict()}},
+            )
+            model_plan = None
+        else:
+            model_plan = board_plan_for(request.payload, live=live)
         context = request.payload.get("context") or {}
         board_context = request.payload.get("board") or {}
 
         if model_plan is None:
             # Nothing to draw: fall back to the ordinary five-path turn, which carries its own
             # safety screens, cache and telemetry, and stream Wobo's line over the same wire.
-            result = gw.invoke(name, request, profile.tier, subject=principal.subject)
+            result = gw.invoke(
+                name, request, profile.tier, subject=principal.subject, priority=priority
+            )
             output = result.output
             plan = Plan(say=str(output.get("say") or ""), presentation="screen")
             card = output.get("component") or output.get("viz")
             actions = [a for a in (output.get("actions") or []) if isinstance(a, dict)]
         else:
             plan = plan_board(model_plan, context=context, board_context=board_context)
+            # THE WHOLE PLAN, not the spoken line. This used to hand the screen
+            # ``{"say": plan.say, "actions": []}`` and pass ``plan.objects`` and ``plan.ask``
+            # straight to ``build_events``, which emits every object as an ``ink`` event and the
+            # ask as an ``ask`` event — so the words the model WRITES ON THE BOARD, and the
+            # question it poses to the child, were the one model output nothing read. The board
+            # is the primary teaching surface; it was the largest outbound hole in the product.
             screened = screen_wobo_outbound(
-                {"say": plan.say, "actions": []}, gw.classifier
+                {
+                    "say": plan.say,
+                    "actions": [],
+                    "objects": plan.objects,
+                    "ask": plan.ask,
+                },
+                gw.classifier,
             )
             plan.say = str(screened.get("say") or plan.say)
+            # A screened turn draws nothing. Half of it is the harmful half.
+            plan.objects = list(screened.get("objects") or [])
+            plan.ask = screened.get("ask") if isinstance(screened.get("ask"), dict) else None
             card = None
             actions = []
     except TooMuchAtOnce as exc:
@@ -603,7 +912,7 @@ def stream_board_turn(
         raise
 
     turn = board_stream.new_turn(
-        meter, board_stream.build_events(plan, actions=actions, card=card)
+        owner, board_stream.build_events(plan, actions=actions, card=card)
     )
     return _stream(turn, -1, headers)
 
@@ -631,6 +940,18 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                 "dev_auth": dev_auth_enabled(),
             }
         },
+    )
+    # A start-up is worth an alert for one reason: ten of them inside five minutes IS the Railway
+    # restart policy giving up in slow motion, and until now that happened in total silence. It
+    # also proves the sink works — the owner's first page after wiring ALERT_WEBHOOK_URL is his
+    # own gateway saying hello, which is how he knows the alarm is not decorative.
+    alerts.alert(
+        alerts.STARTUP,
+        f"{APP_NAME} gateway started",
+        severity=alerts.INFO,
+        env=os.getenv("ENV", "dev").lower(),
+        llm_mode=os.getenv("LLM_MODE", "mock").lower(),
+        spend_ceiling_usd=spend.ceiling_usd(),
     )
 
     # Rate limit on spend-bearing routes, keyed by the VERIFIED SUBJECT. Keying by IP put every
@@ -666,6 +987,22 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             hits[bucket] = hits.get(bucket, 0) + 1
             return hits[bucket] > ceiling
 
+    # A refused token is ordinary — an expired session, a stale tab. A LOT of them in one
+    # minute is somebody trying keys, and it is one of the six things worth waking a person
+    # for (alerts.py). Same fixed-window shape as the limiter above, per process.
+    auth_burst = int(os.getenv("ALERT_AUTH_FAILURE_BURST", "25"))
+    auth_fails: dict[int, int] = {}
+    auth_lock = threading.Lock()
+
+    def _note_auth_failure() -> int:
+        """Count one refused token in this minute and return the minute's running total."""
+        window = int(time.time() // 60)
+        with auth_lock:
+            for stale in [w for w in auth_fails if w < window]:
+                del auth_fails[stale]
+            auth_fails[window] = auth_fails.get(window, 0) + 1
+            return auth_fails[window]
+
     @app.middleware("http")
     async def _guard_and_log(
         request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -694,6 +1031,9 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         # The identity the meter and the limiter count against — one derivation, read by the
         # capability route and by both voice routes so nothing meters on a different key.
         request.state.meter_key = meter_key(principal, request)
+        # Ownership of a remembered board turn is the meter key AND the subject, so two
+        # anonymous children on one address are two learners (board_key).
+        request.state.board_key = board_key(principal, request)
 
         limited = (
             path.startswith("/v1/capability/")
@@ -716,9 +1056,18 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             # The plan: two of the three write to the database, and all three are free — a
             # learner is never charged a turn for reading or ending what they pay for.
             or path in BILLING_LIMITED_PATHS
+            # The four intakes behind the console's desks — a flag, a bug, a support message, a
+            # refund request. Each writes a row to ops.reports and every one of them is reachable
+            # by anyone holding a token, so all four are bounded per caller (reports.py).
+            or path in REPORT_LIMITED_PATHS
+            # The operator console. Behind its own door (admin_auth.guard) and its own stricter
+            # bucket, and in the shared limiter too: the door itself must not be free to knock on.
+            or path.startswith(ADMIN_PREFIX)
             or path in _SOFT_AUTH_PATHS
         )
-        oversized = _too_large(request)
+        # Declared when the client declares it, counted off the wire when it does not. This is
+        # awaited BEFORE the limiter so a body that is refused is never also a model call.
+        oversized = await _over_the_ceiling(request)
         key = request.state.meter_key
         if oversized:
             response: Response = JSONResponse(
@@ -740,9 +1089,46 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                 headers={"Retry-After": str(60 - int(time.time()) % 60)},
             )
         elif refused is not None:
+            failures = _note_auth_failure()
+            # Once per window, at the threshold — not on every refusal past it, which would be
+            # the alarm joining in the flood.
+            if auth_burst > 0 and failures == auth_burst:
+                alerts.alert(
+                    alerts.AUTH_FAILURE_BURST,
+                    f"{failures} refused tokens in one minute",
+                    severity=alerts.WARN,
+                    failures=failures,
+                    path=path,
+                    ip_hash=ip_hash,
+                )
             response = JSONResponse(status_code=refused.status, content=refused.body())
         else:
-            response = await call_next(request)
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                # Nothing caught this, so the learner is about to get a blank 500. Somebody is
+                # told. The exception TYPE only: an exception's text can carry a child's words.
+                alerts.alert(
+                    alerts.SERVER_ERROR,
+                    f"{request.method} {path} raised {type(exc).__name__}",
+                    severity=alerts.CRITICAL,
+                    method=request.method,
+                    path=path,
+                    error=type(exc).__name__,
+                    ip_hash=ip_hash,
+                )
+                raise
+
+        if response.status_code >= 500:
+            alerts.alert(
+                alerts.SERVER_ERROR,
+                f"{request.method} {path} answered {response.status_code}",
+                severity=alerts.CRITICAL,
+                method=request.method,
+                path=path,
+                status=response.status_code,
+                ip_hash=ip_hash,
+            )
 
         if path != "/healthz":  # health probes would drown the log
             logger.info(
@@ -758,7 +1144,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                     }
                 },
             )
-        return response
+        return _secured(response, request)
 
     # CORS is added LAST so it wraps the guard: a 401 still carries the allow-origin header,
     # which is the difference between the browser showing Wobo's "sign in" line and showing
@@ -796,9 +1182,39 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             },
         )
 
+    @app.exception_handler(spend.SpendCeilingReached)
+    async def _on_spend_ceiling(_: Request, exc: spend.SpendCeilingReached) -> JSONResponse:
+        """The platform's day is spent. A quota answer (429), never a 5xx.
+
+        It is not a fault: the gateway is working exactly as designed, and calling it a server
+        error would page the owner for their own ceiling doing its job. The learner gets Wobo's
+        own honest line and the hour the day turns over, the same shape the free-tier meter
+        already answers with.
+        """
+        return JSONResponse(
+            status_code=429,
+            content=exc.body(),
+            headers={"Retry-After": "3600", "X-Wobo-Budget-Reset": exc.reset_at.isoformat()},
+        )
+
     @app.get("/healthz")
-    def healthz() -> dict[str, str]:
-        return {"status": "ok", "mode": os.getenv("LLM_MODE", "mock").lower()}
+    def healthz(response: Response) -> dict[str, Any]:
+        """Health, not liveness (:mod:`wobo_gateway.health`).
+
+        Open, unauthenticated and polled, so it stays cheap — every check is a dictionary or an
+        environment read, and nothing here opens a socket. ``503`` only when a request arriving
+        now would not be served; a degraded gateway answers ``200`` and says so in the body,
+        because a degraded gateway Railway keeps restarting is worse than a degraded gateway.
+
+        ``public=True`` is the important argument: this endpoint is in ``_OPEN_PATHS``, so its
+        body is world-readable, and the spend check's figures — today's model spend, the ceiling,
+        how close the two are — are the console's own guarded numbers. They are kept for the
+        operator console's health read, where a look costs a session and leaves an audit row.
+        (This docstring is itself published in the spec, so it names no guarded path.)
+        """
+        snap = health.snapshot(public=True)
+        response.status_code = health.status_code(snap)
+        return snap
 
     @app.get("/v1/me")
     def me(request: Request) -> MeResponse:
@@ -834,7 +1250,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         from wobo_gateway import memory
 
         principal: Principal = request.state.principal
-        erased = memory.erase(principal.subject, meter_key=request.state.meter_key)
+        erased = memory.erase(principal.subject, board_key=request.state.board_key)
         if erased.failed:
             return JSONResponse(
                 status_code=502,
@@ -861,7 +1277,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         """
         from wobo_gateway.board import stream as board_stream
 
-        turn = board_stream.interrupt(body.turn, request.state.meter_key, body.at)
+        turn = board_stream.interrupt(body.turn, request.state.board_key, body.at)
         if turn is None:
             return JSONResponse(
                 status_code=404,
@@ -895,6 +1311,12 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         # from their subscription — which ends by itself when the period paid for does.
         profile = consent.get_profile(principal.subject, anonymous=principal.anonymous)
         plan = billing.metered_plan(principal, profile)
+        # Which lane the platform's daily money ceiling sheds this caller in (spend.py). Derived
+        # from the verified door and the subscription the billing store knows about, exactly like
+        # the meter — a body can no more buy itself a priority than it can buy a consent tier.
+        priority = spend.priority_for(
+            anonymous=principal.anonymous, signed_in=bool(principal.subject), plan=plan
+        )
 
         # Sign-up completion (WOBO-PLAN §14.1, "confirm everything"): the learner's first meeting
         # with Wobo is the moment the account became real. The welcome goes out on a background
@@ -917,6 +1339,13 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                 },
             )
         meter = http.state.meter_key
+        # Name the caller for the usage ledger (ledger.py), from the same verified facts the lane
+        # above came from — never from the body. Every ledger row written while serving this
+        # request carries the plan and the anonymity, so "how fast is a free allowance actually
+        # consumed" is answerable, and the learner appears only as a salted digest of the meter
+        # key. Set here rather than passed down: the model call happens six frames away, inside a
+        # provider, and threading an argument through would touch files other waves are editing.
+        ledger.mark(plan=plan, anonymous=principal.anonymous, meter_key=meter)
         # Counted ONCE, after the door and before the model. Anything that fails before the
         # provider is reached (a closed consent door, a busy queue, a provider error) is
         # refunded — a learner never pays for a call we did not serve.
@@ -932,7 +1361,32 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         if name.startswith("curriculum."):
             from wobo_gateway.curriculum import api as curriculum_api
 
+            def _charge_curriculum(capability: str) -> budget.Snapshot:
+                """The learner's own meter, and the platform's money ceiling, in one seam.
+
+                The curriculum never reaches ``Gateway.invoke``, so the spend gate that lives
+                there does not cover it — and one of these capabilities mints a discovery job
+                that is a search, an extraction on the generate tier and a re-reading on the
+                verify tier. Gating the CHARGE rather than the route covers both the call that
+                came in and the job it can mint, which is the same reason this seam exists at
+                all. A store read costs nothing and is never refused.
+                """
+                if (
+                    budget.classify(capability) == budget.GENERATION
+                    and spend.verdict(priority) is spend.Verdict.REFUSE
+                ):
+                    raise spend.SpendCeilingReached(priority, capability=capability)
+                return budget.charge(meter, capability, plan, anonymous=principal.anonymous)
+
             try:
+                # …and the capability that came in the door, which the route charged above.
+                # The refund rides the `except Exception` below, so a refusal costs the
+                # learner nothing.
+                if (
+                    budget.classify(name) == budget.GENERATION
+                    and spend.verdict(priority) is spend.Verdict.REFUSE
+                ):
+                    raise spend.SpendCeilingReached(priority, capability=name)
                 output = curriculum_api.handle(
                     name,
                     request.payload,
@@ -942,9 +1396,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                     # search, an extraction on the generate tier and a re-reading on the verify
                     # tier. Without this seam the expensive half of the curriculum was free,
                     # and a cheap `curriculum.units` call could mint it (CURRICULUM.md §4.4).
-                    charge=lambda capability: budget.charge(
-                        meter, capability, plan, anonymous=principal.anonymous
-                    ),
+                    charge=_charge_curriculum,
                 )
             except curriculum_api.CurriculumError as exc:
                 budget.refund(meter, name)
@@ -984,7 +1436,13 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                 )
 
                 try:
-                    result = gw.invoke(name, request, profile.tier, subject=principal.subject)
+                    result = gw.invoke(
+                        name,
+                        request,
+                        profile.tier,
+                        subject=principal.subject,
+                        priority=priority,
+                    )
                 except ConceptRejected as exc:
                     # The caller asked for something we will not generate. That is a bad request,
                     # not a broken brain — it must never surface as a 500.
@@ -1017,10 +1475,22 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                         headers={"Retry-After": str(exc.retry_after), **headers},
                     )
             else:
-                result = gw.invoke(name, request, profile.tier, subject=principal.subject)
+                result = gw.invoke(
+                    name, request, profile.tier, subject=principal.subject, priority=priority
+                )
         except Exception:
             budget.refund(meter, name)
             raise
+
+        # A safety gate is not an exception, so the refund above never fired for it: ``invoke``
+        # returns an ordinary CapabilityResponse whose model is ``safety.gate``. The result was
+        # that a child who disclosed harm was charged one of their daily turns for the
+        # disclosure, on a route whose published description said "nothing is charged, nothing is
+        # counted". No model was reached, so nothing is owed.
+        if result.model == "safety.gate":
+            budget.refund(meter, name)
+            snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
+            headers = budget.headers(snap, budget.classify(name))
 
         return JSONResponse(
             status_code=200,
@@ -1033,7 +1503,24 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     register_mail_preferences(app)
     register_parent_links(app)
     register_billing(app)
+    register_admin(app)
+    # The console's own read surface. AFTER register_admin, because it hangs off the same
+    # guarded router factory and the door must exist before anything is mounted behind it.
+    register_console(app)
+    # The console's four queues, and the four intakes that fill them (reports.py). AFTER
+    # register_admin for the same reason register_console is: the desks hang off the same
+    # guarded router factory, and the door must exist before anything is mounted behind it.
+    register_desks(app)
+    register_reports(app)
     register_public_ask(app, gw)
+
+    # The console's two structural rules, checked once against the BUILT app rather than trusted:
+    # every /v1/admin route is behind the guard (only the login is not, and it is named), and none
+    # of them appears in /openapi.json. Both are properties of where a route was mounted, and both
+    # are one careless decorator away from being untrue — so this refuses to boot instead of
+    # serving a console somebody can map or reach. It is deliberately the LAST thing create_app
+    # does: nothing may be mounted after the check that reads what was mounted.
+    assert_admin_surface(app)
 
     return app
 

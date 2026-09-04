@@ -20,9 +20,9 @@ Your work is kept. This is the last message of this kind you will get.
 
 Your account stays as it is. {{topics_count}} topics, your boards, your notes, your syllabus. We do not delete work because someone stopped coming, so it will be there in a year if you want it.
 
-If you have moved on, you can delete everything in one screen. We delete your account, your learning history and your boards, and it cannot be undone. The only thing we keep is the billing records the law requires us to hold, and backups age out within [n] days.
+If you have moved on, settings, your data, erases what Wobo remembers and the progress it built, in one screen. Closing the account itself is not a button yet: write to support@heywobo.com and we do it by hand, and we tell you when it is done. The only thing we keep either way is the billing records the law requires us to hold.
 
-[Delete my account and data] · [Or pick up where you stopped]
+[Erase my data] · [Or pick up where you stopped]
 
 {{return_line}}
 

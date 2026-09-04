@@ -142,6 +142,18 @@ _POLICIES: dict[str, RoutingPolicy] = {
         # --- tiny: classification, safety, openers, titles, summaries, recall ------------
         _policy("generate.opener", Tier.TINY, CacheTier.EXACT, max_tokens=300),
         _policy("safety.moderate", Tier.TINY, CacheTier.EXACT, max_latency_ms=800, max_tokens=200),
+        # The child-safety screen's model layer (safety_model.py). Tiny tier, cross-provider
+        # fallbacks, a short ceiling: it answers one JSON verdict about one message and nothing
+        # else. Exact-cached because the same sentence is the same verdict, and the screen runs
+        # on every learner-facing turn.
+        _policy(
+            "safety.classify",
+            Tier.TINY,
+            CacheTier.EXACT,
+            max_latency_ms=1500,
+            cost_ceiling=0.002,
+            max_tokens=120,
+        ),
         _policy("twin.query", Tier.TINY, CacheTier.SEMANTIC, max_tokens=600),
         _policy(
             "generate.digest",
@@ -248,6 +260,7 @@ EXPECTED_CAPABILITIES: tuple[str, ...] = (
     "verify.math",
     "twin.query",
     "safety.moderate",
+    "safety.classify",
     "parent.companion.turn",
     "generate.digest",
     "generate.course",

@@ -13,6 +13,6 @@ Four things make Wobo different from a video or a search box:
 - **Drawing is one part of it.** Wobo also films, simulates, speaks, sets practice, remembers what you missed and writes the Sunday note home.
 - **Every number is checked before it is shown.** The maths is computed and verified by code, not remembered. If a check fails, Wobo redoes it or tells you.
 
-Wobo is free to use, every day, with an allowance of questions that resets each morning. Pro and Max raise that allowance; the free tier is a real product, not a trailer.
+Wobo is free to use, every day, with an allowance of questions that refills once a day. Pro and Max raise that allowance; the free tier is a real product, not a trailer.
 
 **Next:** Your first five minutes.

@@ -97,10 +97,10 @@ Mathematics, physics, chemistry, biology, science, social science, languages, th
 What we will not do
 
 **Promise 1 — Your data is yours**
-We collect what is needed to teach you and nothing for sale. You can see everything Wobo remembers about you on one page, delete any of it, and export or delete the whole account whenever you like. We do not sell data, and we do not advertise to children.
+We collect what is needed to teach you and nothing for sale. You can see everything Wobo remembers about you on one page, delete any of it, and erase what Wobo remembers and the progress it built, whenever you like. We do not sell data, and we do not advertise to children.
 
 **Promise 2 — Honesty over polish**
-If Wobo does not know, Wobo says so. If a syllabus is unverified, it says so on the page. If Wobo gets something wrong and you flag it, we fix it and write back to tell you it is fixed. We would rather refuse than invent.
+If a syllabus is unverified, it says so on the page. If Wobo gets something wrong, write to us and we fix it. We would rather refuse than invent.
 
 **Promise 3 — No manipulation of minors**
 No streak threats, no countdown timers, no fake scarcity, no engineered loneliness, no pressure on a child to ask a parent for money. The price is the same for everyone, always. Anything about paying is addressed to the adult who pays. Leaving is as easy as joining, and the delete button is on the way out, not hidden behind it.
@@ -109,7 +109,7 @@ No streak threats, no countdown timers, no fake scarcity, no engineered loneline
 Wobo is warm and bounded. There is no always-listening microphone for a child, no private unmonitored channel, and serious matters go to a responsible adult, not to a chatbot. Wobo is a tutor, not a substitute for a person who loves you.
 
 **Promise 5 — Free stays free**
-The free tier is a real product, not a trailer: the whole tutor, every subject, every form, with a daily allowance of questions that resets each morning. Pro and Max raise that allowance for exam season. They do not unlock the teacher.
+The free tier is a real product, not a trailer: the whole tutor, every subject, every form, with a daily allowance of questions that refills once a day. Pro and Max raise that allowance. They do not unlock the teacher.
 
 ---
 
@@ -147,7 +147,7 @@ We hire rarely and carefully. If you build teaching tools the way we do, write t
 Write to us at [support email].
 
 **Links**
-Help centre · Privacy · Terms · Cookies · Parental consent · Delete your data · Plans
+Help centre · Privacy · Terms · Cookies · Parental consent · Your data · Plans
 
 ---
 

@@ -204,17 +204,20 @@ def test_rs256_token_verifies_against_the_jwks(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr(auth_module, "_fetch_jwks", lambda url: {"keys": [public_jwk]})
     auth_module.reset_jwks_cache()
 
-    token = jwt.encode(
-        {"sub": "rs-learner", "aud": "authenticated", "exp": 9999999999},
-        private,
-        algorithm="RS256",
-        headers={"kid": "test-kid"},
-    )
+    # The issuer rides on a real Supabase token and is checked here too — the JWKS path is not
+    # exempt from it, and a project's own key set is not by itself proof of which project.
+    claims = {
+        "sub": "rs-learner",
+        "aud": "authenticated",
+        "iss": "https://project.supabase.co/auth/v1",
+        "exp": 9999999999,
+    }
+    token = jwt.encode(claims, private, algorithm="RS256", headers={"kid": "test-kid"})
     assert verify_token(token).subject == "rs-learner"
 
     # a token whose kid is not in the set is refused even though the set is reachable
     other = jwt.encode(
-        {"sub": "x", "aud": "authenticated", "exp": 9999999999},
+        {**claims, "sub": "x"},
         private,
         algorithm="RS256",
         headers={"kid": "unknown-kid"},
@@ -450,3 +453,90 @@ def test_the_socket_counts_come_back_down(monkeypatch: pytest.MonkeyPatch, auth)
         ws.send_text("one line")
     assert voice._active_tts == 0
     assert voice._tts_by_subject == {}
+
+
+# --- the issuer is checked, not just the signature and the audience ---------------------
+# Every Supabase project on earth writes the audience "authenticated", so on a shared-secret
+# (HS256) project the audience proves nothing about where a token came from: anything that ever
+# held that secret — a webhook signer, an old service, a leaked backup — could mint a learner and
+# the door opened. The issuer is what makes the token OURS.
+ISSUER_PROJECT = "https://project.supabase.co"
+
+
+def test_a_token_from_another_issuer_is_refused(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Same secret, same audience, a different auth server. That is not our learner."""
+    monkeypatch.setenv("SUPABASE_URL", ISSUER_PROJECT)
+    token = mint("stranger", iss="https://someone-elses-project.supabase.co/auth/v1")
+    with pytest.raises(AuthError):
+        verify_token(token)
+
+
+def test_a_token_with_no_issuer_at_all_is_refused_when_we_know_ours(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A minter that never wrote an ``iss`` is exactly the "some other purpose" case.
+
+    Built here rather than with ``mint``, which now always writes one: the token under test is
+    precisely the one with no issuer claim at all."""
+    import jwt
+
+    monkeypatch.setenv("SUPABASE_URL", ISSUER_PROJECT)
+    token = jwt.encode(
+        {"sub": "no-issuer-claim", "aud": "authenticated", "exp": 9999999999},
+        TEST_JWT_SECRET,
+        algorithm="HS256",
+    )
+    with pytest.raises(AuthError):
+        verify_token(token)
+
+
+def test_our_own_token_still_opens_the_door(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SUPABASE_URL", ISSUER_PROJECT)
+    principal = verify_token(mint("real-learner", iss=f"{ISSUER_PROJECT}/auth/v1"))
+    assert principal.subject == "real-learner"
+
+
+def test_the_issuer_can_be_set_outright(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A deployment whose auth server is not at ``<SUPABASE_URL>/auth/v1`` says so, and the
+    explicit value wins over the derived one."""
+    monkeypatch.setenv("SUPABASE_URL", ISSUER_PROJECT)
+    monkeypatch.setenv("SUPABASE_JWT_ISS", "https://auth.heywobo.com")
+    assert verify_token(mint("real-learner", iss="https://auth.heywobo.com")).subject
+    with pytest.raises(AuthError):
+        verify_token(mint("real-learner", iss=f"{ISSUER_PROJECT}/auth/v1"))
+
+
+def test_the_issuer_is_recovered_from_a_jwks_url_alone(monkeypatch: pytest.MonkeyPatch) -> None:
+    from wobo_gateway.auth import expected_issuer
+
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.setenv(
+        "SUPABASE_JWKS_URL", f"{ISSUER_PROJECT}/auth/v1/.well-known/jwks.json"
+    )
+    assert expected_issuer() == f"{ISSUER_PROJECT}/auth/v1"
+
+
+def test_with_no_project_configured_there_is_nothing_to_pin(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Local development and this suite have no Supabase project. PyJWT treats a ``None`` issuer
+    as "do not check", and the require list must not ask for a claim we cannot verify — a door
+    that refuses every token it can verify is not a stricter door, it is a broken one."""
+    from wobo_gateway.auth import expected_issuer
+
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_JWKS_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_JWT_ISS", raising=False)
+    assert expected_issuer() is None
+    assert verify_token(mint("local-learner")).subject == "local-learner"
+
+
+def test_prod_refuses_to_boot_with_an_unpinned_issuer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prod holds a secret and serves real children; it must know whose tokens it accepts."""
+    monkeypatch.setenv("ENV", "prod")
+    monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
+    monkeypatch.delenv("SUPABASE_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_JWKS_URL", raising=False)
+    monkeypatch.delenv("SUPABASE_JWT_ISS", raising=False)
+    with pytest.raises(RuntimeError, match="issuer"):
+        client()

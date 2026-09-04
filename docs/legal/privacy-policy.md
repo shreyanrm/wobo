@@ -10,7 +10,7 @@ Draft of 3 September 2026. Version 0.1. Written by the Wobo team, not yet review
 >
 > Some of your questions and working are sent to third-party AI and infrastructure providers so that Wobo can answer. They process it for us, under contract, and are not allowed to use it for their own purposes.
 >
-> You can see what Wobo remembers about you, change it, download it, and delete it. If you are under 18, your parent or guardian can do the same.
+> You can see what Wobo remembers about you, change it, and erase it. There is no download button yet, and the erase does not yet reach everything: section 8 says what it reaches and what you have to ask us for. If you are under 18, your parent or guardian can ask for the same things by writing to us.
 >
 > If anything here worries you, write to support@heywobo.com and a person will answer.
 
@@ -49,7 +49,7 @@ We answer privacy requests within 30 days, and tell you if we need longer. [REVI
 | Photographs you attach | a page of a syllabus, a homework question, a diagram | to read the question or the syllabus |
 | Preferences | voice on or off, accent, theme, reduced motion, how proactive Wobo should be, notification choices | to make Wobo behave the way you asked |
 | Payment details | card or wallet details, billing address, tax identifiers | to take payment. Card numbers go straight to our payment provider and we never see or store them |
-| Reports and flags | what you flagged, your description, an image of the screen if you attach one | to fix wrong content and to keep people safe |
+| Reports | what you tell us is wrong, in the message you send us | to fix wrong content and to keep people safe. There is no flag control in the product and we do not capture your screen; the route is an email to us. `community-and-flags.md` section 2 has the detail |
 | Support messages | what you write to us | to help you |
 
 ### Things the product produces
@@ -107,7 +107,7 @@ We use service providers who process data only on our instructions, under contra
 
 | Category | What they do |
 |---|---|
-| Third-party AI and infrastructure providers | generate and check Wobo's explanations, convert speech to text and text to speech, read photographs you attach, and host the servers, databases, storage and content delivery the product runs on |
+| Third-party AI and infrastructure providers | generate and check Wobo's explanations, convert speech to text and text to speech, read photographs you attach, and host the servers, databases, storage and content delivery the product runs on. One of them is a public code delivery network: when you run a piece of Python in a computer-science exercise, your browser fetches the language runtime from it directly, which means your device's address reaches that network |
 | Payment and billing providers | take payment, handle renewals, tax and invoices, and detect payment fraud |
 | Communication providers | send email, push notifications and messages you have asked for |
 | Analytics and crash reporting | tell us which parts of the product are used and what is breaking, in an aggregated form wherever possible |
@@ -139,29 +139,30 @@ We store data in [regions], and our providers may process it in other countries,
 | Account and profile | while your account is open |
 | Learning data: progress, mastery, saved boards, notes | while your account is open, so Wobo can carry on teaching you |
 | Conversations with Wobo | while your account is open, unless you clear them, which you can do at any time on the memory page. [REVIEW: whether a default rolling limit, for example 24 months, is safer for children's data] |
-| Voice recordings | processed to produce the transcript, then deleted within [24 hours]. The transcript is treated as conversation content. [REVIEW: confirm against the shipped system] |
-| Photographs you attach | until the syllabus or question has been read, then deleted within [30 days]. [REVIEW: confirm against the shipped system] |
+| Voice | relayed live to the speech provider while you hold the talk control and never written to our storage at all, so there is nothing to keep and nothing to delete. What you said becomes part of the conversation, and the conversation is kept as the row above says. |
+| Photographs you attach | sent to the model that reads the page and never written to our storage. What we keep is the text we read out of it and a fingerprint of the document, not the picture. |
 | Payment and tax records | as long as tax and accounting law requires, which we take as [8 years] in India and [6 years] in the UK and much of the EU. [REVIEW: per jurisdiction] |
 | Security and access logs | [90 days], longer where an incident is being investigated |
 | Support messages | [24 months] |
 | Parental consent records | for as long as the account exists, plus [3 years], because we have to be able to show consent was given. [REVIEW: COPPA and DPDP record-keeping] |
-| Data after you delete your account | removed from live systems within [30 days], and from backups within [90 days] as backups roll over |
+| Data after you ask us to delete your account | there is no delete-my-account button yet. Ask us at support@heywobo.com and we do it by hand. [REVIEW: the backup retention window on the hosting project has never been read or recorded, so no number can be published here. Read the project settings, write the real number in, and build the account deletion.] |
 
 Anything kept beyond deletion is kept in a locked-down form, used only for the reason it was kept, and then deleted.
 
 ## 8. Your rights
 
-Wherever you live, you can:
+Wherever you live, the law gives you the rights below and we honour every one of them. **Most of them are an email to us and not a control in the product**, and we would rather say so here than let you go looking for a button that is not there.
 
-- **see** what we hold about you, and get a copy;
-- **correct** anything wrong;
-- **delete** your data and your account;
-- **export** your data in a portable file;
-- **object** to, or restrict, some uses;
-- **withdraw consent** at any time, which does not undo what was done before you withdrew it;
-- **complain** to us first, and then to a regulator.
+- **See what we hold about you.** The memory page in settings lists what Wobo remembers, in plain sentences, item by item. That part is real and it is in the product. Everything else we hold, write to us for.
+- **Correct anything wrong.** The same page, item by item, plus your name, class and board.
+- **Delete it.** "Erase and start over", in settings under your data, is the one button on this list. It clears what Wobo remembers, the conversation, your profile row, your mastery and progress record, your mail choices and the parent link, on the device and on our servers. It does **not** clear your individual answers to practice questions, your ink on the board, your session records, or a syllabus you uploaded and the curriculum built from it. Write to us for those.
+- **Close the account.** There is no control in the product that does this. Write to us and we do it by hand.
+- **Have a copy to take away.** There is no way to take a copy away yourself: no button, no file, no route. Write to us and we assemble one by hand, and we are building the real thing.
+- **Object to, or restrict, some uses.** By email. There is no control for either.
+- **Withdraw consent** at any time, which does not undo what was done before you withdrew it. For mail, every message carries a one-tap stop and settings carries the dials. For memory, voice and photographs there is nothing to withdraw, because nothing was ever asked: see `childrens-privacy.md` section 3.
+- **Complain** to us first, and then to a regulator.
 
-Most of this is a button in settings, under privacy and data. The memory page shows what Wobo remembers about you and lets you edit or clear it, item by item.
+[REVIEW: this is a gap against GDPR Articles 15, 17 and 20, DPDP sections 11 and 12, and the CCPA right to delete, and it is a gap in what the product does rather than in what this page says. Counsel needs to say how long an email-only route is defensible for a service used by children, and by when the export and the account deletion have to exist.]
 
 Additional rights by place:
 
@@ -181,7 +182,22 @@ Children's privacy has its own document, `childrens-privacy.md`, and the consent
 
 ## 10. Security
 
-We intend to protect your data with encryption in transit and at rest, access controls and least privilege for our staff, isolation between accounts enforced by the database, review of code before it ships, logging of access to personal data, and regular review of our providers. Payment card details never touch our servers.
+These are the controls that are in place today, each of them checked against the code rather than intended:
+
+- **Isolation between accounts is enforced by the database**, not only by our application. Every table that holds a learner's rows carries a policy tying each row to the signed-in learner's own identity.
+- **Every request goes through one authentication door.** No route reads who you are from the body of a request, the token signature is checked against a closed list of algorithms, and the development shortcut that lets an engineer act as a test learner is refused outright in production.
+- **Transport is encrypted**, with strict transport security, a content security policy, framing forbidden, and camera and location denied at the browser level.
+- **Your IP address is fingerprinted before it reaches a log line**, so the logs carry a salted digest rather than the address.
+- **Payment card details never touch our servers.**
+- **There is no advertising or analytics code in the product at all**, so there is nothing in it reporting on you to anyone.
+
+These are **not** in place, and we would rather name them than imply them:
+
+- **Access to personal data is not logged.** Our own server holds a key that can read any learner's rows, and nothing records when it is used or why. Until that logging exists we cannot honestly claim least privilege for staff.
+- **Encryption at rest and key rotation** are the hosting provider's, and we have not read the project's settings and written the answer down, so we make no claim of our own about them.
+- **No penetration test has been done**, no security certification has been obtained, and no backup has ever been restored as a rehearsal.
+
+[REVIEW: the paragraph that used to be here claimed access logging and provider review that do not exist. Security representations are the standard enforcement hook and the data is children's, so nothing goes back into the "in place" list without the check that proves it. Still to verify item by item: the hosting project's encryption and key-rotation settings; the no-training and zero-retention terms with third-party AI and infrastructure providers, already flagged at `childrens-privacy.md` section 5; and a review cadence for providers, which does not exist.]
 
 [REVIEW: do not publish the paragraph above until every control in it has been verified item by item, in the same way as `accessibility-statement.md` section 2. Security representations are the standard enforcement hook, and the data here is children's. Verify in particular: account isolation actually enforced by row-level security in the database and not only in application code; access to personal data actually logged, and the log actually reviewed; the no-training and zero-retention terms with third-party AI and infrastructure providers already flagged at `childrens-privacy.md` section 5; and the cadence of provider review. Drop any control that is not in place rather than softening the wording.]
 
@@ -195,7 +211,7 @@ Anything else, such as tips, streak nudges, or news, is optional, needs consent 
 
 ## 12. Changes to this policy
 
-If we change anything that matters, we will tell you in the app and by email at least 30 days before it takes effect, and we will keep the old versions available so you can see what changed. Where a change needs fresh consent, we will ask. [REVIEW: whether 30 days is the right notice period in each jurisdiction, whether notice must go to the parent as well as the learner where the learner is under 18, and which kinds of change require fresh consent rather than notice, under GDPR Article 13(3), the DPDP Act's notice rules and the CCPA rules on retroactive use of data already collected.]
+If we change anything that matters, we will tell you in the app and by email at least 30 days before it takes effect. **We do not yet keep old versions available**: this page renders whatever the current document says, and there is no archive to compare against. Until there is, ask us at support@heywobo.com and we will send you the previous wording. Where a change needs fresh consent, we will ask. [REVIEW: whether 30 days is the right notice period in each jurisdiction, whether notice must go to the parent as well as the learner where the learner is under 18, and which kinds of change require fresh consent rather than notice, under GDPR Article 13(3), the DPDP Act's notice rules and the CCPA rules on retroactive use of data already collected.]
 
 ## 13. Talking to us
 

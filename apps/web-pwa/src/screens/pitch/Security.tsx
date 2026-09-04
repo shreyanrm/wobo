@@ -85,14 +85,21 @@ const COLLECT: readonly { what: string; detail: string; why: string; how: string
       detail: 'questions, answers, drawings, progress',
       why: 'So Wobo remembers where a lesson stopped and what clicked.',
       how: 'While the account exists, or until erased',
-      del: 'Erase memory, keep progress, or erase all',
+      // "or erase all" was here and it was false. POST /v1/me/erase reaches exactly six things
+      // (memory.Erasure: facts, twin summary, threads, boards, mail preferences, parent links).
+      // Nothing in the gateway, the SDK or the app deletes an ACCOUNT — there is no call to the
+      // auth admin API anywhere in the tree. The account survives every button this product has.
+      del: 'Erase memory, or erase the learning too',
     },
     {
       what: 'Voice',
       detail: 'what you say to Wobo',
       why: 'Processed for that turn only, to hear the question.',
-      how: 'Not stored, unless a family turns on transcripts',
-      del: 'Nothing to delete by default',
+      // "unless a family turns on transcripts" was here. There is no transcripts setting: no
+      // switch, no field, no route, nothing in the gateway or the app. This is the sentence a
+      // parent reads to decide whether voice is safe, so it says only what is true.
+      how: 'Not stored',
+      del: 'Nothing to delete',
     },
     {
       what: 'Payment',
@@ -131,7 +138,18 @@ const NEVER: readonly { title: string; line: string }[] = [
 const LAWS: readonly { title: string; line: string }[] = [
   {
     title: 'India · Digital Personal Data Protection Act 2023.',
-    line: "A parent's verifiable consent before a child's account opens, no profiling of a child for advertising, and erasure on request.",
+    /*
+      WHAT THIS ROW USED TO CLAIM: "A parent's verifiable consent before a child's account opens".
+      There is no consent mechanism in the product. `consent_tier` is READ on every capability call
+      and written by nothing, so every learner sits permanently on `un_elevated`; nothing verifies,
+      records or gates. The claim was also contradicted in print by our own
+      `docs/legal/childrens-privacy.md` section 3, which opens "There is no consent gate in Wobo
+      today". Two live surfaces cannot say opposite things about children's consent.
+
+      A law is still named, because the obligation is real and naming it is not a claim to have met
+      it. What is stated is what we actually do, and the gap is stated as a gap.
+    */
+    line: 'No profiling of a child for advertising, and erasure of the learning on request. There is no parental consent gate in Wobo today, and until there is we do not claim one.',
   },
   {
     title: 'United States · COPPA.',
@@ -139,7 +157,14 @@ const LAWS: readonly { title: string; line: string }[] = [
   },
   {
     title: 'Europe and the United Kingdom · GDPR, including the rules for children.',
-    line: 'Access, correction, export and erasure, and consent asked at the age each country sets.',
+    /*
+      "Access, correction, export and erasure, and consent asked at the age each country sets."
+      There is no export route and no export code anywhere: no `me/export`, no `exportRemoteData`,
+      no `exportSubjectRows`, in the gateway, the SDK or the app. And no consent is asked at any
+      age. The five legal documents and the You screen had this promise removed already; the page
+      that makes it to the most readers kept it.
+    */
+    line: 'Access, correction and erasure. A copy of what we hold is assembled by hand when you write to us; there is no download button and no consent gate yet, and we will not print either until it exists.',
   },
   {
     title: 'California · CCPA and CPRA.',
@@ -148,9 +173,21 @@ const LAWS: readonly { title: string; line: string }[] = [
 ];
 
 const PROTECTIONS: readonly { title: string; line: string }[] = [
+  /*
+    "AES-256 at rest. The database and every backup are encrypted with 256-bit keys managed by the
+    hosting provider and rotated." Nothing in this repository evidences the cipher, the key
+    management or the rotation, and `docs/legal/privacy-policy.md` section 10 — live, on this same
+    site — publishes the opposite posture in as many words: "Encryption at rest and key rotation
+    are the hosting provider's, and we have not read the project's settings and written the answer
+    down, so we make no claim of our own about them." One live page may not make a specific
+    cryptographic claim that the other live page explicitly declines to make.
+
+    The row that replaces it says the thing we can show: the data sits inside a managed database
+    whose own encryption we have not audited, and we say so.
+  */
   {
-    title: 'AES-256 at rest.',
-    line: 'The database and every backup are encrypted with 256-bit keys managed by the hosting provider and rotated.',
+    title: 'Storage we do not run ourselves.',
+    line: 'The database is a managed service and its encryption at rest is the provider\'s, not ours. We have not audited that configuration, so we describe it rather than certify it.',
   },
   {
     title: 'TLS 1.2 or newer in transit.',
@@ -165,9 +202,16 @@ const PROTECTIONS: readonly { title: string; line: string }[] = [
   // carried and it is NOT MET for the same reason (docs/conformance/privacy-and-children.md A12):
   // the gateway holds SUPABASE_SERVICE_ROLE_KEY, which bypasses every policy, and no access log
   // exists. The work is still named, honestly, in SCHEDULED below — as a thing not yet done.
+  /*
+    "Every change is reviewed, dependencies are scanned, and secrets never live in the code."
+    Two of those three are false and were verified false against the live repository on 2026-09-04:
+    `gh api repos/:owner/:repo/branches/main/protection` returns 404 Branch not protected and
+    `rulesets` returns []; `.github/workflows/ci.yml` runs no pip-audit, no bun audit, no npm audit
+    and has no dependabot. The third is true and is the only one kept.
+  */
   {
-    title: 'Reviewed and gated.',
-    line: 'Every change is reviewed, dependencies are scanned, and secrets never live in the code.',
+    title: 'Secrets never live in the code.',
+    line: 'Every key is an environment variable, and the gateway refuses to boot in production without the ones it needs. Branch protection and automated dependency scanning are not set up yet.',
   },
 ];
 
@@ -199,8 +243,12 @@ const SUBS: readonly { role: string; line: string; region: string }[] = [
   },
   {
     role: 'Database and storage',
-    line: 'Holds accounts, learning data and backups, encrypted.',
-    region: 'INDIA, WITH EU FOR EU FAMILIES',
+    line: 'Holds accounts, learning data and backups.',
+    // "INDIA, WITH EU FOR EU FAMILIES" was here. There is ONE database project and there is no EU
+    // project: the whole product points at a single ref, and nothing in the repository provisions,
+    // routes to or even names a second region. This is the row a European parent reads to decide
+    // where their child's data lives, so it names the one place it actually lives.
+    region: 'INDIA',
   },
   {
     role: 'AI model providers',
@@ -347,7 +395,7 @@ export function Security() {
                 <Label>The short version</Label>
                 <div className="hand" style={{ marginTop: 12 }}>
                   We keep what a tutor needs to teach, <em>nothing a marketer would want,</em> and
-                  you can erase all of it with one button.
+                  you can erase the learning with one button.
                 </div>
               </div>
               <div className="sc-five">
@@ -520,9 +568,16 @@ export function Security() {
                   <path d="M28 14 h8 v8" />
                 </svg>
                 <h3>Built carefully</h3>
+                {/* "Every change is reviewed and gated by automated checks. Dependencies are
+                    scanned." Verified false on 2026-09-04: main is not a protected branch, there
+                    are no rulesets, and CI runs no audit of any kind. The tile keeps the part that
+                    is true and names the part that is not, because a security page that overstates
+                    its own build discipline is the last page that should. */}
                 <p>
-                  Every change is reviewed and gated by automated checks. Dependencies are scanned.
-                  Secrets never live in the code.
+                  Secrets never live in the code: every key is an environment variable and the
+                  service refuses to start in production without them. Types are checked and the
+                  test suites run on every push. Branch protection and dependency scanning are on
+                  the list and are not set up yet.
                 </p>
               </div>
             </Reveal>
@@ -530,7 +585,12 @@ export function Security() {
               <svg
                 viewBox="0 0 960 300"
                 role="img"
-                aria-label="How a question travels: from the learner's device, encrypted, to Wobo, to the model provider without identity, back to the learner"
+                /* The label a screen-reader user HEARS. It still said "to the model provider without
+                   identity" long after the visible copy on this same page was corrected to name
+                   what is actually sent — so a blind parent got the retired claim and a sighted
+                   one got the true one. A correction applied to the pixels and not to the page is
+                   not a correction. */
+                aria-label="How a question travels: from the learner's device, encrypted, to Wobo, then to the model provider carrying a first name, class and board and the things the learner asked Wobo to remember, and back to the learner"
               >
                 <rect className="sc-box" x="20" y="100" width="180" height="100" rx="18" />
                 <text className="sc-t" x="110" y="140" textAnchor="middle">
@@ -601,29 +661,41 @@ export function Security() {
                   Neutral by design: no politics, no religion, no ads, no nudges to buy. When a
                   question strays outside school, Wobo says so kindly and comes back to the lesson.
                 </p>
+                {/* This used to be a TICKED bullet claiming consent by age and country under three
+                    named laws. There is no consent gate in Wobo: `consent_tier` is read on every
+                    call and written by nothing. It is stated here, unticked, because a tick beside
+                    "we have not built this" is the picture version of the sentence we just stopped
+                    printing. `docs/legal/childrens-privacy.md` section 3 says the same thing. */}
+                <p>
+                  <b>Consent, and what is not built yet.</b> India's DPDP Act asks a parent's
+                  verifiable consent for a child, COPPA asks it under 13 in the United States, and
+                  the GDPR asks it at the age each European country sets. Wobo has no consent gate
+                  today. We are not going to draw a tick beside one until it works.
+                </p>
               </div>
               <ul>
                 <li>
                   <BigTick />
                   <div>
-                    <b>Consent by age and country.</b> Under 18 in India needs a parent's verifiable
-                    consent under the DPDP Act 2023. Under 13 in the United States follows COPPA.
-                    Under 16 in the EU follows GDPR's rules for children.
+                    {/* "A linked parent sees lessons, progress and the Sunday note." The Sunday
+                        note is real and is sent. The /parent screen renders localStorage on the
+                        VIEWER's device, so a parent opening it sees their own empty storage — the
+                        Sunday note's link there has been removed and the note now carries the
+                        week itself. The bullet says what a parent actually receives. */}
+                    <b>What a parent gets.</b> A weekly note by email with the week's lessons and
+                    what to nudge. A parent has no login of their own yet, so that note is the
+                    whole picture, and it never carries a child's typed questions word for word.
                   </div>
                 </li>
                 <li>
                   <BigTick />
                   <div>
-                    <b>The parent view.</b> A linked parent sees lessons, progress and the Sunday
-                    note. They cannot read a child's typed questions word for word unless the
-                    child's settings allow it.
-                  </div>
-                </li>
-                <li>
-                  <BigTick />
-                  <div>
-                    <b>The erase-everything button.</b> In Settings, for the learner and for a
-                    linked parent. It deletes memory, progress and the account.
+                    {/* "It deletes memory, progress and the account." It does not delete the
+                        account: POST /v1/me/erase clears six things and nothing anywhere calls the
+                        auth admin API. Verified live against the running gateway. */}
+                    <b>The erase button.</b> In Settings. It clears what Wobo remembers about you,
+                    your saved boards and threads, and the parent link. Deleting the account itself
+                    is done by a person when you write to support@heywobo.com.
                   </div>
                 </li>
                 <li>

@@ -139,7 +139,10 @@ describe('every learn rule is the prototype’s rule', () => {
 
 describe('the copy is the prototype’s', () => {
   const LINES = [
-    'what are we figuring out this evening?',
+    // The clock law (DESIGN.md §0, owner) outranks the port-verbatim rule: the prototype's
+    // "this evening" pictures a child at a table late, and this is the first line the home
+    // says to them. app-v1.html was corrected in the same commit, so the port is still verbatim.
+    'what are we figuring out today?',
     'Ask anything from your syllabus, or paste question 7',
     "Shade, drag and draw. Wobo rings the gap when you're close.",
     "That's exactly how learning looks. It goes in the Sunday note.",

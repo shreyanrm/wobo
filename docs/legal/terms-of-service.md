@@ -34,7 +34,7 @@ Wobo works with material from many official curricula. Where a syllabus has been
 
 Wobo is built on artificial intelligence supplied by third-party AI and infrastructure providers, together with our own checking systems. We put real effort into accuracy: mathematics is verified by computer algebra, generated material is cross-checked by a second system, and content without a traceable source is labelled as such.
 
-Even so, Wobo can be wrong, incomplete, or out of date. Do not rely on Wobo alone for anything that carries a consequence, including examination preparation, grades, or decisions about your studies. If something looks wrong, use the flag control on it. We read the flags.
+Even so, Wobo can be wrong, incomplete, or out of date. Do not rely on Wobo alone for anything that carries a consequence, including examination preparation, grades, or decisions about your studies. If something looks wrong, tell us at support@heywobo.com. There is no control on the content itself yet, and a person reads the mailbox.
 
 ## 4. Who can use Wobo
 
@@ -101,7 +101,7 @@ We may update these terms. If a change matters to you, we will tell you at least
 
 ## 12. Ending it
 
-You can stop using Wobo whenever you like, cancel a subscription from settings, and delete your account from settings. Deleting your account deletes your learning data on the timetable set out in `privacy-policy.md`, and you can export it first.
+You can stop using Wobo whenever you like and cancel a subscription from settings. There is no account deletion in the product and no copy of your data you can take away yourself: write to support@heywobo.com and we do both by hand. `privacy-policy.md` section 8 says exactly what the in-product erase reaches and what it does not.
 
 We may suspend or close an account if these terms are broken seriously or repeatedly, if we are required to by law, or if keeping it open would put another learner at risk. Where we close an account that has paid for a term it has not used, we return the unused part unless the closure was for serious misuse, which is the same rule as `refund-and-cancellation.md` section 9. [REVIEW: whether that return may lawfully be withheld on closure for misuse in each consumer jurisdiction, whether suspension without prior notice is enforceable against a consumer, and what notice and appeal route must be offered before closing the account of a minor.]
 

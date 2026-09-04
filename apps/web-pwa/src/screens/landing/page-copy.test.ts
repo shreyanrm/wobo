@@ -108,6 +108,27 @@ const OURS: readonly string[] = [
   // and the rest were pictures.
   ...PRACTICE.cells,
   PRACTICE.notHalf,
+  /*
+    THREE SAFE CARDS THE PROTOTYPE PROMISES AND THE CODE DOES NOT KEEP. Verified against this
+    repository on 2026-09-04; the reason is written beside each line in `page-copy.ts`.
+
+      · "sits encrypted at rest" — nothing here evidences the cipher or the key management, and
+        `docs/legal/privacy-policy.md` §10, live on this same site, explicitly declines to make
+        that claim. One page may not assert what its sibling refuses to.
+      · "Memory, progress, account" in one tap — POST /v1/me/erase clears six things and no code
+        anywhere calls the auth admin API, so no button deletes an account.
+      · "The consent a family gives is the one their own law requires" — no consent is taken from
+        any family in any market; `consent_tier` is read everywhere and written nowhere.
+
+    The drawing is corrected the day somebody redraws it. Until then the page carries the true
+    version, and this list carries the reason rather than the exemption.
+  */
+  'Locked at the row',
+  'Everything travels over TLS, and the database carries its own per-learner access rules underneath the app, so a row is scoped to the learner it belongs to rather than to whoever asks for it.',
+  'Erase the learning, in one tap',
+  'Memory, saved boards and threads, and the parent link. Gone from live systems at once, and out of the backups behind them as those roll over. Deleting the account itself is done by a person when you ask.',
+  'The laws we are building to',
+  "India's Digital Personal Data Protection Act, COPPA for children in the United States, and the GDPR's rules for children in Europe and the United Kingdom. There is no consent gate in Wobo yet, and we say so on the security page rather than implying one here.",
 ];
 
 /**

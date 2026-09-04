@@ -23,13 +23,22 @@ _HTTP_TIMEOUT_S = 60.0
 _VOICE = "Kore"
 
 
-def synthesize_narration(text: str, *, instruction: str | None = None) -> dict[str, str] | None:
+def synthesize_narration(
+    text: str, *, instruction: str | None = None, capability: str = "voice.tts"
+) -> dict[str, str] | None:
     """Narration audio for a motion piece. ``{"mime", "b64"}`` or ``None``.
 
     ``instruction`` is an optional system instruction carried with the line — how it is to be
     spoken, never what is said. The read-aloud path uses it for the learner's accent
     (``wobo_gateway.voice.accent_instruction``), so a one-shot spoken line lands in the same
     English as the live microphone; a narration that asks for nothing is unchanged.
+
+    ``capability`` is which seam asked. It exists only for the usage ledger: this call is a paid
+    request to Google that does NOT pass through ``telemetry.record_cost`` (it is a raw HTTPS POST,
+    not a litellm completion), so until now it has been the one class of model call in the product
+    that cost money and left no accounting trace at all. The default names the read-aloud route;
+    the video engine passes ``voice.narration`` so a learner asking to be read to and a narrated
+    explainer's audio can be told apart in the bill.
     """
     import urllib.error
     import urllib.request
@@ -77,9 +86,59 @@ def synthesize_narration(text: str, *, instruction: str | None = None) -> dict[s
             inline = part.get("inlineData") or part.get("inline_data")
             if inline and inline.get("data"):
                 mime = inline.get("mimeType") or inline.get("mime_type") or "audio/pcm;rate=24000"
-                return _as_playable(str(mime), str(inline["data"]))
+                audio = _as_playable(str(mime), str(inline["data"]))
+                _record_spoken(capability, audio)
+                return audio
     logger.warning("tts: Google 200 but no audio in response via %s", key_name)
     return None
+
+
+def _record_spoken(capability: str, audio: dict[str, str]) -> None:
+    """Put one spoken line in the usage ledger, measured in SECONDS of audio.
+
+    Seconds, not calls: "how much of the free allowance did the spoken answers use" is one of the
+    owner's questions, and a call count cannot answer it — one line is three seconds and another
+    is ninety. The length is MEASURED off the WAV that is about to be played, never estimated from
+    the character count.
+
+    litellm has no price for this model, so the cost is written only when an operator has entered
+    one (``LEDGER_PRICE_SPOKEN_SECOND_USD``), and the row then says the number came from a person
+    rather than from a vendor. With no price entered the row is honestly unpriced and the free-day
+    derivation reports the gap in words instead of guessing at it.
+
+    Never raises. An accounting line is worth less than the audio a child is waiting for.
+    """
+    try:
+        from wobo_gateway import ledger
+
+        ms = wav_duration_ms(audio.get("b64") or "")
+        if not ms:
+            return
+        seconds = ms / 1000.0
+        price = ledger.configured_price(ledger.SPOKEN_SECOND)
+        cost = None if price is None else price * seconds
+        ledger.record(
+            capability=capability,
+            model_requested=TTS_MODEL,
+            model_served=TTS_MODEL,
+            cost_usd=cost,
+            cost_source=ledger.UNPRICED if price is None else ledger.FROM_CONFIGURED,
+            unit_kind=ledger.SPOKEN_SECOND,
+            unit_count=seconds,
+        )
+        # AND THE DAILY MONEY CEILING. ``spend.py`` is fed from ``telemetry.record_cost``, which
+        # only sees litellm completions — this is a raw HTTPS POST to a paid API, so every spoken
+        # second the ledger recorded was a dollar the ceiling never counted. A ceiling that cannot
+        # see the most expensive per-minute thing in the product is not the platform's ceiling.
+        # With no price configured there is no number to add: the row is honestly unpriced and the
+        # ceiling is honestly not charged for a figure nobody has. ``docs/OPERATIONS.md`` names
+        # LEDGER_PRICE_SPOKEN_SECOND_USD as the entry that closes that gap.
+        if cost:
+            from wobo_gateway import spend
+
+            spend.record(cost, capability=capability, model=TTS_MODEL)
+    except Exception as exc:  # noqa: BLE001 — accounting must never break a spoken line
+        logger.debug("tts: not recorded in the ledger (%s: %s)", type(exc).__name__, exc)
 
 
 def _as_playable(mime: str, b64: str) -> dict[str, str]:

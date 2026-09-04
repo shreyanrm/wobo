@@ -18,6 +18,7 @@ learner, honest in provenance (``model: "seed"``).
 from __future__ import annotations
 
 import base64
+import contextlib
 import copy
 import hashlib
 import json
@@ -1673,13 +1674,47 @@ def _generate_video_live(
     # Per-scene synthesis (MOTION.md §5): each beat gets its OWN audio, and the measured WAV
     # length becomes that beat's authoritative duration — never one joined blob, never the
     # LLM-guessed durationMs (which stays only as the muted-mode fallback). Keyless -> no audio.
+    total_ms = 0
     for scene in artifact["scenes"]:
-        audio = synthesize_narration(scene["narration"])
-        if audio is None:
-            continue
-        measured = wav_duration_ms(audio["b64"])
-        scene["audio"] = {**audio, "durationMs": measured} if measured else audio
+        audio = synthesize_narration(scene["narration"], capability="voice.narration")
+        measured = wav_duration_ms(audio["b64"]) if audio is not None else None
+        if audio is not None:
+            scene["audio"] = {**audio, "durationMs": measured} if measured else audio
+        # How long this beat actually runs: the measured WAV when there is one (the authoritative
+        # length the renderer advances on), otherwise the authored duration the muted path uses.
+        with contextlib.suppress(TypeError, ValueError):
+            total_ms += int(measured or scene.get("durationMs") or 0)
+    _record_video_delivered(total_ms, model_used)
     return artifact, model_used, tokens, False
+
+
+def _record_video_delivered(total_ms: int, model_used: str) -> None:
+    """Put the SECONDS OF FINISHED VIDEO in the usage ledger, as a delivery rather than a call.
+
+    "Usage pacing based on how much of the 1x uses the video minutes" was asked for directly, and
+    nothing else in the ledger can answer it: the plan call above is one generation whether it
+    produced twelve seconds or two minutes, and the narration rows measure audio, not the piece.
+
+    It is a DELIVERY row and carries no money, because no provider bills us per second of video —
+    what a video costs is its scene plan plus its narration, each already on its own row. Counting
+    it as a call would inflate every per-call figure the console derives, so the rollup excludes
+    delivery rows from every call count and every cost sum.
+
+    Never raises, and never blocks: a lesson that is ready must not wait on an accounting line.
+    """
+    if total_ms <= 0:
+        return
+    try:
+        from wobo_gateway import ledger
+
+        ledger.record_delivery(
+            capability="engine.video",
+            unit_kind=ledger.VIDEO_SECOND,
+            unit_count=total_ms / 1000.0,
+            model_served=model_used,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("video: seconds not recorded (%s: %s)", type(exc).__name__, exc)
 
 
 def _sim_reason(obj: Any) -> str:

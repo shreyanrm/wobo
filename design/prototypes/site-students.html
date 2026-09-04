@@ -85,7 +85,7 @@ header .cta{display:flex;gap:8px}
 @media (prefers-reduced-motion:reduce){.film .lasso{animation:none;stroke-dashoffset:0}.film .q{animation:none;opacity:1}.blink{animation:none}.draw{stroke-dashoffset:0}}
 
 /* chapters */
-section{padding:clamp(56px,7vw,92px) 0}
+section{padding:calc(var(--band) / 2) 0}
 .chapter{display:grid;grid-template-columns:1fr 1fr;gap:var(--s5);align-items:center}
 .chapter.flip .art{order:-1}
 .chapter .num{font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)}
@@ -93,6 +93,16 @@ section{padding:clamp(56px,7vw,92px) 0}
 .chapter h2 .hl{position:relative;white-space:nowrap}
 .chapter h2 .hl::before{content:"";position:absolute;left:-.1em;right:-.1em;bottom:.08em;height:.5em;background:var(--marigold);opacity:.55;border-radius:6px;z-index:-1;transform-origin:left;transform:scaleX(0);transition:transform .8s cubic-bezier(.6,0,.2,1) .2s}
 .chapter.on h2 .hl::before{transform:scaleX(1)}
+/* TRAP 4 (DESIGN.md section 0): white-space:nowrap on anything long. The mark above has to ride one
+   unbroken line, because an absolutely positioned bar cannot follow an inline that wraps - and on a
+   phone "changes the whole approach" at 30px is wider than the phone, so this page measured 461px
+   inside a 390px window. Below the phone breakpoint the mark becomes the span's own painted
+   background with box-decoration-break:clone, which wraps with the words, sized from the line box
+   and centred (100% 92%, trap 5) so a superscript is contained rather than clipped. */
+@media (max-width:560px){
+  .chapter h2 .hl{white-space:normal;border-radius:6px;background-image:linear-gradient(color-mix(in srgb,var(--marigold) 55%,transparent),color-mix(in srgb,var(--marigold) 55%,transparent));background-size:100% 92%;background-position:0 50%;background-repeat:no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .chapter h2 .hl::before{display:none}
+}
 .chapter p{color:var(--ink-2);font-size:18px;margin-top:var(--s2);max-width:46ch}
 .chapter .say{margin-top:var(--s3);font-family:var(--hand);font-weight:600;font-size:28px;line-height:1.15;color:var(--ink)}
 .chapter .say em{font-style:normal;color:var(--rose)}
@@ -135,6 +145,20 @@ section{padding:clamp(56px,7vw,92px) 0}
 .angle .line.win{color:var(--mint)}
 
 /* streak */
+/* THE TWO MODES (docs/SELL.md section 2, owner 2026-09-04): a doubt is cleared the moment it
+   appears, learning goes a bit at a time across weeks. Two cards and never three - the shape is the
+   argument. One accent per card doing one job: pig on the thing that happens now, mint on the thing
+   that holds. */
+.modes{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0}
+.modes > div{background:var(--paper);border-radius:18px;padding:16px 18px;display:grid;gap:6px;align-content:start;min-width:0}
+.modes > div > span{font:500 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.modes > div > b{font:600 17px/1.25 var(--sans)}
+.modes > div > p{font:400 14px/1.45 var(--sans);color:var(--ink-2);margin:0;max-width:none}
+.modes > div > em{font-style:normal;font:500 13px/1.3 var(--sans);color:var(--pig);display:flex;align-items:flex-start;gap:8px;min-width:0}
+.modes > div > em::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--pig);flex:0 0 auto;margin-top:4px}
+.modes > div.slow > em{color:var(--mint)}
+.modes > div.slow > em::before{background:var(--mint)}
+@media (max-width:560px){.modes{grid-template-columns:1fr}}
 .streak{display:grid;gap:14px;width:100%}
 .streak .days{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .streak .days i{width:44px;height:44px;border-radius:50%;background:var(--paper);display:grid;place-items:center;font:600 13px/1 var(--sans);color:var(--ink-3);font-style:normal}
@@ -178,6 +202,24 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 @media (prefers-reduced-motion:reduce){
   footer .fw svg{clip-path:none!important;transform:none!important;color:rgba(255,255,255,.15)!important}
 }
+
+/* ── the ladder under chapter 03 ─────────────────────────────────────────────
+   One node per rung, drawn as the climb draws a chapter: mint held, rose the
+   one that needs care, pig where you are, and everything still open drawn open
+   rather than shut. Real text, not text inside a drawing: an SVG label scales
+   with its viewBox and lands under the 13px floor on a phone. */
+.climb{width:100%;list-style:none;margin:0;padding:6px 0;position:relative}
+.climb::before{content:"";position:absolute;left:12px;top:32px;bottom:32px;width:6px;border-radius:999px;background:var(--paper-3)}
+.climb > li{display:grid;grid-template-columns:30px 1fr;gap:16px;align-items:center;padding:11px 0;min-width:0}
+.climb > li > i{width:30px;height:30px;border-radius:50%;background:var(--paper);box-shadow:inset 0 0 0 3px var(--ink);position:relative;z-index:1;font-style:normal}
+.climb > li.held > i{background:var(--mint)}
+.climb > li.slip > i{background:var(--rose)}
+.climb > li.here > i{background:var(--pig);box-shadow:inset 0 0 0 3px var(--ink),0 0 0 5px var(--paper-2),0 0 0 8px var(--pig)}
+.climb > li > div{min-width:0}
+.climb > li > div > b{display:block;font:600 16px/1.3 var(--sans);color:var(--ink)}
+.climb > li > div > span{display:block;font:400 14px/1.4 var(--sans);color:var(--ink-2);margin-top:2px}
+.climb > li.here > div > span{color:var(--pig)}
+.chapter.tight{padding:var(--s4) 0}
 </style>
 </head>
 <body>
@@ -197,9 +239,9 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 <section class="hero"><div class="wrap">
   <div>
     <span class="label">For students</span>
-    <h1>Ask the question you'd <em>never ask in class.</em></h1>
-    <p class="sub">The basic one. The embarrassing one. The one you should've asked in Class 6. Wobo answers all of them the same way: drawn out, no face, no sigh, at 10 pm if that's when you're doing this.</p>
-    <div class="row"><a class="btn pig" href="#">Start learning for free</a><a class="btn quiet" href="#try">Try one now</a><span class="note">Free every day. No card. No trial that ends.</span></div>
+    <h1>You're stuck on one thing, <em>and you want it drawn out slowly.</em></h1>
+    <p class="sub">Wobo does that. Ask it the question you’d rather not ask out loud, and it draws the answer line by line, as many times as it takes and in as many different ways as it takes. Ask the same thing again next week and it starts from the beginning, just as patiently.</p>
+    <div class="row"><a class="btn pig" href="#">Start free</a><a class="btn quiet" href="#">See subjects</a><span class="note">Free every day. No card. No trial that ends.</span></div>
   </div>
   <div class="film">
     <div class="frame"><svg viewBox="0 0 480 300" aria-label="A paused lesson with a loop drawn around the confusing part">
@@ -218,12 +260,12 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
     <div>
       <div class="num">01</div>
       <h2>Ask the <span class="hl">basic</span> thing.</h2>
-      <p>"What even is a hypotenuse." "Why is it called integration." "Is the mitochondria the thing or the place." Wobo doesn't keep score of what you should already know. It just answers.</p>
-      <div class="say">No face. No sigh. <em>Just the answer, drawn.</em></div>
+      <p>"What even is a hypotenuse." "Why is it called integration." "Is the mitochondria the thing or the place." Wobo doesn't keep score of what you should already know, and there is nobody else in the room. It just answers.</p>
+      <div class="say">Ask it twice. <em>Ask it ten times.</em></div>
     </div>
     <div class="art pig">
       <div class="chat">
-        <div class="t">Tuesday, 9:41 pm</div>
+        <div class="t">Tuesday, after school</div>
         <div class="me">ok dumb question but what actually is a hypotenuse</div>
         <div class="wo">Not dumb. It's the <b>longest side</b> of a right triangle, the one opposite the square corner. Want me to draw it?</div>
         <div class="me">yes</div>
@@ -277,6 +319,23 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
       </div>
     </div>
   </div>
+  <div class="chapter flip tight reveal">
+    <div>
+      <h2>Miss it twice and it <span class="hl">changes the whole approach</span>.</h2>
+      <p>You don’t have to say you’re lost, and you don’t have to ask again. On a second miss Wobo stops explaining and does something else: works one all the way through instead of stating the rule, or draws the shape of it, or puts it inside something you already know how it behaves, or talks it out until you say it back.</p>
+      <p>It never hands you the one that just failed, and it remembers which ones it has spent, so tomorrow starts somewhere new instead of at the top again.</p>
+      <div class="say">Two misses isn’t a verdict. <em>It’s a signal to try another way.</em></div>
+    </div>
+    <div class="art">
+      <ul class="climb">
+        <li class="slip"><i></i><div><b>The explanation that just missed</b><span>never offered to you again</span></div></li>
+        <li class="here"><i></i><div><b>One worked all the way through</b><span>the method changes, not the volume</span></div></li>
+        <li class="open"><i></i><div><b>The same idea, drawn</b><span>when a sentence won’t go in, a shape often does</span></div></li>
+        <li class="open"><i></i><div><b>Put inside something you’re into</b><span>only if you’ve told Wobo what that is</span></div></li>
+        <li class="open"><i></i><div><b>Talked out, then you say it back</b><span>the one that sticks hardest</span></div></li>
+      </ul>
+    </div>
+  </div>
 </div></section>
 
 <section><div class="wrap">
@@ -285,7 +344,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
       <div class="num">04</div>
       <h2>It <span class="hl">notices</span> when you nail it.</h2>
       <p>Not a confetti cannon every five seconds. A small, specific fuss when you actually get something, and a quiet note of what you're good at that builds up over the term. Drag the ray to a right angle and see.</p>
-      <div class="say">Praise you earned <em>hits different.</em></div>
+      <div class="say">Nothing is handed to you. <em>So nothing is hollow.</em></div>
     </div>
     <div class="art lilac">
       <div class="angle">
@@ -309,7 +368,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
     <div>
       <div class="num">05</div>
       <h2>Your <span class="hl">streak</span>, your way.</h2>
-      <p>Ten minutes a day is the whole trick, and Wobo keeps the count. But rest days don't break it and nobody gets a guilt notification at midnight. It's your streak, not the app's.</p>
+      <p>Ten minutes a day is the whole trick, and Wobo keeps the count. But rest days don't break it and nobody gets a guilt notification after hours. It's your streak, not the app's.</p>
       <div class="say">Consistency beats cramming. <em>Every single time.</em></div>
     </div>
     <div class="art rose">
@@ -319,6 +378,20 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
         <div class="hand">Thursday and Sunday off. Still 12.</div>
       </div>
       <span class="sticker" style="right:22px;top:18px">no guilt</span>
+    </div>
+  </div>
+  <div class="chapter flip tight reveal">
+    <div>
+      <h2>Ask <span class="hl">now</span>. Learn slowly.</h2>
+      <p>Two different things, and mixing them up is the whole reason exam week feels the way it does. A doubt is whatever just stopped you, and you ask it the moment it turns up: after school, on the way home, over the weekend, in the ten minutes before practice. Learning is the slow one and it goes a bit at a time.</p>
+      <p>Which is the only reason the week before an exam can be you reading things you already know, instead of meeting half of them for the first time. Wobo is built for that on purpose, so it is a poor thing to open once a term and a good one to open most days.</p>
+      <div class="say">One of them is urgent. <em>The other one is why it never has to be.</em></div>
+    </div>
+    <div class="art">
+      <div class="modes">
+        <div><span>A doubt</span><b>Ask it the moment it lands</b><p>Wherever you are, in whatever form makes it go in: drawn on a board, filmed, turned into something to drag, or talked through out loud.</p><em>Any time</em></div>
+        <div class="slow"><span>Learning</span><b>Ten minutes, most days</b><p>The ground first, then the topic, then it comes back the moment the evidence says it slipped. Nothing counts as done until it holds.</p><em>So the week before is revision</em></div>
+      </div>
     </div>
   </div>
 </div></section>
@@ -334,9 +407,9 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 </div></section>
 
 <div class="close"><div class="wrap">
-  <h2>Ask it this evening.</h2>
-  <span class="hand">Free to use every day, not just the first.</span>
-  <div class="row"><a class="btn" href="#">Start learning for free</a><a class="btn q" href="#">See how it works</a></div>
+  <h2>Ask the one you have been carrying around.</h2>
+  <span class="hand">It draws it again as many times as you ask, and no one else is in the room.</span>
+  <div class="row"><a class="btn" href="#">Start free</a><a class="btn q" href="#">See subjects</a></div>
 </div></div>
 <footer><div class="wrap">
   <div><div class="wm"><svg viewBox="0 0 1160 340" style="width:120px"><use href="#wm"/></svg></div><p style="margin-top:10px;max-width:28ch">A tutor that draws, never judges, and is always there.</p></div>

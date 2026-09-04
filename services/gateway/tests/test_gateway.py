@@ -439,6 +439,8 @@ def test_prod_cors_is_exactly_the_one_app_origin(monkeypatch: pytest.MonkeyPatch
     otherwise hold a credentialed cross-origin door into production."""
     monkeypatch.setenv("ENV", "prod")
     monkeypatch.setenv("SUPABASE_JWT_SECRET", "x" * 32)
+    # Prod refuses to boot without a project to pin the token issuer to (validate_env).
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.co")
     from wobo_gateway import app as app_mod
 
     assert app_mod._preview_origin_regex() is None
@@ -499,6 +501,7 @@ def test_prod_cors_excludes_localhost(monkeypatch: pytest.MonkeyPatch) -> None:
     from fastapi.testclient import TestClient
 
     monkeypatch.setenv("ENV", "prod")
+    monkeypatch.setenv("SUPABASE_URL", "https://project.supabase.co")
     from wobo_gateway import app as app_mod
 
     client = TestClient(create_app(make_gateway()))

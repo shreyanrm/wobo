@@ -153,18 +153,29 @@ def _dial(plan: str, kind: str) -> int:
         return default
 
 
+def resolve_plan(plan: str = "free", *, anonymous: bool = False) -> str:
+    """The dial set a plan name ACTUALLY lands on. Never a guess, and never silent.
+
+    An unknown plan name falls to free, which is the right call for a learner — a billing bug
+    should cost them questions rather than hand out an allowance nobody paid for — but it is the
+    wrong thing to keep quiet about anywhere else. The console asks "what does a 1x day on the
+    ``plus`` plan cost", and the answer used to be computed from the FREE dials and labelled
+    "plus", because the route echoed the string it was handed. Whoever reads it can now be told
+    which set of numbers the figure was actually built from.
+    """
+    if anonymous:
+        return "anon"
+    name = (plan or "free").strip().lower()
+    return name if (name, TURN) in _DIALS else "free"
+
+
 def limits_for(plan: str = "free", *, anonymous: bool = False) -> dict[str, int]:
     """The day's allowance, and the ONLY thing a plan changes.
 
     Anonymous readers get the small one whatever the plan says. An unknown plan name falls to
-    free rather than to a guess: a billing bug should cost a learner questions, never hand out
-    an allowance nobody paid for.
+    free rather than to a guess (:func:`resolve_plan`, which says which set was used).
     """
-    if anonymous:
-        key = "anon"
-    else:
-        name = (plan or "free").strip().lower()
-        key = name if (name, TURN) in _DIALS else "free"
+    key = resolve_plan(plan, anonymous=anonymous)
     return {TURN: _dial(key, TURN), GENERATION: _dial(key, GENERATION)}
 
 

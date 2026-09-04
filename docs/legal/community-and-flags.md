@@ -6,11 +6,11 @@ Draft of 3 September 2026. Version 0.1. Written by the Wobo team, not yet review
 >
 > Wobo is not a social network. Learners cannot message each other, and there are no public profiles, comments or feeds.
 >
-> There are three places where something leaves your own account: you flag content that is wrong, you share a board or a progress page you made, or you offer your own syllabus to the shared library so the next learner from your school gets it.
+> There are three places where something can leave your own account: you tell us that something Wobo produced is wrong, you save a board as an image and send it yourself, or you offer your own syllabus to the shared library so the next learner from your school gets it.
 >
-> Each of those is a choice you make, one at a time. Nothing is shared automatically, and you can undo any of it.
+> Each of those is a choice you make, one at a time. Nothing is shared automatically.
 >
-> Flags are read by a person. If you flag something and we fix it, we will tell you.
+> Today the first of those is an email to support@heywobo.com, and the third is switched off. This document says which parts of it are built and which are not, rather than describing the finished shape as though it were here.
 
 ---
 
@@ -18,55 +18,51 @@ Draft of 3 September 2026. Version 0.1. Written by the Wobo team, not yet review
 
 Three things:
 
-1. **Flags.** Telling us that something Wobo produced is wrong, confusing, or upsetting.
-2. **Shared boards and progress.** A board Wobo drew for you, a mastery image, or a weekly summary that you choose to send to someone.
+1. **Reports.** Telling us that something Wobo produced is wrong, confusing, or upsetting.
+2. **Saved boards and progress.** A board Wobo drew for you, or a mastery image, which you can save to your device and send to someone yourself.
 3. **Contributed syllabuses.** A syllabus you gave Wobo, which you can offer to the shared curriculum library so the next learner from the same board does not have to.
 
 There is no fourth thing. Wobo has no learner-to-learner messaging, no comments, no forums, no public profiles, and no follower counts. That is a deliberate choice and not a feature we have not got to yet. If it ever changes, it will be a new version of this document with new protections written first.
 
-## 2. Flagging content
+## 2. Telling us something is wrong
 
-**Where.** A quiet flag control sits on every piece of content Wobo produces: a lesson, a board, a practice item, an explanation. You can also just say it out loud, and Wobo will raise the flag for you.
+**Where, today.** support@heywobo.com, read by a person. There is no flag control in the product: not on a lesson, not on a board, not on a practice item, and Wobo has no spoken command that raises one. We have written that plainly here because the alternative is a child hunting a screen for a control that was only ever on a page.
 
-**What you can send.** What kind of problem it is: wrong, unclear, upsetting, or something else. A description in your own words. An image of the screen, taken by Wobo's own renderer rather than by a screenshot of your device, so nothing else on your device is captured. Wobo's ink tools to circle the part that is wrong, and a blur tool if you want to hide something before sending.
+**The one exception.** On an equation practice question there is an "I think I'm right" control on the question itself. It re-checks the answer against the equation and changes the mark where the proof is on the learner's side. That is a regrade, not a report, and it reaches nobody.
 
-**What happens.** The flag goes into a queue that a person reads. Content flagged more than once is looked at sooner. Where we agree it is wrong, we correct it, and, because generated content is cached and shared across learners on the same concept, the correction reaches everyone. We tell you what we found, and we thank you either way.
+**What happens to what you send.** We read it, we work out whether the content was wrong, and we fix what was. We answer you either way. There is no queue, no case number, no priority ordering by how many people reported the same thing, and no automatic message back when something is settled, because none of that is built.
 
-**Time.** We aim to look at a safety flag the same day and a content flag within [5 working days]. [REVIEW: whether either target is a commitment we can meet with the team we have, and whether any regime, in particular the EU Digital Services Act if it applies, imposes a shorter one for illegal content or for a report about a child.]
+**What a report contains.** Only what you chose to send us. We do not take a picture of your screen, and nothing is collected from your device when you write to us.
 
-**What a flag contains.** Only what you sent plus the content itself and enough context to reproduce it. We do not attach your name to a flag when it moves through the queue, and we do not use flags to judge a learner.
+**Time.** We do not publish a turnaround time, because we have not staffed one and a target nobody is held to is worse than no target. What we will say is that a message about a child being at risk is read before anything else in the mailbox.
 
-**Abuse of flags.** Flooding the queue with false flags takes attention away from real problems, and repeated abuse is dealt with under `acceptable-use.md`.
+**What we intend to build, and have not.** A quiet control on every piece of content Wobo produces; a picture of exactly what you were looking at, drawn by our own renderer rather than captured from your device; ink and blur tools to mark it up; a queue a person works through; and a message back when a report is settled. None of it exists today. When it does, this section is rewritten, and a turnaround time goes in it only once somebody is answerable for meeting it.
 
-## 3. Sharing a board or a progress page
+**Abuse.** Flooding us with false reports takes attention away from real problems, and repeated abuse is dealt with under `acceptable-use.md`.
 
-**Nothing is public by default.** A board, a note or a progress page lives in your account until you decide otherwise.
+## 3. Saving and sending a board or a progress page
 
-**When you share:**
+**Nothing is public, and nothing is ever published.** A board, a note or a progress page lives in your account and on your device.
 
-- You get a link, or an image, and you choose who to send it to.
-- The link shows only what is on that board or page. It does not show your other work, your profile, your account, or your contact details.
-- Your name appears only if you leave it on, and there is a control to take it off before you send.
-- You can revoke a link at any time, from the same place you made it, and it stops working.
-- Links expire after [90 days] unless you say otherwise. [REVIEW: whether an expiry is required at all, whether [90 days] is the right default for a link created by a learner under 18, and whether a link that has expired must also be purged rather than merely refused.]
+**What sharing actually is, today.** Wobo renders the board as an image and hands it to you. Nothing is uploaded, nothing is posted, and no link is created. What happens to that image after that is up to you and the app you send it through, and we have no part in it and no way to take it back.
 
-**For a learner under 18**, sharing is one of the features a parent or guardian switches on in the consent flow. Where it is off, the save and export controls still work, and the link control does not appear.
+**What does not exist.** There is no share link, so there is nothing to revoke and nothing to expire, and there is no control that strips your name from a link, because there is no link. Earlier drafts of this document described all three. They were describing a design, not the product.
 
-**The parent link** is a specific case: a weekly summary of what your child worked on, sent to a parent or guardian who has been verified. It is read-only, it shows learning and not conversations, and either the learner or the parent can switch it off. `parental-consent.md` has the detail.
+**The parent link** is the one thing that leaves the device on its own: a weekly note about what your child worked on, sent to a parent or guardian who confirmed the invite from their own device. It is a summary and not a transcript, it shows learning and not conversations, and either the learner or the parent can end it. `parental-consent.md` has the detail, and section 3 of `childrens-privacy.md` says honestly what does and does not gate it.
 
-**Please do not** put personal information into something you are about to share, and remember that once a link or an image has reached another person, we cannot take it back from them.
+**Please do not** put personal information into something you are about to send, and remember that once an image has reached another person, we cannot take it back from them.
 
 ## 4. Contributing a syllabus
 
 If you gave Wobo your own syllabus, Wobo built you a personal curriculum from it. That is yours, and it is private.
 
-You can offer it to the shared library, which means the next learner studying the same thing gets it straight away. If you do:
+The shared library is the intended next step: offering your syllabus to it would mean the next learner studying the same thing gets it straight away. **There is no control in the product that does this today**, and until there is, nothing you give Wobo goes anywhere near another learner. The terms below are what will apply when it opens, and none of them is in force yet:
 
 - **It is your choice, every time, and it is off by default.**
 - **We intend to strip what identifies you** before anything is stored in the shared library: your name, your school where it appears in a heading, your teacher's name, your class list, and any contact detail we can find. If we cannot strip it cleanly, we do not publish it. [REVIEW: this de-identification step is not built. `docs/CURRICULUM.md` describes contributed frameworks as moderated and nothing more. Before this sentence is published there must be a named de-identification stage in the contribution job that fails closed when it is uncertain, a test that proves it fails closed, and an owner. Until then this line must not be stated as a description of what happens today, and the shared library must stay switched off.]
 - **It is labelled honestly.** The next learner sees "shared by another learner, not yet checked" until it has been through the same verification any other syllabus goes through.
 - **You give us permission to use it** for that purpose. You keep ownership. You can withdraw it at any time and we will remove it from the library, though a learner who has already started studying from it keeps their own copy of what they were studying, because taking a curriculum out from under someone mid-term would do more harm than good. [REVIEW: whether this residual use needs to be spelled out as an irrevocable licence for copies already in use, and the copyright position of a syllabus document that belongs to an examination board rather than to the learner.]
-- **A learner under 18** can contribute only where a parent or guardian has allowed it.
+- **A learner under 18** would need a parent or guardian to allow it first, and that gate does not exist yet either. It has to exist before the library opens.
 
 **Copyright.** A board's syllabus document usually belongs to the board. We treat it as a factual source: we extract the structure of what is taught, record where it came from, and link to the official document rather than reproducing it. We do not publish scans or copies of anyone's textbook or paper. If you are a rights holder and think we have got that wrong, see section 6. [REVIEW: the copyright position on extracting curriculum structure from official syllabus documents in India, the UK, the EU and the US, including the database right in the EU and the UK, and fair dealing and fair use.]
 
@@ -88,7 +84,7 @@ Write to support@heywobo.com with what the material is, where it is in Wobo, wha
 
 ## 7. Reporting
 
-- Content that is wrong: the flag control.
+- Content that is wrong: support@heywobo.com.
 - Someone at risk, or something that worries you: support@heywobo.com.
 - A rights complaint: support@heywobo.com.
 - Anything else: support@heywobo.com.

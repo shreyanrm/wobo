@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "bun run landing:boards && bun run site:content && bun run sitemap && tsc --noEmit && vite build",
+    "build": "bun run landing:boards && bun run pitch:boards && bun run site:content && bun run sitemap && tsc --noEmit && vite build",
     "landing:boards": "bun run scripts/landing-boards.ts",
+    "pitch:boards": "bun run scripts/pitch-boards.ts",
     "sitemap": "bun run scripts/sitemap.ts",
     "site:content": "bun run scripts/site-content.ts",
+    "build:admin": "tsc --noEmit && vite build --config vite.admin.config.ts",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "bun test test/*.test.ts src",

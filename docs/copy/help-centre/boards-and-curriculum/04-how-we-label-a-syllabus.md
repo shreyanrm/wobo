@@ -21,6 +21,6 @@ The checks have to pass, and then either two different learners use it without c
 
 **If a label is wrong**
 
-Flag it. A flagged syllabus stops being promoted until we have looked at it.
+Write to support@heywobo.com and name the syllabus and the label. There is no flag control in Wobo yet, so the mailbox is the route, and it is read by a person.
 
-**Related:** Flagging something that is wrong.
+**Related:** Telling us something is wrong.

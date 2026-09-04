@@ -79,7 +79,7 @@ header .cta{display:flex;gap:8px}
 @media (prefers-reduced-motion:reduce){.strip .arrow{animation:none;stroke-dashoffset:0}.blink{animation:none}.draw{stroke-dashoffset:0}}
 
 /* timeline chapters */
-section{padding:clamp(56px,7vw,92px) 0}
+section{padding:calc(var(--band) / 2) 0}
 .step{display:grid;grid-template-columns:72px 1fr 1fr;gap:var(--s4);align-items:center;padding:var(--s4) 0;position:relative}
 .step::before{content:"";position:absolute;left:26px;top:0;bottom:0;width:4px;background:var(--paper-3);border-radius:2px}
 .step:first-of-type::before{top:50%}.step:last-of-type::before{bottom:50%}
@@ -205,12 +205,12 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 <section><div class="wrap">
   <div class="step reveal">
     <div class="n">1</div>
-    <div><div class="t">Tuesday, 9:40 pm</div><h2>Ask, the way you'd ask a friend.</h2><p>Half a sentence is fine. A photo of the worksheet is fine. Wobo works out what's actually being asked, and which chapter of your syllabus it lives in.</p><div class="say">"wait what's a hypotenuse" <em>is a complete question.</em></div></div>
-    <div class="art pig"><div class="chat"><div class="t">Tuesday, 9:41 pm</div><div class="me">q7 says find the hypotenuse, sides 3 and 4. what is that even</div><div class="wo">The <b>longest side</b> of a right triangle. Give me a second, I'll draw the triangle so you can see it.</div></div><span class="sticker" style="right:22px;top:18px">listening</span></div>
+    <div><div class="t">Tuesday, after school</div><h2>Ask, the way you'd ask a friend.</h2><p>Half a sentence is fine. A photo of the worksheet is fine. Wobo works out what's actually being asked, and which chapter of your syllabus it lives in.</p><div class="say">"wait what's a hypotenuse" <em>is a complete question.</em></div></div>
+    <div class="art pig"><div class="chat"><div class="t">Tuesday, a minute later</div><div class="me">q7 says find the hypotenuse, sides 3 and 4. what is that even</div><div class="wo">The <b>longest side</b> of a right triangle. Give me a second, I'll draw the triangle so you can see it.</div></div><span class="sticker" style="right:22px;top:18px">listening</span></div>
   </div>
   <div class="step reveal">
     <div class="n">2</div>
-    <div><div class="t">9:42 pm</div><h2>Drawn out, one line at a time.</h2><p>Not a paragraph. A board. The triangle appears, then the squares, then the numbers, in the order a good teacher would draw them, with Wobo talking as it goes. Pause it, rewind it, circle any bit and ask why.</p><div class="say">You watch the answer <em>get built.</em></div></div>
+    <div><div class="t">Same sitting</div><h2>Drawn out, one line at a time.</h2><p>Not a paragraph. A board. The triangle appears, then the squares, then the numbers, in the order a good teacher would draw them, with Wobo talking as it goes. Pause it, rewind it, circle any bit and ask why.</p><div class="say">You watch the answer <em>get built.</em></div></div>
     <div class="art mint"><svg viewBox="0 0 520 340" aria-hidden="true"><rect class="paper" x="30" y="24" width="460" height="292" rx="22"/>
       <path class="ink draw" d="M150 260 L270 260 L150 170 Z"/><path class="ink thin" d="M150 240 h20 v20"/>
       <path class="ink pig draw" d="M270 260 L360 140 L240 50 L150 170" style="transition-delay:.9s"/>
@@ -221,7 +221,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
   </div>
   <div class="step reveal" id="try">
     <div class="n">3</div>
-    <div><div class="t">9:45 pm · you try</div><h2>Try one. Wobo rings the gap.</h2><p>Every lesson ends with you doing it, not watching it. Drag the point onto the line where x = 3. If you're off, Wobo doesn't say wrong, it draws where you are and where the line is, and waits.</p><div class="say">Close counts. <em>"Close" is what Wobo says.</em></div></div>
+    <div><div class="t">Same sitting · you try</div><h2>Try one. Wobo rings the gap.</h2><p>Every lesson ends with you doing it, not watching it. Drag the point onto the line where x = 3. If you're off, Wobo doesn't say wrong, it draws where you are and where the line is, and waits.</p><div class="say">Close counts. <em>"Close" is what Wobo says.</em></div></div>
     <div class="art marigold"><div class="dragpt">
       <div class="q">Drag the point to where <i>y = 2x + 1</i> when <i>x = 3</i>.</div>
       <svg id="graph" viewBox="0 0 440 300" aria-label="A graph with a draggable point">
@@ -272,7 +272,7 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 </div></section>
 
 <div class="close"><div class="wrap">
-  <h2>Start this evening.</h2>
+  <h2>Start whenever you like.</h2>
   <span class="hand">Free to use every day, not just the first.</span>
   <div class="row"><a class="btn" href="#">Start learning for free</a><a class="btn q" href="#">I'm a parent</a></div>
 </div></div>

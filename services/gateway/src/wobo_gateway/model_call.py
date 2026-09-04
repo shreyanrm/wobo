@@ -86,6 +86,31 @@ def _refused_up_front(kwargs: dict[str, Any]) -> list[str]:
     return refused
 
 
+def _timed(call: Any, kwargs: dict[str, Any]) -> Any:
+    """Run the completion and leave the round trip where the usage ledger can pick it up.
+
+    This is the only function in the service that wraps the litellm call itself, so it is the only
+    one that can measure what the PROVIDER took rather than what the whole request took.
+    ``telemetry.record_cost`` consumes the note a frame or two later; a call that never reaches
+    here records no latency at all, which the ledger stores as NULL — "not measured", never zero.
+
+    The measurement never affects the answer: a failure inside the note is swallowed, and the
+    exception from the call itself is raised exactly as it arrived.
+    """
+    import time
+
+    start = time.perf_counter()
+    try:
+        return call(**kwargs)
+    finally:
+        try:
+            from wobo_gateway import ledger
+
+            ledger.note_latency((time.perf_counter() - start) * 1000)
+        except Exception:  # noqa: BLE001 — accounting must never colour a model call
+            pass
+
+
 def complete(**kwargs: Any) -> Any:
     """``litellm.completion``, minus any sampling knob a model in the chain would refuse."""
     import litellm
@@ -98,7 +123,7 @@ def complete(**kwargs: Any) -> Any:
         )
         kwargs = {k: v for k, v in kwargs.items() if k not in up_front}
     try:
-        return litellm.completion(**kwargs)
+        return _timed(litellm.completion, kwargs)
     except Exception as first:  # noqa: BLE001 — re-raised unless it is the fussy-knob case
         named = [k for k in _SAMPLING_KNOBS if k in kwargs and _objects_to(first, k)]
         sent = [k for k in _SAMPLING_KNOBS if k in kwargs]
@@ -107,6 +132,8 @@ def complete(**kwargs: Any) -> Any:
             raise
         logger.info("model call: retrying without %s", ", ".join(refused))
         try:
-            return litellm.completion(**{k: v for k, v in kwargs.items() if k not in refused})
+            return _timed(
+                litellm.completion, {k: v for k, v in kwargs.items() if k not in refused}
+            )
         except Exception:  # noqa: BLE001 — the first error is the honest one to report
             raise first from None

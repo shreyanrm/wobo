@@ -45,4 +45,9 @@ Specs for every message Wobo sends. Each file carries the trigger, the recipient
 `win-back-30-days` · `win-back-90-days`
 
 **Flags**
-`flag-received` · `flag-fixed`
+There is no flag control in the product: not on a lesson, not on a board, not on a practice item
+(`docs/legal/community-and-flags.md` section 2). The two decks that described the flow —
+`flag-received` and `flag-fixed` — were deleted on 2026-09-04 because nothing could ever send
+them: there is no control to raise a flag, and no job that mails one. They promised a reader "a
+person reads every one of these" for something a reader cannot do. The route today is
+support@heywobo.com, read by a person. Write the decks again in the commit that ships the control.

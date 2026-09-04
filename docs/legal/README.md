@@ -8,7 +8,7 @@ Draft of 3 September 2026, with `refund-and-cancellation.md` revised on 4 Septem
 >
 > It is written to be read by a fourteen-year-old and by their parent, not by a lawyer, and then checked by a lawyer.
 >
-> Every line that depends on the law of a particular country is tagged `[REVIEW]`. There are 100 of them. Each one carries its own question, naming the statute, the decision or the figure to confirm, so a specialist can answer it without first working out what was meant.
+> Every line that depends on the law of a particular country is tagged `[REVIEW]`. There are 101 of them. Each one carries its own question, naming the statute, the decision or the figure to confirm, so a specialist can answer it without first working out what was meant.
 
 ---
 
@@ -58,7 +58,9 @@ Every email address used in these documents must exist and be answered before la
 
 ## 4. The lawyer review checklist
 
-Give this to counsel with the ten documents. It is ordered by what would hurt most if it were wrong.
+Give this to counsel with the ten documents. It is grouped by subject, which is the shape a lawyer works in.
+
+**For deciding what to pay for first, read `docs/LEGAL-REVIEW.md`**, which is the same material in one list ordered by how much it would cost to be wrong, with the five blocking items named. Where the two differ, that file has the priority and this one has the detail.
 
 ### A. Children, which is most of our users
 
@@ -130,18 +132,18 @@ Give this to counsel with the ten documents. It is ordered by what would hurt mo
 
 ## 5. Where the `[REVIEW]` tags are
 
-100 tags across the ten documents. Every one of them names a statute, a decision or a figure to confirm; there are no bare tags left, because a tag with no question attached is a bill for a guess.
+101 tags across the ten documents. Every one of them names a statute, a decision or a figure to confirm; there are no bare tags left, because a tag with no question attached is a bill for a guess.
 
 | File | Tags |
 |---|---|
-| `privacy-policy.md` | 24 |
+| `privacy-policy.md` | 25 |
 | `terms-of-service.md` | 13 |
 | `refund-and-cancellation.md` | 14 |
 | `parental-consent.md` | 11 |
 | `childrens-privacy.md` | 10 |
-| `accessibility-statement.md` | 8 |
-| `community-and-flags.md` | 8 |
-| `cookies.md` | 7 |
+| `accessibility-statement.md` | 9 |
+| `community-and-flags.md` | 6 |
+| `cookies.md` | 8 |
 | `acceptable-use.md` | 3 |
 | `safety-and-content.md` | 2, one of which is the largest single tag in the set |
 

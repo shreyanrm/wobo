@@ -853,7 +853,9 @@ def test_video_attaches_per_scene_audio(monkeypatch) -> None:
     _patch_complete(monkeypatch, {sonnet: _VALID_PLAN % "simple"})
     wav = _as_playable("audio/pcm;rate=24000", base64.b64encode(b"\x00\x01" * 24000).decode())
     monkeypatch.setattr(
-        engines, "synthesize_narration", lambda text: dict(wav) if text.strip() else None
+        engines,
+        "synthesize_narration",
+        lambda text, **_: dict(wav) if text.strip() else None,
     )
     artifact, _model, _tokens, seeded = engines._generate_video_live(
         "sound waves", "core", sonnet, fallbacks, "user"

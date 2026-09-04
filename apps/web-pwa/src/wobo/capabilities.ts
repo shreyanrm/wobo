@@ -157,7 +157,7 @@ const CAPABILITIES: Record<CapabilityId, WoboCapability> = {
     // the learner's world. A model reply saying "forget everything" is never enough on its own: the
     // card asks in the thread, and the wipe happens on approval alone (WOBO.md §4, family E).
     rung: 'execute_with_permission',
-    label: () => 'forget everything Wobo knows about you',
+    label: () => 'forget what Wobo remembers about you',
     // Erasure has to reach the BRAIN, not just this phone (WOBO-TASKS §5.7). `clearMind` drops the
     // device copy and queues the server-side erase; this awaits one attempt at it so Wobo's line is
     // the truth. A queued erase that has not landed is retried on every mind pulse until it does —
@@ -177,7 +177,7 @@ const CAPABILITIES: Record<CapabilityId, WoboCapability> = {
       if (outcome === 'pending') {
         return 'Done on this device — everything I was keeping here is gone. I could not reach the part of me that remembers across your devices, so I am still holding that request and I will finish it the moment I can.';
       }
-      return 'Done — I cleared everything I was keeping about you, here and on my side. We start fresh from here.';
+      return 'Done — I cleared what I remember about you, here and on my side. Your progress record is separate; Settings, your data, erases that too.';
     },
   },
 

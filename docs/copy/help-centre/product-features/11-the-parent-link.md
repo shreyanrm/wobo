@@ -1,10 +1,10 @@
 # The parent link
 
-**The parent link sends a parent one beautiful page a week showing what you actually learnt. You set it up, and you can switch it off.**
+**The parent link sends a parent one note a week showing what you actually learnt. You set it up, and you can switch it off.**
 
 **What the parent gets**
 
-A page, once a week, in their language: what you studied, what you cracked, one board you drew or Wobo drew for you, and one line about how the week went in Wobo's words. It is read-only. It is the same progress page you see, not a different, harsher version.
+A note, once a week: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in Wobo's words. No marks out of ten, no ranking, and no harsher version of the page you see.
 
 **What the parent does not get**
 
@@ -12,7 +12,7 @@ Your conversations with Wobo. Your wrong answers, one by one. A live feed of whe
 
 **Setting it up**
 
-Settings, then the parent link. Enter the parent's number or email, or share the link yourself. They confirm once and it starts.
+Settings, then the parent link. Enter the parent's email address. They get one invite, and nothing else is sent until they open it and confirm from their own device. If they never confirm, the invite expires and nothing goes to them.
 
 **Turning it off**
 
@@ -20,10 +20,10 @@ The same screen, one tap. It stops immediately and the old pages stop working. Y
 
 **If you are under 18**
 
-A parent may need to give consent for some parts of Wobo anyway, and this is where they do it. Consent and the weekly page are separate things; a parent can consent without ever taking the weekly page.
+The link works the same at every age today, and it is you who starts it. There is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the note itself.
 
-**Sending something now**
+**Seeing it first**
 
-After a hard problem you can send that one board straight to the link, without waiting for the week to end.
+Before you invite anyone you can look at the week the way a parent will see it, from the same card. There is no way to send a single board on its own yet; the weekly note is the whole of what goes out.
 
 **Related:** Your privacy and your data.

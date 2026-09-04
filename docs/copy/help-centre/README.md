@@ -14,7 +14,7 @@ The help centre at heywobo.com/help. Three groups, illustrated, searchable. Wobo
 
 **[Wobo basics](wobo-basics/)** — what Wobo is, getting started, talking to Wobo, your account, settings, plans, privacy.
 
-**[Product features](product-features/)** — the board in its three forms, asking about anything, practice, boss battles, progress, the parent link, flags.
+**[Product features](product-features/)** — the board in its three forms, asking about anything, practice, boss battles, progress, the parent link, telling us something is wrong.
 
 **[Boards and curriculum](boards-and-curriculum/)** — choosing your board, boards we do not have yet, your own syllabus, honesty labels, editing, what we cover.
 
@@ -45,7 +45,7 @@ The help centre at heywobo.com/help. Three groups, illustrated, searchable. Wobo
 9. Streaks, and taking a day off
 10. Saving and sharing a board
 11. The parent link
-12. Flagging something that is wrong
+12. Telling us something is wrong
 
 ### Boards and curriculum
 1. Choosing your board and class

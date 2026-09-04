@@ -1,6 +1,6 @@
 # Plans and billing
 
-**Wobo is free to use every day. Pro and Max raise the daily allowance for exam season, and the price is the same for everyone.**
+**Wobo is free to use every day. Pro and Max raise the daily allowance, and the price is the same for everyone.**
 
 **Free**
 A real product, not a trial. The whole tutor: your board, your lessons, the drawn board, the films, the models you can drag, practice, boss battles, your progress and the parent link. What is limited is how many turns you get each day. The counter is on screen and tells you the exact time it resets.

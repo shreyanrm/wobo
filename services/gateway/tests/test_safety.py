@@ -1,5 +1,8 @@
 """The child-safety seam (WOBO.md §11). Mock mode only — no model is ever called.
 
+The screen's own probe set — every phrasing the 2026-09-04 conformance register found it missing
+and every piece of schoolwork it found it refusing — lives in ``test_safety_probes.py``.
+
 Inbound: a crisis message never reaches a provider; Wobo answers with the calm supportive
 line that routes to a responsible adult and real helplines. A moderation hit gets a warm
 redirect. Outbound: a flagged model reply is replaced, never served. The classifier is a
@@ -18,7 +21,7 @@ from wobo_gateway.safety import (
     CRISIS_SAY,
     MODERATION_SAY,
     OUTBOUND_REPLACEMENT_SAY,
-    KeywordClassifier,
+    RuleClassifier,
     SafetyVerdict,
     moderate,
     screen_wobo_inbound,
@@ -45,20 +48,20 @@ def wobo_req(text: str) -> CapabilityRequest:
 
 
 def test_classifier_detects_crisis_language() -> None:
-    v = KeywordClassifier().classify("sometimes I just want to die")
+    v = RuleClassifier().classify("sometimes I just want to die")
     assert v.category == "crisis"
     assert v.severity == "high"
     assert v.flagged
 
 
 def test_classifier_detects_moderation_terms_on_word_boundaries() -> None:
-    assert KeywordClassifier().classify("this is fucking hard").category == "moderation"
+    assert RuleClassifier().classify("this is fucking hard").category == "moderation"
     # "assess" must never trip a substring match
-    assert KeywordClassifier().classify("please assess my work").category == "ok"
+    assert RuleClassifier().classify("please assess my work").category == "ok"
 
 
 def test_classifier_passes_ordinary_learning_talk() -> None:
-    v = KeywordClassifier().classify("why does x move to the other side of the equation")
+    v = RuleClassifier().classify("why does x move to the other side of the equation")
     assert v.category == "ok"
     assert not v.flagged
 
@@ -77,8 +80,11 @@ def test_crisis_inbound_is_met_with_support_and_helplines() -> None:
     assert safety["flagged"] is True
     assert safety["category"] == "crisis"
     assert safety["severity"] == "high"
-    assert safety["action"] == "escalated"
-    assert safety["escalated_to"] == "guardian"
+    assert safety["action"] == "supported"
+    # A real route to a real adult travels WITH the verdict, as data a surface can render.
+    assert [e["number"] for e in safety["support"]] == ["1098", "14416"]
+    # And nothing claims a guardian was told, because nothing tells one. See _safety_block.
+    assert "escalated_to" not in safety
 
 
 def test_moderation_inbound_is_redirected_warmly() -> None:
@@ -150,7 +156,7 @@ def test_safety_moderate_runs_the_real_classifier() -> None:
         "safety.moderate",
         CapabilityRequest(consent_tier=ConsentTier.UN_ELEVATED, payload={"text": "send nudes"}),
     )
-    assert bad.model == "safety.keyword"
+    assert bad.model == "safety.screen"
     assert bad.output["allow"] is False
     assert bad.output["categories"] == ["moderation"]
 
@@ -201,7 +207,7 @@ def test_the_crisis_screen_covers_every_learner_facing_capability() -> None:
     assert resp.model == "safety.gate"
     assert resp.output["say"] == CRISIS_SAY
     assert resp.output["safety"]["category"] == "crisis"
-    assert resp.output["safety"]["escalated_to"] == "guardian"
+    assert "escalated_to" not in resp.output["safety"]
 
     # the flat-payload capabilities: the learner's words are the concept, not a context block
     course = gw.invoke(
@@ -230,7 +236,7 @@ def test_a_non_learner_facing_capability_is_not_gated() -> None:
             consent_tier=ConsentTier.UN_ELEVATED, payload={"text": "I want to kill myself"}
         ),
     )
-    assert resp.model == "safety.keyword"
+    assert resp.model == "safety.screen"
     assert resp.output["crisis"] is True
 
 

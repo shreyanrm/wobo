@@ -53,6 +53,49 @@ const DATA_LINES = new Set(['support@heywobo.com', 'security@heywobo.com']);
  * entry here is a decision, not a backlog.
  */
 const BETTER_HERE = new Set([
+  /*
+    --- /security: fourteen lines the DRAWING promises and the CODE does not keep ---------------
+
+    Every one of these was verified false against this repository on 2026-09-04, and every one was
+    live at /security. A prototype is a drawing and a page is a claim, so where the two disagree
+    about what the product DOES, the page wins and the drawing is corrected the day somebody
+    redraws it. The reason is written beside each claim in `Security.tsx` itself; the short version:
+
+      · "erase all" / "the erase-everything button" / "deletes memory, progress and the account" —
+        POST /v1/me/erase clears six things (memory.Erasure) and NOTHING in the gateway, the SDK or
+        the app calls the auth admin API. The account survives every button this product has.
+      · "unless a family turns on transcripts" — there is no transcripts setting anywhere. The row
+        names a family control that has never existed, and it is the sentence a parent reads to
+        decide whether voice is safe.
+      · "Consent by age and country" / "a parent's verifiable consent before a child's account
+        opens" — `consent_tier` is read on every capability call and written by nothing. Our own
+        `docs/legal/childrens-privacy.md` §3 opens "There is no consent gate in Wobo today", and
+        two live surfaces may not say opposite things about children's consent.
+      · "Every change is reviewed and gated by automated checks. Dependencies are scanned." —
+        `gh api .../branches/main/protection` returns 404 Branch not protected, `rulesets` returns
+        [], and ci.yml runs no audit of any kind. Only the secrets half of that sentence is true.
+      · "The parent view. A linked parent sees lessons, progress and the Sunday note." — the Sunday
+        note is real; /parent renders localStorage on the VIEWER's device, so a parent opening it
+        sees their own empty storage. The note no longer links there and carries the week itself.
+      · "Holds accounts, learning data and backups, encrypted." with region "INDIA, WITH EU FOR EU
+        FAMILIES" — there is one database project and no EU project; nothing in the repository
+        provisions, routes to or names a second region.
+  */
+  'and you can erase all of it with one button.',
+  'Erase memory, keep progress, or erase all',
+  'Not stored, unless a family turns on transcripts',
+  'Nothing to delete by default',
+  'Every change is reviewed and gated by automated checks. Dependencies are scanned. Secrets never live in the code.',
+  'Consent by age and country.',
+  'Under 18 in India needs a parents verifiable consent under the DPDP Act 2023. Under 13 in the United States follows COPPA. Under 16 in the EU follows GDPRs rules for children.',
+  'The parent view.',
+  'A linked parent sees lessons, progress and the Sunday note. They cannot read a childs typed questions word for word unless the childs settings allow it.',
+  'The erase-everything button.',
+  'In Settings, for the learner and for a linked parent. It deletes memory, progress and the account.',
+  'A parents verifiable consent before a childs account opens, no profiling of a child for advertising, and erasure on request.',
+  'Reviewed and gated.',
+  'Holds accounts, learning data and backups, encrypted.',
+
   // the prototype dropped the sixth promise ("Train on a child without consent"); a page that
   // makes six promises to a parent does not quietly make five
   'Five lines wed put in a contract.',

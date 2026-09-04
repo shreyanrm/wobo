@@ -6,9 +6,26 @@
  * the honest table, the checkout preview with its two consent boxes, the gift block, the money
  * questions and the close.
  *
- * The prices are the owner's (WOBO-PLAN §14) and every one of them is read from `prices.ts` — the
- * cards, the table and the checkout preview — so a change to a number is one edit and every
- * surface says the same thing in the same breath.
+ * The prices are the owner's (WOBO-PLAN §14, docs/PRICING.md) and every one of them is read from
+ * `prices.ts` — the cards, the table and the checkout preview — so a change to a number is one edit
+ * and every surface says the same thing in the same breath.
+ *
+ * ONE CHOICE DRIVES THE WHOLE PAGE. `period` is a single piece of state: every price, the line under
+ * each price, the small print under each door, the sentence that closes the cards, both consent
+ * boxes, the two cancel answers and the sum at checkout are read from it. There is no second copy
+ * of it and nothing that can drift, so the page cannot show a yearly price beside a monthly promise.
+ * Yearly is listed first and is what the page opens on, because it is the better deal.
+ *
+ * WHAT EACH SURFACE MAY SAY ABOUT THE PERIOD (docs/PRICING.md, owner, 2026-09-04): a card shows the
+ * per-month amount and the words under it — "billed annually" — and NEVER the annual total. The
+ * total is not a selling number, it is the thing being agreed to, so it appears at checkout and
+ * NOWHERE ON THIS PAGE. It briefly appeared here twice, in the checkout preview's `Today ₹19,992`
+ * and in a sentence naming the day the next charge would be taken; the doc's own words are "It
+ * must not appear on the plans page", and the sentence broke a second law as well —
+ * `services/gateway/src/wobo_gateway/billing.py` rule 2, in capitals: "NOTHING IN THIS REPO RENEWS
+ * A SUBSCRIPTION, and no user-facing line may say one does." There is no payment provider, no
+ * webhook and no sweep, so a stated future date was a mechanism we cannot show. Both are gone, and
+ * the preview says only what this page is allowed to say: the per-month amount and the words.
  *
  * There is NO country switch here, and there never will be. Law v5's copy law (DESIGN.md §0):
  * where someone is reading from is not a question worth asking. `readMarket()` answers it from the
@@ -16,10 +33,13 @@
  * switch would only have existed because we could not be bothered to work it out; and the deal is
  * the same in every market regardless (§14 — by country, never by person).
  *
- * What this page deliberately does not do is take a payment. "Choose Pro" and "Choose Max" bring
- * the checkout preview into view with that plan on it; its payment control leads to
- * `/plans/checkout`, which says plainly that checkout opens with launch. A payment page that
- * looked real but was not, on a product used by children, would be the worst thing on the site.
+ * What this page deliberately does not do is take a payment, AND IT SAYS SO ON THE CONTROL. "Choose
+ * Pro" and "Choose Max" bring the checkout preview into view with that plan on it; the payment
+ * control in that preview keeps its shape and carries a `soon` marker, because a button that cannot
+ * work carries `soon` rather than an apology on the far side of a click. It used to be a live,
+ * saturated pig button labelled "Pay with the payment provider" that took the reader to a page
+ * headed "Paying is not open yet." A payment control that looked real but was not, on a product
+ * used by children, would be the worst thing on the site.
  *
  * The allowance drawing reads the learner's real budget through `sdk.me()`; where there is no
  * answer it says it cannot see one rather than showing a number nobody verified.
@@ -28,7 +48,6 @@
 import { useReducedMotion } from '@wobo/motion';
 import type { Me } from '@wobo/sdk';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from '../../shell/router';
 import { useSdk } from '../../store/sdk';
 import { Label, Sticker, WoboHead } from '../../ui/primitives';
 import { legalPath } from '../legal/catalog';
@@ -40,16 +59,23 @@ import { allowanceLine, allowanceShare, readAllowance } from './allowance';
 import { ALLOWANCE_WORDS, BENEFITS, type Benefit, faqItems, PLANS_PAGE } from './copy';
 import {
   BEST_FOR,
+  billedLine,
+  DEFAULT_PERIOD,
+  fineLine,
+  PERIOD_LABELS,
+  PERIOD_SAVING,
+  PERIODS,
+  type Period,
   PLAN_TIERS,
   type PlanTier,
   priceLabel,
   priceUnit,
   readMarket,
-  renewalLabel,
-  renewsOn,
 } from './prices';
+import { ensurePlansStyles } from './styles';
 
-const FAQ = faqItems();
+// After the site sheet, which `SiteShell` injects when its module runs — imported above this line.
+ensurePlansStyles();
 
 /** A tick, drawn. DESIGN.md forbids emoji, and the line beside it says what is included. */
 function Tick() {
@@ -75,6 +101,33 @@ function Cell({ value }: { value: Benefit }) {
     );
   }
   return <div>{value}</div>;
+}
+
+/**
+ * How you would like to pay. Two segments of the same width, so the indicator ONLY EVER TRANSLATES:
+ * transitioning its width would be a layout property animating, which law v5 forbids (DESIGN.md §0).
+ * The order is `PERIODS`, which puts yearly first everywhere it is drawn.
+ */
+function PeriodControl({ period, onChoose }: { period: Period; onChoose: (next: Period) => void }) {
+  return (
+    <div className="pl-per" data-period={period}>
+      {/* biome-ignore lint/a11y/useSemanticElements: no form, and a fieldset draws a UA border */}
+      <div className="pl-seg" role="group" aria-label={PLANS_PAGE.period.legend}>
+        <span className="pl-pill" aria-hidden="true" />
+        {PERIODS.map((option) => (
+          <button
+            key={option}
+            type="button"
+            aria-pressed={period === option}
+            onClick={() => onChoose(option)}
+          >
+            {PERIOD_LABELS[option]}
+          </button>
+        ))}
+      </div>
+      <span className="pl-save">{PERIOD_SAVING}</span>
+    </div>
+  );
 }
 
 /**
@@ -152,23 +205,23 @@ const CARD_CLASS: Record<PlanTier['id'], string> = {
 };
 
 export function Plans() {
-  const router = useRouter();
   const reduced = useReducedMotion();
   // Read once per mount, from the browser and nothing else: the reader is never asked where they
   // are, and there is no control that could change this.
   const market = useMemo(() => readMarket(), []);
+  // The one choice the whole page reads from. Yearly, because it is the better deal.
+  const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [previewId, setPreviewId] = useState<PlanTier['id']>('pro');
   const [terms, setTerms] = useState(false);
   const [renewal, setRenewal] = useState(false);
   const checkoutRef = useRef<HTMLElement | null>(null);
-  const ready = terms && renewal;
-  // Read once per mount: a renewal date must not change under a reader.
-  const today = useMemo(() => new Date(), []);
   const preview =
     PLAN_TIERS.find((t) => t.id === previewId && t.price) ??
     PLAN_TIERS.find((t) => t.recommended) ??
     (PLAN_TIERS[1] as PlanTier);
   const c = PLANS_PAGE.checkout;
+  // The two cancel answers follow the period, so the page never answers for the other one.
+  const faq = useMemo(() => faqItems(period), [period]);
 
   const choose = (tier: PlanTier) => {
     setPreviewId(tier.id);
@@ -188,17 +241,23 @@ export function Plans() {
         </div>
       </section>
 
-      <section className="st-section">
+      <section className="st-section" id="plans">
         <div className="st-wrap">
+          <PeriodControl period={period} onChoose={setPeriod} />
           <Reveal className="pl-plans">
             {PLAN_TIERS.map((tier) => (
               <div className={CARD_CLASS[tier.id]} key={tier.id}>
                 {tier.recommended ? <span className="pl-best">{BEST_FOR}</span> : null}
                 <div className="pl-name">{tier.name}</div>
                 <div className="pl-price">
-                  <span>{priceLabel(tier, market)}</span>
+                  <span>{priceLabel(tier, market, period)}</span>
                   <small>{priceUnit(tier)}</small>
                 </div>
+                {/* The words, never the total: both periods carry a line here, so the switch
+                    cannot change the height of a card. The free tier has no period and no line. */}
+                {billedLine(tier, period) ? (
+                  <div className="pl-billed">{billedLine(tier, period)}</div>
+                ) : null}
                 {tier.allowanceMultiple > 1 ? (
                   <div className="pl-x">
                     {ALLOWANCE_WORDS[tier.allowanceMultiple] ?? 'more'} the free allowance
@@ -226,10 +285,13 @@ export function Plans() {
                     {tier.cta}
                   </SiteLink>
                 )}
-                <div className="pl-fine">{tier.fine}</div>
+                <div className="pl-fine">{fineLine(tier, period)}</div>
               </div>
             ))}
           </Reveal>
+          <p className="pl-close-line">
+            {PLANS_PAGE.same} {PLANS_PAGE.keepIt[period]}
+          </p>
         </div>
       </section>
 
@@ -264,7 +326,7 @@ export function Plans() {
             <div className="pl-head">
               <Label>{c.eyebrow}</Label>
               <h2>{c.title}</h2>
-              <p>{c.lead}</p>
+              <p>{c.lead[period]}</p>
               <div className="pl-say">
                 {c.say} <em>{c.sayEm}</em>
               </div>
@@ -275,18 +337,18 @@ export function Plans() {
                   {preview.name} · {c.learners[preview.learners] ?? `${preview.learners} learners`}
                 </span>
                 <b>
-                  {priceLabel(preview, market)} {c.perMonth}
+                  {priceLabel(preview, market, period)} {c.perMonth}
                 </b>
+              </div>
+              {/* The words, and never the total: docs/PRICING.md gives the plans page the
+                  per-month amount and the words, and gives the total to the checkout alone. */}
+              <div className="pl-row">
+                <span>{c.billed}</span>
+                <b>{billedLine(preview, period)}</b>
               </div>
               <div className="pl-row">
                 <span>{c.starts}</span>
                 <b>{c.startsValue}</b>
-              </div>
-              <div className="pl-row">
-                <span>{c.renews}</span>
-                <b>
-                  {renewalLabel(renewsOn(today))}, {c.renewsSuffix}
-                </b>
               </div>
               <label htmlFor="consent-terms">
                 <input
@@ -308,22 +370,30 @@ export function Plans() {
                   onChange={(e) => setRenewal(e.target.checked)}
                 />
                 <div>
-                  <b>{c.renewal}</b>
-                  {c.renewalNote.replace('{plan}', preview.name)}
+                  <b>{c.renewal[period]}</b>
+                  {c.renewalNote[period].replace('{plan}', preview.name)}
                 </div>
               </label>
-              <div className="pl-total">
-                <span>{c.today}</span>
-                <b>{priceLabel(preview, market)}</b>
-              </div>
+              {/* A DOOR THAT CANNOT WORK CARRIES `soon`, NOT AN APOLOGY. This was a live,
+                  saturated pig button reading "Pay with the payment provider" that navigated to a
+                  page headed "Paying is not open yet." It keeps its shape, says it is not open
+                  and why, and the reader who wants the detail is given the page rather than sent
+                  there by a control that promised to take their money. */}
               <button
                 type="button"
-                className="st-btn st-pig"
-                disabled={!ready}
-                onClick={() => router.navigate({ name: 'plans', checkout: true })}
+                className="st-btn st-quiet pl-pay"
+                aria-disabled="true"
+                aria-describedby="pl-pay-soon"
               >
                 {c.pay}
+                <span className="pl-soon">{c.soon}</span>
               </button>
+              <p className="st-fine" id="pl-pay-soon">
+                {c.paySoon}
+              </p>
+              <SiteLink to={{ name: 'plans', checkout: true }} className="st-btn st-quiet">
+                {c.payMore}
+              </SiteLink>
               <div className="st-fine">{c.fine}</div>
             </div>
           </Reveal>
@@ -372,7 +442,7 @@ export function Plans() {
             <h2>{PLANS_PAGE.faq.title}</h2>
           </Reveal>
           <Reveal className="pl-faq">
-            {FAQ.map((item, i) => (
+            {faq.map((item, i) => (
               <details key={item.question} open={i === 0}>
                 <summary>{item.question}</summary>
                 <p>{item.answer}</p>
@@ -382,12 +452,10 @@ export function Plans() {
         </div>
       </section>
 
-      <ClosePanel
-        title={PLANS_PAGE.close.title}
-        hand={PLANS_PAGE.close.hand}
-        primary={{ label: PLANS_PAGE.close.primary, to: { name: 'onboarding' } }}
-        quiet={{ label: PLANS_PAGE.close.quiet, to: { name: 'gift' } }}
-      />
+      {/* The close names itself: every word of it is `screens/site/handoffs.ts`, so no page can
+          type its own door. `PLANS_PAGE.close` is kept only as the words that table was built
+          from, and this page no longer renders them. */}
+      <ClosePanel page="plans" />
     </SiteShell>
   );
 }

@@ -12,7 +12,7 @@ A lesson written once for everybody is written for nobody. Built at the moment y
 - Computes every number with code. Equations are solved, units are checked, chemical equations are balanced.
 - Has the whole thing checked independently before you see it. Anything that fails is redrawn once, and if it fails again Wobo refuses rather than serving it.
 
-That is why Wobo will occasionally say "I could not get this right, give me a moment" instead of showing you something plausible.
+So a piece that cannot be checked is not drawn. Today that refusal is silent: the piece is simply missing, and Wobo does not yet say a word about it. Telling you is the next thing we owe you here.
 
 **Speed**
 
@@ -24,6 +24,6 @@ Ask again tomorrow with a different question and you get a different explanation
 
 **If something is wrong anyway**
 
-Flag it. Checking is good, not perfect, and you are the last check.
+Tell us at support@heywobo.com. Checking is good, not perfect, and you are the last check.
 
-**Related:** Flagging something that is wrong.
+**Related:** Telling us something is wrong.

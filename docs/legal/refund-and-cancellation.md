@@ -63,7 +63,7 @@ Cancelling is the main thing this document is about, so it is written out in ful
 - The plan stays live until the end of the period you have already paid for. Nothing is taken away early.
 - Nothing renews after that. There is no further charge, and the account moves to the free allowance by itself on the day the period ends.
 - Everything you learnt stays: your history, your boards, your notes, your mastery and your climb. Cancelling a plan is not deleting an account.
-- Nothing is deleted unless you delete it. Deleting your account is a separate control, described in `privacy-policy.md`.
+- Nothing is deleted unless you ask for it. Closing the account is a separate thing from cancelling a plan, there is no control in the product that does it, and `privacy-policy.md` section 8 says how to ask.
 
 **Changing your mind.** While the period you paid for is still running, one tap puts the plan back on and it renews as it did before. After the period ends there is nothing to resume, and you would be subscribing again at whatever the price is then.
 

@@ -205,8 +205,8 @@ function NotFound({ slug }: { slug: string }) {
 export function Legal({ slug }: { slug?: string }) {
   const canonical = slug ? canonicalSlug(slug) : '';
   const title = canonical
-    ? `${legalDocument(canonical)?.shape.title ?? 'Legal'} — Wobo`
-    : 'The legal set — Wobo';
+    ? `${legalDocument(canonical)?.shape.title ?? 'Legal'} · Wobo`
+    : 'The legal set · Wobo';
   return (
     <SiteShell current={SECTIONS[canonical] ?? 'legal'} title={title}>
       {!canonical ? (
@@ -216,7 +216,7 @@ export function Legal({ slug }: { slug?: string }) {
       ) : (
         <Document slug={canonical} />
       )}
-      <ClosePanel />
+      <ClosePanel page="legal" />
     </SiteShell>
   );
 }

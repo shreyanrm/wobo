@@ -6,11 +6,11 @@ Draft of 3 September 2026. Version 0.1. Written by the Wobo team, not yet review
 >
 > Most of the people Wobo teaches are children, so we built the product around that from the start rather than adding warnings later.
 >
-> A child's age decides what Wobo can do. Without your consent, Wobo teaches, and that is all: no memory beyond the lesson, no voice, no photographs, no sharing, no marketing. With your consent, the features that need to remember your child switch on.
+> **There is no consent gate in Wobo today.** That is the design, and it is not what ships. Memory, voice, photographs of a page, and the parent link are all available to any signed-in learner of any age, right now, without anybody asking you first. Section 3 says exactly what that means and what we are doing about it. We would rather you read that here than find it out for yourself.
 >
 > We never advertise to children, never sell their data, never build advertising profiles, and never use their learning to train systems for anyone else.
 >
-> You can see everything Wobo holds about your child, correct it, download it, and delete it, at any time, without giving a reason.
+> You can see what Wobo remembers about your child and correct or delete it, at any time, without giving a reason. There is no download button and no delete-the-account button yet, and the erase that exists does not reach everything: section 6 lists what it reaches and what you have to ask us for by hand.
 >
 > **In plain words, for the learner**
 >
@@ -22,7 +22,7 @@ Draft of 3 September 2026. Version 0.1. Written by the Wobo team, not yet review
 
 Anyone under 18.
 
-**The age at which a learner can hold their own account is set in one place**, `terms-of-service.md` section 4, and this document follows it: from 13 a learner holds their own account; below 13 a parent or guardian holds the account with them and gives verifiable consent first; where local law sets a higher age than 13, that age applies. Nothing here changes that rule, and where the two appear to differ, the terms govern.
+**The age at which a learner can hold their own account is set in one place**, `terms-of-service.md` section 4, and this document follows it: from 13 a learner holds their own account; below 13 a parent or guardian holds the account with them and gives verifiable consent first; where local law sets a higher age than 13, that age applies. That is the rule. Section 3 says how much of it the product actually enforces today, which is none of the consent half. Where this document and the terms appear to differ, the terms govern.
 
 What follows from age:
 
@@ -40,34 +40,29 @@ Where two rules apply, we follow the stricter one.
 
 We ask, in a neutral way, during sign-up: a date of birth field with no hint about which answer unlocks more. We do not encourage anyone to lie, and we do not let a person retry the question until they get a better outcome.
 
-Where the answer places the learner under the age of consent for their country, we move straight into the parental consent flow described in `parental-consent.md` and hold the account in the basic state until it completes.
+Where the answer places the learner under 13, the sign-up screen asks for a parent's email address and sends them a link. Nothing is verified, nothing is recorded, and no feature waits for the parent to do anything: the account works fully either way. That is not the parental consent flow described in `parental-consent.md`, and section 3 says so plainly.
 
 If we later learn that a child gave us a false age, or that a learner under 13 is holding their own account rather than one held by a parent or guardian, we suspend the extra features, contact the parent where we have a way to, move the account to the parent-held form or delete it, and delete the data we should not have collected. Anyone can tell us about such an account at support@heywobo.com.
 
 We do not use facial age estimation or any biometric age check. [REVIEW: whether any market requires a stronger age-assurance method than self-declaration plus parental verification, particularly the UK code and Indian rules.]
 
-## 3. What a child can do before consent
+## 3. Consent, and the gap between this document and the product
 
-Without a parent's consent, a learner under the age of consent can still learn. Wobo will:
+**What ships today, stated plainly.** There is no consent mechanism in Wobo. No screen asks a parent for permission, nothing records that permission was given, and no feature waits for it. The product carries a consent field on every account, it is read on every capability call, and **nothing in the product ever writes it**, so every learner sits permanently on the lowest tier and the two features that read it are a learner-type classifier and an internal evaluation step. Memory, voice, photographs of a page and the parent link check nothing at all.
 
-- teach, explain, draw on the board, ask questions and mark working, within the session;
-- keep the minimum needed to run the account and keep it secure;
-- keep a record of the lesson so the learner does not lose their place.
+**So, concretely, for a child of any age, with no parent involved:** Wobo keeps a long-term memory across sessions and builds a learning profile; voice works; a photograph of a syllabus or homework page can be sent and is read by a third-party model; and the learner can invite a parent by email. None of that waits for you.
 
-Wobo will not, before consent:
+**What this document used to say, and no longer does.** That there is a consent step, and that until it is taken Wobo teaches and nothing more, with no memory across sessions, no voice, no photographs and no sharing. That is the design and it is what we intend to build. It was written here in the present tense, and publishing the stricter version while shipping the looser one is worse than either, so it is corrected rather than softened.
 
-- keep a long-term memory of the learner across sessions, or build a learning profile;
-- use voice input or produce a voice recording;
-- accept photographs;
-- send any message that is not a service message;
-- share anything with anyone, including a parent link;
-- offer a paid plan or take a payment.
+**What we intend, and the order.** A parental notice screen with the wording already written in `parental-consent.md` section 3; a consent record naming who consented, to what, when and how it was verified; and four gates, on memory, voice, photograph intake and the parent link, on the tier the product already enforces everywhere else. `docs/CONSENT-PLAN.md` is the plan, including which market requires what and what the owner still has to decide. Until it ships, this section is the notice.
 
-The unconsented experience is meant to be genuinely good, not a punishment designed to nag a child into fetching a parent. [REVIEW: confirm this split against the shipped capability gates, and against COPPA's rule that a service may not condition participation on more data than is reasonably necessary.]
+**What is true today either way.** Teaching is never gated and never will be. There is no advertising anywhere in the product. Nothing is sold. No learner can message another learner. A learner can see what Wobo remembers and delete it line by line, at any age, without asking anyone.
 
-## 4. What we collect from a child, once consent is given
+[REVIEW: this section describes a product that does not meet the consent requirements of DPDP section 9, GDPR Article 8 or COPPA 312.5. Counsel needs to answer, before this document is relied on in any market: whether the product may be offered at all in India, the EU, the UK or the United States in this state; what the exposure is for the period it has already been offered; and whether the honest disclosure in this section changes that answer.]
 
-Only what the tutoring needs. Named in full in `privacy-policy.md` section 2, and in summary: account details, age band, what they study, what they say to Wobo, their working and their board ink, progress and mastery, preferences, device and log data, and photographs of syllabus or homework pages if the parent has allowed them.
+## 4. What we collect from a child
+
+Only what the tutoring needs. Named in full in `privacy-policy.md` section 2, and in summary: account details, age band, what they study, what they say to Wobo, their working and their board ink, progress and mastery, preferences, device and log data, and photographs of syllabus or homework pages where the learner sends one. Read this list with section 3: today it is collected from every learner, at every age, with no consent step in front of it.
 
 We do not collect from children: precise location, contacts, advertising identifiers, social media accounts, or anything that would let a stranger find them offline.
 
@@ -83,19 +78,20 @@ We do not collect from children: precise location, contacts, advertising identif
 
 ## 6. What a parent can do
 
-At any time, without giving a reason, a parent or guardian can:
+**There is no parent-facing surface in the product.** A parent has no account, no login and no controls screen. The only thing a parent receives is the weekly note, and the only controls on it are accept, decline and stop. Everything else on this list is done by writing to support@heywobo.com, and we do it by hand.
+
+At any time, without giving a reason, a parent or guardian can ask us to:
 
 - **see** everything we hold about their child, including the memory Wobo has built;
 - **correct** it;
-- **download** it;
-- **delete** any part of it, or the whole account;
-- **withdraw consent**, in whole or feature by feature, which switches those features off and deletes the data behind them;
-- **refuse further collection** while letting the child carry on learning in the basic state;
-- **turn off** the weekly summary, notifications, and any optional feature.
+- **give them a copy** of it. We assemble this by hand. There is no export button and no downloadable file, for a parent or for a learner;
+- **delete** it. What the in-product erase reaches: what Wobo remembers, the conversation, the profile row, the mastery and progress record, the mail choices and the parent link. What it does not reach: every answer the child gave to a practice question, their ink on the board, their session records, a syllabus they uploaded, and the account itself with its email address and password. Ask us and we remove those too;
+- **refuse further collection** while letting the child carry on learning;
+- **turn off** the weekly summary. There is nothing else switchable from a parent's side today.
 
-How to do it is in `parental-consent.md`. Requests go to support@heywobo.com, or through the parent controls in settings.
+**Withdrawing consent** is not on this list, because no consent was ever taken. See section 3.
 
-We do not make a parent create an account of their own to exercise these rights, and we do not charge for them.
+Requests go to support@heywobo.com. We do not make a parent create an account of their own to exercise these rights, and we do not charge for them.
 
 ## 7. Safety
 

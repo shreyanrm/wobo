@@ -30,13 +30,22 @@ def mint(
     anonymous: bool = False,
     **claims: Any,
 ) -> str:
-    """One HS256 Supabase-shaped access token."""
+    """One HS256 Supabase-shaped access token.
+
+    ``iss`` rides on it because the door checks the issuer as well as the signature and the
+    audience (``auth.expected_issuer``): every Supabase project writes the audience
+    ``authenticated``, so the issuer is the claim that makes a token OURS. It is read at CALL
+    time from whatever project the test has configured — most tests configure none, and then
+    there is nothing to pin and any issuer passes — and an explicit ``iss=`` still wins.
+    """
     import jwt
+    from wobo_gateway.auth import expected_issuer
 
     now = int(time.time())
     body: dict[str, Any] = {
         "sub": subject,
         "aud": audience,
+        "iss": expected_issuer() or "https://project.example/auth/v1",
         "iat": now,
         "exp": now + expires_in,
         "role": "authenticated",
@@ -50,9 +59,23 @@ def mint(
 @pytest.fixture(autouse=True)
 def _gateway_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """A verifiable identity and empty meters for every test."""
-    from wobo_gateway import auth, billing, budget, consent, voice
+    from wobo_gateway import alerts, auth, billing, budget, consent, health, ledger, spend, voice
 
     monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
+    # The platform's money ledger, the alarm's cooldowns and the provider health window are all
+    # per-process, exactly like the meters: one test's spend must never be another test's
+    # refusal, and one test's alert must never be another test's suppressed page.
+    monkeypatch.delenv("ALERT_WEBHOOK_URL", raising=False)
+    spend.reset()
+    alerts.reset()
+    health.reset()
+    # The child-safety screen's circuit breaker is per-process for the same reason the meters are:
+    # it is one verdict about one provider. Reset it here or one test's simulated outage leaves the
+    # screen degraded for whatever runs next, and a test that asserts the model WAS called fails
+    # for a reason that has nothing to do with it.
+    from wobo_gateway import safety_model
+
+    safety_model.reset_breaker()
     # No Supabase project in tests: consent lookups must never touch the network.
     monkeypatch.delenv("SUPABASE_URL", raising=False)
     monkeypatch.delenv("SUPABASE_JWKS_URL", raising=False)
@@ -60,6 +83,12 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
     budget.reset()
     consent.reset_cache()
+    # The usage ledger: an empty buffer, zeroed counters and NO transport, so one test's rows are
+    # never another test's assertions and nothing here can reach a network. With the Supabase
+    # variables deleted above, ``ledger.configured()`` is False and every row is counted as
+    # dropped-unconfigured rather than sent — which is also the honest behaviour of a deployment
+    # that has not been given a project.
+    ledger.reset()
     # A fresh in-memory subscription store per test, and no cached plan: one test's cancel is
     # never another test's allowance. The store is asked for BY NAME — billing.build_store no
     # longer falls back to memory when a project is missing, because an unconfigured production

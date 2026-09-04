@@ -76,7 +76,7 @@ header .cta{display:flex;gap:8px}
 @media (prefers-reduced-motion:reduce){.env .letter{animation:none;transform:none}.blink{animation:none}}
 
 /* chapters */
-section{padding:clamp(56px,7vw,92px) 0}
+section{padding:calc(var(--band) / 2) 0}
 .chapter{display:grid;grid-template-columns:1fr 1fr;gap:var(--s5);align-items:center}
 .chapter.flip .art{order:-1}
 .chapter .num{font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)}
@@ -177,6 +177,79 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 @media (prefers-reduced-motion:reduce){
   footer .fw svg{clip-path:none!important;transform:none!important;color:rgba(255,255,255,.15)!important}
 }
+
+/* ── chapter 01: the weekly report ───────────────────────────────────────────
+   The shape of the app's own report (screens/progress/Report.tsx): the three
+   figures it computes, its minutes-a-day chart, its three lists, its projection
+   line. Cards are paper on paper-2, never a wash — a wash tints a pill, a tick
+   or a selected row, never a panel (law v5). */
+.chapter.tight{padding:var(--s4) 0}
+.report{width:100%;display:grid;gap:12px;min-width:0}
+.report > .rtop{display:flex;align-items:center;gap:10px;font:400 13px/1.4 var(--sans);color:var(--ink-3);min-width:0}
+.report > .rtop > b{font:600 15px/1.2 var(--sans);color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpis > div{background:var(--paper);border-radius:16px;padding:14px;display:grid;gap:2px;min-width:0}
+.kpis > div > b{font:700 30px/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.kpis > div > b > i{font-style:normal;font:600 14px/1 var(--sans);color:var(--ink-3);margin-left:4px}
+.kpis > div > span{font:500 13px/1.3 var(--sans);color:var(--ink)}
+.kpis > div > em{font-style:normal;font:400 12px/1.35 var(--sans);color:var(--ink-3)}
+.chart{background:var(--paper);border-radius:16px;padding:14px;display:grid;gap:10px;min-width:0}
+.chart > .ctop{display:flex;align-items:baseline;gap:10px;font:600 14px/1.2 var(--sans)}
+.chart > .ctop > span{margin-left:auto;font:400 13px/1.2 var(--sans);color:var(--ink-3)}
+.bars{display:flex;align-items:flex-end;gap:6px;height:86px}
+.bars > i{flex:1;min-width:0;background:var(--pig);border-radius:6px}
+.bars > i.off{background:var(--paper-3)}
+.lists{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.lists > div{background:var(--paper);border-radius:16px;padding:14px;display:grid;gap:6px;align-content:start;min-width:0}
+.lists > div > span{font:500 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.lists > div > b{font:500 14px/1.35 var(--sans);color:var(--ink)}
+.lists > div.pass > b{color:var(--rose)}
+.proj{background:var(--paper);border-radius:16px;padding:14px;font:400 14px/1.45 var(--sans);color:var(--ink-2)}
+.proj > em{display:block;font-style:normal;font-family:var(--hand);font-weight:600;font-size:21px;line-height:1.2;color:var(--ink);margin-top:4px}
+.eg{font:400 12px/1.45 var(--sans);color:var(--ink-3);padding:0 4px}
+
+/* ── chapter 02: the six things a great teacher does ─────────────────────────
+   Two rows of three of the same tile the rest of the site uses, with the mark
+   in pig, because on this page the pointer IS the thing Wobo does. */
+.six{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);margin-top:var(--s4)}
+.six > .tile > svg{width:34px;height:34px;stroke:var(--pig);stroke-width:2.5}
+
+/* ── chapter 02, shown: the ground under a chapter, and a tick that has to hold
+   A ring is an inset shadow, never a border; mint confirms, rose is the piece
+   that needs care. */
+.ground,.earned{width:100%;display:grid;gap:12px}
+.ground > .top-row{background:var(--paper);border-radius:16px;padding:14px 18px;display:grid;gap:3px;min-width:0}
+.ground > .top-row > b{font:600 17px/1.25 var(--sans)}
+.ground > .top-row > span{font:400 13px/1.4 var(--sans);color:var(--ink-2)}
+.ground > svg{width:100%;height:auto;display:block;overflow:visible}
+.stones{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stones > div{background:var(--paper);border-radius:16px;padding:12px 14px;display:grid;gap:4px;text-align:center;min-width:0;box-shadow:inset 0 0 0 3px var(--mint)}
+.stones > div > b{font:600 15px/1.2 var(--sans)}
+.stones > div > em{font-style:normal;font:400 13px/1.4 var(--sans);color:var(--ink-2)}
+.stones > div.thin{box-shadow:inset 0 0 0 3px var(--rose)}
+.earned > div:not(.hand){background:var(--paper);border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;min-width:0}
+.earned > div > b{font:600 16px/1.3 var(--sans)}
+.earned > div > b > span{display:block;font:400 13px/1.45 var(--sans);color:var(--ink-2);margin-top:3px}
+.earned > div > em{font-style:normal;font:500 13px/1.2 var(--sans);color:var(--ink-2);display:flex;align-items:center;gap:8px;min-width:0}
+.earned > div > em::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--mint);flex:0 0 auto}
+.earned > div.fell > em::before{background:var(--rose)}
+/* THE TWO MODES (docs/SELL.md section 2, owner 2026-09-04): a doubt is cleared the moment it
+   appears, learning goes a bit at a time across weeks. Two cards and never three - the shape is the
+   argument. One accent per card doing one job: pig on the thing that happens now, mint on the thing
+   that holds. */
+.modes{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0}
+.modes > div{background:var(--paper);border-radius:18px;padding:16px 18px;display:grid;gap:6px;align-content:start;min-width:0}
+.modes > div > span{font:500 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.modes > div > b{font:600 17px/1.25 var(--sans)}
+.modes > div > p{font:400 14px/1.45 var(--sans);color:var(--ink-2);margin:0;max-width:none}
+.modes > div > em{font-style:normal;font:500 13px/1.3 var(--sans);color:var(--pig);display:flex;align-items:flex-start;gap:8px;min-width:0}
+.modes > div > em::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--pig);flex:0 0 auto;margin-top:4px}
+.modes > div.slow > em{color:var(--mint)}
+.modes > div.slow > em::before{background:var(--mint)}
+@media (max-width:560px){.modes{grid-template-columns:1fr}}
+.ground .hand,.earned .hand{font-size:22px;line-height:1.2;color:var(--ink);padding:2px 4px}
+@media (max-width:900px){.six{grid-template-columns:1fr}}
+@media (max-width:560px){.kpis,.lists,.stones{grid-template-columns:1fr}.ground > svg{display:none}.earned > div:not(.hand){grid-template-columns:1fr;gap:8px}}
 </style>
 </head>
 <body>
@@ -196,14 +269,13 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 <section class="hero"><div class="wrap">
   <div>
     <span class="label">For parents</span>
-    <h1>You can't be at the table every evening. <em>Wobo can.</em></h1>
-    <p class="sub">A tutor that knows your child's exact syllabus, answers late in the evening without a sigh, and writes you a note on Sunday about what actually happened. Not a report card. A note.</p>
-    <div class="row"><a class="btn pig" href="#">Set it up for my child</a><a class="btn quiet" href="#see">What you'll see</a><span class="note">Free every day. No card to start.</span></div>
+    <h1>Everything a great teacher does, <em>for one child, whenever they want to learn.</em></h1>
+    <p class="sub">Wobo teaches your child’s own syllabus, draws the answer until it lands, and shows you what actually moved this week. You set it up once. It runs on its own after that.</p>
+    <div class="row"><a class="btn pig" href="#">Start free</a><a class="btn quiet" href="#">See plans</a><span class="note">Free every day. No card to start.</span></div>
   </div>
   <div class="env"><svg viewBox="0 0 480 420" aria-label="A Sunday note rising out of its envelope">
     <!-- Drawn in the order paper actually sits: the opened flap falls BEHIND the letter, the
-         letter rises out, and the envelope's front pocket closes over its bottom edge. The old
-         version painted the flap last, so it lay across the writing. -->
+         letter rises out, and the envelope's front pocket closes over its bottom edge. -->
     <path d="M62 236 L240 128 L418 236 Z" fill="var(--violet)" opacity=".55"/>
     <g class="letter">
       <rect x="96" y="70" width="288" height="272" rx="14" fill="var(--paper)" stroke="var(--ink)" stroke-width="3.5"/>
@@ -220,52 +292,55 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
   </svg></div>
 </div></section>
 
-<section><div class="wrap">
+<section id="see"><div class="wrap">
   <div class="chapter reveal">
     <div>
       <div class="num">01</div>
-      <h2>The 8 pm drive home.</h2>
-      <p>Traffic. A message from home: "question 7 makes no sense." You'd explain it if you were there. You're not there.</p>
+      <h2>What was learnt, what needed another pass, and what is coming.</h2>
+      <p>A report drawn from your child’s own record and nothing else. Minutes and the evenings behind them, topics learnt, and how much of it came back right without a hint. Where there is not enough history to say something, it says so instead of filling the space.</p>
       <div class="caps">
-        <div class="t">Meanwhile, at the table</div>
-        <div>Your child asks Wobo the way they'd ask you.</div>
-        <div>Wobo draws it out, line by line.</div>
-        <div><em>By the time you park, it's clicked.</em></div>
+        <div class="t">On the report</div>
+        <div>What was learnt, and what slipped back.</div>
+        <div>What held a week after it was first answered.</div>
+        <div><em>A finish line drawn from their own pace, once there is a pace.</em></div>
       </div>
     </div>
-    <div class="art night">
-      <svg viewBox="0 0 520 360" aria-hidden="true">
-        <rect x="40" y="40" width="440" height="280" rx="24" fill="#181C3A"/>
-        <rect x="70" y="70" width="380" height="60" rx="14" fill="#22264A"/>
-        <text x="90" y="96" font-family="Poppins,sans-serif" font-weight="600" font-size="15" fill="#F3F0E8">Wobo</text>
-        <text x="90" y="116" font-family="Poppins,sans-serif" font-size="13" fill="#B8B6C6">Triangles, lesson 3, finished. Got c = 5 without a hint.</text>
-        <text x="410" y="96" font-family="Poppins,sans-serif" font-size="12" fill="#7C7B92">8:12 pm</text>
-        <rect x="70" y="150" width="380" height="60" rx="14" fill="#22264A"/>
-        <text x="90" y="176" font-family="Poppins,sans-serif" font-weight="600" font-size="15" fill="#F3F0E8">Your child</text>
-        <text x="90" y="196" font-family="Poppins,sans-serif" font-size="13" fill="#B8B6C6">got it!! wobo drew the squares thing. dont need u lol</text>
-        <text x="410" y="176" font-family="Poppins,sans-serif" font-size="12" fill="#7C7B92">8:14 pm</text>
-        <path class="draw" d="M100 270 c40 -30 80 -30 120 0 s80 30 120 0 s60 -30 90 -10" fill="none" stroke="#FFB629" stroke-width="3.5" stroke-linecap="round"/>
-        <text x="100" y="300" font-family="Caveat,cursive" font-weight="700" font-size="24" fill="#FFB629">you, breathing out</text>
-      </svg>
-      <span class="sticker" style="right:22px;top:18px">8:14 pm</span>
+    <div class="art">
+      <div class="report">
+        <div class="rtop"><svg viewBox="0 0 120 120" width="28" height="28"><use href="#head"/></svg><b>This week</b><span>drawn from your child’s own record</span></div>
+        <div class="kpis">
+          <div><b>96<i>min</i></b><span>Minutes</span><em>across four evenings</em></div>
+          <div><b>7<i>of 9</i></b><span>Topics learnt</span><em>one needs another pass</em></div>
+          <div><b>82<i>%</i></b><span>Right a week on</span><em>answers given a week or more after the first</em></div>
+        </div>
+        <div class="chart">
+          <div class="ctop"><b>Minutes a day</b><span>best day 31 min</span></div>
+          <div class="bars" role="img" aria-label="Minutes a day: Monday 18; Tuesday 24; Wednesday 0; Thursday 31; Friday 12; Saturday 11; Sunday 0.">
+            <i style="height:58%"></i><i style="height:77%"></i><i class="off" style="height:8%"></i><i style="height:100%"></i><i style="height:39%"></i><i style="height:35%"></i><i class="off" style="height:8%"></i>
+          </div>
+        </div>
+        <div class="lists">
+          <div><span>What was learnt</span><b>Understanding quadrilaterals</b><b>Fractions on a number line</b></div>
+          <div class="pass"><span>Needed another pass</span><b>Equivalent fractions</b></div>
+          <div><span>What is coming</span><b>Mixed numbers</b><b>Sound</b></div>
+        </div>
+        <div class="proj">At this pace, all nine topics are behind them by around the middle of November.<em>Drawn from their own pace, and it says so on the report.</em></div>
+        <div class="eg">Drawn here with example numbers. Your child’s report carries theirs, and shows nothing it cannot measure yet.</div>
+      </div>
     </div>
   </div>
-</div></section>
-
-<section id="see"><div class="wrap">
-  <div class="chapter flip reveal">
+  <div class="chapter flip tight reveal">
     <div>
-      <div class="num">02</div>
-      <h2>What you see, and what you don't.</h2>
-      <p>Every lesson, every practice set, the streak, and the Sunday note. What you don't see is your child's questions word for word, unless they choose to share them. Trust runs both ways.</p>
+      <h2>What you see, and what you don’t.</h2>
+      <p>Every lesson, every practice set, the streak, and the Sunday note. What you don’t see is your child’s questions word for word, unless they choose to share them. Trust runs both ways.</p>
       <div class="caps">
-        <div>You'll know how it's going <em>without asking twice.</em></div>
+        <div>You’ll know how it’s going <em>without asking twice.</em></div>
       </div>
     </div>
-    <div class="art lilac">
+    <div class="art">
       <div class="mock">
         <div class="top"><svg viewBox="0 0 120 120" width="32" height="32"><use href="#head"/></svg><b>Your child</b>· CBSE · this week</div>
-        <div class="row"><div><b>Triangles and the hypotenuse</b><span>Lesson 3 of 5 · Tuesday 9:46 pm</span></div><span class="ok now">in progress</span></div>
+        <div class="row"><div><b>Triangles and the hypotenuse</b><span>Lesson 3 of 5 · Tuesday, after school</span></div><span class="ok now">in progress</span></div>
         <div class="row"><div><b>Understanding quadrilaterals</b><span>4 lessons · practice 9 of 10</span></div><span class="ok">mastered</span></div>
         <div class="row"><div><b>Sound</b><span>Science · starts after the test</span></div><span class="ok" style="background:var(--paper-3)">next</span></div>
         <div class="note">Three lessons, fourteen problems, and help asked for twice after a miss, <em>which is exactly how learning looks.</em></div>
@@ -275,44 +350,114 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
   </div>
 </div></section>
 
-<section><div class="wrap">
-  <div class="head reveal"><div class="num" style="font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)">03</div><h2>Safe by design, not by promise.</h2><p>We built Wobo the way we'd build it for our own kids. The full detail is on the Security and trust page. The short version is here.</p></div>
+<section id="why"><div class="wrap">
+  <div class="head reveal"><div class="num" style="font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)">02</div><h2>Six things a great teacher does. Wobo does all six.</h2><p>Not one of them is a setting to find or a button to press. They happen inside the lesson, on their own, whether or not anyone is watching.</p></div>
+  <div class="six reveal">
+    <div class="tile"><svg viewBox="0 0 44 44"><path d="M8 32 c8 -14 14 -18 22 -8 s10 12 16 -4 M8 12 h28"/></svg><h3>It draws while it explains.</h3><p>The answer arrives on a board, a line at a time, so your child watches the idea appear instead of reading a finished one. Where drawing is not the right form, the same answer becomes a short film, a thing to drag, or a voice talking it through.</p></div>
+    <div class="tile"><svg viewBox="0 0 44 44"><path d="M10 14 h18 a8 8 0 0 1 0 16 h-18 M16 8 l-6 6 l6 6 M28 24 l6 6 l-6 6"/></svg><h3>It changes method after a second miss.</h3><p>Never the same explanation again, louder. A worked example instead of a rule, the same idea drawn, an analogy from something your child already cares about, or talked out loud until they can say it back. It remembers which ones it has spent, so tomorrow starts somewhere new.</p></div>
+    <div class="tile"><svg viewBox="0 0 44 44"><path d="M22 6 v14 M8 20 h28 M8 20 v14 M22 20 v14 M36 20 v14"/></svg><h3>It teaches the ground first.</h3><p>Before a topic that stands on older work, two or three short questions about that older work. If a piece of it is thin, that piece is taught as the opening of the same lesson, and every one of those questions can be skipped.</p></div>
+    <div class="tile"><svg viewBox="0 0 44 44"><path d="M8 24 l8 8 l18 -20 M34 8 v10 h-10"/></svg><h3>It does not move on until it stays learnt.</h3><p>Reaching the end of a chapter is not the same as holding it. A chapter counts as done when what your child answered is still right the next time Wobo brings it back.</p></div>
+    <div class="tile"><svg viewBox="0 0 44 44"><path d="M10 22 a12 12 0 1 0 4 -9 M10 10 v8 h8"/></svg><h3>It brings back what slipped.</h3><p>When something stops holding, it returns to your child’s board and names the topic that fell. The one moment a child is told they have gone backwards is spent saying which thing, and never on a grade.</p></div>
+    <div class="tile"><svg viewBox="0 0 44 44"><path d="M22 8 a14 14 0 1 0 0 28 a14 14 0 1 0 0 -28 M8 22 h28 M22 8 c6 7 6 21 0 28 c-6 -7 -6 -21 0 -28"/></svg><h3>It builds the example from their world.</h3><p>If your child has told Wobo what they are into, the analogy is built out of that. If they have told it nothing, Wobo explains plainly rather than inventing a world for them.</p></div>
+  </div>
+  <div class="chapter reveal">
+    <div>
+      <h2>The ground under this week’s chapter.</h2>
+      <p>A child rarely falls behind on this week’s chapter. They fall behind on a chapter from two years ago that nobody ever went back for, and every chapter built on top of it costs a little more. So before Wobo teaches a topic that stands on older ground, it asks two or three short questions about that ground, and teaches whatever is thin as the opening of the same lesson.</p>
+      <div class="caps">
+        <div class="t">What that means at your table</div>
+        <div>Three questions at most, and your child can skip any of them.</div>
+        <div>The missing piece is taught inside the lesson, never as a separate exercise your child has to find their way back from.</div>
+        <div>Nothing is ever locked. A chapter your child wants to open, opens.</div>
+        <div><em>They stop falling further behind.</em></div>
+      </div>
+    </div>
+    <div class="art">
+      <div class="ground">
+        <div class="top-row"><b>This week’s chapter</b><span>what the class is on</span></div>
+        <svg viewBox="0 0 360 66"><path class="ink thin" d="M180 2 v18 M60 20 h240 M60 20 v42 M180 20 v42 M300 20 v42"/></svg>
+        <div class="stones">
+          <div><b>Fractions</b><em>solid</em></div>
+          <div class="thin"><b>Ratios</b><em>thin, so this is taught first</em></div>
+          <div><b>Negatives</b><em>solid</em></div>
+        </div>
+        <div class="hand">Nobody fails the chapter in front of them. They failed the one holding it up.</div>
+      </div>
+    </div>
+  </div>
+  <div class="chapter flip tight reveal">
+    <div>
+      <h2>And &ldquo;mastered&rdquo; has to be earned twice.</h2>
+      <p>A chapter is not marked done because your child reached the end of it. It is done when what they answered holds, and still holds when Wobo brings it back later. When something stops holding, the chapter comes back on their board and names the topic that slipped, so the one moment a child is told they have gone backwards is spent saying which thing, and not on a grade.</p>
+      <div class="caps">
+        <div>You will see a chapter reopen sometimes. <em>That is the product working, not failing.</em></div>
+      </div>
+    </div>
+    <div class="art">
+      <div class="earned">
+        <div><b>Understanding quadrilaterals<span>finished, and it held when it came back</span></b><em>mastered</em></div>
+        <div class="fell"><b>Fractions on a number line<span>finished three weeks ago, and this time it did not hold</span></b><em>come back to this</em></div>
+        <div class="hand">A tick that can go out again is the only kind of tick worth anything.</div>
+      </div>
+    </div>
+  </div>
+  <div class="chapter tight reveal">
+    <div>
+      <h2>Two different things, and they run on different clocks.</h2>
+      <p>A doubt is cleared the moment it appears: after school, over the weekend, on a holiday, between classes, on the way home, wherever your child happens to be. Learning is the slower one, and it goes a bit at a time across weeks, so the week before an exam is revision rather than panic.</p>
+      <p>Wobo is built for the slower one on purpose. It will not mark a chapter learnt until it holds, it teaches the ground under a topic before the topic, and it brings back what slipped before it is lost. Every one of those costs a child time today and gives it back in March.</p>
+      <div class="caps">
+        <div>Nothing here is a shortcut. <em>That is the whole design.</em></div>
+      </div>
+    </div>
+    <div class="art">
+      <div class="modes">
+        <div><span>A doubt</span><b>Cleared the moment it appears</b><p>Wherever they are, in whatever form the idea needs: drawn on a board, filmed, turned into something to drag, or talked through out loud.</p><em>Any time, genuinely</em></div>
+        <div class="slow"><span>Learning</span><b>A bit at a time, across weeks</b><p>The ground first, then the topic, then it comes back the moment the evidence says it slipped. Nothing is marked learnt until it stays learnt.</p><em>So the week before is revision</em></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section id="cost"><div class="wrap">
+  <div class="cost reveal">
+    <div>
+      <div class="num" style="font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)">03</div>
+      <h2>Free every day, forever. And stopping costs nothing.</h2>
+      <p>Every learner gets a daily allowance of questions, with no card and no trial that ends. When the board exams are close and one evening isn’t enough, Pro and Max raise the allowance. If you stop, nothing renews, the plan runs to the end of the period already paid for, and everything learnt stays exactly where it is.</p>
+      <div class="row"><a class="btn quiet" href="#">See plans</a></div>
+    </div>
+    <div class="allow"><b>Today’s allowance</b><div class="bar"><i></i></div><span>Most of today’s allowance still there · resets 6:00 am</span><div class="hand">enough for a normal evening</div></div>
+  </div>
+</div></section>
+
+<section id="hold"><div class="wrap">
+  <div class="head reveal"><div class="num" style="font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)">04</div><h2>What we hold, and what we will never do with it.</h2><p>We built Wobo the way we’d build it for our own kids. The full detail is on the Security and trust page. The short version is here.</p></div>
   <div class="grid3 reveal">
-    <div class="tile pig"><svg viewBox="0 0 44 44"><path d="M22 6 L36 12 C36 26 30 34 22 39 C14 34 8 26 8 12 Z"/></svg><h3>No opinions, ever</h3><p>Politics, religion, anything contested: Wobo stays neutral and steers back to the chapter.</p></div>
-    <div class="tile mint"><svg viewBox="0 0 44 44"><rect x="8" y="19" width="28" height="19" rx="5"/><path d="M14 19 v-5 a8 8 0 0 1 16 0 v5"/></svg><h3>No ads, no selling</h3><p>Nothing in Wobo is trying to sell your child anything. It's paid for by families.</p></div>
-    <div class="tile marigold"><svg viewBox="0 0 44 44"><path d="M10 34 l8 -8 l6 6 l12 -14"/><path d="M28 18 h8 v8"/></svg><h3>Erase everything, any time</h3><p>One button, for you or your child. Memory, progress, account. Gone.</p></div>
+    <div class="tile"><svg viewBox="0 0 44 44"><path d="M22 6 L36 12 C36 26 30 34 22 39 C14 34 8 26 8 12 Z"/></svg><h3>No opinions, ever</h3><p>Politics, religion, anything contested: Wobo stays neutral and steers back to the chapter.</p></div>
+    <div class="tile"><svg viewBox="0 0 44 44"><rect x="8" y="19" width="28" height="19" rx="5"/><path d="M14 19 v-5 a8 8 0 0 1 16 0 v5"/></svg><h3>No ads, no selling</h3><p>Nothing in Wobo is trying to sell your child anything. It’s paid for by families.</p></div>
+    <div class="tile"><svg viewBox="0 0 44 44"><path d="M10 34 l8 -8 l6 6 l12 -14"/><path d="M28 18 h8 v8"/></svg><h3>Erase everything, any time</h3><p>One button, for you or your child. Memory, progress, account. Gone.</p></div>
   </div>
   <div style="margin-top:var(--s3)"><a class="btn quiet" href="#">Read the Security and trust page</a></div>
 </div></section>
 
-<section><div class="wrap">
-  <div class="cost reveal">
-    <div>
-      <div class="num" style="font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)">04</div>
-      <h2>Free every day. More when exams get close.</h2>
-      <p>Every learner gets a daily allowance of questions, forever, with no card and no trial that ends. When the board exams loom and one evening isn't enough, Pro and Max raise the allowance. Cancelling takes as many taps as subscribing.</p>
-      <div class="row"><a class="btn" href="#">See plans</a><a class="btn quiet" href="#">Gift Wobo</a></div>
-    </div>
-    <div class="allow"><b>Today's allowance</b><div class="bar"><i></i></div><span>25 of 40 questions left · resets 6:00 am</span><div class="hand">enough for a normal evening</div></div>
-  </div>
-</div></section>
-
-<section><div class="wrap">
+<section id="questions"><div class="wrap">
   <div class="head reveal"><div class="num" style="font-family:var(--hand);font-weight:700;font-size:28px;color:var(--pig)">05</div><h2>The questions parents ask.</h2></div>
   <div class="faq reveal">
-    <details open><summary>Will it just give my child the answers?</summary><p>No. Wobo draws the reasoning and asks your child to take the next step. When they're close, it rings the gap on their answer and waits. Copying isn't possible, because there's nothing to copy until they've done the thinking.</p></details>
-    <details><summary>Does it follow our school's syllabus, or a generic one?</summary><p>Your school's. You pick the board and class when you set up, and Wobo teaches the chapter your class is on this week, in the order your textbook uses. If your school does something differently, tell Wobo and it adjusts.</p></details>
-    <details><summary>Is it safe for a ten-year-old to talk to?</summary><p>Yes, and it's built for exactly that. Wobo stays inside school subjects, has no opinions on anything contested, shows no ads, and never makes a child feel small. Voice isn't stored. You can read the full detail on the Security and trust page.</p></details>
-    <details><summary>Can I see what my child asks?</summary><p>You see every lesson, practice set and the Sunday note. Questions word for word are shared only if your child allows it. We think that's what a good tutor would do too.</p></details>
-    <details><summary>What does it cost?</summary><p>Nothing, every day, with a daily allowance of questions. Pro and Max raise that allowance for exam season. The plans page has the numbers for your country.</p></details>
-    <details><summary>Which subjects?</summary><p>Every subject your board sets, for CBSE, ICSE and the state boards. Other boards and countries are added as families ask.</p></details>
+    <details open><summary>Will it just give my child the answers?</summary><p>No. Wobo draws the reasoning and asks your child to take the next step. When they’re close, it rings the gap on their answer and waits. Copying isn’t possible, because there’s nothing to copy until they’ve done the thinking.</p></details>
+    <details><summary>Does it follow our school’s syllabus, or a generic one?</summary><p>Your school’s. You pick the board and class when you set up, and Wobo teaches the chapter your class is on this week, in the order your textbook uses. If your school does something differently, tell Wobo and it adjusts.</p></details>
+    <details><summary>Is it safe for a child to talk to alone?</summary><p>Yes, and it’s built for exactly that. Wobo stays inside school subjects, has no opinions on anything contested, shows no ads, and never makes a child feel small. Voice isn’t stored. You can read the full detail on the Security and trust page.</p></details>
+    <details><summary>Can I see what my child asks?</summary><p>You see every lesson, practice set and the Sunday note. Questions word for word are shared only if your child allows it. We think that’s what a good tutor would do too.</p></details>
+    <details><summary>What does it cost?</summary><p>Nothing, every day, with a daily allowance of questions. Pro and Max raise that allowance. The plans page has the numbers for your country.</p></details>
+    <details><summary>What happens if I stop paying?</summary><p>Nothing renews, the plan runs to the end of the period already paid for, and then the account goes back to the free one, which never ends. Everything learnt stays exactly where it is. Cancelling takes as many taps as subscribing, and the screen that does it offers no discount, no pause and no reason picker.</p></details>
+    <details><summary>Which subjects?</summary><p>Every subject your board sets. The official chapter lists for CBSE, ICSE, ISC and NIOS are loaded; for any other board you hand over your school’s syllabus once and Wobo builds the plan from that.</p></details>
   </div>
 </div></section>
 
 <section><div class="wrap">
   <div class="ask reveal">
     <svg class="w" viewBox="0 0 120 120"><use href="#head"/></svg>
-    <div><span class="label">Still wondering?</span><h2 style="margin-top:8px">Ask Wobo what you'd ask a tutor at the door.</h2>
+    <div><span class="label">Still wondering?</span><h2 style="margin-top:8px">Ask Wobo what you’d ask a tutor at the door.</h2>
       <div class="box"><input placeholder="How do you handle a child who guesses instead of thinking?"><button class="btn pig" style="min-height:40px;padding:10px 16px">Ask</button></div>
       <div class="chips"><span>Do you teach ICSE?</span><span>What happens at the end of the daily allowance?</span><span>Can two children share one account?</span></div>
     </div>
@@ -320,9 +465,9 @@ footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
 </div></section>
 
 <div class="close"><div class="wrap">
-  <h2>Set it up before this evening's homework.</h2>
-  <span class="hand">Ten minutes now. Every evening after, easier.</span>
-  <div class="row"><a class="btn" href="#">Set it up for my child</a><a class="btn q" href="#">See plans</a></div>
+  <h2>Set it up once, whenever it suits you.</h2>
+  <span class="hand">Ten minutes now, and every evening after is easier.</span>
+  <div class="row"><a class="btn" href="#">Start free</a><a class="btn q" href="#">See plans</a></div>
 </div></div>
 <footer><div class="wrap">
   <div><div class="wm"><svg viewBox="0 0 1160 340" style="width:120px"><use href="#wm"/></svg></div><p style="margin-top:10px;max-width:28ch">A tutor that draws, never judges, and is always there.</p></div>
