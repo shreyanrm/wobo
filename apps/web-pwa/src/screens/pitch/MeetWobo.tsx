@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useViewport } from '../../shell/useViewport';
 import { Label, Sticker, WoboHead } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
+import { CTA } from '../site/cta';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
 import { PitchAsk } from './Ask';
@@ -174,15 +175,16 @@ export function MeetWobo() {
               </h1>
               <p className="pt-sub">
                 Wobo listens the way you'd talk to a friend, draws the answer instead of reciting
-                it, notices what you're good at, and never, ever makes you feel small.
+                it, notices what you're good at, and never, ever makes you feel small. Wobo is the
+                part of this you talk to. It is not the whole of what is going on.
               </p>
               <div className="pt-row">
-                <a className="st-btn st-pig" href="#say">
+                <SiteLink className="st-btn st-pig" to={CTA.to}>
+                  {CTA.label}
+                </SiteLink>
+                <a className="st-btn st-quiet" href="#say">
                   Say hey to Wobo
                 </a>
-                <SiteLink className="st-btn st-quiet" to={{ name: 'onboarding' }}>
-                  Get early access
-                </SiteLink>
                 <span className="pt-note">Wobo has no gender. Wobo is just Wobo.</span>
               </div>
             </div>
@@ -452,8 +454,8 @@ export function MeetWobo() {
                   What it <span className="pt-hl">never</span> does.
                 </h2>
                 <p>
-                  Three rules we'd put in a contract, because a tutor a ten-year-old talks to at 9
-                  pm has to be safe by design, not by promise.
+                  Three rules we'd put in a contract, because a tutor a child talks to on their own
+                  has to be safe by design, not by promise.
                 </p>
               </div>
             </Reveal>
@@ -462,8 +464,8 @@ export function MeetWobo() {
                 <span className="mt-x">✗</span>
                 <b>Make you feel small</b>
                 <span>
-                  Wobo never says wrong. It rings the gap and waits. No sighing, no red ink, no
-                  scores you didn't ask for.
+                  Wobo never says wrong. It rings the gap and waits. No red ink, no scores you
+                  didn't ask for.
                 </span>
               </div>
               <div>
@@ -482,6 +484,63 @@ export function MeetWobo() {
                   not by advertisers.
                 </span>
               </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="st-section">
+          <div className="st-wrap">
+            <Reveal className="st-head">
+              <div className="pt-num">05</div>
+              <h2>Wobo is the voice. It isn't the whole of it.</h2>
+              <p>
+                A patient tutor with a pen is one reason this works. Three more sit behind it, and
+                none of them is a personality. They are the difference between a chat that answers
+                well and something that actually gets you through the year.
+              </p>
+            </Reveal>
+            <Reveal className="st-grid3">
+              <SiteLink className="st-tile" href="/subjects">
+                <svg viewBox="0 0 44 44" aria-hidden="true">
+                  <path d="M8 10 h13 a4 4 0 0 1 4 4 v22 a5 5 0 0 0 -5 -4 h-12 z" />
+                  <path d="M36 10 h-13 a4 4 0 0 0 -4 4 v22 a5 5 0 0 1 5 -4 h12 z" />
+                </svg>
+                <h3>It knows which chapter this is</h3>
+                <p>
+                  Your board's own syllabus sits underneath every answer, in your textbook's order,
+                  so nothing arrives from a different year or a different country.
+                </p>
+                <span className="mt-more">See the subjects</span>
+              </SiteLink>
+              <SiteLink className="st-tile" href="/how-it-works">
+                <svg viewBox="0 0 44 44" aria-hidden="true">
+                  <rect x="6" y="6" width="32" height="10" rx="3" />
+                  <path d="M12 16 v6 M22 16 v6 M32 16 v6" />
+                  <rect x="6" y="22" width="12" height="15" rx="3" />
+                  <rect x="26" y="22" width="12" height="15" rx="3" />
+                  <path d="M17 22 h10 M17 37 h10" />
+                </svg>
+                <h3>It checks the ground before it builds</h3>
+                <p>
+                  A chapter usually stands on an older one. Wobo asks two or three short questions
+                  about that older one first, and teaches whatever is thin before the chapter that
+                  needs it.
+                </p>
+                <span className="mt-more">See the loop</span>
+              </SiteLink>
+              <SiteLink className="st-tile" href="/for-parents">
+                <svg viewBox="0 0 44 44" aria-hidden="true">
+                  <path d="M22 8 a14 14 0 1 1 -13 9" />
+                  <path d="M22 3 l6 5 l-6 5" />
+                  <path d="M15 23 l5 5 l10 -11" />
+                </svg>
+                <h3>It doesn't move on until it holds</h3>
+                <p>
+                  Getting it right once is not knowing it. A chapter counts as done when it is still
+                  right without a hint, and if it stops being right, it comes back.
+                </p>
+                <span className="mt-more">Why that matters</span>
+              </SiteLink>
             </Reveal>
           </div>
         </section>
@@ -511,7 +570,7 @@ export function MeetWobo() {
           </div>
         </section>
 
-        <ClosePanel />
+        <ClosePanel page="meet" />
       </div>
     </SiteShell>
   );

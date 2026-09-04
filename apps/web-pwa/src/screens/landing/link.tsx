@@ -68,29 +68,3 @@ export function LandingLink({
     </a>
   );
 }
-
-/**
- * The one call to action on the page. Every "Get early access" is this: a real `#early` anchor, so
- * it works with no JavaScript and can be copied and shared, and a click handler that eases the page
- * down to the form and puts the caret in the field — which is what the reader wanted the moment
- * they pressed it.
- *
- * The scroll is `scrollIntoView`, not a router navigation: Lenis is driven from the same clock and
- * follows a native scroll perfectly well, and a reader who has asked for less motion gets the jump
- * their own setting asks for rather than one this page insists on.
- */
-export function earlyAccessHandler(id = 'early') {
-  return (event: MouseEvent<HTMLAnchorElement>) => {
-    if (event.defaultPrevented || browserOwnsClick(event)) return;
-    if (typeof document === 'undefined') return;
-    const form = document.getElementById(id);
-    if (!form) return;
-    event.preventDefault();
-    const reduced =
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    form.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
-    form.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
-  };
-}

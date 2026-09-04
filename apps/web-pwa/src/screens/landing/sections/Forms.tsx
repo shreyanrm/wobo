@@ -11,12 +11,12 @@
  * read rather than scrubbed.
  */
 
-import { FormDrag, FormFilm, FormProof } from '../art';
+import { FormDrag, FormFilm, FormProof, HeroSpoken } from '../art';
 import { FORMS } from '../page-copy';
 
 export function Forms() {
   const label = (i: number) => FORMS.labels[i] ?? '';
-  const marked = FORMS.marks.marked;
+  const spoken = FORMS.marks.spoken;
   return (
     <section id="forms">
       <div className="wrap">
@@ -59,25 +59,14 @@ export function Forms() {
                   {label(2)}
                 </div>
               </div>
-              {/* The fourth card is MARKUP, not a drawing. The prototype used to place these
-                  annotations as SVG at guessed coordinates, and they drifted off their words at
-                  other widths and in the other theme — trap 5 in DESIGN.md §0. Now the highlighter
-                  is a `<mark>` and the loop is a `::after` on the clause it circles, so each mark
-                  rides its own words and cannot drift. `box-decoration-break: clone` in the
-                  stylesheet keeps the highlight correct when the phrase wraps. */}
+              {/* The fourth card is the SPOKEN form, and it is the fourth engine rather than a
+                  fourth drawing: `wobo/voice.ts` reads an answer aloud, and the gateway's
+                  /v1/voice/tts returns the audio. It used to be a marked-up paragraph labelled
+                  "Your own writing, with the pen on it", which named a capability this tree does
+                  not have — no input anywhere reads a learner's own writing. The hero's rail has
+                  always said Drawn, Filmed, Tried, Spoken; this card now agrees with it. */}
               <div className="card" data-i="3">
-                <div className="marked">
-                  <p>
-                    {marked.lead}
-                    <mark className="hl">{marked.highlighted}</mark>
-                    <span className="tag">{marked.tag}</span>
-                    {marked.mid}
-                    <span className="circled">{marked.circled}</span>
-                    {marked.trail}
-                  </p>
-                  <div className="note">{marked.note}</div>
-                  <div className="fix">{marked.fix}</div>
-                </div>
+                <HeroSpoken label={label(3)} line={spoken.line} />
                 <div className="label">
                   <i />
                   {label(3)}

@@ -94,13 +94,13 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Wobo is free to use, every day, with an allowance of questions that resets each morning. Pro and Max raise that allowance; the free tier is a real product, not a trailer."
+                  "v": "Wobo is free to use, every day, with an allowance of questions that refills once a day. Pro and Max raise that allowance; the free tier is a real product, not a trailer."
                 }
               ]
             }
           ],
-          "plain": "Wobo is a tutor that explains things live, on your own syllabus, in whichever form the idea needs. Ask Wobo anything and the answer arrives the way it should: a board drawn in ink while Wobo talks, a short film you can pause anywhere, a model you can drag, or your own writing marked up. Then practice, and a memory of what did not stick. Wobo is on every screen. On the home screen Wobo is the conversation; everywhere else it is the small orb in the corner, watching the screen with you and one tap from picking the thing up again. Four things make Wobo different from a video or a search box: It is your syllabus. You pick your board and class, and Wobo teaches that, chapter by chapter, in its order. It is made for you, now. Nothing is pre-recorded. Ask the same question tomorrow and you get a different answer, often in a different form. Drawing is one part of it. Wobo also films, simulates, speaks, sets practice, remembers what you missed and writes the Sunday note home. Every number is checked before it is shown. The maths is computed and verified by code, not remembered. If a check fails, Wobo redoes it or tells you. Wobo is free to use, every day, with an allowance of questions that resets each morning. Pro and Max raise that allowance; the free tier is a real product, not a trailer.",
-          "text": "what is wobo wobo is a tutor that explains things live, on your own syllabus, in whichever form the idea needs. ask wobo anything and the answer arrives the way it should: a board drawn in ink while wobo talks, a short film you can pause anywhere, a model you can drag, or your own writing marked up. then practice, and a memory of what did not stick. wobo is on every screen. on the home screen wobo is the conversation; everywhere else it is the small orb in the corner, watching the screen with you and one tap from picking the thing up again. four things make wobo different from a video or a search box: it is your syllabus. you pick your board and class, and wobo teaches that, chapter by chapter, in its order. it is made for you, now. nothing is pre-recorded. ask the same question tomorrow and you get a different answer, often in a different form. drawing is one part of it. wobo also films, simulates, speaks, sets practice, remembers what you missed and writes the sunday note home. every number is checked before it is shown. the maths is computed and verified by code, not remembered. if a check fails, wobo redoes it or tells you. wobo is free to use, every day, with an allowance of questions that resets each morning. pro and max raise that allowance; the free tier is a real product, not a trailer.",
+          "plain": "Wobo is a tutor that explains things live, on your own syllabus, in whichever form the idea needs. Ask Wobo anything and the answer arrives the way it should: a board drawn in ink while Wobo talks, a short film you can pause anywhere, a model you can drag, or your own writing marked up. Then practice, and a memory of what did not stick. Wobo is on every screen. On the home screen Wobo is the conversation; everywhere else it is the small orb in the corner, watching the screen with you and one tap from picking the thing up again. Four things make Wobo different from a video or a search box: It is your syllabus. You pick your board and class, and Wobo teaches that, chapter by chapter, in its order. It is made for you, now. Nothing is pre-recorded. Ask the same question tomorrow and you get a different answer, often in a different form. Drawing is one part of it. Wobo also films, simulates, speaks, sets practice, remembers what you missed and writes the Sunday note home. Every number is checked before it is shown. The maths is computed and verified by code, not remembered. If a check fails, Wobo redoes it or tells you. Wobo is free to use, every day, with an allowance of questions that refills once a day. Pro and Max raise that allowance; the free tier is a real product, not a trailer.",
+          "text": "what is wobo wobo is a tutor that explains things live, on your own syllabus, in whichever form the idea needs. ask wobo anything and the answer arrives the way it should: a board drawn in ink while wobo talks, a short film you can pause anywhere, a model you can drag, or your own writing marked up. then practice, and a memory of what did not stick. wobo is on every screen. on the home screen wobo is the conversation; everywhere else it is the small orb in the corner, watching the screen with you and one tap from picking the thing up again. four things make wobo different from a video or a search box: it is your syllabus. you pick your board and class, and wobo teaches that, chapter by chapter, in its order. it is made for you, now. nothing is pre-recorded. ask the same question tomorrow and you get a different answer, often in a different form. drawing is one part of it. wobo also films, simulates, speaks, sets practice, remembers what you missed and writes the sunday note home. every number is checked before it is shown. the maths is computed and verified by code, not remembered. if a check fails, wobo redoes it or tells you. wobo is free to use, every day, with an allowance of questions that refills once a day. pro and max raise that allowance; the free tier is a real product, not a trailer.",
           "next": {
             "group": "wobo-basics",
             "slug": "your-first-five-minutes",
@@ -648,7 +648,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "On a learner account under 18, some memory is off until a parent has given consent. Wobo works either way; it just remembers less."
+                  "v": "Memory works the same way at every age today. There is no consent switch on it yet, so nothing on this page waits for a parent to agree to it, and we would rather tell you that than describe a switch you cannot find. Deleting a line, or erasing what Wobo remembers from settings, is the control you have."
                 }
               ]
             },
@@ -666,8 +666,8 @@
               ]
             }
           ],
-          "plain": "Wobo remembers your board and class, what you have mastered, the mistakes you keep making and the examples you like. You can see all of it and delete any of it. Memory is what makes a tutor useful on day forty. Without it, every lesson starts from nothing. Your board, class, subjects and any edits you made to your syllabus. Which topics you have mastered, and whether you did it on your own or with help. Mistakes worth re-testing, so Wobo brings them back later rather than letting them settle. The worlds your analogies come from, if you told Wobo what you are into. Recent conversation, so \"do that again with a bigger number\" makes sense. Boards you saved to your notes. Ink that Wobo draws on a screen and lets fade is not stored. Voice is used to understand you in the moment and is not kept as a recording. Wobo does not build a profile for advertising, because there is no advertising. Settings has a memory page. Everything Wobo knows about you is listed there in plain sentences, and each line has a delete next to it. Deleting a line takes effect on your next turn. On a learner account under 18, some memory is off until a parent has given consent. Wobo works either way; it just remembers less. Related: Your privacy and your data.",
-          "text": "what wobo remembers about you wobo remembers your board and class, what you have mastered, the mistakes you keep making and the examples you like. you can see all of it and delete any of it. memory is what makes a tutor useful on day forty. without it, every lesson starts from nothing. what is kept your board, class, subjects and any edits you made to your syllabus. which topics you have mastered, and whether you did it on your own or with help. mistakes worth re-testing, so wobo brings them back later rather than letting them settle. the worlds your analogies come from, if you told wobo what you are into. recent conversation, so \"do that again with a bigger number\" makes sense. boards you saved to your notes. what is not kept ink that wobo draws on a screen and lets fade is not stored. voice is used to understand you in the moment and is not kept as a recording. wobo does not build a profile for advertising, because there is no advertising. seeing and deleting it settings has a memory page. everything wobo knows about you is listed there in plain sentences, and each line has a delete next to it. deleting a line takes effect on your next turn. on a learner account under 18, some memory is off until a parent has given consent. wobo works either way; it just remembers less. related: your privacy and your data."
+          "plain": "Wobo remembers your board and class, what you have mastered, the mistakes you keep making and the examples you like. You can see all of it and delete any of it. Memory is what makes a tutor useful on day forty. Without it, every lesson starts from nothing. Your board, class, subjects and any edits you made to your syllabus. Which topics you have mastered, and whether you did it on your own or with help. Mistakes worth re-testing, so Wobo brings them back later rather than letting them settle. The worlds your analogies come from, if you told Wobo what you are into. Recent conversation, so \"do that again with a bigger number\" makes sense. Boards you saved to your notes. Ink that Wobo draws on a screen and lets fade is not stored. Voice is used to understand you in the moment and is not kept as a recording. Wobo does not build a profile for advertising, because there is no advertising. Settings has a memory page. Everything Wobo knows about you is listed there in plain sentences, and each line has a delete next to it. Deleting a line takes effect on your next turn. Memory works the same way at every age today. There is no consent switch on it yet, so nothing on this page waits for a parent to agree to it, and we would rather tell you that than describe a switch you cannot find. Deleting a line, or erasing what Wobo remembers from settings, is the control you have. Related: Your privacy and your data.",
+          "text": "what wobo remembers about you wobo remembers your board and class, what you have mastered, the mistakes you keep making and the examples you like. you can see all of it and delete any of it. memory is what makes a tutor useful on day forty. without it, every lesson starts from nothing. what is kept your board, class, subjects and any edits you made to your syllabus. which topics you have mastered, and whether you did it on your own or with help. mistakes worth re-testing, so wobo brings them back later rather than letting them settle. the worlds your analogies come from, if you told wobo what you are into. recent conversation, so \"do that again with a bigger number\" makes sense. boards you saved to your notes. what is not kept ink that wobo draws on a screen and lets fade is not stored. voice is used to understand you in the moment and is not kept as a recording. wobo does not build a profile for advertising, because there is no advertising. seeing and deleting it settings has a memory page. everything wobo knows about you is listed there in plain sentences, and each line has a delete next to it. deleting a line takes effect on your next turn. memory works the same way at every age today. there is no consent switch on it yet, so nothing on this page waits for a parent to agree to it, and we would rather tell you that than describe a switch you cannot find. deleting a line, or erasing what wobo remembers from settings, is the control you have. related: your privacy and your data."
         },
         {
           "slug": "your-account-and-signing-in",
@@ -838,7 +838,7 @@
           "lead": [
             {
               "t": "strong",
-              "v": "Everything you can change about Wobo lives in one place, reached from the quiet \"you\" affordance in the top left."
+              "v": "Everything you can change about Wobo lives on the You page, reached from the quiet \"you\" affordance in the top left."
             }
           ],
           "blocks": [
@@ -847,7 +847,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "Account"
+                  "v": "Your class and your board"
                 }
               ]
             },
@@ -856,7 +856,43 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Your name, your phone number and email address, adding a second way to sign in, setting a password, and signing out."
+                  "v": "Which class you are in and which board you follow, with the option of giving Wobo your own syllabus instead. Changing either changes what Wobo teaches from the next lesson on."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "strong",
+                  "v": "Wobo speaks replies out loud"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "On or off. It starts on, so a new learner hears Wobo without going looking for a switch, and one tap turns it off for good. The voice follows the language and country your board is in."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "strong",
+                  "v": "Reduce motion"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "On or off. With it on, everything happens in the same order and with the same timing, it just arrives without the movement."
                 }
               ]
             },
@@ -883,7 +919,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "Motion"
+                  "v": "Larger text and high contrast"
                 }
               ]
             },
@@ -892,7 +928,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Reduce motion, on, off or auto. With it on, everything happens in the same order and with the same timing, it just arrives without the movement. Auto follows your device."
+                  "v": "Two switches, each on its own. Larger text bumps the type size across the app; high contrast strengthens text and lines."
                 }
               ]
             },
@@ -901,7 +937,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "Sound and voice"
+                  "v": "Festivals we can wish you on"
                 }
               ]
             },
@@ -910,7 +946,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Narration on or off, sound effects on or off, and Wobo's accent. Narration and sound are separate, so you can have a silent Wobo who still draws. On an adult account, hands-free listening is here too, off until you turn it on."
+                  "v": "Pick the festivals your family keeps, and Wobo sends a greeting on those days and no others. Pick none and Wobo sends none."
                 }
               ]
             },
@@ -919,7 +955,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "Language"
+                  "v": "Your data"
                 }
               ]
             },
@@ -928,43 +964,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "The language Wobo teaches in. Your board's own names for things are kept alongside the English."
-                }
-              ]
-            },
-            {
-              "k": "p",
-              "text": [
-                {
-                  "t": "strong",
-                  "v": "Learning"
-                }
-              ]
-            },
-            {
-              "k": "p",
-              "text": [
-                {
-                  "t": "text",
-                  "v": "How much Wobo interrupts: quiet, balanced or proactive. On quiet, Wobo speaks up only when you ask. On proactive, Wobo offers a pointer when you have been stuck for a while. Streaks on or off is here as well, for anyone who would rather not count days."
-                }
-              ]
-            },
-            {
-              "k": "p",
-              "text": [
-                {
-                  "t": "strong",
-                  "v": "Notifications"
-                }
-              ]
-            },
-            {
-              "k": "p",
-              "text": [
-                {
-                  "t": "text",
-                  "v": "Email and push. Progress moments, weekly summaries and exam reminders each have their own switch, and festival greetings have a switch of their own separate from other progress mail. Every message we send says how to turn that category off. Billing and account messages are not switchable, because they are the record of what you paid and who you are."
+                  "v": "What Wobo remembers about you, and the erase that clears it. What the erase reaches, and what it does not reach yet, is written out in full on the privacy page below."
                 }
               ]
             },
@@ -982,25 +982,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Create, view or revoke the weekly summary link for a parent, and set how often it goes out."
-                }
-              ]
-            },
-            {
-              "k": "p",
-              "text": [
-                {
-                  "t": "strong",
-                  "v": "Data and privacy"
-                }
-              ]
-            },
-            {
-              "k": "p",
-              "text": [
-                {
-                  "t": "text",
-                  "v": "What Wobo remembers, consent, exporting everything, and deleting your account."
+                  "v": "Send a parent an invite to the Sunday note, see whether they accepted, and end the link in one tap. You can also look at the week the way a parent will see it before you send anything."
                 }
               ]
             },
@@ -1027,6 +1009,24 @@
               "text": [
                 {
                   "t": "strong",
+                  "v": "What is not here yet"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "An accent picker, a sound-effects switch separate from the voice, a proactivity dial, a streaks switch, notification switches beyond the festival list, editing your name or your sign-in details, and hands-free listening. None of those is built, and settings will say so until they are."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "strong",
                   "v": "Related:"
                 },
                 {
@@ -1036,8 +1036,8 @@
               ]
             }
           ],
-          "plain": "Everything you can change about Wobo lives in one place, reached from the quiet \"you\" affordance in the top left. Your name, your phone number and email address, adding a second way to sign in, setting a password, and signing out. Auto, light or dark. Auto follows your device. In light, Wobo draws like marker on paper; in dark, like chalk on slate. Reduce motion, on, off or auto. With it on, everything happens in the same order and with the same timing, it just arrives without the movement. Auto follows your device. Narration on or off, sound effects on or off, and Wobo's accent. Narration and sound are separate, so you can have a silent Wobo who still draws. On an adult account, hands-free listening is here too, off until you turn it on. The language Wobo teaches in. Your board's own names for things are kept alongside the English. How much Wobo interrupts: quiet, balanced or proactive. On quiet, Wobo speaks up only when you ask. On proactive, Wobo offers a pointer when you have been stuck for a while. Streaks on or off is here as well, for anyone who would rather not count days. Email and push. Progress moments, weekly summaries and exam reminders each have their own switch, and festival greetings have a switch of their own separate from other progress mail. Every message we send says how to turn that category off. Billing and account messages are not switchable, because they are the record of what you paid and who you are. Create, view or revoke the weekly summary link for a parent, and set how often it goes out. What Wobo remembers, consent, exporting everything, and deleting your account. Which plan you are on, what its day carries, the date it runs to, and Cancel. Cancelling takes two taps and a plan already ending can be put back in one. Related: Your privacy and your data.",
-          "text": "settings everything you can change about wobo lives in one place, reached from the quiet \"you\" affordance in the top left. account your name, your phone number and email address, adding a second way to sign in, setting a password, and signing out. appearance auto, light or dark. auto follows your device. in light, wobo draws like marker on paper; in dark, like chalk on slate. motion reduce motion, on, off or auto. with it on, everything happens in the same order and with the same timing, it just arrives without the movement. auto follows your device. sound and voice narration on or off, sound effects on or off, and wobo's accent. narration and sound are separate, so you can have a silent wobo who still draws. on an adult account, hands-free listening is here too, off until you turn it on. language the language wobo teaches in. your board's own names for things are kept alongside the english. learning how much wobo interrupts: quiet, balanced or proactive. on quiet, wobo speaks up only when you ask. on proactive, wobo offers a pointer when you have been stuck for a while. streaks on or off is here as well, for anyone who would rather not count days. notifications email and push. progress moments, weekly summaries and exam reminders each have their own switch, and festival greetings have a switch of their own separate from other progress mail. every message we send says how to turn that category off. billing and account messages are not switchable, because they are the record of what you paid and who you are. the parent link create, view or revoke the weekly summary link for a parent, and set how often it goes out. data and privacy what wobo remembers, consent, exporting everything, and deleting your account. your plan which plan you are on, what its day carries, the date it runs to, and cancel. cancelling takes two taps and a plan already ending can be put back in one. related: your privacy and your data."
+          "plain": "Everything you can change about Wobo lives on the You page, reached from the quiet \"you\" affordance in the top left. Which class you are in and which board you follow, with the option of giving Wobo your own syllabus instead. Changing either changes what Wobo teaches from the next lesson on. On or off. It starts on, so a new learner hears Wobo without going looking for a switch, and one tap turns it off for good. The voice follows the language and country your board is in. On or off. With it on, everything happens in the same order and with the same timing, it just arrives without the movement. Auto, light or dark. Auto follows your device. In light, Wobo draws like marker on paper; in dark, like chalk on slate. Two switches, each on its own. Larger text bumps the type size across the app; high contrast strengthens text and lines. Pick the festivals your family keeps, and Wobo sends a greeting on those days and no others. Pick none and Wobo sends none. What Wobo remembers about you, and the erase that clears it. What the erase reaches, and what it does not reach yet, is written out in full on the privacy page below. Send a parent an invite to the Sunday note, see whether they accepted, and end the link in one tap. You can also look at the week the way a parent will see it before you send anything. Which plan you are on, what its day carries, the date it runs to, and Cancel. Cancelling takes two taps and a plan already ending can be put back in one. An accent picker, a sound-effects switch separate from the voice, a proactivity dial, a streaks switch, notification switches beyond the festival list, editing your name or your sign-in details, and hands-free listening. None of those is built, and settings will say so until they are. Related: Your privacy and your data.",
+          "text": "settings everything you can change about wobo lives on the you page, reached from the quiet \"you\" affordance in the top left. your class and your board which class you are in and which board you follow, with the option of giving wobo your own syllabus instead. changing either changes what wobo teaches from the next lesson on. wobo speaks replies out loud on or off. it starts on, so a new learner hears wobo without going looking for a switch, and one tap turns it off for good. the voice follows the language and country your board is in. reduce motion on or off. with it on, everything happens in the same order and with the same timing, it just arrives without the movement. appearance auto, light or dark. auto follows your device. in light, wobo draws like marker on paper; in dark, like chalk on slate. larger text and high contrast two switches, each on its own. larger text bumps the type size across the app; high contrast strengthens text and lines. festivals we can wish you on pick the festivals your family keeps, and wobo sends a greeting on those days and no others. pick none and wobo sends none. your data what wobo remembers about you, and the erase that clears it. what the erase reaches, and what it does not reach yet, is written out in full on the privacy page below. the parent link send a parent an invite to the sunday note, see whether they accepted, and end the link in one tap. you can also look at the week the way a parent will see it before you send anything. your plan which plan you are on, what its day carries, the date it runs to, and cancel. cancelling takes two taps and a plan already ending can be put back in one. what is not here yet an accent picker, a sound-effects switch separate from the voice, a proactivity dial, a streaks switch, notification switches beyond the festival list, editing your name or your sign-in details, and hands-free listening. none of those is built, and settings will say so until they are. related: your privacy and your data."
         },
         {
           "slug": "plans-and-billing",
@@ -1046,7 +1046,7 @@
           "lead": [
             {
               "t": "strong",
-              "v": "Wobo is free to use every day. Pro and Max raise the daily allowance for exam season, and the price is the same for everyone."
+              "v": "Wobo is free to use every day. Pro and Max raise the daily allowance, and the price is the same for everyone."
             }
           ],
           "blocks": [
@@ -1243,8 +1243,8 @@
               ]
             }
           ],
-          "plain": "Wobo is free to use every day. Pro and Max raise the daily allowance for exam season, and the price is the same for everyone. A real product, not a trial. The whole tutor: your board, your lessons, the drawn board, the films, the models you can drag, practice, boss battles, your progress and the parent link. What is limited is how many turns you get each day. The counter is on screen and tells you the exact time it resets. Five times the free allowance, and Wobo reads answers aloud in your accent. Twenty times the free allowance, so nobody counts, and two learners on one plan. For the board year. No plan unlocks the teacher. Every subject and every form is in Free; what a plan buys is room to ask more in a day. One turn is one thing you ask Wobo, and everything Wobo draws, plays, says or sets for you in reply. Card, or the payment method your device offers. At checkout you confirm two things in writing: that you accept the terms and the privacy notice, and that you understand the amount, when it renews and how to cancel. You should never be surprised by a charge. Every plan we sell is monthly. Before a renewal we write to you with the amount and the date, and cancelling any time before it means you are not charged. Open You, the last of the four doors, and find the card called Your plan. Cancel is on it. Two taps: the control, and one confirmation that says what happens. No offer to stay, no reason to give, no survey. You keep your plan until the end of the period you paid for, nothing renews after that, and the account goes back to free with everything you have learnt intact. Change your mind before that date and one tap puts the plan back. We do not give money back as a gesture of goodwill. Cancelling is the answer instead: you keep the plan until the period you paid for ends and nothing renews. Where the law gives you a refund you still have it, and the cancellation document lists every case. Every payment gets one by email. For anything that looks wrong, write to [support email] with it. Related: Your privacy and your data.",
-          "text": "plans and billing wobo is free to use every day. pro and max raise the daily allowance for exam season, and the price is the same for everyone. free a real product, not a trial. the whole tutor: your board, your lessons, the drawn board, the films, the models you can drag, practice, boss battles, your progress and the parent link. what is limited is how many turns you get each day. the counter is on screen and tells you the exact time it resets. pro five times the free allowance, and wobo reads answers aloud in your accent. max twenty times the free allowance, so nobody counts, and two learners on one plan. for the board year. no plan unlocks the teacher. every subject and every form is in free; what a plan buys is room to ask more in a day. what \"turns\" means one turn is one thing you ask wobo, and everything wobo draws, plays, says or sets for you in reply. paying card, or the payment method your device offers. at checkout you confirm two things in writing: that you accept the terms and the privacy notice, and that you understand the amount, when it renews and how to cancel. you should never be surprised by a charge. renewals every plan we sell is monthly. before a renewal we write to you with the amount and the date, and cancelling any time before it means you are not charged. cancelling open you, the last of the four doors, and find the card called your plan. cancel is on it. two taps: the control, and one confirmation that says what happens. no offer to stay, no reason to give, no survey. you keep your plan until the end of the period you paid for, nothing renews after that, and the account goes back to free with everything you have learnt intact. change your mind before that date and one tap puts the plan back. money back we do not give money back as a gesture of goodwill. cancelling is the answer instead: you keep the plan until the period you paid for ends and nothing renews. where the law gives you a refund you still have it, and the cancellation document lists every case. receipts every payment gets one by email. for anything that looks wrong, write to [support email] with it. related: your privacy and your data."
+          "plain": "Wobo is free to use every day. Pro and Max raise the daily allowance, and the price is the same for everyone. A real product, not a trial. The whole tutor: your board, your lessons, the drawn board, the films, the models you can drag, practice, boss battles, your progress and the parent link. What is limited is how many turns you get each day. The counter is on screen and tells you the exact time it resets. Five times the free allowance, and Wobo reads answers aloud in your accent. Twenty times the free allowance, so nobody counts, and two learners on one plan. For the board year. No plan unlocks the teacher. Every subject and every form is in Free; what a plan buys is room to ask more in a day. One turn is one thing you ask Wobo, and everything Wobo draws, plays, says or sets for you in reply. Card, or the payment method your device offers. At checkout you confirm two things in writing: that you accept the terms and the privacy notice, and that you understand the amount, when it renews and how to cancel. You should never be surprised by a charge. Every plan we sell is monthly. Before a renewal we write to you with the amount and the date, and cancelling any time before it means you are not charged. Open You, the last of the four doors, and find the card called Your plan. Cancel is on it. Two taps: the control, and one confirmation that says what happens. No offer to stay, no reason to give, no survey. You keep your plan until the end of the period you paid for, nothing renews after that, and the account goes back to free with everything you have learnt intact. Change your mind before that date and one tap puts the plan back. We do not give money back as a gesture of goodwill. Cancelling is the answer instead: you keep the plan until the period you paid for ends and nothing renews. Where the law gives you a refund you still have it, and the cancellation document lists every case. Every payment gets one by email. For anything that looks wrong, write to [support email] with it. Related: Your privacy and your data.",
+          "text": "plans and billing wobo is free to use every day. pro and max raise the daily allowance, and the price is the same for everyone. free a real product, not a trial. the whole tutor: your board, your lessons, the drawn board, the films, the models you can drag, practice, boss battles, your progress and the parent link. what is limited is how many turns you get each day. the counter is on screen and tells you the exact time it resets. pro five times the free allowance, and wobo reads answers aloud in your accent. max twenty times the free allowance, so nobody counts, and two learners on one plan. for the board year. no plan unlocks the teacher. every subject and every form is in free; what a plan buys is room to ask more in a day. what \"turns\" means one turn is one thing you ask wobo, and everything wobo draws, plays, says or sets for you in reply. paying card, or the payment method your device offers. at checkout you confirm two things in writing: that you accept the terms and the privacy notice, and that you understand the amount, when it renews and how to cancel. you should never be surprised by a charge. renewals every plan we sell is monthly. before a renewal we write to you with the amount and the date, and cancelling any time before it means you are not charged. cancelling open you, the last of the four doors, and find the card called your plan. cancel is on it. two taps: the control, and one confirmation that says what happens. no offer to stay, no reason to give, no survey. you keep your plan until the end of the period you paid for, nothing renews after that, and the account goes back to free with everything you have learnt intact. change your mind before that date and one tap puts the plan back. money back we do not give money back as a gesture of goodwill. cancelling is the answer instead: you keep the plan until the period you paid for ends and nothing renews. where the law gives you a refund you still have it, and the cancellation document lists every case. receipts every payment gets one by email. for anything that looks wrong, write to [support email] with it. related: your privacy and your data."
         },
         {
           "slug": "your-privacy-and-your-data",
@@ -1253,7 +1253,7 @@
           "lead": [
             {
               "t": "strong",
-              "v": "We collect what is needed to teach you, we never sell it, and you can export or delete all of it whenever you want."
+              "v": "We collect what is needed to teach you, we never sell it, and you can see what Wobo remembers and erase it whenever you want."
             }
           ],
           "blocks": [
@@ -1325,7 +1325,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Settings, data and privacy. The memory page lists what Wobo knows about you in plain sentences. Export gives you a file with everything."
+                  "v": "Settings, your data. The memory page lists what Wobo knows about you in plain sentences, line by line."
                 }
               ]
             },
@@ -1334,7 +1334,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "Deleting it"
+                  "v": "Erasing it"
                 }
               ]
             },
@@ -1343,15 +1343,43 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Delete any single memory from the memory page. Delete the whole account from the same section: it asks once, then it happens. We delete your account, your learning history and your boards, and it cannot be undone. The only thing we keep is the billing records the law requires us to hold, and backups age out within "
-                },
+                  "v": "Settings, your data, erase and start over. It asks once. It clears what Wobo remembers about you, the conversation Wobo was holding, your mastery and progress record, your profile, your mail choices and the parent link, from this device and from your account, and it cannot be undone."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
                 {
-                  "t": "slot",
-                  "v": "n"
-                },
+                  "t": "strong",
+                  "v": "What erase does not reach yet"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
                 {
                   "t": "text",
-                  "v": " days."
+                  "v": "Your individual answers to practice questions, your ink on the board, your session times, and a syllabus you uploaded yourself. Those are still held, and the account itself, with its email and password, stays open. To have all of that removed, write to support@heywobo.com and ask, and we will do it by hand."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "strong",
+                  "v": "There is no download yet"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "We do not have a button that gives you a file of everything. If you want a copy, write to support@heywobo.com and we will put one together for you."
                 }
               ]
             },
@@ -1369,7 +1397,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Some features need a parent's consent before they turn on, including some kinds of memory. Wobo works without them. A parent can review and withdraw consent at any time, and can request deletion on your behalf."
+                  "v": "Everything on this page works the same at every age today. There is no consent switch on memory, voice or photographs yet, and until there is we will not pretend otherwise. A parent can ask for anything on this page on your behalf, at support@heywobo.com."
                 }
               ]
             },
@@ -1429,8 +1457,8 @@
               ]
             }
           ],
-          "plain": "We collect what is needed to teach you, we never sell it, and you can export or delete all of it whenever you want. Your account details, your board and class, your syllabus edits, your learning history and mastery, your saved boards, and what Wobo remembers about how you learn. Billing details are held by our payment provider, not by us. We do not sell data. We do not advertise, so there is no profile built for advertisers. We do not use a child's learning data to market to them. Third-party AI and infrastructure providers process what is needed to run Wobo, under contract, and are not allowed to use it for their own purposes. Your parent sees only what the parent link shows, and only if you or they set it up. Settings, data and privacy. The memory page lists what Wobo knows about you in plain sentences. Export gives you a file with everything. Delete any single memory from the memory page. Delete the whole account from the same section: it asks once, then it happens. We delete your account, your learning history and your boards, and it cannot be undone. The only thing we keep is the billing records the law requires us to hold, and backups age out within [n] days. Some features need a parent's consent before they turn on, including some kinds of memory. Wobo works without them. A parent can review and withdraw consent at any time, and can request deletion on your behalf. Write to [privacy email], or [Company legal name], [postal address]. Related: The full privacy notice.",
-          "text": "your privacy and your data we collect what is needed to teach you, we never sell it, and you can export or delete all of it whenever you want. what we hold your account details, your board and class, your syllabus edits, your learning history and mastery, your saved boards, and what wobo remembers about how you learn. billing details are held by our payment provider, not by us. what we do not do we do not sell data. we do not advertise, so there is no profile built for advertisers. we do not use a child's learning data to market to them. who else sees it third-party ai and infrastructure providers process what is needed to run wobo, under contract, and are not allowed to use it for their own purposes. your parent sees only what the parent link shows, and only if you or they set it up. seeing it settings, data and privacy. the memory page lists what wobo knows about you in plain sentences. export gives you a file with everything. deleting it delete any single memory from the memory page. delete the whole account from the same section: it asks once, then it happens. we delete your account, your learning history and your boards, and it cannot be undone. the only thing we keep is the billing records the law requires us to hold, and backups age out within [n] days. if you are under 18 some features need a parent's consent before they turn on, including some kinds of memory. wobo works without them. a parent can review and withdraw consent at any time, and can request deletion on your behalf. questions write to [privacy email], or [company legal name], [postal address]. related: the full privacy notice."
+          "plain": "We collect what is needed to teach you, we never sell it, and you can see what Wobo remembers and erase it whenever you want. Your account details, your board and class, your syllabus edits, your learning history and mastery, your saved boards, and what Wobo remembers about how you learn. Billing details are held by our payment provider, not by us. We do not sell data. We do not advertise, so there is no profile built for advertisers. We do not use a child's learning data to market to them. Third-party AI and infrastructure providers process what is needed to run Wobo, under contract, and are not allowed to use it for their own purposes. Your parent sees only what the parent link shows, and only if you or they set it up. Settings, your data. The memory page lists what Wobo knows about you in plain sentences, line by line. Settings, your data, erase and start over. It asks once. It clears what Wobo remembers about you, the conversation Wobo was holding, your mastery and progress record, your profile, your mail choices and the parent link, from this device and from your account, and it cannot be undone. Your individual answers to practice questions, your ink on the board, your session times, and a syllabus you uploaded yourself. Those are still held, and the account itself, with its email and password, stays open. To have all of that removed, write to support@heywobo.com and ask, and we will do it by hand. We do not have a button that gives you a file of everything. If you want a copy, write to support@heywobo.com and we will put one together for you. Everything on this page works the same at every age today. There is no consent switch on memory, voice or photographs yet, and until there is we will not pretend otherwise. A parent can ask for anything on this page on your behalf, at support@heywobo.com. Write to [privacy email], or [Company legal name], [postal address]. Related: The full privacy notice.",
+          "text": "your privacy and your data we collect what is needed to teach you, we never sell it, and you can see what wobo remembers and erase it whenever you want. what we hold your account details, your board and class, your syllabus edits, your learning history and mastery, your saved boards, and what wobo remembers about how you learn. billing details are held by our payment provider, not by us. what we do not do we do not sell data. we do not advertise, so there is no profile built for advertisers. we do not use a child's learning data to market to them. who else sees it third-party ai and infrastructure providers process what is needed to run wobo, under contract, and are not allowed to use it for their own purposes. your parent sees only what the parent link shows, and only if you or they set it up. seeing it settings, your data. the memory page lists what wobo knows about you in plain sentences, line by line. erasing it settings, your data, erase and start over. it asks once. it clears what wobo remembers about you, the conversation wobo was holding, your mastery and progress record, your profile, your mail choices and the parent link, from this device and from your account, and it cannot be undone. what erase does not reach yet your individual answers to practice questions, your ink on the board, your session times, and a syllabus you uploaded yourself. those are still held, and the account itself, with its email and password, stays open. to have all of that removed, write to support@heywobo.com and ask, and we will do it by hand. there is no download yet we do not have a button that gives you a file of everything. if you want a copy, write to support@heywobo.com and we will put one together for you. if you are under 18 everything on this page works the same at every age today. there is no consent switch on memory, voice or photographs yet, and until there is we will not pretend otherwise. a parent can ask for anything on this page on your behalf, at support@heywobo.com. questions write to [privacy email], or [company legal name], [postal address]. related: the full privacy notice."
         },
         {
           "slug": "wobo-on-your-devices",
@@ -1573,7 +1601,7 @@
     {
       "slug": "product-features",
       "title": "Product features",
-      "blurb": "the board in its three forms, asking about anything, practice, boss battles, progress, the parent link, flags.",
+      "blurb": "the board in its three forms, asking about anything, practice, boss battles, progress, the parent link, telling us something is wrong.",
       "articles": [
         {
           "slug": "ink-on-your-screen",
@@ -2715,7 +2743,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "A day counts when you do something real: a lesson, a practice run, a boss. Asking Wobo one question counts too. The day rolls over at midnight where you are."
+                  "v": "A day counts when you do something real: a lesson, a practice run, a boss. Asking Wobo one question counts too. Your day rolls over overnight, on your own clock."
                 }
               ]
             },
@@ -2805,8 +2833,8 @@
               ]
             }
           ],
-          "plain": "A streak counts the days you showed up. Missing one is fine, and Wobo will never threaten you with losing it. A day counts when you do something real: a lesson, a practice run, a boss. Asking Wobo one question counts too. The day rolls over at midnight where you are. Every week includes a rest day that holds your streak without you doing anything. Use it or do not. Wobo will sometimes suggest resting, and when Wobo does, it is a real suggestion, not a trick to get you back tomorrow. No countdown timer. No message telling you what you are about to lose. No badge taken away for being ill, or busy, or on holiday. If you disappear for a month, Wobo is exactly as pleased to see you when you come back. At 7, 30, 100 and 365 days, Wobo draws you something. That is the whole reward, plus the XP. If a streak is the kind of thing that makes you anxious rather than steady, turn it off in settings. Nothing else about Wobo changes and your progress is unaffected. Related: Your progress.",
-          "text": "streaks, and taking a day off a streak counts the days you showed up. missing one is fine, and wobo will never threaten you with losing it. how it works a day counts when you do something real: a lesson, a practice run, a boss. asking wobo one question counts too. the day rolls over at midnight where you are. rest is part of it every week includes a rest day that holds your streak without you doing anything. use it or do not. wobo will sometimes suggest resting, and when wobo does, it is a real suggestion, not a trick to get you back tomorrow. what you will never see from us no countdown timer. no message telling you what you are about to lose. no badge taken away for being ill, or busy, or on holiday. if you disappear for a month, wobo is exactly as pleased to see you when you come back. milestones at 7, 30, 100 and 365 days, wobo draws you something. that is the whole reward, plus the xp. turning it off if a streak is the kind of thing that makes you anxious rather than steady, turn it off in settings. nothing else about wobo changes and your progress is unaffected. related: your progress."
+          "plain": "A streak counts the days you showed up. Missing one is fine, and Wobo will never threaten you with losing it. A day counts when you do something real: a lesson, a practice run, a boss. Asking Wobo one question counts too. Your day rolls over overnight, on your own clock. Every week includes a rest day that holds your streak without you doing anything. Use it or do not. Wobo will sometimes suggest resting, and when Wobo does, it is a real suggestion, not a trick to get you back tomorrow. No countdown timer. No message telling you what you are about to lose. No badge taken away for being ill, or busy, or on holiday. If you disappear for a month, Wobo is exactly as pleased to see you when you come back. At 7, 30, 100 and 365 days, Wobo draws you something. That is the whole reward, plus the XP. If a streak is the kind of thing that makes you anxious rather than steady, turn it off in settings. Nothing else about Wobo changes and your progress is unaffected. Related: Your progress.",
+          "text": "streaks, and taking a day off a streak counts the days you showed up. missing one is fine, and wobo will never threaten you with losing it. how it works a day counts when you do something real: a lesson, a practice run, a boss. asking wobo one question counts too. your day rolls over overnight, on your own clock. rest is part of it every week includes a rest day that holds your streak without you doing anything. use it or do not. wobo will sometimes suggest resting, and when wobo does, it is a real suggestion, not a trick to get you back tomorrow. what you will never see from us no countdown timer. no message telling you what you are about to lose. no badge taken away for being ill, or busy, or on holiday. if you disappear for a month, wobo is exactly as pleased to see you when you come back. milestones at 7, 30, 100 and 365 days, wobo draws you something. that is the whole reward, plus the xp. turning it off if a streak is the kind of thing that makes you anxious rather than steady, turn it off in settings. nothing else about wobo changes and your progress is unaffected. related: your progress."
         },
         {
           "slug": "saving-and-sharing-a-board",
@@ -2860,7 +2888,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Notes lives behind the \"you\" affordance. Search it by topic, by what you asked, or just by scrolling. Boards are grouped by subject and chapter."
+                  "v": "Notes is a tab on the lesson screen, beside the lesson itself. Your kept boards are listed newest first, with the date each was saved, and tapping one draws it again. There is no search and no grouping by subject yet, and the newest twenty-four are the ones kept: save a twenty-fifth and the oldest drops off."
                 }
               ]
             },
@@ -2896,7 +2924,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "After a boss or a genuinely hard problem, Wobo offers to send that board to your parent link, if one exists. It sends the board and one line about what it was. Nothing else."
+                  "v": "Ask Wobo and it will write the note for you, in its own words, and hand it to you to send. Wobo never sends it for you, and there is no way to push a single board down the parent link: the weekly note is the only thing that goes out on its own."
                 }
               ]
             },
@@ -2905,7 +2933,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "Deleting"
+                  "v": "Clearing them"
                 }
               ]
             },
@@ -2914,7 +2942,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Delete any saved board from notes. It goes for good."
+                  "v": "There is no delete on a single note yet. Settings, your data, erase and start over clears the whole set along with everything else on the device."
                 }
               ]
             },
@@ -2932,8 +2960,8 @@
               ]
             }
           ],
-          "plain": "Any board Wobo draws can be saved to your notes, or shared as an image. Say \"save this\" or use the save control on the plane or the full board. It goes to your notes with its title, the topic, and the date. What is saved is the drawing itself, not a photograph of it. So a saved board still works: you can scrub its timeline back to watch it being drawn, move any slider on it, and ask Wobo about it later. Wobo remembers drawing it. Notes lives behind the \"you\" affordance. Search it by topic, by what you asked, or just by scrolling. Boards are grouped by subject and chapter. Share turns a board into a clean image with a small Wobo mark on it, ready to send to a friend, a group, or your family's chat app. The image is a picture; it does not carry your account, your progress or anything else about you. After a boss or a genuinely hard problem, Wobo offers to send that board to your parent link, if one exists. It sends the board and one line about what it was. Nothing else. Delete any saved board from notes. It goes for good. Related: The parent link.",
-          "text": "saving and sharing a board any board wobo draws can be saved to your notes, or shared as an image. saving say \"save this\" or use the save control on the plane or the full board. it goes to your notes with its title, the topic, and the date. what is saved is the drawing itself, not a photograph of it. so a saved board still works: you can scrub its timeline back to watch it being drawn, move any slider on it, and ask wobo about it later. wobo remembers drawing it. finding it again notes lives behind the \"you\" affordance. search it by topic, by what you asked, or just by scrolling. boards are grouped by subject and chapter. sharing share turns a board into a clean image with a small wobo mark on it, ready to send to a friend, a group, or your family's chat app. the image is a picture; it does not carry your account, your progress or anything else about you. \"show mum what i just cracked\" after a boss or a genuinely hard problem, wobo offers to send that board to your parent link, if one exists. it sends the board and one line about what it was. nothing else. deleting delete any saved board from notes. it goes for good. related: the parent link."
+          "plain": "Any board Wobo draws can be saved to your notes, or shared as an image. Say \"save this\" or use the save control on the plane or the full board. It goes to your notes with its title, the topic, and the date. What is saved is the drawing itself, not a photograph of it. So a saved board still works: you can scrub its timeline back to watch it being drawn, move any slider on it, and ask Wobo about it later. Wobo remembers drawing it. Notes is a tab on the lesson screen, beside the lesson itself. Your kept boards are listed newest first, with the date each was saved, and tapping one draws it again. There is no search and no grouping by subject yet, and the newest twenty-four are the ones kept: save a twenty-fifth and the oldest drops off. Share turns a board into a clean image with a small Wobo mark on it, ready to send to a friend, a group, or your family's chat app. The image is a picture; it does not carry your account, your progress or anything else about you. Ask Wobo and it will write the note for you, in its own words, and hand it to you to send. Wobo never sends it for you, and there is no way to push a single board down the parent link: the weekly note is the only thing that goes out on its own. There is no delete on a single note yet. Settings, your data, erase and start over clears the whole set along with everything else on the device. Related: The parent link.",
+          "text": "saving and sharing a board any board wobo draws can be saved to your notes, or shared as an image. saving say \"save this\" or use the save control on the plane or the full board. it goes to your notes with its title, the topic, and the date. what is saved is the drawing itself, not a photograph of it. so a saved board still works: you can scrub its timeline back to watch it being drawn, move any slider on it, and ask wobo about it later. wobo remembers drawing it. finding it again notes is a tab on the lesson screen, beside the lesson itself. your kept boards are listed newest first, with the date each was saved, and tapping one draws it again. there is no search and no grouping by subject yet, and the newest twenty-four are the ones kept: save a twenty-fifth and the oldest drops off. sharing share turns a board into a clean image with a small wobo mark on it, ready to send to a friend, a group, or your family's chat app. the image is a picture; it does not carry your account, your progress or anything else about you. \"show mum what i just cracked\" ask wobo and it will write the note for you, in its own words, and hand it to you to send. wobo never sends it for you, and there is no way to push a single board down the parent link: the weekly note is the only thing that goes out on its own. clearing them there is no delete on a single note yet. settings, your data, erase and start over clears the whole set along with everything else on the device. related: the parent link."
         },
         {
           "slug": "the-parent-link",
@@ -2942,7 +2970,7 @@
           "lead": [
             {
               "t": "strong",
-              "v": "The parent link sends a parent one beautiful page a week showing what you actually learnt. You set it up, and you can switch it off."
+              "v": "The parent link sends a parent one note a week showing what you actually learnt. You set it up, and you can switch it off."
             }
           ],
           "blocks": [
@@ -2960,7 +2988,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "A page, once a week, in their language: what you studied, what you cracked, one board you drew or Wobo drew for you, and one line about how the week went in Wobo's words. It is read-only. It is the same progress page you see, not a different, harsher version."
+                  "v": "A note, once a week: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in Wobo's words. No marks out of ten, no ranking, and no harsher version of the page you see."
                 }
               ]
             },
@@ -2996,7 +3024,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Settings, then the parent link. Enter the parent's number or email, or share the link yourself. They confirm once and it starts."
+                  "v": "Settings, then the parent link. Enter the parent's email address. They get one invite, and nothing else is sent until they open it and confirm from their own device. If they never confirm, the invite expires and nothing goes to them."
                 }
               ]
             },
@@ -3032,7 +3060,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "A parent may need to give consent for some parts of Wobo anyway, and this is where they do it. Consent and the weekly page are separate things; a parent can consent without ever taking the weekly page."
+                  "v": "The link works the same at every age today, and it is you who starts it. There is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the note itself."
                 }
               ]
             },
@@ -3041,7 +3069,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "Sending something now"
+                  "v": "Seeing it first"
                 }
               ]
             },
@@ -3050,7 +3078,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "After a hard problem you can send that one board straight to the link, without waiting for the week to end."
+                  "v": "Before you invite anyone you can look at the week the way a parent will see it, from the same card. There is no way to send a single board on its own yet; the weekly note is the whole of what goes out."
                 }
               ]
             },
@@ -3068,17 +3096,17 @@
               ]
             }
           ],
-          "plain": "The parent link sends a parent one beautiful page a week showing what you actually learnt. You set it up, and you can switch it off. A page, once a week, in their language: what you studied, what you cracked, one board you drew or Wobo drew for you, and one line about how the week went in Wobo's words. It is read-only. It is the same progress page you see, not a different, harsher version. Your conversations with Wobo. Your wrong answers, one by one. A live feed of when you are online. A way to set targets for you. It is a window, not a remote control. Settings, then the parent link. Enter the parent's number or email, or share the link yourself. They confirm once and it starts. The same screen, one tap. It stops immediately and the old pages stop working. You do not have to explain why, and Wobo does not tell them you turned it off, only that the link ended. A parent may need to give consent for some parts of Wobo anyway, and this is where they do it. Consent and the weekly page are separate things; a parent can consent without ever taking the weekly page. After a hard problem you can send that one board straight to the link, without waiting for the week to end. Related: Your privacy and your data.",
-          "text": "the parent link the parent link sends a parent one beautiful page a week showing what you actually learnt. you set it up, and you can switch it off. what the parent gets a page, once a week, in their language: what you studied, what you cracked, one board you drew or wobo drew for you, and one line about how the week went in wobo's words. it is read-only. it is the same progress page you see, not a different, harsher version. what the parent does not get your conversations with wobo. your wrong answers, one by one. a live feed of when you are online. a way to set targets for you. it is a window, not a remote control. setting it up settings, then the parent link. enter the parent's number or email, or share the link yourself. they confirm once and it starts. turning it off the same screen, one tap. it stops immediately and the old pages stop working. you do not have to explain why, and wobo does not tell them you turned it off, only that the link ended. if you are under 18 a parent may need to give consent for some parts of wobo anyway, and this is where they do it. consent and the weekly page are separate things; a parent can consent without ever taking the weekly page. sending something now after a hard problem you can send that one board straight to the link, without waiting for the week to end. related: your privacy and your data."
+          "plain": "The parent link sends a parent one note a week showing what you actually learnt. You set it up, and you can switch it off. A note, once a week: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in Wobo's words. No marks out of ten, no ranking, and no harsher version of the page you see. Your conversations with Wobo. Your wrong answers, one by one. A live feed of when you are online. A way to set targets for you. It is a window, not a remote control. Settings, then the parent link. Enter the parent's email address. They get one invite, and nothing else is sent until they open it and confirm from their own device. If they never confirm, the invite expires and nothing goes to them. The same screen, one tap. It stops immediately and the old pages stop working. You do not have to explain why, and Wobo does not tell them you turned it off, only that the link ended. The link works the same at every age today, and it is you who starts it. There is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the note itself. Before you invite anyone you can look at the week the way a parent will see it, from the same card. There is no way to send a single board on its own yet; the weekly note is the whole of what goes out. Related: Your privacy and your data.",
+          "text": "the parent link the parent link sends a parent one note a week showing what you actually learnt. you set it up, and you can switch it off. what the parent gets a note, once a week: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in wobo's words. no marks out of ten, no ranking, and no harsher version of the page you see. what the parent does not get your conversations with wobo. your wrong answers, one by one. a live feed of when you are online. a way to set targets for you. it is a window, not a remote control. setting it up settings, then the parent link. enter the parent's email address. they get one invite, and nothing else is sent until they open it and confirm from their own device. if they never confirm, the invite expires and nothing goes to them. turning it off the same screen, one tap. it stops immediately and the old pages stop working. you do not have to explain why, and wobo does not tell them you turned it off, only that the link ended. if you are under 18 the link works the same at every age today, and it is you who starts it. there is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the note itself. seeing it first before you invite anyone you can look at the week the way a parent will see it, from the same card. there is no way to send a single board on its own yet; the weekly note is the whole of what goes out. related: your privacy and your data."
         },
         {
           "slug": "flagging-something-wrong",
           "group": "product-features",
-          "title": "Flagging something that is wrong",
+          "title": "Telling us something is wrong",
           "lead": [
             {
               "t": "strong",
-              "v": "If anything Wobo shows you looks wrong, flag it. We read every one, and we write back when it is fixed."
+              "v": "If anything Wobo shows you looks wrong, write to support@heywobo.com and tell us. A person reads every message, and you get an answer."
             }
           ],
           "blocks": [
@@ -3087,7 +3115,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "There is a quiet flag on every lesson, question, board and diagram. You can also just say \"this is wrong\" out loud and Wobo raises the same flag for you."
+                  "v": "There is no flag button in Wobo yet. We would rather say that on this page than draw one here and leave you hunting for it on the screen."
                 }
               ]
             },
@@ -3096,7 +3124,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "What happens when you flag"
+                  "v": "What to send"
                 }
               ]
             },
@@ -3106,31 +3134,19 @@
                 [
                   {
                     "t": "text",
-                    "v": "Wobo takes a clean picture of exactly what you were looking at. Our own renderer draws it, so it captures the real state, including the values you had set."
+                    "v": "What you were looking at: the subject, the topic, and the question or the board, if you can name them."
                   }
                 ],
                 [
                   {
                     "t": "text",
-                    "v": "You can draw on that picture with Wobo's ink tools: pen, circle, box. There is a blur tool for anything personal that happened to be on screen."
+                    "v": "What looks wrong, in your own words. One sentence is enough."
                   }
                 ],
                 [
                   {
                     "t": "text",
-                    "v": "Pick what kind of thing it is: something is wrong, I have a question, or this could be better."
-                  }
-                ],
-                [
-                  {
-                    "t": "text",
-                    "v": "Add a line about it, in your own words. One sentence is enough."
-                  }
-                ],
-                [
-                  {
-                    "t": "text",
-                    "v": "Send."
+                    "v": "A screenshot, if you can take one. Your device takes a better one than we could."
                   }
                 ]
               ]
@@ -3140,7 +3156,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "What we do"
+                  "v": "If you think a question marked you wrong"
                 }
               ]
             },
@@ -3149,7 +3165,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Every flag lands in front of a person. If you were right, we fix the content and Wobo writes to tell you it is fixed, with a note about what changed. If we think the content was right, we say why, plainly."
+                  "v": "On an equation practice question there is a control on the question itself: \"I think I'm right\". Wobo re-checks your answer against the equation, and where the proof is on your side the mark changes and the question is not asked again. That control is on equation practice today, and not yet on every kind of question."
                 }
               ]
             },
@@ -3158,7 +3174,7 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "Flagging is not complaining"
+                  "v": "What we do with what you send"
                 }
               ]
             },
@@ -3167,7 +3183,25 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "The things learners flag are the fastest way this gets better, and a flagged mistake is worth more to us than a lesson nobody questioned. Flag freely."
+                  "v": "We read it, we work out whether the content was wrong, and we fix what was. If we think the content was right, we say why, plainly."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "strong",
+                  "v": "What does not exist yet"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "Three things do not exist yet: a control on a lesson, a board or a diagram that you can press; a queue behind it; and a message back to you when a report is settled. All three are things we want, none of them is built, and the mailbox is the whole route today."
                 }
               ]
             },
@@ -3185,8 +3219,8 @@
               ]
             }
           ],
-          "plain": "If anything Wobo shows you looks wrong, flag it. We read every one, and we write back when it is fixed. There is a quiet flag on every lesson, question, board and diagram. You can also just say \"this is wrong\" out loud and Wobo raises the same flag for you. Wobo takes a clean picture of exactly what you were looking at. Our own renderer draws it, so it captures the real state, including the values you had set. You can draw on that picture with Wobo's ink tools: pen, circle, box. There is a blur tool for anything personal that happened to be on screen. Pick what kind of thing it is: something is wrong, I have a question, or this could be better. Add a line about it, in your own words. One sentence is enough. Send. Every flag lands in front of a person. If you were right, we fix the content and Wobo writes to tell you it is fixed, with a note about what changed. If we think the content was right, we say why, plainly. The things learners flag are the fastest way this gets better, and a flagged mistake is worth more to us than a lesson nobody questioned. Flag freely. Related: How a lesson gets made.",
-          "text": "flagging something that is wrong if anything wobo shows you looks wrong, flag it. we read every one, and we write back when it is fixed. there is a quiet flag on every lesson, question, board and diagram. you can also just say \"this is wrong\" out loud and wobo raises the same flag for you. what happens when you flag wobo takes a clean picture of exactly what you were looking at. our own renderer draws it, so it captures the real state, including the values you had set. you can draw on that picture with wobo's ink tools: pen, circle, box. there is a blur tool for anything personal that happened to be on screen. pick what kind of thing it is: something is wrong, i have a question, or this could be better. add a line about it, in your own words. one sentence is enough. send. what we do every flag lands in front of a person. if you were right, we fix the content and wobo writes to tell you it is fixed, with a note about what changed. if we think the content was right, we say why, plainly. flagging is not complaining the things learners flag are the fastest way this gets better, and a flagged mistake is worth more to us than a lesson nobody questioned. flag freely. related: how a lesson gets made."
+          "plain": "If anything Wobo shows you looks wrong, write to support@heywobo.com and tell us. A person reads every message, and you get an answer. There is no flag button in Wobo yet. We would rather say that on this page than draw one here and leave you hunting for it on the screen. What you were looking at: the subject, the topic, and the question or the board, if you can name them. What looks wrong, in your own words. One sentence is enough. A screenshot, if you can take one. Your device takes a better one than we could. On an equation practice question there is a control on the question itself: \"I think I'm right\". Wobo re-checks your answer against the equation, and where the proof is on your side the mark changes and the question is not asked again. That control is on equation practice today, and not yet on every kind of question. We read it, we work out whether the content was wrong, and we fix what was. If we think the content was right, we say why, plainly. Three things do not exist yet: a control on a lesson, a board or a diagram that you can press; a queue behind it; and a message back to you when a report is settled. All three are things we want, none of them is built, and the mailbox is the whole route today. Related: How a lesson gets made.",
+          "text": "telling us something is wrong if anything wobo shows you looks wrong, write to support@heywobo.com and tell us. a person reads every message, and you get an answer. there is no flag button in wobo yet. we would rather say that on this page than draw one here and leave you hunting for it on the screen. what to send what you were looking at: the subject, the topic, and the question or the board, if you can name them. what looks wrong, in your own words. one sentence is enough. a screenshot, if you can take one. your device takes a better one than we could. if you think a question marked you wrong on an equation practice question there is a control on the question itself: \"i think i'm right\". wobo re-checks your answer against the equation, and where the proof is on your side the mark changes and the question is not asked again. that control is on equation practice today, and not yet on every kind of question. what we do with what you send we read it, we work out whether the content was wrong, and we fix what was. if we think the content was right, we say why, plainly. what does not exist yet three things do not exist yet: a control on a lesson, a board or a diagram that you can press; a queue behind it; and a message back to you when a report is settled. all three are things we want, none of them is built, and the mailbox is the whole route today. related: how a lesson gets made."
         }
       ]
     },
@@ -3720,7 +3754,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Flag it. A flagged syllabus stops being promoted until we have looked at it."
+                  "v": "Write to support@heywobo.com and name the syllabus and the label. There is no flag control in Wobo yet, so the mailbox is the route, and it is read by a person."
                 }
               ]
             },
@@ -3733,13 +3767,13 @@
                 },
                 {
                   "t": "text",
-                  "v": " Flagging something that is wrong."
+                  "v": " Telling us something is wrong."
                 }
               ]
             }
           ],
-          "plain": "Every syllabus in Wobo says where it came from and how far we have checked it, in plain words, on the page. We would rather tell you a thing is uncertain than let you find out in an exam. Official, verified. From the board's own published document, checked by us, and confirmed. It names the board and the academic year: \"Official CBSE 2026-27, verified\". Found on the board's site, still checking. The structure came from a real official document and passed our automatic checks, but nobody has confirmed it by hand yet. Usable, and worth a glance against your own book. Shared by another learner, not yet checked. Someone offered their school's syllabus. Treat it as a starting point. Drafted from your syllabus, check it. Built from what you gave Wobo. Every label opens the source: the document, and the page or section each chapter came from. If a chapter has no source, it is not there. The checks have to pass, and then either two different learners use it without correcting its structure, or we review it ourselves. Flag it. A flagged syllabus stops being promoted until we have looked at it. Related: Flagging something that is wrong.",
-          "text": "how we label a syllabus every syllabus in wobo says where it came from and how far we have checked it, in plain words, on the page. we would rather tell you a thing is uncertain than let you find out in an exam. the four labels official, verified. from the board's own published document, checked by us, and confirmed. it names the board and the academic year: \"official cbse 2026-27, verified\". found on the board's site, still checking. the structure came from a real official document and passed our automatic checks, but nobody has confirmed it by hand yet. usable, and worth a glance against your own book. shared by another learner, not yet checked. someone offered their school's syllabus. treat it as a starting point. drafted from your syllabus, check it. built from what you gave wobo. seeing the source every label opens the source: the document, and the page or section each chapter came from. if a chapter has no source, it is not there. how something becomes verified the checks have to pass, and then either two different learners use it without correcting its structure, or we review it ourselves. if a label is wrong flag it. a flagged syllabus stops being promoted until we have looked at it. related: flagging something that is wrong."
+          "plain": "Every syllabus in Wobo says where it came from and how far we have checked it, in plain words, on the page. We would rather tell you a thing is uncertain than let you find out in an exam. Official, verified. From the board's own published document, checked by us, and confirmed. It names the board and the academic year: \"Official CBSE 2026-27, verified\". Found on the board's site, still checking. The structure came from a real official document and passed our automatic checks, but nobody has confirmed it by hand yet. Usable, and worth a glance against your own book. Shared by another learner, not yet checked. Someone offered their school's syllabus. Treat it as a starting point. Drafted from your syllabus, check it. Built from what you gave Wobo. Every label opens the source: the document, and the page or section each chapter came from. If a chapter has no source, it is not there. The checks have to pass, and then either two different learners use it without correcting its structure, or we review it ourselves. Write to support@heywobo.com and name the syllabus and the label. There is no flag control in Wobo yet, so the mailbox is the route, and it is read by a person. Related: Telling us something is wrong.",
+          "text": "how we label a syllabus every syllabus in wobo says where it came from and how far we have checked it, in plain words, on the page. we would rather tell you a thing is uncertain than let you find out in an exam. the four labels official, verified. from the board's own published document, checked by us, and confirmed. it names the board and the academic year: \"official cbse 2026-27, verified\". found on the board's site, still checking. the structure came from a real official document and passed our automatic checks, but nobody has confirmed it by hand yet. usable, and worth a glance against your own book. shared by another learner, not yet checked. someone offered their school's syllabus. treat it as a starting point. drafted from your syllabus, check it. built from what you gave wobo. seeing the source every label opens the source: the document, and the page or section each chapter came from. if a chapter has no source, it is not there. how something becomes verified the checks have to pass, and then either two different learners use it without correcting its structure, or we review it ourselves. if a label is wrong write to support@heywobo.com and name the syllabus and the label. there is no flag control in wobo yet, so the mailbox is the route, and it is read by a person. related: telling us something is wrong."
         },
         {
           "slug": "editing-your-syllabus",
@@ -4219,7 +4253,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "That is why Wobo will occasionally say \"I could not get this right, give me a moment\" instead of showing you something plausible."
+                  "v": "So a piece that cannot be checked is not drawn. Today that refusal is silent: the piece is simply missing, and Wobo does not yet say a word about it. Telling you is the next thing we owe you here."
                 }
               ]
             },
@@ -4273,7 +4307,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Flag it. Checking is good, not perfect, and you are the last check."
+                  "v": "Tell us at support@heywobo.com. Checking is good, not perfect, and you are the last check."
                 }
               ]
             },
@@ -4286,13 +4320,13 @@
                 },
                 {
                   "t": "text",
-                  "v": " Flagging something that is wrong."
+                  "v": " Telling us something is wrong."
                 }
               ]
             }
           ],
-          "plain": "Nothing is made in advance. When you open a topic, Wobo builds that lesson for you, checks it, and draws it. A lesson written once for everybody is written for nobody. Built at the moment you open it, a lesson can use your board's wording, your class's depth, the examples you like, and the things you already know as scaffolding. Works out the shape of the explanation for this topic and this learner. Computes every number with code. Equations are solved, units are checked, chemical equations are balanced. Has the whole thing checked independently before you see it. Anything that fails is redrawn once, and if it fails again Wobo refuses rather than serving it. That is why Wobo will occasionally say \"I could not get this right, give me a moment\" instead of showing you something plausible. The first time anyone opens a topic it takes a few seconds to build. After that it is much faster for everyone, because the teaching for the same idea is reused and re-fitted to your board and your class. Ask again tomorrow with a different question and you get a different explanation, not the same page. The topic is the same; the teaching is for the moment you asked. Flag it. Checking is good, not perfect, and you are the last check. Related: Flagging something that is wrong.",
-          "text": "how a lesson gets made nothing is made in advance. when you open a topic, wobo builds that lesson for you, checks it, and draws it. why it works that way a lesson written once for everybody is written for nobody. built at the moment you open it, a lesson can use your board's wording, your class's depth, the examples you like, and the things you already know as scaffolding. what wobo does before drawing works out the shape of the explanation for this topic and this learner. computes every number with code. equations are solved, units are checked, chemical equations are balanced. has the whole thing checked independently before you see it. anything that fails is redrawn once, and if it fails again wobo refuses rather than serving it. that is why wobo will occasionally say \"i could not get this right, give me a moment\" instead of showing you something plausible. speed the first time anyone opens a topic it takes a few seconds to build. after that it is much faster for everyone, because the teaching for the same idea is reused and re-fitted to your board and your class. different every time ask again tomorrow with a different question and you get a different explanation, not the same page. the topic is the same; the teaching is for the moment you asked. if something is wrong anyway flag it. checking is good, not perfect, and you are the last check. related: flagging something that is wrong."
+          "plain": "Nothing is made in advance. When you open a topic, Wobo builds that lesson for you, checks it, and draws it. A lesson written once for everybody is written for nobody. Built at the moment you open it, a lesson can use your board's wording, your class's depth, the examples you like, and the things you already know as scaffolding. Works out the shape of the explanation for this topic and this learner. Computes every number with code. Equations are solved, units are checked, chemical equations are balanced. Has the whole thing checked independently before you see it. Anything that fails is redrawn once, and if it fails again Wobo refuses rather than serving it. So a piece that cannot be checked is not drawn. Today that refusal is silent: the piece is simply missing, and Wobo does not yet say a word about it. Telling you is the next thing we owe you here. The first time anyone opens a topic it takes a few seconds to build. After that it is much faster for everyone, because the teaching for the same idea is reused and re-fitted to your board and your class. Ask again tomorrow with a different question and you get a different explanation, not the same page. The topic is the same; the teaching is for the moment you asked. Tell us at support@heywobo.com. Checking is good, not perfect, and you are the last check. Related: Telling us something is wrong.",
+          "text": "how a lesson gets made nothing is made in advance. when you open a topic, wobo builds that lesson for you, checks it, and draws it. why it works that way a lesson written once for everybody is written for nobody. built at the moment you open it, a lesson can use your board's wording, your class's depth, the examples you like, and the things you already know as scaffolding. what wobo does before drawing works out the shape of the explanation for this topic and this learner. computes every number with code. equations are solved, units are checked, chemical equations are balanced. has the whole thing checked independently before you see it. anything that fails is redrawn once, and if it fails again wobo refuses rather than serving it. so a piece that cannot be checked is not drawn. today that refusal is silent: the piece is simply missing, and wobo does not yet say a word about it. telling you is the next thing we owe you here. speed the first time anyone opens a topic it takes a few seconds to build. after that it is much faster for everyone, because the teaching for the same idea is reused and re-fitted to your board and your class. different every time ask again tomorrow with a different question and you get a different explanation, not the same page. the topic is the same; the teaching is for the moment you asked. if something is wrong anyway tell us at support@heywobo.com. checking is good, not perfect, and you are the last check. related: telling us something is wrong."
         },
         {
           "slug": "prerequisites-and-gates",

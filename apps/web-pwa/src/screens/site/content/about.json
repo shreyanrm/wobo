@@ -341,7 +341,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "We collect what is needed to teach you and nothing for sale. You can see everything Wobo remembers about you on one page, delete any of it, and export or delete the whole account whenever you like. We do not sell data, and we do not advertise to children."
+                  "v": "We collect what is needed to teach you and nothing for sale. You can see everything Wobo remembers about you on one page, delete any of it, and erase what Wobo remembers and the progress it built, whenever you like. We do not sell data, and we do not advertise to children."
                 }
               ]
             }
@@ -355,7 +355,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "If Wobo does not know, Wobo says so. If a syllabus is unverified, it says so on the page. If Wobo gets something wrong and you flag it, we fix it and write back to tell you it is fixed. We would rather refuse than invent."
+                  "v": "If a syllabus is unverified, it says so on the page. If Wobo gets something wrong, write to us and we fix it. We would rather refuse than invent."
                 }
               ]
             }
@@ -397,7 +397,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "The free tier is a real product, not a trailer: the whole tutor, every subject, every form, with a daily allowance of questions that resets each morning. Pro and Max raise that allowance for exam season. They do not unlock the teacher."
+                  "v": "The free tier is a real product, not a trailer: the whole tutor, every subject, every form, with a daily allowance of questions that refills once a day. Pro and Max raise that allowance. They do not unlock the teacher."
                 }
               ]
             }
@@ -551,7 +551,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Help centre · Privacy · Terms · Cookies · Parental consent · Delete your data · Plans"
+                  "v": "Help centre · Privacy · Terms · Cookies · Parental consent · Your data · Plans"
                 }
               ]
             }

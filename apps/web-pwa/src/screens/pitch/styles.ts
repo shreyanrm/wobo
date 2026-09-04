@@ -55,6 +55,19 @@ html:has(.pt){scroll-behavior:smooth}
 .pt-chapter h2 .pt-hl{position:relative;white-space:nowrap}
 .pt-chapter h2 .pt-hl::before{content:"";position:absolute;left:-.1em;right:-.1em;bottom:.08em;height:.5em;background:var(--marigold);opacity:.55;border-radius:6px;z-index:-1;transform-origin:left;transform:scaleX(0);transition:transform .8s cubic-bezier(.6,0,.2,1) .2s}
 .pt-chapter.pt-on h2 .pt-hl::before{transform:scaleX(1)}
+/* TRAP 4 (DESIGN.md §0): white-space:nowrap on anything long. The mark above has to ride ONE
+   unbroken line, because an absolutely positioned bar cannot follow an inline that wraps — and on
+   a phone "changes the whole approach" at 30px is wider than the phone, so the students page
+   measured 461px inside a 390px window and the whole site scrolled sideways. This is the fifth
+   time this repo has paid for that rule, so the fix is the one the law prescribes rather than a
+   shorter headline: below the phone breakpoint the mark stops being a bar and becomes the span's
+   OWN painted background with box-decoration-break:clone, which wraps with the words. It is
+   sized from the line box and centred (100% 92%, trap 5), so a superscript inside a highlighted
+   phrase is contained rather than hanging out of the top of it. */
+@media (max-width:560px){
+  .pt-chapter h2 .pt-hl{white-space:normal;border-radius:6px;background-image:linear-gradient(color-mix(in srgb,var(--marigold) 55%,transparent),color-mix(in srgb,var(--marigold) 55%,transparent));background-size:100% 92%;background-position:0 50%;background-repeat:no-repeat;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .pt-chapter h2 .pt-hl::before{display:none}
+}
 .pt-chapter p{color:var(--ink-2);font-size:18px;margin-top:var(--s2);max-width:46ch}
 .pt-say{margin-top:var(--s3);font-family:var(--hand);font-weight:600;font-size:28px;line-height:1.15;color:var(--ink)}
 .pt-say em{font-style:normal;color:var(--rose)}
@@ -67,10 +80,31 @@ html:has(.pt){scroll-behavior:smooth}
 .pt-chat .pt-me{justify-self:end;background:var(--ink);color:var(--paper);border-bottom-right-radius:4px}
 .pt-chat .pt-wo{justify-self:start;background:var(--paper);border-bottom-left-radius:4px;font-family:var(--hand);font-weight:600;font-size:22px;line-height:1.15}
 .pt-chat .pt-wo b{color:var(--pig);font-weight:700}
-.pt-chat .pt-t{justify-self:center;font-size:12px;color:var(--ink-3);padding:0}
+/* 13px, not the prototype's 12: DESIGN.md §2 puts the label size at 13 and the responsive
+   proof fails anything under it (tests/responsive.spec.ts, the 13px floor). The prototypes were
+   drawn before that floor was measured, so this one declaration is the law rather than the port. */
+.pt-chat .pt-t{justify-self:center;font-size:13px;color:var(--ink-3);padding:0}
 /* the ask block's reply, in Wobo's hand, typed */
 .pt-reply{margin-top:var(--s2);font-family:var(--hand);font-weight:600;font-size:24px;line-height:1.2;color:var(--ink);min-height:1.2em}
 .pt-reply.pt-busy{color:var(--ink-3)}
+/* THE TWO MODES, drawn as two (docs/SELL.md §2, owner 2026-09-04). A doubt is cleared the moment it
+   appears; learning goes a bit at a time across weeks. Both buyer pages carry the pair, so the rule
+   lives in the shared pt- vocabulary rather than twice under two page prefixes. TWO cards and
+   never three: the shape is the argument, and a third would turn a distinction into a feature list.
+   Paper on the art panel's paper-2, no border line, and one accent per card doing one job — pig is
+   the pointer on the thing that happens now, mint confirms the thing that holds. .pt-chapter p is
+   a descendant selector that reaches in here (DESIGN.md §0, trap 3), so the card's own paragraph
+   states the three declarations it would otherwise inherit. */
+.pt-modes{width:100%;display:grid;grid-template-columns:1fr 1fr;gap:12px;min-width:0}
+.pt-modes>div{background:var(--paper);border-radius:18px;padding:16px 18px;display:grid;gap:6px;align-content:start;min-width:0}
+.pt-modes>div>span{font:500 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.pt-modes>div>b{font:600 17px/1.25 var(--sans)}
+.pt-modes>div>p{font:400 14px/1.45 var(--sans);color:var(--ink-2);margin:0;max-width:none}
+.pt-modes>div>em{font-style:normal;font:500 13px/1.3 var(--sans);color:var(--pig);display:flex;align-items:flex-start;gap:8px;min-width:0}
+.pt-modes>div>em::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--pig);flex:0 0 auto;margin-top:4px}
+.pt-modes>div.pt-slow>em{color:var(--mint)}
+.pt-modes>div.pt-slow>em::before{background:var(--mint)}
+@media (max-width:560px){.pt-modes{grid-template-columns:1fr}}
 @media (max-width:900px){
   .pt-chapter{grid-template-columns:1fr;gap:var(--s3)}.pt-chapter.pt-flip .pt-art{order:0}.pt-art{min-height:0}
   /* the touch floor (DESIGN.md §2): the students page's angle slider is a thumb's 44px tall */
@@ -232,6 +266,11 @@ html:has(.pt){scroll-behavior:smooth}
 .mt-ring{position:absolute;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--pig) 42%,transparent) 0%,color-mix(in srgb,var(--pig) 16%,transparent) 55%,transparent 72%);opacity:0;transition:opacity .3s}
 .mt-stage.mt-live .mt-ring{opacity:.28;animation:mt-pulse 1.2s ease-in-out infinite}
 @keyframes mt-pulse{50%{transform:scale(1.12)}}
+/* The three parts behind the voice — a tile that is a door, so it lifts and says where it goes. */
+a.st-tile{color:var(--ink);transition:transform .18s ease,box-shadow .18s ease}
+a.st-tile:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(20,20,43,.10)}
+.mt-more{font:500 14px/1 var(--sans);color:var(--pig);display:inline-flex;align-items:center;gap:6px;margin-top:4px}
+.mt-more::after{content:"→"}
 @media (max-width:900px){
   .mt-hero .st-wrap{grid-template-columns:1fr;min-height:0}.mt-big{order:-1}.mt-bubble{right:0;top:-6px;font-size:22px;max-width:220px}
   .mt-never{grid-template-columns:1fr}
@@ -287,13 +326,75 @@ html:has(.pt){scroll-behavior:smooth}
 .pa-faq details{background:var(--paper-2);border-radius:18px;padding:0 var(--s3)}
 .pa-faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:var(--s2);padding:18px 0;font-weight:500;font-size:17px}
 .pa-faq summary::-webkit-details-marker{display:none}
+/* Chapter 03: the ground under a chapter, and a tick that has to hold. A ring is an inset shadow,
+   never a border (DESIGN.md §2 — there are no border lines), and mint/rose are doing their jobs:
+   mint confirms, rose is the piece that needs care. */
+.pa-ground,.pa-earned{width:100%;display:grid;gap:12px}
+.pa-ground>.pa-top-row{background:var(--paper);border-radius:16px;padding:14px 18px;display:grid;gap:3px;min-width:0}
+.pa-ground>.pa-top-row>b{font:600 17px/1.25 var(--sans)}
+.pa-ground>.pa-top-row>span{font:400 13px/1.4 var(--sans);color:var(--ink-2)}
+.pa-ground>svg{width:100%;height:auto;display:block;overflow:visible}
+.pa-stones{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pa-stones>div{background:var(--paper);border-radius:16px;padding:12px 14px;display:grid;gap:4px;text-align:center;min-width:0;box-shadow:inset 0 0 0 3px var(--mint)}
+.pa-stones>div>b{font:600 15px/1.2 var(--sans)}
+.pa-stones>div>em{font-style:normal;font:400 13px/1.4 var(--sans);color:var(--ink-2)}
+.pa-stones>div.pa-thin{box-shadow:inset 0 0 0 3px var(--rose)}
+.pa-earned>div:not(.hand){background:var(--paper);border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;min-width:0}
+.pa-earned>div>b{font:600 16px/1.3 var(--sans)}
+.pa-earned>div>b>span{display:block;font:400 13px/1.45 var(--sans);color:var(--ink-2);margin-top:3px}
+.pa-earned>div>em{font-style:normal;font:500 13px/1.2 var(--sans);color:var(--ink-2);display:flex;align-items:center;gap:8px;min-width:0}
+.pa-earned>div>em::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--mint);flex:0 0 auto}
+.pa-earned>div.pa-fell>em::before{background:var(--rose)}
+.pa-ground .hand,.pa-earned .hand{font-size:22px;line-height:1.2;color:var(--ink);padding:2px 4px}
 .pa-faq summary::after{content:"+";font:600 24px/1 var(--sans);color:var(--pig);transition:transform .3s}
 .pa-faq details[open] summary::after{transform:rotate(45deg)}
 .pa-faq details p{color:var(--ink-2);padding:0 0 18px;max-width:64ch}
+/* Chapter 01: the weekly report, drawn as the app draws it (screens/progress/Report.tsx and its
+   evidence.ts) — the three figures it computes, its own minutes-a-day chart, its three lists and
+   its projection line. Every card here is paper on paper-2, never a wash: a wash tints a pill, a
+   tick or a selected row and this is a panel. Pig does its one job, the pointer, on the bars; a day
+   with nothing on it is paper-3 rather than a missing bar, because an absent bar reads as a bug. */
+.pa-report{width:100%;display:grid;gap:12px;min-width:0}
+.pa-report>.pa-rtop{display:flex;align-items:center;gap:10px;font:400 13px/1.4 var(--sans);color:var(--ink-3);min-width:0}
+.pa-report>.pa-rtop>b{font:600 15px/1.2 var(--sans);color:var(--ink)}
+.pa-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pa-kpis>div{background:var(--paper);border-radius:16px;padding:14px;display:grid;gap:2px;min-width:0}
+.pa-kpis>div>b{font:700 30px/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.pa-kpis>div>b>i{font-style:normal;font:600 14px/1 var(--sans);color:var(--ink-3);margin-left:4px}
+.pa-kpis>div>span{font:500 13px/1.3 var(--sans);color:var(--ink)}
+.pa-kpis>div>em{font-style:normal;font:400 12px/1.35 var(--sans);color:var(--ink-3)}
+.pa-chart{background:var(--paper);border-radius:16px;padding:14px;display:grid;gap:10px;min-width:0}
+.pa-chart>.pa-ctop{display:flex;align-items:baseline;gap:10px;font:600 14px/1.2 var(--sans)}
+.pa-chart>.pa-ctop>span{margin-left:auto;font:400 13px/1.2 var(--sans);color:var(--ink-3)}
+.pa-bars{display:flex;align-items:flex-end;gap:6px;height:86px}
+.pa-bars>i{flex:1;min-width:0;background:var(--pig);border-radius:6px}
+.pa-bars>i.pa-off{background:var(--paper-3)}
+.pa-lists{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pa-lists>div{background:var(--paper);border-radius:16px;padding:14px;display:grid;gap:6px;align-content:start;min-width:0}
+.pa-lists>div>span{font:500 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.pa-lists>div>b{font:500 14px/1.35 var(--sans);color:var(--ink)}
+.pa-lists>div.pa-pass>b{color:var(--rose)}
+.pa-proj{background:var(--paper);border-radius:16px;padding:14px;font:400 14px/1.45 var(--sans);color:var(--ink-2)}
+.pa-proj>em{display:block;font-style:normal;font-family:var(--hand);font-weight:600;font-size:21px;line-height:1.2;color:var(--ink);margin-top:4px}
+.pa-eg{font:400 12px/1.45 var(--sans);color:var(--ink-3);padding:0 4px}
+/* Chapter 02: the six things a great teacher does. Six of the shell's own tiles, two rows of three,
+   with the mark drawn in pig because on this page the pointer is the thing Wobo does. */
+.pa-six{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);margin-top:var(--s4)}
+.pa-six>.st-tile>svg{width:34px;height:34px;stroke:var(--pig);stroke-width:2.5}
 @media (max-width:900px){
   .pa-hero .st-wrap{grid-template-columns:1fr;min-height:0}.pa-env{order:-1;min-height:0}.pa-env>svg{width:min(80%,340px)}
-  .pa-grid3{grid-template-columns:1fr}
+  .pa-grid3,.pa-six{grid-template-columns:1fr}
   .pa-cost{grid-template-columns:1fr}
+}
+/* On a phone a fixed side column squeezes a title into five lines. Every row the two turns and
+   chapter 03 draw stacks instead: the axis label and the state drop under the words they label,
+   and the three stones stop standing side by side long before the phone does. */
+@media (max-width:560px){
+  .pa-stones{grid-template-columns:1fr}.pa-ground>svg{display:none}
+  .pa-kpis,.pa-lists{grid-template-columns:1fr}
+  .pa-earned>div:not(.hand),.hw-back>div:not(.hand){grid-template-columns:1fr;gap:8px}
+  .hw-ladder>div:not(.hand){grid-template-columns:14px 1fr;gap:8px 14px}
+  .hw-ladder>div:not(.hand)>span{grid-column:2;text-align:left}
 }
 
 /* --- /for-students -------------------------------------------------------------------------- */
@@ -339,6 +440,33 @@ html:has(.pt){scroll-behavior:smooth}
 .su-n{font:700 72px/1 var(--sans);text-align:center;letter-spacing:-.04em}
 .su-n small{display:block;font:500 14px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:8px}
 .su-streak .hand{text-align:center;font-size:24px;color:var(--ink)}
+/* Chapter 05: the climb, and the two switches under it. One drawing, so the labels ride their own
+   nodes and cannot drift at another width (DESIGN.md §0, trap 6). Colour with a job: mint held,
+   rose the one that needs care, pig where you are, and the chapter still ahead drawn open in ink
+   rather than shut. */
+.su-climb{width:100%;list-style:none;margin:0;padding:6px 0;position:relative}
+.su-climb::before{content:"";position:absolute;left:12px;top:32px;bottom:32px;width:6px;border-radius:999px;background:var(--paper-3)}
+.su-climb>li{display:grid;grid-template-columns:30px 1fr;gap:16px;align-items:center;padding:11px 0;min-width:0}
+.su-climb>li>i{width:30px;height:30px;border-radius:50%;background:var(--paper);box-shadow:inset 0 0 0 3px var(--ink);position:relative;z-index:1;font-style:normal}
+.su-climb>li.su-held>i{background:var(--mint)}
+.su-climb>li.su-slip>i{background:var(--rose)}
+.su-climb>li.su-here>i{background:var(--pig);box-shadow:inset 0 0 0 3px var(--ink),0 0 0 5px var(--paper-2),0 0 0 8px var(--pig)}
+.su-climb>li>div{min-width:0}
+.su-climb>li>div>b{display:block;font:600 16px/1.3 var(--sans);color:var(--ink)}
+.su-climb>li>div>span{display:block;font:400 14px/1.4 var(--sans);color:var(--ink-2);margin-top:2px}
+.su-climb>li.su-here>div>span{color:var(--pig)}
+/* The two looks, drawn as the switch and one node wearing both costumes. The pair is one grid in
+   DOM order, so nothing is placed backwards into an earlier column (DESIGN.md §0, trap 2). */
+.su-vibe{width:100%;display:grid;gap:14px;justify-items:center}
+.su-vpick{display:inline-flex;gap:4px;background:var(--paper-3);padding:4px;border-radius:999px}
+.su-vpick>b{font:500 15px/1 var(--sans);color:var(--ink-2);padding:11px 22px;border-radius:999px}
+.su-vpick>b.su-von{background:var(--ink);color:var(--paper)}
+.su-vpair{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.su-vpair>div{background:var(--paper);border-radius:16px;padding:18px 14px;display:grid;gap:8px;justify-items:center;text-align:center;min-width:0}
+.su-vpair>div>svg{width:34px;height:34px;fill:none;stroke:var(--marigold);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.su-vpair>div>b{font:600 16px/1.2 var(--sans);color:var(--ink)}
+.su-vpair>div>span{font:400 13px/1.35 var(--sans);color:var(--ink-2)}
+.su-vibe .hand{font-size:21px;line-height:1.2;color:var(--ink-2);text-align:center;padding:2px 4px}
 @media (max-width:900px){
   .su-hero .st-wrap{grid-template-columns:1fr;min-height:0}.su-film{order:-1;transform:none}
 }
@@ -394,8 +522,50 @@ html:has(.pt){scroll-behavior:smooth}
 .hw-note .hand{font-size:26px;line-height:1.15;margin-top:8px}
 .hw-note .hand em{font-style:normal;color:var(--rose)}
 .hw-sig{margin-top:12px;display:flex;align-items:center;gap:8px;font-family:var(--hand);font-weight:700;font-size:22px}
+
+/* The two turns off the spine — what Wobo does when a step fails, and what "done" is allowed to
+   mean. Rose is the token for the thing that needs care (DESIGN.md §0), so a turn's node is rose
+   and its mark is drawn in ink on it: paper on rose does not carry, and a turn is not a step, so
+   it takes a mark rather than the next number. */
+.hw-step.hw-turn .hw-n{background:var(--rose);color:var(--ink)}
+.hw-turn .hw-n svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.hw-turn h2{max-width:19ch}
+.hw-ladder,.hw-back{width:100%;display:grid;gap:10px}
+.hw-ladder>div:not(.hand){background:var(--paper);border-radius:16px;padding:13px 16px;display:grid;grid-template-columns:14px 1fr auto;gap:14px;align-items:center;min-width:0}
+.hw-ladder>div>i{width:14px;height:14px;border-radius:50%;background:var(--pig);font-style:normal}
+.hw-ladder>div>b{font:600 16px/1.3 var(--sans);color:var(--ink)}
+.hw-ladder>div>span{font:500 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);text-align:right}
+.hw-ladder>div.hw-tried>i{background:var(--rose)}
+.hw-ladder>div.hw-tried>b{color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:3px;text-decoration-color:var(--rose)}
+.hw-back>div:not(.hand){background:var(--paper);border-radius:16px;padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center;min-width:0}
+.hw-back>div>b{font:600 16px/1.3 var(--sans);color:var(--ink)}
+.hw-back>div>b>span{display:block;font:400 13px/1.45 var(--sans);color:var(--ink-2);margin-top:3px}
+.hw-back>div>em{font-style:normal;font:500 13px/1.2 var(--sans);color:var(--ink-2);display:flex;align-items:center;gap:8px;text-align:right}
+.hw-back>div>em::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--mint);flex:0 0 auto}
+.hw-back>div.hw-fell>em::before{background:var(--rose)}
+.hw-ladder .hand,.hw-back .hand{font-size:21px;line-height:1.2;color:var(--ink-2);padding:2px 4px}
+.hw-back .hand em{font-style:normal;color:var(--rose)}
+/* THE TWO MODES, before the loop starts (docs/SELL.md §2, owner 2026-09-04). A doubt and a
+   subject are not the same errand and the page must say both, distinctly: one is answered the
+   moment it turns up, the other is built a bit at a time so the week before an exam is revision.
+   Two cards on paper-2 with nothing drawn between them, because tone and space separate surfaces
+   here and a line is not allowed to (DESIGN.md §0). The doubt wears the pointer, pig; the slow
+   one wears marigold, which is this palette's colour for the thing that is earned. Every selector
+   is a CHILD selector: a bare .hw-modes p would reach into anything nested later (trap 3). */
+.hw-modes{display:grid;grid-template-columns:1fr 1fr;gap:var(--s4);margin-top:var(--s4)}
+.hw-modes>div{background:var(--paper-2);border-radius:24px;padding:var(--s4);min-width:0}
+.hw-modes>div>.hw-m{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);display:flex;align-items:center;gap:10px}
+.hw-modes>div>.hw-m::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--pig);flex:0 0 auto}
+.hw-modes>div.hw-slow>.hw-m::before{background:var(--marigold)}
+.hw-modes>div>h3{font:700 clamp(24px,2.6vw,32px)/1.08 var(--sans);letter-spacing:-.02em;margin-top:14px}
+.hw-modes>div>p{color:var(--ink-2);font-size:17px;line-height:1.55;margin-top:var(--s2);max-width:44ch}
+.hw-modes>div>ul{list-style:none;margin:var(--s3) 0 0;padding:0;display:grid;gap:10px}
+.hw-modes>div>ul>li{font:500 15px/1.45 var(--sans);color:var(--ink);display:grid;grid-template-columns:9px 1fr;gap:12px;align-items:start;min-width:0}
+.hw-modes>div>ul>li::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--ink-3);margin-top:7px}
+.hw-modes>div>.hand{display:block;font-size:22px;line-height:1.2;color:var(--ink-2);margin-top:var(--s3)}
 @media (max-width:900px){
   .hw-step{grid-template-columns:1fr;gap:var(--s3)}.hw-step::before{display:none}.hw-step .pt-art{min-height:0}
+  .hw-modes{grid-template-columns:1fr}
 }
 
 /* --- /subjects ------------------------------------------------------------------------------ */
@@ -416,7 +586,6 @@ html:has(.pt){scroll-behavior:smooth}
 .sb-boards p{color:var(--ink-2);margin-top:var(--s2)}
 .sb-type{background:var(--paper);border-radius:18px;padding:10px;display:grid;gap:8px;box-shadow:0 18px 40px rgba(20,20,43,.10)}
 .sb-type .sb-in{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--paper-2);font-size:16px}
-.sb-type .sb-in i{width:2px;height:20px;background:var(--pig);animation:pt-cur 1s steps(2) infinite}
 .sb-type .sb-opt{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-radius:12px;font-size:15px}
 .sb-type .sb-opt.sb-lit{background:var(--pig-w)}
 .sb-type .sb-opt span{font-size:12px;color:var(--ink-3)}
@@ -424,6 +593,43 @@ html:has(.pt){scroll-behavior:smooth}
 .sb-type .sb-opt b mark{background:transparent;color:var(--pig);font-weight:700}
 .sb-type .sb-own{padding:10px 14px;font-size:14px;color:var(--ink-2);border-top:2px solid var(--paper-2)}
 .sb-type .sb-own b{color:var(--pig)}
+
+/* THE BOARD FINDER (BoardFinder.tsx). The prototype drew a typeahead as a still; the page ships a
+   working one, and it wears the still's own skin — every rule above still applies, and everything
+   below is only what a real control needs and a drawing did not: a focus ring, a hit area a thumb
+   can land on, a status pill per row, and the panel that answers the row a reader picked. */
+.sb-hero .sb-boards{text-align:left}
+.sb-find{align-content:start;min-height:340px}
+.sb-find .sb-in{padding:6px 6px 6px 14px;gap:12px;transition:box-shadow .18s ease}
+.sb-find .sb-in:focus-within{box-shadow:inset 0 0 0 3px var(--pig)}
+.sb-find .sb-mag{width:19px;height:19px;flex:0 0 auto;fill:none;stroke:var(--ink-3);stroke-width:2.5;stroke-linecap:round}
+.sb-find input{flex:1 1 auto;min-width:0;min-height:44px;border:0;background:transparent;font:500 16px/1.4 var(--sans);color:var(--ink);padding:0}
+.sb-find input:focus{outline:0}
+.sb-find input::placeholder{color:var(--ink-3)}
+.sb-clear{min-height:44px;padding:0 14px;border:0;border-radius:10px;background:transparent;font:500 14px/1 var(--sans);color:var(--pig);cursor:pointer}
+.sb-clear:hover{background:var(--paper-3)}
+.sb-rows{display:grid;gap:2px}
+.sb-find .sb-opt{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center;width:100%;border:0;background:transparent;text-align:left;cursor:pointer;font:500 15px/1.3 var(--sans);color:var(--ink);transition:background .15s ease}
+.sb-find .sb-opt:hover{background:var(--paper-2)}
+.sb-find .sb-opt>b{grid-column:1;grid-row:1;min-width:0;font:600 15px/1.3 var(--sans);color:var(--ink)}
+.sb-find .sb-opt>span{grid-column:1;grid-row:2;font-size:13px;color:var(--ink-3);margin-top:3px}
+.sb-find .sb-opt>em{grid-column:2;grid-row:1/3;justify-self:end}
+.sb-pill{font:500 11px/1.2 var(--sans);font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);background:var(--paper-2);padding:8px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:7px}
+.sb-find .sb-opt.sb-lit>em{background:var(--paper)}
+.sb-pill.sb-on{color:var(--ink)}
+.sb-pill.sb-on::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--mint);flex:0 0 auto}
+.sb-answer{display:grid;gap:14px;padding:14px}
+.sb-answer .sb-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.sb-answer .sb-head>b{min-width:0;font:600 18px/1.25 var(--sans);color:var(--ink)}
+.sb-answer>p,.sb-none>p{margin:0;font-size:14px;line-height:1.6;color:var(--ink-2)}
+.sb-subs{display:grid;gap:10px}
+.sb-subs>.sb-lk{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.sb-subs>div{display:flex;flex-wrap:wrap;gap:8px}
+.sb-subs>div>b{font:500 13px/1 var(--sans);color:var(--ink);background:var(--paper-2);padding:10px 13px;border-radius:999px}
+.sb-do{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+.sb-back{min-height:44px;padding:0;border:0;background:transparent;font:500 14px/1 var(--sans);color:var(--pig);cursor:pointer;text-align:left}
+.sb-none{display:grid;gap:14px;padding:14px}
+.sb-reach{margin-top:var(--s2);font-size:14px;line-height:1.6;color:var(--ink-3)}
 .sb-k{display:inline-flex;align-items:center;gap:8px;font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
 .sb-k i{width:10px;height:10px;border-radius:50%;background:var(--pig)}
 .sb-k i.sb-mint{background:var(--mint)}.sb-k i.sb-marigold{background:var(--marigold)}.sb-k i.sb-lilac{background:var(--lilac)}
@@ -433,9 +639,16 @@ html:has(.pt){scroll-behavior:smooth}
 .sb-span b{display:block;color:var(--ink);font-weight:600;font-size:15px;margin-bottom:4px}
 .sb-chapter .pt-say{font-size:26px}
 .sb-chapter .pt-art{min-height:360px}
+/* One board's list, as a strip of its own names. A chip is paper-2 on white — never a wash, which
+   law v5 keeps for a pill that carries a state, and these carry none. */
+.sb-list{display:grid;gap:var(--s2);margin-bottom:var(--s4)}
+.sb-list>.sb-lk{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.sb-list>div{display:flex;flex-wrap:wrap;gap:10px}
+.sb-list>div>b{font:500 15px/1 var(--sans);color:var(--ink);background:var(--paper-2);padding:11px 16px;border-radius:999px}
 @media (max-width:900px){
   .sb-tiles{grid-template-columns:1fr 1fr}
   .sb-boards{grid-template-columns:1fr}
+  .sb-find{min-height:0}
   .sb-span{grid-template-columns:1fr}
 }
 @media (max-width:560px){.sb-tiles{grid-template-columns:1fr}}
@@ -443,7 +656,7 @@ html:has(.pt){scroll-behavior:smooth}
 /* --- less motion: the drawn thing is simply there --------------------------------------------- */
 @media (prefers-reduced-motion:reduce){
   html:has(.pt){scroll-behavior:auto}
-  .pt-blink,.mt-wave rect,.mt-ring,.mt-bubble .mt-cur,.sb-type .sb-in i{animation:none}
+  .pt-blink,.mt-wave rect,.mt-ring,.mt-bubble .mt-cur{animation:none}
   .pt-draw,.sc-flow .sc-fdraw{stroke-dashoffset:0}
   .pt-chapter h2 .pt-hl::before{transform:scaleX(1)}
   .sc-shield .sc-draw{animation:none;stroke-dashoffset:0}
@@ -452,9 +665,9 @@ html:has(.pt){scroll-behavior:smooth}
   .su-lasso{animation:none;stroke-dashoffset:0}.su-q{animation:none;opacity:1}
   .hw-strip .hw-arrow{animation:none;stroke-dashoffset:0}
   .sb-tiles a:hover{transform:none}
-  .su-grid4 svg path,.su-grid4 svg text,.mt-stage .wk-head,.mt-say,.mt-ring,.st-reveal{transition:none}
+  .su-grid4 svg path,.su-grid4 svg text,.mt-stage .wk-head,.mt-say,.mt-ring,.st-reveal,.sb-find .sb-in,.sb-find .sb-opt{transition:none}
 }
-[data-motion="reduce"] .pt-blink,[data-motion="reduce"] .mt-wave rect,[data-motion="reduce"] .mt-ring,[data-motion="reduce"] .mt-bubble .mt-cur,[data-motion="reduce"] .sb-type .sb-in i{animation:none}
+[data-motion="reduce"] .pt-blink,[data-motion="reduce"] .mt-wave rect,[data-motion="reduce"] .mt-ring,[data-motion="reduce"] .mt-bubble .mt-cur{animation:none}
 [data-motion="reduce"] .pt-draw,[data-motion="reduce"] .sc-flow .sc-fdraw{stroke-dashoffset:0}
 [data-motion="reduce"] .pt-chapter h2 .pt-hl::before{transform:scaleX(1)}
 [data-motion="reduce"] .sc-shield .sc-draw{animation:none;stroke-dashoffset:0}
@@ -462,6 +675,7 @@ html:has(.pt){scroll-behavior:smooth}
 [data-motion="reduce"] .pa-env .pa-letter{animation:none;transform:none}[data-motion="reduce"] .pa-env .pa-flap{animation:none;transform:scaleY(-1)}
 [data-motion="reduce"] .su-lasso{animation:none;stroke-dashoffset:0}[data-motion="reduce"] .su-q{animation:none;opacity:1}
 [data-motion="reduce"] .hw-strip .hw-arrow{animation:none;stroke-dashoffset:0}
+[data-motion="reduce"] .sb-find .sb-in,[data-motion="reduce"] .sb-find .sb-opt{transition:none}
 `;
 
 /** Inject the sheet once per document. Idempotent; a no-op wherever there is no document. */

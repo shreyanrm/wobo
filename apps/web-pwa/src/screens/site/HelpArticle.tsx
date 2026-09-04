@@ -34,7 +34,7 @@ export function HelpArticle({ group, slug }: { group: string; slug: string }) {
 
   if (!article || !groupDoc) {
     return (
-      <SiteShell current="help" title={`${HELP.title} — Wobo`} label={HELP.title}>
+      <SiteShell current="help" title={`${HELP.title} · Wobo`} label={HELP.title}>
         <section className="st-page-hero">
           <div className="st-wrap">
             <Label>{HELP.title}</Label>
@@ -50,7 +50,7 @@ export function HelpArticle({ group, slug }: { group: string; slug: string }) {
             </div>
           </div>
         </section>
-        <ClosePanel />
+        <ClosePanel page="help" />
       </SiteShell>
     );
   }
@@ -58,7 +58,7 @@ export function HelpArticle({ group, slug }: { group: string; slug: string }) {
   const signedIn = sdk.config.devAuth || sdk.identity.isAuthenticated();
 
   return (
-    <SiteShell current="help" title={`${article.title} — Wobo`} label={article.title}>
+    <SiteShell current="help" title={`${article.title} · Wobo`} label={article.title}>
       <div className="st-wrap hp-article">
         <article>
           <nav className="st-crumb" aria-label="Where this page sits">
@@ -117,7 +117,7 @@ export function HelpArticle({ group, slug }: { group: string; slug: string }) {
           </div>
         </aside>
       </div>
-      <ClosePanel />
+      <ClosePanel page="help" />
     </SiteShell>
   );
 }

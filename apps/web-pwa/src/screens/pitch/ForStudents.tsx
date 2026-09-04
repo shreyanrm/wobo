@@ -224,13 +224,23 @@ export function ForStudents() {
           <div className="st-wrap">
             <div>
               <Label>For students</Label>
+              {/* THIS HEADLINE USED TO SELL BY RUNNING SOMEBODY DOWN. It read "You're stuck on
+                  one thing, and nobody around can explain it." — which tells a child that their
+                  teacher, their parent and their sibling cannot help, and puts Wobo against all
+                  three. Owner, 2026-09-04: "Lets not degrade tutors or say school is bad; all we do
+                  is we talk about what we are capable of and let the viewers be the judge of it."
+                  It was also the surviving half of the retired line "It's 10 pm, you're stuck, and
+                  nobody is awake": the clock came off and the "nobody" stayed, which is why the
+                  lede answered "Wobo is." to a sentence ending "can explain it". The claim now is
+                  what Wobo does, and the lede parses with it. */}
               <h1>
-                You're stuck on one thing, <em>and nobody around can explain it.</em>
+                You're stuck on one thing, <em>and you want it drawn out slowly.</em>
               </h1>
               <p className="pt-sub">
-                Wobo is. Ask it the question you'd never ask in class and it draws the answer, as
-                many times as it takes and in as many different ways as it takes. No face. No sigh.
-                Nothing that makes you feel stupid for asking.
+                Wobo does that. Ask it the question you'd rather not ask out loud, and it draws the
+                answer line by line, as many times as it takes and in as many different ways as it
+                takes. Ask the same thing again next week and it starts from the beginning, just as
+                patiently.
               </p>
               <div className="pt-row">
                 <SiteLink className="st-btn st-pig" href={START_FREE_HREF}>
@@ -289,12 +299,12 @@ export function ForStudents() {
                   and there is nobody else in the room. It just answers.
                 </p>
                 <div className="pt-say">
-                  No face. No sigh. <em>Just the answer, drawn.</em>
+                  Ask it twice. <em>Ask it ten times.</em>
                 </div>
               </div>
               <div className="pt-art">
                 <div className="pt-chat">
-                  <div className="pt-t">Tuesday, 9:41 pm</div>
+                  <div className="pt-t">Tuesday, after school</div>
                   <div className="pt-me">ok dumb question but what actually is a hypotenuse</div>
                   <div className="pt-wo">
                     Not dumb. It's the <b>longest side</b> of a right triangle, the one opposite the
@@ -530,7 +540,7 @@ export function ForStudents() {
                     <i />
                     <div>
                       <b>Fractions on a number line</b>
-                      <span>held a week later</span>
+                      <span>right a week on</span>
                     </div>
                   </li>
                 </ul>
@@ -622,6 +632,50 @@ export function ForStudents() {
                   <div className="hand">Thursday and Sunday off. Still 12.</div>
                 </div>
                 <Sticker style={{ right: 22, top: 18 }}>no guilt</Sticker>
+              </div>
+            </Reveal>
+            <Reveal className="pt-chapter pt-flip pt-tight">
+              <div>
+                <h2>
+                  Ask <span className="pt-hl">now</span>. Learn slowly.
+                </h2>
+                <p>
+                  Two different things, and mixing them up is the whole reason exam week feels the
+                  way it does. A doubt is whatever just stopped you, and you ask it the moment it
+                  turns up: after school, on the way home, over the weekend, in the ten minutes
+                  before practice. Learning is the slow one and it goes a bit at a time.
+                </p>
+                <p>
+                  Which is the only reason the week before an exam can be you reading things you
+                  already know, instead of meeting half of them for the first time. Wobo is built
+                  for that on purpose, so it is a poor thing to open once a term and a good one to
+                  open most days.
+                </p>
+                <div className="pt-say">
+                  One of them is urgent. <em>The other one is why it never has to be.</em>
+                </div>
+              </div>
+              <div className="pt-art">
+                <div className="pt-modes">
+                  <div>
+                    <span>A doubt</span>
+                    <b>Ask it the moment it lands</b>
+                    <p>
+                      Wherever you are, in whatever form makes it go in: drawn on a board, filmed,
+                      turned into something to drag, or talked through out loud.
+                    </p>
+                    <em>Any time</em>
+                  </div>
+                  <div className="pt-slow">
+                    <span>Learning</span>
+                    <b>Ten minutes, most days</b>
+                    <p>
+                      The ground first, then the topic, then it comes back the moment the evidence
+                      says it slipped. Nothing counts as done until it holds.
+                    </p>
+                    <em>So the week before is revision</em>
+                  </div>
+                </div>
               </div>
             </Reveal>
           </div>

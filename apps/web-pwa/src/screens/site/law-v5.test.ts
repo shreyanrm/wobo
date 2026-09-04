@@ -1,11 +1,15 @@
 /**
  * LAW v5's copy law, held over every public page outside the landing (DESIGN.md §0).
  *
- * The six rules below are the owner's, written on 2026-09-04, and every one of them was broken
+ * The rules below are the owner's, written on 2026-09-04, and every one of them was broken
  * somewhere on this site before this test existed: an invented learner called Aanya in three
  * chapters and a phone mock, "classes 4 to 12" on the about page and the plans table, "40 questions
  * a day" on a plan card, a country switch above the prices, and eight pages closing on "begin
- * tonight" for a product that has not opened.
+ * tonight".
+ *
+ * The last rule reversed on the day it was written. "Promote before you invite" is GONE: we are
+ * open, anyone can sign up today, and a door that asks for early access describes a product we do
+ * not sell. The door reads its words from `cta.ts` and this file holds every surface to it.
  *
  * They are asserted over the SOURCE of the pages rather than over one exported object, because
  * these pages write most of their words inline in JSX and an object-shaped test would have missed
@@ -22,7 +26,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
 import { BENEFITS, PLANS_PAGE } from '../plans/copy';
 import { PLAN_TIERS } from '../plans/prices';
-import { CLOSE } from './ClosePanel';
+import { CTA } from './cta';
+import { HANDOFFS } from './handoffs';
 import { DOORS } from './nav';
 
 const SCREENS = join(import.meta.dir, '..');
@@ -54,10 +59,16 @@ const PAGES = LANES.flatMap((lane) => sources(join(SCREENS, lane))).map((path) =
   text: shipped(path),
 }));
 
-/** Assert no page's shipped words match `pattern`, naming the page and the line that did. */
-function nowhere(pattern: RegExp, why: string): void {
+/**
+ * Assert no page's shipped words match `pattern`, naming the page and the line that did.
+ *
+ * `except` names the files allowed to carry the phrase because they exist to ban it — `cta.ts`
+ * exports `RETIRED_CTA` precisely so a scan has one place to look for the retired words.
+ */
+function nowhere(pattern: RegExp, why: string, except: readonly string[] = []): void {
   const hits: string[] = [];
   for (const page of PAGES) {
+    if (except.includes(page.name)) continue;
     for (const line of page.text.split('\n')) {
       if (pattern.test(line)) hits.push(`${page.name}: ${line.trim().slice(0, 110)}`);
     }
@@ -115,11 +126,33 @@ describe('law v5 — the copy law, over every public page', () => {
     );
   });
 
-  it('promotes before it invites — every door asks for early access', () => {
-    expect(CLOSE.primary.label).toBe('Get early access');
-    expect(DOORS.getStarted).toBe('Get early access');
-    expect(PLANS_PAGE.close.primary).toBe('Get early access');
-    nowhere(/begin tonight|start learning for free|start free\b/i, 'the product has not opened');
+  /**
+   * WE ARE OPEN (DESIGN.md §0, owner, 2026-09-04, superseding "promote before you invite").
+   * Anyone can sign up and use Wobo today, so a surface that asks a reader to wait is describing
+   * a product we do not sell. The phrase lives in `cta.ts` and every door reads it from there.
+   */
+  it('is open, and asks nobody to wait', () => {
+    expect(CTA.label).toBe('Start free');
+    expect(DOORS.getStarted).toBe(CTA.label);
+    nowhere(/get early access|waitlist|opens to families|early access/i, 'we are open today', [
+      'site/cta.ts',
+    ]);
+  });
+
+  it('closes every page on its own job, and never types the door by hand', () => {
+    // the plans page sells a plan; every page that is not a transaction says the one phrase
+    expect(PLANS_PAGE.close.primary).toBe('Choose a plan');
+    expect(PLANS_PAGE.close.quiet).toBe('Start free instead');
+    const transactions = new Set(['Choose a plan', 'Choose a gift', 'Fund a place']);
+    for (const [page, close] of Object.entries(HANDOFFS)) {
+      const label = close.primary.label;
+      expect([page, transactions.has(label) || label === CTA.label]).toEqual([page, true]);
+    }
+  });
+
+  /** Children go to bed. A close that asks for a late night sells the thing a parent is avoiding. */
+  it('never says tonight', () => {
+    nowhere(/\btonight\b/i, 'children sleep early — say evening');
   });
 });
 

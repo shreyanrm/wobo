@@ -70,7 +70,10 @@ saw as jitter on 2026-09-04.
 - **Never sell by running anything down.** (owner, 2026-09-04) Not a teacher, not a school, not a
   tuition centre, not another product. No price comparison and no implication. We describe what
   Wobo can do and let the reader judge. The pitch is "everything a great teacher does, for one
-  child, at ten at night", which honours the craft rather than borrowing against it.
+  child, whenever they want to learn", which honours the craft rather than borrowing against it.
+  (The phrase read "at ten at night" until 2026-09-04, which made this bullet contradict the
+  never-name-a-late-hour bullet three lines above it. The site has always carried the corrected
+  wording; this line had not caught up.)
   The full conversion doctrine is docs/SELL.md.
 - **Drawing is one part.** Never let a surface imply the board is the whole product: it also
   films, simulates, speaks, practises, remembers and reports.

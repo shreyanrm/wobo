@@ -56,6 +56,42 @@ const BETTER_HERE = new Set([
   // the prototype dropped the sixth promise ("Train on a child without consent"); a page that
   // makes six promises to a parent does not quietly make five
   'Five lines wed put in a contract.',
+  // The second half of the students hero, whose first half is "It's 10 pm, you're stuck," — banned
+  // by the clock law below. The page rewrote the whole sentence rather than keeping the half that
+  // only reads as a headline with the hour in front of it: "and nobody around can explain it."
+  'and nobody is awake.',
+  // The parents hero. DESIGN.md §0 still quotes "for one child, at ten at night" as the pitch, and
+  // the clock law written the same day forbids picturing a child studying late. The page keeps the
+  // whole promise and drops the hour — "for one child, whenever they want to learn." — which is
+  // the availability the line was always reaching for. FLAGGED FOR THE OWNER: the two lines in
+  // DESIGN.md §0 disagree, and only the owner can retire one of them.
+  'for one child, at ten at night.',
+
+  // --- /subjects: the drawn typeahead became a real one (BoardFinder.tsx) --------------------
+  // The prototype's boards paragraph says every board a reader types has "the year's official
+  // syllabus behind it". The registry carries 268 boards; `content/curriculum/syllabi` holds the
+  // official chapter lists for four of them, and the other files there record a fetch that was
+  // blocked rather than a syllabus. So the clause is not true, it is the exact kind of claim the
+  // owner has caught this repo inventing twice, and the page says what is true instead while
+  // keeping the sentence's honest half word for word.
+  'Type your board and Wobo finds it, with the years official syllabus behind it. Not listed? Paste your schools syllabus and Wobo builds the plan from that, unit by unit.',
+  // The three lines below are what the STILL drew inside that typeahead: two invented result rows
+  // and the label under one of them. The page now runs a real search over the real registry, and
+  // holding a working control to the words somebody typed into a picture of it would be holding it
+  // to the wrong source. The registry answers "tel" with these boards under their registered
+  // names, which is a better answer than the drawing's and not one this page gets to write.
+  'angana State Board (BSE)',
+  'angana Intermediate (TSBIE)',
+  'senior secondary',
+
+  // --- /security: the sub-processor line the page had to make true ---------------------------
+  // The prototype tells a parent that the model providers "answer the question without ever
+  // knowing whose it is". They are sent a first name, a class and a board, so the sentence is not
+  // true, and it is untrue on the one page whose entire credibility rests on not overclaiming
+  // (docs/SELL.md §5). The page names exactly what is sent and exactly what is not, which is a
+  // longer sentence and a stronger one: a company that tells you what it hands over is believed
+  // about what it holds back.
+  'Answer the question without ever knowing whose it is.',
 ]);
 
 /**
@@ -68,8 +104,23 @@ const AGAINST_THE_LAW = [
   /\bclass(?:es)? \d|\bgrades? \d|\bages? \d/i, // no grade gate
   /\b\d+ (?:questions|turns) a day\b|\bof \d+ (?:questions|turns)\b/i, // no raw allowance
   /\b(?:forty|two hundred|eight hundred) questions\b/i,
-  /begin tonight|start learning for free|start free\b|set it up for my child/i, // promote first
-  /this evening|\btonight\b/i, // the same invitation with the clock changed
+  // THE DOOR. "Promote before you invite" is retired (DESIGN.md §0, owner, 2026-09-04): we are
+  // open, and the door says the one phrase `site/cta.ts` holds, on every surface. A prototype
+  // button that says something else is stale, not a specification — which is why "Start free"
+  // itself is NOT banned here any more, and the phrasings it replaced are.
+  /start learning for free|get early access|begin tonight|set it up for my child/i,
+  // THE CLOCK LAW (site/hours.test.ts, owner, 2026-09-04). No public surface pictures a child
+  // studying late, so the prototypes' late-night headlines are lines a page is right to refuse.
+  // "this evening" came off this list with the waitlist: an evening is not a late night.
+  /\btonight\b|\bmidnight\b|\blate at night\b/i,
+  /\b(?:9|10|11|12)\s?(?:pm|p\.m\.)/i,
+  // The same hour with minutes on it. The prototypes stamp the how-it-works beats "Tuesday,
+  // 9:40 pm", "9:42 pm", "9:45 pm" and a report card "Tuesday 9:46 pm", and a clock reading is
+  // the late hour spelled differently — it slipped past the bare-hour pattern above on four
+  // beats of one page. The pages say when without naming an hour: "Tuesday, after school", "A
+  // minute later", "Same sitting". (site/hours.test.ts carries the same row for every surface.)
+  /\b(?:6|7|8|9|10|11|12)[:.]\d{2}\s?(?:pm|p\.m\.)/i,
+  /when everyone (?:else )?is asleep/i,
   /the first question is on us/i, // the same invitation, in Wobo's hand
   /which classes and subjects/i, // a grade gate with the numbers taken out is still a gate
   /\bshe\b|\bher\b|\bhe\b|\bhis\b/i, // a learner with a gender is an invented learner
@@ -101,7 +152,16 @@ function fold(s: string): string {
 
 /** Every run of text the prototype's page body carries, plus every placeholder it types. */
 function phrases(html: string): string[] {
-  const body = html.split('</header>')[1]?.split('<footer>')[0] ?? '';
+  /**
+   * THE CLOSE PANEL IS NOT THE PROTOTYPE'S ANY MORE. Every prototype ends on the same three lines
+   * ("Start this evening.", "Start learning for free"), which is exactly the template `handoffs.ts`
+   * replaced: one page, one job, one primary, in that page's own words, with the door read from
+   * `cta.ts`. Holding six pages to one shared close would hold them to the thing we removed on
+   * purpose, so the body being compared stops where the close begins. `handoffs.test.ts` and
+   * `site/law-v5.test.ts` own the close instead.
+   */
+  const above = html.split('</header>')[1]?.split('<div class="close">')[0];
+  const body = above ?? html.split('</header>')[1]?.split('<footer>')[0] ?? '';
   const noScript = body.replace(/<script>[\s\S]*?<\/script>/g, '');
   const placeholders = [...noScript.matchAll(/placeholder="([^"]+)"/g)].map((m) => m[1] as string);
   const runs = noScript
@@ -124,7 +184,13 @@ function bothWays(source: string): string {
   return `${fold(source)} ${fold(withoutIntrinsics)}`;
 }
 
-const SHARED = ['maths.ts', 'Ask.tsx', join('..', 'site', 'ClosePanel.tsx')]
+const SHARED = [
+  'maths.ts',
+  'Ask.tsx',
+  join('..', 'site', 'ClosePanel.tsx'),
+  // every page's close is now a row in one table rather than words on the page (docs/SELL.md §6)
+  join('..', 'site', 'handoffs.ts'),
+]
   .map((f) => bothWays(readFileSync(join(import.meta.dir, f), 'utf8')))
   .join(' ');
 
@@ -142,17 +208,19 @@ describe('each pitch page carries every line of its prototype', () => {
 });
 
 describe('the security overview request', () => {
-  it('composes a draft to the mailbox that answers anything, with the school when given', () => {
-    const href = overviewMailto('lead@school.example', 'A school');
+  /**
+   * It asks for the address and nothing else. The form used to carry a second field, "School or
+   * organisation (optional)", which put the school into the mail body. We do not deal with schools
+   * at this stage (DESIGN.md §0) and the prototype has no such field, so both are gone and this
+   * test is the thing that stops one growing back.
+   */
+  it('composes a draft to the mailbox that answers anything, asking for nothing but the address', () => {
+    const href = overviewMailto('a@b.c');
     expect(href.startsWith(`mailto:${CONTACT.address}?`)).toBe(true);
     const query = new URLSearchParams(href.split('?')[1]);
     expect(query.get('subject')).toBe('Security overview');
-    expect(query.get('body')).toBe(
-      'Please send the security overview to lead@school.example.\nSchool or organisation: A school',
-    );
-    expect(new URLSearchParams(overviewMailto('a@b.c', '').split('?')[1]).get('body')).toBe(
-      'Please send the security overview to a@b.c.',
-    );
+    expect(query.get('body')).toBe('Please send the security overview to a@b.c.');
+    expect(query.get('body')).not.toMatch(/school|organisation/i);
   });
 });
 

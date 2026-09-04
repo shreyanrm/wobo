@@ -6,14 +6,43 @@
  * strip with its typeahead, one chapter per subject with its own drawn lesson (the integral,
  * benzene, the river and the port, a paragraph marked up), the ask block and the close.
  *
- * The typeahead is the prototype's still: a drawing of what typing a board looks like, hidden
- * from assistive technology as the prototype hides it, because the real one is in onboarding.
+ * THE TYPEAHEAD IS NO LONGER A DRAWING (docs/SELL.md §6). The prototype's still — a picture of
+ * somebody else typing "tel", hidden from assistive technology — was the one thing on the site's
+ * highest-intent page that could not do its page's job. A reader who came here to find out whether
+ * we cover their board could read the whole page and still not know. It is now `BoardFinder.tsx`,
+ * a real control over the real registry, offline and instant, wearing the still's own skin.
+ *
+ * And the sentence beside it has changed, because it was not true. The prototype writes "Type your
+ * board and Wobo finds it, WITH THE YEAR'S OFFICIAL SYLLABUS BEHIND IT", and the registry carries
+ * 268 boards while `content/curriculum/syllabi` holds the official chapter lists for four of them.
+ * The finder now says which is which, board by board, and the count line under it is generated
+ * from those two sources rather than typed (`boardFind.ts`, `scripts/pitch-boards.ts`).
+ *
+ * ADDED BEYOND THE PROTOTYPE — "Your board sets more than four subjects". The prototype draws four
+ * subject families and a reader can read that as the whole offer, which is a smaller product than
+ * the one that exists. The new section is careful about a line this repo could easily cross:
+ *
+ *   what is claimed   a board's list is longer than four, and Wobo follows the board's list. And
+ *                     the two doors that actually exist: `content/curriculum/syllabi/**` where we
+ *                     hold the official syllabus, and `curriculum/OwnSyllabus.tsx` (paste, a photo
+ *                     or a PDF, drafted, confirmed a chapter at a time, kept private) where we do
+ *                     not. The chip strip is labelled as ONE BOARD'S LIST, not as our coverage.
+ *   what is not       that we hold an official syllabus for every subject on that list. We do not:
+ *                     the 121 syllabus files in this repo carry maths, the sciences, social
+ *                     science and English. Anything stronger is a question in the report.
+ *
+ * And no grade gate: the section says out loud that there is no list of classes because there is
+ * no gate (DESIGN.md §0, the copy law).
  */
 
 import { Label, Sticker } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
+import { CTA } from '../site/cta';
+import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
 import { PitchAsk } from './Ask';
+import { BoardFinder } from './BoardFinder';
+import { reachLine } from './boardFind';
 import { Reveal } from './Reveal';
 import { ensurePitchStyles } from './styles';
 
@@ -33,6 +62,26 @@ export function Subjects() {
               Every subject your board sets, taught in the order your textbook uses and the words
               your exam expects. Pick a subject to see what a lesson looks like.
             </p>
+            <Reveal className="sb-boards">
+              <div>
+                <Label>Boards</Label>
+                <h2>
+                  The boards whose chapter lists we hold, and the syllabus your school wrote itself.
+                </h2>
+                <p>
+                  Type your board and Wobo finds it. Not listed? Paste your school's syllabus and
+                  Wobo builds the plan from that, unit by unit.
+                </p>
+                <p className="sb-reach">{reachLine()}</p>
+              </div>
+              <BoardFinder
+                door={
+                  <SiteLink className="st-btn st-pig" to={CTA.to}>
+                    {CTA.label}
+                  </SiteLink>
+                }
+              />
+            </Reveal>
             <div className="sb-tiles">
               <a href="#maths">
                 <svg viewBox="0 0 200 150" aria-hidden="true">
@@ -104,38 +153,6 @@ export function Subjects() {
                 <span className="sb-go">See a lesson →</span>
               </a>
             </div>
-            <Reveal className="sb-boards">
-              <div>
-                <Label>Boards</Label>
-                <h2>CBSE, ICSE, every state board, and the syllabus your school wrote itself.</h2>
-                <p>
-                  Type your board and Wobo finds it, with the year's official syllabus behind it.
-                  Not listed? Paste your school's syllabus and Wobo builds the plan from that, unit
-                  by unit.
-                </p>
-              </div>
-              <div className="sb-type" aria-hidden="true">
-                <div className="sb-in">
-                  tel
-                  <i />
-                </div>
-                <div className="sb-opt sb-lit">
-                  <b>
-                    <mark>Tel</mark>angana State Board (BSE)
-                  </b>
-                  <span>secondary</span>
-                </div>
-                <div className="sb-opt">
-                  <b>
-                    <mark>Tel</mark>angana Intermediate (TSBIE)
-                  </b>
-                  <span>senior secondary</span>
-                </div>
-                <div className="sb-own">
-                  Not listed? <b>Paste your school's syllabus</b>
-                </div>
-              </div>
-            </Reveal>
           </div>
         </section>
 
@@ -438,7 +455,70 @@ export function Subjects() {
           </div>
         </section>
 
-        <section className="st-section">
+        <section className="st-section" id="everything">
+          <div className="st-wrap">
+            <Reveal className="st-head">
+              <h2>Your board sets more than four subjects. So does Wobo.</h2>
+              <p>
+                The four above are the ones drawn on this page, not the edge of what Wobo teaches.
+                Your board's own list is the edge: the second language your school runs, the
+                humanities, the commerce and computing streams that open further up.
+              </p>
+              <p>
+                And there is no list of classes anywhere on this page, because there is no gate.
+                Tell Wobo which board you are on and where your class has got to, and it starts
+                there.
+              </p>
+            </Reveal>
+            <Reveal className="sb-list">
+              <span className="sb-lk">One board's list, as it actually reads</span>
+              <div>
+                <b>Mathematics</b>
+                <b>General science</b>
+                <b>Physics</b>
+                <b>Chemistry</b>
+                <b>Biology</b>
+                <b>History</b>
+                <b>Geography</b>
+                <b>Civics</b>
+                <b>Economics</b>
+                <b>English</b>
+                <b>Your second language</b>
+                <b>Computer science</b>
+                <b>Accountancy</b>
+                <b>Business studies</b>
+              </div>
+            </Reveal>
+            <Reveal className="st-grid2">
+              <div className="st-tile">
+                <svg viewBox="0 0 44 44" aria-hidden="true">
+                  <path d="M10 8 h18 l8 8 v20 a4 4 0 0 1 -4 4 h-22 a4 4 0 0 1 -4 -4 v-24 a4 4 0 0 1 4 -4 z" />
+                  <path d="M15 24 l5 5 l10 -11" />
+                </svg>
+                <h3>Where we hold your board's own syllabus</h3>
+                <p>
+                  Wobo already knows the chapters and the order your textbook puts them in. Nothing
+                  to set up past telling it which board you are on.
+                </p>
+              </div>
+              <div className="st-tile">
+                <svg viewBox="0 0 44 44" aria-hidden="true">
+                  <rect x="7" y="10" width="30" height="24" rx="5" />
+                  <path d="M7 27 l8 -7 l6 5 l7 -8 l9 9" />
+                  <circle cx="16" cy="18" r="3" />
+                </svg>
+                <h3>Where we don't hold it yet</h3>
+                <p>
+                  Type it in, photograph the page, or hand over the PDF. Wobo drafts the plan from
+                  that and labels it a draft, you confirm it a chapter at a time, and it stays yours
+                  and private rather than being handed to anybody else.
+                </p>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="st-section" id="ask">
           <div className="st-wrap">
             <Reveal>
               <PitchAsk
@@ -455,7 +535,7 @@ export function Subjects() {
           </div>
         </section>
 
-        <ClosePanel title="Your subject, in the first group." />
+        <ClosePanel page="subjects" />
       </div>
     </SiteShell>
   );

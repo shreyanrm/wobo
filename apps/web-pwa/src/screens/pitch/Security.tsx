@@ -158,12 +158,13 @@ const PROTECTIONS: readonly { title: string; line: string }[] = [
   },
   {
     title: 'Access rules inside the database.',
-    line: "A learner's rows are readable only by that learner, enforced by the database and not only by our code.",
+    line: 'A row is scoped to the learner it belongs to by the database itself, not only by the app that asks for it.',
   },
-  {
-    title: 'Least privilege for people.',
-    line: "No standing access to a learner's data. Support access is a deliberate act and it is logged.",
-  },
+  // A "Least privilege for people." row stood here — "No standing access to a learner's data.
+  // Support access is a deliberate act and it is logged." It is the same claim the tile below
+  // carried and it is NOT MET for the same reason (docs/conformance/privacy-and-children.md A12):
+  // the gateway holds SUPABASE_SERVICE_ROLE_KEY, which bypasses every policy, and no access log
+  // exists. The work is still named, honestly, in SCHEDULED below — as a thing not yet done.
   {
     title: 'Reviewed and gated.',
     line: 'Every change is reviewed, dependencies are scanned, and secrets never live in the code.',
@@ -203,8 +204,7 @@ const SUBS: readonly { role: string; line: string; region: string }[] = [
   },
   {
     role: 'AI model providers',
-    line:
-      'Answer the question. They are sent what a tutor needs to teach this learner: a first name, a class and board, what they are strong on, and the things the learner asked Wobo to remember, in the learner\'s own words. Never an email address, a phone number or a payment detail, and never anything under a real name.',
+    line: "Answer the question. They are sent what a tutor needs to teach this learner: a first name, a class and board, what they are strong on, and the things the learner asked Wobo to remember, in the learner's own words. Never an email address, a phone number or a payment detail, and never anything under a real name.",
     region: 'US · EU',
   },
   {
@@ -219,6 +219,21 @@ const SUBS: readonly { role: string; line: string; region: string }[] = [
     region: 'US',
   },
 ];
+
+/**
+ * THE DOCUMENTS, AND THE LINE THAT HAS TO SIT ABOVE THEM.
+ *
+ * Following "Children's privacy" from this page renders, above the document: "Draft — Written by
+ * the Wobo team and not yet reviewed by a lawyer." That honesty is right and docs/SELL.md §5 calls
+ * it one of the only three kinds of proof we have. What was wrong is that it arrived unannounced,
+ * one click from the page whose entire job is removing fear, from a reader we have just asked to
+ * trust us with a child. A trust signal a reader was not prepared for reads as a surprise, and a
+ * surprise on this page is the thing we were removing.
+ *
+ * So the page says it first, in its own voice, before the click.
+ */
+const DOCS_NOTE =
+  'These are drafts. We wrote them ourselves and a lawyer has not reviewed them yet, and each one says so at the top with the questions still open on it. We would rather you read that from us than find it.';
 
 const DOCS: readonly { title: string; line: string; href: string }[] = [
   { title: 'Privacy policy', line: 'in plain words, then the full text', href: '/legal/privacy' },
@@ -380,8 +395,8 @@ export function Security() {
                   <div>
                     <b>How to delete it</b>
                     <span>
-                      You, in Settings, any time. Gone from live systems at once and from backups
-                      within 30 days.
+                      You, in Settings, any time. Gone from live systems at once, and out of the
+                      backups behind them as those roll over.
                     </span>
                   </div>
                 </div>
@@ -471,31 +486,34 @@ export function Security() {
                 </svg>
                 <h3>Only your own rows</h3>
                 <p>
-                  Access rules live inside the database itself, so a learner can read their rows and
-                  nobody else's, even if our app made a mistake.
+                  Access rules live inside the database itself, so a row is scoped to the learner it
+                  belongs to rather than to whoever asks for it.
                 </p>
                 <span className="sc-gloss">
                   In plain words: the lock is on the drawer, not just the door.
                 </span>
               </div>
-              <div className="st-tile">
-                <svg viewBox="0 0 44 44" aria-hidden="true">
-                  <path d="M8 34 h28 M12 34 v-12 M20 34 v-18 M28 34 v-8 M36 34 v-22" />
-                </svg>
-                <h3>Least privilege</h3>
-                <p>
-                  Staff have no standing access to learner data. A break-glass path exists for
-                  support, and every use of it is written to a log the founder reviews.
-                </p>
-              </div>
-              <div className="st-tile">
-                <svg viewBox="0 0 44 44" aria-hidden="true">
-                  <path d="M22 6 a16 16 0 1 1 -11 4" />
-                  <path d="M8 6 v8 h8" />
-                </svg>
-                <h3>Backups that restore</h3>
-                <p>Daily backups, kept for 30 days, and a restore we actually rehearse.</p>
-              </div>
+              {/* TWO TILES CAME OUT OF THIS GRID, and neither was replaced with a softer version
+                  of itself, because softening an untrue sentence leaves an untrue sentence.
+
+                  "Least privilege — Staff have no standing access to learner data. A break-glass
+                  path exists for support, and every use of it is written to a log the founder
+                  reviews." docs/conformance/privacy-and-children.md:52 names THIS PAGE and marks
+                  the claim NOT MET: the gateway holds SUPABASE_SERVICE_ROLE_KEY, which bypasses
+                  every RLS policy (memory.py, billing.py, parents.py, consent.py and five more read
+                  it), and there is no access-logging code and no break-glass procedure anywhere in
+                  the tree. Its remedy column reads "Either build access logging or delete the claim
+                  from the live page." The claim is deleted. When the logging is built, the tile
+                  comes back and the register row turns green in the same commit.
+
+                  "Backups that restore — Daily backups, kept for 30 days, and a restore we actually
+                  rehearse." docs/conformance/supply-chain-and-operations.md:243 — "Nothing in the
+                  repo or docs records a restore ever being attempted"; :212 — backup frequency and
+                  retention are NOT VERIFIED. docs/CONFORMANCE.md:169 — "No backup has ever been
+                  restored and no restore has been rehearsed, and backup configuration itself is
+                  unverified." It is the same class of claim as the SOC 2 and the penetration test
+                  the owner already caught, written in the present tense about a thing that has
+                  never once happened. */}
               <div className="st-tile">
                 <svg viewBox="0 0 44 44" aria-hidden="true">
                   <path d="M10 30 l8 -8 l6 6 l12 -14" />
@@ -571,9 +589,7 @@ export function Security() {
           <div className="st-wrap">
             <Reveal className="st-head">
               <Label>Children first</Label>
-              <h2>
-                Built for a ten-year-old on their own, so the rules are stricter than the law asks.
-              </h2>
+              <h2>Built for a child on their own, so the rules are stricter than the law asks.</h2>
             </Reveal>
             <Reveal className="sc-children">
               <div className="sc-card">
@@ -662,7 +678,7 @@ export function Security() {
                   <Yes />
                 </div>
                 <div>
-                  <Limited>break-glass, logged</Limited>
+                  <Limited>with production access</Limited>
                 </div>
               </div>
               <div className="sc-r">
@@ -674,7 +690,7 @@ export function Security() {
                   <Limited>if the learner allows</Limited>
                 </div>
                 <div>
-                  <Limited>break-glass, logged</Limited>
+                  <Limited>with production access</Limited>
                 </div>
               </div>
               <div className="sc-r">
@@ -844,6 +860,7 @@ export function Security() {
               <div className="sc-panel">
                 <Label>Documents</Label>
                 <h3>The paperwork, in plain words first.</h3>
+                <p className="sc-gloss">{DOCS_NOTE}</p>
                 <div className="sc-docs">
                   {DOCS.map((doc) => (
                     <SiteLink key={doc.title} href={doc.href}>

@@ -1,63 +1,26 @@
 'use client';
 
 /**
- * The close: a promotion, not an invitation.
+ * The close: an invitation, because we are open.
  *
- * Law v5's copy rule is explicit — until the product opens, the last thing the page asks for is an
- * address, not a first lesson. So there is no "begin tonight" here and no door into onboarding: one
- * field, one button, and a sentence about what happens to what you type.
+ * WHAT WAS HERE. An email field, a submit button, and an honest line saying the address was kept in
+ * this browser because there was no waitlist endpoint to post it to. It was the truthful version of
+ * the most common lie a marketing page tells, and it was still a form standing between a stranger
+ * and a product they could have been using. Two costs, both real: a field is friction (SELL.md §8),
+ * and a page that asks for an address tells the reader we are not open yet, which we are.
  *
- * WHERE THE ADDRESS GOES, and why the page says so. There is no waitlist endpoint: the gateway's
- * only mail route is an internal one guarded by a shared key a browser must never hold, so a form
- * that posted would be posting nowhere. Rather than build the most common lie a marketing page
- * tells, the address is kept in this browser and the page says that in one line under the button.
- * The moment there is somewhere to send it, this is the only component that changes.
+ * WHAT IS HERE NOW. The one call to action, in the site's one phrase, and one quiet second for the
+ * reader who is not the learner. Both come from `site/handoffs.ts` by way of `page-copy.ts`, so the
+ * front page closes on exactly what every other public page closes on. No field, no submit, nothing
+ * to remember, and nothing kept on the device.
  */
 
-import { type FormEvent, useCallback, useState } from 'react';
-import { useMagnet } from '../../../ui/primitives/magnetic';
-import { CLOSE, EARLY_ID } from '../page-copy';
-
-/** Where a kept address waits. Versioned, so a later shape can be told from this one. */
-export const EARLY_ACCESS_KEY = 'wobo-early-access-v1';
-
-/**
- * Keep an address on this device. Returns whether it was actually kept — a private window, a
- * browser with storage switched off, or a full quota all answer false, and the page tells the
- * truth about that rather than claiming a list it never joined.
- */
-export function keepAddress(address: string, store: Storage | undefined = safeStorage()): boolean {
-  if (!store) return false;
-  try {
-    store.setItem(EARLY_ACCESS_KEY, JSON.stringify({ address, at: new Date().toISOString() }));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function safeStorage(): Storage | undefined {
-  if (typeof window === 'undefined') return undefined;
-  try {
-    return window.localStorage;
-  } catch {
-    return undefined; // storage blocked entirely; the form still works, it just cannot remember
-  }
-}
+import { routeToPath } from '../../../shell/router';
+import { CTA } from '../../site/cta';
+import { LandingLink } from '../link';
+import { CLOSE } from '../page-copy';
 
 export function Close() {
-  const [address, setAddress] = useState('');
-  const [state, setState] = useState<'idle' | 'kept' | 'unkept'>('idle');
-
-  const submit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      setState(keepAddress(address.trim()) ? 'kept' : 'unkept');
-    },
-    [address],
-  );
-
-  const done = state !== 'idle';
   return (
     <div className="wrap">
       <div id="close">
@@ -73,25 +36,16 @@ export function Close() {
         />
         <h2 className="reveal">{CLOSE.title}</h2>
         <p className="sub reveal">{CLOSE.sub}</p>
-        <form className="reveal" id={EARLY_ID} onSubmit={submit}>
-          <input
-            type="email"
-            required
-            value={address}
-            placeholder={CLOSE.placeholder}
-            aria-label="Your email"
-            onChange={(event) => {
-              setAddress(event.target.value);
-              setState('idle');
-            }}
-          />
-          <button className="btn" type="submit" ref={useMagnet()}>
-            <span>{done ? CLOSE.done : CLOSE.submit}</span>
-          </button>
-        </form>
-        <p className="fine reveal" aria-live="polite">
-          {state === 'kept' ? CLOSE.local : CLOSE.fine}
-        </p>
+        <div className="cl-row reveal">
+          <LandingLink className="btn" href={routeToPath(CTA.to)}>
+            <span>{CLOSE.primary}</span>
+          </LandingLink>
+          <LandingLink className="btn cl-q" href={CLOSE.quietHref}>
+            <span>{CLOSE.quiet}</span>
+          </LandingLink>
+        </div>
+        <p className="hand cl-hand reveal">{CLOSE.hand}</p>
+        <p className="fine reveal">{CLOSE.fine}</p>
       </div>
     </div>
   );

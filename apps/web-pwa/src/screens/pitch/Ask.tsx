@@ -111,7 +111,12 @@ export function PitchAsk({
       <div>
         <Label>{label}</Label>
         <h2 style={{ marginTop: 8 }}>{heading}</h2>
-        <AskBox placeholder={placeholder} onAsk={ask} label="Ask Wobo" mic={false} />
+        {/* INK, NOT PIG — the same rule as `site/AskWobo.tsx`. This block sits roughly six
+            hundred pixels above the page's ClosePanel, whose primary IS the conversion. Two
+            saturated pills of the same size within a screen of each other at the point of decision
+            are two calls to action, and two convert worse than one (docs/SELL.md §6); DESIGN.md §0
+            allows one pointer per view. The ask is the demo, the close is the door. */}
+        <AskBox placeholder={placeholder} onAsk={ask} tone="ink" label="Ask Wobo" mic={false} />
         <div className="st-chips">
           {chips.map((chip) => (
             <Chip key={chip} onClick={() => ask(chip)}>

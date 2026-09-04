@@ -36,7 +36,7 @@ export function Help() {
   const total = HELP.groups.reduce((n, group) => n + group.articles.length, 0);
 
   return (
-    <SiteShell current="help" title={`${HELP.title} — Wobo`} label={HELP.title}>
+    <SiteShell current="help" title={`${HELP.title} · Wobo`} label={HELP.title}>
       <section className="st-page-hero">
         <div className="st-wrap">
           <Label>Help</Label>
@@ -118,7 +118,7 @@ export function Help() {
         </section>
       )}
 
-      <ClosePanel />
+      <ClosePanel page="help" />
     </SiteShell>
   );
 }

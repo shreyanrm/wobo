@@ -9,6 +9,25 @@
  *
  * The point is real state: dragged with a pointer (captured, so a fast drag never loses it) or
  * nudged with the arrow keys and checked with Enter, and the arithmetic is `maths.ts`.
+ *
+ * ADDED BEYOND THE PROTOTYPE: the two TURNS off the timeline, because a loop drawn only as a line
+ * is not the loop this product runs. A reader who comes to this page comes to find out what
+ * happens when it does NOT go well, and the six steps never said. Both turns are the code:
+ *
+ *   after step 3   the re-teach ladder — `wobo/reteach.ts`. Two misses on one concept
+ *                  (RETEACH_AFTER_MISSES) and Wobo changes AXIS on its own: a worked example
+ *                  (method), the same idea drawn (representation), an analogy from what the
+ *                  learner told us (example, skipped entirely when they have told us nothing),
+ *                  out loud and taught back (voice). The rung that just failed is excluded, and
+ *                  the tried-list is persisted under the learner's scope, which is why the page
+ *                  may say it does not start tomorrow with the one that did not work.
+ *   after step 4   the mastery rule — `screens/learn/mastery.ts` and `screens/learn/units.ts`.
+ *                  Completed is not learnt: learnt is completed AND at or above MASTERY_FLOOR,
+ *                  a band that falls pulls a finished chapter back to `revisit`, and the row
+ *                  carries `owedName`, the topic that fell, by name. Nothing is ever locked.
+ *
+ * Nothing on this page claims a step this product does not take. The claims verified against the
+ * code are listed above; anything Wave 10 has not built is a question in the report, not a line.
  */
 
 import {
@@ -19,6 +38,7 @@ import {
 } from 'react';
 import { Label, Sticker, WoboHead } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
+import { CTA } from '../site/cta';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
 import { PitchAsk } from './Ask';
@@ -184,6 +204,20 @@ function DragPoint() {
   );
 }
 
+/**
+ * The mark on a turn's node: the loop back up. Both turns off the timeline are the same gesture —
+ * Wobo goes round again — so both wear the same mark rather than the next number, which would say
+ * the loop is another step forward.
+ */
+function TurnMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 12 a8 8 0 1 0 3 -6" />
+      <path d="M3 3 v5 h5" />
+    </svg>
+  );
+}
+
 export function HowItWorks() {
   return (
     <SiteShell current="how" title="How Wobo works">
@@ -199,8 +233,8 @@ export function HowItWorks() {
               Sunday. That's the whole loop. Here it is, step by step, with a bit you can try.
             </p>
             <div className="pt-row">
-              <SiteLink className="st-btn st-pig" to={{ name: 'onboarding' }}>
-                Get early access
+              <SiteLink className="st-btn st-pig" to={CTA.to}>
+                {CTA.label}
               </SiteLink>
               <a className="st-btn st-quiet" href="#try">
                 Skip to the bit you can try
@@ -250,12 +284,80 @@ export function HowItWorks() {
           </div>
         </section>
 
+        {/*
+          THE TWO MODES, before the loop (docs/SELL.md §2; owner, 2026-09-04: "for doubt
+          clarification yes, always any time but to learn its not a day before the exams right").
+
+          The loop below is the LEARNING mode drawn end to end, and a reader who saw only that
+          would think Wobo has to be sat down with. It does not: a doubt is answered the moment it
+          turns up. Blurring the two sells the product short in both directions, so they are said
+          separately, side by side, and the slow one is said as an anti-cramming argument because
+          that is what it actually is in the code, not a posture:
+
+            three questions at most   `curriculum/placement.ts` — MAX_PLACEMENT_QUESTIONS = 3, one
+                                      per piece of unmet ground, asked before the topic, skippable,
+                                      and never a wall.
+            completed is not learnt   `screens/learn/mastery.ts` — learnt is completed AND at or
+                                      above MASTERY_FLOOR (`secure`); a band that falls pulls a
+                                      finished chapter back and names the topic that slipped.
+            nothing is locked         both modules say so in their own words: a debt changes what
+                                      "next" points at, never what the learner may open.
+
+          Nothing here claims the public ask box tutors a stranger's syllabus question: it answers
+          questions about Wobo from the help centre (`askPublic.ts`), and a page that said
+          otherwise would be claiming something we cannot show.
+        */}
+        <section className="pt-tight">
+          <div className="st-wrap">
+            <Reveal className="st-head">
+              <Label>Two rhythms</Label>
+              <h2>A doubt and a subject are not the same errand.</h2>
+            </Reveal>
+            <Reveal className="hw-modes">
+              <div>
+                <div className="hw-m">A doubt</div>
+                <h3>Answered the moment it turns up.</h3>
+                <p>
+                  Half a sentence is enough, and so is a photo of the worksheet. Wobo works out what
+                  is actually being asked and answers it in whatever form the idea needs, so it
+                  never gets a chance to pile up into the thing they are afraid of.
+                </p>
+                <ul>
+                  <li>After school, between classes, on the way home, over the weekend</li>
+                  <li>
+                    Drawn on a board, played as a short film, built as a thing to drag, or said out
+                    loud
+                  </li>
+                  <li>Worked out into the chapter of your own syllabus it belongs to</li>
+                </ul>
+              </div>
+              <div className="hw-slow">
+                <div className="hw-m">A subject</div>
+                <h3>Built a bit at a time, so exam week is revision.</h3>
+                <p>
+                  A chapter is not finished because you reached the end of it. Wobo checks the
+                  ground underneath before it teaches a topic, and brings one back when what you
+                  answered stops holding.
+                </p>
+                <ul>
+                  <li>Three questions at most on the ground beneath a topic, before the topic</li>
+                  <li>Completed is not learnt: a topic that stops holding comes back on its own</li>
+                  <li>Nothing is ever locked, and the ground check can be skipped</li>
+                </ul>
+                <span className="hand">
+                  Which is why the week before an exam is revision rather than a rescue.
+                </span>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
         <section className="st-section">
           <div className="st-wrap">
             <Reveal className="hw-step">
               <div className="hw-n">1</div>
               <div>
-                <div className="hw-when">Tuesday, 9:40 pm</div>
+                <div className="hw-when">Tuesday, after school</div>
                 <h2>Ask, the way you'd ask a friend.</h2>
                 <p>
                   Half a sentence is fine. A photo of the worksheet is fine. Wobo works out what's
@@ -267,7 +369,7 @@ export function HowItWorks() {
               </div>
               <div className="pt-art">
                 <div className="pt-chat">
-                  <div className="pt-t">Tuesday, 9:41 pm</div>
+                  <div className="pt-t">Tuesday, a minute later</div>
                   <div className="pt-me">
                     q7 says find the hypotenuse, sides 3 and 4. what is that even
                   </div>
@@ -282,7 +384,7 @@ export function HowItWorks() {
             <Reveal className="hw-step">
               <div className="hw-n">2</div>
               <div>
-                <div className="hw-when">9:42 pm</div>
+                <div className="hw-when">Same sitting</div>
                 <h2>Drawn out, one line at a time.</h2>
                 <p>
                   Not a paragraph. A board. The triangle appears, then the squares, then the
@@ -331,7 +433,7 @@ export function HowItWorks() {
             <Reveal className="hw-step" id="try">
               <div className="hw-n">3</div>
               <div>
-                <div className="hw-when">9:45 pm · you try</div>
+                <div className="hw-when">Same sitting · you try</div>
                 <h2>Try one. Wobo rings the gap.</h2>
                 <p>
                   Every lesson ends with you doing it, not watching it. Drag the point onto the line
@@ -344,6 +446,58 @@ export function HowItWorks() {
               </div>
               <div className="pt-art">
                 <DragPoint />
+              </div>
+            </Reveal>
+            <Reveal className="hw-step hw-turn">
+              <div className="hw-n">
+                <TurnMark />
+              </div>
+              <div>
+                <div className="hw-when">When step 3 goes wrong</div>
+                <h2>The second explanation. Then the third.</h2>
+                <p>
+                  Two misses on the same idea, not one, and Wobo changes how it is teaching without
+                  being asked. One wrong answer is as often a slipped thumb as a misunderstanding.
+                  Twice on the same thing is a pattern, and what changes then is the route in, never
+                  the volume.
+                </p>
+                <div className="pt-say">
+                  Louder is the one move <em>a good teacher never makes.</em>
+                </div>
+              </div>
+              <div className="pt-art">
+                <div className="hw-ladder">
+                  <div className="hw-tried">
+                    <i />
+                    <b>The explanation you already read</b>
+                    <span>tried</span>
+                  </div>
+                  <div>
+                    <i />
+                    <b>One worked all the way through, before the rule</b>
+                    <span>the method</span>
+                  </div>
+                  <div>
+                    <i />
+                    <b>The same idea drawn on the board instead</b>
+                    <span>the picture</span>
+                  </div>
+                  <div>
+                    <i />
+                    <b>Put inside something you already know how to think about</b>
+                    <span>the example</span>
+                  </div>
+                  <div>
+                    <i />
+                    <b>Talked out loud, then you say it back</b>
+                    <span>your voice</span>
+                  </div>
+                  <div className="hand">
+                    It remembers which ones it has spent, so coming back tomorrow never starts with
+                    the one that did not work. Told it nothing about yourself yet? Then it skips
+                    that rung rather than invent a world for you.
+                  </div>
+                </div>
               </div>
             </Reveal>
             <Reveal className="hw-step">
@@ -420,6 +574,47 @@ export function HowItWorks() {
                 </div>
               </div>
             </Reveal>
+            <Reveal className="hw-step hw-turn">
+              <div className="hw-n">
+                <TurnMark />
+              </div>
+              <div>
+                <div className="hw-when">Whenever it comes back</div>
+                <h2>Finished is not the same as learnt.</h2>
+                <p>
+                  A chapter is not done because you reached the end of it. It is done when what you
+                  answered holds, and still holds when Wobo brings it back later. If it stops
+                  holding, the chapter returns to your board and names the topic that slipped rather
+                  than leaving you to guess. Nothing shuts while you fix it, and nothing ahead is
+                  locked either.
+                </p>
+                <div className="pt-say">
+                  Done is what the evidence says, <em>not what the calendar says.</em>
+                </div>
+              </div>
+              <div className="pt-art">
+                <div className="hw-back">
+                  <div>
+                    <b>
+                      Understanding quadrilaterals
+                      <span>four topics, every one of them still holding</span>
+                    </b>
+                    <em>mastered</em>
+                  </div>
+                  <div className="hw-fell">
+                    <b>
+                      Fractions on a number line
+                      <span>came back, and this time it did not hold</span>
+                    </b>
+                    <em>come back to this</em>
+                  </div>
+                  <div className="hand">
+                    The row says which topic fell, out loud. That sentence is the whole distance
+                    between a tick quietly going out and <em>deciding you are bad at maths.</em>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
             <Reveal className="hw-step">
               <div className="hw-n">5</div>
               <div>
@@ -464,7 +659,7 @@ export function HowItWorks() {
             <Reveal className="hw-step">
               <div className="hw-n">6</div>
               <div>
-                <div className="hw-when">Sunday, 6 pm</div>
+                <div className="hw-when">Sunday evening</div>
                 <h2>A note home, in Wobo's words.</h2>
                 <p>
                   If a parent is linked, they get the same three lines you do. Warm, honest,
@@ -508,7 +703,7 @@ export function HowItWorks() {
           </div>
         </section>
 
-        <ClosePanel />
+        <ClosePanel page="how" />
       </div>
     </SiteShell>
   );

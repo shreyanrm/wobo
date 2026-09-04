@@ -14,6 +14,7 @@ import { Label, WoboHead } from '../../ui/primitives';
 import { reachLine } from '../pitch/boardFind';
 import { AskWobo } from './AskWobo';
 import { ClosePanel } from './ClosePanel';
+import { CTA } from './cta';
 import { SiteLink } from './nav';
 import { Reveal } from './Reveal';
 import { SiteShell } from './SiteShell';
@@ -41,7 +42,7 @@ const PROMISES: readonly { title: string; line: string }[] = [
   },
   {
     title: 'Erase everything, any time.',
-    line: 'One button. Memory, progress, account. Gone, and gone from backups within 30 days.',
+    line: 'One button. Memory, progress, account. Gone, and out of the backups behind them as those roll over.',
   },
 ];
 
@@ -60,6 +61,19 @@ export function About() {
               question. Not a content library. Not a chatbot. A tutor that draws, never judges, and
               is always there.
             </p>
+            {/*
+              THE ONE DOOR ON THIS PAGE, BEFORE THE FOLD. /about's job is belief (docs/SELL.md §6)
+              and belief is built by reading — but until now the only way forward was the close at
+              the very bottom, so a reader convinced by the mission note had nothing to press for
+              another six sections. One primary, never two, and the words and the destination come
+              from cta.ts so this page cannot drift from the rest of the site (SELL.md §7).
+            */}
+            <div className="st-row">
+              <SiteLink className="st-btn st-pig" to={CTA.to}>
+                {CTA.label}
+              </SiteLink>
+              <span className="ab-under">{CTA.under}</span>
+            </div>
           </div>
           <div className="ab-mission">
             <span className="ab-pin" />
@@ -82,24 +96,38 @@ export function About() {
           </Reveal>
           <Reveal className="ab-story">
             <div>
+              {/*
+                THIS PARAGRAPH USED TO SAY "at the hour when parents are tired and tutors are
+                expensive". Two laws in one sentence. It named a late hour, and it sold Wobo by
+                putting a price on somebody else's work — and a parent reading a page that prices
+                their child's tutor does not think less of the tutor (docs/SELL.md §2, DESIGN.md §0).
+                What the sentence was actually reaching for is where learning happens and how alone
+                it feels, and that is said here without costing anyone their reputation.
+              */}
               <p>
-                Most of learning happens at home, at the kitchen table, at the hour when parents are
-                tired and tutors are expensive. That's when a child decides they're "not a maths
-                person". Not in class. At the table, alone, with question 7.
+                Most of learning happens at home, at the kitchen table, after school, with the day's
+                homework out and one question that will not come apart. That's when a child decides
+                they're "not a maths person". Not in class. At the table, alone, with question 7.
               </p>
               <p>
-                We wanted a tutor for exactly that hour. One that knows the child's actual syllabus,
-                answers the basic question without a face, draws instead of lecturing, and tells the
-                parent on Sunday how it's really going. And we wanted it free, every day, so the
-                family that needs it most gets it too.
+                We wanted a tutor for exactly that moment. One that knows the child's actual
+                syllabus, answers the basic question without a face, draws instead of lecturing, and
+                tells the parent on Sunday how it's really going. And we wanted it free, every day,
+                so the family that needs it most gets it too.
               </p>
               <p>
                 So we built Wobo: one character, one pen, one promise. It teaches what your school
                 teaches, and it never makes anyone feel small.
               </p>
             </div>
+            {/*
+              The clock came off this line too. "9:46 pm on a Tuesday" is the late hour spelled with
+              minutes, and it slipped past the clock law's bare-hour pattern until that hole was
+              closed (site/hours.test.ts). The point of the line is the NEXT DAY, not the hour, and
+              it lands harder without a number in front of it.
+            */}
             <div className="ab-pull">
-              The child who gets unstuck at 9:46 pm on a Tuesday{' '}
+              The child who gets unstuck on Tuesday after school{' '}
               <em>walks into class on Wednesday a different kid.</em>
             </div>
           </Reveal>
@@ -204,9 +232,12 @@ export function About() {
                 table. The company is small on purpose: every rupee goes into the tutor, not into a
                 sales team.
               </p>
-              <div className="hand">
-                We'd rather be trusted by a thousand families than known by a million.
-              </div>
+              {/*
+                "trusted by a thousand families than known by a million" reads at a glance as a
+                count of families, and we have no count to publish (docs/SELL.md §5: no user number,
+                invented or implied). The value is the same without the two numbers in it.
+              */}
+              <div className="hand">We'd rather be trusted than known.</div>
             </div>
             <div className="ab-cards">
               <div className="ab-card">

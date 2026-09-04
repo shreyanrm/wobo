@@ -57,9 +57,15 @@ export function AskWobo({
       <div>
         <Label>{label}</Label>
         <h2 style={{ marginTop: 8 }}>{heading}</h2>
+        {/* INK, NOT PIG. This block sits roughly six hundred pixels above every ClosePanel,
+            whose primary is the page's one conversion. Two saturated pills of the same size
+            landing within a screen of each other at the point of decision is two calls to action
+            (docs/SELL.md §6), and DESIGN.md §0 allows one pointer per view. The ask is the demo;
+            the close is the door. */}
         <AskBox
           placeholder={placeholder}
           onAsk={ask}
+          tone="ink"
           {...(askLabel ? { askLabel } : {})}
           label="Ask Wobo"
         />

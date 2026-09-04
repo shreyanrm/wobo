@@ -59,7 +59,14 @@ export const SITE_CSS = `
 .st-reveal.st-pre{opacity:0;transform:translateY(18px)}
 
 /* --- a chapter: the label, the heading, the line under it ----------------------------------- */
-.st-section{padding:clamp(56px,7vw,92px) 0}
+/* ONE RHYTHM, AND --band IS IT. This read clamp(56px,7vw,92px), which never touched --band at
+   all: at 1440 it gave 92 + 92 = 184px between two sections while the landing page's
+   calc(var(--band)/2) gave 79.2 + 79.2 = 158.4px, and the two disagreed at every width (at 834:
+   116.8 against 96). DESIGN.md §0 — "--band clamp(96px,11vw,184px) between sections (half from each
+   side, so two sections never stack two bands of air). This line is the number, not a second
+   opinion about it." Reading the token makes the site and the landing page agree everywhere and is
+   the only way they stay agreed when the owner moves the number again. */
+.st-section{padding:calc(var(--band) / 2) 0}
 .st-head{display:grid;gap:var(--s2);max-width:64ch;margin-bottom:var(--s4)}
 .st-head h2{font:700 clamp(28px,3.4vw,42px)/1.08 var(--sans)}
 .st-head p{color:var(--ink-2);font-size:18px}
@@ -166,6 +173,8 @@ export const SITE_CSS = `
 .ab-hero h1{font:700 clamp(36px,4.8vw,58px)/1.04 var(--sans);letter-spacing:-.035em;margin-top:var(--s2)}
 .ab-hero h1 em{font-style:normal;color:var(--pig)}
 .ab-hero p.ab-sub{font-size:19px;color:var(--ink-2);max-width:46ch;margin-top:var(--s3)}
+.ab-hero .st-row{display:flex;gap:var(--s3);margin-top:var(--s4);flex-wrap:wrap;align-items:center}
+.ab-hero .ab-under{font-size:15px;color:var(--ink-3)}
 .ab-mission{background:var(--paper-2);border-radius:28px;padding:var(--s4);position:relative;transform:rotate(-1.5deg);box-shadow:0 26px 50px rgba(20,20,43,.12)}
 .ab-mission .hand{font-size:clamp(28px,3vw,40px);line-height:1.12}
 .ab-mission .hand em{font-style:normal;color:var(--rose)}

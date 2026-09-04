@@ -20,12 +20,26 @@ export const REVEAL_START = 'top 86%';
 /** The marigold highlighter sweeps as the headline crosses 80%. */
 export const HIGHLIGHT_START = 'top 80%';
 
-/** The film starts scrubbing at 60% and runs for 1800px of scroll. */
+/** The film starts scrubbing at 60% and runs while the reader scrolls past it. */
 export const FILM_START = 'top 60%';
-export const FILM_END = '+=1800';
+export const FILM_END = '+=1000';
 
-/** How far the page scrolls while the four answer forms are pinned. */
-export const FORMS_END = '+=2400';
+/**
+ * How far the page scrolls while the four answer forms are PINNED — and this is the one number on
+ * the page that was not the prototype's to keep.
+ *
+ * It was `+=2400`. Measured at 390px that produced a 3,195px `.pin-spacer` around a section 795px
+ * high: the page stopped responding to scroll for 2,400px, which is 2.8 phone screens, beginning at
+ * y≈6,670 — screen 8 of 23. A touch scroll that produces no movement does not read as a pinned
+ * chapter on a phone, it reads as a broken page, and with `FILM_END` at 1800 that was 4,200px of
+ * scroll-jacking on one page. It was also the single largest reason the price sat at screen 17
+ * (docs/SELL.md §3 rung 5, §8 "a page that scrolls past its own point").
+ *
+ * 1,000px is four card changes in one screen of scroll, which still reads as a held chapter and
+ * costs the reader one flick instead of three. `cardAt()` divides the distance into four, so the
+ * choreography is unchanged; only how far the reader has to push it is.
+ */
+export const FORMS_END = '+=1000';
 
 /** The parent's report counts itself up as it crosses 76%, once. */
 export const REPORT_START = 'top 76%';

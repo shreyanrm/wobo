@@ -4,9 +4,14 @@
  * "It teaches you, at your pace, until you actually have it" — the chapter that argues Wobo is a
  * tutor rather than a course.
  *
- * Three beats, alternating side to side: it finds the hole under a chapter before building on it,
- * it changes route rather than repeating itself louder, and it does not call a chapter finished
- * until the chapter comes back right days later.
+ * It opens on THE TWO MODES, because they are the frame for everything under them and the honest
+ * answer to "is this just a chatbot with a logo": a chat window clears a doubt, and has no way to
+ * do the second job. A doubt is any time; learning is a bit at a time, across weeks (owner,
+ * 2026-09-04; docs/SELL.md §2).
+ *
+ * Then three beats, alternating side to side: it finds the hole under a chapter before building on
+ * it, it changes route rather than repeating itself louder, and it does not call a chapter finished
+ * until the chapter comes back right without a hint.
  *
  * The alternation is `nth-child(even)` in the stylesheet, not a prop, so the order can be read off
  * the markup. Every drawing here is still until it is scrolled to; the motion belongs to
@@ -14,8 +19,10 @@
  * — law v5 §8 cause 2, since what moves is a dash offset.
  */
 
-import { GapArt, MasteryArt, RoutesArt } from '../art';
-import { TEACHES } from '../page-copy';
+import { AssistantMark, GapArt, MasteryArt, RoutesArt } from '../art';
+import { ASK, assistants, TEACHES } from '../page-copy';
+
+const ASSISTANTS = assistants();
 
 /** The drawing that belongs to each beat, in the prototype's order. */
 function BeatArt({ index }: { index: number }) {
@@ -38,6 +45,51 @@ export function Teaches() {
           {TEACHES.title.trail}
         </h2>
         <p className="lede reveal">{TEACHES.lede}</p>
+
+        {/* THE TWO MODES (owner, 2026-09-04; docs/SELL.md §2). A doubt is any time; learning is a
+            bit at a time, across weeks. They are drawn as two panels rather than one paragraph
+            because the whole point is that they are DIFFERENT, and a reader who only skims the
+            kickers still leaves with both. It sits above the beats because it frames them. */}
+        <div className="tmodes reveal">
+          <div className="tmodes-note">{TEACHES.modes.note}</div>
+          <div className="tmodes-pair">
+            {TEACHES.modes.items.map((mode) => (
+              <div className="tmode" data-mode={mode.key} key={mode.key}>
+                <div className="tmode-kicker">{mode.kicker}</div>
+                <div className="tmode-when">{mode.when}</div>
+                <p>{mode.body}</p>
+              </div>
+            ))}
+          </div>
+          <div className="tmodes-hand">
+            {TEACHES.modes.hand.lead}
+            <em>{TEACHES.modes.hand.em}</em>
+          </div>
+        </div>
+
+        {/* DO NOT TAKE OUR WORD FOR IT. This is rung 3 of the objection ladder — "is this just a
+            chatbot with a logo" — so the confident move is to hand the reader an assistant they
+            already trust and let it go and read the site. It used to sit 526px above the close,
+            where five outbound links compete with the one conversion. Here it is above the price
+            and it costs nothing (docs/SELL.md §8). It is also the only place on the product where
+            another company's assistant is named, and they are named because they belong to the
+            READER: nothing here reveals what sits underneath Wobo. */}
+        <div className="others reveal">
+          <div className="line">{ASK.others}</div>
+          <div className="models" id="models">
+            {ASSISTANTS.map((assistant, i) => (
+              <a
+                key={assistant.name}
+                href={assistant.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <AssistantMark index={i} />
+                {assistant.name}
+              </a>
+            ))}
+          </div>
+        </div>
 
         <div className="beats">
           {TEACHES.beats.map((beat, i) => (

@@ -18,15 +18,27 @@
  *   01  WHAT THEY GET TO SEE   the weekly report, drawn as the app draws it — what was learnt, what
  *                              needed another pass, what is coming, and a projection ONLY where
  *                              there is real history to project from.
- *   02  WHY IT WORKS           the six things a great teacher does, every one of them built.
+ *   02  WHY IT WORKS           the six things a great teacher does, every one of them built, and
+ *                              the two modes they run in.
  *   03  WHAT IT COSTS          free every day, and what happens if they stop.
  *   04  WHAT WE HOLD           one honest block, handing off to the security page.
  *
  * WE NEVER SELL BY RUNNING ANYTHING DOWN (owner, 2026-09-04; DESIGN.md §0; docs/SELL.md §2). Not a
  * teacher, not a school, not a tuition centre, not another product. There is no comparison on this
  * page, no price against anyone else's, and no implication. The pitch is EVERYTHING A GREAT TEACHER
- * DOES, FOR ONE CHILD, AT TEN AT NIGHT, which honours the craft instead of borrowing against it —
- * and most of the parents reading this loved a teacher who changed something for them.
+ * DOES, FOR ONE CHILD, WHENEVER THEY WANT TO LEARN, which honours the craft instead of borrowing
+ * against it — and most of the parents reading this loved a teacher who changed something for them.
+ *
+ * TWO MODES, AND NEVER BLURRED (owner, 2026-09-04; docs/SELL.md §2): *"for doubt clarification yes,
+ * always any time but to learn its not a day before the exams right"*. Chapter 02 closes on the
+ * pair, because a payer who cannot tell them apart reads the six things as a shortcut with extra
+ * steps. A doubt is cleared the moment it appears, wherever the learner is. Learning goes a bit at
+ * a time across weeks, and the three mechanisms this page has just finished describing — mastery
+ * gating, the prerequisite taught first, the return of what slipped — are each an ANTI-CRAMMING
+ * mechanism. Saying that out loud is the trust signal: we are not selling a shortcut, and a product
+ * reached for once a term is worth less to a family than one used all year. The clock law is why
+ * the availability is named in daylight (after school, over the weekend, on a holiday, between
+ * classes, on the way home) and never as an hour.
  *
  * EVERY CLAIM IN CHAPTER 02 IS IN THIS CODEBASE, and was checked against it before it was written:
  *
@@ -53,7 +65,7 @@
  *                             than inventing a world for them.
  *
  * THE REPORT MOCK is the shape of `screens/progress/Report.tsx` and its `evidence.ts`: the three
- * figures at the top are its own (minutes, topics learnt, held a week later), the three lists are
+ * figures at the top are its own (minutes, topics learnt, right a week on), the three lists are
  * its own headings, and the projection line is `projectFinish`, which refuses to draw a line at all
  * until there is a pace to draw one from. The panel says in its own words that its numbers are an
  * example, because the copy law forbids a fabricated figure and a mock with no label is one.
@@ -153,7 +165,7 @@ const FAQ: readonly { q: string; a: string }[] = [
     a: "Your school's. You pick the board and class when you set up, and Wobo teaches the chapter your class is on this week, in the order your textbook uses. If your school does something differently, tell Wobo and it adjusts.",
   },
   {
-    q: 'Is it safe for a ten-year-old to talk to?',
+    q: 'Is it safe for a child to talk to alone?',
     a: "Yes, and it's built for exactly that. Wobo stays inside school subjects, has no opinions on anything contested, shows no ads, and never makes a child feel small. Voice isn't stored. You can read the full detail on the Security and trust page.",
   },
   {
@@ -162,7 +174,7 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: 'What does it cost?',
-    a: 'Nothing, every day, with a daily allowance of questions. Pro and Max raise that allowance for exam season. The plans page has the numbers for your country.',
+    a: 'Nothing, every day, with a daily allowance of questions. Pro and Max raise that allowance. The plans page has the numbers for your country.',
   },
   {
     q: 'What happens if I stop paying?',
@@ -170,7 +182,7 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: 'Which subjects?',
-    a: 'Every subject your board sets, for CBSE, ICSE and the state boards. Other boards and countries are added as families ask.',
+    a: 'Every subject your board sets. The official chapter lists for CBSE, ICSE, ISC and NIOS are loaded; for any other board you hand over your school’s syllabus once and Wobo builds the plan from that.',
   },
   {
     q: 'Will it hold my child back?',
@@ -242,8 +254,8 @@ function ReportPanel() {
           <b>
             82<i>%</i>
           </b>
-          <span>Held a week later</span>
-          <em>measured only after a week</em>
+          <span>Right a week on</span>
+          <em>answers given a week or more after the first</em>
         </div>
       </div>
       <div className="pa-chart">
@@ -298,7 +310,8 @@ export function ForParents() {
             <div>
               <Label>For parents</Label>
               <h1>
-                Everything a great teacher does, <em>for one child, whenever they want to learn.</em>
+                Everything a great teacher does,{' '}
+                <em>for one child, whenever they want to learn.</em>
               </h1>
               <p className="pt-sub">
                 Wobo teaches your child’s own syllabus, draws the answer until it lands, and shows
@@ -379,8 +392,8 @@ export function ForParents() {
                 <h2>What was learnt, what needed another pass, and what is coming.</h2>
                 <p>
                   A report drawn from your child’s own record and nothing else. Minutes and the
-                  evenings behind them, topics learnt, and how much of it was still right a week
-                  later. Where there is not enough history to say something, it says so instead of
+                  evenings behind them, topics learnt, and how much of it came back right without a
+                  hint. Where there is not enough history to say something, it says so instead of
                   filling the space.
                 </p>
                 <div className="pa-caps">
@@ -419,7 +432,7 @@ export function ForParents() {
                   <div className="pa-row">
                     <div>
                       <b>Triangles and the hypotenuse</b>
-                      <span>Lesson 3 of 5 · Tuesday 9:46 pm</span>
+                      <span>Lesson 3 of 5 · Tuesday, after school</span>
                     </div>
                     <span className="pa-ok pa-now">in progress</span>
                   </div>
@@ -565,6 +578,50 @@ export function ForParents() {
                   </div>
                   <div className="hand">
                     A tick that can go out again is the only kind of tick worth anything.
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+            <Reveal className="pt-chapter pt-tight">
+              <div>
+                <h2>Two different things, and they run on different clocks.</h2>
+                <p>
+                  A doubt is cleared the moment it appears: after school, over the weekend, on a
+                  holiday, between classes, on the way home, wherever your child happens to be.
+                  Learning is the slower one, and it goes a bit at a time across weeks, so the week
+                  before an exam is revision rather than panic.
+                </p>
+                <p>
+                  Wobo is built for the slower one on purpose. It will not mark a chapter learnt
+                  until it holds, it teaches the ground under a topic before the topic, and it
+                  brings back what slipped before it is lost. Every one of those costs a child time
+                  today and gives it back in March.
+                </p>
+                <div className="pa-caps">
+                  <div>
+                    Nothing here is a shortcut. <em>That is the whole design.</em>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-art">
+                <div className="pt-modes">
+                  <div>
+                    <span>A doubt</span>
+                    <b>Cleared the moment it appears</b>
+                    <p>
+                      Wherever they are, in whatever form the idea needs: drawn on a board, filmed,
+                      turned into something to drag, or talked through out loud.
+                    </p>
+                    <em>Any time, genuinely</em>
+                  </div>
+                  <div className="pt-slow">
+                    <span>Learning</span>
+                    <b>A bit at a time, across weeks</b>
+                    <p>
+                      The ground first, then the topic, then it comes back the moment the evidence
+                      says it slipped. Nothing is marked learnt until it stays learnt.
+                    </p>
+                    <em>So the week before is revision</em>
                   </div>
                 </div>
               </div>

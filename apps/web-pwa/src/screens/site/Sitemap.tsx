@@ -21,7 +21,7 @@ export function Sitemap() {
     title: legalDocument(slug)?.shape.title ?? slug,
   }));
   return (
-    <SiteShell current="sitemap" title="Sitemap — Wobo" label="Sitemap">
+    <SiteShell current="sitemap" title="Sitemap · Wobo" label="Sitemap">
       <section className="st-page-hero">
         <div className="st-wrap">
           <h1>Sitemap</h1>
@@ -71,7 +71,7 @@ export function Sitemap() {
           </div>
         </div>
       </section>
-      <ClosePanel />
+      <ClosePanel page="sitemap" />
     </SiteShell>
   );
 }

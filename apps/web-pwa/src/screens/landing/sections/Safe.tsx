@@ -6,6 +6,14 @@
  * The prototype ends each item with a proof link. Here every one of those is a REAL address: the
  * security page, the privacy policy, the children's privacy page. A claim about safety that ends in
  * a link going nowhere is worse than no claim at all.
+ *
+ * THE "ASK SOMEONE YOU TRUST" ROW IS NOT HERE ANY MORE. It sat at the tail of this section with
+ * five outbound links on it — 526px above the page's one and only close. Five doors out of the
+ * funnel, immediately above the conversion, handing a reader who is 92% of the way through the
+ * argument to the exact product category the previous twenty screens differentiated from. It is a
+ * good trust device and it was in the worst possible place; it lives in `Teaches` now, where the
+ * doubt it answers ("is this just a chatbot with a logo") is actually being raised, and anywhere
+ * above the price it costs nothing (docs/SELL.md §8).
  */
 
 import { SafeIcon } from '../art';

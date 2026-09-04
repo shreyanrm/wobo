@@ -12,9 +12,10 @@
  * Every address in the nav is a page that exists. Nothing here is a dead anchor.
  */
 
-import { useMagnet } from '../../../ui/primitives/magnetic';
+import { routeToPath } from '../../../shell/router';
+import { CTA } from '../../site/cta';
 import { Wordmark } from '../art';
-import { earlyAccessHandler, LandingLink } from '../link';
+import { LandingLink } from '../link';
 import { AUTH, NAV_LINKS } from '../page-copy';
 
 export function Header() {
@@ -35,12 +36,9 @@ export function Header() {
           <LandingLink className="sign" href="/sign-in">
             {AUTH.signIn}
           </LandingLink>
-          {/* biome-ignore lint/a11y/useValidAnchor: a real in-page anchor, not a button in
-              disguise. `#early` works with no JavaScript, can be copied and shared, and the click
-              handler only eases the scroll and puts the caret in the field. */}
-          <a className="btn pig" href="#early" onClick={earlyAccessHandler()} ref={useMagnet()}>
-            <span>{AUTH.early}</span>
-          </a>
+          <LandingLink className="btn pig" href={routeToPath(CTA.to)}>
+            <span>{AUTH.start}</span>
+          </LandingLink>
         </div>
       </div>
     </header>

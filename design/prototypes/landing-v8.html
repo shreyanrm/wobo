@@ -93,7 +93,15 @@ header .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:14px}
 #hero{padding:clamp(32px,5vw,64px) 0 calc(var(--band) / 2);overflow:visible}
 #hero .grid{display:grid;grid-template-columns:1.02fr .98fr;gap:var(--colgap);align-items:center;min-height:min(76vh,720px)}
 #hero h1{font:700 clamp(40px,5.4vw,68px)/1.0 var(--sans);letter-spacing:-.04em;margin-top:var(--s2)}
-#hero h1 .wake{display:block;font-family:var(--hand);font-weight:700;font-size:.62em;color:var(--pig);letter-spacing:0;margin-bottom:.08em}
+/* The headline's marigold, painted ON the span so a long phrase wraps rather than forcing the
+   page sideways, and lit at rest because the hero is the first paint. */
+#hero h1 .hl{
+  background-image:linear-gradient(color-mix(in srgb,var(--marigold) 46%,transparent),color-mix(in srgb,var(--marigold) 46%,transparent));
+  background-repeat:no-repeat;background-position:0 50%;background-size:100% 92%;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em;border-radius:4px;
+}
+#hero .asked{padding:0 var(--s3) 4px;font:500 15px/1.35 var(--sans);color:var(--ink-2)}
+#hero .asked .wake{display:block;font-family:var(--hand);font-weight:700;font-size:20px;color:var(--pig)}
 #hero .cta{display:flex;gap:12px;margin-top:var(--s4);flex-wrap:wrap;align-items:center}
 #hero .under{display:flex;gap:var(--s3);margin-top:var(--s3);flex-wrap:wrap;color:var(--ink-3);font-size:14px}
 #hero .under span{display:inline-flex;align-items:center;gap:8px}
@@ -125,18 +133,6 @@ header .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:14px}
 .float{position:absolute;pointer-events:none;filter:drop-shadow(0 10px 20px rgba(20,20,43,.10))}
 .float svg{display:block}
 
-/* the loop strip */
-.loop{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(10px,1.2vw,16px);margin-top:var(--s4)}
-.loop .step{background:var(--paper-2);border-radius:20px;padding:clamp(16px,1.6vw,22px);display:grid;gap:10px;align-content:start;position:relative;opacity:1}
-.loop .step .n{font:500 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
-.loop .step > b{font:600 17px/1.2 var(--sans)}
-.loop .step > p{font-size:14px;color:var(--ink-2)}
-.loop .step svg{width:40px;height:40px;fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
-.loop .step .acc{stroke:var(--pig)}
-@media (max-width:1080px){.loop{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:720px){.loop{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:480px){.loop{grid-template-columns:1fr}}
-
 /* two-column row */
 .row{display:grid;grid-template-columns:1fr 1fr;gap:var(--colgap);align-items:center}
 .row.flip .art{order:-1}
@@ -156,8 +152,7 @@ header .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:14px}
   .device .stage{height:clamp(240px,58vw,320px)}
   .device .rail button{font-size:11px}
   #close{padding:var(--s5) var(--s3);border-radius:24px}
-  #close input{min-width:0;width:100%}
-  #close form{flex-direction:column;align-items:stretch}
+  #close .cl-row{flex-direction:column;align-items:stretch}
 }
 .art{position:relative;border-radius:24px;background:var(--paper-2);padding:var(--s3);min-height:min(420px,52vw);display:grid;place-items:center;justify-items:stretch;overflow:hidden}
 .art > svg{width:100%;height:auto;overflow:visible}
@@ -248,7 +243,8 @@ header .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:14px}
 .ask{border-radius:24px;background:var(--paper-2);padding:var(--s4);display:grid;grid-template-columns:auto 1fr;gap:var(--s3);align-items:center}
 .ask svg.w{width:96px}
 .ask .box{display:flex;gap:10px;background:var(--paper);border-radius:16px;padding:8px 8px 8px 20px;align-items:center;margin-top:var(--s2);box-shadow:var(--lift)}
-.ask input{flex:1;border:0;background:transparent;font:400 16px/1.4 var(--sans);color:var(--ink);outline:none;min-width:0}
+.ask input{flex:1;border:0;background:transparent;font:400 16px/1.4 var(--sans);color:var(--ink);min-width:0}
+.ask input:not(:focus-visible){outline:none}
 .ask .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 .ask .chips > span{font:500 13px/1 var(--sans);padding:9px 13px;border-radius:999px;background:var(--paper);color:var(--ink-2)}
 .ask .answer{margin-top:14px;font-family:var(--hand);font-weight:600;font-size:22px;line-height:1.25;color:var(--ink);min-height:1.3em}
@@ -263,14 +259,29 @@ header .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:14px}
 
 
 /* the marked-up paragraph — every mark rides its own words, so none can drift */
-.marked{width:min(100%,620px);background:var(--paper);border-radius:18px;padding:26px 28px;display:grid;gap:14px}
-.marked p{font:400 17px/1.9 var(--sans);color:var(--ink);margin:0}
-.marked mark.hl{background:color-mix(in srgb,var(--marigold) 52%,transparent);color:inherit;padding:.06em .08em;border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
-.marked .tag{font-family:var(--hand);font-weight:700;font-size:18px;color:var(--pig);margin-left:8px;white-space:nowrap}
-.marked .circled{position:relative;display:inline-block}
-.marked .circled::after{content:"";position:absolute;left:-.35em;right:-.35em;top:-.16em;bottom:-.2em;border:2.6px solid var(--rose);border-radius:50%;transform:rotate(-1.4deg);pointer-events:none}
-.marked .note{font-family:var(--hand);font-weight:600;font-size:19px;color:var(--rose)}
-.marked .fix{font-family:var(--hand);font-weight:700;font-size:20px;color:var(--pig)}
+
+/* ── the two modes: a doubt is any time, learning is every week ────────────────
+   Two tone-separated panels, each with ONE accent doing one job: pig points at the
+   immediate thing, marigold marks the earned one. The accent is a 4px inset bar
+   painted as a gradient, never a border (law v5 allows no border line on a
+   surface), and the rhythm line is a wash pill with ink on it rather than accent
+   text, which at 13px would be unreadable on paper. */
+.tmodes{margin-top:var(--s4);display:grid;gap:var(--s2)}
+.tmodes-note{font:600 15px/1.3 var(--sans);color:var(--ink-3)}
+.tmodes-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2)}
+.tmode{min-width:0;background:var(--paper-2);border-radius:20px;padding:var(--s3);
+  background-image:linear-gradient(var(--tm),var(--tm));background-repeat:no-repeat;
+  background-size:4px 100%;background-position:0 0}
+.tmode[data-mode="doubt"]{--tm:var(--pig)}
+.tmode[data-mode="learning"]{--tm:var(--marigold)}
+.tmode > .tmode-kicker{font:700 clamp(20px,2vw,26px)/1.15 var(--sans);letter-spacing:-.02em}
+.tmode > .tmode-when{display:inline-block;margin-top:8px;padding:5px 10px;border-radius:999px;
+  font:500 13px/1.2 var(--sans);color:var(--ink);
+  background:color-mix(in srgb, var(--tm) 16%, var(--paper))}
+.tmode > p{color:var(--ink-2);font-size:15px;line-height:1.55;margin-top:var(--s2);max-width:46ch}
+.tmodes-hand{font-family:var(--hand);font-weight:600;font-size:22px;color:var(--ink)}
+.tmodes-hand em{font-style:normal;color:var(--rose)}
+@media (max-width:760px){.tmodes-pair{grid-template-columns:1fr}}
 
 /* ── it teaches YOU: the gap, the second way, the mastery ─────────────────────── */
 .beats{display:grid;gap:var(--s2);margin-top:var(--s4)}
@@ -302,29 +313,41 @@ header .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:14px}
 .climb .legend span{display:inline-flex;align-items:center;gap:8px}
 .climb .legend i{width:11px;height:11px;border-radius:3px}
 
-/* faq */
-.faq{display:grid;gap:8px;margin-top:var(--s4)}
-.faq details{background:var(--paper-2);border-radius:16px;padding:0 var(--s3)}
-.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:var(--s2);padding:20px 0;font-weight:500}
-.faq summary::-webkit-details-marker{display:none}
-.faq summary::after{content:"+";font:400 24px/1 var(--sans);color:var(--pig);transition:transform .3s}
-.faq details[open] summary::after{transform:rotate(45deg)}
-.faq p{color:var(--ink-2);padding:0 0 20px;max-width:66ch}
+/* the hero's try box — the same ask block, laid out in one column under the lede */
+#hero .ask.hero{grid-template-columns:1fr;padding:var(--s3);margin-top:var(--s3);gap:var(--s2)}
+#hero .ask.hero .trynote{font:500 13px/1.4 var(--sans);color:var(--ink-2)}
+#hero .ask.hero .box{margin-top:10px}
+#hero .ask.hero .answer{font-size:20px}
 
-/* devices */
-.devices{display:flex;gap:10px;flex-wrap:wrap;margin-top:var(--s3)}
-.devices a{display:inline-flex;align-items:center;gap:10px;background:var(--paper-2);border-radius:14px;padding:12px 16px;font:500 14px/1 var(--sans);color:var(--ink-2)}
-.devices a.live{background:var(--ink);color:var(--paper)}
-.devices a > small{font-size:11px;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+/* what it costs — three plans and the way out */
+.prices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:var(--s4)}
+.prices .plan{background:var(--paper-2);border-radius:20px;padding:clamp(18px,2vw,26px);display:grid;gap:10px;align-content:start}
+.prices .plan.lead{background:var(--ink)}
+.prices .plan > .pl-name{font:600 17px/1.2 var(--sans);display:flex;align-items:baseline;gap:10px}
+.prices .plan.lead > .pl-name{color:#fff}
+.prices .plan > .pl-name em{font-style:normal;font:500 12px/1 var(--sans);color:var(--marigold)}
+.prices .plan > .pl-amount{font:700 clamp(26px,3vw,34px)/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.prices .plan.lead > .pl-amount{color:#fff}
+.prices .plan > .pl-amount span{font:500 14px/1 var(--sans);letter-spacing:0;color:var(--ink-3);margin-left:8px}
+.prices .plan.lead > .pl-amount span{color:rgba(255,255,255,.6)}
+.prices .plan > .pl-said{font-size:14px;color:var(--ink-2)}
+.prices .plan.lead > .pl-said{color:rgba(255,255,255,.72)}
+.prices .plan > .pl-fine{font-size:12px;color:var(--ink-3)}
+.prices .plan.lead > .pl-fine{color:rgba(255,255,255,.5)}
+.cancel{margin-top:12px;background:var(--paper-2);border-radius:20px;padding:var(--s3);display:grid;gap:8px;justify-items:start}
+.cancel > b{font:600 17px/1.3 var(--sans)}
+.cancel > p{color:var(--ink-2);font-size:15px;max-width:70ch}
+.cancel > a{font:500 14px/1 var(--sans);color:var(--pig)}
+@media (max-width:760px){.prices{grid-template-columns:1fr}}
 
-/* close: promotion */
+/* close: one call */
 #close{background:var(--ink);color:#fff;border-radius:32px;padding:var(--band) var(--s4);text-align:center;position:relative;overflow:hidden;margin-bottom:var(--band)}
 #close h2{font:700 clamp(34px,4.6vw,58px)/1.02 var(--sans);letter-spacing:-.035em;color:#fff}
 #close .sub{color:rgba(255,255,255,.72);margin:var(--s3) auto 0;max-width:48ch}
-#close form{display:flex;gap:10px;justify-content:center;margin-top:var(--s4);flex-wrap:wrap}
-#close input{font:400 16px/1 var(--sans);padding:0 20px;height:52px;border-radius:14px;border:0;background:rgba(255,255,255,.1);color:#fff;min-width:min(340px,80vw)}
-#close input::placeholder{color:rgba(255,255,255,.5)}
+#close .cl-row{display:flex;gap:12px;justify-content:center;margin-top:var(--s4);flex-wrap:wrap}
 #close .btn{background:var(--marigold);color:#14142B}
+#close .btn.cl-q{background:transparent;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.30)}
+#close .cl-hand{color:var(--marigold);margin-top:var(--s3)}
 #close .fine{color:rgba(255,255,255,.5);font-size:13px;margin-top:var(--s2)}
 #close .glow{position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(43,69,255,.35),transparent 70%);filter:blur(20px);pointer-events:none}
 
@@ -363,7 +386,7 @@ footer .wm svg{height:20px;color:var(--ink)}
   </nav>
   <div class="right">
     <a class="sign" href="/sign-in">Sign in</a>
-    <a class="btn pig mag" href="#early"><span>Get early access</span></a>
+    <a class="btn pig mag" href="/onboarding"><span>Start free</span></a>
   </div>
 </div></header>
 
@@ -371,11 +394,15 @@ footer .wm svg{height:20px;color:var(--ink)}
 <section id="hero"><div class="wrap grid">
   <div>
     <div class="eyebrow reveal">Every subject · every board · <b>free every day</b></div>
-    <h1 class="reveal"><span class="wake">Hey Wobo,</span>why do plants need sunlight?</h1>
-    <p class="lede reveal">A tutor that hears the question, works out where it sits in your syllabus, and answers it the way the idea needs: drawn, animated, spoken, or handed to you to try. Late in the evening or early in the morning, as many times as you like.</p>
-    <div class="cta reveal">
-      <a class="btn pig mag" href="#early"><span>Get early access</span></a>
-      <a class="btn ghost mag" href="/how-it-works"><span>See how it works</span></a>
+    <h1 class="reveal">The first tutor that <span class="hl">shows its working.</span></h1>
+    <p class="lede reveal">Ask it anything your syllabus sets and the answer arrives in front of you, line by line: drawn on a board, filmed, handed back for you to try, or said out loud when that is what the idea needs.</p>
+    <div class="ask hero reveal">
+      <div>
+        <div class="trynote">Ask Wobo about Wobo. It answers for itself, right here.</div>
+        <div class="box"><input id="askIn" placeholder="Is Wobo any good for a child who hates maths?" aria-label="Ask Wobo"><button class="btn mag" id="askGo"><span>Ask</span></button></div>
+        <div class="chips" id="askChips"><span>Does it follow my school's syllabus?</span><span>What happens when my child gets stuck?</span><span>Is it safe to use alone?</span><span>What does free include?</span></div>
+        <div class="answer" id="askOut"></div>
+      </div>
     </div>
     <div class="under reveal">
       <span><i></i>Free to use, every single day</span>
@@ -387,6 +414,7 @@ footer .wm svg{height:20px;color:var(--ink)}
     <div class="float f2" style="right:-3%;top:-8%;width:58px"><svg viewBox="0 0 64 64"><rect x="8" y="8" width="48" height="48" rx="14" fill="var(--pig)"/><path d="M20 32 l8 9 l16 -18" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <div class="device" id="device">
       <div class="top"><b>Wobo</b> · live <span class="live" id="liveTag"><i></i> <span>drawing</span></span></div>
+      <div class="asked"><span class="wake">Hey Wobo,</span>why do plants need sunlight?</div>
       <div class="stage" id="heroStage">
         <div class="on" data-form="draw"><svg viewBox="0 0 520 380" aria-label="Wobo draws the leaf and where the light goes">
           <path class="ink draw" id="d-leaf" d="M170 250 C170 170 240 120 320 118 C320 200 258 254 176 254 Z"/>
@@ -439,17 +467,106 @@ footer .wm svg{height:20px;color:var(--ink)}
   </div>
 </div></section>
 
-<!-- ══ THE LOOP ══ -->
-<section id="loop"><div class="wrap">
-  <div class="eyebrow reveal">What actually happens</div>
-  <h2 class="t reveal">One question in. <span class="hl">A whole lesson out.</span></h2>
-  <p class="lede reveal">Drawing is one of five things Wobo does with a question. Here is the rest of it.</p>
-  <div class="loop">
-    <div class="step"><svg viewBox="0 0 40 40"><rect class="acc" x="15" y="5" width="10" height="18" rx="5"/><path d="M10 19 a10 10 0 0 0 20 0 M20 29 v6"/></svg><div class="n">01 · Ask</div><b>However you want</b><p>Out loud, typed, a photo of the worksheet, or a circle drawn around the part that lost you.</p></div>
-    <div class="step"><svg viewBox="0 0 40 40"><path d="M6 10 h28 v20 h-28 z"/><path class="acc" d="M11 17 h14 M11 23 h9"/></svg><div class="n">02 · Place it</div><b>In your syllabus</b><p>Your board, your year, the chapter your class is on this week. Not a course built for everyone.</p></div>
-    <div class="step"><svg viewBox="0 0 40 40"><path d="M7 33 l4 -1 l19 -19 l-3 -3 l-19 19 z"/><path class="acc" d="M27 10 l3 3"/><path d="M7 6 h10 M12 1 v10" opacity=".5"/></svg><div class="n">03 · Show it</div><b>In the right form</b><p>A drawn board, a short film, a thing you can drag, a worked example, or a sentence marked up.</p></div>
-    <div class="step"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="14"/><path class="acc" d="M13 20 l5 5 l9 -11"/></svg><div class="n">04 · Try it</div><b>Until it sticks</b><p>Practice in the kinds your exam uses. Close gets a ring, never a red cross.</p></div>
-    <div class="step"><svg viewBox="0 0 40 40"><rect x="6" y="10" width="28" height="20" rx="4"/><path class="acc" d="M6 13 l14 10 l14 -10"/></svg><div class="n">05 · Remember</div><b>And report</b><p>What clicked, what did not, and one honest note home on Sunday.</p></div>
+<!-- ══ SUBJECTS ══ -->
+<section id="subjects"><div class="wrap">
+  <div class="eyebrow reveal">Every subject your board sets</div>
+  <h2 class="t reveal">Whatever your school sets, <span class="hl">Wobo teaches it.</span></h2>
+  <p class="lede reveal">Tell Wobo the board and the class once, and it follows that syllabus chapter by chapter, in the order your own textbook uses. The official chapter lists for CBSE, ICSE, ISC and NIOS are already loaded; for any other board you hand over your school’s syllabus once and Wobo builds the plan from that.</p>
+  <div class="stages">
+    <div class="stage reveal"><div class="who"><b>Mathematics</b><span>counting to calculus</span></div><div class="subs">
+      <span class="acc">Numbers and fractions</span><span class="acc">Algebra</span><span class="acc">Geometry</span><span class="acc">Trigonometry</span><span>Statistics</span><span>Probability</span><span>Calculus</span><span>Applied maths</span></div></div>
+    <div class="stage reveal"><div class="who"><b>The sciences</b><span>seen, not recited</span></div><div class="subs">
+      <span class="acc">Environmental studies</span><span class="acc">General science</span><span class="acc">Physics</span><span class="acc">Chemistry</span><span class="acc">Biology</span><span>Earth science</span></div></div>
+    <div class="stage reveal"><div class="who"><b>Languages</b><span>reading, writing, grammar</span></div><div class="subs">
+      <span class="acc">English</span><span class="acc">Hindi</span><span>Sanskrit</span><span>Telugu</span><span>Tamil</span><span>Marathi</span><span>Bengali</span><span>Kannada</span><span>and your school's second language</span></div></div>
+    <div class="stage reveal"><div class="who"><b>Humanities</b><span>the map before the story</span></div><div class="subs">
+      <span class="acc">History</span><span class="acc">Geography</span><span class="acc">Civics</span><span class="acc">Political science</span><span>Sociology</span><span>Psychology</span></div></div>
+    <div class="stage reveal"><div class="who"><b>Commerce and computing</b><span>the senior streams</span></div><div class="subs">
+      <span class="acc">Accountancy</span><span class="acc">Business studies</span><span class="acc">Economics</span><span class="acc">Computer science</span><span>Information technology</span></div></div>
+  </div>
+  <p class="lede reveal" style="max-width:58ch">Yours not here? Paste your school's own list in and Wobo reads it and builds the plan from that. It teaches in English today, and more languages follow the boards that ask for them.</p>
+</div></section>
+
+<!-- ══ IT TEACHES YOU, NOT A CLASS ══ -->
+<section id="teaches"><div class="wrap">
+  <div class="eyebrow reveal">Not a chatbot with a logo</div>
+  <h2 class="t reveal">Everything a great teacher does, <span class="hl">for one child, whenever they want to learn.</span></h2>
+  <p class="lede reveal">Drawing it while explaining, so you watch the idea appear. Trying a completely different way when the first one does not land. Knowing what is missing underneath before building on top of it. Not moving on until it stays learnt. Bringing back what slipped. Building the example out of what you already care about. Six things, and Wobo does all six. Three of them are drawn here, and the rest are further down the page.</p>
+
+  <div class="tmodes reveal">
+    <div class="tmodes-note">Two different jobs, and Wobo is built for both.</div>
+    <div class="tmodes-pair">
+      <div class="tmode" data-mode="doubt">
+        <div class="tmode-kicker">A doubt</div>
+        <div class="tmode-when">The moment it turns up</div>
+        <p>One thing in the chapter did not land. Ask it after school, between classes, on the way home, over the weekend, in the school break, wherever you are and in whatever form the idea needs. It gets cleared while it is still small, instead of piling up into the thing you are afraid of.</p>
+      </div>
+      <div class="tmode" data-mode="learning">
+        <div class="tmode-kicker">A subject</div>
+        <div class="tmode-when">A bit at a time, across weeks</div>
+        <p>Wobo checks the ground under a chapter, teaches the gap first, and does not move on until it stays learnt. That is the slow half, and it is on purpose: a subject built up steadily is a subject where the week before the test is revision rather than panic.</p>
+      </div>
+    </div>
+    <div class="tmodes-hand">A doubt is any time. <em>Learning is every week.</em></div>
+  </div>
+
+  <div class="others reveal">
+    <div class="line">Or ask an assistant you already trust. It will read the site and tell you what it finds.</div>
+    <div class="models" id="models"></div>
+  </div>
+
+  <div class="beats">
+    <div class="beat reveal">
+      <div>
+        <div class="n">01</div>
+        <h3>It finds the hole before it builds on top of it.</h3>
+        <p>Most chapters stand on something older. Before teaching one, Wobo asks two or three quick questions about what it rests on. If something from an earlier year is shaky, it patches that first, in minutes, and then teaches the chapter your class is actually on.</p>
+        <div class="said">Nobody fails algebra. <em>They failed fractions, two years earlier.</em></div>
+      </div>
+      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="A chapter resting on earlier ideas, with the weak one found and patched">
+        <path class="ink thin" d="M60 214 h340"/>
+        <g id="pre-a"><rect x="70" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="86" y="196" font-size="18">fractions</text></g>
+        <g id="pre-b"><rect x="186" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="202" y="196" font-size="18">ratios</text></g>
+        <g id="pre-c"><rect x="302" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="316" y="196" font-size="18">negatives</text></g>
+        <rect x="186" y="66" width="120" height="52" rx="14" fill="var(--pig)"/><text x="246" y="98" text-anchor="middle" font-family="Poppins" font-size="16" fill="#fff">this chapter</text>
+        <path class="ink thin" d="M113 168 C113 140 200 140 226 118"/><path class="ink thin" d="M229 168 v-50"/><path class="ink thin" d="M345 168 C345 140 280 140 266 118"/>
+        <g id="pre-weak" opacity="0"><rect x="66" y="164" width="94" height="52" rx="14" fill="none" stroke="var(--rose)" stroke-width="3"/><text class="hw rose" x="60" y="248" font-size="19">shaky, patched first</text></g>
+        <path id="pre-tick" class="ink mint draw" d="M96 190 l10 10 l18 -22" style="--len:60" opacity="0"/>
+      </svg></div>
+    </div>
+
+    <div class="beat reveal">
+      <div>
+        <div class="n">02</div>
+        <h3>If one way does not land, it tries a different one.</h3>
+        <p>Not the same explanation, louder. A second attempt is a different route: a drawing instead of a definition, a worked example instead of a rule, a thing to drag instead of a thing to read, and an analogy built from what you already care about.</p>
+        <div class="said">The same idea, <em>explained the way you happen to think.</em></div>
+      </div>
+      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="One idea, three different routes into it">
+        <circle cx="230" cy="46" r="26" fill="var(--pig)"/><text x="230" y="52" text-anchor="middle" font-family="Poppins" font-size="15" fill="#fff">idea</text>
+        <path class="ink thin" d="M212 68 C160 100 120 120 96 146"/><path class="ink thin" d="M230 74 v70"/><path class="ink thin" d="M248 68 C300 100 340 120 364 146"/>
+        <g><rect x="34" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><path class="ink pig" d="M60 214 L96 168 L132 214 Z"/><text class="hw dim" x="52" y="238" font-size="16">drawn</text></g>
+        <g><rect x="168" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><path class="ink thin" d="M188 176 h84 M188 196 h60 M188 216 h72"/><text class="hw dim" x="186" y="238" font-size="16">worked out</text></g>
+        <g><rect x="302" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><circle cx="344" cy="192" r="18" fill="var(--marigold)"/><path class="ink" d="M368 192 h34"/><text class="hw dim" x="316" y="238" font-size="16">in your world</text></g>
+      </svg></div>
+    </div>
+
+    <div class="beat reveal">
+      <div>
+        <div class="n">03</div>
+        <h3>It does not move on until it stays learnt.</h3>
+        <p>Getting it right once is not knowing it. A chapter counts as done when it has come back right enough times, without a hint, that the answer is not a guess. Until it does, the thing that slipped is what comes next, so nothing new is built on top of it and you are never carried past it.</p>
+        <div class="said">Finished means <em>it holds without help.</em></div>
+      </div>
+      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="A chapter is done only when it comes back right without a hint">
+        <path class="ink thin" d="M50 220 h370"/>
+        <g class="hw dim" font-size="15"><text x="46" y="246">today</text><text x="150" y="246">+2 days</text><text x="252" y="246">+1 week</text><text x="352" y="246">+3 weeks</text></g>
+        <circle cx="60" cy="220" r="7" fill="var(--pig)"/><circle cx="168" cy="220" r="7" fill="var(--pig)"/><circle cx="272" cy="220" r="7" fill="var(--pig)"/><circle cx="372" cy="220" r="7" fill="var(--paper-3)"/>
+        <path id="mast-curve" class="ink pig draw" d="M60 190 C120 176 150 150 168 140 C210 128 240 108 272 96 C320 84 350 76 372 72" style="--len:360"/>
+        <g id="mast-dip" opacity="0"><path class="ink rose" d="M168 140 C186 158 200 166 214 158" stroke-dasharray="5 7"/><text class="hw rose" x="182" y="184" font-size="17">slipped, taught again</text></g>
+        <g id="mast-done" opacity="0"><rect x="326" y="40" width="104" height="34" rx="12" fill="var(--mint)" opacity=".16"/><text class="hw" x="340" y="63" font-size="18" fill="var(--mint)">mastered</text></g>
+      </svg></div>
+    </div>
   </div>
 </div></section>
 
@@ -461,7 +578,7 @@ footer .wm svg{height:20px;color:var(--ink)}
       <h2 class="t reveal">Some ideas are drawn. Some are <span class="hl">filmed, built or spoken.</span></h2>
       <p class="lede reveal">Wobo picks the form the idea needs, then keeps going until you have it. The same question, four ways, as you scroll.</p>
       <div class="formsnav reveal" id="formsNav">
-        <span class="on">A drawn proof</span><span>A short film</span><span>A thing you can drag</span><span>A page marked up</span>
+        <span class="on">A drawn proof</span><span>A short film</span><span>A thing you can drag</span><span>Said out loud</span>
       </div>
     </div>
     <div class="art" style="padding:0;background:transparent">
@@ -487,74 +604,14 @@ footer .wm svg{height:20px;color:var(--ink)}
           <text class="hw" x="352" y="176" font-size="24">drag me</text>
           <text class="hw dim" x="352" y="212" font-size="20">every number under it moves</text>
         </svg><div class="label"><i></i>A model that answers back</div></div>
-        <div class="card" data-i="3"><div class="marked">
-          <p>The monsoon <mark class="hl">arrived like a rumour</mark><span class="tag">simile &#10003;</span>, first in the smell of the air, then everywhere at once<span class="circled">, the streets were rivers</span> by evening.</p>
-          <div class="note">two sentences, one comma</div>
-          <div class="fix">&#8594; &ldquo;&hellip;at once. By evening the streets were rivers.&rdquo;</div>
-        </div><div class="label"><i></i>Your own writing, with the pen on it</div></div>
+        <div class="card" data-i="3"><svg viewBox="0 0 520 380" aria-label="Said out loud">
+          <g transform="translate(150 80)"><use href="#head" width="120" height="120"/></g>
+          <g transform="translate(120 240)">
+            <rect x="0" y="-18" width="7" height="36" rx="3.5" fill="var(--pig)"/><rect x="16" y="-28" width="7" height="56" rx="3.5" fill="var(--pig)"/><rect x="32" y="-12" width="7" height="24" rx="3.5" fill="var(--pig)"/><rect x="48" y="-34" width="7" height="68" rx="3.5" fill="var(--pig)"/><rect x="64" y="-20" width="7" height="40" rx="3.5" fill="var(--pig)"/><rect x="80" y="-10" width="7" height="20" rx="3.5" fill="var(--pig)"/><rect x="96" y="-26" width="7" height="52" rx="3.5" fill="var(--pig)"/><rect x="112" y="-14" width="7" height="28" rx="3.5" fill="var(--pig)"/>
+          </g>
+          <text class="hw" x="80" y="330" font-size="24">&ldquo;Square the two short sides, add them, and that is the long one squared.&rdquo;</text>
+        </svg><div class="label"><i></i>The same idea, spoken, when hearing it is what lands</div></div>
       </div>
-    </div>
-  </div>
-</div></section>
-
-
-<!-- ══ IT TEACHES YOU, NOT A CLASS ══ -->
-<section id="teaches"><div class="wrap">
-  <div class="eyebrow reveal">Not a course everyone takes</div>
-  <h2 class="t reveal">It teaches <span class="hl">you</span>, at your pace, until you actually have it.</h2>
-  <p class="lede reveal">A class moves on when the timetable says so. Wobo moves on when you have it, and before it starts it checks whether the ground under this chapter is solid.</p>
-
-  <div class="beats">
-    <div class="beat reveal">
-      <div>
-        <div class="n">01</div>
-        <h3>It finds the hole before it builds on top of it.</h3>
-        <p>Most chapters stand on something older. Before teaching one, Wobo asks two or three quick questions about what it rests on. If something from an earlier year is shaky, it patches that first, in minutes, and then teaches the chapter your class is actually on.</p>
-        <div class="said">Nobody fails algebra. <em>They failed fractions, two years earlier.</em></div>
-      </div>
-      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="A chapter resting on earlier ideas, with the weak one found and patched">
-        <path class="ink thin" d="M60 214 h340"/>
-        <g id="pre-a"><rect x="70" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="86" y="196" font-size="18">fractions</text></g>
-        <g id="pre-b"><rect x="186" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="202" y="196" font-size="18">ratios</text></g>
-        <g id="pre-c"><rect x="302" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="316" y="196" font-size="18">negatives</text></g>
-        <rect x="186" y="66" width="120" height="52" rx="14" fill="var(--pig)"/><text x="246" y="98" text-anchor="middle" font-family="Poppins" font-size="16" fill="#fff">this chapter</text>
-        <path class="ink thin" d="M113 168 C113 140 200 140 226 118"/><path class="ink thin" d="M229 168 v-50"/><path class="ink thin" d="M345 168 C345 140 280 140 266 118"/>
-        <g id="pre-weak" opacity="0"><rect x="66" y="164" width="94" height="52" rx="14" fill="none" stroke="var(--rose)" stroke-width="3"/><text class="hw rose" x="60" y="248" font-size="19">shaky — patched first</text></g>
-        <path id="pre-tick" class="ink mint draw" d="M96 190 l10 10 l18 -22" style="--len:60" opacity="0"/>
-      </svg></div>
-    </div>
-
-    <div class="beat reveal">
-      <div>
-        <div class="n">02</div>
-        <h3>If one way does not land, it tries a different one.</h3>
-        <p>Not the same explanation, louder. A second attempt is a different route: a drawing instead of a definition, a worked example instead of a rule, a thing to drag instead of a thing to read, and an analogy built from what you already care about.</p>
-        <div class="said">The same idea, <em>explained the way you happen to think.</em></div>
-      </div>
-      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="One idea, three different routes into it">
-        <circle cx="230" cy="46" r="26" fill="var(--pig)"/><text x="230" y="52" text-anchor="middle" font-family="Poppins" font-size="15" fill="#fff">idea</text>
-        <path class="ink thin" d="M212 68 C160 100 120 120 96 146"/><path class="ink thin" d="M230 74 v70"/><path class="ink thin" d="M248 68 C300 100 340 120 364 146"/>
-        <g><rect x="34" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><path class="ink pig" d="M60 214 L96 168 L132 214 Z"/><text class="hw dim" x="52" y="238" font-size="16">drawn</text></g>
-        <g><rect x="168" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><path class="ink thin" d="M188 176 h84 M188 196 h60 M188 216 h72"/><text class="hw dim" x="186" y="238" font-size="16">worked out</text></g>
-        <g><rect x="302" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><circle cx="344" cy="192" r="18" fill="var(--marigold)"/><path class="ink" d="M368 192 h34"/><text class="hw dim" x="316" y="238" font-size="16">in your world</text></g>
-      </svg></div>
-    </div>
-
-    <div class="beat reveal">
-      <div>
-        <div class="n">03</div>
-        <h3>It does not move on until it stays learnt.</h3>
-        <p>Getting it right once is not knowing it. A chapter counts as done when it comes back right days later, unprompted, so Wobo brings it back at the moment you are about to forget it. Only then does the next chapter open.</p>
-        <div class="said">Finished means <em>still true next week.</em></div>
-      </div>
-      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="A chapter is done only when it comes back right days later">
-        <path class="ink thin" d="M50 220 h370"/>
-        <g class="hw dim" font-size="15"><text x="46" y="246">today</text><text x="150" y="246">+2 days</text><text x="252" y="246">+1 week</text><text x="352" y="246">+3 weeks</text></g>
-        <circle cx="60" cy="220" r="7" fill="var(--pig)"/><circle cx="168" cy="220" r="7" fill="var(--pig)"/><circle cx="272" cy="220" r="7" fill="var(--pig)"/><circle cx="372" cy="220" r="7" fill="var(--paper-3)"/>
-        <path id="mast-curve" class="ink pig draw" d="M60 190 C120 176 150 150 168 140 C210 128 240 108 272 96 C320 84 350 76 372 72" style="--len:360"/>
-        <g id="mast-dip" opacity="0"><path class="ink rose" d="M168 140 C186 158 200 166 214 158" stroke-dasharray="5 7"/><text class="hw rose" x="182" y="184" font-size="17">slipped — taught again</text></g>
-        <g id="mast-done" opacity="0"><rect x="326" y="40" width="104" height="34" rx="12" fill="var(--mint)" opacity=".16"/><text class="hw" x="340" y="63" font-size="18" fill="var(--mint)">mastered</text></g>
-      </svg></div>
     </div>
   </div>
 </div></section>
@@ -565,7 +622,7 @@ footer .wm svg{height:20px;color:var(--ink)}
     <div>
       <div class="eyebrow reveal">For students</div>
       <h2 class="t reveal">Stop it anywhere. <span class="hl">Ask the thing you would not ask in class.</span></h2>
-      <p class="lede reveal">Pause the film halfway. Circle the bit that lost you. Wobo picks up exactly there, on the same frame, and explains it without a sigh and without telling anyone.</p>
+      <p class="lede reveal">Pause the film halfway. Circle the bit that lost you. Wobo picks up exactly there, on the same frame, explains it again from the beginning, and tells nobody you asked.</p>
       <div class="claims reveal">
         <div><i>1</i><div><b>It answers on what you are looking at</b><span>Not a search result. The frame, the diagram, the line of your own working.</span></div></div>
         <div><i>2</i><div><b>It knows what your class did this week</b><span>So the answer uses the words your teacher used.</span></div></div>
@@ -615,18 +672,17 @@ footer .wm svg{height:20px;color:var(--ink)}
       <div class="claims reveal">
         <div><i>✓</i><div><b>The kinds your exam uses</b><span>Not multiple choice pretending to be understanding.</span></div></div>
         <div><i>✓</i><div><b>Nothing to copy</b><span>The answer does not exist until you have done the thinking.</span></div></div>
-        <div><i>✓</i><div><b>It comes back tomorrow</b><span>What you missed returns when you are about to forget it, not before.</span></div></div>
+        <div><i>✓</i><div><b>What you missed comes first</b><span>Before anything new is built on top of it, not weeks later.</span></div></div>
       </div>
     </div>
   </div>
 </div></section>
 
-
 <!-- ══ THE CLIMB ══ -->
 <section id="climb"><div class="wrap">
   <div class="eyebrow reveal">The long game</div>
   <h2 class="t reveal">A subject you can <span class="hl">see yourself climbing.</span></h2>
-  <p class="lede reveal">Every chapter is a checkpoint on a path you can see. Something is waiting at the ones you finish, and a chapter ends with a proper test of the whole thing rather than another exercise. What is behind you stays unlocked, so a hard week never costs you ground.</p>
+  <p class="lede reveal">Every chapter is a checkpoint on a path you can see. Something is waiting at the ones you finish, what is behind you stays unlocked, and a hard week never costs you ground. The same path, dressed the way the learner wants it.</p>
 
   <div class="climb reveal">
     <div class="switch" role="group" aria-label="How it looks">
@@ -643,7 +699,7 @@ footer .wm svg{height:20px;color:var(--ink)}
         <g><rect x="316" y="212" width="48" height="40" rx="8" fill="var(--marigold)"/><rect x="316" y="226" width="48" height="10" fill="#14142B" opacity=".18"/><path d="M340 212 v40" stroke="#14142B" stroke-width="3" opacity=".25"/><text class="hw" x="306" y="200" font-size="18">a reward</text></g>
         <g><circle cx="500" cy="238" r="22" fill="var(--pig)"/><circle cx="500" cy="238" r="30" fill="none" stroke="var(--pig)" stroke-width="3" opacity=".35"/><text class="hw pig" x="466" y="196" font-size="18">you are here</text></g>
         <g opacity=".55"><circle cx="650" cy="206" r="18" fill="var(--paper-3)"/></g>
-        <g><rect x="800" y="70" width="72" height="66" rx="16" fill="var(--ink)"/><path d="M818 104 l12 12 l24 -28" fill="none" stroke="var(--marigold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text class="hw" x="782" y="56" font-size="19">the chapter test</text></g>
+        <g><rect x="800" y="70" width="72" height="66" rx="16" fill="var(--ink)"/><path d="M818 104 l12 12 l24 -28" fill="none" stroke="var(--marigold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text class="hw" x="778" y="56" font-size="19">the whole chapter</text></g>
       </svg>
 
       <svg data-vibe="focus" viewBox="0 0 900 340" aria-label="The same path, as a plain progress list">
@@ -657,18 +713,35 @@ footer .wm svg{height:20px;color:var(--ink)}
           <rect x="40" y="232" width="820" height="52" rx="14" fill="var(--paper-2)"/>
           <text x="66" y="264" fill="var(--ink-3)">Mixed numbers</text><text x="800" y="264" text-anchor="end" font-size="14" fill="var(--ink-3)">next</text>
           <rect x="40" y="296" width="820" height="34" rx="12" fill="var(--paper-3)"/>
-          <text x="66" y="319" font-size="14" fill="var(--ink-2)">Chapter test opens when the four above hold</text>
+          <text x="66" y="319" font-size="14" fill="var(--ink-2)">The chapter is held when the four above hold</text>
         </g>
       </svg>
     </div>
 
     <div class="same">Same chapters, same tutor, same standard. <em>Only the look changes.</em></div>
     <div class="legend">
-      <span><i style="background:var(--mint)"></i>held a week later</span>
+      <span><i style="background:var(--mint)"></i>right a week on</span>
       <span><i style="background:var(--pig)"></i>where you are</span>
       <span><i style="background:var(--marigold)"></i>waiting at the next checkpoint</span>
-      <span><i style="background:var(--ink)"></i>the chapter test</span>
+      <span><i style="background:var(--ink)"></i>the whole chapter</span>
     </div>
+  </div>
+</div></section>
+
+<!-- ══ WHAT IT COSTS ══ -->
+<section id="price"><div class="wrap">
+  <div class="eyebrow reveal">What it costs</div>
+  <h2 class="t reveal">It costs nothing to start, <span class="hl">and nothing to keep going.</span></h2>
+  <p class="lede reveal">The whole tutor is free every day: every subject, the drawn board, the films, the practice, the memory and the Sunday note, with a daily allowance that refills once a day. A plan raises the daily allowance. It does not unlock the teacher.</p>
+  <div class="prices reveal">
+    <div class="plan"><div class="pl-name">Free</div><div class="pl-amount">₹0<span>forever</span></div><div class="pl-said">The whole tutor. Every subject, the drawn board, the films, the practice, the Sunday note and a linked parent, with a daily allowance that refills once a day.</div><div class="pl-fine">No card. No trial that ends.</div></div>
+    <div class="plan lead"><div class="pl-name">Pro<em>most families</em></div><div class="pl-amount">₹1,666<span>a month</span></div><div class="pl-said">For a learner who leans on it most days: several times the questions, and Wobo reads its answers aloud.</div><div class="pl-fine">billed annually · two months free</div></div>
+    <div class="plan"><div class="pl-name">Max</div><div class="pl-amount">₹3,333<span>a month</span></div><div class="pl-said">For the boards. So many questions that nobody counts them, and two learners on one plan.</div><div class="pl-fine">billed annually · two months free</div></div>
+  </div>
+  <div class="cancel reveal">
+    <b>And if it does not work out</b>
+    <p>Cancel in two taps. There is no offer to stay, no reason to give and no survey. You keep the plan until the period you have already paid for ends, nothing renews after that, and everything learnt stays exactly where it is.</p>
+    <a href="/plans">See both periods, and what each plan carries →</a>
   </div>
 </div></section>
 
@@ -680,9 +753,9 @@ footer .wm svg{height:20px;color:var(--ink)}
       <h2 class="t reveal">Not a dashboard to decode. <span class="hl">A picture you can read in ten seconds.</span></h2>
       <p class="lede reveal">Minutes that actually happened, chapters that are genuinely done, what is getting stronger, and where this pace lands before the exam. Then one honest note, in Wobo's words.</p>
       <div class="claims reveal">
-        <div><i>✓</i><div><b>Progress, not points</b><span>Mastery per chapter, measured by what came back right a week later.</span></div></div>
+        <div><i>✓</i><div><b>Progress, not points</b><span>Mastery per chapter, measured by what came back right without a hint.</span></div></div>
         <div><i>✓</i><div><b>A line to the exam</b><span>At this pace, here is where the syllabus stands on the day.</span></div></div>
-        <div><i>✓</i><div><b>Nothing to police</b><span>No streak guilt, no midnight nudges, no scores your child did not ask for.</span></div></div>
+        <div><i>✓</i><div><b>Nothing to police</b><span>No streak guilt, no nudges after hours, no scores your child did not ask for.</span></div></div>
       </div>
     </div>
     <div class="art" style="background:transparent;padding:0">
@@ -691,7 +764,7 @@ footer .wm svg{height:20px;color:var(--ink)}
         <div class="kpis">
           <div class="kpi"><span>Minutes</span><b class="count" data-to="96">0</b><em>across five evenings</em></div>
           <div class="kpi"><span>Chapters done</span><b><span class="count" data-to="7">0</span>/14</b><em>maths, this term</em></div>
-          <div class="kpi"><span>Held a week later</span><b><span class="count" data-to="82">0</span>%</b><em>up from 61%</em></div>
+          <div class="kpi"><span>Right a week on</span><b><span class="count" data-to="82">0</span>%</b><em>up from 61%</em></div>
         </div>
         <div class="chart"><svg viewBox="0 0 460 150" aria-label="Minutes a day this week, and the line to the exam">
           <g id="bars">
@@ -719,109 +792,33 @@ footer .wm svg{height:20px;color:var(--ink)}
   </div>
 </div></section>
 
-<!-- ══ SUBJECTS ══ -->
-<section id="subjects"><div class="wrap">
-  <div class="eyebrow reveal">Every subject your board sets</div>
-  <h2 class="t reveal">If your school sets it, <span class="hl">Wobo teaches it.</span></h2>
-  <p class="lede reveal">Tell Wobo the board and the class once. From then on it follows that syllabus, chapter by chapter, in the order your textbook uses.</p>
-  <div class="stages">
-    <div class="stage reveal"><div class="who"><b>Mathematics</b><span>counting to calculus</span></div><div class="subs">
-      <span class="acc">Numbers and fractions</span><span class="acc">Algebra</span><span class="acc">Geometry</span><span class="acc">Trigonometry</span><span>Statistics</span><span>Probability</span><span>Calculus</span><span>Applied maths</span></div></div>
-    <div class="stage reveal"><div class="who"><b>The sciences</b><span>seen, not recited</span></div><div class="subs">
-      <span class="acc">Environmental studies</span><span class="acc">General science</span><span class="acc">Physics</span><span class="acc">Chemistry</span><span class="acc">Biology</span><span>Earth science</span></div></div>
-    <div class="stage reveal"><div class="who"><b>Languages</b><span>reading, writing, grammar</span></div><div class="subs">
-      <span class="acc">English</span><span class="acc">Hindi</span><span>Sanskrit</span><span>Telugu</span><span>Tamil</span><span>Marathi</span><span>Bengali</span><span>Kannada</span><span>and your school's second language</span></div></div>
-    <div class="stage reveal"><div class="who"><b>Humanities</b><span>the map before the story</span></div><div class="subs">
-      <span class="acc">History</span><span class="acc">Geography</span><span class="acc">Civics</span><span class="acc">Political science</span><span>Sociology</span><span>Psychology</span></div></div>
-    <div class="stage reveal"><div class="who"><b>Commerce and computing</b><span>the senior streams</span></div><div class="subs">
-      <span class="acc">Accountancy</span><span class="acc">Business studies</span><span class="acc">Economics</span><span class="acc">Computer science</span><span>Information technology</span></div></div>
-  </div>
-  <p class="lede reveal" style="max-width:58ch">CBSE, ICSE and every state board we hold the official syllabus for. Yours missing? Paste your school's list in and Wobo builds the plan from that.</p>
-</div></section>
-
 <!-- ══ SAFE ══ -->
 <section id="safe"><div class="wrap">
   <div class="eyebrow reveal">Safe by design</div>
-  <h2 class="t reveal">A tutor a ten-year-old talks to alone <span class="hl">has to be built differently.</span></h2>
+  <h2 class="t reveal">A tutor a child talks to alone <span class="hl">has to be built differently.</span></h2>
   <p class="lede reveal">Not a promise page. Six decisions, each one visible in the product, each one checkable.</p>
   <div class="safe">
     <div class="item reveal"><svg viewBox="0 0 52 52"><rect x="9" y="22" width="34" height="23" rx="6"/><path class="acc" d="M16 22 v-6 a10 10 0 0 1 20 0 v6"/></svg><div><b>Your child's questions are not a product</b><p>No ads, no tracking pixels, no third-party cookies, nothing sold in aggregate. The company is paid by families, so there is nothing to monetise sideways.</p><span class="proof">Read what we hold →</span></div></div>
-    <div class="item reveal"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="17"/><path class="acc" d="M12 26 h28 M26 9 c-8 9 -8 25 0 34 c8 -9 8 -25 0 -34"/></svg><div><b>Neutral on everything but the chapter</b><p>Politics, religion, anything contested: Wobo names the textbook's position and steers back. It has no opinions to give a child.</p><span class="proof">The neutral rule →</span></div></div>
+    <div class="item reveal"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="17"/><path class="acc" d="M12 26 h28 M26 9 c-8 9 -8 25 0 34 c8 -9 8 -25 0 -34"/></svg><div><b>Neutral on everything but the chapter</b><p>Politics, religion, anything contested: Wobo takes no side, says so plainly, and comes back to the chapter. It has no opinions to give a child.</p><span class="proof">The neutral rule →</span></div></div>
     <div class="item reveal"><svg viewBox="0 0 52 52"><path d="M8 40 c6 -12 32 -12 38 0"/><circle class="acc" cx="27" cy="18" r="9"/><path d="M40 12 l6 6"/></svg><div><b>A parent sees the learning, not the diary</b><p>Lessons, progress and the Sunday note, always. Questions word for word only if the child shares them. Trust runs both ways or it is not trust.</p><span class="proof">Who sees what →</span></div></div>
-    <div class="item reveal"><svg viewBox="0 0 52 52"><path d="M26 6 L42 12 C42 30 35 40 26 46 C17 40 10 30 10 12 Z"/><path class="acc" d="M19 25 l5 5 l10 -12"/></svg><div><b>Encrypted, and locked at the row</b><p>Everything travels over TLS and sits encrypted at rest, with access rules inside the database itself: a learner's rows are reachable only by that learner, even if our own code slipped.</p><span class="proof">How it is protected →</span></div></div>
-    <div class="item reveal"><svg viewBox="0 0 52 52"><path d="M12 14 h28 v28 h-28 z"/><path class="acc" d="M20 26 l5 5 l9 -11"/><path d="M12 14 l-4 -4 M40 14 l4 -4"/></svg><div><b>Erase everything, in one tap</b><p>Memory, progress, account. Gone from live systems at once and from backups inside thirty days, for the learner or a linked parent.</p><span class="proof">The erase button →</span></div></div>
+    <div class="item reveal"><svg viewBox="0 0 52 52"><path d="M26 6 L42 12 C42 30 35 40 26 46 C17 40 10 30 10 12 Z"/><path class="acc" d="M19 25 l5 5 l10 -12"/></svg><div><b>Encrypted, and locked at the row</b><p>Everything travels over TLS and sits encrypted at rest, and the database carries its own per-learner access rules underneath the app, so a row is scoped to the learner it belongs to rather than to whoever asks for it.</p><span class="proof">How it is protected →</span></div></div>
+    <div class="item reveal"><svg viewBox="0 0 52 52"><path d="M12 14 h28 v28 h-28 z"/><path class="acc" d="M20 26 l5 5 l9 -11"/><path d="M12 14 l-4 -4 M40 14 l4 -4"/></svg><div><b>Erase everything, in one tap</b><p>Memory, progress, account. Gone from live systems at once, and out of the backups behind them as those roll over, for the learner or a linked parent.</p><span class="proof">The erase button →</span></div></div>
     <div class="item reveal"><svg viewBox="0 0 52 52"><path d="M10 14 h32 v24 h-32 z"/><path class="acc" d="M17 24 h18 M17 30 h11"/><path d="M26 38 v6"/></svg><div><b>Built to the law wherever you are</b><p>India's Digital Personal Data Protection Act, COPPA for children in the United States, and the GDPR's rules for children in Europe and the United Kingdom. The consent a family gives is the one their own law requires.</p><span class="proof">How we comply →</span></div></div>
   </div>
 </div></section>
 
-<!-- ══ ASK ══ -->
-<section id="ask"><div class="wrap">
-  <div class="ask reveal">
-    <svg class="w" viewBox="0 0 120 120"><use href="#head"/></svg>
-    <div>
-      <div class="eyebrow">Still wondering?</div>
-      <h2 class="t" style="font-size:clamp(26px,3vw,38px);margin-top:8px">Ask Wobo. It answers for itself.</h2>
-      <div class="box"><input id="askIn" placeholder="Is Wobo any good for a child who hates maths?" aria-label="Ask Wobo"><button class="btn pig mag" id="askGo"><span>Ask</span></button></div>
-      <div class="chips" id="askChips"><span>Does it follow my school's syllabus?</span><span>What happens when my child gets stuck?</span><span>Is it safe to use alone?</span><span>What does free include?</span></div>
-      <div class="answer" id="askOut"></div>
-    </div>
-  </div>
-  <div class="others reveal">
-    <div class="line">Or ask an assistant you already trust. It will read the site and tell you what it finds.</div>
-    <div class="models" id="models"></div>
-  </div>
-</div></section>
-
-<!-- ══ FAQ ══ -->
-<section id="faq"><div class="wrap">
-  <div class="eyebrow reveal">Questions</div>
-  <h2 class="t reveal">What families ask first.</h2>
-  <div class="faq reveal">
-    <details open><summary>Will it just hand my child the answers?</summary><p>No. Wobo shows the reasoning and stops at the step your child has to take. When they are close it rings the gap on their own working and waits. There is nothing to copy, because the answer does not exist until the thinking is done.</p></details>
-    <details><summary>Does it follow our school's syllabus?</summary><p>Yes. You pick the board and class once, and Wobo teaches the chapter your class is on, in your textbook's order. If your school does something differently, tell Wobo and it reorders, adds or drops a chapter.</p></details>
-    <details><summary>Is it safe for a ten-year-old alone?</summary><p>It is built for exactly that. Wobo stays inside school subjects, holds no opinions on anything contested, shows no ads, and never makes a child feel small. Voice is not stored. The whole of it is written out on the security page.</p></details>
-    <details><summary>What does free actually include?</summary><p>The whole tutor: every subject, the drawn board, the films, the practice, the memory and the Sunday note, with a daily allowance of questions that resets every morning. Paid plans raise the allowance for exam season. They do not unlock the teacher.</p></details>
-    <details><summary>Which languages does it speak?</summary><p>English today, with the accent set by where you are. More languages follow the boards that ask for them.</p></details>
-  </div>
-</div></section>
-
-<!-- ══ EVERYWHERE ══ -->
-<section id="devices"><div class="wrap">
-  <div class="row">
-    <div>
-      <div class="eyebrow reveal">Everywhere you study</div>
-      <h2 class="t reveal">The same tutor on <span class="hl">every screen in the house.</span></h2>
-      <p class="lede reveal">Start a question on the phone at the bus stop, finish it on the laptop at the table. Your board, your place in the chapter and your memory travel with you.</p>
-      <div class="devices reveal">
-        <a class="live" href="#early"><span>Use it in the browser</span></a>
-        <a href="#early"><span>iPhone and iPad</span><small>soon</small></a>
-        <a href="#early"><span>Android</span><small>soon</small></a>
-        <a href="#early"><span>Mac and Windows</span><small>soon</small></a>
-      </div>
-    </div>
-    <div class="art">
-      <svg viewBox="0 0 560 360" aria-label="The same lesson on a laptop, a tablet and a phone">
-        <rect x="40" y="60" width="300" height="190" rx="14" fill="var(--paper)"/><rect x="24" y="250" width="332" height="12" rx="6" fill="var(--paper-3)"/>
-        <path class="ink thin" d="M70 210 h240 M96 226 v-130"/><path class="ink pig" d="M96 196 C160 176 210 120 316 96"/>
-        <rect x="368" y="96" width="120" height="164" rx="14" fill="var(--paper)"/><path class="ink thin" d="M386 232 h84 M398 244 v-110"/><path class="ink pig" d="M398 224 C424 210 442 176 476 152"/>
-        <rect x="504" y="150" width="44" height="86" rx="10" fill="var(--paper)"/><path class="ink pig" d="M512 222 C520 214 528 200 540 186"/>
-        <g transform="translate(300 268)"><svg viewBox="0 0 120 120" width="56" height="56"><use href="#head"/></svg></g>
-      </svg>
-    </div>
-  </div>
-</div></section>
-
-<!-- ══ CLOSE — PROMOTION ══ -->
+<!-- ══ CLOSE — ONE CALL ══ -->
 <div class="wrap"><div id="close">
   <div class="glow" style="left:-8%;top:-20%"></div>
   <div class="glow" style="right:-10%;bottom:-30%;background:radial-gradient(circle,rgba(255,182,41,.28),transparent 70%)"></div>
-  <h2 class="reveal">Wobo opens to families this term.</h2>
-  <p class="sub reveal">Leave an address and you are in the first group, free, with the whole tutor from day one. No card, and we will write once when it is your turn.</p>
-  <form class="reveal" id="early" onsubmit="event.preventDefault();this.querySelector('.btn span').textContent='You are on the list.';">
-    <input type="email" required placeholder="you@example.com" aria-label="Your email">
-    <button class="btn mag" type="submit"><span>Get early access</span></button>
-  </form>
-  <div class="fine reveal">Free to use every day, not just the first · every subject · every major board · one email, never a list</div>
+  <h2 class="reveal">Ask Wobo something you are stuck on.</h2>
+  <p class="sub reveal">Every subject your board sets, drawn out line by line, as many times as you need. Free every day, and no card to start.</p>
+  <div class="cl-row reveal">
+    <a class="btn mag" href="/onboarding"><span>Start free</span></a>
+    <a class="btn cl-q mag" href="/for-parents"><span>I'm a parent</span></a>
+  </div>
+  <p class="hand cl-hand reveal">Free to use every day, not just the first.</p>
+  <div class="fine reveal">Free to use every day, not just the first · every subject · every major board</div>
 </div></div>
 
 <footer><div class="wrap grid">
@@ -1058,7 +1055,7 @@ const ANSWERS = {
   "Does it follow my school's syllabus?": "Yes. You pick the board and class once, and I teach the chapter your class is on, in your textbook's order.",
   'What happens when my child gets stuck?': "I draw the step they are missing, then hand the next one back to them. Close gets a ring, never a cross.",
   'Is it safe to use alone?': "That is what I am built for: school subjects only, no ads, no opinions, and nothing said that would make a child feel small.",
-  'What does free include?': "The whole tutor, every day, with a daily allowance of questions that resets each morning.",
+  'What does free include?': "The whole tutor, every day, with a daily allowance of questions that refills once a day.",
 };
 const out = document.getElementById('askOut'), input = document.getElementById('askIn');
 function answer(q) {

@@ -1,0 +1,3458 @@
+{
+  "source": "content/curriculum/frameworks.seed.json + content/curriculum/syllabi",
+  "registryBuild": "2026-09-03T08:15:26+00:00",
+  "total": 268,
+  "countries": 65,
+  "held": {
+    "boards": 4,
+    "syllabuses": 50,
+    "chapters": 333
+  },
+  "boards": [
+    {
+      "id": "uae-moe",
+      "name": "UAE Ministry of Education curriculum",
+      "short": "UAE MoE",
+      "also": [
+        "UAE Ministry of Education",
+        "Emirati school curriculum",
+        "UAE national curriculum"
+      ],
+      "where": "national board · United Arab Emirates",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "argentina-nap",
+      "name": "Argentine core learning priorities",
+      "short": "NAP Argentina",
+      "also": [
+        "Argentina curriculum",
+        "Nucleos de Aprendizajes Prioritarios"
+      ],
+      "where": "national board · Argentina",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "acara-australian-curriculum",
+      "name": "Australian Curriculum",
+      "short": "ACARA",
+      "also": [
+        "Version 9 Australian Curriculum"
+      ],
+      "where": "national board · Australia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "act-bsss",
+      "name": "ACT senior secondary curriculum",
+      "short": "BSSS",
+      "also": [
+        "ACT Board of Senior Secondary Studies",
+        "ACT curriculum"
+      ],
+      "where": "state board · Australian Capital Territory",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nsw-nesa",
+      "name": "NSW syllabuses",
+      "short": "NESA",
+      "also": [
+        "New South Wales syllabus",
+        "NSW Education Standards Authority",
+        "HSC New South Wales"
+      ],
+      "where": "state board · New South Wales",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nt-education",
+      "name": "Northern Territory curriculum",
+      "short": "NTCET",
+      "also": [
+        "NT Department of Education"
+      ],
+      "where": "state board · Northern Territory",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "qld-qcaa",
+      "name": "Queensland curriculum",
+      "short": "QCAA",
+      "also": [
+        "Queensland Curriculum and Assessment Authority",
+        "QCE Queensland"
+      ],
+      "where": "state board · Queensland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "sa-sace",
+      "name": "South Australian Certificate of Education",
+      "short": "SACE",
+      "also": [
+        "SACE Board",
+        "South Australia curriculum"
+      ],
+      "where": "state board · South Australia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "tas-tasc",
+      "name": "Tasmanian curriculum",
+      "short": "TASC",
+      "also": [
+        "Office of Tasmanian Assessment Standards and Certification",
+        "Tasmania curriculum"
+      ],
+      "where": "state board · Tasmania",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "vic-vcaa",
+      "name": "Victorian Curriculum",
+      "short": "VCE",
+      "also": [
+        "VCAA",
+        "Victoria curriculum"
+      ],
+      "where": "state board · Victoria",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "wa-scsa",
+      "name": "Western Australian curriculum",
+      "short": "SCSA",
+      "also": [
+        "School Curriculum and Standards Authority",
+        "WACE",
+        "Western Australia curriculum"
+      ],
+      "where": "state board · Western Australia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bangladesh-education-boards",
+      "name": "Bangladesh education boards",
+      "short": "Bangladesh SSC",
+      "also": [
+        "Bangladesh HSC",
+        "Dhaka education board",
+        "BISE Bangladesh"
+      ],
+      "where": "national board · Bangladesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bangladesh-nctb",
+      "name": "Bangladesh national curriculum",
+      "short": "NCTB",
+      "also": [
+        "National Curriculum and Textbook Board",
+        "Bangladesh curriculum"
+      ],
+      "where": "national board · Bangladesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bahrain-moe",
+      "name": "Bahrain national curriculum",
+      "short": "Bahrain curriculum",
+      "also": [
+        "Bahrain Ministry of Education"
+      ],
+      "where": "national board · Bahrain",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "brazil-bncc",
+      "name": "Brazilian national common curricular base",
+      "short": "BNCC",
+      "also": [
+        "Brazil curriculum",
+        "Base Nacional Comum Curricular"
+      ],
+      "where": "national board · Brazil",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bhutan-rec",
+      "name": "Bhutan school curriculum",
+      "short": "REC Bhutan",
+      "also": [
+        "Royal Education Council Bhutan",
+        "Bhutan curriculum"
+      ],
+      "where": "national board · Bhutan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "botswana-curriculum",
+      "name": "Botswana national curriculum",
+      "short": "BEC Botswana",
+      "also": [
+        "Botswana curriculum",
+        "Botswana Examinations Council"
+      ],
+      "where": "national board · Botswana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "alberta-programs-of-study",
+      "name": "Alberta programs of study",
+      "short": "Alberta Education",
+      "also": [
+        "Alberta curriculum"
+      ],
+      "where": "state board · Alberta",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bc-curriculum",
+      "name": "British Columbia curriculum",
+      "short": "BC curriculum",
+      "also": [
+        "BC Ministry of Education"
+      ],
+      "where": "state board · British Columbia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "manitoba-curriculum",
+      "name": "Manitoba curriculum",
+      "short": "Manitoba Education",
+      "also": [],
+      "where": "state board · Manitoba",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "new-brunswick-curriculum",
+      "name": "New Brunswick curriculum",
+      "short": "New Brunswick curriculum",
+      "also": [
+        "New Brunswick Department of Education"
+      ],
+      "where": "state board · New Brunswick",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nl-curriculum",
+      "name": "Newfoundland and Labrador curriculum",
+      "short": "Newfoundland curriculum",
+      "also": [],
+      "where": "state board · Newfoundland and Labrador",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nwt-curriculum",
+      "name": "Northwest Territories curriculum",
+      "short": "Northwest Territories curriculum",
+      "also": [
+        "NWT Education Culture and Employment"
+      ],
+      "where": "state board · Northwest Territories",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nova-scotia-curriculum",
+      "name": "Nova Scotia curriculum",
+      "short": "Nova Scotia curriculum",
+      "also": [
+        "Nova Scotia Department of Education"
+      ],
+      "where": "state board · Nova Scotia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nunavut-curriculum",
+      "name": "Nunavut curriculum",
+      "short": "Nunavut curriculum",
+      "also": [
+        "Nunavut Department of Education"
+      ],
+      "where": "state board · Nunavut",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ontario-curriculum",
+      "name": "Ontario curriculum",
+      "short": "OSSD",
+      "also": [
+        "Ontario Ministry of Education"
+      ],
+      "where": "state board · Ontario",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pei-curriculum",
+      "name": "Prince Edward Island curriculum",
+      "short": "PEI curriculum",
+      "also": [],
+      "where": "state board · Prince Edward Island",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "quebec-programme-de-formation",
+      "name": "Quebec education programme",
+      "short": "QEP Quebec",
+      "also": [
+        "Quebec curriculum",
+        "Programme de formation de l'ecole quebecoise"
+      ],
+      "where": "state board · Quebec",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "saskatchewan-curriculum",
+      "name": "Saskatchewan curriculum",
+      "short": "Sask curriculum",
+      "also": [
+        "Saskatchewan Ministry of Education"
+      ],
+      "where": "state board · Saskatchewan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "yukon-curriculum",
+      "name": "Yukon curriculum",
+      "short": "Yukon curriculum",
+      "also": [
+        "Yukon Department of Education"
+      ],
+      "where": "state board · Yukon",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "china-moe",
+      "name": "Chinese national curriculum standards",
+      "short": "Gaokao curriculum",
+      "also": [
+        "China Ministry of Education curriculum",
+        "China national curriculum"
+      ],
+      "where": "national board · China mainland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "germany-kmk",
+      "name": "German school curriculum standards",
+      "short": "KMK",
+      "also": [
+        "Kultusministerkonferenz",
+        "Bildungsstandards",
+        "Abitur curriculum"
+      ],
+      "where": "national board · Germany",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "denmark-faelles-maal",
+      "name": "Danish national curriculum",
+      "short": "Faelles Maal",
+      "also": [
+        "Denmark curriculum",
+        "Undervisningsministeriet Danmark"
+      ],
+      "where": "national board · Denmark",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "egypt-moe",
+      "name": "Egyptian national curriculum",
+      "short": "Thanaweya Amma",
+      "also": [
+        "Egypt curriculum",
+        "Egypt Ministry of Education"
+      ],
+      "where": "national board · Egypt",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "spain-educacion",
+      "name": "Spanish national curriculum",
+      "short": "Spain curriculum",
+      "also": [
+        "Ministerio de Educacion Spain",
+        "LOMLOE curriculum"
+      ],
+      "where": "national board · Spain",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ethiopia-moe",
+      "name": "Ethiopian national curriculum",
+      "short": "Ethiopia curriculum",
+      "also": [
+        "Ethiopia Ministry of Education"
+      ],
+      "where": "national board · Ethiopia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "finland-oph",
+      "name": "Finnish national core curriculum",
+      "short": "OPH Finland",
+      "also": [
+        "Opetushallitus"
+      ],
+      "where": "national board · Finland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "fiji-moe",
+      "name": "Fiji national curriculum framework",
+      "short": "Fiji curriculum",
+      "also": [
+        "Fiji Ministry of Education"
+      ],
+      "where": "national board · Fiji",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "france-education-nationale",
+      "name": "French national programmes",
+      "short": "France curriculum",
+      "also": [
+        "Education nationale",
+        "Programmes scolaires France",
+        "Baccalaureat programmes"
+      ],
+      "where": "national board · France",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "kings-interhigh",
+      "name": "King's InterHigh",
+      "short": "InterHigh",
+      "also": [
+        "Kings InterHigh"
+      ],
+      "where": "online school · United Kingdom",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pearson-btec",
+      "name": "Pearson BTEC",
+      "short": "BTEC",
+      "also": [
+        "BTEC Nationals",
+        "BTEC Tech Awards",
+        "BTEC First",
+        "Pearson BTEC Nationals"
+      ],
+      "where": "international curriculum · United Kingdom",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pearson-edexcel-a-level",
+      "name": "Pearson Edexcel A Level",
+      "short": "Edexcel A Level",
+      "also": [
+        "Pearson A Level"
+      ],
+      "where": "national board · United Kingdom",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pearson-edexcel-gcse",
+      "name": "Pearson Edexcel GCSE",
+      "short": "Edexcel GCSE",
+      "also": [
+        "Pearson Edexcel"
+      ],
+      "where": "national board · United Kingdom",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "wolsey-hall-oxford",
+      "name": "Wolsey Hall Oxford",
+      "short": "Wolsey Hall",
+      "also": [],
+      "where": "homeschool programme · United Kingdom",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "aqa",
+      "name": "AQA",
+      "short": "AQA",
+      "also": [
+        "Assessment and Qualifications Alliance",
+        "AQA GCSE",
+        "AQA A Level"
+      ],
+      "where": "national board · England",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "england-national-curriculum",
+      "name": "National curriculum in England",
+      "short": "Key Stage 2",
+      "also": [
+        "English national curriculum",
+        "England national curriculum",
+        "Key Stage 3",
+        "UK national curriculum"
+      ],
+      "where": "national board · England",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "oak-national-academy",
+      "name": "Oak National Academy",
+      "short": "Oak Academy",
+      "also": [
+        "Oak curriculum"
+      ],
+      "where": "online school · England",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ocr",
+      "name": "OCR",
+      "short": "OCR",
+      "also": [
+        "Oxford Cambridge and RSA",
+        "OCR GCSE",
+        "OCR A Level"
+      ],
+      "where": "national board · England",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ccea",
+      "name": "CCEA Northern Ireland curriculum",
+      "short": "CCEA",
+      "also": [
+        "Northern Ireland curriculum",
+        "Council for the Curriculum Examinations and Assessment"
+      ],
+      "where": "national board · Northern Ireland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "curriculum-for-excellence",
+      "name": "Curriculum for Excellence",
+      "short": "CfE",
+      "also": [
+        "Scottish curriculum",
+        "Scotland curriculum"
+      ],
+      "where": "national board · Scotland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "sqa",
+      "name": "Scottish Qualifications Authority",
+      "short": "SQA",
+      "also": [
+        "National 5",
+        "Scottish Highers",
+        "Advanced Higher"
+      ],
+      "where": "national board · Scotland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "curriculum-for-wales",
+      "name": "Curriculum for Wales",
+      "short": "Welsh curriculum",
+      "also": [
+        "Cwricwlwm i Gymru"
+      ],
+      "where": "national board · Wales",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "wjec-eduqas",
+      "name": "WJEC and Eduqas",
+      "short": "WJEC",
+      "also": [
+        "Eduqas",
+        "Welsh Joint Education Committee"
+      ],
+      "where": "national board · Wales",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ghana-nacca",
+      "name": "Ghana standards based curriculum",
+      "short": "NaCCA Ghana",
+      "also": [
+        "Ghana curriculum"
+      ],
+      "where": "national board · Ghana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "hkdse",
+      "name": "Hong Kong Diploma of Secondary Education",
+      "short": "HKDSE",
+      "also": [
+        "HKEAA",
+        "Hong Kong Examinations and Assessment Authority"
+      ],
+      "where": "national board · Hong Kong",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "hong-kong-edb",
+      "name": "Hong Kong school curriculum",
+      "short": "Hong Kong EDB",
+      "also": [
+        "Education Bureau Hong Kong",
+        "Hong Kong curriculum"
+      ],
+      "where": "national board · Hong Kong",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "indonesia-kurikulum",
+      "name": "Indonesian national curriculum",
+      "short": "Kemendikbud",
+      "also": [
+        "Kurikulum Merdeka",
+        "Indonesia curriculum"
+      ],
+      "where": "national board · Indonesia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ncca-ireland",
+      "name": "Irish national curriculum",
+      "short": "NCCA",
+      "also": [
+        "Junior Cycle",
+        "Leaving Certificate",
+        "Ireland curriculum"
+      ],
+      "where": "national board · Ireland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "israel-education",
+      "name": "Israeli national curriculum",
+      "short": "Israel curriculum",
+      "also": [
+        "Israel Ministry of Education",
+        "Bagrut curriculum"
+      ],
+      "where": "national board · Israel",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cbse",
+      "name": "Central Board of Secondary Education",
+      "short": "CBSE",
+      "also": [
+        "CBSE board",
+        "Central board",
+        "CBSE India"
+      ],
+      "where": "national board · India",
+      "subjects": [
+        "Biology",
+        "Chemistry",
+        "Mathematics",
+        "Physics",
+        "Science",
+        "Social Science"
+      ],
+      "year": "2026-27",
+      "chapters": 133
+    },
+    {
+      "id": "icse",
+      "name": "Indian Certificate of Secondary Education",
+      "short": "ICSE",
+      "also": [
+        "CISCE",
+        "Council for the Indian School Certificate Examinations",
+        "ICSE board",
+        "Anglo-Indian board"
+      ],
+      "where": "national board · India",
+      "subjects": [
+        "Biology",
+        "Chemistry",
+        "Geography",
+        "History and Civics",
+        "Mathematics",
+        "Physics"
+      ],
+      "year": "2026-27",
+      "chapters": 92
+    },
+    {
+      "id": "isc",
+      "name": "Indian School Certificate",
+      "short": "ISC",
+      "also": [
+        "ISC board",
+        "CISCE ISC"
+      ],
+      "where": "national board · India",
+      "subjects": [
+        "Biology",
+        "Chemistry",
+        "Mathematics",
+        "Physics"
+      ],
+      "year": "2026-27",
+      "chapters": 60
+    },
+    {
+      "id": "ncert-ncf",
+      "name": "NCERT national curriculum framework",
+      "short": "NCF",
+      "also": [
+        "NCERT",
+        "NCF-SE",
+        "National Curriculum Framework",
+        "NCERT syllabus"
+      ],
+      "where": "national board · India",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nios",
+      "name": "National Institute of Open Schooling",
+      "short": "NIOS",
+      "also": [
+        "Open school India",
+        "National Open School",
+        "NIOS board"
+      ],
+      "where": "open school · India",
+      "subjects": [
+        "Biology",
+        "Chemistry",
+        "Mathematics",
+        "Physics",
+        "Science and Technology",
+        "Social Science"
+      ],
+      "year": "2023",
+      "chapters": 48
+    },
+    {
+      "id": "andaman-education",
+      "name": "Directorate of Education, Andaman and Nicobar Islands",
+      "short": "Andaman education",
+      "also": [
+        "Andaman and Nicobar schools"
+      ],
+      "where": "state board · Andaman and Nicobar Islands",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "aposs",
+      "name": "Andhra Pradesh Open School Society",
+      "short": "APOSS",
+      "also": [
+        "AP Open School",
+        "Andhra Pradesh Open School",
+        "AP open schooling"
+      ],
+      "where": "open school · Andhra Pradesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bieap",
+      "name": "Board of Intermediate Education, Andhra Pradesh",
+      "short": "BIEAP",
+      "also": [
+        "AP Intermediate",
+        "AP inter board",
+        "Andhra Pradesh intermediate"
+      ],
+      "where": "state board · Andhra Pradesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bseap",
+      "name": "Board of Secondary Education, Andhra Pradesh",
+      "short": "BSEAP",
+      "also": [
+        "AP SSC board",
+        "Andhra Pradesh SSC",
+        "AP state board class 10",
+        "Andhra Pradesh board"
+      ],
+      "where": "state board · Andhra Pradesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "arunachal-school-education",
+      "name": "Directorate of School Education, Arunachal Pradesh",
+      "short": "DSE Arunachal",
+      "also": [
+        "Arunachal Pradesh school education",
+        "Arunachal board"
+      ],
+      "where": "state board · Arunachal Pradesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "asseb",
+      "name": "Assam State School Education Board (higher secondary)",
+      "short": "ASSEB",
+      "also": [
+        "AHSEC",
+        "Assam Higher Secondary Education Council",
+        "Assam HS final"
+      ],
+      "where": "state board · Assam",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "seba",
+      "name": "Board of Secondary Education, Assam",
+      "short": "SEBA",
+      "also": [
+        "Assam HSLC",
+        "Assam secondary board",
+        "Assam board"
+      ],
+      "where": "state board · Assam",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bbose",
+      "name": "Bihar Board of Open Schooling and Examination",
+      "short": "BBOSE",
+      "also": [
+        "Bihar Open School",
+        "Bihar Board Open Schooling",
+        "Bihar open schooling"
+      ],
+      "where": "open school · Bihar",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bseb",
+      "name": "Bihar School Examination Board",
+      "short": "BSEB",
+      "also": [
+        "Bihar board",
+        "Bihar matric",
+        "Bihar intermediate"
+      ],
+      "where": "state board · Bihar",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "chandigarh-education",
+      "name": "Department of School Education, Chandigarh",
+      "short": "Chandigarh schools",
+      "also": [
+        "Chandigarh education department"
+      ],
+      "where": "state board · Chandigarh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cgbse",
+      "name": "Chhattisgarh Board of Secondary Education",
+      "short": "CGBSE",
+      "also": [
+        "Chhattisgarh board",
+        "CG board"
+      ],
+      "where": "state board · Chhattisgarh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "dnhdd-education",
+      "name": "Department of Education, Dadra and Nagar Haveli and Daman and Diu",
+      "short": "DNHDD education",
+      "also": [
+        "Dadra and Nagar Haveli education",
+        "Daman and Diu schools"
+      ],
+      "where": "state board · Dadra and Nagar Haveli and Daman and Diu",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "dbse-delhi",
+      "name": "Delhi Board of School Education",
+      "short": "DBSE",
+      "also": [
+        "Delhi board",
+        "Delhi school education board"
+      ],
+      "where": "state board · Delhi",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "delhi-directorate-of-education",
+      "name": "Directorate of Education, Delhi",
+      "short": "Edudel",
+      "also": [
+        "Delhi directorate of education",
+        "Delhi government schools"
+      ],
+      "where": "state board · Delhi",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "gbshse",
+      "name": "Goa Board of Secondary and Higher Secondary Education",
+      "short": "GBSHSE",
+      "also": [
+        "Goa board",
+        "Goa SSC",
+        "Goa HSSC"
+      ],
+      "where": "state board · Goa",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "gseb",
+      "name": "Gujarat Secondary and Higher Secondary Education Board",
+      "short": "GSEB",
+      "also": [
+        "Gujarat board",
+        "GSHSEB",
+        "Gujarat SSC"
+      ],
+      "where": "state board · Gujarat",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bseh",
+      "name": "Board of School Education Haryana",
+      "short": "BSEH",
+      "also": [
+        "HBSE",
+        "Haryana board",
+        "Haryana school education board"
+      ],
+      "where": "state board · Haryana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "hpbose",
+      "name": "Himachal Pradesh Board of School Education",
+      "short": "HPBOSE",
+      "also": [
+        "Himachal board",
+        "HP board"
+      ],
+      "where": "state board · Himachal Pradesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "jkbose",
+      "name": "Jammu and Kashmir Board of School Education",
+      "short": "JKBOSE",
+      "also": [
+        "J&K board",
+        "Jammu and Kashmir board"
+      ],
+      "where": "state board · Jammu and Kashmir",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "jac",
+      "name": "Jharkhand Academic Council",
+      "short": "JAC",
+      "also": [
+        "Jharkhand board",
+        "Jharkhand Academic Council board"
+      ],
+      "where": "state board · Jharkhand",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "kseab",
+      "name": "Karnataka School Examination and Assessment Board",
+      "short": "KSEAB",
+      "also": [
+        "KSEEB",
+        "Karnataka board",
+        "Karnataka SSLC",
+        "Karnataka PUC",
+        "Department of Pre-University Education Karnataka",
+        "PUC Karnataka",
+        "Karnataka state board"
+      ],
+      "where": "state board · Karnataka",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "kerala-state-board",
+      "name": "Kerala State Board of Public Examinations",
+      "short": "SSLC Kerala",
+      "also": [
+        "Kerala board",
+        "Kerala Pareeksha Bhavan",
+        "DHSE Kerala",
+        "Kerala higher secondary",
+        "SCERT Kerala"
+      ],
+      "where": "state board · Kerala",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "scole-kerala",
+      "name": "State Council for Open and Lifelong Education, Kerala",
+      "short": "SCOLE-Kerala",
+      "also": [
+        "SCOLE Kerala",
+        "Kerala Open School",
+        "Kerala open schooling"
+      ],
+      "where": "open school · Kerala",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ladakh-school-education",
+      "name": "Directorate of School Education, Ladakh",
+      "short": "Ladakh board",
+      "also": [
+        "Ladakh school education"
+      ],
+      "where": "state board · Ladakh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "lakshadweep-education",
+      "name": "Department of Education, Lakshadweep",
+      "short": "Lakshadweep schools",
+      "also": [
+        "Lakshadweep education"
+      ],
+      "where": "state board · Lakshadweep",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "mpbse",
+      "name": "Madhya Pradesh Board of Secondary Education",
+      "short": "MPBSE",
+      "also": [
+        "MP board",
+        "Madhya Pradesh board"
+      ],
+      "where": "state board · Madhya Pradesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "mpsos",
+      "name": "Madhya Pradesh State Open School Education Board",
+      "short": "MPSOS",
+      "also": [
+        "MP Open School",
+        "Madhya Pradesh Open School",
+        "MP state open school"
+      ],
+      "where": "open school · Madhya Pradesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "msbshse",
+      "name": "Maharashtra State Board of Secondary and Higher Secondary Education",
+      "short": "MSBSHSE",
+      "also": [
+        "Maharashtra board",
+        "Maharashtra SSC",
+        "Maharashtra HSC",
+        "Pune board",
+        "Maharashtra state board"
+      ],
+      "where": "state board · Maharashtra",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bosem",
+      "name": "Board of Secondary Education, Manipur",
+      "short": "BOSEM",
+      "also": [
+        "Manipur secondary board",
+        "Manipur HSLC"
+      ],
+      "where": "state board · Manipur",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cohsem",
+      "name": "Council of Higher Secondary Education, Manipur",
+      "short": "COHSEM",
+      "also": [
+        "Manipur higher secondary council"
+      ],
+      "where": "state board · Manipur",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "mbose",
+      "name": "Meghalaya Board of School Education",
+      "short": "MBOSE",
+      "also": [
+        "Meghalaya board",
+        "Meghalaya SSLC"
+      ],
+      "where": "state board · Meghalaya",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "mbse",
+      "name": "Mizoram Board of School Education",
+      "short": "MBSE",
+      "also": [
+        "Mizoram board",
+        "Mizoram HSLC"
+      ],
+      "where": "state board · Mizoram",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nbse",
+      "name": "Nagaland Board of School Education",
+      "short": "NBSE",
+      "also": [
+        "Nagaland board",
+        "Nagaland HSLC"
+      ],
+      "where": "state board · Nagaland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bse-odisha",
+      "name": "Board of Secondary Education, Odisha",
+      "short": "BSE Odisha",
+      "also": [
+        "Odisha HSC",
+        "Odisha matric board",
+        "Odisha board"
+      ],
+      "where": "state board · Odisha",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "chse-odisha",
+      "name": "Council of Higher Secondary Education, Odisha",
+      "short": "CHSE Odisha",
+      "also": [
+        "Odisha plus two",
+        "Odisha higher secondary council"
+      ],
+      "where": "state board · Odisha",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "puducherry-dse",
+      "name": "Directorate of School Education, Puducherry",
+      "short": "Pondicherry board",
+      "also": [
+        "Puducherry education",
+        "Puducherry state syllabus"
+      ],
+      "where": "state board · Puducherry",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pseb",
+      "name": "Punjab School Education Board",
+      "short": "PSEB",
+      "also": [
+        "Punjab board",
+        "Punjab matric board"
+      ],
+      "where": "state board · Punjab",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "rbse",
+      "name": "Board of Secondary Education, Rajasthan",
+      "short": "RBSE",
+      "also": [
+        "Rajasthan board",
+        "Ajmer board",
+        "BSER"
+      ],
+      "where": "state board · Rajasthan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "rsos",
+      "name": "Rajasthan State Open School",
+      "short": "RSOS",
+      "also": [
+        "Rajasthan Open School",
+        "Rajasthan state open schooling"
+      ],
+      "where": "open school · Rajasthan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "sikkim-school-education",
+      "name": "Sikkim school education department",
+      "short": "Sikkim HRDD",
+      "also": [
+        "Sikkim board",
+        "Sikkim education department"
+      ],
+      "where": "state board · Sikkim",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "tn-dge",
+      "name": "Tamil Nadu State Board",
+      "short": "TN HSC",
+      "also": [
+        "Tamil Nadu board",
+        "TN SSLC",
+        "Directorate of Government Examinations Tamil Nadu",
+        "Samacheer Kalvi",
+        "TN state board",
+        "TN board"
+      ],
+      "where": "state board · Tamil Nadu",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bse-telangana",
+      "name": "Board of Secondary Education, Telangana",
+      "short": "TS SSC board",
+      "also": [
+        "BSE Telangana",
+        "Telangana SSC",
+        "Telangana board"
+      ],
+      "where": "state board · Telangana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "tgbie",
+      "name": "Telangana Board of Intermediate Education",
+      "short": "TGBIE",
+      "also": [
+        "TSBIE",
+        "Telangana intermediate",
+        "TS inter board"
+      ],
+      "where": "state board · Telangana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "toss",
+      "name": "Telangana Open School Society",
+      "short": "TOSS",
+      "also": [
+        "Telangana Open School",
+        "TS Open School",
+        "Telangana open schooling"
+      ],
+      "where": "open school · Telangana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "tbse",
+      "name": "Tripura Board of Secondary Education",
+      "short": "TBSE",
+      "also": [
+        "Tripura board",
+        "Tripura madhyamik"
+      ],
+      "where": "state board · Tripura",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "upmsp",
+      "name": "Board of High School and Intermediate Education Uttar Pradesh",
+      "short": "UPMSP",
+      "also": [
+        "UP board",
+        "Uttar Pradesh board",
+        "Allahabad board",
+        "UP board syllabus"
+      ],
+      "where": "state board · Uttar Pradesh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ubse",
+      "name": "Uttarakhand Board of School Education",
+      "short": "UBSE",
+      "also": [
+        "Uttarakhand board",
+        "UK board Ramnagar"
+      ],
+      "where": "state board · Uttarakhand",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "wbbse",
+      "name": "West Bengal Board of Secondary Education",
+      "short": "WBBSE",
+      "also": [
+        "Madhyamik",
+        "West Bengal secondary board",
+        "West Bengal board"
+      ],
+      "where": "state board · West Bengal",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "wbchse",
+      "name": "West Bengal Council of Higher Secondary Education",
+      "short": "WBCHSE",
+      "also": [
+        "Uchcha Madhyamik",
+        "West Bengal higher secondary council"
+      ],
+      "where": "state board · West Bengal",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "italy-indicazioni",
+      "name": "Italian national curriculum guidelines",
+      "short": "Italy curriculum",
+      "also": [
+        "Indicazioni nazionali",
+        "Ministero dell'Istruzione"
+      ],
+      "where": "national board · Italy",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "jordan-moe",
+      "name": "Jordanian national curriculum",
+      "short": "Tawjihi",
+      "also": [
+        "Jordan curriculum",
+        "Jordan Ministry of Education"
+      ],
+      "where": "national board · Jordan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "japan-mext",
+      "name": "Japanese course of study",
+      "short": "MEXT",
+      "also": [
+        "Japan course of study",
+        "Japan national curriculum"
+      ],
+      "where": "national board · Japan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "kenya-cbc",
+      "name": "Kenya competency based curriculum",
+      "short": "KICD",
+      "also": [
+        "Kenya CBC",
+        "Kenya Institute of Curriculum Development",
+        "Kenya curriculum"
+      ],
+      "where": "national board · Kenya",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "south-korea-ncic",
+      "name": "Korean national curriculum",
+      "short": "NCIC Korea",
+      "also": [
+        "Korea national curriculum",
+        "KICE Korea"
+      ],
+      "where": "national board · South Korea",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "kuwait-moe",
+      "name": "Kuwait national curriculum",
+      "short": "Kuwait curriculum",
+      "also": [
+        "Kuwait Ministry of Education"
+      ],
+      "where": "national board · Kuwait",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "kazakhstan-curriculum",
+      "name": "Kazakhstan state compulsory education standard",
+      "short": "Kazakhstan curriculum",
+      "also": [
+        "Kazakhstan Ministry of Education"
+      ],
+      "where": "national board · Kazakhstan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "sri-lanka-doe",
+      "name": "Sri Lanka GCE examinations",
+      "short": "GCE O/L Sri Lanka",
+      "also": [
+        "Sri Lanka Department of Examinations",
+        "GCE A/L Sri Lanka"
+      ],
+      "where": "national board · Sri Lanka",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "sri-lanka-nie",
+      "name": "Sri Lanka national curriculum",
+      "short": "NIE Sri Lanka",
+      "also": [
+        "National Institute of Education Sri Lanka",
+        "Sri Lanka curriculum"
+      ],
+      "where": "national board · Sri Lanka",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "morocco-men",
+      "name": "Moroccan national curriculum",
+      "short": "Men Morocco",
+      "also": [
+        "Morocco curriculum",
+        "Ministere de l'Education Nationale Maroc"
+      ],
+      "where": "national board · Morocco",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "mauritius-mie",
+      "name": "Mauritius national curriculum framework",
+      "short": "MIE Mauritius",
+      "also": [
+        "Mauritius curriculum",
+        "Mauritius Institute of Education"
+      ],
+      "where": "national board · Mauritius",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "maldives-nie",
+      "name": "Maldives national curriculum",
+      "short": "NIE Maldives",
+      "also": [
+        "Maldives Ministry of Education"
+      ],
+      "where": "national board · Maldives",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "mexico-sep",
+      "name": "Mexican national curriculum",
+      "short": "SEP Mexico",
+      "also": [
+        "Mexico curriculum",
+        "Nueva Escuela Mexicana"
+      ],
+      "where": "national board · Mexico",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "malaysia-kssm",
+      "name": "Malaysian school curriculum",
+      "short": "KSSM",
+      "also": [
+        "KSSR",
+        "Malaysia curriculum",
+        "SPM Malaysia",
+        "Kementerian Pendidikan Malaysia"
+      ],
+      "where": "national board · Malaysia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nigeria-nerdc",
+      "name": "Nigeria national curriculum",
+      "short": "NERDC",
+      "also": [
+        "Nigerian Educational Research and Development Council",
+        "Nigeria curriculum",
+        "WAEC Nigeria"
+      ],
+      "where": "national board · Nigeria",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "netherlands-slo",
+      "name": "Dutch national curriculum",
+      "short": "SLO Netherlands",
+      "also": [
+        "Netherlands curriculum",
+        "Dutch curriculum"
+      ],
+      "where": "national board · Netherlands",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "norway-udir",
+      "name": "Norwegian national curriculum",
+      "short": "Udir",
+      "also": [
+        "Utdanningsdirektoratet",
+        "Norway curriculum",
+        "LK20"
+      ],
+      "where": "national board · Norway",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nepal-cdc",
+      "name": "Nepal national curriculum",
+      "short": "CDC Nepal",
+      "also": [
+        "Curriculum Development Centre Nepal",
+        "Nepal curriculum"
+      ],
+      "where": "national board · Nepal",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nepal-neb",
+      "name": "National Examinations Board Nepal",
+      "short": "NEB Nepal",
+      "also": [
+        "Nepal National Examinations Board",
+        "Nepal class 12 board"
+      ],
+      "where": "national board · Nepal",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "new-zealand-curriculum",
+      "name": "New Zealand Curriculum",
+      "short": "NZC",
+      "also": [
+        "Te Marautanga o Aotearoa"
+      ],
+      "where": "national board · New Zealand",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "nzqa-ncea",
+      "name": "NCEA New Zealand",
+      "short": "NCEA",
+      "also": [
+        "NZQA",
+        "New Zealand Qualifications Authority"
+      ],
+      "where": "national board · New Zealand",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "oman-moe",
+      "name": "Oman national curriculum",
+      "short": "Oman curriculum",
+      "also": [
+        "Oman Ministry of Education"
+      ],
+      "where": "national board · Oman",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "philippines-deped",
+      "name": "Philippines K to 12 curriculum",
+      "short": "DepEd",
+      "also": [
+        "Philippines K to 12",
+        "Department of Education Philippines",
+        "MATATAG curriculum"
+      ],
+      "where": "national board · Philippines",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-akueb",
+      "name": "Aga Khan University Examination Board",
+      "short": "AKUEB",
+      "also": [
+        "AKU-EB",
+        "Aga Khan Examination Board"
+      ],
+      "where": "national board · Pakistan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-fbise",
+      "name": "Federal Board of Intermediate and Secondary Education",
+      "short": "FBISE",
+      "also": [
+        "Federal board Pakistan",
+        "Islamabad board"
+      ],
+      "where": "national board · Pakistan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-snc",
+      "name": "Pakistan national curriculum",
+      "short": "SNC",
+      "also": [
+        "National Curriculum of Pakistan",
+        "Single National Curriculum",
+        "NCC Pakistan"
+      ],
+      "where": "national board · Pakistan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-ajk-bise",
+      "name": "Azad Jammu and Kashmir Board of Intermediate and Secondary Education",
+      "short": "AJK board",
+      "also": [
+        "Mirpur board",
+        "Azad Kashmir board"
+      ],
+      "where": "state board · Azad Jammu and Kashmir",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-bbise",
+      "name": "Balochistan Board of Intermediate and Secondary Education",
+      "short": "BBISE",
+      "also": [
+        "Quetta board",
+        "Balochistan board"
+      ],
+      "where": "state board · Balochistan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-bise-peshawar",
+      "name": "Board of Intermediate and Secondary Education, Peshawar",
+      "short": "BISE Peshawar",
+      "also": [
+        "Peshawar board"
+      ],
+      "where": "state board · Khyber Pakhtunkhwa",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-kp-textbook-board",
+      "name": "Khyber Pakhtunkhwa textbook board",
+      "short": "KPTBB",
+      "also": [
+        "KP curriculum Pakistan"
+      ],
+      "where": "state board · Khyber Pakhtunkhwa",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-bise-lahore",
+      "name": "Board of Intermediate and Secondary Education, Lahore",
+      "short": "BISE Lahore",
+      "also": [
+        "Lahore board"
+      ],
+      "where": "state board · Punjab",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-punjab-pctb",
+      "name": "Punjab curriculum and textbook board, Pakistan",
+      "short": "PCTB",
+      "also": [
+        "Punjab Curriculum and Textbook Board",
+        "Punjab textbook board Pakistan"
+      ],
+      "where": "state board · Punjab",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-bsek",
+      "name": "Board of Secondary Education, Karachi",
+      "short": "BSEK",
+      "also": [
+        "Karachi board",
+        "Karachi matric board"
+      ],
+      "where": "state board · Sindh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pakistan-sindh-stbb",
+      "name": "Sindh textbook board",
+      "short": "STBB",
+      "also": [
+        "Sindh curriculum"
+      ],
+      "where": "state board · Sindh",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "poland-men",
+      "name": "Polish core curriculum",
+      "short": "MEN Poland",
+      "also": [
+        "Podstawa programowa",
+        "Poland curriculum"
+      ],
+      "where": "national board · Poland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "portugal-dge",
+      "name": "Portuguese national curriculum",
+      "short": "DGE Portugal",
+      "also": [
+        "Portugal curriculum",
+        "Aprendizagens Essenciais"
+      ],
+      "where": "national board · Portugal",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "qatar-moe",
+      "name": "Qatar national curriculum standards",
+      "short": "QNCS",
+      "also": [
+        "Qatar Ministry of Education",
+        "Qatar curriculum"
+      ],
+      "where": "national board · Qatar",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "russia-fgos",
+      "name": "Russian federal state educational standards",
+      "short": "FGOS",
+      "also": [
+        "Russia curriculum"
+      ],
+      "where": "national board · Russia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "rwanda-cbc",
+      "name": "Rwanda competence based curriculum",
+      "short": "Rwanda CBC",
+      "also": [
+        "REB Rwanda",
+        "Rwanda Basic Education Board"
+      ],
+      "where": "national board · Rwanda",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "saudi-moe",
+      "name": "Saudi Arabia national curriculum",
+      "short": "KSA curriculum",
+      "also": [
+        "Saudi Ministry of Education",
+        "Saudi curriculum"
+      ],
+      "where": "national board · Saudi Arabia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "sweden-skolverket",
+      "name": "Swedish national curriculum",
+      "short": "Lgr22",
+      "also": [
+        "Skolverket",
+        "Sweden curriculum"
+      ],
+      "where": "national board · Sweden",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "singapore-moe",
+      "name": "Singapore MOE syllabuses",
+      "short": "SEAB",
+      "also": [
+        "Singapore MOE",
+        "Singapore Ministry of Education",
+        "Singapore syllabus",
+        "Singapore-Cambridge GCE"
+      ],
+      "where": "national board · Singapore",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "thailand-basic-education",
+      "name": "Thai basic education core curriculum",
+      "short": "OBEC Thailand",
+      "also": [
+        "Thailand basic education core curriculum",
+        "Thai curriculum"
+      ],
+      "where": "national board · Thailand",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "turkey-meb",
+      "name": "Turkish national curriculum",
+      "short": "MEB Turkey",
+      "also": [
+        "Turkey curriculum",
+        "Turkiye Yuzyili Maarif Modeli"
+      ],
+      "where": "national board · Türkiye",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "tanzania-tie",
+      "name": "Tanzania national curriculum",
+      "short": "TIE Tanzania",
+      "also": [
+        "Tanzania Institute of Education",
+        "Tanzania curriculum"
+      ],
+      "where": "national board · Tanzania",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ukraine-nus",
+      "name": "Ukrainian state standard of education",
+      "short": "NUS Ukraine",
+      "also": [
+        "New Ukrainian School",
+        "Ukraine curriculum"
+      ],
+      "where": "national board · Ukraine",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "uganda-ncdc",
+      "name": "Uganda national curriculum",
+      "short": "NCDC Uganda",
+      "also": [
+        "Uganda curriculum",
+        "National Curriculum Development Centre Uganda"
+      ],
+      "where": "national board · Uganda",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "abeka",
+      "name": "Abeka",
+      "short": "Abeka",
+      "also": [
+        "A Beka Book",
+        "Abeka Academy"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ace-school-of-tomorrow",
+      "name": "Accelerated Christian Education",
+      "short": "ACE curriculum",
+      "also": [
+        "School of Tomorrow"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "acellus-academy",
+      "name": "Acellus Academy",
+      "short": "Acellus",
+      "also": [
+        "Power Homeschool"
+      ],
+      "where": "online school · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "alpha-omega-publications",
+      "name": "Alpha Omega Publications",
+      "short": "LIFEPAC",
+      "also": [
+        "Alpha Omega",
+        "Monarch homeschool",
+        "Switched-On Schoolhouse",
+        "AOP homeschool"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bju-press-homeschool",
+      "name": "BJU Press Homeschool",
+      "short": "BJU Press",
+      "also": [
+        "Bob Jones University Press homeschool"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "bridgeway-academy",
+      "name": "Bridgeway Academy",
+      "short": "Bridgeway",
+      "also": [
+        "Bridgeway homeschool academy",
+        "Homeschool Academy"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "calvert-homeschool",
+      "name": "Calvert Homeschool",
+      "short": "Calvert",
+      "also": [
+        "Calvert Education"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "classical-conversations",
+      "name": "Classical Conversations",
+      "short": "CC homeschool",
+      "also": [],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "clonlara-school",
+      "name": "Clonlara School",
+      "short": "Clonlara",
+      "also": [
+        "Clonlara home based education"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "college-board-ap",
+      "name": "College Board Advanced Placement",
+      "short": "AP",
+      "also": [
+        "Advanced Placement",
+        "College Board AP",
+        "AP exams"
+      ],
+      "where": "international curriculum · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "common-core",
+      "name": "Common Core State Standards",
+      "short": "CCSS",
+      "also": [
+        "Common Core"
+      ],
+      "where": "national board · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "connections-academy",
+      "name": "Connections Academy",
+      "short": "Connections Academy",
+      "also": [
+        "Pearson Connections Academy"
+      ],
+      "where": "online school · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "easy-peasy-all-in-one",
+      "name": "Easy Peasy All-in-One Homeschool",
+      "short": "Easy Peasy",
+      "also": [
+        "Easy Peasy All-in-One",
+        "All-in-One Homeschool"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "laurel-springs-school",
+      "name": "Laurel Springs School",
+      "short": "Laurel Springs",
+      "also": [
+        "Laurel Springs online school"
+      ],
+      "where": "online school · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "memoria-press",
+      "name": "Memoria Press",
+      "short": "Memoria Press",
+      "also": [
+        "Memoria Press classical curriculum"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "my-fathers-world",
+      "name": "My Father's World",
+      "short": "MFW",
+      "also": [
+        "My Fathers World",
+        "MFW homeschool"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ngss",
+      "name": "Next Generation Science Standards",
+      "short": "NGSS",
+      "also": [],
+      "where": "national board · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "oak-meadow",
+      "name": "Oak Meadow",
+      "short": "Oak Meadow",
+      "also": [
+        "Oak Meadow curriculum"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pearson-online-academy",
+      "name": "Pearson Online Academy",
+      "short": "Pearson online school",
+      "also": [
+        "International Connections Academy"
+      ],
+      "where": "online school · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "seton-home-study",
+      "name": "Seton Home Study School",
+      "short": "Seton",
+      "also": [
+        "Seton Home Study",
+        "Seton homeschool"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "simply-charlotte-mason",
+      "name": "Simply Charlotte Mason",
+      "short": "Simply CM",
+      "also": [
+        "SCM homeschool"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "sonlight",
+      "name": "Sonlight",
+      "short": "Sonlight",
+      "also": [
+        "Sonlight Curriculum"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "stride-k12",
+      "name": "Stride K12",
+      "short": "K12",
+      "also": [
+        "K12.com"
+      ],
+      "where": "online school · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "the-good-and-the-beautiful",
+      "name": "The Good and the Beautiful",
+      "short": "TGTB",
+      "also": [],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "time4learning",
+      "name": "Time4Learning",
+      "short": "Time4Learning",
+      "also": [
+        "Time 4 Learning"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "well-trained-mind",
+      "name": "The Well-Trained Mind",
+      "short": "WTM",
+      "also": [
+        "Well Trained Mind",
+        "Well-Trained Mind Academy",
+        "classical education at home"
+      ],
+      "where": "homeschool programme · United States",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-alabama",
+      "name": "Alabama courses of study",
+      "short": "ALSDE",
+      "also": [
+        "Alabama State Department of Education"
+      ],
+      "where": "state board · Alabama",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-alaska",
+      "name": "Alaska state standards",
+      "short": "Alaska DEED",
+      "also": [
+        "Alaska Department of Education and Early Development"
+      ],
+      "where": "state board · Alaska",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-american-samoa",
+      "name": "American Samoa content standards",
+      "short": "American Samoa content standards",
+      "also": [
+        "American Samoa Department of Education"
+      ],
+      "where": "state board · American Samoa",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-arizona",
+      "name": "Arizona academic standards",
+      "short": "AZED",
+      "also": [
+        "Arizona Department of Education"
+      ],
+      "where": "state board · Arizona",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-arkansas",
+      "name": "Arkansas academic standards",
+      "short": "Arkansas DESE",
+      "also": [
+        "Arkansas Division of Elementary and Secondary Education"
+      ],
+      "where": "state board · Arkansas",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-california",
+      "name": "California content standards",
+      "short": "CDE California",
+      "also": [
+        "California Department of Education"
+      ],
+      "where": "state board · California",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-colorado",
+      "name": "Colorado academic standards",
+      "short": "CDE Colorado",
+      "also": [
+        "Colorado Department of Education"
+      ],
+      "where": "state board · Colorado",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-connecticut",
+      "name": "Connecticut core standards",
+      "short": "Connecticut SDE",
+      "also": [
+        "Connecticut State Department of Education"
+      ],
+      "where": "state board · Connecticut",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-delaware",
+      "name": "Delaware content standards",
+      "short": "Delaware DOE",
+      "also": [
+        "Delaware Department of Education"
+      ],
+      "where": "state board · Delaware",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-district-of-columbia",
+      "name": "District of Columbia learning standards",
+      "short": "OSSE",
+      "also": [
+        "DC public schools standards"
+      ],
+      "where": "state board · District of Columbia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-florida",
+      "name": "Florida B.E.S.T. standards",
+      "short": "FLDOE",
+      "also": [
+        "Florida BEST standards",
+        "Benchmarks for Excellent Student Thinking",
+        "Florida Department of Education"
+      ],
+      "where": "state board · Florida",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-georgia",
+      "name": "Georgia K-12 standards",
+      "short": "Georgia GSE",
+      "also": [
+        "Georgia standards of excellence",
+        "Georgia Department of Education"
+      ],
+      "where": "state board · Georgia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-guam",
+      "name": "Guam content standards",
+      "short": "GDOE",
+      "also": [
+        "Guam Department of Education"
+      ],
+      "where": "state board · Guam",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-hawaii",
+      "name": "Hawaii content and performance standards",
+      "short": "HIDOE",
+      "also": [
+        "Hawaii State Department of Education"
+      ],
+      "where": "state board · Hawaii",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-idaho",
+      "name": "Idaho content standards",
+      "short": "Idaho SDE",
+      "also": [
+        "Idaho State Department of Education"
+      ],
+      "where": "state board · Idaho",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-illinois",
+      "name": "Illinois learning standards",
+      "short": "ISBE",
+      "also": [
+        "Illinois State Board of Education"
+      ],
+      "where": "state board · Illinois",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-indiana",
+      "name": "Indiana academic standards",
+      "short": "Indiana DOE",
+      "also": [
+        "Indiana Department of Education"
+      ],
+      "where": "state board · Indiana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-iowa",
+      "name": "Iowa core standards",
+      "short": "Iowa core",
+      "also": [
+        "Iowa Department of Education"
+      ],
+      "where": "state board · Iowa",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-kansas",
+      "name": "Kansas curricular standards",
+      "short": "KSDE",
+      "also": [
+        "Kansas State Department of Education"
+      ],
+      "where": "state board · Kansas",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-kentucky",
+      "name": "Kentucky academic standards",
+      "short": "KAS Kentucky",
+      "also": [
+        "Kentucky Department of Education"
+      ],
+      "where": "state board · Kentucky",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-louisiana",
+      "name": "Louisiana student standards",
+      "short": "LDOE",
+      "also": [
+        "Louisiana Department of Education"
+      ],
+      "where": "state board · Louisiana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-maine",
+      "name": "Maine learning results",
+      "short": "Maine learning results",
+      "also": [
+        "Maine Department of Education"
+      ],
+      "where": "state board · Maine",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-maryland",
+      "name": "Maryland college and career ready standards",
+      "short": "MSDE",
+      "also": [
+        "Maryland State Department of Education"
+      ],
+      "where": "state board · Maryland",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-massachusetts",
+      "name": "Massachusetts curriculum frameworks",
+      "short": "DESE Massachusetts",
+      "also": [
+        "Massachusetts Department of Elementary and Secondary Education"
+      ],
+      "where": "state board · Massachusetts",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-michigan",
+      "name": "Michigan academic standards",
+      "short": "MDE Michigan",
+      "also": [
+        "Michigan Department of Education"
+      ],
+      "where": "state board · Michigan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-minnesota",
+      "name": "Minnesota academic standards",
+      "short": "MDE Minnesota",
+      "also": [
+        "Minnesota Department of Education"
+      ],
+      "where": "state board · Minnesota",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-mississippi",
+      "name": "Mississippi college and career readiness standards",
+      "short": "MDEK12",
+      "also": [
+        "Mississippi Department of Education"
+      ],
+      "where": "state board · Mississippi",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-missouri",
+      "name": "Missouri learning standards",
+      "short": "Missouri DESE",
+      "also": [
+        "Missouri Department of Elementary and Secondary Education"
+      ],
+      "where": "state board · Missouri",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-montana",
+      "name": "Montana content standards",
+      "short": "Montana OPI",
+      "also": [
+        "Montana Office of Public Instruction"
+      ],
+      "where": "state board · Montana",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-nebraska",
+      "name": "Nebraska college and career ready standards",
+      "short": "NDE Nebraska",
+      "also": [
+        "Nebraska Department of Education"
+      ],
+      "where": "state board · Nebraska",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-nevada",
+      "name": "Nevada academic content standards",
+      "short": "NVDOE",
+      "also": [
+        "Nevada Department of Education"
+      ],
+      "where": "state board · Nevada",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-new-hampshire",
+      "name": "New Hampshire college and career ready standards",
+      "short": "New Hampshire Department of Education",
+      "also": [],
+      "where": "state board · New Hampshire",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-new-jersey",
+      "name": "New Jersey student learning standards",
+      "short": "NJSLS",
+      "also": [
+        "New Jersey Department of Education"
+      ],
+      "where": "state board · New Jersey",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-new-mexico",
+      "name": "New Mexico content standards",
+      "short": "NMPED",
+      "also": [
+        "New Mexico Public Education Department"
+      ],
+      "where": "state board · New Mexico",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-new-york",
+      "name": "New York next generation learning standards",
+      "short": "NYSED",
+      "also": [
+        "New York State Education Department",
+        "Regents New York"
+      ],
+      "where": "state board · New York",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-north-carolina",
+      "name": "North Carolina standard course of study",
+      "short": "NCDPI",
+      "also": [
+        "North Carolina Department of Public Instruction"
+      ],
+      "where": "state board · North Carolina",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-north-dakota",
+      "name": "North Dakota content standards",
+      "short": "NDDPI",
+      "also": [
+        "North Dakota Department of Public Instruction"
+      ],
+      "where": "state board · North Dakota",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-northern-mariana-islands",
+      "name": "Northern Mariana Islands content standards",
+      "short": "CNMI Public School System",
+      "also": [],
+      "where": "state board · Northern Mariana Islands",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-ohio",
+      "name": "Ohio learning standards",
+      "short": "Ohio DEW",
+      "also": [
+        "Ohio Department of Education and Workforce"
+      ],
+      "where": "state board · Ohio",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-oklahoma",
+      "name": "Oklahoma academic standards",
+      "short": "OSDE",
+      "also": [
+        "Oklahoma State Department of Education"
+      ],
+      "where": "state board · Oklahoma",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-oregon",
+      "name": "Oregon academic content standards",
+      "short": "ODE Oregon",
+      "also": [
+        "Oregon Department of Education"
+      ],
+      "where": "state board · Oregon",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-pennsylvania",
+      "name": "Pennsylvania academic standards",
+      "short": "PDE Pennsylvania",
+      "also": [
+        "Pennsylvania Department of Education"
+      ],
+      "where": "state board · Pennsylvania",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-puerto-rico",
+      "name": "Puerto Rico academic standards",
+      "short": "Puerto Rico academic standards",
+      "also": [
+        "Departamento de Educacion de Puerto Rico"
+      ],
+      "where": "state board · Puerto Rico",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-rhode-island",
+      "name": "Rhode Island academic standards",
+      "short": "RIDE",
+      "also": [
+        "Rhode Island Department of Education"
+      ],
+      "where": "state board · Rhode Island",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-south-carolina",
+      "name": "South Carolina college and career ready standards",
+      "short": "SCDE",
+      "also": [
+        "South Carolina Department of Education"
+      ],
+      "where": "state board · South Carolina",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-south-dakota",
+      "name": "South Dakota content standards",
+      "short": "SDDOE",
+      "also": [
+        "South Dakota Department of Education"
+      ],
+      "where": "state board · South Dakota",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-tennessee",
+      "name": "Tennessee academic standards",
+      "short": "TDOE",
+      "also": [
+        "Tennessee Department of Education"
+      ],
+      "where": "state board · Tennessee",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-texas",
+      "name": "Texas Essential Knowledge and Skills",
+      "short": "TEKS",
+      "also": [
+        "Texas Education Agency",
+        "TEA Texas"
+      ],
+      "where": "state board · Texas",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-virgin-islands",
+      "name": "US Virgin Islands content standards",
+      "short": "VIDE",
+      "also": [
+        "Virgin Islands Department of Education"
+      ],
+      "where": "state board · US Virgin Islands",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-utah",
+      "name": "Utah core standards",
+      "short": "USBE",
+      "also": [
+        "Utah State Board of Education"
+      ],
+      "where": "state board · Utah",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-vermont",
+      "name": "Vermont education quality standards",
+      "short": "Vermont Agency of Education",
+      "also": [],
+      "where": "state board · Vermont",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-virginia",
+      "name": "Virginia standards of learning",
+      "short": "Virginia SOL",
+      "also": [
+        "Virginia Department of Education"
+      ],
+      "where": "state board · Virginia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-washington",
+      "name": "Washington state learning standards",
+      "short": "OSPI",
+      "also": [
+        "Office of Superintendent of Public Instruction"
+      ],
+      "where": "state board · Washington",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-west-virginia",
+      "name": "West Virginia college and career readiness standards",
+      "short": "WVDE",
+      "also": [
+        "West Virginia Department of Education"
+      ],
+      "where": "state board · West Virginia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-wisconsin",
+      "name": "Wisconsin academic standards",
+      "short": "Wisconsin DPI",
+      "also": [
+        "Wisconsin Department of Public Instruction"
+      ],
+      "where": "state board · Wisconsin",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "us-wyoming",
+      "name": "Wyoming content and performance standards",
+      "short": "WDE Wyoming",
+      "also": [
+        "Wyoming Department of Education"
+      ],
+      "where": "state board · Wyoming",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "uzbekistan-curriculum",
+      "name": "Uzbekistan national curriculum",
+      "short": "Uzbekistan curriculum",
+      "also": [
+        "Uzbekistan Ministry of Preschool and School Education"
+      ],
+      "where": "national board · Uzbekistan",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "vietnam-moet",
+      "name": "Vietnamese general education programme",
+      "short": "Vietnam MOET",
+      "also": [
+        "Vietnam general education programme",
+        "Vietnam curriculum"
+      ],
+      "where": "national board · Vietnam",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "south-africa-caps",
+      "name": "South African CAPS curriculum",
+      "short": "CAPS",
+      "also": [
+        "Curriculum and Assessment Policy Statement",
+        "South Africa DBE",
+        "NSC South Africa"
+      ],
+      "where": "national board · South Africa",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "south-africa-ieb",
+      "name": "Independent Examinations Board",
+      "short": "IEB",
+      "also": [
+        "IEB matric"
+      ],
+      "where": "national board · South Africa",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "south-africa-sacai",
+      "name": "SACAI",
+      "short": "SACAI",
+      "also": [
+        "South African Comprehensive Assessment Institute"
+      ],
+      "where": "open school · South Africa",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "zambia-curriculum",
+      "name": "Zambia national curriculum",
+      "short": "ECZ Zambia",
+      "also": [
+        "Zambia curriculum",
+        "Curriculum Development Centre Zambia"
+      ],
+      "where": "national board · Zambia",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "zimbabwe-curriculum",
+      "name": "Zimbabwe school curriculum",
+      "short": "ZIMSEC",
+      "also": [
+        "Zimbabwe curriculum",
+        "Zimbabwe School Examinations Council"
+      ],
+      "where": "national board · Zimbabwe",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ambleside-online",
+      "name": "Ambleside Online",
+      "short": "AmblesideOnline",
+      "also": [
+        "Charlotte Mason curriculum"
+      ],
+      "where": "homeschool programme",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cambridge-igcse",
+      "name": "Cambridge IGCSE",
+      "short": "IGCSE",
+      "also": [
+        "CIE IGCSE",
+        "International GCSE Cambridge"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cambridge-international-as-a-level",
+      "name": "Cambridge International AS and A Level",
+      "short": "CIE A Level",
+      "also": [
+        "Cambridge A Level",
+        "Cambridge AS Level",
+        "Cambridge International A Level"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cambridge-lower-secondary",
+      "name": "Cambridge Lower Secondary",
+      "short": "CIE Lower Secondary",
+      "also": [
+        "Cambridge Secondary 1"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cambridge-o-level",
+      "name": "Cambridge O Level",
+      "short": "CIE O Level",
+      "also": [
+        "GCE O Level Cambridge"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cambridge-primary",
+      "name": "Cambridge Primary",
+      "short": "CIE Primary",
+      "also": [
+        "Cambridge International Primary"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "crimson-global-academy",
+      "name": "Crimson Global Academy",
+      "short": "CGA",
+      "also": [
+        "Crimson online school"
+      ],
+      "where": "online school",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ib-cp",
+      "name": "IB Career-related Programme",
+      "short": "IB CP",
+      "also": [
+        "Career-related Programme",
+        "International Baccalaureate CP"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ib-dp",
+      "name": "IB Diploma Programme",
+      "short": "IB",
+      "also": [
+        "IB DP",
+        "IB Diploma",
+        "International Baccalaureate Diploma"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ib-myp",
+      "name": "IB Middle Years Programme",
+      "short": "IB MYP",
+      "also": [
+        "Middle Years Programme",
+        "International Baccalaureate MYP"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ib-pyp",
+      "name": "IB Primary Years Programme",
+      "short": "IB PYP",
+      "also": [
+        "Primary Years Programme",
+        "International Baccalaureate PYP"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "ipc-fieldwork",
+      "name": "International Primary Curriculum",
+      "short": "IPC",
+      "also": [
+        "IMYC",
+        "International Middle Years Curriculum",
+        "International Curriculum Association",
+        "Fieldwork Education"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "khan-academy",
+      "name": "Khan Academy",
+      "short": "Khan",
+      "also": [],
+      "where": "online school",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "montessori-ami",
+      "name": "Montessori",
+      "short": "Montessori",
+      "also": [
+        "AMI Montessori",
+        "Association Montessori Internationale"
+      ],
+      "where": "homeschool programme",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "oxford-aqa-international",
+      "name": "Oxford AQA International Qualifications",
+      "short": "Oxford AQA",
+      "also": [
+        "Oxford International AQA",
+        "OxfordAQA IGCSE"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pearson-edexcel-international-a-level",
+      "name": "Pearson Edexcel International A Level",
+      "short": "Edexcel IAL",
+      "also": [
+        "Edexcel International A Level",
+        "Pearson International A Level"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "pearson-edexcel-international-gcse",
+      "name": "Pearson Edexcel International GCSE",
+      "short": "Pearson iGCSE",
+      "also": [
+        "Edexcel International GCSE",
+        "Edexcel IGCSE"
+      ],
+      "where": "international curriculum",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "steiner-waldorf",
+      "name": "Steiner Waldorf education",
+      "short": "Waldorf",
+      "also": [
+        "Steiner",
+        "Steiner Waldorf",
+        "Waldorf education"
+      ],
+      "where": "homeschool programme",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    },
+    {
+      "id": "cxc-caribbean",
+      "name": "Caribbean Examinations Council",
+      "short": "CXC",
+      "also": [
+        "CSEC",
+        "CAPE"
+      ],
+      "where": "international curriculum · Caribbean",
+      "subjects": [],
+      "year": null,
+      "chapters": 0
+    }
+  ]
+}

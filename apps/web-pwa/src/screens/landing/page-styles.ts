@@ -144,7 +144,18 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} #hero{padding:clamp(32px,5vw,64px) 0 calc(var(--band) / 2);overflow:visible}
 .${ROOT} #hero .grid{display:grid;grid-template-columns:1.02fr .98fr;gap:var(--colgap);align-items:center;min-height:min(76vh,720px)}
 .${ROOT} #hero h1{font:700 clamp(40px,5.4vw,68px)/1.0 var(--sans);letter-spacing:-.04em;margin-top:var(--s2)}
-.${ROOT} #hero h1 .wake{display:block;font-family:var(--hand);font-weight:700;font-size:.62em;color:var(--pig);letter-spacing:0;margin-bottom:.08em}
+/* The headline's marigold, painted ON the span so a long phrase wraps rather than forcing the
+   page sideways — the same treatment h2.t .hl gets, and lit at rest because the hero is the
+   first paint and nothing here waits for a scroll (DESIGN.md §0, "the first paint shows the page
+   at rest"). */
+.${ROOT} #hero h1 .hl{
+  background-image:linear-gradient(color-mix(in srgb,var(--marigold) 46%,transparent),color-mix(in srgb,var(--marigold) 46%,transparent));
+  background-repeat:no-repeat;background-position:0 50%;background-size:100% 92%;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em;border-radius:4px;
+}
+/* The question the card answers, printed on the card. It used to be the H1. */
+.${ROOT} #hero .asked{padding:0 var(--s3) 4px;font:500 15px/1.35 var(--sans);color:var(--ink-2)}
+.${ROOT} #hero .asked .wake{display:block;font-family:var(--hand);font-weight:700;font-size:20px;color:var(--pig)}
 .${ROOT} #hero .cta{display:flex;gap:12px;margin-top:var(--s4);flex-wrap:wrap;align-items:center}
 .${ROOT} #hero .under{display:flex;gap:var(--s3);margin-top:var(--s3);flex-wrap:wrap;color:var(--ink-3);font-size:14px}
 .${ROOT} #hero .under span{display:inline-flex;align-items:center;gap:8px}
@@ -176,18 +187,6 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .float{position:absolute;pointer-events:none;filter:drop-shadow(0 10px 20px rgba(20,20,43,.10))}
 .${ROOT} .float svg{display:block}
 
-/* the loop strip */
-.${ROOT} .loop{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:clamp(10px,1.2vw,16px);margin-top:var(--s4)}
-.${ROOT} .loop .step{background:var(--paper-2);border-radius:20px;padding:clamp(16px,1.6vw,22px);display:grid;gap:10px;align-content:start;position:relative;opacity:1}
-.${ROOT} .loop .step .n{font:500 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
-.${ROOT} .loop .step > b{font:600 17px/1.2 var(--sans)}
-.${ROOT} .loop .step > p{font-size:14px;color:var(--ink-2)}
-.${ROOT} .loop .step svg{width:40px;height:40px;fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
-.${ROOT} .loop .step .acc{stroke:var(--pig)}
-@media (max-width:1080px){.${ROOT} .loop{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:720px){.${ROOT} .loop{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:480px){.${ROOT} .loop{grid-template-columns:1fr}}
-
 /* two-column row */
 .${ROOT} .row{display:grid;grid-template-columns:1fr 1fr;gap:var(--colgap);align-items:center}
 .${ROOT} .row.flip .art{order:-1}
@@ -207,8 +206,7 @@ export const LANDING_CSS = `${FACES}
   .${ROOT} .device .stage{height:clamp(240px,58vw,320px)}
   .${ROOT} .device .rail button{font-size:11px}
   .${ROOT} #close{padding:var(--s5) var(--s3);border-radius:24px}
-  .${ROOT} #close input{min-width:0;width:100%}
-  .${ROOT} #close form{flex-direction:column;align-items:stretch}
+  .${ROOT} #close .cl-row{flex-direction:column;align-items:stretch}
 }
 .${ROOT} .art{position:relative;border-radius:24px;background:var(--paper-2);padding:var(--s3);min-height:min(420px,52vw);display:grid;place-items:center;justify-items:stretch;overflow:hidden}
 .${ROOT} .art > svg{width:100%;height:auto;overflow:visible}
@@ -302,7 +300,14 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .ask{border-radius:24px;background:var(--paper-2);padding:var(--s4);display:grid;grid-template-columns:auto 1fr;gap:var(--s3);align-items:center}
 .${ROOT} .ask svg.w{width:96px}
 .${ROOT} .ask .box{display:flex;gap:10px;background:var(--paper);border-radius:16px;padding:8px 8px 8px 20px;align-items:center;margin-top:var(--s2);box-shadow:var(--lift)}
-.${ROOT} .ask input{flex:1;border:0;background:transparent;font:400 16px/1.4 var(--sans);color:var(--ink);outline:none;min-width:0}
+.${ROOT} .ask input{flex:1;border:0;background:transparent;font:400 16px/1.4 var(--sans);color:var(--ink);min-width:0}
+/* THE RING HAS TO OUTRANK THIS RULE, NOT TIE WITH IT. outline:none used to sit in the shorthand
+   above; that rule and the page's input:focus-visible ring both weigh (0,2,1), the ask rule is
+   written later, and later wins — so the hero ask box, the one control docs/SELL.md §4 calls the
+   strongest asset on this site, was the only control on the public site a keyboard reader could
+   not see themselves land on. Guarding it with :not(:focus-visible) keeps the resting box exactly
+   as approved and lets the marigold ring through the moment it is focused from a keyboard. */
+.${ROOT} .ask input:not(:focus-visible){outline:none}
 .${ROOT} .ask .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;border:0;padding:0;margin-inline:0}
 .${ROOT} .ask .chips > button{font:500 13px/1 var(--sans);padding:9px 13px;border-radius:999px;background:var(--paper);color:var(--ink-2);border:0;cursor:pointer}
 .${ROOT} .ask .chips > button:hover{color:var(--ink)}
@@ -317,15 +322,40 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .models svg{width:18px;height:18px}
 
 
-/* the marked-up paragraph — every mark rides its own words, so none can drift */
-.${ROOT} .marked{width:min(100%,620px);background:var(--paper);border-radius:18px;padding:26px 28px;display:grid;gap:14px}
-.${ROOT} .marked p{font:400 17px/1.9 var(--sans);color:var(--ink);margin:0}
-.${ROOT} .marked mark.hl{background:color-mix(in srgb,var(--marigold) 52%,transparent);color:inherit;padding:.06em .08em;border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
-.${ROOT} .marked .tag{font-family:var(--hand);font-weight:700;font-size:18px;color:var(--pig);margin-left:8px;white-space:nowrap}
-.${ROOT} .marked .circled{position:relative;display:inline-block}
-.${ROOT} .marked .circled::after{content:"";position:absolute;left:-.35em;right:-.35em;top:-.16em;bottom:-.2em;border:2.6px solid var(--rose);border-radius:50%;transform:rotate(-1.4deg);pointer-events:none}
-.${ROOT} .marked .note{font-family:var(--hand);font-weight:600;font-size:19px;color:var(--rose)}
-.${ROOT} .marked .fix{font-family:var(--hand);font-weight:700;font-size:20px;color:var(--pig)}
+/* The fourth form card is the SPOKEN one now (sections/Forms.tsx), so the marked-up paragraph's
+   eight rules came out with it. They styled a capability this tree does not have. */
+
+/* ── the two modes: a doubt is any time, learning is every week ────────────────
+   Two panels, tone-separated on the white ground, each carrying ONE accent doing
+   one job (law v5): pig points at the immediate thing, marigold marks the earned
+   one. Every selector is a CHILD selector and every class is namespaced tmode*
+   — traps 1 and 3, both of which this page has already paid for. The accent is a
+   4px inset bar painted with a gradient rather than a border, because law v5
+   allows no border line on a surface. */
+.${ROOT} .tmodes{margin-top:var(--s4);display:grid;gap:var(--s2)}
+.${ROOT} .tmodes-note{font:600 15px/1.3 var(--sans);color:var(--ink-3)}
+.${ROOT} .tmodes-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2)}
+.${ROOT} .tmode{min-width:0;background:var(--paper-2);border-radius:20px;padding:var(--s3);
+  background-image:linear-gradient(var(--tm),var(--tm));background-repeat:no-repeat;
+  background-size:4px 100%;background-position:0 0}
+.${ROOT} .tmode[data-mode="doubt"]{--tm:var(--pig)}
+.${ROOT} .tmode[data-mode="learning"]{--tm:var(--marigold)}
+.${ROOT} .tmode > .tmode-kicker{font:700 clamp(20px,2vw,26px)/1.15 var(--sans);letter-spacing:-.02em}
+/* The rhythm line is the whole difference between the two modes, so it is the one
+   thing that carries the accent. It is a WASH pill with ink on it, never accent-
+   coloured text: marigold at 14px on paper is unreadable, and law v5's washes are
+   exactly what a tile like this is for. */
+.${ROOT} .tmode > .tmode-when{display:inline-block;margin-top:8px;padding:5px 10px;border-radius:999px;
+  font:500 13px/1.2 var(--sans);color:var(--ink);
+  background:color-mix(in srgb, var(--tm) 16%, var(--paper))}
+.${ROOT} .tmode > p{color:var(--ink-2);font-size:15px;line-height:1.55;margin-top:var(--s2);max-width:46ch}
+.${ROOT} .tmodes-hand{font-family:var(--hand);font-weight:600;font-size:22px;color:var(--ink)}
+/* The same treatment the three beats' hand notes already use, so the page has one
+   voice for what Wobo writes by hand. Rose and not marigold: marigold is unreadable
+   as text on white at any size, and rose is already the page's "the thing that needs
+   care" — which is precisely what the slow half of the argument is. */
+.${ROOT} .tmodes-hand em{font-style:normal;color:var(--rose)}
+@media (max-width:760px){.${ROOT} .tmodes-pair{grid-template-columns:1fr}}
 
 /* ── it teaches YOU: the gap, the second way, the mastery ─────────────────────── */
 .${ROOT} .beats{display:grid;gap:var(--s2);margin-top:var(--s4)}
@@ -357,29 +387,43 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .climb .legend span{display:inline-flex;align-items:center;gap:8px}
 .${ROOT} .climb .legend i{width:11px;height:11px;border-radius:3px}
 
-/* faq */
-.${ROOT} .faq{display:grid;gap:8px;margin-top:var(--s4)}
-.${ROOT} .faq details{background:var(--paper-2);border-radius:16px;padding:0 var(--s3)}
-.${ROOT} .faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:var(--s2);padding:20px 0;font-weight:500}
-.${ROOT} .faq summary::-webkit-details-marker{display:none}
-.${ROOT} .faq summary::after{content:"+";font:400 24px/1 var(--sans);color:var(--pig);transition:transform .3s}
-.${ROOT} .faq details[open] summary::after{transform:rotate(45deg)}
-.${ROOT} .faq p{color:var(--ink-2);padding:0 0 20px;max-width:66ch}
+/* the hero's try box — the same ask block, laid out in one column under the lede */
+.${ROOT} #hero .ask.hero{grid-template-columns:1fr;padding:var(--s3);margin-top:var(--s3);gap:var(--s2)}
+.${ROOT} #hero .ask.hero .trynote{font:500 13px/1.4 var(--sans);color:var(--ink-2)}
+.${ROOT} #hero .ask.hero .box{margin-top:10px}
+.${ROOT} #hero .ask.hero .answer{font-size:20px}
 
-/* devices */
-.${ROOT} .devices{display:flex;gap:10px;flex-wrap:wrap;margin-top:var(--s3)}
-.${ROOT} .devices a{display:inline-flex;align-items:center;gap:10px;background:var(--paper-2);border-radius:14px;padding:12px 16px;font:500 14px/1 var(--sans);color:var(--ink-2)}
-.${ROOT} .devices a.live{background:var(--ink);color:var(--paper)}
-.${ROOT} .devices a > small{font-size:11px;color:var(--ink-3);letter-spacing:.08em;text-transform:uppercase}
+/* what it costs — three plans and the way out */
+.${ROOT} .prices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:var(--s4)}
+.${ROOT} .prices .plan{background:var(--paper-2);border-radius:20px;padding:clamp(18px,2vw,26px);display:grid;gap:10px;align-content:start}
+.${ROOT} .prices .plan.lead{background:var(--ink)}
+.${ROOT} .prices .plan > .pl-name{font:600 17px/1.2 var(--sans);display:flex;align-items:baseline;gap:10px}
+.${ROOT} .prices .plan.lead > .pl-name{color:#fff}
+.${ROOT} .prices .plan > .pl-name em{font-style:normal;font:500 12px/1 var(--sans);color:var(--marigold)}
+.${ROOT} .prices .plan > .pl-amount{font:700 clamp(26px,3vw,34px)/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.${ROOT} .prices .plan.lead > .pl-amount{color:#fff}
+.${ROOT} .prices .plan > .pl-amount span{font:500 14px/1 var(--sans);letter-spacing:0;color:var(--ink-3);margin-left:8px}
+.${ROOT} .prices .plan.lead > .pl-amount span{color:rgba(255,255,255,.6)}
+.${ROOT} .prices .plan > .pl-said{font-size:14px;color:var(--ink-2)}
+.${ROOT} .prices .plan.lead > .pl-said{color:rgba(255,255,255,.72)}
+.${ROOT} .prices .plan > .pl-fine{font-size:12px;color:var(--ink-3)}
+.${ROOT} .prices .plan.lead > .pl-fine{color:rgba(255,255,255,.5)}
+.${ROOT} .cancel{margin-top:12px;background:var(--paper-2);border-radius:20px;padding:var(--s3);display:grid;gap:8px;justify-items:start}
+.${ROOT} .cancel > b{font:600 17px/1.3 var(--sans)}
+.${ROOT} .cancel > p{color:var(--ink-2);font-size:15px;max-width:70ch}
+.${ROOT} .cancel > a{font:500 14px/1 var(--sans);color:var(--pig)}
+@media (max-width:760px){.${ROOT} .prices{grid-template-columns:1fr}}
 
 /* close: promotion */
 .${ROOT} #close{background:var(--ink);color:#fff;border-radius:32px;padding:var(--band) var(--s4);text-align:center;position:relative;overflow:hidden;margin-bottom:var(--band)}
 .${ROOT} #close h2{font:700 clamp(34px,4.6vw,58px)/1.02 var(--sans);letter-spacing:-.035em;color:#fff}
 .${ROOT} #close .sub{color:rgba(255,255,255,.72);margin:var(--s3) auto 0;max-width:48ch}
-.${ROOT} #close form{display:flex;gap:10px;justify-content:center;margin-top:var(--s4);flex-wrap:wrap}
-.${ROOT} #close input{font:400 16px/1 var(--sans);padding:0 20px;height:52px;border-radius:14px;border:0;background:rgba(255,255,255,.1);color:#fff;min-width:min(340px,80vw)}
-.${ROOT} #close input::placeholder{color:rgba(255,255,255,.5)}
+/* The two doors, where the email field used to be: one loud, one quiet, never equal weight.
+   The quiet one cannot use .btn.ghost: that is ink on paper, and this panel IS ink. */
+.${ROOT} #close .cl-row{display:flex;gap:12px;justify-content:center;margin-top:var(--s4);flex-wrap:wrap}
 .${ROOT} #close .btn{background:var(--marigold);color:#14142B}
+.${ROOT} #close .btn.cl-q{background:transparent;color:#fff;box-shadow:inset 0 0 0 2px rgba(255,255,255,.30)}
+.${ROOT} #close .cl-hand{color:var(--marigold);margin-top:var(--s3)}
 .${ROOT} #close .fine{color:rgba(255,255,255,.5);font-size:13px;margin-top:var(--s2)}
 .${ROOT} #close .glow{position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(43,69,255,.35),transparent 70%);filter:blur(20px);pointer-events:none}
 

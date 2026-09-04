@@ -80,9 +80,26 @@ export const HERO_CYCLE_MS = 3800;
 
 export const HERO = {
   eyebrow: { lead: 'Every subject · every board · ', accent: 'free every day' },
-  wake: 'Hey Wobo,',
-  title: 'why do plants need sunlight?',
-  lede: 'The first tutor that shows its working. Ask it anything your syllabus sets and the answer arrives in front of you, line by line: drawn on a board, filmed, handed back for you to try, or said out loud when that is what the idea needs.',
+  /**
+   * THE HEADLINE IS A CLAIM, NOT A QUESTION, and that is a correction rather than a preference.
+   *
+   * It read `Hey Wobo,` / `why do plants need sunlight?` — a syllabus question set as the largest
+   * element on the page, with a text input 380px under it. The box beneath it answers questions
+   * about WOBO from a local lookup and says so; type the headline's own question into it and the
+   * reply is "I answer from the help centre here." The loudest thing on the homepage staged a
+   * capability the control under it refuses, which is the one thing the copy law forbids, and on a
+   * phone the drawn answer that would have justified it sat 229px BELOW the fold — so a phone
+   * visitor met a question, a box that rejects it, and no answer at all.
+   *
+   * The claim is docs/SELL.md §2's category line, which is a statement about the product rather
+   * than about the market: it cannot be disproved by somebody finding an older competitor, and it
+   * points at the thing that is actually built. The staged question moved onto the device card
+   * (`staged` below), where its four answers are, so the question and the answer are one object.
+   */
+  title: { lead: 'The first tutor that ', mark: 'shows its working.' },
+  /** The question the card answers, printed on the card. */
+  staged: { wake: 'Hey Wobo,', question: 'why do plants need sunlight?' },
+  lede: 'Ask it anything your syllabus sets and the answer arrives in front of you, line by line: drawn on a board, filmed, handed back for you to try, or said out loud when that is what the idea needs.',
   /**
    * The line over the try box, and it is careful on purpose. What a stranger can genuinely do
    * here with no account is ask Wobo about WOBO and be answered in Wobo's own voice (`ask.ts`),
@@ -119,13 +136,13 @@ export const FORMS = {
     'A drawn proof',
     'A short film',
     'A thing you can drag',
-    'A page marked up',
+    'Said out loud',
   ] as readonly string[],
   labels: [
     'Geometry, drawn as it is reasoned',
     'A reaction you can watch happen',
     'A model that answers back',
-    'Your own writing, with the pen on it',
+    'The same idea, spoken, when hearing it is what lands',
   ] as readonly string[],
   /** The handwriting inside the four cards. */
   marks: {
@@ -134,25 +151,38 @@ export const FORMS = {
     drag: 'drag me',
     dragUnder: 'every number under it moves',
     /**
-     * The marked-up paragraph, in pieces, because every mark rides its OWN words: the highlighter
-     * is a `<mark>`, the loop is a `::after` on the clause it circles, and neither can drift at
-     * another width or in another theme the way the hand-placed SVG annotations it replaced did
-     * (DESIGN.md §0, trap 5). The pieces run together as one sentence.
+     * WHAT THE FOURTH CARD USED TO BE, and why it is not that any more. It drew a paragraph of
+     * prose with a highlighter, a simile tag and a correction on it, under the label "Your own
+     * writing, with the pen on it". Nothing in this tree reads a learner's own writing: there is no
+     * photo or file input for written work and no essay answer kind (`packages/contracts`'s eleven
+     * kinds are choose_visual, draw, fill, label, match, number_pad, order, place_points,
+     * shade_regions, text and workbook). It was a quarter of a four-up, so a reader counted it as a
+     * quarter of the product, and the copy law forbids exactly that (docs/SELL.md §9).
+     *
+     * The fourth form is the one the hero has always named and the product actually has: spoken
+     * aloud (`wobo/voice.ts`, `services/gateway/src/wobo_gateway/voice.py`). Four forms, four
+     * engines, and the rail in the hero and this card now name the same four.
      */
-    marked: {
-      lead: 'The monsoon ',
-      highlighted: 'arrived like a rumour',
-      tag: 'simile ✓',
-      mid: ', first in the smell of the air, then everywhere at once',
-      circled: ', the streets were rivers',
-      trail: ' by evening.',
-      note: 'two sentences, one comma',
-      fix: '→ “…at once. By evening the streets were rivers.”',
+    spoken: {
+      line: '“Square the two short sides, add them, and that is the long one squared.”',
     },
   },
 } as const;
 
 // --- Everything a great teacher does -------------------------------------------------------------------
+
+/**
+ * One of the two jobs Wobo does. They are named separately because blurring them sells the product
+ * short in one direction and misrepresents it in the other.
+ */
+export interface Mode {
+  key: 'doubt' | 'learning';
+  /** Which of the two this is, in two words. */
+  kicker: string;
+  /** Its rhythm — the answer to "when", and the whole difference between them. */
+  when: string;
+  body: string;
+}
 
 /** One of the three beats: a number, a claim, the argument for it, and what it comes down to. */
 export interface Beat {
@@ -186,6 +216,46 @@ export const TEACHES = {
    * told us they are into (`reteach.ts`'s `their_world` rung, `store/mind.ts`).
    */
   lede: 'Drawing it while explaining, so you watch the idea appear. Trying a completely different way when the first one does not land. Knowing what is missing underneath before building on top of it. Not moving on until it stays learnt. Bringing back what slipped. Building the example out of what you already care about. Six things, and Wobo does all six. Three of them are drawn here, and the rest are further down the page.',
+  /**
+   * THE TWO MODES (owner, 2026-09-04; docs/SELL.md §2, and DESIGN.md §0's copy law).
+   *
+   * The owner's words: *"for doubt clarification yes, always any time but to learn its not a day
+   * before the exams right"*. Wobo does two different jobs with two different rhythms, and a page
+   * that runs them together sells the product short. A doubt is genuinely any time, so the doubt
+   * card says so without naming an hour. Learning is deliberately NOT any time: it is a bit at a
+   * time, across weeks, which is the thing that makes the week before an exam revision.
+   *
+   * WHY THIS IS A SELLING POINT AND NOT A CAVEAT. A product reached for the night before an exam is
+   * used three times a year by a frightened child; one that clears a doubt on the day it turns up
+   * and teaches steadily is used all year by a confident one. The second is what was engineered —
+   * mastery gates progression (`screens/learn/mastery.ts`), the ground under a chapter is taught
+   * first (`curriculum/placement.ts`), and what slipped comes back before it is lost
+   * (`screens/learn/units.ts`) — and every one of those is an anti-cramming mechanism. Saying so is
+   * a trust signal to a parent that we are not selling a shortcut.
+   *
+   * It sits at the TOP of the teaching chapter because it is the frame for the six beneath it, and
+   * because it is the honest answer to "is this just a chatbot with a logo": a chat window does the
+   * first of these two jobs and has no way to do the second.
+   */
+  modes: {
+    note: 'Two different jobs, and Wobo is built for both.',
+    items: [
+      {
+        key: 'doubt',
+        kicker: 'A doubt',
+        when: 'The moment it turns up',
+        body: 'One thing in the chapter did not land. Ask it after school, between classes, on the way home, over the weekend, in the school break, wherever you are and in whatever form the idea needs. It gets cleared while it is still small, instead of piling up into the thing you are afraid of.',
+      },
+      {
+        key: 'learning',
+        kicker: 'A subject',
+        when: 'A bit at a time, across weeks',
+        body: 'Wobo checks the ground under a chapter, teaches the gap first, and does not move on until it stays learnt. That is the slow half, and it is on purpose: a subject built up steadily is a subject where the week before the test is revision rather than panic.',
+      },
+    ] as readonly Mode[],
+    /** The line in Wobo's hand under the pair. The second half is the one that is easy to miss. */
+    hand: { lead: 'A doubt is any time. ', em: 'Learning is every week.' },
+  },
   beats: [
     {
       n: '01',
@@ -204,16 +274,16 @@ export const TEACHES = {
     {
       n: '03',
       title: 'It does not move on until it stays learnt.',
-      body: 'Getting it right once is not knowing it. A chapter counts as done when it comes back right days later, unprompted. Until it does, the thing that slipped is what comes next, so nothing new is built on top of it and you are never carried past it.',
-      said: { lead: 'Finished means ', em: 'still true next week.' },
-      art: 'A chapter is done only when it comes back right days later',
+      body: 'Getting it right once is not knowing it. A chapter counts as done when it has come back right enough times, without a hint, that the answer is not a guess. Until it does, the thing that slipped is what comes next, so nothing new is built on top of it and you are never carried past it.',
+      said: { lead: 'Finished means ', em: 'it holds without help.' },
+      art: 'A chapter is done only when it comes back right without a hint',
     },
   ] as readonly Beat[],
   /** The words inside the three drawings — Wobo's own hand, so they belong with the copy. */
   gap: {
     prerequisites: ['fractions', 'ratios', 'negatives'] as readonly string[],
     chapter: 'this chapter',
-    weak: 'shaky — patched first',
+    weak: 'shaky, patched first',
   },
   routes: {
     idea: 'idea',
@@ -221,7 +291,7 @@ export const TEACHES = {
   },
   mastery: {
     days: ['today', '+2 days', '+1 week', '+3 weeks'] as readonly string[],
-    slipped: 'slipped — taught again',
+    slipped: 'slipped, taught again',
     done: 'mastered',
   },
 } as const;
@@ -265,7 +335,7 @@ export const CLIMB = {
   gate: 'The chapter is held when the four above hold',
   same: { lead: 'Same chapters, same tutor, same standard. ', em: 'Only the look changes.' },
   legend: [
-    { tone: 'var(--mint)', label: 'held a week later' },
+    { tone: 'var(--mint)', label: 'right a week on' },
     { tone: 'var(--pig)', label: 'where you are' },
     { tone: 'var(--marigold)', label: 'waiting at the next checkpoint' },
     { tone: 'var(--ink)', label: 'the whole chapter' },
@@ -277,7 +347,7 @@ export const CLIMB = {
 export const STUDENTS = {
   eyebrow: 'For students',
   title: { lead: 'Stop it anywhere. ', mark: 'Ask the thing you would not ask in class.' },
-  lede: 'Pause the film halfway. Circle the bit that lost you. Wobo picks up exactly there, on the same frame, and explains it without a sigh and without telling anyone.',
+  lede: 'Pause the film halfway. Circle the bit that lost you. Wobo picks up exactly there, on the same frame, explains it again from the beginning, and tells nobody you asked.',
   claims: [
     {
       title: 'It answers on what you are looking at',
@@ -353,7 +423,7 @@ export const PARENTS = {
   claims: [
     {
       title: 'Progress, not points',
-      body: 'Mastery per chapter, measured by what came back right a week later.',
+      body: 'Mastery per chapter, measured by what came back right without a hint.',
     },
     {
       title: 'A line to the exam',
@@ -370,7 +440,7 @@ export const PARENTS = {
     kpis: [
       { label: 'Minutes', to: 96, suffix: '', note: 'across five evenings' },
       { label: 'Chapters done', to: 7, suffix: '/14', note: 'maths, this term' },
-      { label: 'Held a week later', to: 82, suffix: '%', note: 'up from 61%' },
+      { label: 'Right a week on', to: 82, suffix: '%', note: 'up from 61%' },
     ],
     days: ['M', 'T', 'W', 'T', 'F', 'S', 'S'] as readonly string[],
     projection: ['ready by', 'the test'] as readonly string[],
@@ -400,8 +470,8 @@ export interface SubjectFamily {
 
 export const SUBJECTS = {
   eyebrow: 'Every subject your board sets',
-  title: { lead: 'If your school sets it, ', mark: 'Wobo teaches it.' },
-  lede: 'Tell Wobo the board and the class once, and it follows that syllabus chapter by chapter, in the order your own textbook uses. CBSE, ICSE and every state board we hold the official syllabus for.',
+  title: { lead: 'Whatever your school sets, ', mark: 'Wobo teaches it.' },
+  lede: 'Tell Wobo the board and the class once, and it follows that syllabus chapter by chapter, in the order your own textbook uses. The official chapter lists for CBSE, ICSE, ISC and NIOS are already loaded; for any other board you hand over your school\u2019s syllabus once and Wobo builds the plan from that.',
   families: [
     {
       name: 'Mathematics',
@@ -466,7 +536,7 @@ export const SUBJECTS = {
 export const PRICE = {
   eyebrow: 'What it costs',
   title: { lead: 'It costs nothing to start, ', mark: 'and nothing to keep going.' },
-  lede: 'The whole tutor is free every day: every subject, the drawn board, the films, the practice, the memory and the Sunday note, with a daily allowance that resets every morning. A plan raises the allowance for exam season. It does not unlock the teacher.',
+  lede: 'The whole tutor is free every day: every subject, the drawn board, the films, the practice, the memory and the Sunday note, with a daily allowance that refills once a day. A plan raises the daily allowance. It does not unlock the teacher.',
   cancel: {
     title: 'And if it does not work out',
     body: 'Cancel in two taps. There is no offer to stay, no reason to give and no survey. You keep the plan until the period you have already paid for ends, nothing renews after that, and everything learnt stays exactly where it is.',
@@ -487,7 +557,7 @@ export interface SafeItem {
 export const SAFE = {
   eyebrow: 'Safe by design',
   title: {
-    lead: 'A tutor a ten-year-old talks to alone ',
+    lead: 'A tutor a child talks to alone ',
     mark: 'has to be built differently.',
   },
   lede: 'Not a promise page. Six decisions, each one visible in the product, each one checkable.',
@@ -500,7 +570,7 @@ export const SAFE = {
     },
     {
       title: 'Neutral on everything but the chapter',
-      body: "Politics, religion, anything contested: Wobo names the textbook's position and steers back. It has no opinions to give a child.",
+      body: 'Politics, religion, anything contested: Wobo takes no side, says so plainly, and comes back to the chapter. It has no opinions to give a child.',
       proof: 'The neutral rule →',
       href: '/security',
     },
@@ -512,13 +582,13 @@ export const SAFE = {
     },
     {
       title: 'Encrypted, and locked at the row',
-      body: "Everything travels over TLS and sits encrypted at rest, with access rules inside the database itself: a learner's rows are reachable only by that learner, even if our own code slipped.",
+      body: 'Everything travels over TLS and sits encrypted at rest, and the database carries its own per-learner access rules underneath the app, so a row is scoped to the learner it belongs to rather than to whoever asks for it.',
       proof: 'How it is protected →',
       href: '/security',
     },
     {
       title: 'Erase everything, in one tap',
-      body: 'Memory, progress, account. Gone from live systems at once and from backups inside thirty days, for the learner or a linked parent.',
+      body: 'Memory, progress, account. Gone from live systems at once, and out of the backups behind them as those roll over, for the learner or a linked parent.',
       proof: 'The erase button →',
       href: '/legal/privacy-policy',
     },
@@ -533,9 +603,15 @@ export const SAFE = {
 
 // --- Ask Wobo -------------------------------------------------------------------------------------
 
+/**
+ * The try box, which lives in the HERO now (docs/SELL.md §4) rather than in a section of its own
+ * eleven screens down.
+ *
+ * Its old heading and eyebrow ("Still wondering?" / "Ask Wobo. It answers for itself.") went with
+ * the section: the hero introduces the box with `HERO.tryNote`, so a second title for the same
+ * control would be the page saying one thing twice.
+ */
 export const ASK = {
-  eyebrow: 'Still wondering?',
-  title: 'Ask Wobo. It answers for itself.',
   placeholder: 'Is Wobo any good for a child who hates maths?',
   go: 'Ask',
   chips: [
@@ -552,7 +628,7 @@ export const ASK = {
     'Is it safe to use alone?':
       'That is what I am built for: school subjects only, no ads, no opinions, and nothing said that would make a child feel small.',
     'What does free include?':
-      'The whole tutor, every day, with a daily allowance of questions that resets each morning.',
+      'The whole tutor, every day, with a daily allowance of questions that refills once a day.',
   } as Readonly<Record<string, string>>,
   fallback:
     'I answer from the help centre here. Ask me one of those, or write to a person at support@heywobo.com.',

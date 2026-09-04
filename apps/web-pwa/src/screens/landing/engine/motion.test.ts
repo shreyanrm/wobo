@@ -69,10 +69,31 @@ describe('law v5 §8 — cause 1: one owner per animated property', () => {
 describe('the choreography is the prototype’s', () => {
   it('fires on the prototype’s own lines', () => {
     expect(REVEAL_START).toBe('top 86%');
-    expect(FORMS_END).toBe('+=2400');
-    expect(FILM_END).toBe('+=1800');
     expect(SCRUB).toBe(0.8);
     expect(HERO_DELAY).toBe(0.25);
+  });
+
+  /**
+   * THE TWO NUMBERS THAT ARE NOT THE PROTYPE'S ANY MORE, AND THE FLOOR UNDER THEM.
+   *
+   * `FORMS_END` was `+=2400` and `FILM_END` was `+=1800`. Measured in Chromium at 390×844 that
+   * gave a 3,195px `.pin-spacer` around a section 795px high: the page stopped responding to
+   * scroll for 2,400px — 2.8 phone screens — beginning at screen 8 of 23, and 4,200px of
+   * scroll-jacking across the page. On a phone a touch scroll that produces no movement reads as
+   * a broken page, and it was the single largest reason the price sat at screen 17 of 23
+   * (docs/SELL.md §3 rung 5, §8 "a page that scrolls past its own point").
+   *
+   * The assertion is a CEILING rather than an exact value, because the exact value is a judgement
+   * about how long a chapter may hold and the ceiling is the law: a pin may not cost the reader
+   * more than about a screen and a half of dead scroll on a phone.
+   */
+  it('never pins the reader for more than a screen and a half of a phone', () => {
+    const px = (end: string) => Number(end.replace('+=', ''));
+    const PHONE = 844;
+    expect(px(FORMS_END)).toBeLessThanOrEqual(PHONE * 1.5);
+    expect(px(FILM_END)).toBeLessThanOrEqual(PHONE * 1.5);
+    // and still long enough to be a held chapter rather than a jump cut: four cards, one screen.
+    expect(px(FORMS_END)).toBeGreaterThanOrEqual(PHONE);
   });
 
   it('pins by transform, because the app wraps every screen in a transformed element', () => {

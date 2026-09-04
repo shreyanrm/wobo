@@ -148,14 +148,34 @@ feature tour, not an argument, and it is the main thing this rework fixes.
 
 ---
 
-## 4. The strongest asset we have, and where it must go
+## 4. The strongest asset we have, and what it actually is
 
-**Letting someone ask their own question and watch it answered, with no account.** It is proof,
-demo, and activation in one move, and it is the only thing on this site that cannot be faked by a
-competitor's landing page.
+**Letting someone ask their own question and watch it answered, with no account.** That would be
+proof, demo and activation in one move, and the only thing on this site a competitor's landing page
+cannot fake.
 
-Today it is the eleventh section. It belongs in the first screen, and it should be the primary
-action on the homepage. Signing up is what happens AFTER the product has already worked once.
+**CORRECTED 2026-09-04, and the correction matters.** I wrote the paragraph above believing the
+public box on the homepage answers syllabus questions. It does not. `ask_public.py` is grounded in
+the help centre: it answers questions about WOBO, from our own articles, and a maths question comes
+back "I don't know that one". I probed the live endpoint myself and confirmed it. So the box is a
+FAQ, not the tutor.
+
+That changes where it goes and what it is for:
+
+- The homepage must NOT stage a syllabus question above a box that will refuse it. The old hero did
+  exactly that, and on a phone the drawn answer sat below the fold, so a visitor met a question, a
+  box that rejected it, and no answer at all. The hero states a claim instead, and the staged
+  question sits on the card that carries its four answers.
+- The public box stays, because "will it follow my board" and "what happens when my child is stuck"
+  are real doubts and it answers those well. It is an objection-handler, not a demo.
+- **The homepage's primary action is therefore the front door, not the box.** One pointer on the
+  first screen, and it is "Start free". A test holds it: `screens/site/sell.test.ts`, "paints
+  exactly one pointer in the first screen".
+
+**The demo we do not have yet is the biggest single conversion asset still unbuilt.** A stranger
+asking a real syllabus question and watching the board draw the answer, with no account, would beat
+every sentence on this site. It needs the tutor path opened to an anonymous caller with its own
+budget and its own safety screen. Worth building, and named here so it is not forgotten.
 
 ---
 
@@ -183,7 +203,7 @@ but never at equal weight, because two equal calls to action convert worse than 
 
 | Page | Its one job | Primary action | The quiet second |
 |---|---|---|---|
-| Home | make them try it | ask a question now | I am a parent |
+| Home | get them through the door | start free | I am a parent |
 | Meet Wobo | make the tutor real | start free | how it works |
 | How it works | answer "why will this work when nothing else did" | try it on your own question | see plans |
 | For parents | close the payer | set it up for my child | see plans |

@@ -23,16 +23,14 @@ import {
   assistants,
   CLIMB,
   CLOSE,
-  DEVICES,
-  FAQ,
   FOOTER,
   FORMS,
   HERO,
   HERO_FORMS,
-  LOOP,
   NAV_LINKS,
   PARENTS,
   PRACTICE,
+  PRICE,
   SAFE,
   STUDENTS,
   SUBJECTS,
@@ -98,15 +96,68 @@ const SECTION_SOURCES = new Map<string, string>(
  * What this build says that the prototype does not, and why. Everything else must be verbatim.
  */
 const OURS: readonly string[] = [
-  // The prototype's form pretends to have posted. There is no waitlist endpoint, so the page keeps
-  // the address on the device and says so — an honest line beats a lie in a nicer font.
-  CLOSE.local,
-  CLOSE.invalid,
+  // The prototype closes on an email field for a waitlist. We are open (DESIGN.md §0, owner,
+  // 2026-09-04), so there is no field and no address to keep: the close is two doors into the
+  // product, and its words are the `home` entry in `site/handoffs.ts`.
+  CLOSE.title,
+  CLOSE.sub,
+  CLOSE.primary,
+  CLOSE.quiet,
+  CLOSE.fine,
   // A control needs a name a screen reader can read out; the prototype's four squares had one each
   // and the rest were pictures.
   ...PRACTICE.cells,
   PRACTICE.notHalf,
-  DEVICES.soon,
+];
+
+/**
+ * THE ARGUMENT, as an ordered list of section ids (docs/SELL.md §3).
+ *
+ * This is the whole point of the homepage rework and the one thing most likely to rot, so it is
+ * written down once, here, and three separate assertions below read it: the prototype must have
+ * these sections in this order, `Landing.tsx` must render them in this order, and each rung must
+ * answer the doubt named beside it.
+ *
+ * The order is the objection ladder, not the order the features were built. What it replaced ran
+ * hero, loop, forms, teaches, students, practice, climb, parents, subjects, safe, ask, faq,
+ * devices — which answered the doubts a stranger actually has in the order 1, 3, 3, 3, 4, 4, 5, 2,
+ * 6, and put the two strongest things on the page ninth and eleventh.
+ *
+ *   hero      1 "what even is this"          one question answered four ways, and the TRY, on the
+ *                                              first screen, because the try is proof, demo and
+ *                                              activation in one move (docs/SELL.md §4)
+ *   subjects  2 "will it work for MY board"  the qualifier, answered second rather than ninth
+ *   teaches   3 "is this just a chatbot"     the two modes, then everything a great teacher does
+ *   forms     3                               the four answer forms, shown
+ *   students  3                               the film you can stop and question
+ *   practice  3                               a problem handed back to you
+ *   climb     4 "will my child use it"       checkpoints, a chest, and a vibe that is not childish
+ *   parents   4                               and will I see that it is working
+ *   price     5 "what does it cost"          on this page, not behind a link, with doubt 7
+ *                                              (what if it does not work out) in the same breath
+ *   safe      6 "is my child safe here"      six decisions, each one checkable
+ *
+ * Doubt 8 ("so what do I do now") is the close, which is not a `<section id>` because it is the
+ * same handoff panel every public page ends on (`site/handoffs.ts`).
+ */
+/**
+ * docs/SELL.md §3's doubts, in the order they arrive. `price` is rung 5 and follows `climb`
+ * (rung 4) directly: it sat one place lower, under the parent's report, and measured at 390px that
+ * put the price at y=14,467 on a 19,455px page — screen 17 of 23, sixteen screens of scrolling
+ * before a worried parent is told it is free. The report is proof for the payer rather than a rung
+ * of its own, and it reads better between the price and the safety chapter.
+ */
+const LADDER: readonly string[] = [
+  'hero',
+  'subjects',
+  'teaches',
+  'forms',
+  'students',
+  'practice',
+  'climb',
+  'price',
+  'parents',
+  'safe',
 ];
 
 /** Every sentence the page renders, walked out of the copy tree. */
@@ -134,7 +185,6 @@ function pageStrings(): string[] {
     AUTH,
     HERO,
     HERO_FORMS,
-    LOOP,
     FORMS,
     TEACHES,
     STUDENTS,
@@ -144,8 +194,7 @@ function pageStrings(): string[] {
     SUBJECTS,
     SAFE,
     ASK,
-    FAQ,
-    DEVICES,
+    PRICE,
     CLOSE,
     FOOTER,
   ]) {
@@ -180,19 +229,35 @@ describe('the landing copy', () => {
     const banned = /\d+\s*(questions?|lessons?|minutes?)\s*(a|per)\s*day/i;
     for (const line of pageStrings()) expect(line).not.toMatch(banned);
     // What it says instead: an allowance that resets, with no number attached to it.
-    expect(ASK.answers['What does free include?']).toContain('resets each morning');
+    // What it says instead: an allowance that refills, with no number attached to it. It said
+    // "resets each morning", and `budget.py`'s reset_at() is the next UTC midnight — a morning only
+    // inside one time-zone band, while `plans/prices.ts` serves several markets off the browser's
+    // own locale.
+    expect(ASK.answers['What does free include?']).toContain('refills once a day');
   });
 
-  it('promotes before it invites (law v5: the close is early access)', () => {
-    expect(AUTH.early).toBe('Get early access');
-    expect(CLOSE.title).toBe('Wobo opens to families this term.');
-    for (const line of pageStrings()) expect(line).not.toMatch(/begin tonight/i);
+  /**
+   * We are open (DESIGN.md §0, owner, 2026-09-04, superseding "promote before you invite"). The
+   * loud door is read from `site/cta.ts` and says the same two words the rest of the site says,
+   * and nothing on the page asks a reader to wait for a product that is already running.
+   */
+  it('invites rather than promotes (law v5: we are open)', () => {
+    expect(AUTH.start).toBe('Start free');
+    expect(CLOSE.primary).toBe('Start free');
+    for (const line of pageStrings()) {
+      expect(line).not.toMatch(/begin tonight|tonight|early access|wait ?list/i);
+    }
   });
 
+  /**
+   * DRAWING IS ONE PART (DESIGN.md §0). The section that carries this used to be LOOP, five steps
+   * with drawing at number three; it is TEACHES now, six things a great teacher does, and the
+   * board is still only one of them. What is asserted is the claim, not the section's old name.
+   */
   it('never lets the board be the whole product (law v5: drawing is one part)', () => {
-    // Five steps, and drawing is step three of them.
-    expect(LOOP.steps).toHaveLength(5);
-    expect(LOOP.lede).toContain('one of five things Wobo does');
+    expect(TEACHES.lede).toContain('Six things, and Wobo does all six');
+    expect(TEACHES.lede).toMatch(/Drawing it while explaining/);
+    // the four answer forms, so the drawn one is a quarter of the hero rather than all of it
     expect(HERO_FORMS.map((f) => f.label)).toEqual(['Drawn', 'Filmed', 'Tried', 'Spoken']);
   });
 
@@ -257,7 +322,7 @@ describe('the landing copy', () => {
    */
   it('renders every chapter the prototype has, in the prototype’s order', () => {
     const wanted = [...PROTOTYPE.matchAll(/<section id="([a-z-]+)"/g)].map((m) => m[1] as string);
-    expect(wanted.length).toBeGreaterThan(10);
+    expect(wanted).toEqual([...LADDER]);
 
     const assembly = readFileSync(join(import.meta.dir, 'Landing.tsx'), 'utf8');
     const rendered = [...assembly.matchAll(/^\s+<([A-Z][A-Za-z]*)\b/gm)].map((m) =>
@@ -280,10 +345,88 @@ describe('the landing copy', () => {
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
+  /**
+   * THE ARGUMENT, IN ORDER, IN THE ASSEMBLY ITSELF.
+   *
+   * The test above proves the page renders every chapter the prototype has, in the prototype's
+   * order — but it would stay green if the prototype and the page were reordered together into
+   * something that is no longer an argument. This one names the rungs, so moving `subjects` back
+   * down the page or burying the hero's try fails with the rung that moved.
+   *
+   * It reads `Landing.tsx` rather than a list kept beside it, for the same reason as above: a list
+   * beside the page drifts from the page.
+   */
+  it('runs the objection ladder in order, and nothing else (docs/SELL.md §3)', () => {
+    const assembly = readFileSync(join(import.meta.dir, 'Landing.tsx'), 'utf8');
+    const rendered = [...assembly.matchAll(/^\s+<([A-Z][A-Za-z]*)\b/gm)].map((m) =>
+      (m[1] as string).toLowerCase(),
+    );
+    // Every rung, in the ladder's order, with nothing wedged between two of them.
+    const rungs = LADDER.map((id) => SECTION_SOURCES.get(id));
+    expect(rungs).toEqual([...LADDER]);
+    const at = rungs.map((source) => rendered.indexOf(source as string));
+    expect(at.every((i) => i >= 0)).toBe(true);
+    expect(at).toEqual([...at].sort((a, b) => a - b));
+
+    // The close is last, after the final rung, because doubt 8 is answered once and at the end.
+    expect(rendered.indexOf('close')).toBeGreaterThan(at[at.length - 1] as number);
+
+    // And the four sections the rework retired stay retired: each one either repeated a point made
+    // one screen earlier or answered no doubt on the ladder at all.
+    for (const gone of ['loop', 'ask', 'faq', 'devices']) {
+      expect(rendered).not.toContain(gone);
+    }
+  });
+
+  /**
+   * THE TWO MODES (owner, 2026-09-04: *"for doubt clarification yes, always any time but to learn
+   * its not a day before the exams right"*; docs/SELL.md §2).
+   *
+   * Both must be on the page, and DISTINCTLY, because they have different rhythms and running them
+   * together sells the product short in one direction and misrepresents it in the other. The doubt
+   * is genuinely any time. Learning is deliberately not: it is a bit at a time, across weeks, which
+   * is what makes the week before a test revision. That is the anti-cramming claim, and it is a
+   * trust signal to a parent rather than a caveat.
+   */
+  it('puts both modes on the page, and keeps them apart (owner: a doubt is not learning)', () => {
+    const modes = TEACHES.modes.items;
+    expect(modes.map((m) => m.key)).toEqual(['doubt', 'learning']);
+
+    // The doubt is available, and says so without naming an hour.
+    const doubt = modes[0];
+    expect(doubt?.when).toMatch(/moment/i);
+    expect(doubt?.body).toMatch(/after school|over the weekend|on the way home/);
+
+    // Learning is paced, and is never sold as something to reach for at the last minute.
+    const learning = modes[1];
+    expect(learning?.when).toMatch(/a bit at a time/i);
+    expect(learning?.body).toMatch(/revision/);
+
+    // The two are not the same sentence with different nouns.
+    expect(doubt?.when).not.toBe(learning?.when);
+
+    // Nothing in either one pictures a late hour (DESIGN.md §0, corrected twice), and nothing
+    // markets Wobo as a cramming tool.
+    const spoken: string[] = [
+      TEACHES.modes.note,
+      TEACHES.modes.hand.lead,
+      TEACHES.modes.hand.em,
+      ...modes.flatMap((m) => [m.kicker, m.when, m.body]),
+    ];
+    for (const line of spoken) {
+      expect(line).not.toMatch(/\b(tonight|midnight|late at night|\d\s?pm)\b/i);
+      expect(line).not.toMatch(/\bthe night before\b/i);
+      expect(line).not.toMatch(/\bcram/i);
+    }
+  });
+
   it('keeps the four answer forms and the four cards in step', () => {
     expect(FORMS.nav).toHaveLength(4);
     expect(FORMS.labels).toHaveLength(4);
-    expect(FAQ.items).toHaveLength(5);
+    // the standalone FAQ block is gone; the questions a reader still has are the ask block's chips,
+    // and every chip has an answer written for it rather than a link to somewhere else
+    expect(ASK.chips).toHaveLength(4);
+    expect(Object.keys(ASK.answers)).toEqual([...ASK.chips]);
     expect(SAFE.items).toHaveLength(6);
     expect(SUBJECTS.families).toHaveLength(5);
   });
