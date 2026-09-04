@@ -211,24 +211,34 @@ const DOCS: readonly { title: string; line: string; href: string }[] = [
   { title: 'Privacy policy', line: 'in plain words, then the full text', href: '/legal/privacy' },
   { title: "Children's privacy", line: "what's different for under-18s", href: '/legal/children' },
   { title: 'Terms of service', line: 'the deal, both ways', href: '/legal/terms' },
-  { title: 'Data processing agreement', line: 'for schools, on request', href: '#request' },
+  // A "Data processing agreement — for schools, on request" row stood here. We do not deal with
+  // schools at this stage (DESIGN.md §0), so a document offered TO schools describes a
+  // relationship we do not have, and design/prototypes/site-security.html does not list it either.
   { title: 'Data-flow diagram', line: 'the drawing above, as a PDF', href: '#flow' },
 ];
 
-/** The request, as a draft in the visitor's own mail app, to the mailbox that answers anything. */
-export function overviewMailto(email: string, org: string): string {
-  const body = org
-    ? `Please send the security overview to ${email}.\nSchool or organisation: ${org}`
-    : `Please send the security overview to ${email}.`;
-  return mailtoHref(CONTACT.address, 'Security overview', body);
+/**
+ * The request, as a draft in the visitor's own mail app, to the mailbox that answers anything.
+ *
+ * It asks for ONE thing: the address to send the document to. A second field, "School or
+ * organisation (optional)", used to sit under it and put the school into the mail body. We do not
+ * deal with schools at this stage (DESIGN.md §0), the prototype has no such field, and a form that
+ * asks which school you are from is a claim about who we sell to, made in the quietest possible
+ * way. Asking for less is also the better form.
+ */
+export function overviewMailto(email: string): string {
+  return mailtoHref(
+    CONTACT.address,
+    'Security overview',
+    `Please send the security overview to ${email}.`,
+  );
 }
 
 function RequestForm() {
   const [email, setEmail] = useState('');
-  const [org, setOrg] = useState('');
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    window.location.assign(overviewMailto(email, org));
+    window.location.assign(overviewMailto(email));
   };
   return (
     <form onSubmit={submit}>
@@ -239,13 +249,6 @@ function RequestForm() {
         aria-label="Your email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-      />
-      <input
-        type="text"
-        placeholder="School or organisation (optional)"
-        aria-label="School or organisation (optional)"
-        value={org}
-        onChange={(e) => setOrg(e.target.value)}
       />
       <button className="st-btn" type="submit">
         Send me the overview
@@ -556,7 +559,7 @@ export function Security() {
             <Reveal className="st-head">
               <Label>Children first</Label>
               <h2>
-                Built for a ten-year-old at 9 pm, so the rules are stricter than the law asks.
+                Built for a ten-year-old on their own, so the rules are stricter than the law asks.
               </h2>
             </Reveal>
             <Reveal className="sc-children">
@@ -621,11 +624,20 @@ export function Security() {
               <h2>Four kinds of people, one honest table.</h2>
             </Reveal>
             <Reveal className="sc-who">
+              {/*
+                THE SCHOOL COLUMN IS GONE, and it is worth saying why in the file rather than in a
+                commit message. The port had a fifth column, "School, if linked", with a verdict in
+                every row. We do not deal with schools at this stage (DESIGN.md §0), there is no
+                link to a school anywhere in the product, and a table headed "one honest table"
+                cannot be the place we imply otherwise. It also broke the grid: `.sc-who .sc-r` is
+                `1.4fr repeat(3,1fr)`, four tracks, so the fifth cell in every row wrapped onto a
+                row of its own and "Wobo staff" sat underneath "Data". The prototype
+                (design/prototypes/site-security.html line 348) has the four columns below.
+              */}
               <div className="sc-r sc-h">
                 <div>Data</div>
                 <div>Learner</div>
                 <div>Linked parent</div>
-                <div>School, if linked</div>
                 <div>Wobo staff</div>
               </div>
               <div className="sc-r">
@@ -635,9 +647,6 @@ export function Security() {
                 </div>
                 <div>
                   <Yes />
-                </div>
-                <div>
-                  <Limited>progress only</Limited>
                 </div>
                 <div>
                   <Limited>break-glass, logged</Limited>
@@ -652,9 +661,6 @@ export function Security() {
                   <Limited>if the learner allows</Limited>
                 </div>
                 <div>
-                  <No />
-                </div>
-                <div>
                   <Limited>break-glass, logged</Limited>
                 </div>
               </div>
@@ -664,9 +670,6 @@ export function Security() {
                   <span className="sc-n">
                     <i /> not stored
                   </span>
-                </div>
-                <div>
-                  <No />
                 </div>
                 <div>
                   <No />
@@ -686,9 +689,6 @@ export function Security() {
                 <div>
                   <No />
                 </div>
-                <div>
-                  <No />
-                </div>
               </div>
               <div className="sc-r">
                 <div>Email and payment status</div>
@@ -697,9 +697,6 @@ export function Security() {
                 </div>
                 <div>
                   <Yes />
-                </div>
-                <div>
-                  <No />
                 </div>
                 <div>
                   <Limited>support, logged</Limited>
@@ -878,7 +875,7 @@ export function Security() {
           </div>
         </section>
 
-        <ClosePanel title="Satisfied? Ask for early access." />
+        <ClosePanel page="security" />
       </div>
     </SiteShell>
   );

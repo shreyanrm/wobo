@@ -1,23 +1,74 @@
 'use client';
 
 /**
- * /for-parents — peace of mind and a tutor at any hour. A port of
- * design/prototypes/site-parents.html, word for word and section for section: the Sunday note
- * rising out of its envelope, the 8 pm drive home, what you see and what you don't (the parent
- * view mock), safe by design, what it costs, the questions parents ask, the ask block and the
- * close.
+ * /for-parents — the page that closes the payer.
  *
- * Law v5's copy law (DESIGN.md §0) governs every word here. NO NAMES: the learner in the chapters
- * is "your child", never an invented Aanya, and never "she" or "he" — a parent reading this has
- * their own child in mind and a made-up name puts someone else's there instead. NO GRADE GATE: the
- * page says "every subject your board sets", never a range of classes. NO RAW ALLOWANCE: the
- * drawing says what an evening feels like rather than counting questions. Wobo is "it" in every
- * sentence (WOBO-PLAN §19).
+ * ONE JOB, ONE PRIMARY (docs/SELL.md §6). The job is to close the person who pays; the primary
+ * action is the door in `site/cta.ts`, said in the payer's own words, and the one quiet second is
+ * "See plans". Nothing else on this page is a call to action, because two of equal weight convert
+ * worse than one.
+ *
+ * THE ARC, and why it is this arc (docs/SELL.md §1). A parent arrives worried, guilty and out of
+ * their depth, and they ALREADY KNOW the problem. Describing their child's struggle back to them is
+ * a sales page performing empathy, and it is what the previous version of this page opened with —
+ * a chapter about traffic and an 8 pm message from home. It is gone. The page now opens on what
+ * changes, and then answers the four things a payer actually decides on, in the order the doubts
+ * arrive:
+ *
+ *   01  WHAT THEY GET TO SEE   the weekly report, drawn as the app draws it — what was learnt, what
+ *                              needed another pass, what is coming, and a projection ONLY where
+ *                              there is real history to project from.
+ *   02  WHY IT WORKS           the six things a great teacher does, every one of them built.
+ *   03  WHAT IT COSTS          free every day, and what happens if they stop.
+ *   04  WHAT WE HOLD           one honest block, handing off to the security page.
+ *
+ * WE NEVER SELL BY RUNNING ANYTHING DOWN (owner, 2026-09-04; DESIGN.md §0; docs/SELL.md §2). Not a
+ * teacher, not a school, not a tuition centre, not another product. There is no comparison on this
+ * page, no price against anyone else's, and no implication. The pitch is EVERYTHING A GREAT TEACHER
+ * DOES, FOR ONE CHILD, AT TEN AT NIGHT, which honours the craft instead of borrowing against it —
+ * and most of the parents reading this loved a teacher who changed something for them.
+ *
+ * EVERY CLAIM IN CHAPTER 02 IS IN THIS CODEBASE, and was checked against it before it was written:
+ *
+ *   draws while it explains   `wobo/board-turn.ts` + `wobo/board-stream.ts` answer on the board;
+ *                             `wobo/video.ts` films it; `wobo/paths/types.ts` carries the component
+ *                             path a learner drags (`engines/SimRunner.tsx`); `wobo/voice.ts`
+ *                             speaks it. Four forms, one answer.
+ *   changes method            `wobo/reteach.ts` — RETEACH_AFTER_MISSES is 2, the ladder moves an
+ *                             AXIS rather than volume (method, representation, example, voice), it
+ *                             never re-offers the approach that just failed, and what has been
+ *                             tried survives a reload.
+ *   teaches the ground first  `curriculum/prereq.ts` derives the edges and labels each with where
+ *                             it came from; `curriculum/placement.ts` checks it in at most
+ *                             MAX_PLACEMENT_QUESTIONS (three), every one skippable; `wobo/bridge.ts`
+ *                             teaches the thin piece as card one of the SAME lesson.
+ *   does not move on          `screens/learn/mastery.ts` — learnt is completed AND at or above
+ *                             MASTERY_FLOOR, and a band that falls pulls a finished chapter back.
+ *   brings back what slipped  `screens/learn/units.ts` carries `owedName`, so the row NAMES the
+ *                             topic that fell. And the learner is never blocked: every chapter
+ *                             stays tappable, which is the answer in the FAQ.
+ *   the example from their    `store/mind.ts` (`rememberInterests`, `preferredAnalogy`) and the
+ *   world                     `their_world` rung of the ladder, which is NOT OFFERED AT ALL when
+ *                             the learner has stated no interest — Wobo explains plainly rather
+ *                             than inventing a world for them.
+ *
+ * THE REPORT MOCK is the shape of `screens/progress/Report.tsx` and its `evidence.ts`: the three
+ * figures at the top are its own (minutes, topics learnt, held a week later), the three lists are
+ * its own headings, and the projection line is `projectFinish`, which refuses to draw a line at all
+ * until there is a pace to draw one from. The panel says in its own words that its numbers are an
+ * example, because the copy law forbids a fabricated figure and a mock with no label is one.
+ *
+ * Law v5's copy law (DESIGN.md §0) governs every word. NO NAMES: the child here is "your child",
+ * never an invented learner and never "she" or "he". NO GRADE GATE. NO RAW ALLOWANCE: the drawing
+ * says what an evening feels like rather than counting questions. CANCEL, NEVER REFUND: this page
+ * promises no money back, only that nothing renews. Wobo is "it" in every sentence.
  */
 
 import { useId } from 'react';
-import { Label, Sticker, WoboHead } from '../../ui/primitives';
+import { Label, WoboHead } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
+import { START_FREE_HREF } from '../site/cta';
+import { handoff } from '../site/handoffs';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
 import { PitchAsk } from './Ask';
@@ -25,6 +76,72 @@ import { Reveal } from './Reveal';
 import { ensurePitchStyles } from './styles';
 
 ensurePitchStyles();
+
+/**
+ * THE ONE DOOR. Both the hero and the close read this page's own row of the handoff table
+ * (`site/handoffs.ts`), which reads the words from `site/cta.ts`. The page cannot type a call to
+ * action, so the top of the page and the bottom of it cannot say two different things, and the day
+ * the owner wants the payer's own words on this button ("Set it up for my child") it is one line in
+ * the table rather than a grep across the site.
+ */
+const PARENTS = handoff('parents');
+
+/**
+ * The six things, in the order a parent can follow: what a lesson does, what it does when the
+ * lesson misses, what it does before the lesson, what it does at the end of one, what it does weeks
+ * later, and whose world it borrows. Every `p` was checked against the module named beside it in
+ * the note at the top of this file.
+ */
+interface Craft {
+  title: string;
+  what: string;
+  /** The drawn mark. Ink at 2.5px or more, as every mark on this site is. */
+  mark: string;
+}
+
+const SIX: readonly Craft[] = [
+  {
+    title: 'It draws while it explains.',
+    what: 'The answer arrives on a board, a line at a time, so your child watches the idea appear instead of reading a finished one. Where drawing is not the right form, the same answer becomes a short film, a thing to drag, or a voice talking it through.',
+    mark: 'M8 32 c8 -14 14 -18 22 -8 s10 12 16 -4 M8 12 h28',
+  },
+  {
+    title: 'It changes method after a second miss.',
+    what: 'Never the same explanation again, louder. A worked example instead of a rule, the same idea drawn, an analogy from something your child already cares about, or talked out loud until they can say it back. It remembers which ones it has spent, so tomorrow starts somewhere new.',
+    mark: 'M10 14 h18 a8 8 0 0 1 0 16 h-18 M16 8 l-6 6 l6 6 M28 24 l6 6 l-6 6',
+  },
+  {
+    title: 'It teaches the ground first.',
+    what: 'Before a topic that stands on older work, two or three short questions about that older work. If a piece of it is thin, that piece is taught as the opening of the same lesson, and every one of those questions can be skipped.',
+    mark: 'M22 6 v14 M8 20 h28 M8 20 v14 M22 20 v14 M36 20 v14',
+  },
+  {
+    title: 'It does not move on until it stays learnt.',
+    what: 'Reaching the end of a chapter is not the same as holding it. A chapter counts as done when what your child answered is still right the next time Wobo brings it back.',
+    mark: 'M8 24 l8 8 l18 -20 M34 8 v10 h-10',
+  },
+  {
+    title: 'It brings back what slipped.',
+    what: 'When something stops holding, it returns to your child’s board and names the topic that fell. The one moment a child is told they have gone backwards is spent saying which thing, and never on a grade.',
+    mark: 'M10 22 a12 12 0 1 0 4 -9 M10 10 v8 h8',
+  },
+  {
+    title: 'It builds the example from their world.',
+    what: 'If your child has told Wobo what they are into, the analogy is built out of that. If they have told it nothing, Wobo explains plainly rather than inventing a world for them.',
+    mark: 'M22 8 a14 14 0 1 0 0 28 a14 14 0 1 0 0 -28 M8 22 h28 M22 8 c6 7 6 21 0 28 c-6 -7 -6 -21 0 -28',
+  },
+];
+
+/** Minutes a day across one week, as the report's own chart draws them. Example numbers. */
+const WEEK: readonly { day: string; minutes: number; height: string }[] = [
+  { day: 'Monday', minutes: 18, height: '58%' },
+  { day: 'Tuesday', minutes: 24, height: '77%' },
+  { day: 'Wednesday', minutes: 0, height: '8%' },
+  { day: 'Thursday', minutes: 31, height: '100%' },
+  { day: 'Friday', minutes: 12, height: '39%' },
+  { day: 'Saturday', minutes: 11, height: '35%' },
+  { day: 'Sunday', minutes: 0, height: '8%' },
+];
 
 const FAQ: readonly { q: string; a: string }[] = [
   {
@@ -48,8 +165,20 @@ const FAQ: readonly { q: string; a: string }[] = [
     a: 'Nothing, every day, with a daily allowance of questions. Pro and Max raise that allowance for exam season. The plans page has the numbers for your country.',
   },
   {
+    q: 'What happens if I stop paying?',
+    a: 'Nothing renews, the plan runs to the end of the period already paid for, and then the account goes back to the free one, which never ends. Everything learnt stays exactly where it is. Cancelling takes as many taps as subscribing, and the screen that does it offers no discount, no pause and no reason picker.',
+  },
+  {
     q: 'Which subjects?',
     a: 'Every subject your board sets, for CBSE, ICSE and the state boards. Other boards and countries are added as families ask.',
+  },
+  {
+    q: 'Will it hold my child back?',
+    a: 'No. Nothing in Wobo locks, ever. Your child can open any chapter they like, whenever they like, including one we would not have suggested yet. What the check on older ground changes is only what Wobo teaches FIRST inside the lesson they opened, and if they would rather skip that, they can.',
+  },
+  {
+    q: 'What happens when my child gets the same thing wrong twice?',
+    a: 'Wobo changes how it is teaching, without being asked and without being told there is a problem. Not the same explanation again: a worked example instead of a rule, or the same idea drawn, or put into something your child already cares about, or talked through out loud until they can say it back. It never repeats the one that just failed, and it remembers which ones it has already spent, so tomorrow starts somewhere new.',
   },
 ];
 
@@ -80,6 +209,86 @@ function DrawnHead() {
   );
 }
 
+/**
+ * The weekly report, drawn as `screens/progress/Report.tsx` draws it, with example numbers and a
+ * line saying so. The chart is one image to a screen reader, with every bar read out in its label,
+ * because seven separate stubs are seven pieces of noise.
+ */
+function ReportPanel() {
+  const chartLabel = `Minutes a day: ${WEEK.map((d) => `${d.day} ${d.minutes}`).join('; ')}.`;
+  return (
+    <div className="pa-report">
+      <div className="pa-rtop">
+        <WoboHead size={28} />
+        <b>This week</b>
+        <span>drawn from your child’s own record</span>
+      </div>
+      <div className="pa-kpis">
+        <div>
+          <b>
+            96<i>min</i>
+          </b>
+          <span>Minutes</span>
+          <em>across four evenings</em>
+        </div>
+        <div>
+          <b>
+            7<i>of 9</i>
+          </b>
+          <span>Topics learnt</span>
+          <em>one needs another pass</em>
+        </div>
+        <div>
+          <b>
+            82<i>%</i>
+          </b>
+          <span>Held a week later</span>
+          <em>measured only after a week</em>
+        </div>
+      </div>
+      <div className="pa-chart">
+        <div className="pa-ctop">
+          <b>Minutes a day</b>
+          <span>best day 31 min</span>
+        </div>
+        <div className="pa-bars" role="img" aria-label={chartLabel}>
+          {WEEK.map((d) => (
+            <i
+              key={d.day}
+              className={d.minutes === 0 ? 'pa-off' : undefined}
+              style={{ height: d.height }}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="pa-lists">
+        <div>
+          <span>What was learnt</span>
+          <b>Understanding quadrilaterals</b>
+          <b>Fractions on a number line</b>
+        </div>
+        <div className="pa-pass">
+          <span>Needed another pass</span>
+          <b>Equivalent fractions</b>
+        </div>
+        <div>
+          <span>What is coming</span>
+          <b>Mixed numbers</b>
+          <b>Sound</b>
+        </div>
+      </div>
+      <div className="pa-proj">
+        At this pace, all nine topics are behind them by around the middle of November.
+        <em>Drawn from their own pace, and it says so on the report.</em>
+      </div>
+      <div className="pa-eg">
+        Drawn here with example numbers. Your child’s report carries theirs, and shows nothing it
+        cannot measure yet.
+      </div>
+    </div>
+  );
+}
+
 export function ForParents() {
   return (
     <SiteShell current="parents" title="Wobo for parents">
@@ -89,20 +298,20 @@ export function ForParents() {
             <div>
               <Label>For parents</Label>
               <h1>
-                You can't be at the table every evening. <em>Wobo can.</em>
+                Everything a great teacher does, <em>for one child, whenever they want to learn.</em>
               </h1>
               <p className="pt-sub">
-                A tutor that knows your child's exact syllabus, answers late in the evening without
-                a sigh, and writes you a note on Sunday about what actually happened. Not a report
-                card. A note.
+                Wobo teaches your child’s own syllabus, draws the answer until it lands, and shows
+                you what actually moved this week. You set it up once. It runs on its own after
+                that.
               </p>
               <div className="pt-row">
-                <SiteLink className="st-btn st-pig" to={{ name: 'onboarding' }}>
-                  Get early access
+                <SiteLink className="st-btn st-pig" href={START_FREE_HREF}>
+                  {PARENTS.primary.label}
                 </SiteLink>
-                <a className="st-btn st-quiet" href="#see">
-                  What you'll see
-                </a>
+                <SiteLink className="st-btn st-quiet" href={PARENTS.quiet.href ?? '/plans'}>
+                  {PARENTS.quiet.label}
+                </SiteLink>
                 <span className="pt-note">Free every day. No card to start.</span>
               </div>
             </div>
@@ -162,107 +371,42 @@ export function ForParents() {
           </div>
         </section>
 
-        <section className="st-section">
+        <section className="st-section" id="see">
           <div className="st-wrap">
             <Reveal className="pt-chapter">
               <div>
                 <div className="pt-num">01</div>
-                <h2>The 8 pm drive home.</h2>
+                <h2>What was learnt, what needed another pass, and what is coming.</h2>
                 <p>
-                  Traffic. A message from home: "question 7 makes no sense." You'd explain it if you
-                  were there. You're not there.
+                  A report drawn from your child’s own record and nothing else. Minutes and the
+                  evenings behind them, topics learnt, and how much of it was still right a week
+                  later. Where there is not enough history to say something, it says so instead of
+                  filling the space.
                 </p>
                 <div className="pa-caps">
-                  <div className="pa-t">Meanwhile, at the table</div>
-                  <div>Your child asks Wobo the way they'd ask you.</div>
-                  <div>Wobo draws it out, line by line.</div>
+                  <div className="pa-t">On the report</div>
+                  <div>What was learnt, and what slipped back.</div>
+                  <div>What held a week after it was first answered.</div>
                   <div>
-                    <em>By the time you park, it's clicked.</em>
+                    <em>A finish line drawn from their own pace, once there is a pace.</em>
                   </div>
                 </div>
               </div>
-              <div className="pt-art pt-night">
-                <svg viewBox="0 0 520 360" aria-hidden="true">
-                  <rect x="40" y="40" width="440" height="280" rx="24" fill="#17171F" />
-                  <rect x="70" y="70" width="380" height="60" rx="14" fill="#1F1F29" />
-                  <text
-                    x="90"
-                    y="96"
-                    fontFamily="Poppins,sans-serif"
-                    fontWeight="600"
-                    fontSize="15"
-                    fill="#F4F4F7"
-                  >
-                    Wobo
-                  </text>
-                  <text x="90" y="116" fontFamily="Poppins,sans-serif" fontSize="13" fill="#B4B4C2">
-                    Triangles, lesson 3, finished. Got c = 5 without a hint.
-                  </text>
-                  <text x="410" y="96" fontFamily="Poppins,sans-serif" fontSize="12" fill="#7E7E90">
-                    8:12 pm
-                  </text>
-                  <rect x="70" y="150" width="380" height="60" rx="14" fill="#1F1F29" />
-                  <text
-                    x="90"
-                    y="176"
-                    fontFamily="Poppins,sans-serif"
-                    fontWeight="600"
-                    fontSize="15"
-                    fill="#F4F4F7"
-                  >
-                    Your child
-                  </text>
-                  <text x="90" y="196" fontFamily="Poppins,sans-serif" fontSize="13" fill="#B4B4C2">
-                    got it!! wobo drew the squares thing. dont need u lol
-                  </text>
-                  <text
-                    x="410"
-                    y="176"
-                    fontFamily="Poppins,sans-serif"
-                    fontSize="12"
-                    fill="#7E7E90"
-                  >
-                    8:14 pm
-                  </text>
-                  <path
-                    className="pt-draw"
-                    d="M100 270 c40 -30 80 -30 120 0 s80 30 120 0 s60 -30 90 -10"
-                    fill="none"
-                    stroke="#FFB629"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                  />
-                  <text
-                    x="100"
-                    y="300"
-                    fontFamily="Caveat,cursive"
-                    fontWeight="700"
-                    fontSize="24"
-                    fill="#FFB629"
-                  >
-                    you, breathing out
-                  </text>
-                </svg>
-                <Sticker style={{ right: 22, top: 18 }}>8:14 pm</Sticker>
+              <div className="pt-art">
+                <ReportPanel />
               </div>
             </Reveal>
-          </div>
-        </section>
-
-        <section className="st-section" id="see">
-          <div className="st-wrap">
-            <Reveal className="pt-chapter pt-flip">
+            <Reveal className="pt-chapter pt-flip pt-tight">
               <div>
-                <div className="pt-num">02</div>
-                <h2>What you see, and what you don't.</h2>
+                <h2>What you see, and what you don’t.</h2>
                 <p>
-                  Every lesson, every practice set, the streak, and the Sunday note. What you don't
-                  see is your child's questions word for word, unless they choose to share them.
+                  Every lesson, every practice set, the streak, and the Sunday note. What you don’t
+                  see is your child’s questions word for word, unless they choose to share them.
                   Trust runs both ways.
                 </p>
                 <div className="pa-caps">
                   <div>
-                    You'll know how it's going <em>without asking twice.</em>
+                    You’ll know how it’s going <em>without asking twice.</em>
                   </div>
                 </div>
               </div>
@@ -310,13 +454,161 @@ export function ForParents() {
           </div>
         </section>
 
-        <section className="st-section">
+        <section className="st-section" id="why">
           <div className="st-wrap">
             <Reveal className="pa-head">
-              <div className="pt-num">03</div>
-              <h2>Safe by design, not by promise.</h2>
+              <div className="pt-num">02</div>
+              <h2>Six things a great teacher does. Wobo does all six.</h2>
               <p>
-                We built Wobo the way we'd build it for our own kids. The full detail is on the
+                Not one of them is a setting to find or a button to press. They happen inside the
+                lesson, on their own, whether or not anyone is watching.
+              </p>
+            </Reveal>
+            <Reveal className="pa-six">
+              {SIX.map((item) => (
+                <div className="st-tile" key={item.title}>
+                  <svg viewBox="0 0 44 44" aria-hidden="true">
+                    <path d={item.mark} />
+                  </svg>
+                  <h3>{item.title}</h3>
+                  <p>{item.what}</p>
+                </div>
+              ))}
+            </Reveal>
+            <Reveal className="pt-chapter">
+              <div>
+                <h2>The ground under this week’s chapter.</h2>
+                <p>
+                  A child rarely falls behind on this week’s chapter. They fall behind on a chapter
+                  from two years ago that nobody ever went back for, and every chapter built on top
+                  of it costs a little more. So before Wobo teaches a topic that stands on older
+                  ground, it asks two or three short questions about that ground, and teaches
+                  whatever is thin as the opening of the same lesson.
+                </p>
+                <div className="pa-caps">
+                  <div className="pa-t">What that means at your table</div>
+                  <div>Three questions at most, and your child can skip any of them.</div>
+                  <div>
+                    The missing piece is taught inside the lesson, never as a separate exercise your
+                    child has to find their way back from.
+                  </div>
+                  <div>Nothing is ever locked. A chapter your child wants to open, opens.</div>
+                  <div>
+                    <em>They stop falling further behind.</em>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-art">
+                <div className="pa-ground">
+                  <div className="pa-top-row">
+                    <b>This week’s chapter</b>
+                    <span>what the class is on</span>
+                  </div>
+                  <svg viewBox="0 0 360 66" aria-hidden="true">
+                    <path
+                      className="pt-ink pt-thin"
+                      d="M180 2 v18 M60 20 h240 M60 20 v42 M180 20 v42 M300 20 v42"
+                    />
+                  </svg>
+                  <div className="pa-stones">
+                    <div>
+                      <b>Fractions</b>
+                      <em>solid</em>
+                    </div>
+                    <div className="pa-thin">
+                      <b>Ratios</b>
+                      <em>thin, so this is taught first</em>
+                    </div>
+                    <div>
+                      <b>Negatives</b>
+                      <em>solid</em>
+                    </div>
+                  </div>
+                  <div className="hand">
+                    Nobody fails the chapter in front of them. They failed the one holding it up.
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+            <Reveal className="pt-chapter pt-flip pt-tight">
+              <div>
+                <h2>And &ldquo;mastered&rdquo; has to be earned twice.</h2>
+                <p>
+                  A chapter is not marked done because your child reached the end of it. It is done
+                  when what they answered holds, and still holds when Wobo brings it back later.
+                  When something stops holding, the chapter comes back on their board and names the
+                  topic that slipped, so the one moment a child is told they have gone backwards is
+                  spent saying which thing, and not on a grade.
+                </p>
+                <div className="pa-caps">
+                  <div>
+                    You will see a chapter reopen sometimes.{' '}
+                    <em>That is the product working, not failing.</em>
+                  </div>
+                </div>
+              </div>
+              <div className="pt-art">
+                <div className="pa-earned">
+                  <div>
+                    <b>
+                      Understanding quadrilaterals
+                      <span>finished, and it held when it came back</span>
+                    </b>
+                    <em>mastered</em>
+                  </div>
+                  <div className="pa-fell">
+                    <b>
+                      Fractions on a number line
+                      <span>finished three weeks ago, and this time it did not hold</span>
+                    </b>
+                    <em>come back to this</em>
+                  </div>
+                  <div className="hand">
+                    A tick that can go out again is the only kind of tick worth anything.
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="st-section" id="cost">
+          <div className="st-wrap">
+            <Reveal className="pa-cost">
+              <div>
+                <div className="pt-num">03</div>
+                <h2>Free every day, forever. And stopping costs nothing.</h2>
+                <p>
+                  Every learner gets a daily allowance of questions, with no card and no trial that
+                  ends. When the board exams are close and one evening isn’t enough, Pro and Max
+                  raise the allowance. If you stop, nothing renews, the plan runs to the end of the
+                  period already paid for, and everything learnt stays exactly where it is.
+                </p>
+                <div className="pt-row">
+                  <SiteLink className="st-btn st-quiet" href="/plans">
+                    See plans
+                  </SiteLink>
+                </div>
+              </div>
+              <div className="pa-allow">
+                <b>Today’s allowance</b>
+                <div className="pa-bar">
+                  <i />
+                </div>
+                <span>Most of today’s allowance still there · resets 6:00 am</span>
+                <div className="hand">enough for a normal evening</div>
+              </div>
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="st-section" id="hold">
+          <div className="st-wrap">
+            <Reveal className="pa-head">
+              <div className="pt-num">04</div>
+              <h2>What we hold, and what we will never do with it.</h2>
+              <p>
+                We built Wobo the way we’d build it for our own kids. The full detail is on the
                 Security and trust page. The short version is here.
               </p>
             </Reveal>
@@ -338,7 +630,7 @@ export function ForParents() {
                 </svg>
                 <h3>No ads, no selling</h3>
                 <p>
-                  Nothing in Wobo is trying to sell your child anything. It's paid for by families.
+                  Nothing in Wobo is trying to sell your child anything. It’s paid for by families.
                 </p>
               </div>
               <div className="st-tile">
@@ -358,39 +650,7 @@ export function ForParents() {
           </div>
         </section>
 
-        <section className="st-section">
-          <div className="st-wrap">
-            <Reveal className="pa-cost">
-              <div>
-                <div className="pt-num">04</div>
-                <h2>Free every day. More when exams get close.</h2>
-                <p>
-                  Every learner gets a daily allowance of questions, forever, with no card and no
-                  trial that ends. When the board exams loom and one evening isn't enough, Pro and
-                  Max raise the allowance. Cancelling takes as many taps as subscribing.
-                </p>
-                <div className="pt-row">
-                  <SiteLink className="st-btn" href="/plans">
-                    See plans
-                  </SiteLink>
-                  <SiteLink className="st-btn st-quiet" href="/gift">
-                    Gift Wobo
-                  </SiteLink>
-                </div>
-              </div>
-              <div className="pa-allow">
-                <b>Today's allowance</b>
-                <div className="pa-bar">
-                  <i />
-                </div>
-                <span>Most of today's allowance still there · resets 6:00 am</span>
-                <div className="hand">enough for a normal evening</div>
-              </div>
-            </Reveal>
-          </div>
-        </section>
-
-        <section className="st-section">
+        <section className="st-section" id="questions">
           <div className="st-wrap">
             <Reveal className="pa-head">
               <div className="pt-num">05</div>
@@ -424,11 +684,7 @@ export function ForParents() {
           </div>
         </section>
 
-        <ClosePanel
-          title="Be in the first group when Wobo opens."
-          hand="Ten minutes now. Every evening after, easier."
-          quiet={{ label: 'See plans', href: '/plans' }}
-        />
+        <ClosePanel page="parents" />
       </div>
     </SiteShell>
   );

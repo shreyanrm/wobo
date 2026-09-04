@@ -11,8 +11,10 @@
  */
 
 import { Label, WoboHead } from '../../ui/primitives';
+import { reachLine } from '../pitch/boardFind';
 import { AskWobo } from './AskWobo';
 import { ClosePanel } from './ClosePanel';
+import { SiteLink } from './nav';
 import { Reveal } from './Reveal';
 import { SiteShell } from './SiteShell';
 
@@ -51,7 +53,7 @@ export function About() {
           <div>
             <Label>About</Label>
             <h1>
-              We built the tutor we wished we'd had <em>at 9 pm on a Tuesday.</em>
+              We built the tutor we wished we'd had <em>on the evenings nothing made sense.</em>
             </h1>
             <p className="ab-sub">
               Wobo is a small company with one job: make sure no child is stuck alone with a
@@ -153,9 +155,19 @@ export function About() {
           <Reveal className="st-head">
             <Label>What we cover</Label>
             <h2>Every subject your board sets, in your school&rsquo;s own order.</h2>
+            {/*
+              This paragraph used to read "CBSE, ICSE and the state boards today, WITH THE YEAR'S
+              OFFICIAL SYLLABUS BEHIND EACH ONE". The registry carries 268 boards and
+              `content/curriculum/syllabi` holds the official chapter lists for four of them, so
+              that sentence claimed something we cannot show, on the page whose entire job is
+              belief. It is now the generated count line, which is the same fact without the part
+              that was not true, and it hands the reader to the page that answers it for their own
+              board (docs/SELL.md §5).
+            */}
+            <p>{reachLine()}</p>
             <p>
-              CBSE, ICSE and the state boards today, with the year's official syllabus behind each
-              one, and the door open for a school's own syllabus. More countries as families ask.
+              <SiteLink href="/subjects">Look your own board up on the subjects page</SiteLink>, and
+              it will tell you which of the two you are, in one line.
             </p>
           </Reveal>
         </div>
@@ -239,13 +251,19 @@ export function About() {
             <AskWobo
               heading="Ask Wobo about us. It answers for itself."
               placeholder="Who makes Wobo, and how do they make money?"
-              chips={['Why is it free?', 'Where is my data stored?', 'Can my school use it?']}
+              /*
+                The third chip was "Can my school use it?", straight out of
+                design/prototypes/site-about.html. A suggested question presupposes its own answer,
+                and that one presupposes a school offering. We do not deal with schools at this
+                stage (DESIGN.md §0), so the chip asks something this page can actually answer.
+              */
+              chips={['Why is it free?', 'Where is my data stored?', 'Which boards do you cover?']}
             />
           </Reveal>
         </div>
       </section>
 
-      <ClosePanel />
+      <ClosePanel page="about" />
     </SiteShell>
   );
 }

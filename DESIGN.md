@@ -57,6 +57,16 @@ saw as jitter on 2026-09-04.
 - **We are open, and the call is "Start free".** (owner, 2026-09-04, supersedes "promote before
   you invite") Anyone can sign up and use Wobo today, so no surface may imply a waitlist and
   "Get early access" is retired. The phrase lives in one constant every surface reads.
+- **Never name a late hour.** (owner, 2026-09-04, corrected twice) Not "10pm", not "tonight", not
+  "at midnight", not "when everyone is asleep". Children go to bed early and a page that pictures a
+  child studying late is describing the problem, not the answer. Say availability and choice
+  instead, and vary it: after school, over the weekend, on a holiday, between classes, on the way
+  home, whenever they want, wherever they are, the way they want it explained.
+- **A doubt is any time; learning is not the night before.** (owner, 2026-09-04) Wobo clears a doubt
+  the moment it appears, and teaches a subject a bit at a time so the week before an exam is
+  revision rather than panic. We are not a cramming tool and must never be marketed as one: mastery
+  gating, prerequisite teaching and the return of what slipped are all anti-cramming mechanisms, and
+  saying so is a trust signal to a parent that we are not selling a shortcut.
 - **Never sell by running anything down.** (owner, 2026-09-04) Not a teacher, not a school, not a
   tuition centre, not another product. No price comparison and no implication. We describe what
   Wobo can do and let the reader judge. The pitch is "everything a great teacher does, for one

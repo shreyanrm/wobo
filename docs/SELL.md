@@ -21,8 +21,8 @@ with opposite feelings.
 
 | | The learner | The parent |
 |---|---|---|
-| Arrives feeling | stuck, behind, a bit stupid, and it is 10pm | worried, guilty, and out of their depth |
-| Wants | to understand this one thing, now, without being judged | to stop watching their child fall behind |
+| Arrives feeling | stuck on one thing, a bit behind, and quietly embarrassed | worried, guilty, and out of their depth |
+| Wants | to understand this one thing without being judged, and to stop dreading the subject | to stop watching their child fall behind |
 | Fears | more homework, being talked down to, another boring app | wasting money again, and a stranger talking to their child |
 | Converts on | seeing it answer THEIR question | seeing what it costs and what it protects |
 
@@ -51,7 +51,7 @@ teacher who changed something for them.
 
 ### We say instead
 
-**Everything a great teacher does, for one child, at ten at night.**
+**Everything a great teacher does, for one child, whenever they want to learn.**
 
 That is the whole pitch, and it is respectful, aspirational and true. It borrows nothing from anyone
 else's reputation and takes nothing away from it. It also happens to be the most accurate
@@ -68,6 +68,44 @@ Because a great teacher does six things that a chat window cannot, and Wobo does
 | Remembers what you struggled with last month | brings it back before it is lost | the memory and the debt loop |
 | Uses an example from your world, not the textbook's | builds the example from what this learner cares about | interests to analogy |
 
+### The two modes, and why blurring them is a mistake
+
+**Owner's ruling, 2026-09-04:** *"for doubt clarification yes, always any time but to learn its not a
+day before the exams right"*
+
+Wobo does two different things and the site must say both, separately, because they have different
+rhythms and blurring them sells the product short.
+
+| | A doubt | Learning |
+|---|---|---|
+| When | the moment it appears | a bit at a time, across weeks |
+| Where | after school, on the way home, over the weekend, on a holiday | wherever they sit down to it |
+| Why now | so it does not pile up into the thing they are afraid of | so the week before the exam is revision, not panic |
+| What Wobo does | answers it, in whatever form the idea needs | finds the gap, teaches, checks, and does not move on |
+
+**We are not a cramming tool, and we must never be marketed as one.** A product you reach for the
+night before an exam gets used three times a year by a frightened child; a product that clears a
+doubt on the day it appears and teaches a little at a time gets used all year by a confident one.
+The second is worth more to a family AND worth more to us, and it is what was actually engineered:
+mastery gates progression, prerequisites are taught before the topic, and what slipped comes back
+before it is lost. Every one of those is an anti-cramming mechanism. The marketing should say so,
+because it is also a trust signal to a parent: we are not selling a shortcut.
+
+### The time rule
+
+**NEVER name a late hour. This has been corrected by the owner twice.** Not "10pm", not "tonight",
+not "at midnight", not "when everyone is asleep". Children go to bed early, the parents we are
+selling to do not want a product that keeps them up, and a page that pictures a child studying late
+is describing the problem rather than the answer.
+
+Say instead, and vary it, because the vocabulary is not scarce:
+> after school · over the weekend · on a holiday · between classes · on the way home · in the school
+> break · before practice · whenever they want · wherever they are · the way they want it explained
+
+The point being made is ALWAYS availability and choice, never lateness. "Whenever they want, wherever
+they are, the way they want" carries everything the late hour was reaching for and none of the
+baggage.
+
 ### The category line
 
 Wobo is not a chatbot that types answers. It is a tutor that draws, watches, and makes the thing you
@@ -77,6 +115,7 @@ The sellable form of the owner's phrase, without a superlative anyone can argue 
 
 > **The first tutor that shows its working.**
 > Ask it anything from your syllabus and the answer is drawn in front of you, line by line.
+> A doubt cleared whenever it turns up. A subject learnt a bit at a time, so the exam is revision.
 
 **A note on "world's first", for the owner.** I can write it, and I will if you want it. My advice is
 that it is the weakest sentence available to us, for three reasons: it is the one claim on the page a

@@ -11,14 +11,22 @@
  *  · NO NAMES. Never an invented learner or parent. "Your child", "the learner", or the reader.
  *  · NO GRADE GATE. Never "classes 4 to 12", never an age range. "Every subject your board sets."
  *  · NO RAW ALLOWANCES. Never "40 questions a day" — say what an evening feels like.
- *  · PROMOTE BEFORE INVITE. Until the product opens, the closing call is early access.
+ *  · WE ARE OPEN, AND THE CALL IS "START FREE". The phrase is never typed here: it comes from
+ *    `site/cta.ts`, so this page and the plans page can never again disagree about whether a
+ *    stranger can get in today.
  *  · DRAWING IS ONE PART. The board is never the whole product: it also films, simulates, speaks,
- *    practises, remembers and reports.
+ *    practises, remembers and reports. The teaching chapter names all six things a great teacher
+ *    does and the drawn board is one of them.
+ *  · NOTHING IS SOLD BY RUNNING ANYTHING DOWN (owner, 2026-09-04). Not a teacher, not a school,
+ *    not a tuition centre, not another product. We say what Wobo can do and let the reader judge.
  *  · Wobo has no gender (§19), and no vendor or model is ever named as being underneath (§17).
  *
  * A headline is stored as `{ lead, mark }` because the marigold highlighter is painted on the
  * second half as it scrolls into view; the two run together as one sentence.
  */
+
+import { CTA } from '../site/cta';
+import { HANDOFFS } from '../site/handoffs';
 
 export interface NavLink {
   label: string;
@@ -27,22 +35,27 @@ export interface NavLink {
 }
 
 /** The five doors in the header, each one a page that exists. */
+/**
+ * The nav, in the order the DOUBTS ARRIVE (docs/SELL.md §3), which is the same order the site
+ * shell's pill nav now uses: "will it work for MY board" is the single biggest qualifier and it
+ * arrives before "is this real teaching", so Subjects leads.
+ */
 export const NAV_LINKS: readonly NavLink[] = [
-  { label: 'How it works', href: '/how-it-works' },
   { label: 'Subjects', href: '/subjects' },
+  { label: 'How it works', href: '/how-it-works' },
   { label: 'For parents', href: '/for-parents' },
   { label: 'For students', href: '/for-students' },
   { label: 'Plans', href: '/plans' },
 ] as const;
 
+/**
+ * The two doors. The loud one is THE call to action and it is read from `site/cta.ts`, never typed
+ * here: this page and the plans page once said different things about whether we were open.
+ */
 export const AUTH = {
   signIn: 'Sign in',
-  /** The one call to action on the page, and it is a promotion, not an invitation. */
-  early: 'Get early access',
+  start: CTA.label,
 } as const;
-
-/** Where the "Get early access" buttons scroll to. */
-export const EARLY_ID = 'early';
 
 // --- The hero -----------------------------------------------------------------------------------
 
@@ -69,8 +82,14 @@ export const HERO = {
   eyebrow: { lead: 'Every subject · every board · ', accent: 'free every day' },
   wake: 'Hey Wobo,',
   title: 'why do plants need sunlight?',
-  lede: 'A tutor that hears the question, works out where it sits in your syllabus, and answers it the way the idea needs: drawn, animated, spoken, or handed to you to try. Late in the evening or early in the morning, as many times as you like.',
-  seeHow: { label: 'See how it works', href: '/how-it-works' },
+  lede: 'The first tutor that shows its working. Ask it anything your syllabus sets and the answer arrives in front of you, line by line: drawn on a board, filmed, handed back for you to try, or said out loud when that is what the idea needs.',
+  /**
+   * The line over the try box, and it is careful on purpose. What a stranger can genuinely do
+   * here with no account is ask Wobo about WOBO and be answered in Wobo's own voice (`ask.ts`),
+   * so that is what it offers. A box that invited a syllabus question would be promising a
+   * tutor this page has no gateway to reach, which is the one thing the copy law forbids.
+   */
+  tryNote: 'Ask Wobo about Wobo. It answers for itself, right here.',
   under: ['Free to use, every single day', 'No card, and no trial that runs out'],
   device: { who: 'Wobo', live: 'live' },
   /** The words inside the drawn answers — Wobo's own hand, so they belong with the copy. */
@@ -88,48 +107,6 @@ export const HERO = {
     caption: 'Wobo never says wrong. It rings the gap and waits.',
   },
   spoken: { line: '“The leaf is the kitchen. Sunlight is the stove.”' },
-} as const;
-
-// --- What actually happens ------------------------------------------------------------------------
-
-export interface LoopStep {
-  /** The step marker, e.g. "01 · Ask". */
-  n: string;
-  title: string;
-  body: string;
-}
-
-export const LOOP = {
-  eyebrow: 'What actually happens',
-  title: { lead: 'One question in. ', mark: 'A whole lesson out.' },
-  lede: 'Drawing is one of five things Wobo does with a question. Here is the rest of it.',
-  steps: [
-    {
-      n: '01 · Ask',
-      title: 'However you want',
-      body: 'Out loud, typed, a photo of the worksheet, or a circle drawn around the part that lost you.',
-    },
-    {
-      n: '02 · Place it',
-      title: 'In your syllabus',
-      body: 'Your board, your year, the chapter your class is on this week. Not a course built for everyone.',
-    },
-    {
-      n: '03 · Show it',
-      title: 'In the right form',
-      body: 'A drawn board, a short film, a thing you can drag, a worked example, or a sentence marked up.',
-    },
-    {
-      n: '04 · Try it',
-      title: 'Until it sticks',
-      body: 'Practice in the kinds your exam uses. Close gets a ring, never a red cross.',
-    },
-    {
-      n: '05 · Remember',
-      title: 'And report',
-      body: 'What clicked, what did not, and one honest note home on Sunday.',
-    },
-  ] as readonly LoopStep[],
 } as const;
 
 // --- The four answer forms ------------------------------------------------------------------------
@@ -175,7 +152,7 @@ export const FORMS = {
   },
 } as const;
 
-// --- It teaches you, not a class -------------------------------------------------------------------
+// --- Everything a great teacher does -------------------------------------------------------------------
 
 /** One of the three beats: a number, a claim, the argument for it, and what it comes down to. */
 export interface Beat {
@@ -189,14 +166,26 @@ export interface Beat {
 }
 
 export const TEACHES = {
-  eyebrow: 'Not a course everyone takes',
-  /** The highlighter falls in the MIDDLE of this headline, so it carries a trail as well. */
+  eyebrow: 'Not a chatbot with a logo',
+  /**
+   * The banner of the whole argument (docs/SELL.md §2), and the reason it is phrased as a tribute
+   * rather than a comparison: naming what a great teacher does honours the craft, where naming a
+   * competitor borrows against somebody else's reputation and takes nothing away from it.
+   */
   title: {
-    lead: 'It teaches ',
-    mark: 'you',
-    trail: ', at your pace, until you actually have it.',
+    lead: 'Everything a great teacher does, ',
+    mark: 'for one child, whenever they want to learn.',
+    trail: '',
   },
-  lede: 'A class moves on when the timetable says so. Wobo moves on when you have it, and before it starts it checks whether the ground under this chapter is solid.',
+  /**
+   * The six, in one breath. Each one is real in this codebase and was checked before it was
+   * written: the four answer forms (`wobo/board-stream.ts`, `video.ts`, `voice.ts`, the engines),
+   * the re-teach ladder that changes axis on a repeated miss (`wobo/reteach.ts`), the prerequisite
+   * check (`curriculum/placement.ts`), the mastery floor (`screens/learn/mastery.ts`), the debt
+   * that comes back first (`screens/learn/units.ts`), and the analogy built from what the learner
+   * told us they are into (`reteach.ts`'s `their_world` rung, `store/mind.ts`).
+   */
+  lede: 'Drawing it while explaining, so you watch the idea appear. Trying a completely different way when the first one does not land. Knowing what is missing underneath before building on top of it. Not moving on until it stays learnt. Bringing back what slipped. Building the example out of what you already care about. Six things, and Wobo does all six. Three of them are drawn here, and the rest are further down the page.',
   beats: [
     {
       n: '01',
@@ -215,7 +204,7 @@ export const TEACHES = {
     {
       n: '03',
       title: 'It does not move on until it stays learnt.',
-      body: 'Getting it right once is not knowing it. A chapter counts as done when it comes back right days later, unprompted, so Wobo brings it back at the moment you are about to forget it. Only then does the next chapter open.',
+      body: 'Getting it right once is not knowing it. A chapter counts as done when it comes back right days later, unprompted. Until it does, the thing that slipped is what comes next, so nothing new is built on top of it and you are never carried past it.',
       said: { lead: 'Finished means ', em: 'still true next week.' },
       art: 'A chapter is done only when it comes back right days later',
     },
@@ -250,7 +239,7 @@ export interface Vibe {
 export const CLIMB = {
   eyebrow: 'The long game',
   title: { lead: 'A subject you can ', mark: 'see yourself climbing.' },
-  lede: 'Every chapter is a checkpoint on a path you can see. Something is waiting at the ones you finish, and a chapter ends with a proper test of the whole thing rather than another exercise. What is behind you stays unlocked, so a hard week never costs you ground.',
+  lede: 'Every chapter is a checkpoint on a path you can see. Something is waiting at the ones you finish, what is behind you stays unlocked, and a hard week never costs you ground. The same path, dressed the way the learner wants it.',
   switchLabel: 'How it looks',
   vibes: [
     {
@@ -265,7 +254,7 @@ export const CLIMB = {
     },
   ] as readonly Vibe[],
   /** The three things the climb marks, in Wobo's hand. */
-  marks: { reward: 'a reward', here: 'you are here', test: 'the chapter test' },
+  marks: { reward: 'a reward', here: 'you are here', test: 'the whole chapter' },
   /** The same four chapters, as the plain list. */
   rows: [
     { title: 'Fractions on a number line', state: 'mastered' },
@@ -273,13 +262,13 @@ export const CLIMB = {
     { title: 'Adding unlike denominators', state: 'in progress' },
     { title: 'Mixed numbers', state: 'next' },
   ],
-  gate: 'Chapter test opens when the four above hold',
+  gate: 'The chapter is held when the four above hold',
   same: { lead: 'Same chapters, same tutor, same standard. ', em: 'Only the look changes.' },
   legend: [
     { tone: 'var(--mint)', label: 'held a week later' },
     { tone: 'var(--pig)', label: 'where you are' },
     { tone: 'var(--marigold)', label: 'waiting at the next checkpoint' },
-    { tone: 'var(--ink)', label: 'the chapter test' },
+    { tone: 'var(--ink)', label: 'the whole chapter' },
   ],
 } as const;
 
@@ -349,8 +338,8 @@ export const PRACTICE = {
       body: 'The answer does not exist until you have done the thinking.',
     },
     {
-      title: 'It comes back tomorrow',
-      body: 'What you missed returns when you are about to forget it, not before.',
+      title: 'What you missed comes first',
+      body: 'Before anything new is built on top of it, not weeks later.',
     },
   ],
 } as const;
@@ -372,7 +361,7 @@ export const PARENTS = {
     },
     {
       title: 'Nothing to police',
-      body: 'No streak guilt, no midnight nudges, no scores your child did not ask for.',
+      body: 'No streak guilt, no nudges after hours, no scores your child did not ask for.',
     },
   ],
   report: {
@@ -412,7 +401,7 @@ export interface SubjectFamily {
 export const SUBJECTS = {
   eyebrow: 'Every subject your board sets',
   title: { lead: 'If your school sets it, ', mark: 'Wobo teaches it.' },
-  lede: 'Tell Wobo the board and the class once. From then on it follows that syllabus, chapter by chapter, in the order your textbook uses.',
+  lede: 'Tell Wobo the board and the class once, and it follows that syllabus chapter by chapter, in the order your own textbook uses. CBSE, ICSE and every state board we hold the official syllabus for.',
   families: [
     {
       name: 'Mathematics',
@@ -454,7 +443,35 @@ export const SUBJECTS = {
     },
   ] as readonly SubjectFamily[],
   closing:
-    "CBSE, ICSE and every state board we hold the official syllabus for. Yours missing? Paste your school's list in and Wobo builds the plan from that.",
+    "Yours not here? Paste your school's own list in and Wobo reads it and builds the plan from that. It teaches in English today, and more languages follow the boards that ask for them.",
+} as const;
+
+// --- What it costs ------------------------------------------------------------------------------
+
+/**
+ * The price, ON THE HOMEPAGE (docs/SELL.md §3, doubt 5, and §8).
+ *
+ * It used to be behind a link, which is friction and, worse, reads as something being hidden. Our
+ * price story is a good one — a free plan that is a real product rather than a trial — and a good
+ * price story hidden behind a click converts worse than a plain one shown.
+ *
+ * ONLY THE WORDS ARE HERE. Every figure, every allowance and every plan name is read from
+ * `screens/plans/prices.ts` by `sections/Price.tsx`, so the homepage cannot quote a price the
+ * plans page does not charge, and the market is inferred from the browser rather than asked for
+ * (law v5's copy law: location is inferred, never asked).
+ *
+ * The cancel line answers doubt 7 in the same breath as doubt 5, because they are the same fear
+ * with two faces: what happens to my money. It is the cancel, never a refund (DESIGN.md §0).
+ */
+export const PRICE = {
+  eyebrow: 'What it costs',
+  title: { lead: 'It costs nothing to start, ', mark: 'and nothing to keep going.' },
+  lede: 'The whole tutor is free every day: every subject, the drawn board, the films, the practice, the memory and the Sunday note, with a daily allowance that resets every morning. A plan raises the allowance for exam season. It does not unlock the teacher.',
+  cancel: {
+    title: 'And if it does not work out',
+    body: 'Cancel in two taps. There is no offer to stay, no reason to give and no survey. You keep the plan until the period you have already paid for ends, nothing renews after that, and everything learnt stays exactly where it is.',
+    link: { label: 'See both periods, and what each plan carries →', href: '/plans' },
+  },
 } as const;
 
 // --- Safe by design ------------------------------------------------------------------------------
@@ -576,68 +593,28 @@ export function assistants(question: string = ASK_ELSEWHERE): readonly Assistant
   ];
 }
 
-// --- The questions families ask ------------------------------------------------------------------
-
-export const FAQ = {
-  eyebrow: 'Questions',
-  title: 'What families ask first.',
-  items: [
-    {
-      q: 'Will it just hand my child the answers?',
-      a: 'No. Wobo shows the reasoning and stops at the step your child has to take. When they are close it rings the gap on their own working and waits. There is nothing to copy, because the answer does not exist until the thinking is done.',
-    },
-    {
-      q: "Does it follow our school's syllabus?",
-      a: "Yes. You pick the board and class once, and Wobo teaches the chapter your class is on, in your textbook's order. If your school does something differently, tell Wobo and it reorders, adds or drops a chapter.",
-    },
-    {
-      q: 'Is it safe for a ten-year-old alone?',
-      a: 'It is built for exactly that. Wobo stays inside school subjects, holds no opinions on anything contested, shows no ads, and never makes a child feel small. Voice is not stored. The whole of it is written out on the security page.',
-    },
-    {
-      q: 'What does free actually include?',
-      a: 'The whole tutor: every subject, the drawn board, the films, the practice, the memory and the Sunday note, with a daily allowance of questions that resets every morning. Paid plans raise the allowance for exam season. They do not unlock the teacher.',
-    },
-    {
-      q: 'Which languages does it speak?',
-      a: 'English today, with the accent set by where you are. More languages follow the boards that ask for them.',
-    },
-  ],
-} as const;
-
-// --- Everywhere you study --------------------------------------------------------------------------
-
-export const DEVICES = {
-  eyebrow: 'Everywhere you study',
-  title: { lead: 'The same tutor on ', mark: 'every screen in the house.' },
-  lede: 'Start a question on the phone at the bus stop, finish it on the laptop at the table. Your board, your place in the chapter and your memory travel with you.',
-  items: [
-    { label: 'Use it in the browser', soon: false },
-    { label: 'iPhone and iPad', soon: true },
-    { label: 'Android', soon: true },
-    { label: 'Mac and Windows', soon: true },
-  ],
-  soon: 'soon',
-} as const;
-
 // --- The close ---------------------------------------------------------------------------------------
 
+/**
+ * The close.
+ *
+ * IT USED TO BE A WAITLIST. One email field, a button, and a line admitting the address was kept in
+ * this browser because there was nowhere to post it — the most common lie a marketing page tells,
+ * told honestly, which is still a form standing between a stranger and the product. We are open
+ * (owner, 2026-09-04), so the field comes out: the last thing this page asks for is a first lesson,
+ * not an address, and there is no field to fill in on the way.
+ *
+ * The words are `site/handoffs.ts`'s `home` entry, so the front page closes on the same one phrase
+ * every other public page closes on and cannot drift from it.
+ */
 export const CLOSE = {
-  title: 'Wobo opens to families this term.',
-  sub: 'Leave an address and you are in the first group, free, with the whole tutor from day one. No card, and we will write once when it is your turn.',
-  placeholder: 'you@example.com',
-  submit: AUTH.early,
-  /** What the button says once the address is kept. */
-  done: 'You are on the list.',
-  fine: 'Free to use every day, not just the first · every subject · every major board · one email, never a list',
-  /**
-   * The honest line under a kept address. There is no waitlist endpoint yet — the gateway's only
-   * mail route is guarded by a shared key a browser must never hold — so the address stays in this
-   * browser until there is somewhere to send it, and the page says exactly that rather than
-   * pretending it posted.
-   */
-  local: 'Kept on this device for now. We will send it on the moment the list opens.',
-  invalid: 'That address is missing something.',
+  title: HANDOFFS.home.title,
+  sub: 'Every subject your board sets, drawn out line by line, as many times as you need. Free every day, and no card to start.',
+  hand: HANDOFFS.home.hand,
+  primary: HANDOFFS.home.primary.label,
+  quiet: HANDOFFS.home.quiet.label,
+  quietHref: HANDOFFS.home.quiet.href ?? '/for-parents',
+  fine: 'Free to use every day, not just the first · every subject · every major board',
 } as const;
 
 // --- The footer -----------------------------------------------------------------------------------
