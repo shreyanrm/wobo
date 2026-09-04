@@ -1,133 +1,184 @@
 'use client';
 
 /**
- * The two doors: `/sign-in` and `/sign-up`.
+ * THE two doors: `/sign-in` and `/sign-up`, drawn from design/prototypes/app-auth.html.
  *
- * Order, from WOBO-PLAN §7: sign in first, then the aha, then the tour. This screen is that first
- * beat given an address of its own, so a link in an email, a share, or the front page's own button
- * can land straight on it instead of dropping somebody into the middle of onboarding.
+ * The page is a CONVERSATION WITH A CHARACTER, so it is laid out as one: Wobo and what Wobo is
+ * saying on the left, the thing you do on the right, stacking below 900px. That is the whole reason
+ * the screen this replaces read as a template — everything was stacked dead centre in one narrow
+ * column, and the parts of the page that talk and the parts that act were indistinguishable.
  *
- * It wears the site shell's door chrome (the wordmark and the other door, no pill nav) and draws
- * the sign-in screen of design/prototypes/onboarding-v2.html: Wobo's head, one line in Wobo's hand,
- * the headline, the fields on paper-2, one pig button, a rule with a word in it, and the quiet
- * doors under it.
+ * Four things carry the design, and each of them is a decision rather than a decoration:
  *
- * Honesty is the load-bearing choice here. Every way in is rendered, and the ones the app's single
- * auth client does not expose are rendered DISABLED with one line saying so, rather than hidden or,
- * worse, wired to nothing. `client.ts` decides that by feature detection, so the day the SDK grows
- * a seam the door opens by itself.
+ *  · THE FIELD IS A RULED LINE, not a box. The rule under it is neutral at rest and takes the
+ *    pigment when the field is focused, drawn across from the left. Its leading glyph BECOMES a
+ *    phone the moment what is typed reads like a number, and the input's `inputmode` changes with
+ *    it so the right keyboard opens. `field.ts` decides that; it is the point of the design.
+ *  · ONE saturated thing on the page: the primary action. Everything else is a white surface on a
+ *    soft shadow, so the page has a clear first move instead of four buttons of equal weight.
+ *  · A WAY IN THAT IS NOT OPEN keeps its shape and carries a `soon` chip. Never a dead grey slab
+ *    with an apology sentence under it, and never a rule with nothing on the far side of it —
+ *    `doors.ts` holds both of those rules and is tested on them.
+ *  · WOBO LOOKS AT THE FIELD when it is focused, through the rig's own `focus` channel. Wobo is
+ *    watching what you are doing, which is what a tutor does.
+ *
+ * AN ERROR CARRIES THE CONTROL IT IS ABOUT, not just a sentence. One `error` string used to paint
+ * every field on the page, so pressing the button with a valid phone number and an unticked consent
+ * box set `aria-invalid` on the phone field and pointed its `aria-describedby` at a line about the
+ * terms — telling a screen-reader user their correct answer was wrong and explaining something
+ * else. `problem.ts` holds the sentence and the place; `'form'` is the honest place for a failure
+ * that belongs to no field, and nothing is marked invalid for one of those.
+ *
+ * Honesty is still the load-bearing choice. Every control on this page is wired to a seam the ONE
+ * auth client (`client.ts`, read by feature detection) actually exposes; a way in that is not wired
+ * is drawn as a shape that says so, and where nothing at all is wired no control is drawn. The day
+ * the SDK grows a seam, the door opens by itself with no edit here.
  */
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from '../../shell/router';
 import { useSdk } from '../../store/sdk';
-import { WoboHead } from '../../ui/primitives';
-import { SiteShell } from '../site/SiteShell';
+import { WoboHead, Wordmark } from '../../ui/primitives';
+import { SiteLink } from '../site/nav';
 import { failureFromAuthReturn, reportFailure } from '../states/select';
 import { ageOn, blockedBy, consentBranch, type SignUpFields } from './age';
-import { callSeam, liveSeams, type MethodName, type MethodState, methodStates } from './client';
+import { callSeam, liveSeams, type MethodName, methodStates } from './client';
 import {
   ACTIONS,
   CHILD_DOOR,
   CONSENT,
+  DOOR_LEGAL,
   ERRORS,
   FIELDS,
   METHODS,
-  NO_EMAIL_WAY,
+  NO_WAY_IN,
   NOT_WIRED,
   PARENT,
   SENT,
   SIGN_IN,
   SIGN_UP,
+  SOON,
 } from './copy';
+import { type ProviderName, waysIn } from './doors';
+import { fieldProblem, fieldShape, type Glyph } from './field';
+import { marks, type Problem, type Where, whereBlocked, whereField } from './problem';
+import { ensureAuthStyles } from './styles';
+
+// The chunk arriving IS the door being opened, so the sheet goes in at import time. An effect would
+// let the first paint land unstyled for a frame.
+ensureAuthStyles();
 
 type Mode = 'sign-in' | 'sign-up';
 /** What the screen is showing: the form, or what happened after it was sent. */
 type Stage = 'form' | 'link-sent' | 'code' | 'parent-sent';
 
-const MIN_PASSWORD = 8;
+/**
+ * The beats of the run, for the bar's stepper. The door is the first of them, which is what the
+ * stepper is there to say: this is the start of something, not a wall in front of it.
+ */
+const RUN_STEPS = [1, 2, 3, 4, 5] as const;
+const RUN_LABEL = 'Step one of five';
 
-/** The account the learner already has, drawn rather than fetched — no third-party logo request. */
-function ProviderGlyph({ name }: { name: MethodName }) {
+/**
+ * The glyph at the head of the ruled line. Two shapes, one element: the envelope becomes a phone as
+ * soon as what is being typed reads like a number.
+ */
+function FieldGlyph({ glyph }: { glyph: Glyph | 'calendar' | 'lock' }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {glyph === 'phone' ? (
+        <>
+          <rect x="6" y="2.5" width="12" height="19" rx="3" />
+          <path d="M10.6 18.4h2.8" />
+        </>
+      ) : glyph === 'calendar' ? (
+        <>
+          <rect x="3" y="5" width="18" height="16" rx="3" />
+          <path d="M3 10.5h18M8 3v4M16 3v4" />
+        </>
+      ) : glyph === 'lock' ? (
+        <>
+          <rect x="4" y="10" width="16" height="11" rx="3" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </>
+      ) : (
+        <>
+          <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+          <path d="M3 7l9 6 9-6" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+/** The account a learner already has, drawn rather than fetched — no third-party logo request. */
+function ProviderMark({ name }: { name: ProviderName }) {
   if (name === 'google') {
     return (
-      <svg className="wa-glyph" viewBox="0 0 16 16" aria-hidden focusable="false">
-        <title>Google</title>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path
-          d="M8 3.4c1.2 0 2.1.5 2.6 1l1.9-1.9C11.4 1.4 9.9.8 8 .8A7.2 7.2 0 0 0 1.6 4.7l2.2 1.7C4.3 4.7 6 3.4 8 3.4Z"
-          fill="currentColor"
-          opacity="0.9"
+          fill="#4285F4"
+          d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6z"
         />
         <path
-          d="M15.1 8.2c0-.5 0-.9-.1-1.4H8v2.7h4a3.4 3.4 0 0 1-1.5 2.2l2.2 1.7c1.3-1.2 2.4-3 2.4-5.2Z"
-          fill="currentColor"
-          opacity="0.55"
+          fill="#34A853"
+          d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3C3.7 21.5 7.6 24 12 24z"
         />
+        <path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3z" />
         <path
-          d="M3.8 9.6a4.3 4.3 0 0 1 0-2.9L1.6 5A7.2 7.2 0 0 0 .8 8.2c0 1.2.3 2.3.8 3.2l2.2-1.8Z"
-          fill="currentColor"
-          opacity="0.4"
-        />
-        <path
-          d="M8 15.6c1.9 0 3.5-.6 4.7-1.7l-2.2-1.7c-.6.4-1.4.7-2.5.7-2 0-3.7-1.3-4.2-3.1L1.6 11.4A7.2 7.2 0 0 0 8 15.6Z"
-          fill="currentColor"
-          opacity="0.7"
+          fill="#EA4335"
+          d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.6 0 3.7 2.5 1.8 6.1l3.8 3C6.5 6.7 9 4.8 12 4.8z"
         />
       </svg>
     );
   }
-  if (name === 'apple') {
-    return (
-      <svg className="wa-glyph" viewBox="0 0 16 16" aria-hidden focusable="false">
-        <title>Apple</title>
-        <path
-          d="M11 8.5c0-1.6 1.3-2.4 1.4-2.4-.8-1.1-2-1.3-2.4-1.3-1-.1-2 .6-2.5.6s-1.3-.6-2.1-.6c-1.1 0-2.1.6-2.7 1.6-1.1 2-.3 4.9.8 6.5.6.8 1.2 1.7 2 1.6.8 0 1.1-.5 2.1-.5s1.2.5 2.1.5 1.4-.8 1.9-1.6c.6-.9.9-1.8.9-1.8s-1.6-.6-1.5-2.6Zm-1.7-4.8c.4-.5.7-1.3.6-2-.6 0-1.4.4-1.9 1-.4.5-.7 1.3-.6 2 .7.1 1.4-.4 1.9-1Z"
-          fill="currentColor"
-        />
-      </svg>
-    );
-  }
-  return null;
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor">
+      <path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.7 2.3 2.9 2.2 1.2 0 1.6-.7 3-.7 1.4 0 1.8.7 3 .7 1.3 0 2.1-1.1 2.8-2.2.9-1.2 1.3-2.5 1.3-2.5s-2.5-1-2.5-3.6zM14.2 5.3c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z" />
+    </svg>
+  );
 }
 
 /**
- * One way in. A door that cannot be used keeps its place and says why in one line, without alarm —
- * hiding it would leave a learner hunting for something they were told existed, and leaving it live
- * would fail in their hands.
+ * One way in that uses an account the learner already has.
+ *
+ * A door that is not open yet KEEPS ITS SHAPE and carries a small `soon` chip. It is not hidden —
+ * a door somebody was told about and cannot find is worse than one that says it is coming — and it
+ * is not a dead grey slab with an apology printed underneath it either. The whole sentence is the
+ * button's accessible description, so a screen reader gets the truth without the page carrying a
+ * paragraph of excuses. The `soon` chip is text, so nothing here is said by colour alone.
  */
-function Door({
-  state,
-  label,
+function ProviderButton({
+  name,
+  open,
   busy,
-  shut,
   onSelect,
 }: {
-  state: MethodState;
-  label: string;
+  name: ProviderName;
+  open: boolean;
   busy: boolean;
-  /** Why this door cannot be used right now. Null when it can. */
-  shut: string | null;
   onSelect: () => void;
 }) {
-  const shutId = `${state.name}-shut`;
+  const shutId = `au-${name}-shut`;
   return (
-    <div className="wa-form">
+    <>
       <button
         type="button"
-        className="st-btn st-quiet"
-        disabled={shut !== null || busy}
-        onClick={onSelect}
-        {...(shut === null ? {} : { 'aria-describedby': shutId })}
+        className="au-btn au-prov"
+        {...(open
+          ? { disabled: busy, onClick: onSelect }
+          : { 'aria-disabled': true as const, 'aria-describedby': shutId })}
       >
-        <ProviderGlyph name={state.name} />
-        {label}
+        <ProviderMark name={name} />
+        {METHODS[name]}
+        {open ? null : <span className="au-soon">{SOON}</span>}
       </button>
-      {shut === null ? null : (
-        <p className="wa-fine" id={shutId}>
-          {shut}
-        </p>
+      {open ? null : (
+        <span id={shutId} hidden>
+          {NOT_WIRED}
+        </span>
       )}
-    </div>
+    </>
   );
 }
 
@@ -135,6 +186,7 @@ export function Auth({ mode }: { mode: Mode }) {
   const router = useRouter();
   const sdk = useSdk();
   const words = mode === 'sign-in' ? SIGN_IN : SIGN_UP;
+  const other: Mode = mode === 'sign-in' ? 'sign-up' : 'sign-in';
 
   // The ONE auth client the app already built, read as a bag of seams. No second client is made
   // here and none may ever be — two places minting sessions is two places to get refresh wrong.
@@ -148,17 +200,41 @@ export function Auth({ mode }: { mode: Mode }) {
     [sdk],
   );
   const states = useMemo(() => methodStates(seams), [seams]);
-  const by = (name: MethodName): MethodState =>
-    states.find((s) => s.name === name) ?? { name, seam: null, available: false };
+  const ways = useMemo(() => waysIn(states), [states]);
+  const seamOf = (name: MethodName): string | null =>
+    states.find((state) => state.name === name)?.seam ?? null;
 
   const [stage, setStage] = useState<Stage>('form');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
+  // A SENTENCE AND THE CONTROL IT IS ABOUT, never a sentence on its own. One `error` string used to
+  // paint every field on the page, so a missing consent tick marked a valid phone number invalid
+  // and pointed its `aria-describedby` at a line about the terms. `problem.ts` holds the mapping.
+  const [problem, setProblem] = useState<Problem | null>(null);
+  const [who, setWho] = useState('');
   const [password, setPassword] = useState('');
-  const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [looking, setLooking] = useState(false);
   const [fields, setFields] = useState<SignUpFields>({ birth: '', parentEmail: '', agreed: false });
+
+  const whoField = useRef<HTMLDivElement>(null);
+  const whoInput = useRef<HTMLInputElement>(null);
+
+  // The tab's name while a door is open, put back on the way out. (The site shell does this for
+  // every other public page; these two wear their own chrome and so carry their own.)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const previous = document.title;
+    document.title = `${words.tab} — Wobo`;
+    return () => {
+      document.title = previous;
+    };
+  }, [words.tab]);
+
+  // A fresh document starts at its top: arriving from halfway down another page must not leave the
+  // reader halfway down this one.
+  useEffect(() => {
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0 });
+  }, []);
 
   // A sign-in link that came back dead. The address is read once and then scrubbed, so the state
   // cannot fire again on a reload and the dead token never sits in the learner's history.
@@ -174,32 +250,59 @@ export function Auth({ mode }: { mode: Mode }) {
 
   const age = fields.birth ? ageOn(fields.birth) : null;
   const branch = age === null ? null : consentBranch(age);
-  // Under 13 the account is a parent's, so the provider doors are not this learner's to open: the
-  // only way on is the message to a parent, which is the block already open below them.
+  // Under 13 the account is a parent's, so none of the learner's own doors are theirs to open: the
+  // only way on is the message to the parent's own address, which takes the whole column.
   const childHolds = mode === 'sign-up' && branch?.parentRequired === true;
-  /** Why a provider door cannot be used, or null when it can. */
-  const doorShut = (name: MethodName): string | null =>
-    childHolds ? CHILD_DOOR : by(name).available ? null : NOT_WIRED;
-  // The email half of the form exists only if there is something behind it. A form with no seam is
-  // a form that fails on submit, which is the worst way to find out.
-  const emailWayIn = by('password').available || by('magicLink').available;
-  // A child's account is created by writing to a parent, so that path needs the link seam and
-  // nothing else; everybody else needs an email way in.
-  const canSubmit = childHolds ? by('magicLink').available : emailWayIn;
+
+  const shape = fieldShape(ways.identifier, who);
+  const errorId = 'au-error';
+  const hintId = 'au-who-hint';
+  const error = problem?.message ?? null;
+  const fail = (message: string, where: Where) => setProblem({ message, where });
+  /** `data-invalid` on the control this problem is about, and on no other. */
+  const wrong = (where: Where) =>
+    marks(problem, where) ? { 'data-invalid': 'true' as const } : {};
+  const invalid = (where: Where) =>
+    marks(problem, where) ? { 'aria-invalid': true as const } : {};
+  /** A control's own descriptions, with the error sentence added only where the error is its. */
+  const describedBy = (where: Where, ...ids: string[]): string =>
+    (marks(problem, where) ? [...ids, errorId] : ids).join(' ');
+  const hint =
+    ways.identifier === 'both'
+      ? FIELDS.whoHintEither
+      : ways.identifier === 'phone'
+        ? FIELDS.whoHintCode
+        : FIELDS.whoHintLink;
+  const fieldLabel =
+    ways.identifier === 'both'
+      ? FIELDS.who
+      : ways.identifier === 'phone'
+        ? FIELDS.phone
+        : FIELDS.email;
+  const placeholder =
+    ways.identifier === 'both'
+      ? FIELDS.placeholderWho
+      : ways.identifier === 'phone'
+        ? FIELDS.placeholderPhone
+        : FIELDS.placeholderEmail;
+  /** The email half needs a password only where the client's email seam IS the password one. */
+  const wantsPassword = shape.sends === 'link' && ways.emailSeam === 'password';
 
   const run = async (job: () => Promise<unknown>, then?: () => void) => {
     setBusy(true);
-    setError(null);
+    setProblem(null);
     try {
       await job();
       then?.();
     } catch (err) {
       // Never a provider's sentence and never a status code — one of Wobo's lines, or the honest
-      // catch-all when we genuinely cannot tell what happened.
-      setError(
+      // catch-all when we genuinely cannot tell what happened. It belongs to the FORM and to no
+      // field: nothing the learner typed was wrong, so nothing they typed is marked wrong.
+      fail(
         typeof navigator !== 'undefined' && navigator.onLine === false
           ? ERRORS.offline
           : ERRORS.unknown,
+        'form',
       );
       console.error('sign-in failed', err);
     } finally {
@@ -210,13 +313,13 @@ export function Auth({ mode }: { mode: Mode }) {
   /**
    * What is still in the way of creating an account, said out loud. Returns true when the learner
    * cannot go on yet — the SAME gate for every door, so signing in with a provider can never walk
-   * past the age question or the consent tick the email form asks for.
+   * past the age question or the consent tick the field asks for.
    */
   const gated = (): boolean => {
     if (mode !== 'sign-up') return false;
     const blocked = blockedBy(fields);
     if (!blocked) return false;
-    setError(
+    fail(
       blocked === 'birth'
         ? ERRORS.birth
         : blocked === 'birth-invalid'
@@ -224,314 +327,431 @@ export function Auth({ mode }: { mode: Mode }) {
           : blocked === 'parent-email'
             ? ERRORS.parentEmail
             : ERRORS.agree,
+      whereBlocked(blocked),
     );
     return true;
   };
 
-  const openProvider = (name: MethodName) => {
-    const seam = by(name).seam;
+  const openProvider = (name: ProviderName) => {
+    const seam = seamOf(name);
     if (!seam || gated()) return;
     const redirectTo = typeof window === 'undefined' ? undefined : `${window.location.origin}/`;
     void run(() => callSeam(seams, seam, redirectTo));
   };
 
-  const sendCode = () => {
-    const seam = by('phone').seam;
-    if (!seam) return;
-    void run(
-      () => callSeam(seams, seam, phone.trim()),
-      () => setStage('code'),
-    );
-  };
-
   const verifyCode = () => {
     const verify = typeof seams.verifyPhoneOtp === 'function' ? 'verifyPhoneOtp' : null;
-    if (!verify) return;
+    if (!verify) {
+      fail(ERRORS.unknown, 'form');
+      return;
+    }
     void run(
-      () => callSeam(seams, verify, phone.trim(), code.trim()),
-      () => router.replace({ name: 'onboarding' }),
+      () => callSeam(seams, verify, who.trim(), code.trim()),
+      () => router.replace({ name: mode === 'sign-up' ? 'onboarding' : 'home' }),
     );
   };
 
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (mode === 'sign-up') {
-      if (gated()) return;
-      // Under 13 the account is the parent's, so the next step is a message to the parent's own
-      // address — a tick on a child's screen is never parental consent (parental-consent.md §2).
-      if (branch?.parentRequired) {
-        const seam = by('magicLink').seam;
-        if (!seam) {
-          setError(ERRORS.unknown);
-          return;
-        }
-        void run(
-          () => callSeam(seams, seam, fields.parentEmail.trim()),
-          () => setStage('parent-sent'),
-        );
-        return;
-      }
+  /** Send whatever the one field is holding, down whichever seam it belongs to. */
+  const sendIdentifier = () => {
+    const wrongField = fieldProblem(ways.identifier, who);
+    if (wrongField) {
+      fail(ERRORS[wrongField], whereField(wrongField));
+      whoInput.current?.focus();
+      return;
     }
-    const passwordSeam = by('password').seam;
-    if (passwordSeam) {
-      if (!email.includes('@')) {
-        setError(ERRORS.email);
-        return;
-      }
-      if (password.length < MIN_PASSWORD) {
-        setError(ERRORS.password);
+    const value = who.trim();
+    if (shape.sends === 'code') {
+      const seam = seamOf('phone');
+      if (!seam) {
+        fail(ERRORS.unknown, 'form');
         return;
       }
       void run(
-        () => callSeam(seams, passwordSeam, email.trim(), password),
+        () => callSeam(seams, seam, value),
+        () => {
+          setCode('');
+          setStage('code');
+        },
+      );
+      return;
+    }
+    if (wantsPassword) {
+      const seam = seamOf('password');
+      if (!seam) {
+        fail(ERRORS.unknown, 'form');
+        return;
+      }
+      if (password.length < 8) {
+        fail(ERRORS.password, 'password');
+        return;
+      }
+      void run(
+        () => callSeam(seams, seam, value, password),
         () => router.replace({ name: mode === 'sign-up' ? 'onboarding' : 'home' }),
       );
       return;
     }
-    const linkSeam = by('magicLink').seam;
-    if (linkSeam) {
-      if (!email.includes('@')) {
-        setError(ERRORS.email);
+    const seam = seamOf('magicLink');
+    if (!seam) {
+      fail(ERRORS.unknown, 'form');
+      return;
+    }
+    void run(
+      () => callSeam(seams, seam, value),
+      () => setStage('link-sent'),
+    );
+  };
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (gated()) return;
+    // Under 13 the account is the parent's, so the next step is a message to the parent's own
+    // address — a tick on a child's screen is never parental consent (parental-consent.md §2).
+    if (childHolds) {
+      const seam = seamOf('magicLink');
+      if (!seam) {
+        fail(ERRORS.unknown, 'form');
         return;
       }
       void run(
-        () => callSeam(seams, linkSeam, email.trim()),
-        () => setStage('link-sent'),
+        () => callSeam(seams, seam, fields.parentEmail.trim()),
+        () => setStage('parent-sent'),
       );
       return;
     }
-    setError(ERRORS.unknown);
+    sendIdentifier();
   };
 
-  const other: Mode = mode === 'sign-in' ? 'sign-up' : 'sign-in';
-  const title = stage === 'link-sent' || stage === 'parent-sent' ? SENT.title : words.title;
+  const primaryLabel = childHolds
+    ? ACTIONS.askParent
+    : shape.sends === 'code'
+      ? ACTIONS.sendCode
+      : wantsPassword
+        ? mode === 'sign-up'
+          ? ACTIONS.signUp
+          : ACTIONS.signIn
+        : ACTIONS.sendLink;
+
+  /** The headline and the line under it, which are the same conversation at every stage. */
+  const said =
+    stage === 'link-sent'
+      ? { title: SENT.title, lede: SENT.body }
+      : stage === 'code'
+        ? { title: SENT.codeTitle, lede: SENT.codeBody }
+        : stage === 'parent-sent'
+          ? { title: PARENT.sentTitle, lede: PARENT.sent }
+          : { title: words.title, lede: words.lede };
+
+  const errorNote = error ? (
+    <p className="au-error" id={errorId} role="alert">
+      {error}
+    </p>
+  ) : null;
 
   return (
-    <SiteShell
-      title={`${words.title} — Wobo`}
-      label={words.title}
-      door={{ label: words.switchAction, to: { name: other } }}
-    >
-      <div className="st-wrap">
-        <div className="wa">
-          <div className="wa-card">
-            {/* Wobo, present but not in the way (DESIGN.md §4): the head and one line, no more. */}
-            <WoboHead size={120} shadow mood="greeting" />
-            <div className="wa-bub">{words.hand}</div>
-            <h1>{title}</h1>
-            <p className="wa-sub">
-              {stage === 'parent-sent'
-                ? PARENT.sent
-                : stage === 'link-sent'
-                  ? SENT.body
-                  : words.body}
-            </p>
+    <div className="au">
+      <a className="au-skip" href="#au-main">
+        Skip to the page
+      </a>
 
-            {stage === 'form' ? (
+      {/* the bar: the name, where you are in the run, and the other door */}
+      <div className="au-top">
+        <div className="au-wrap">
+          <SiteLink to={{ name: 'landing' }} className="au-mark" aria-label="Wobo, the front page">
+            <Wordmark />
+          </SiteLink>
+          {mode === 'sign-up' ? (
+            <div className="au-steps" role="img" aria-label={RUN_LABEL}>
+              {RUN_STEPS.map((step) => (
+                <i key={step} className={step === 1 ? 'au-on' : undefined} />
+              ))}
+            </div>
+          ) : null}
+          <SiteLink
+            to={{ name: other }}
+            className={mode === 'sign-up' ? 'au-other' : 'au-other au-doorbtn'}
+          >
+            {mode === 'sign-up' ? (
               <>
-                <div className="wa-form">
-                  <Door
-                    state={by('google')}
-                    label={METHODS.google}
-                    busy={busy}
-                    shut={doorShut('google')}
-                    onSelect={() => openProvider('google')}
-                  />
-                  <Door
-                    state={by('apple')}
-                    label={METHODS.apple}
-                    busy={busy}
-                    shut={doorShut('apple')}
-                    onSelect={() => openProvider('apple')}
-                  />
-                  {by('phone').available ? (
-                    <Door
-                      state={by('phone')}
-                      label={METHODS.phone}
-                      busy={busy}
-                      shut={doorShut('phone')}
-                      onSelect={() => {
-                        if (!gated()) setStage('code');
-                      }}
-                    />
-                  ) : null}
-                </div>
-
-                <div className="wa-or">{ACTIONS.or}</div>
-
-                <form className="wa-form" onSubmit={submit} noValidate>
-                  {emailWayIn ? (
-                    <>
-                      <div className="st-field">
-                        <label htmlFor="wa-email">{FIELDS.email}</label>
-                        <input
-                          id="wa-email"
-                          type="email"
-                          autoComplete="email"
-                          inputMode="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                        />
-                      </div>
-                      {by('password').available ? (
-                        <div className="st-field">
-                          <label htmlFor="wa-password">{FIELDS.password}</label>
-                          <input
-                            id="wa-password"
-                            type="password"
-                            autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'}
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                          />
-                        </div>
-                      ) : (
-                        <p className="wa-fine">{`${METHODS.password}: ${NOT_WIRED}`}</p>
-                      )}
-                    </>
-                  ) : (
-                    // No seam behind an email field is a form that fails on submit, which is the
-                    // worst possible way for somebody to find out. Say it instead of drawing it.
-                    <p className="wa-fine">{NO_EMAIL_WAY}</p>
-                  )}
-
-                  {mode === 'sign-up' ? (
-                    <>
-                      <div className="st-field">
-                        <label htmlFor="wa-birth">{FIELDS.birth}</label>
-                        <input
-                          id="wa-birth"
-                          type="date"
-                          autoComplete="bday"
-                          value={fields.birth}
-                          onChange={(e) => setFields((f) => ({ ...f, birth: e.target.value }))}
-                        />
-                        <p className="st-hint">{FIELDS.birthWhy}</p>
-                      </div>
-
-                      {branch && branch.band !== 'adult' ? (
-                        <div className="wa-parent">
-                          <h2>{PARENT.title}</h2>
-                          <p>{branch.notice}</p>
-                          <p>{PARENT.body}</p>
-                          <p>{PARENT.learning}</p>
-                          <div className="st-field" style={{ marginTop: 6 }}>
-                            <label htmlFor="wa-parent-email">{FIELDS.parentEmail}</label>
-                            <input
-                              id="wa-parent-email"
-                              type="email"
-                              inputMode="email"
-                              value={fields.parentEmail}
-                              onChange={(e) =>
-                                setFields((f) => ({ ...f, parentEmail: e.target.value }))
-                              }
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <label className="wa-consent" htmlFor="wa-agree">
-                        <input
-                          id="wa-agree"
-                          type="checkbox"
-                          checked={fields.agreed}
-                          onChange={(e) => setFields((f) => ({ ...f, agreed: e.target.checked }))}
-                        />
-                        <span>
-                          {`${CONSENT.lead} `}
-                          <a href={CONSENT.termsHref}>{CONSENT.terms}</a>
-                          {` ${CONSENT.and} `}
-                          <a href={CONSENT.privacyHref}>{CONSENT.privacy}</a>.
-                        </span>
-                      </label>
-                    </>
-                  ) : null}
-
-                  {canSubmit ? (
-                    <button type="submit" className="st-btn st-pig" disabled={busy}>
-                      {childHolds
-                        ? ACTIONS.askParent
-                        : by('password').available
-                          ? mode === 'sign-up'
-                            ? ACTIONS.signUp
-                            : ACTIONS.signIn
-                          : ACTIONS.sendLink}
-                    </button>
-                  ) : childHolds ? (
-                    <p className="wa-fine">{PARENT.cannotSend}</p>
-                  ) : null}
-                  {emailWayIn && !by('magicLink').available ? (
-                    <p className="wa-fine">{`${METHODS.magicLink}: ${NOT_WIRED}`}</p>
-                  ) : null}
-                </form>
+                <span className="au-lead">{words.switchPrompt}</span>
+                <b>{words.switchAction}</b>
               </>
-            ) : null}
-
-            {stage === 'code' ? (
-              <form
-                className="wa-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (code.trim()) verifyCode();
-                  else sendCode();
-                }}
-                noValidate
-              >
-                <div className="st-field">
-                  <label htmlFor="wa-phone">{FIELDS.phone}</label>
-                  <input
-                    id="wa-phone"
-                    type="tel"
-                    autoComplete="tel"
-                    inputMode="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
-                <div className="st-field">
-                  <label htmlFor="wa-code">{FIELDS.code}</label>
-                  <input
-                    id="wa-code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                  />
-                </div>
-                <button type="submit" className="st-btn st-pig" disabled={busy}>
-                  {code.trim() ? ACTIONS.verify : ACTIONS.sendCode}
-                </button>
-              </form>
-            ) : null}
-
-            {stage === 'link-sent' ? (
-              <div className="wa-form">
-                <button
-                  type="button"
-                  className="st-btn st-quiet"
-                  disabled={busy}
-                  onClick={() => setStage('form')}
-                >
-                  {SENT.again}
-                </button>
-              </div>
-            ) : null}
-
-            {error ? (
-              <p className="wa-error" role="alert">
-                {error}
-              </p>
-            ) : null}
-
-            <p className="wa-switch">
-              {`${words.switchPrompt} `}
-              <button type="button" onClick={() => router.navigate({ name: other })}>
-                {words.switchAction}
-              </button>
-            </p>
-          </div>
+            ) : (
+              words.switchAction
+            )}
+          </SiteLink>
         </div>
       </div>
-    </SiteShell>
+
+      <main className="au-body" id="au-main" aria-label={words.tab}>
+        <div className="au-wrap">
+          <div className="au-grid">
+            {/* what Wobo says */}
+            <div className="au-say">
+              <div className="au-who">
+                <WoboHead
+                  className="au-face"
+                  size={84}
+                  shadow
+                  mood={looking ? 'listening' : 'greeting'}
+                  focus={looking ? whoField.current : null}
+                />
+                <span className="au-bubble">{words.hand}</span>
+              </div>
+              <h1>{said.title}</h1>
+              <p className="au-lede">{said.lede}</p>
+            </div>
+
+            {/* what you do */}
+            <div className="au-act">
+              {stage === 'form' ? (
+                <>
+                  {/* Nothing to fill in where nothing can be sent: a date of birth and a consent
+                      tick with no button under them is a form that has given up. */}
+                  {ways.anyOpen ? (
+                    <form onSubmit={submit} noValidate>
+                      {ways.identifier !== 'none' && !childHolds ? (
+                        <>
+                          <label className="au-lab" htmlFor="au-who">
+                            {fieldLabel}
+                          </label>
+                          <div className="au-field" ref={whoField} {...wrong('who')}>
+                            <FieldGlyph glyph={shape.glyph} />
+                            <input
+                              id="au-who"
+                              ref={whoInput}
+                              type="text"
+                              value={who}
+                              inputMode={shape.inputMode}
+                              autoComplete={shape.autoComplete}
+                              placeholder={placeholder}
+                              aria-describedby={describedBy('who', hintId)}
+                              {...invalid('who')}
+                              onFocus={() => setLooking(true)}
+                              onBlur={() => setLooking(false)}
+                              onChange={(e) => setWho(e.target.value)}
+                            />
+                          </div>
+                          <p className="au-fine" id={hintId}>
+                            {hint}
+                          </p>
+                          {wantsPassword ? (
+                            <>
+                              <label className="au-lab" htmlFor="au-password">
+                                {FIELDS.password}
+                              </label>
+                              <div className="au-field" {...wrong('password')}>
+                                <FieldGlyph glyph="lock" />
+                                <input
+                                  id="au-password"
+                                  type="password"
+                                  value={password}
+                                  {...invalid('password')}
+                                  {...(marks(problem, 'password')
+                                    ? { 'aria-describedby': errorId }
+                                    : {})}
+                                  autoComplete={
+                                    mode === 'sign-up' ? 'new-password' : 'current-password'
+                                  }
+                                  onChange={(e) => setPassword(e.target.value)}
+                                />
+                              </div>
+                            </>
+                          ) : null}
+                        </>
+                      ) : null}
+
+                      {mode === 'sign-up' ? (
+                        <>
+                          <label className="au-lab" htmlFor="au-birth">
+                            {FIELDS.birth}
+                          </label>
+                          <div className="au-field" {...wrong('birth')}>
+                            <FieldGlyph glyph="calendar" />
+                            <input
+                              id="au-birth"
+                              type="date"
+                              autoComplete="bday"
+                              value={fields.birth}
+                              {...invalid('birth')}
+                              aria-describedby={describedBy('birth', 'au-birth-why')}
+                              onChange={(e) => setFields((f) => ({ ...f, birth: e.target.value }))}
+                            />
+                          </div>
+                          <p className="au-fine" id="au-birth-why">
+                            {FIELDS.birthWhy}
+                          </p>
+
+                          {branch && branch.band !== 'adult' ? (
+                            <div className="au-parent">
+                              <h2>{PARENT.title}</h2>
+                              <p>{branch.notice}</p>
+                              <p>{PARENT.body}</p>
+                              <p>{PARENT.learning}</p>
+                              {childHolds ? <p>{CHILD_DOOR}</p> : null}
+                              <label className="au-lab" htmlFor="au-parent-email">
+                                {FIELDS.parentEmail}
+                              </label>
+                              <div className="au-field" {...wrong('parent-email')}>
+                                <FieldGlyph glyph="envelope" />
+                                <input
+                                  id="au-parent-email"
+                                  type="email"
+                                  inputMode="email"
+                                  autoComplete="email"
+                                  value={fields.parentEmail}
+                                  {...invalid('parent-email')}
+                                  {...(marks(problem, 'parent-email')
+                                    ? { 'aria-describedby': errorId }
+                                    : {})}
+                                  onChange={(e) =>
+                                    setFields((f) => ({ ...f, parentEmail: e.target.value }))
+                                  }
+                                />
+                              </div>
+                            </div>
+                          ) : null}
+
+                          <label className="au-consent" htmlFor="au-agree" {...wrong('consent')}>
+                            <input
+                              id="au-agree"
+                              type="checkbox"
+                              checked={fields.agreed}
+                              {...invalid('consent')}
+                              {...(marks(problem, 'consent')
+                                ? { 'aria-describedby': errorId }
+                                : {})}
+                              onChange={(e) =>
+                                setFields((f) => ({ ...f, agreed: e.target.checked }))
+                              }
+                            />
+                            <span>
+                              {`${CONSENT.lead} `}
+                              <a href={CONSENT.termsHref}>{CONSENT.terms}</a>
+                              {` ${CONSENT.and} `}
+                              <a href={CONSENT.privacyHref}>{CONSENT.privacy}</a>.
+                            </span>
+                          </label>
+                        </>
+                      ) : null}
+
+                      {errorNote}
+
+                      {/* the one saturated thing on the page */}
+                      {childHolds && !seamOf('magicLink') ? (
+                        <p className="au-fine">{PARENT.cannotSend}</p>
+                      ) : ways.identifier !== 'none' || childHolds ? (
+                        <button
+                          type="submit"
+                          className="au-btn au-go"
+                          disabled={busy}
+                          aria-busy={busy}
+                        >
+                          {primaryLabel}
+                        </button>
+                      ) : null}
+                    </form>
+                  ) : null}
+
+                  {/* the rule, drawn only when there is something on both sides of it */}
+                  {ways.divider && !childHolds ? (
+                    <div className="au-or">
+                      <span>{ACTIONS.or}</span>
+                    </div>
+                  ) : null}
+
+                  {childHolds || !ways.anyOpen
+                    ? null
+                    : ways.providers.map((door) => (
+                        <ProviderButton
+                          key={door.name}
+                          name={door.name}
+                          open={door.status === 'open'}
+                          busy={busy}
+                          onSelect={() => openProvider(door.name)}
+                        />
+                      ))}
+
+                  {/* nothing wired at all: say so, rather than draw a control that cannot work */}
+                  {ways.anyOpen ? null : <p className="au-fine">{NO_WAY_IN}</p>}
+                </>
+              ) : null}
+
+              {stage === 'code' ? (
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!code.trim()) {
+                      fail(ERRORS.code, 'code');
+                      return;
+                    }
+                    verifyCode();
+                  }}
+                  noValidate
+                >
+                  <label className="au-lab" htmlFor="au-code">
+                    {FIELDS.code}
+                  </label>
+                  <div className="au-field" {...wrong('code')}>
+                    <FieldGlyph glyph="phone" />
+                    <input
+                      id="au-code"
+                      value={code}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      aria-describedby={describedBy('code', 'au-code-hint')}
+                      {...invalid('code')}
+                      onChange={(e) => setCode(e.target.value)}
+                    />
+                  </div>
+                  <p className="au-fine" id="au-code-hint">
+                    {FIELDS.codeHint}
+                  </p>
+                  {errorNote}
+                  <button type="submit" className="au-btn au-go" disabled={busy} aria-busy={busy}>
+                    {ACTIONS.verify}
+                  </button>
+                  <button
+                    type="button"
+                    className="au-btn au-quiet"
+                    disabled={busy}
+                    onClick={() => {
+                      setProblem(null);
+                      setStage('form');
+                    }}
+                  >
+                    {ACTIONS.startOver}
+                  </button>
+                </form>
+              ) : null}
+
+              {stage === 'link-sent' ? (
+                <>
+                  {errorNote}
+                  <button
+                    type="button"
+                    className="au-btn au-quiet"
+                    disabled={busy}
+                    onClick={() => setStage('form')}
+                  >
+                    {SENT.again}
+                  </button>
+                </>
+              ) : null}
+
+              {stage === 'parent-sent' ? errorNote : null}
+            </div>
+          </div>
+
+          {/* Entitled to read what you are agreeing to, from where you stand. See DOOR_LEGAL. */}
+          <p className="au-legal">
+            {DOOR_LEGAL.lead}{' '}
+            <a href={CONSENT.termsHref}>{DOOR_LEGAL.terms}</a> {DOOR_LEGAL.and}{' '}
+            <a href={CONSENT.privacyHref}>{DOOR_LEGAL.privacy}</a>.
+          </p>
+        </div>
+      </main>
+    </div>
   );
 }
 

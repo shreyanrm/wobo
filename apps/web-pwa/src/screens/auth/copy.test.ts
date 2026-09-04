@@ -101,6 +101,16 @@ describe('the promises these pages make', () => {
     expect(copy.NOT_WIRED).not.toMatch(/error|failed|sorry/i);
   });
 
+  it('greets a new visitor on the door that makes an account, instead of sending them away', () => {
+    // The sign-up headline briefly read "Sign in so everything stays with you." — the instruction
+    // the OTHER door exists for, on the largest line of this one, two inches from a bar link that
+    // already says "Already have an account? Sign in".
+    expect(copy.SIGN_UP.title.toLowerCase()).not.toContain('sign in');
+    expect(copy.SIGN_UP.title).not.toBe(copy.SIGN_IN.title);
+    // and the headline still says what the door is for
+    expect(copy.SIGN_UP.title.length > 15).toBe(true);
+  });
+
   it('gives the contact page a real address rather than a form that goes nowhere', () => {
     expect(copy.CONTACT.address).toContain('@');
     expect(copy.CONTACT.mailtoNote).toMatch(/your own email app/i);

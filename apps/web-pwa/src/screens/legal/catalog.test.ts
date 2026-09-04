@@ -62,7 +62,7 @@ describe('indexRows', () => {
 describe('mailboxes', () => {
   it('collects every address once, in the order a reader meets them', () => {
     expect(
-      mailboxes(['write to support@heywobo.com', 'or Privacy@heywobo.com, or support@heywobo.com']),
-    ).toEqual(['support@heywobo.com', 'privacy@heywobo.com']);
+      mailboxes(['write to support@heywobo.com', 'or Second@example.com, or support@heywobo.com']),
+    ).toEqual(['support@heywobo.com', 'second@example.com']);
   });
 });
