@@ -54,8 +54,14 @@ saw as jitter on 2026-09-04.
   normal evening", "five times the free allowance". Free carries no multiplier at all.
 - **Location is inferred, never asked.** No country switch. Read the browser's time zone, or
   the request's country on the server, and show that currency.
-- **Promote before you invite.** Until the product opens, the closing call is early access,
-  not "begin tonight".
+- **We are open, and the call is "Start free".** (owner, 2026-09-04, supersedes "promote before
+  you invite") Anyone can sign up and use Wobo today, so no surface may imply a waitlist and
+  "Get early access" is retired. The phrase lives in one constant every surface reads.
+- **Never sell by running anything down.** (owner, 2026-09-04) Not a teacher, not a school, not a
+  tuition centre, not another product. No price comparison and no implication. We describe what
+  Wobo can do and let the reader judge. The pitch is "everything a great teacher does, for one
+  child, at ten at night", which honours the craft rather than borrowing against it.
+  The full conversion doctrine is docs/SELL.md.
 - **Drawing is one part.** Never let a surface imply the board is the whole product: it also
   films, simulates, speaks, practises, remembers and reports.
 - **Cancel, never refund.** (owner, 2026-09-04) We do not offer refunds. A subscriber cancels, keeps

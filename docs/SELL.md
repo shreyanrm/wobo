@@ -1,0 +1,211 @@
+# SELL.md — how the public site converts
+
+The law for every public surface. DESIGN.md says how it looks; this says what it is trying to
+achieve and in what order. Nothing on a public page is decorative, and nothing is there because a
+page of this kind usually has one.
+
+---
+
+## 0. The one sentence
+
+**A stranger arrives stuck, sees the thing work on their own question, learns it covers their exact
+syllabus, finds out it costs nothing to start, and begins.** Every section either moves that along
+or comes out.
+
+---
+
+## 1. Two people, one page
+
+The person who USES Wobo and the person who PAYS for it are not the same person, and they arrive
+with opposite feelings.
+
+| | The learner | The parent |
+|---|---|---|
+| Arrives feeling | stuck, behind, a bit stupid, and it is 10pm | worried, guilty, and out of their depth |
+| Wants | to understand this one thing, now, without being judged | to stop watching their child fall behind |
+| Fears | more homework, being talked down to, another boring app | wasting money again, and a stranger talking to their child |
+| Converts on | seeing it answer THEIR question | seeing what it costs and what it protects |
+
+The site must serve both without diluting either. The rule: **the page speaks to the learner and
+answers the parent.** A learner reads the promise; a parent reads the proof beside it.
+
+---
+
+## 2. What we are, and who we never talk down
+
+**Owner's ruling, 2026-09-04:** *"Lets not degrade tutors or say school is bad. All we do is we talk
+about what we are capable of and let the viewers be the judge of it. Let people judge us on our
+merit, which is our product capabilities. We are the world's first AI companion that visually
+explains, understands context in realtime anywhere, and generates content to personalise. It is one
+place where a modern teacher is recreated with no parity."*
+
+This is the strategy, and it is a better one than comparison. Naming a competitor puts you inside
+their category as an alternative to them. Naming a NEW category makes you the only one in it.
+
+### We never say
+
+A word against a teacher, a school, a tuition centre, or another product. Not a price comparison,
+not a jab, not an implication. A parent reading a page that runs down their child's teacher does not
+think less of the teacher; they think less of us. And most of the people we are selling to love a
+teacher who changed something for them.
+
+### We say instead
+
+**Everything a great teacher does, for one child, at ten at night.**
+
+That is the whole pitch, and it is respectful, aspirational and true. It borrows nothing from anyone
+else's reputation and takes nothing away from it. It also happens to be the most accurate
+description of what was actually built.
+
+Because a great teacher does six things that a chat window cannot, and Wobo does all six:
+
+| What a great teacher does | What Wobo does | Verifiable in |
+|---|---|---|
+| Draws it while explaining, so you watch the idea appear | answers on a board, line by line, and as a film, a thing to drag, or spoken aloud | the four answer forms |
+| Sees you have not got it, and tries a completely different way | changes method by itself on a repeated miss, never repeating the explanation that just failed | the re-teach ladder |
+| Knows what you already know, and what is missing underneath | tests the ground beneath a topic and teaches the gap first | prerequisite diagnosis |
+| Does not move the class on because it is Friday | does not move on until it stays learnt | mastery gating |
+| Remembers what you struggled with last month | brings it back before it is lost | the memory and the debt loop |
+| Uses an example from your world, not the textbook's | builds the example from what this learner cares about | interests to analogy |
+
+### The category line
+
+Wobo is not a chatbot that types answers. It is a tutor that draws, watches, and makes the thing you
+need in the moment it is needed.
+
+The sellable form of the owner's phrase, without a superlative anyone can argue with:
+
+> **The first tutor that shows its working.**
+> Ask it anything from your syllabus and the answer is drawn in front of you, line by line.
+
+**A note on "world's first", for the owner.** I can write it, and I will if you want it. My advice is
+that it is the weakest sentence available to us, for three reasons: it is the one claim on the page a
+sceptic can argue with instead of engaging; it is a comparative claim, which is regulated advertising
+in the EU and the UK and would need substantiation on request; and it is what every AI product says,
+so it signals sameness at the exact moment we are claiming difference. **"The first tutor that shows
+its working"** is a claim about the product rather than the market, it cannot be disproved by
+somebody finding an older competitor, and it points straight at the thing we actually do that
+nothing else does. Say the word and I will change it.
+
+## 3. The objection ladder
+
+Doubts arrive in a fixed order. The page must answer them in that order, because an answer given
+before the doubt lands is noise, and one given after it is too late.
+
+| # | The doubt, in their words | Where it is answered | The move |
+|---|---|---|---|
+| 1 | "What even is this?" | hero, first five seconds | one question, answered four ways, in front of them |
+| 2 | "Will it work for MY board and MY class?" | immediately after the hero | every board, every subject, and paste your own if yours is missing |
+| 3 | "Is this just ChatGPT with a logo?" | the teaching sections | it finds the hole, changes method when one misses, and does not move on |
+| 4 | "Will my child actually use it?" | the climb | checkpoints, a chest, a boss, and a vibe that is not childish |
+| 5 | "What does it cost?" | before the fold ends, not on another page | free every day forever, no card |
+| 6 | "Is my child safe here?" | after the price, before the ask | no ads, no selling, no tracking, and what we actually hold |
+| 7 | "What if it does not work out?" | at the ask | cancel in two taps, nothing renews, everything learnt stays |
+| 8 | "So what do I do now?" | one CTA, repeated | the same words every time |
+
+**The current homepage answers these in the order 1, 3, 3, 3, 4, 4, 5(parent), 2, 6, then the try.**
+Subjects, the single biggest qualifier, sits at position nine. The demo sits at eleven. That is a
+feature tour, not an argument, and it is the main thing this rework fixes.
+
+---
+
+## 4. The strongest asset we have, and where it must go
+
+**Letting someone ask their own question and watch it answered, with no account.** It is proof,
+demo, and activation in one move, and it is the only thing on this site that cannot be faked by a
+competitor's landing page.
+
+Today it is the eleventh section. It belongs in the first screen, and it should be the primary
+action on the homepage. Signing up is what happens AFTER the product has already worked once.
+
+---
+
+## 5. Proof, when there is no social proof
+
+We have no testimonials, no user count, no press. We will not invent any: an empty space beats a
+fabricated quote, and the owner has already caught this repo claiming audits it never had.
+
+So proof comes from the only three places it honestly can:
+
+1. **The product working, live, on the visitor's own question.** Strongest.
+2. **Specificity.** "₹1,666 a month" converts better than "affordable". "Every state board we hold
+   the official syllabus for" beats "comprehensive coverage". Every vague phrase is a conversion
+   leak and should be replaced with a fact or deleted.
+3. **Transparency as a trust signal.** The honest pricing table, the security page that lists what we
+   do not have, the cancel promise. A company that tells you what it cannot do is believed about
+   what it can.
+
+---
+
+## 6. One page, one job, one CTA
+
+Every public page has exactly ONE conversion goal and ONE primary action. A second action may exist
+but never at equal weight, because two equal calls to action convert worse than one.
+
+| Page | Its one job | Primary action | The quiet second |
+|---|---|---|---|
+| Home | make them try it | ask a question now | I am a parent |
+| Meet Wobo | make the tutor real | start free | how it works |
+| How it works | answer "why will this work when nothing else did" | try it on your own question | see plans |
+| For parents | close the payer | set it up for my child | see plans |
+| For students | close the user | start free | see subjects |
+| Subjects | remove the "does it cover mine" objection | find your board and start | ask about your subject |
+| Security | remove the fear | back to start free | read what we hold |
+| Plans | close the sale | choose a plan | start free instead |
+| Gift | a second buyer | give Wobo | how gifting works |
+| Donate | a third buyer | fund a place | ask for a place |
+| About | build belief | start free | read the security page |
+
+**Today every page closes with the same three actions of equal weight** ("Ask", "Start learning for
+free", "I'm a parent"). That is a template, not a funnel, and it is the second thing this rework
+fixes. Each page must hand off to the next step in the argument, not dump everyone into the same
+generic close.
+
+---
+
+## 7. The words for the call to action
+
+**One phrase, everywhere.** Today the site says "Get started" on seven pages and "Get early access"
+on the plans page. A visitor who clicks the first and reads the second learns that we do not know
+whether we are open. That doubt costs more than either phrase gains.
+
+The phrase therefore lives in ONE place in the code and every surface reads it from there, so it can
+be changed everywhere in one edit when the product opens.
+
+**SETTLED, owner 2026-09-04: WE ARE OPEN.** The phrase is **"Start free"** and the site says so
+everywhere. "Get early access" comes off the plans page and out of the copy law, and no surface may
+imply a waitlist. The funnel now drives to a working product rather than to an email box, which is
+both the stronger conversion and the honest one, because a stranger really can get in and learn
+something today.
+
+It lives in ONE constant that every surface reads, so it can never drift apart again.
+
+---
+
+## 8. Friction, and where it hides
+
+Every one of these costs conversions and every one is checkable:
+
+- A form field that is not strictly needed. Ask for the least that makes the product work.
+- A choice presented before the visitor cares. Location is inferred, never asked. Period defaults to
+  yearly. Board is asked once, inside the product, not on the way in.
+- A price that has to be hunted for on another page.
+- A dead control, a greyed button, or an apology for something not built. It keeps its shape and
+  says "soon".
+- A page that scrolls past its own point. Thirteen sections is twelve chances to leave.
+- Anything that loads slowly. The public site ships the site and nothing else.
+
+---
+
+## 9. What we will never do to convert
+
+The owner's standing law, and it is not negotiable for a product used by children.
+
+- No fabricated testimonial, user count, review or figure.
+- No countdown, no false scarcity, no "only today", no invented seasonal urgency.
+- No guilt, and no implying a child is lost if the reader closes the tab.
+- No dark pattern on the way out. Cancelling takes as many taps as subscribing.
+- No child's face, name, or story as marketing material.
+- Nothing claimed that cannot be shown working.
+
+A conversion won by any of these is a refund, a complaint, or a parent who tells other parents.
