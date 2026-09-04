@@ -72,19 +72,10 @@ export const APP_ROUTES: readonly RouteCase[] = [
   { id: 'learn', path: '/learn', ready: 'Your subjects' },
   { id: 'practice', path: '/practice', ready: 'This set' },
   { id: 'chat', path: '/chat', ready: 'One conversation, always' },
-  // `/progress` is the You screen's address: progress IS You (board 05), so the route hands over.
-  // This row's job is the HANDOVER — `you` below already measures the screen at every width and
-  // both themes, and a row that only re-measured it would count coverage twice. So it asserts the
-  // address actually moved, which nothing else in the suite can see.
-  {
-    id: 'progress',
-    path: '/progress',
-    ready: 'Learning strengths',
-    open: async (page) => {
-      const at = new URL(page.url()).pathname;
-      if (at !== '/you') throw new Error(`/progress did not hand over to /you — landed on ${at}`);
-    },
-  },
+  // `/progress` is the knowledge map and the parent's report (src/screens/progress). It used to
+  // hand over to `/you` and this row asserted the handover; the surfaces behind it were then
+  // unreachable from anywhere in the app, which is why the row now measures the screen itself.
+  { id: 'progress', path: '/progress', ready: 'Your map' },
   { id: 'you', path: '/you', ready: 'Learning strengths' },
   // The parent's read-only view of the You page, reached from its Parents card.
   { id: 'parent', path: '/parent', ready: 'Questions word for word' },
@@ -150,8 +141,8 @@ export const APP_ROUTES: readonly RouteCase[] = [
  * They are in the same matrix as the app's own screens for one reason: they are the pages a
  * stranger meets first, on whatever phone they happen to have. The suite used to walk only the
  * thirteen in-app addresses, so the fourteen public ones — the front door, both doors in, the
- * about page, the help centre and an article, the legal set and a document, plans, checkout, gift
- * and contact — shipped unmeasured.
+ * about page, the help centre and an article, the legal set and a document, plans, checkout, gift,
+ * donate and contact — shipped unmeasured.
  *
  * The list mirrors `src/screens/states/routes.ts` (`PUBLIC_ROUTES`), which is what the sitemap is
  * built from, plus one instance each of the two parameterised families: a help article and a legal
@@ -199,6 +190,11 @@ export const PUBLIC_ROUTE_CASES: readonly RouteCase[] = [
   { id: 'plans', path: '/plans', ready: 'What changes between plans, and what never does.' },
   { id: 'plans-checkout', path: '/plans/checkout', ready: /Checkout opens with launch/i },
   { id: 'gift', path: '/gift', ready: /Give someone a tutor who sits beside them/i },
+  {
+    id: 'donate',
+    path: '/donate',
+    ready: /Not a smaller version, not a trial, not the good parts locked/i,
+  },
   { id: 'contact', path: '/contact', ready: /Every mailbox/i },
   { id: 'sign-in', path: '/sign-in', ready: 'Welcome back' },
   { id: 'sign-up', path: '/sign-up', ready: /Let’s make this yours|Let's make this yours/ },

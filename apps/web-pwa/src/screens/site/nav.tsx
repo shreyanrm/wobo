@@ -10,13 +10,15 @@
  * visitor asking for a tab and getting one. An address the router does not know yet (a page
  * another wave is still building) is left to the browser too, so the link is never dead.
  *
- * `NAV_LINKS` is the pill nav every site page carries and `FOOTER_COLUMNS` the four footer columns,
- * both word for word from the site prototypes (design/prototypes/site-*.html); `nav.test.ts` holds
- * them to that source.
+ * `NAV_LINKS` is the pill nav every site page carries and `FOOTER_COLUMNS` the four footer columns.
+ * The WORDS are the site prototypes' (design/prototypes/site-*.html); the ORDER of the pill nav is
+ * the funnel's, not the prototype's (docs/SELL.md §3, and the note above `NAV_LINKS`). `nav.test.ts`
+ * holds the labels to that source, the order to the funnel, and every address to the router.
  */
 
 import type { MouseEvent, ReactNode } from 'react';
 import { pathToRoute, type Route, routeToPath, useRouter } from '../../shell/router';
+import { CTA } from './cta';
 
 /** True where a click is the browser's to handle rather than the router's. */
 export function browserOwnsClick(event: {
@@ -49,7 +51,7 @@ export type SiteSection =
   | 'subjects'
   | 'plans'
   | 'gift'
-  | 'schools'
+  | 'donate'
   | 'help'
   | 'contact'
   | 'questions'
@@ -69,22 +71,38 @@ export interface PublicLink {
   section: SiteSection;
 }
 
-/** The pill nav, in the prototype's order. */
+/**
+ * The pill nav, in the order the DOUBTS ARRIVE (docs/SELL.md §3), which is not the order the
+ * prototype listed the pages in. A nav is not a sitemap: it carries the pages that move somebody
+ * toward a decision, and it carries them in the order a stranger needs them.
+ *
+ *  1. "What even is this?"                  → Meet Wobo
+ *  2. "Will it work for MY board?"          → Subjects, the single biggest qualifier, which sat
+ *                                             fifth here and ninth on the homepage
+ *  3. "Is this real teaching?"              → How it works
+ *  4/5. whose page am I on                  → For parents, For students
+ *  6. "What does it cost?"                  → Plans
+ *
+ * Six items is the ceiling. The security page answers doubt six and is one tap away from the
+ * footer, from the parents page and from the legal set, so it stays out of the bar rather than
+ * turning it into a menu.
+ */
 export const NAV_LINKS: readonly PublicLink[] = [
   { label: 'Meet Wobo', href: '/meet-wobo', section: 'meet' },
+  { label: 'Subjects', href: '/subjects', section: 'subjects' },
   { label: 'How it works', href: '/how-it-works', section: 'how' },
   { label: 'For parents', href: '/for-parents', section: 'parents' },
   { label: 'For students', href: '/for-students', section: 'students' },
-  { label: 'Subjects', href: '/subjects', section: 'subjects' },
   { label: 'Plans', href: '/plans', section: 'plans' },
 ];
 
 /**
- * The two doors in the header. Law v5's copy law (DESIGN.md §0) — promote before you invite —
- * makes the loud one an ASK rather than an invitation, because the product has not opened yet;
- * "Get started" would promise a door that is not there.
+ * The two doors in the header. The loud one is THE call to action and it is read from `cta.ts`,
+ * never typed here: this constant is the reason the site once said "Get started" in the header and
+ * "Get early access" on the plans page. We are open (DESIGN.md §0, owner 2026-09-04), so the door
+ * invites rather than promotes.
  */
-export const DOORS = { signIn: 'Sign in', getStarted: 'Get early access' } as const;
+export const DOORS = { signIn: 'Sign in', getStarted: CTA.label } as const;
 
 export interface FooterColumn {
   title: string;
@@ -101,14 +119,21 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
       { label: 'Subjects', href: '/subjects', section: 'subjects' },
       { label: 'Plans', href: '/plans', section: 'plans' },
       { label: 'Gift Wobo', href: '/gift', section: 'gift' },
+      { label: 'Donate Wobo', href: '/donate', section: 'donate' },
     ],
   },
+  /**
+   * "Schools" used to sit here pointing at `/schools`. There is no such route, so every visitor who
+   * clicked it landed on the 404 — a dead control in the footer of every public page, and the exact
+   * friction SELL.md §8 names. The copy law carries no schools surface either, so the link comes
+   * out rather than being pointed somewhere it does not belong. `nav.test.ts` now walks every
+   * address in this file through the router, so a second one cannot be added by hand.
+   */
   {
     title: 'For',
     links: [
       { label: 'Parents', href: '/for-parents', section: 'parents' },
       { label: 'Students', href: '/for-students', section: 'students' },
-      { label: 'Schools', href: '/schools', section: 'schools' },
     ],
   },
   {

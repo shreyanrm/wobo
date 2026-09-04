@@ -77,6 +77,11 @@
     <priority>0.5</priority>
   </url>
   <url>
+    <loc>https://heywobo.com/donate</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
     <loc>https://heywobo.com/contact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>

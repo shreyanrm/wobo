@@ -40,6 +40,7 @@ export const PUBLIC_ROUTES: readonly PublicRoute[] = [
   // A real page with real words on it: what will be on the payment page when it opens.
   { path: '/plans/checkout', changefreq: 'monthly', priority: '0.2' },
   { path: '/gift', changefreq: 'monthly', priority: '0.5' },
+  { path: '/donate', changefreq: 'monthly', priority: '0.5' },
   { path: '/contact', changefreq: 'monthly', priority: '0.5' },
 ];
 

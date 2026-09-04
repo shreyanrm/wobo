@@ -22,6 +22,7 @@ import type { Route } from '../shell/router';
 const load = {
   about: () => import('../screens/site/About'),
   contact: () => import('../screens/contact/Contact'),
+  donate: () => import('../screens/donate/Donate'),
   forParents: () => import('../screens/pitch/ForParents'),
   forStudents: () => import('../screens/pitch/ForStudents'),
   gift: () => import('../screens/gift/Gift'),
@@ -43,6 +44,7 @@ const load = {
 
 const About = lazy(() => load.about().then((m) => ({ default: m.About })));
 const Contact = lazy(() => load.contact().then((m) => ({ default: m.Contact })));
+const Donate = lazy(() => load.donate().then((m) => ({ default: m.Donate })));
 const ForParents = lazy(() => load.forParents().then((m) => ({ default: m.ForParents })));
 const ForStudents = lazy(() => load.forStudents().then((m) => ({ default: m.ForStudents })));
 const Gift = lazy(() => load.gift().then((m) => ({ default: m.Gift })));
@@ -83,6 +85,8 @@ function loaderFor(route: Route): (() => Promise<unknown>) | null {
       return route.checkout ? load.plansCheckout : load.plans;
     case 'gift':
       return load.gift;
+    case 'donate':
+      return load.donate;
     case 'sign-in':
     case 'sign-up':
       return load.signIn;
@@ -140,6 +144,8 @@ export function publicScreen(route: Route): ReactNode {
       return route.checkout ? <PlansCheckout /> : <PlansPage />;
     case 'gift':
       return <Gift />;
+    case 'donate':
+      return <Donate />;
     case 'sign-in':
       return <SignIn />;
     case 'sign-up':

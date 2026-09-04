@@ -55,6 +55,8 @@ export type Route =
   // own slug so every one of the ten is linkable.
   | { name: 'plans'; checkout?: boolean }
   | { name: 'gift' }
+  // A place bought for a family who cannot pay for one. Public, readable signed out.
+  | { name: 'donate' }
   | { name: 'legal'; slug?: string }
   // Every public page on one page, for a person rather than a crawler.
   | { name: 'sitemap' }
@@ -121,6 +123,7 @@ const PLAIN_ROUTES = new Set([
   'sign-up',
   'contact',
   'gift',
+  'donate',
   'sitemap',
   'security',
   'meet-wobo',

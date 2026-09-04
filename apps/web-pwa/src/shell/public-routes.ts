@@ -30,6 +30,7 @@ export function isPublicSite(name: Route['name']): boolean {
     name === 'legal' ||
     name === 'plans' ||
     name === 'gift' ||
+    name === 'donate' ||
     name === 'sign-in' ||
     name === 'sign-up' ||
     name === 'contact' ||
