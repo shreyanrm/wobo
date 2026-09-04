@@ -87,6 +87,19 @@ footer .wm svg{height:20px;color:var(--ink)}
 .blink{transform-origin:center;animation:blink 5.5s infinite}
 @keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
 @media (prefers-reduced-motion:reduce){.blink{animation:none}}
+
+/* ── the footer wordmark ─────────────────────────────────────────────────────
+   The name, edge to edge, at the very bottom of every page. It writes itself on
+   as you arrive: a clip that opens left to right, so the letters appear in place
+   the way ink does, rather than sliding in from somewhere they were not.
+   Everything animated here is a clip and a transform, never a layout property,
+   so it cannot stutter (DESIGN.md §0). Under reduced motion it is simply there. */
+footer .fw{margin:var(--s3) 0 calc(var(--s2) * -1);line-height:0;overflow:hidden}
+footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
+  clip-path:inset(0 100% 0 0);transform:translateY(14px);will-change:clip-path,transform}
+@media (prefers-reduced-motion:reduce){
+  footer .fw svg{clip-path:none!important;transform:none!important;color:rgba(255,255,255,.15)!important}
+}
 </style>
 </head>
 <body>
@@ -147,10 +160,36 @@ footer .wm svg{height:20px;color:var(--ink)}
   <div><b>For</b><a href="/for-parents">Parents</a><a href="/for-students">Students</a></div>
   <div><b>Help</b><a href="/help">Help centre</a><a href="/contact">Contact</a></div>
   <div><b>Company</b><a href="/about">About</a><a href="/security">Security and trust</a><a href="/legal/terms-of-service">Terms</a><a href="/legal/privacy-policy">Privacy</a></div>
-</div></footer>
+</div>
+  <div class="fw" aria-hidden="true"><svg viewBox="0 0 1160 340" preserveAspectRatio="xMidYMid meet"><use href="#wm"/></svg></div>
+</footer>
 
 <script>
 const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.setAttribute('data-theme', t);
+
+/* The footer wordmark writes on as it arrives. One rAF-throttled read per scroll,
+   one write, no transition on the properties it drives, so nothing can fight it. */
+(() => {
+  const fw = document.querySelector('footer .fw svg');
+  if (!fw) return;
+  if (rm) { fw.style.clipPath = 'none'; fw.style.transform = 'none'; fw.style.color = 'rgba(255,255,255,.15)'; return; }
+  let queued = false;
+  const paint = () => {
+    queued = false;
+    const r = fw.getBoundingClientRect();
+    // Complete the moment the mark is fully in view. Measured against its OWN height,
+    // because it sits flush with the bottom of the page and can never scroll a screenful
+    // further up; a viewport-fraction denominator leaves it permanently unfinished.
+    const span = Math.min(r.height, innerHeight * 0.8) || 1;
+    const p = Math.min(1, Math.max(0, (innerHeight - r.top) / span));
+    fw.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`;
+    fw.style.transform = `translateY(${((1 - p) * 14).toFixed(1)}px)`;
+    fw.style.color = `rgba(255,255,255,${(0.05 + p * 0.10).toFixed(3)})`;
+  };
+  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  addEventListener('resize', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  paint();
+})();
 </script>
 </body>
 </html>

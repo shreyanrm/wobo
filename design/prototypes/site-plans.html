@@ -68,8 +68,9 @@ header .cta{display:flex;gap:8px}
 .allow{margin:var(--s4) auto 0;max-width:560px;background:var(--paper-2);border-radius:24px;padding:var(--s3);text-align:left;display:grid;gap:12px;position:relative}
 .allow b{font-weight:600}
 .allow .bar{height:14px;border-radius:7px;background:var(--paper-3);overflow:hidden;position:relative}
-.allow .bar i{position:absolute;left:0;top:0;height:100%;border-radius:7px;background:var(--marigold);width:0;transition:width 1.4s cubic-bezier(.6,0,.2,1)}
-.allow.on .bar i{width:62%}
+/* the fill scales from its left edge; a width transition relayouts every frame (law v5 §8) */
+.allow .bar i{position:absolute;left:0;top:0;height:100%;width:100%;border-radius:7px;background:var(--marigold);transform:scaleX(0);transform-origin:left;will-change:transform;transition:transform 1.4s cubic-bezier(.6,0,.2,1)}
+.allow.on .bar i{transform:scaleX(.62)}
 .allow span{font-size:13px;color:var(--ink-3)}
 .allow .hand{font-size:24px;color:var(--pig)}
 .allow .sticker{position:absolute;right:-14px;top:-16px;background:var(--marigold);color:#14142B;font-family:var(--hand);font-weight:700;font-size:22px;padding:6px 14px;border-radius:12px;transform:rotate(6deg);box-shadow:0 10px 20px rgba(20,20,43,.12)}
@@ -165,6 +166,19 @@ footer .wm svg{height:22px;color:var(--paper)}
 .pl-billed{font:400 13px/1.35 var(--sans);color:var(--ink-2);margin-top:6px;font-variant-numeric:tabular-nums}
 .plan.max .pl-billed{color:#A9A9BD}  /* the Max card is dark in both themes */
 @media (prefers-reduced-motion:reduce){.pl-pill{transition:none}}
+
+/* ── the footer wordmark ─────────────────────────────────────────────────────
+   The name, edge to edge, at the very bottom of every page. It writes itself on
+   as you arrive: a clip that opens left to right, so the letters appear in place
+   the way ink does, rather than sliding in from somewhere they were not.
+   Everything animated here is a clip and a transform, never a layout property,
+   so it cannot stutter (DESIGN.md §0). Under reduced motion it is simply there. */
+footer .fw{margin:var(--s3) 0 calc(var(--s2) * -1);line-height:0;overflow:hidden}
+footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
+  clip-path:inset(0 100% 0 0);transform:translateY(14px);will-change:clip-path,transform}
+@media (prefers-reduced-motion:reduce){
+  footer .fw svg{clip-path:none!important;transform:none!important;color:rgba(255,255,255,.15)!important}
+}
 </style>
 </head>
 <body>
@@ -293,7 +307,9 @@ footer .wm svg{height:22px;color:var(--paper)}
   <div><b>For</b><a href="#">Parents</a><a href="#">Students</a></div>
   <div><b>Help</b><a href="#">Help centre</a><a href="#">Contact</a><a href="#">Questions</a></div>
   <div><b>Company</b><a href="#">About</a><a href="#">Security and trust</a><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Children's privacy</a><a href="#">Cookies</a><a href="#">Accessibility</a></div>
-</div></footer>
+</div>
+  <div class="fw" aria-hidden="true"><svg viewBox="0 0 1160 340" preserveAspectRatio="xMidYMid meet"><use href="#wm"/></svg></div>
+</footer>
 
 <script>
 const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.setAttribute('data-theme', t);
@@ -329,6 +345,30 @@ function plPaint() {
 plY.addEventListener('click', () => { plPeriod = 'y'; plPaint(); });
 plM.addEventListener('click', () => { plPeriod = 'm'; plPaint(); });
 plPaint();
+
+/* The footer wordmark writes on as it arrives. One rAF-throttled read per scroll,
+   one write, no transition on the properties it drives, so nothing can fight it. */
+(() => {
+  const fw = document.querySelector('footer .fw svg');
+  if (!fw) return;
+  if (rm) { fw.style.clipPath = 'none'; fw.style.transform = 'none'; fw.style.color = 'rgba(255,255,255,.15)'; return; }
+  let queued = false;
+  const paint = () => {
+    queued = false;
+    const r = fw.getBoundingClientRect();
+    // Complete the moment the mark is fully in view. Measured against its OWN height,
+    // because it sits flush with the bottom of the page and can never scroll a screenful
+    // further up; a viewport-fraction denominator leaves it permanently unfinished.
+    const span = Math.min(r.height, innerHeight * 0.8) || 1;
+    const p = Math.min(1, Math.max(0, (innerHeight - r.top) / span));
+    fw.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`;
+    fw.style.transform = `translateY(${((1 - p) * 14).toFixed(1)}px)`;
+    fw.style.color = `rgba(255,255,255,${(0.05 + p * 0.10).toFixed(3)})`;
+  };
+  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  addEventListener('resize', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  paint();
+})();
 </script>
 </body>
 </html>

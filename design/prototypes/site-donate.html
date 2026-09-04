@@ -227,6 +227,19 @@ footer .wm svg{height:22px;color:var(--paper)}
 /* The header CTA wrapped to two lines below 600px on every page of this site. Under that
    width the header carries the wordmark and one control; signing in lives in the footer. */
 @media (max-width:600px){header .cta .quiet{display:none}header .wrap{gap:var(--s2)}.btn{white-space:nowrap}}
+
+/* ── the footer wordmark ─────────────────────────────────────────────────────
+   The name, edge to edge, at the very bottom of every page. It writes itself on
+   as you arrive: a clip that opens left to right, so the letters appear in place
+   the way ink does, rather than sliding in from somewhere they were not.
+   Everything animated here is a clip and a transform, never a layout property,
+   so it cannot stutter (DESIGN.md §0). Under reduced motion it is simply there. */
+footer .fw{margin:var(--s3) 0 calc(var(--s2) * -1);line-height:0;overflow:hidden}
+footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
+  clip-path:inset(0 100% 0 0);transform:translateY(14px);will-change:clip-path,transform}
+@media (prefers-reduced-motion:reduce){
+  footer .fw svg{clip-path:none!important;transform:none!important;color:rgba(255,255,255,.15)!important}
+}
 </style>
 </head>
 <body>
@@ -376,7 +389,9 @@ footer .wm svg{height:22px;color:var(--paper)}
   <div><b>For</b><a href="#">Parents</a><a href="#">Students</a></div>
   <div><b>Help</b><a href="#">Help centre</a><a href="#">Contact</a><a href="#">Questions</a></div>
   <div><b>Company</b><a href="#">About</a><a href="#">Security and trust</a><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Children's privacy</a><a href="#">Cookies</a><a href="#">Accessibility</a></div>
-</div></footer>
+</div>
+  <div class="fw" aria-hidden="true"><svg viewBox="0 0 1160 340" preserveAspectRatio="xMidYMid meet"><use href="#wm"/></svg></div>
+</footer>
 
 <script>
 const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.setAttribute('data-theme', t);
@@ -393,6 +408,30 @@ if (!rm && 'IntersectionObserver' in window) {
 const zone = (Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
 const inIndia = zone.includes('kolkata') || zone.includes('calcutta');
 document.querySelectorAll('[data-in]').forEach((el) => { el.textContent = inIndia ? el.dataset.in : el.dataset.ww; });
+
+/* The footer wordmark writes on as it arrives. One rAF-throttled read per scroll,
+   one write, no transition on the properties it drives, so nothing can fight it. */
+(() => {
+  const fw = document.querySelector('footer .fw svg');
+  if (!fw) return;
+  if (rm) { fw.style.clipPath = 'none'; fw.style.transform = 'none'; fw.style.color = 'rgba(255,255,255,.15)'; return; }
+  let queued = false;
+  const paint = () => {
+    queued = false;
+    const r = fw.getBoundingClientRect();
+    // Complete the moment the mark is fully in view. Measured against its OWN height,
+    // because it sits flush with the bottom of the page and can never scroll a screenful
+    // further up; a viewport-fraction denominator leaves it permanently unfinished.
+    const span = Math.min(r.height, innerHeight * 0.8) || 1;
+    const p = Math.min(1, Math.max(0, (innerHeight - r.top) / span));
+    fw.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`;
+    fw.style.transform = `translateY(${((1 - p) * 14).toFixed(1)}px)`;
+    fw.style.color = `rgba(255,255,255,${(0.05 + p * 0.10).toFixed(3)})`;
+  };
+  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  addEventListener('resize', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  paint();
+})();
 </script>
 </body>
 </html>

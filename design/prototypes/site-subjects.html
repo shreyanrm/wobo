@@ -8,18 +8,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#FAF7F0; --paper-2:#F1EDE3; --paper-3:#E7E1D3; --ink:#14142B; --ink-2:#4E4E66; --ink-3:#8A8A9E;
-  --pig:#2B45FF; --violet:#7C5CFF; --rose:#FF6B57; --marigold:#FFB629; --mint:#22C48B; --lilac:#B7A6FF;
-  --pig-w:#E6EAFF; --rose-w:#FFE7E2; --marigold-w:#FFF1D6; --mint-w:#DDF6EC; --lilac-w:#EFEBFF;
-  --body:#14142B; --body-hi:#3A3A5C; --visor:#FAF7F0; --visor-lo:#E7E1D3; --eye:#2B45FF;
+  /* LAW v5 (DESIGN.md §0) — white paper, colour with a job. The ground is #FFFFFF; a section
+     never gets a tint to say it is a section. Character for character the token block at the top
+     of landing-v8.html, plus the washes and lilac these site pages already name. */
+  --paper:#FFFFFF; --paper-2:#F6F6F8; --paper-3:#ECECF0; --line:#E4E4EA;
+  --ink:#14142B; --ink-2:#55556B; --ink-3:#8A8A9E;
+  --pig:#2B45FF; --pig-soft:#EDF0FF; --marigold:#FFB629; --rose:#FF6B57; --mint:#12B981; --violet:#7C5CFF; --lilac:#B7A6FF;
+  --pig-w:#EDF0FF; --violet-w:#EFEBFF; --rose-w:#FFEDEB; --marigold-w:#FFF6E5; --mint-w:#E3F7F0; --lilac-w:#F6F4FF;
+  --body:#14142B; --body-hi:#3A3A5C; --visor:#FFFFFF; --visor-lo:#EDEDF2; --eye:#2B45FF;
   --sans:'Poppins',system-ui,-apple-system,sans-serif; --hand:'Caveat',cursive;
-  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:64px; --s6:120px;
+  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:72px; --s6:128px;
+  --gutter:clamp(20px, 5vw, 48px); --band:clamp(72px, 9vw, 132px); --colgap:clamp(32px, 5vw, 80px);
+  --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 10px 28px rgba(20,20,43,.07);
 }
 [data-theme="dark"]{
-  --paper:#0F1226; --paper-2:#181C3A; --paper-3:#22264A; --ink:#F3F0E8; --ink-2:#B8B6C6; --ink-3:#7C7B92;
-  --pig:#7C8CFF; --violet:#A996FF; --rose:#FF8A78; --marigold:#FFC85A; --mint:#4FE3BD; --lilac:#C9BDFF;
-  --pig-w:#1E2650; --rose-w:#3E2431; --marigold-w:#3E3320; --mint-w:#16362E; --lilac-w:#2A2650;
-  --body:#F3F0E8; --body-hi:#FFFFFF; --visor:#0F1226; --visor-lo:#1E2650; --eye:#7C8CFF;
+  /* night, designed on its own and never inverted */
+  --paper:#0E0E16; --paper-2:#17171F; --paper-3:#1F1F29; --line:#26262F;
+  --ink:#F4F4F7; --ink-2:#B4B4C2; --ink-3:#7E7E90;
+  --pig:#7C8CFF; --pig-soft:#1A1E3A; --marigold:#FFC85A; --rose:#FF8A78; --mint:#3DD9A4; --violet:#A996FF; --lilac:#C9BDFF;
+  --pig-w:#1A1E3A; --violet-w:#2C293E; --rose-w:#38272C; --marigold-w:#383027; --mint-w:#1C3232; --lilac-w:#302E3E;
+  --body:#F4F4F7; --body-hi:#FFFFFF; --visor:#0E0E16; --visor-lo:#1F1F29; --eye:#7C8CFF;
+  --shadow:0 24px 60px rgba(0,0,0,.5); --lift:0 10px 28px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -136,6 +145,19 @@ footer a{display:block;padding:4px 0}
 footer .wm svg{height:22px;color:var(--paper)}
 @media (max-width:900px){footer .wrap{grid-template-columns:1fr 1fr}}
 @media (prefers-reduced-motion:reduce){.blink,.typeahead .in i{animation:none}.draw{stroke-dashoffset:0}.tiles a:hover{transform:none}}
+
+/* ── the footer wordmark ─────────────────────────────────────────────────────
+   The name, edge to edge, at the very bottom of every page. It writes itself on
+   as you arrive: a clip that opens left to right, so the letters appear in place
+   the way ink does, rather than sliding in from somewhere they were not.
+   Everything animated here is a clip and a transform, never a layout property,
+   so it cannot stutter (DESIGN.md §0). Under reduced motion it is simply there. */
+footer .fw{margin:var(--s3) 0 calc(var(--s2) * -1);line-height:0;overflow:hidden}
+footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
+  clip-path:inset(0 100% 0 0);transform:translateY(14px);will-change:clip-path,transform}
+@media (prefers-reduced-motion:reduce){
+  footer .fw svg{clip-path:none!important;transform:none!important;color:rgba(255,255,255,.15)!important}
+}
 </style>
 </head>
 <body>
@@ -155,7 +177,7 @@ footer .wm svg{height:22px;color:var(--paper)}
 <section class="hero"><div class="wrap">
   <span class="label">Subjects</span>
   <h1>Every subject. <em>Your school's way.</em></h1>
-  <p class="sub">Mathematics, Science, Social science and English, from class 4 to 12, taught in the order your textbook uses and the words your exam expects. Pick a subject to see what a lesson looks like.</p>
+  <p class="sub">Every subject your board sets, taught in the order your textbook uses and the words your exam expects. Pick a subject to see what a lesson looks like.</p>
   <div class="tiles">
     <a class="pig" href="#maths"><svg viewBox="0 0 200 150"><path class="ink" d="M50 120 L140 120 L50 52 Z"/><path class="ink thin" d="M50 104 h16 v16"/><path class="ink pig" d="M140 120 L180 66 L90 -2 L50 52" opacity=".9"/><text class="hw pig" x="118" y="60" font-size="22">c²</text></svg><b>Mathematics</b><span>Number to calculus, drawn.</span><span class="go">See a lesson →</span></a>
     <a class="mint" href="#science"><svg viewBox="0 0 200 150"><path class="ink" d="M100 20 L152 50 L152 110 L100 140 L48 110 L48 50 Z"/><circle class="ink thin" cx="100" cy="80" r="30"/><text class="hw" x="160" y="44" font-size="20">C₆H₆</text></svg><b>Science</b><span>Physics, chemistry, biology, seen.</span><span class="go">See a lesson →</span></a>
@@ -166,8 +188,8 @@ footer .wm svg{height:22px;color:var(--paper)}
     <div><span class="label">Boards</span><h2 style="margin-top:8px">CBSE, ICSE, every state board, and the syllabus your school wrote itself.</h2><p>Type your board and Wobo finds it, with the year's official syllabus behind it. Not listed? Paste your school's syllabus and Wobo builds the plan from that, unit by unit.</p></div>
     <div class="typeahead" aria-hidden="true">
       <div class="in">tel<i></i></div>
-      <div class="opt on"><b><mark>Tel</mark>angana State Board (BSE)</b><span>classes 6–10</span></div>
-      <div class="opt"><b><mark>Tel</mark>angana Intermediate (TSBIE)</b><span>classes 11–12</span></div>
+      <div class="opt on"><b><mark>Tel</mark>angana State Board (BSE)</b><span>secondary</span></div>
+      <div class="opt"><b><mark>Tel</mark>angana Intermediate (TSBIE)</b><span>senior secondary</span></div>
       <div class="own">Not listed? <b style="color:var(--pig)">Paste your school's syllabus</b></div>
     </div>
   </div>
@@ -175,7 +197,7 @@ footer .wm svg{height:22px;color:var(--paper)}
 
 <section id="maths"><div class="wrap">
   <div class="chapter reveal">
-    <div><span class="k"><i></i>Mathematics</span><h2>Every proof drawn, every number computed.</h2><p>Class 4 shares a chocolate bar into quarters. Class 8 sees why a² + b² = c² instead of memorising it. Class 12 watches an integral fill the area under a curve. Same pen, same patience.</p>
+    <div><span class="k"><i></i>Mathematics</span><h2>Every proof drawn, every number computed.</h2><p>A chocolate bar shared into quarters. Why a² + b² = c², instead of memorising it. An integral filling the area under a curve. Same pen, same patience, whatever your board has set this year.</p>
       <div class="span"><div><b>Early on</b>Fractions as pieces of a real thing, dragged and shaded.</div><div><b>Further on</b>Limits, derivatives and integrals, built one step at a time on the graph.</div></div>
       <div class="say">If you can watch it drawn, <em>you can draw it in the exam.</em></div></div>
     <div class="art pig"><svg viewBox="0 0 520 340" aria-hidden="true"><rect class="paper" x="30" y="24" width="460" height="292" rx="22"/>
@@ -234,8 +256,8 @@ footer .wm svg{height:22px;color:var(--paper)}
   <div class="ask reveal">
     <svg class="w" viewBox="0 0 120 120"><use href="#head"/></svg>
     <div><span class="label">Still wondering?</span><h2 style="margin-top:8px">Ask Wobo about your subject, your board, your class.</h2>
-      <div class="box"><input placeholder="Do you cover ICSE Class 9 physics?"><button class="btn pig" style="min-height:40px;padding:10px 16px">Ask</button></div>
-      <div class="chips"><span>Which chapter is Class 8 CBSE maths on this week?</span><span>Can you teach Hindi?</span><span>My school uses its own books</span></div>
+      <div class="box"><input placeholder="Do you cover ICSE physics?"><button class="btn pig" style="min-height:40px;padding:10px 16px">Ask</button></div>
+      <div class="chips"><span>Which chapter is my CBSE maths class on this week?</span><span>Can you teach Hindi?</span><span>My school uses its own books</span></div>
     </div>
   </div>
 </div></section>
@@ -251,7 +273,9 @@ footer .wm svg{height:22px;color:var(--paper)}
   <div><b>For</b><a href="#">Parents</a><a href="#">Students</a></div>
   <div><b>Help</b><a href="#">Help centre</a><a href="#">Contact</a><a href="#">Questions</a></div>
   <div><b>Company</b><a href="#">About</a><a href="#">Security and trust</a><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Children's privacy</a><a href="#">Cookies</a><a href="#">Accessibility</a></div>
-</div></footer>
+</div>
+  <div class="fw" aria-hidden="true"><svg viewBox="0 0 1160 340" preserveAspectRatio="xMidYMid meet"><use href="#wm"/></svg></div>
+</footer>
 
 <script>
 const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.setAttribute('data-theme', t);
@@ -262,6 +286,30 @@ if (!rm && 'IntersectionObserver' in window) {
   const io=new IntersectionObserver(en=>en.forEach(x=>{ if(x.isIntersecting){ x.target.classList.remove('pre'); x.target.classList.add('on'); io.unobserve(x.target);} }),{threshold:.18});
   els.forEach(e=>io.observe(e));
 } else { document.querySelectorAll('.reveal').forEach(e=>e.classList.add('on')); }
+
+/* The footer wordmark writes on as it arrives. One rAF-throttled read per scroll,
+   one write, no transition on the properties it drives, so nothing can fight it. */
+(() => {
+  const fw = document.querySelector('footer .fw svg');
+  if (!fw) return;
+  if (rm) { fw.style.clipPath = 'none'; fw.style.transform = 'none'; fw.style.color = 'rgba(255,255,255,.15)'; return; }
+  let queued = false;
+  const paint = () => {
+    queued = false;
+    const r = fw.getBoundingClientRect();
+    // Complete the moment the mark is fully in view. Measured against its OWN height,
+    // because it sits flush with the bottom of the page and can never scroll a screenful
+    // further up; a viewport-fraction denominator leaves it permanently unfinished.
+    const span = Math.min(r.height, innerHeight * 0.8) || 1;
+    const p = Math.min(1, Math.max(0, (innerHeight - r.top) / span));
+    fw.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`;
+    fw.style.transform = `translateY(${((1 - p) * 14).toFixed(1)}px)`;
+    fw.style.color = `rgba(255,255,255,${(0.05 + p * 0.10).toFixed(3)})`;
+  };
+  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  addEventListener('resize', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  paint();
+})();
 </script>
 </body>
 </html>

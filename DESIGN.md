@@ -27,9 +27,12 @@ those jobs is decoration; take it out.
 source every surface copies its tokens, spacing rhythm and motion from.
 
 ### Spacing and responsiveness
-One rhythm for the whole product: `--gutter clamp(20px,5vw,48px)`, `--band clamp(72px,9vw,132px)`
+One rhythm for the whole product: `--gutter clamp(20px,5vw,48px)`, `--band clamp(96px,11vw,184px)`
 between sections (half from each side, so two sections never stack two bands of air), and
-`--colgap clamp(32px,5vw,80px)` between the halves of a row. Every grid child carries
+`--colgap clamp(32px,5vw,80px)` between the halves of a row. (The band was `clamp(72px,9vw,132px)`
+when this law was written; the owner raised it on 2026-09-04 — "more air between sections" — and
+`tokens.css` and `landing-v8.html` have carried the larger value since. This line is the number,
+not a second opinion about it.) Every grid child carries
 `min-width:0`. Three widths are the contract: 390, 834, 1440, in both themes, with no
 horizontal scroll at any of them.
 
@@ -61,7 +64,7 @@ saw as jitter on 2026-09-04.
   documents, not on a page that sells. Cancelling takes as many taps as subscribing, and the screen
   that does it offers no discount, no pause, no survey and no reason picker.
 
-### The five traps this repo has already paid for
+### The six traps this repo has already paid for
 Every one of these produced a bug the owner saw with his own eyes. They are cheap to avoid and
 expensive to find, so they are law rather than advice.
 1. **A short class name means two things.** `.sub`, `.quiet` and `.ask` each meant one thing in a
@@ -76,7 +79,11 @@ expensive to find, so they are law rather than advice.
 4. **`white-space: nowrap` on anything long.** One highlighted phrase forced the whole page to
    1731px. If a mark must ride its words, paint it on the span with `box-decoration-break: clone`
    so it wraps.
-5. **An annotation drawn at guessed coordinates drifts.** Hand-placed SVG marks over SVG text moved
+5. **A highlight sized from the baseline cuts what rises above it.** The marigold behind
+   "a2 + b2 = c2" was `background-size: 100% .40em`, measured up from the bottom, so every
+   superscript hung out of the top of it. Size a highlight as a percentage of the line box
+   (`100% 92%`, centred) and it contains whatever the box contains, at any type size.
+6. **An annotation drawn at guessed coordinates drifts.** Hand-placed SVG marks over SVG text moved
    off their words at other widths and in other themes. A mark rides its own word: wrap the word and
    let the mark be that element's own background or `::after`.
 Alongside them, two rules of proof: the first paint shows the page at rest, with nothing parked at

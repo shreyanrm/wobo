@@ -8,18 +8,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#FAF7F0; --paper-2:#F1EDE3; --paper-3:#E7E1D3; --ink:#14142B; --ink-2:#4E4E66; --ink-3:#8A8A9E;
-  --pig:#2B45FF; --violet:#7C5CFF; --rose:#FF6B57; --marigold:#FFB629; --mint:#22C48B; --lilac:#B7A6FF;
-  --pig-w:#E6EAFF; --rose-w:#FFE7E2; --marigold-w:#FFF1D6; --mint-w:#DDF6EC; --lilac-w:#EFEBFF;
-  --body:#14142B; --body-hi:#3A3A5C; --visor:#FAF7F0; --visor-lo:#E7E1D3; --eye:#2B45FF;
+  /* LAW v5 (DESIGN.md §0) — white paper, colour with a job. The ground is #FFFFFF; a section
+     never gets a tint to say it is a section. Character for character the token block at the top
+     of landing-v8.html, plus the washes and lilac these site pages already name. */
+  --paper:#FFFFFF; --paper-2:#F6F6F8; --paper-3:#ECECF0; --line:#E4E4EA;
+  --ink:#14142B; --ink-2:#55556B; --ink-3:#8A8A9E;
+  --pig:#2B45FF; --pig-soft:#EDF0FF; --marigold:#FFB629; --rose:#FF6B57; --mint:#12B981; --violet:#7C5CFF; --lilac:#B7A6FF;
+  --pig-w:#EDF0FF; --violet-w:#EFEBFF; --rose-w:#FFEDEB; --marigold-w:#FFF6E5; --mint-w:#E3F7F0; --lilac-w:#F6F4FF;
+  --body:#14142B; --body-hi:#3A3A5C; --visor:#FFFFFF; --visor-lo:#EDEDF2; --eye:#2B45FF;
   --sans:'Poppins',system-ui,-apple-system,sans-serif; --hand:'Caveat',cursive;
-  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:64px; --s6:120px;
+  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:72px; --s6:128px;
+  --gutter:clamp(20px, 5vw, 48px); --band:clamp(72px, 9vw, 132px); --colgap:clamp(32px, 5vw, 80px);
+  --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 10px 28px rgba(20,20,43,.07);
 }
 [data-theme="dark"]{
-  --paper:#0F1226; --paper-2:#181C3A; --paper-3:#22264A; --ink:#F3F0E8; --ink-2:#B8B6C6; --ink-3:#7C7B92;
-  --pig:#7C8CFF; --violet:#A996FF; --rose:#FF8A78; --marigold:#FFC85A; --mint:#4FE3BD; --lilac:#C9BDFF;
-  --pig-w:#1E2650; --rose-w:#3E2431; --marigold-w:#3E3320; --mint-w:#16362E; --lilac-w:#2A2650;
-  --body:#F3F0E8; --body-hi:#FFFFFF; --visor:#0F1226; --visor-lo:#1E2650; --eye:#7C8CFF;
+  /* night, designed on its own and never inverted */
+  --paper:#0E0E16; --paper-2:#17171F; --paper-3:#1F1F29; --line:#26262F;
+  --ink:#F4F4F7; --ink-2:#B4B4C2; --ink-3:#7E7E90;
+  --pig:#7C8CFF; --pig-soft:#1A1E3A; --marigold:#FFC85A; --rose:#FF8A78; --mint:#3DD9A4; --violet:#A996FF; --lilac:#C9BDFF;
+  --pig-w:#1A1E3A; --violet-w:#2C293E; --rose-w:#38272C; --marigold-w:#383027; --mint-w:#1C3232; --lilac-w:#302E3E;
+  --body:#F4F4F7; --body-hi:#FFFFFF; --visor:#0E0E16; --visor-lo:#1F1F29; --eye:#7C8CFF;
+  --shadow:0 24px 60px rgba(0,0,0,.5); --lift:0 10px 28px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -123,6 +132,19 @@ footer a{display:block;padding:4px 0}
 footer .wm svg{height:22px;color:var(--paper)}
 @media (max-width:900px){footer .wrap{grid-template-columns:1fr 1fr}}
 @media (prefers-reduced-motion:reduce){.blink{animation:none}}
+
+/* ── the footer wordmark ─────────────────────────────────────────────────────
+   The name, edge to edge, at the very bottom of every page. It writes itself on
+   as you arrive: a clip that opens left to right, so the letters appear in place
+   the way ink does, rather than sliding in from somewhere they were not.
+   Everything animated here is a clip and a transform, never a layout property,
+   so it cannot stutter (DESIGN.md §0). Under reduced motion it is simply there. */
+footer .fw{margin:var(--s3) 0 calc(var(--s2) * -1);line-height:0;overflow:hidden}
+footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
+  clip-path:inset(0 100% 0 0);transform:translateY(14px);will-change:clip-path,transform}
+@media (prefers-reduced-motion:reduce){
+  footer .fw svg{clip-path:none!important;transform:none!important;color:rgba(255,255,255,.15)!important}
+}
 </style>
 </head>
 <body>
@@ -143,7 +165,7 @@ footer .wm svg{height:22px;color:var(--paper)}
   <div>
     <span class="label">About</span>
     <h1>We built the tutor we wished we'd had <em>at 9 pm on a Tuesday.</em></h1>
-    <p class="sub">Wobo is a small company with one job: make sure no child in classes 4 to 12 is stuck alone with a question. Not a content library. Not a chatbot. A tutor that draws, never judges, and is always there.</p>
+    <p class="sub">Wobo is a small company with one job: make sure no child is stuck alone with a question. Not a content library. Not a chatbot. A tutor that draws, never judges, and is always there.</p>
   </div>
   <div class="mission"><span class="pin"></span>
     <div class="hand">Every child deserves a patient teacher at the table, every evening, <em>whether or not the family can afford one.</em> That's the whole company.</div>
@@ -173,7 +195,7 @@ footer .wm svg{height:22px;color:var(--paper)}
 </div></section>
 
 <section><div class="wrap">
-  <div class="head reveal"><span class="label">What we cover</span><h2>Classes 4 to 12. Mathematics, Science, Social science, English. Your board, your school's order.</h2><p>CBSE, ICSE and the state boards today, with the year's official syllabus behind each one, and the door open for a school's own syllabus. More countries as families ask.</p></div>
+  <div class="head reveal"><span class="label">What we cover</span><h2>Every subject your board sets, in your school&rsquo;s own order.</h2><p>CBSE, ICSE and the state boards today, with the year's official syllabus behind each one, and the door open for a school's own syllabus. More countries as families ask.</p></div>
 </div></section>
 
 <section><div class="wrap">
@@ -220,7 +242,9 @@ footer .wm svg{height:22px;color:var(--paper)}
   <div><b>For</b><a href="#">Parents</a><a href="#">Students</a></div>
   <div><b>Help</b><a href="#">Help centre</a><a href="#">Contact</a><a href="#">Questions</a></div>
   <div><b>Company</b><a href="#" style="color:var(--paper)">About</a><a href="#">Security and trust</a><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Children's privacy</a><a href="#">Cookies</a><a href="#">Accessibility</a></div>
-</div></footer>
+</div>
+  <div class="fw" aria-hidden="true"><svg viewBox="0 0 1160 340" preserveAspectRatio="xMidYMid meet"><use href="#wm"/></svg></div>
+</footer>
 
 <script>
 const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.setAttribute('data-theme', t);
@@ -231,6 +255,30 @@ if (!rm && 'IntersectionObserver' in window) {
   const io=new IntersectionObserver(en=>en.forEach(x=>{ if(x.isIntersecting){ x.target.classList.remove('pre'); x.target.classList.add('on'); io.unobserve(x.target);} }),{threshold:.18});
   els.forEach(e=>io.observe(e));
 } else { document.querySelectorAll('.reveal').forEach(e=>e.classList.add('on')); }
+
+/* The footer wordmark writes on as it arrives. One rAF-throttled read per scroll,
+   one write, no transition on the properties it drives, so nothing can fight it. */
+(() => {
+  const fw = document.querySelector('footer .fw svg');
+  if (!fw) return;
+  if (rm) { fw.style.clipPath = 'none'; fw.style.transform = 'none'; fw.style.color = 'rgba(255,255,255,.15)'; return; }
+  let queued = false;
+  const paint = () => {
+    queued = false;
+    const r = fw.getBoundingClientRect();
+    // Complete the moment the mark is fully in view. Measured against its OWN height,
+    // because it sits flush with the bottom of the page and can never scroll a screenful
+    // further up; a viewport-fraction denominator leaves it permanently unfinished.
+    const span = Math.min(r.height, innerHeight * 0.8) || 1;
+    const p = Math.min(1, Math.max(0, (innerHeight - r.top) / span));
+    fw.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`;
+    fw.style.transform = `translateY(${((1 - p) * 14).toFixed(1)}px)`;
+    fw.style.color = `rgba(255,255,255,${(0.05 + p * 0.10).toFixed(3)})`;
+  };
+  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  addEventListener('resize', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  paint();
+})();
 </script>
 </body>
 </html>

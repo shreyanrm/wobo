@@ -48,13 +48,19 @@ section{padding:calc(var(--band) / 2) 0;position:relative;scroll-margin-top:96px
 h2.t{font:700 clamp(30px,3.8vw,50px)/1.06 var(--sans)}
 /* The highlighter is painted ON the span, not behind it, so a long phrase wraps like
    any other text instead of forcing the page sideways. box-decoration-break makes the
-   mark continue onto the next line the way a real highlighter would. */
+   mark continue onto the next line the way a real highlighter would.
+
+   The band is sized as a PERCENTAGE OF THE LINE BOX, not as a fixed .40em from the
+   bottom. A fixed band is measured from the baseline, so anything that rises above
+   x-height leaves it: on the old homepage the marigold behind "a2 + b2 = c2" cut the
+   superscripts in half, which is the bug the owner pointed at. A band sized against the
+   box contains whatever the box contains, at any type size, in any headline. */
 h2.t .hl{
   background-image:linear-gradient(color-mix(in srgb,var(--marigold) 46%,transparent),color-mix(in srgb,var(--marigold) 46%,transparent));
-  background-repeat:no-repeat;background-position:0 88%;background-size:0% .40em;
-  -webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em;border-radius:3px;
+  background-repeat:no-repeat;background-position:0 50%;background-size:0% 92%;
+  -webkit-box-decoration-break:clone;box-decoration-break:clone;padding:0 .06em;margin:0 -.06em;border-radius:4px;
 }
-h2.t .hl.lit{background-size:100% .40em;transition:background-size .72s cubic-bezier(.2,.8,.2,1)}
+h2.t .hl.lit{background-size:100% 92%;transition:background-size .72s cubic-bezier(.2,.8,.2,1)}
 .lede{font-size:clamp(16px,1.15vw,19px);color:var(--ink-2);max-width:46ch;margin-top:var(--s3)}
 
 /* buttons — magnet is a translate on an INNER span, so the hit box never moves */
@@ -255,6 +261,47 @@ header .btn{min-height:44px;padding:0 20px;border-radius:12px;font-size:14px}
 .models a:hover{transform:translateY(-2px);box-shadow:var(--lift)}
 .models svg{width:18px;height:18px}
 
+
+/* the marked-up paragraph — every mark rides its own words, so none can drift */
+.marked{width:min(100%,620px);background:var(--paper);border-radius:18px;padding:26px 28px;display:grid;gap:14px}
+.marked p{font:400 17px/1.9 var(--sans);color:var(--ink);margin:0}
+.marked mark.hl{background:color-mix(in srgb,var(--marigold) 52%,transparent);color:inherit;padding:.06em .08em;border-radius:3px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.marked .tag{font-family:var(--hand);font-weight:700;font-size:18px;color:var(--pig);margin-left:8px;white-space:nowrap}
+.marked .circled{position:relative;display:inline-block}
+.marked .circled::after{content:"";position:absolute;left:-.35em;right:-.35em;top:-.16em;bottom:-.2em;border:2.6px solid var(--rose);border-radius:50%;transform:rotate(-1.4deg);pointer-events:none}
+.marked .note{font-family:var(--hand);font-weight:600;font-size:19px;color:var(--rose)}
+.marked .fix{font-family:var(--hand);font-weight:700;font-size:20px;color:var(--pig)}
+
+/* ── it teaches YOU: the gap, the second way, the mastery ─────────────────────── */
+.beats{display:grid;gap:var(--s2);margin-top:var(--s4)}
+.beat{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:var(--colgap);align-items:center;
+  background:var(--paper-2);border-radius:24px;padding:var(--s4)}
+.beat:nth-child(even){grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr)}
+.beat:nth-child(even) .beat-art{order:-1}
+.beat .n{font-family:var(--hand);font-weight:700;font-size:26px;color:var(--pig)}
+.beat h3{font:700 clamp(24px,2.6vw,34px)/1.1 var(--sans);margin-top:6px;letter-spacing:-.03em}
+.beat p{color:var(--ink-2);font-size:16px;margin-top:var(--s2);max-width:44ch}
+.beat .said{font-family:var(--hand);font-weight:600;font-size:22px;color:var(--ink);margin-top:var(--s2)}
+.beat .said em{font-style:normal;color:var(--rose)}
+.beat-art{background:var(--paper);border-radius:18px;padding:var(--s3);display:grid;place-items:center;min-height:260px}
+.beat-art svg{width:100%;height:auto;overflow:visible}
+@media (max-width:900px){.beat,.beat:nth-child(even){grid-template-columns:1fr;padding:var(--s3)}
+  .beat:nth-child(even) .beat-art{order:0}}
+
+/* ── the climb: one path, two vibes ───────────────────────────────────────────── */
+.climb{margin-top:var(--s4);background:var(--paper-2);border-radius:26px;padding:var(--s4);display:grid;gap:var(--s3)}
+.climb .switch{display:inline-flex;background:var(--paper);border-radius:999px;padding:4px;gap:4px;justify-self:start}
+.climb .switch button{border:0;background:transparent;cursor:pointer;font:500 14px/1 var(--sans);color:var(--ink-3);padding:11px 18px;border-radius:999px}
+.climb .switch button.on{background:var(--ink);color:var(--paper)}
+.climb .stagewrap{position:relative;border-radius:20px;background:var(--paper);overflow:hidden;min-height:clamp(280px,34vw,360px)}
+.climb .stagewrap > svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .45s ease}
+.climb .stagewrap > svg.on{opacity:1}
+.climb .same{font-family:var(--hand);font-weight:600;font-size:22px;color:var(--ink)}
+.climb .same em{font-style:normal;color:var(--pig)}
+.climb .legend{display:flex;gap:18px;flex-wrap:wrap;color:var(--ink-2);font-size:14px}
+.climb .legend span{display:inline-flex;align-items:center;gap:8px}
+.climb .legend i{width:11px;height:11px;border-radius:3px}
+
 /* faq */
 .faq{display:grid;gap:8px;margin-top:var(--s4)}
 .faq details{background:var(--paper-2);border-radius:16px;padding:0 var(--s3)}
@@ -293,7 +340,7 @@ footer .wm svg{height:20px;color:var(--ink)}
 @media (prefers-reduced-motion:reduce){
   .blink{animation:none}
   .draw{stroke-dashoffset:0 !important}
-  h2.t .hl{background-size:100% .40em}
+  h2.t .hl{background-size:100% 92%}
 }
 </style>
 </head>
@@ -440,14 +487,74 @@ footer .wm svg{height:20px;color:var(--ink)}
           <text class="hw" x="352" y="176" font-size="24">drag me</text>
           <text class="hw dim" x="352" y="212" font-size="20">every number under it moves</text>
         </svg><div class="label"><i></i>A model that answers back</div></div>
-        <div class="card" data-i="3"><svg viewBox="0 0 620 380" aria-label="A page marked up">
-          <g font-family="Poppins" font-size="19" fill="var(--ink)"><text x="110" y="130">The monsoon arrived like a rumour, first in</text><text x="110" y="168">the smell of the air, then everywhere at once,</text><text x="110" y="206">the streets were rivers by evening.</text></g>
-          <rect x="308" y="112" width="150" height="24" rx="6" fill="var(--marigold)" opacity=".55"/>
-          <text class="hw pig" x="466" y="106" font-size="22">simile</text>
-          <path class="ink rose" d="M240 214 c-8 14 2 26 26 26 s86 -2 106 -8 s12 -28 -12 -30 s-96 -4 -120 12"/>
-          <text class="hw rose" x="380" y="252" font-size="22">two sentences, one comma</text>
-        </svg><div class="label"><i></i>Your own writing, with the pen on it</div></div>
+        <div class="card" data-i="3"><div class="marked">
+          <p>The monsoon <mark class="hl">arrived like a rumour</mark><span class="tag">simile &#10003;</span>, first in the smell of the air, then everywhere at once<span class="circled">, the streets were rivers</span> by evening.</p>
+          <div class="note">two sentences, one comma</div>
+          <div class="fix">&#8594; &ldquo;&hellip;at once. By evening the streets were rivers.&rdquo;</div>
+        </div><div class="label"><i></i>Your own writing, with the pen on it</div></div>
       </div>
+    </div>
+  </div>
+</div></section>
+
+
+<!-- ══ IT TEACHES YOU, NOT A CLASS ══ -->
+<section id="teaches"><div class="wrap">
+  <div class="eyebrow reveal">Not a course everyone takes</div>
+  <h2 class="t reveal">It teaches <span class="hl">you</span>, at your pace, until you actually have it.</h2>
+  <p class="lede reveal">A class moves on when the timetable says so. Wobo moves on when you have it, and before it starts it checks whether the ground under this chapter is solid.</p>
+
+  <div class="beats">
+    <div class="beat reveal">
+      <div>
+        <div class="n">01</div>
+        <h3>It finds the hole before it builds on top of it.</h3>
+        <p>Most chapters stand on something older. Before teaching one, Wobo asks two or three quick questions about what it rests on. If something from an earlier year is shaky, it patches that first, in minutes, and then teaches the chapter your class is actually on.</p>
+        <div class="said">Nobody fails algebra. <em>They failed fractions, two years earlier.</em></div>
+      </div>
+      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="A chapter resting on earlier ideas, with the weak one found and patched">
+        <path class="ink thin" d="M60 214 h340"/>
+        <g id="pre-a"><rect x="70" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="86" y="196" font-size="18">fractions</text></g>
+        <g id="pre-b"><rect x="186" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="202" y="196" font-size="18">ratios</text></g>
+        <g id="pre-c"><rect x="302" y="168" width="86" height="44" rx="12" fill="var(--paper-2)"/><text class="hw" x="316" y="196" font-size="18">negatives</text></g>
+        <rect x="186" y="66" width="120" height="52" rx="14" fill="var(--pig)"/><text x="246" y="98" text-anchor="middle" font-family="Poppins" font-size="16" fill="#fff">this chapter</text>
+        <path class="ink thin" d="M113 168 C113 140 200 140 226 118"/><path class="ink thin" d="M229 168 v-50"/><path class="ink thin" d="M345 168 C345 140 280 140 266 118"/>
+        <g id="pre-weak" opacity="0"><rect x="66" y="164" width="94" height="52" rx="14" fill="none" stroke="var(--rose)" stroke-width="3"/><text class="hw rose" x="60" y="248" font-size="19">shaky — patched first</text></g>
+        <path id="pre-tick" class="ink mint draw" d="M96 190 l10 10 l18 -22" style="--len:60" opacity="0"/>
+      </svg></div>
+    </div>
+
+    <div class="beat reveal">
+      <div>
+        <div class="n">02</div>
+        <h3>If one way does not land, it tries a different one.</h3>
+        <p>Not the same explanation, louder. A second attempt is a different route: a drawing instead of a definition, a worked example instead of a rule, a thing to drag instead of a thing to read, and an analogy built from what you already care about.</p>
+        <div class="said">The same idea, <em>explained the way you happen to think.</em></div>
+      </div>
+      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="One idea, three different routes into it">
+        <circle cx="230" cy="46" r="26" fill="var(--pig)"/><text x="230" y="52" text-anchor="middle" font-family="Poppins" font-size="15" fill="#fff">idea</text>
+        <path class="ink thin" d="M212 68 C160 100 120 120 96 146"/><path class="ink thin" d="M230 74 v70"/><path class="ink thin" d="M248 68 C300 100 340 120 364 146"/>
+        <g><rect x="34" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><path class="ink pig" d="M60 214 L96 168 L132 214 Z"/><text class="hw dim" x="52" y="238" font-size="16">drawn</text></g>
+        <g><rect x="168" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><path class="ink thin" d="M188 176 h84 M188 196 h60 M188 216 h72"/><text class="hw dim" x="186" y="238" font-size="16">worked out</text></g>
+        <g><rect x="302" y="146" width="124" height="96" rx="16" fill="var(--paper-2)"/><circle cx="344" cy="192" r="18" fill="var(--marigold)"/><path class="ink" d="M368 192 h34"/><text class="hw dim" x="316" y="238" font-size="16">in your world</text></g>
+      </svg></div>
+    </div>
+
+    <div class="beat reveal">
+      <div>
+        <div class="n">03</div>
+        <h3>It does not move on until it stays learnt.</h3>
+        <p>Getting it right once is not knowing it. A chapter counts as done when it comes back right days later, unprompted, so Wobo brings it back at the moment you are about to forget it. Only then does the next chapter open.</p>
+        <div class="said">Finished means <em>still true next week.</em></div>
+      </div>
+      <div class="beat-art"><svg viewBox="0 0 460 280" aria-label="A chapter is done only when it comes back right days later">
+        <path class="ink thin" d="M50 220 h370"/>
+        <g class="hw dim" font-size="15"><text x="46" y="246">today</text><text x="150" y="246">+2 days</text><text x="252" y="246">+1 week</text><text x="352" y="246">+3 weeks</text></g>
+        <circle cx="60" cy="220" r="7" fill="var(--pig)"/><circle cx="168" cy="220" r="7" fill="var(--pig)"/><circle cx="272" cy="220" r="7" fill="var(--pig)"/><circle cx="372" cy="220" r="7" fill="var(--paper-3)"/>
+        <path id="mast-curve" class="ink pig draw" d="M60 190 C120 176 150 150 168 140 C210 128 240 108 272 96 C320 84 350 76 372 72" style="--len:360"/>
+        <g id="mast-dip" opacity="0"><path class="ink rose" d="M168 140 C186 158 200 166 214 158" stroke-dasharray="5 7"/><text class="hw rose" x="182" y="184" font-size="17">slipped — taught again</text></g>
+        <g id="mast-done" opacity="0"><rect x="326" y="40" width="104" height="34" rx="12" fill="var(--mint)" opacity=".16"/><text class="hw" x="340" y="63" font-size="18" fill="var(--mint)">mastered</text></g>
+      </svg></div>
     </div>
   </div>
 </div></section>
@@ -510,6 +617,57 @@ footer .wm svg{height:20px;color:var(--ink)}
         <div><i>✓</i><div><b>Nothing to copy</b><span>The answer does not exist until you have done the thinking.</span></div></div>
         <div><i>✓</i><div><b>It comes back tomorrow</b><span>What you missed returns when you are about to forget it, not before.</span></div></div>
       </div>
+    </div>
+  </div>
+</div></section>
+
+
+<!-- ══ THE CLIMB ══ -->
+<section id="climb"><div class="wrap">
+  <div class="eyebrow reveal">The long game</div>
+  <h2 class="t reveal">A subject you can <span class="hl">see yourself climbing.</span></h2>
+  <p class="lede reveal">Every chapter is a checkpoint on a path you can see. Something is waiting at the ones you finish, and a chapter ends with a proper test of the whole thing rather than another exercise. What is behind you stays unlocked, so a hard week never costs you ground.</p>
+
+  <div class="climb reveal">
+    <div class="switch" role="group" aria-label="How it looks">
+      <button class="on" data-vibe="quest">Quest</button>
+      <button data-vibe="focus">Focused</button>
+    </div>
+
+    <div class="stagewrap">
+      <svg class="on" data-vibe="quest" viewBox="0 0 900 340" aria-label="The path, as a climb with checkpoints, a chest and a final challenge">
+        <path class="ink thin" d="M40 258 C170 200 210 296 340 236 C470 178 520 268 650 206 C740 164 790 132 862 104" stroke-width="14" stroke="var(--paper-3)" stroke-linecap="round"/>
+        <path class="ink pig" d="M40 258 C170 200 210 296 340 236 C470 178 520 268 650 206" stroke-width="6" stroke-linecap="round"/>
+        <g><circle cx="40" cy="258" r="20" fill="var(--mint)"/><path d="M32 258 l6 7 l12 -14" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g><circle cx="207" cy="248" r="20" fill="var(--mint)"/><path d="M199 248 l6 7 l12 -14" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
+        <g><rect x="316" y="212" width="48" height="40" rx="8" fill="var(--marigold)"/><rect x="316" y="226" width="48" height="10" fill="#14142B" opacity=".18"/><path d="M340 212 v40" stroke="#14142B" stroke-width="3" opacity=".25"/><text class="hw" x="306" y="200" font-size="18">a reward</text></g>
+        <g><circle cx="500" cy="238" r="22" fill="var(--pig)"/><circle cx="500" cy="238" r="30" fill="none" stroke="var(--pig)" stroke-width="3" opacity=".35"/><text class="hw pig" x="466" y="196" font-size="18">you are here</text></g>
+        <g opacity=".55"><circle cx="650" cy="206" r="18" fill="var(--paper-3)"/></g>
+        <g><rect x="800" y="70" width="72" height="66" rx="16" fill="var(--ink)"/><path d="M818 104 l12 12 l24 -28" fill="none" stroke="var(--marigold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><text class="hw" x="782" y="56" font-size="19">the chapter test</text></g>
+      </svg>
+
+      <svg data-vibe="focus" viewBox="0 0 900 340" aria-label="The same path, as a plain progress list">
+        <g font-family="Poppins" font-size="16" fill="var(--ink)">
+          <rect x="40" y="40" width="820" height="52" rx="14" fill="var(--paper-2)"/>
+          <text x="66" y="72">Fractions on a number line</text><text x="800" y="72" text-anchor="end" font-size="14" fill="var(--mint)">mastered</text>
+          <rect x="40" y="104" width="820" height="52" rx="14" fill="var(--paper-2)"/>
+          <text x="66" y="136">Equivalent fractions</text><text x="800" y="136" text-anchor="end" font-size="14" fill="var(--mint)">mastered</text>
+          <rect x="40" y="168" width="820" height="52" rx="14" fill="var(--pig-soft)"/>
+          <text x="66" y="200">Adding unlike denominators</text><text x="800" y="200" text-anchor="end" font-size="14" fill="var(--pig)">in progress</text>
+          <rect x="40" y="232" width="820" height="52" rx="14" fill="var(--paper-2)"/>
+          <text x="66" y="264" fill="var(--ink-3)">Mixed numbers</text><text x="800" y="264" text-anchor="end" font-size="14" fill="var(--ink-3)">next</text>
+          <rect x="40" y="296" width="820" height="34" rx="12" fill="var(--paper-3)"/>
+          <text x="66" y="319" font-size="14" fill="var(--ink-2)">Chapter test opens when the four above hold</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="same">Same chapters, same tutor, same standard. <em>Only the look changes.</em></div>
+    <div class="legend">
+      <span><i style="background:var(--mint)"></i>held a week later</span>
+      <span><i style="background:var(--pig)"></i>where you are</span>
+      <span><i style="background:var(--marigold)"></i>waiting at the next checkpoint</span>
+      <span><i style="background:var(--ink)"></i>the chapter test</span>
     </div>
   </div>
 </div></section>
@@ -788,6 +946,32 @@ if (!reduce && window.gsap) {
     .to('#b3', { opacity: 1, duration: .5 }, '+=.3')
     .to('#track', { scaleX: .62, duration: .8, ease: 'none' });
 
+
+  // THE GAP: the weak prerequisite is found, then patched, before the chapter is built on it
+  ScrollTrigger.create({ trigger: '#teaches', start: 'top 62%', once: true, onEnter() {
+    gsap.timeline()
+      .to('#pre-weak', { opacity: 1, duration: .45, ease: 'power2.out' }, .3)
+      .fromTo('#pre-a', { scale: 1 }, { scale: 1.04, transformOrigin: '113px 190px', duration: .3, yoyo: true, repeat: 1 }, .3)
+      .to('#pre-tick', { opacity: 1, duration: .01 }, 1.1)
+      .to('#pre-tick', { strokeDashoffset: 0, duration: .5, ease: 'power2.out' }, 1.1);
+  }});
+
+  // MASTERY: the curve dips where it slipped, then settles, and only then says mastered
+  lens('#mast-curve');
+  ScrollTrigger.create({ trigger: '#mast-curve', start: 'top 78%', once: true, onEnter() {
+    gsap.timeline()
+      .to('#mast-curve', { strokeDashoffset: 0, duration: 1.4, ease: 'power2.inOut' })
+      .to('#mast-dip', { opacity: 1, duration: .4 }, .5)
+      .to('#mast-done', { opacity: 1, duration: .5 }, 1.2);
+  }});
+
+  // THE CLIMB: the path draws itself as it comes into view
+  ScrollTrigger.create({ trigger: '#climb', start: 'top 70%', once: true, onEnter() {
+    const path = document.querySelector('#climb svg[data-vibe="quest"] path.ink.pig');
+    if (path && path.getTotalLength) { const l = path.getTotalLength();
+      gsap.fromTo(path, { strokeDasharray: l, strokeDashoffset: l }, { strokeDashoffset: 0, duration: 1.5, ease: 'power2.out' }); }
+  }});
+
   // PARENTS: numbers count, bars grow, the projection draws
   ScrollTrigger.create({
     trigger: '#report', start: 'top 76%', once: true,
@@ -813,6 +997,20 @@ function showForm(key, manual) {
 }
 rail.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) showForm(b.dataset.go, true); });
 if (!reduce) timer = setInterval(() => { const keys = Object.keys(LIVE); formIdx = (formIdx + 1) % keys.length; showForm(keys[formIdx]); }, 3800);
+
+
+/* ── the climb's two vibes: same content, different clothes ─────────────────── */
+const climbSwitch = document.querySelector('#climb .switch');
+if (climbSwitch) {
+  climbSwitch.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const vibe = b.dataset.vibe;
+    climbSwitch.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    document.querySelectorAll('#climb .stagewrap > svg').forEach((svg) => {
+      svg.classList.toggle('on', svg.dataset.vibe === vibe);
+    });
+  });
+}
 
 /* ── practice: a real moment, not a picture ─────────────────────────────────── */
 const grid = document.getElementById('grid'), cells = Array.from(grid.querySelectorAll('button'));

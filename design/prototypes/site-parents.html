@@ -8,18 +8,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#FAF7F0; --paper-2:#F1EDE3; --paper-3:#E7E1D3; --ink:#14142B; --ink-2:#4E4E66; --ink-3:#8A8A9E;
-  --pig:#2B45FF; --violet:#7C5CFF; --rose:#FF6B57; --marigold:#FFB629; --mint:#22C48B; --lilac:#B7A6FF;
-  --pig-w:#E6EAFF; --rose-w:#FFE7E2; --marigold-w:#FFF1D6; --mint-w:#DDF6EC; --lilac-w:#EFEBFF;
-  --body:#14142B; --body-hi:#3A3A5C; --visor:#FAF7F0; --visor-lo:#E7E1D3; --eye:#2B45FF;
+  /* LAW v5 (DESIGN.md §0) — white paper, colour with a job. The ground is #FFFFFF; a section
+     never gets a tint to say it is a section. Character for character the token block at the top
+     of landing-v8.html, plus the washes and lilac these site pages already name. */
+  --paper:#FFFFFF; --paper-2:#F6F6F8; --paper-3:#ECECF0; --line:#E4E4EA;
+  --ink:#14142B; --ink-2:#55556B; --ink-3:#8A8A9E;
+  --pig:#2B45FF; --pig-soft:#EDF0FF; --marigold:#FFB629; --rose:#FF6B57; --mint:#12B981; --violet:#7C5CFF; --lilac:#B7A6FF;
+  --pig-w:#EDF0FF; --violet-w:#EFEBFF; --rose-w:#FFEDEB; --marigold-w:#FFF6E5; --mint-w:#E3F7F0; --lilac-w:#F6F4FF;
+  --body:#14142B; --body-hi:#3A3A5C; --visor:#FFFFFF; --visor-lo:#EDEDF2; --eye:#2B45FF;
   --sans:'Poppins',system-ui,-apple-system,sans-serif; --hand:'Caveat',cursive;
-  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:64px; --s6:120px;
+  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:72px; --s6:128px;
+  --gutter:clamp(20px, 5vw, 48px); --band:clamp(72px, 9vw, 132px); --colgap:clamp(32px, 5vw, 80px);
+  --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 10px 28px rgba(20,20,43,.07);
 }
 [data-theme="dark"]{
-  --paper:#0F1226; --paper-2:#181C3A; --paper-3:#22264A; --ink:#F3F0E8; --ink-2:#B8B6C6; --ink-3:#7C7B92;
-  --pig:#7C8CFF; --violet:#A996FF; --rose:#FF8A78; --marigold:#FFC85A; --mint:#4FE3BD; --lilac:#C9BDFF;
-  --pig-w:#1E2650; --rose-w:#3E2431; --marigold-w:#3E3320; --mint-w:#16362E; --lilac-w:#2A2650;
-  --body:#F3F0E8; --body-hi:#FFFFFF; --visor:#0F1226; --visor-lo:#1E2650; --eye:#7C8CFF;
+  /* night, designed on its own and never inverted */
+  --paper:#0E0E16; --paper-2:#17171F; --paper-3:#1F1F29; --line:#26262F;
+  --ink:#F4F4F7; --ink-2:#B4B4C2; --ink-3:#7E7E90;
+  --pig:#7C8CFF; --pig-soft:#1A1E3A; --marigold:#FFC85A; --rose:#FF8A78; --mint:#3DD9A4; --violet:#A996FF; --lilac:#C9BDFF;
+  --pig-w:#1A1E3A; --violet-w:#2C293E; --rose-w:#38272C; --marigold-w:#383027; --mint-w:#1C3232; --lilac-w:#302E3E;
+  --body:#F4F4F7; --body-hi:#FFFFFF; --visor:#0E0E16; --visor-lo:#1F1F29; --eye:#7C8CFF;
+  --shadow:0 24px 60px rgba(0,0,0,.5); --lift:0 10px 28px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
@@ -155,6 +164,19 @@ footer b{display:block;color:var(--paper);font-weight:600;margin-bottom:10px}
 footer a{display:block;padding:4px 0}
 footer .wm svg{height:22px;color:var(--paper)}
 @media (max-width:900px){footer .wrap{grid-template-columns:1fr 1fr}}
+
+/* ── the footer wordmark ─────────────────────────────────────────────────────
+   The name, edge to edge, at the very bottom of every page. It writes itself on
+   as you arrive: a clip that opens left to right, so the letters appear in place
+   the way ink does, rather than sliding in from somewhere they were not.
+   Everything animated here is a clip and a transform, never a layout property,
+   so it cannot stutter (DESIGN.md §0). Under reduced motion it is simply there. */
+footer .fw{margin:var(--s3) 0 calc(var(--s2) * -1);line-height:0;overflow:hidden}
+footer .fw svg{display:block;width:100%;height:auto;color:rgba(255,255,255,.06);
+  clip-path:inset(0 100% 0 0);transform:translateY(14px);will-change:clip-path,transform}
+@media (prefers-reduced-motion:reduce){
+  footer .fw svg{clip-path:none!important;transform:none!important;color:rgba(255,255,255,.15)!important}
+}
 </style>
 </head>
 <body>
@@ -206,7 +228,7 @@ footer .wm svg{height:22px;color:var(--paper)}
       <p>Traffic. A message from home: "question 7 makes no sense." You'd explain it if you were there. You're not there.</p>
       <div class="caps">
         <div class="t">Meanwhile, at the table</div>
-        <div>She asks Wobo the way she'd ask you.</div>
+        <div>Your child asks Wobo the way they'd ask you.</div>
         <div>Wobo draws it out, line by line.</div>
         <div><em>By the time you park, it's clicked.</em></div>
       </div>
@@ -216,10 +238,10 @@ footer .wm svg{height:22px;color:var(--paper)}
         <rect x="40" y="40" width="440" height="280" rx="24" fill="#181C3A"/>
         <rect x="70" y="70" width="380" height="60" rx="14" fill="#22264A"/>
         <text x="90" y="96" font-family="Poppins,sans-serif" font-weight="600" font-size="15" fill="#F3F0E8">Wobo</text>
-        <text x="90" y="116" font-family="Poppins,sans-serif" font-size="13" fill="#B8B6C6">Aanya just finished triangles, lesson 3. She got c = 5 herself.</text>
+        <text x="90" y="116" font-family="Poppins,sans-serif" font-size="13" fill="#B8B6C6">Triangles, lesson 3, finished. Got c = 5 without a hint.</text>
         <text x="410" y="96" font-family="Poppins,sans-serif" font-size="12" fill="#7C7B92">8:12 pm</text>
         <rect x="70" y="150" width="380" height="60" rx="14" fill="#22264A"/>
-        <text x="90" y="176" font-family="Poppins,sans-serif" font-weight="600" font-size="15" fill="#F3F0E8">Aanya</text>
+        <text x="90" y="176" font-family="Poppins,sans-serif" font-weight="600" font-size="15" fill="#F3F0E8">Your child</text>
         <text x="90" y="196" font-family="Poppins,sans-serif" font-size="13" fill="#B8B6C6">got it!! wobo drew the squares thing. dont need u lol</text>
         <text x="410" y="176" font-family="Poppins,sans-serif" font-size="12" fill="#7C7B92">8:14 pm</text>
         <path class="draw" d="M100 270 c40 -30 80 -30 120 0 s80 30 120 0 s60 -30 90 -10" fill="none" stroke="#FFB629" stroke-width="3.5" stroke-linecap="round"/>
@@ -242,12 +264,12 @@ footer .wm svg{height:22px;color:var(--paper)}
     </div>
     <div class="art lilac">
       <div class="mock">
-        <div class="top"><svg viewBox="0 0 120 120" width="32" height="32"><use href="#head"/></svg><b>Aanya</b>· Class 8 · CBSE · this week</div>
+        <div class="top"><svg viewBox="0 0 120 120" width="32" height="32"><use href="#head"/></svg><b>Your child</b>· CBSE · this week</div>
         <div class="row"><div><b>Triangles and the hypotenuse</b><span>Lesson 3 of 5 · Tuesday 9:46 pm</span></div><span class="ok now">in progress</span></div>
         <div class="row"><div><b>Understanding quadrilaterals</b><span>4 lessons · practice 9 of 10</span></div><span class="ok">mastered</span></div>
         <div class="row"><div><b>Sound</b><span>Science · starts after the test</span></div><span class="ok" style="background:var(--paper-3)">next</span></div>
-        <div class="note">Three lessons, fourteen problems, and she asked for help twice after a miss, <em>which is exactly how learning looks.</em></div>
-        <div class="lock"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="3"/><path d="M8 10 v-3 a4 4 0 0 1 8 0 v3"/></svg>Questions word for word: shared only if Aanya allows</div>
+        <div class="note">Three lessons, fourteen problems, and help asked for twice after a miss, <em>which is exactly how learning looks.</em></div>
+        <div class="lock"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="3"/><path d="M8 10 v-3 a4 4 0 0 1 8 0 v3"/></svg>Questions word for word: shared only if your child allows</div>
       </div>
     </div>
   </div>
@@ -283,7 +305,7 @@ footer .wm svg{height:22px;color:var(--paper)}
     <details><summary>Is it safe for a ten-year-old to talk to?</summary><p>Yes, and it's built for exactly that. Wobo stays inside school subjects, has no opinions on anything contested, shows no ads, and never makes a child feel small. Voice isn't stored. You can read the full detail on the Security and trust page.</p></details>
     <details><summary>Can I see what my child asks?</summary><p>You see every lesson, practice set and the Sunday note. Questions word for word are shared only if your child allows it. We think that's what a good tutor would do too.</p></details>
     <details><summary>What does it cost?</summary><p>Nothing, every day, with a daily allowance of questions. Pro and Max raise that allowance for exam season. The plans page has the numbers for your country.</p></details>
-    <details><summary>Which classes and subjects?</summary><p>Classes 4 to 12, in Mathematics, Science, Social science and English, for CBSE, ICSE and the state boards. Other boards and countries are added as families ask.</p></details>
+    <details><summary>Which subjects?</summary><p>Every subject your board sets, for CBSE, ICSE and the state boards. Other boards and countries are added as families ask.</p></details>
   </div>
 </div></section>
 
@@ -308,7 +330,9 @@ footer .wm svg{height:22px;color:var(--paper)}
   <div><b>For</b><a href="#" style="color:var(--paper)">Parents</a><a href="#">Students</a></div>
   <div><b>Help</b><a href="#">Help centre</a><a href="#">Contact</a><a href="#">Questions</a></div>
   <div><b>Company</b><a href="#">About</a><a href="#">Security and trust</a><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Children's privacy</a><a href="#">Cookies</a><a href="#">Accessibility</a></div>
-</div></footer>
+</div>
+  <div class="fw" aria-hidden="true"><svg viewBox="0 0 1160 340" preserveAspectRatio="xMidYMid meet"><use href="#wm"/></svg></div>
+</footer>
 
 <script>
 const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.setAttribute('data-theme', t);
@@ -319,6 +343,30 @@ if (!rm && 'IntersectionObserver' in window) {
   const io=new IntersectionObserver(en=>en.forEach(x=>{ if(x.isIntersecting){ x.target.classList.remove('pre'); x.target.classList.add('on'); io.unobserve(x.target);} }),{threshold:.18});
   els.forEach(e=>io.observe(e));
 } else { document.querySelectorAll('.reveal').forEach(e=>e.classList.add('on')); }
+
+/* The footer wordmark writes on as it arrives. One rAF-throttled read per scroll,
+   one write, no transition on the properties it drives, so nothing can fight it. */
+(() => {
+  const fw = document.querySelector('footer .fw svg');
+  if (!fw) return;
+  if (rm) { fw.style.clipPath = 'none'; fw.style.transform = 'none'; fw.style.color = 'rgba(255,255,255,.15)'; return; }
+  let queued = false;
+  const paint = () => {
+    queued = false;
+    const r = fw.getBoundingClientRect();
+    // Complete the moment the mark is fully in view. Measured against its OWN height,
+    // because it sits flush with the bottom of the page and can never scroll a screenful
+    // further up; a viewport-fraction denominator leaves it permanently unfinished.
+    const span = Math.min(r.height, innerHeight * 0.8) || 1;
+    const p = Math.min(1, Math.max(0, (innerHeight - r.top) / span));
+    fw.style.clipPath = `inset(0 ${((1 - p) * 100).toFixed(2)}% 0 0)`;
+    fw.style.transform = `translateY(${((1 - p) * 14).toFixed(1)}px)`;
+    fw.style.color = `rgba(255,255,255,${(0.05 + p * 0.10).toFixed(3)})`;
+  };
+  addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  addEventListener('resize', () => { if (!queued) { queued = true; requestAnimationFrame(paint); } }, { passive: true });
+  paint();
+})();
 </script>
 </body>
 </html>
