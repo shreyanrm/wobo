@@ -20,6 +20,9 @@ const HERE = import.meta.dir;
 const SHEETS: Record<string, string> = {
   'home/Home.css': readFileSync(join(HERE, 'home', 'Home.css'), 'utf8'),
   'learn/Learn.css': readFileSync(join(HERE, 'learn', 'Learn.css'), 'utf8'),
+  // The climb — the map of one chapter. It carries more pigment than any other app sheet, so it
+  // is in this list on purpose: every one of its washes has to be defended below.
+  'learn/Climb.css': readFileSync(join(HERE, 'learn', 'Climb.css'), 'utf8'),
   'course/lesson.css': readFileSync(join(HERE, 'course', 'lesson.css'), 'utf8'),
   'subject/subject.css': readFileSync(join(HERE, 'subject', 'subject.css'), 'utf8'),
   'chat/chat.css': readFileSync(join(HERE, 'chat', 'chat.css'), 'utf8'),
@@ -30,6 +33,10 @@ const SHEETS: Record<string, string> = {
   // trap 1).
   'you/plan.css': readFileSync(join(HERE, 'you', 'plan.css'), 'utf8'),
   'practice/practice.css': readFileSync(join(HERE, 'practice', 'practice.css'), 'utf8'),
+  // The knowledge map and the parent's report. It was left out of this list while the surfaces
+  // were unreachable, so the one claim the folder makes loudest — "no wash on any card, panel or
+  // section" — held only because someone had checked it by hand.
+  'progress/progress.css': readFileSync(join(HERE, 'progress', 'progress.css'), 'utf8'),
   'onboarding/onboarding.css': readFileSync(join(HERE, 'onboarding', 'onboarding.css'), 'utf8'),
 };
 
@@ -49,6 +56,16 @@ const SCREENS = [
 /** selector → the job the pigment is doing there. Every entry is a pill, a tick or a selected row. */
 const SANCTIONED_WASHES: Record<string, string> = {
   '.ln-unit .ln-n': 'the chapter number — a badge, the size of a pill',
+  '.cl-now > .cl-dot': 'the node the learner is standing on — the ring around a pill-sized dot',
+  '.cl-now > .cl-card':
+    'the topic the learner is standing in — a selected row, exactly as .ln-unit.ln-now is',
+  '.cl-debt > .cl-dot':
+    'a topic that slipped back below the floor — the same badge, in the pigment for care',
+  '.cl-debt > .cl-card': 'the row that needs another pass — a marked row, not a section',
+  // The one panel in this list, and it is a callout attached to a single node rather than a
+  // surface: the ground Wobo lays before it teaches the topic above it, in the ground's own
+  // pigment. design/prototypes/app-climb.html draws it this way and it is the target.
+  '.cl-bridge': 'the bridge under one node — the ground taught first, as a callout in lilac',
   '.ln-unit.ln-now': 'the chapter the learner is standing in — a selected row',
   '.ln-unit.ln-done .ln-n': 'a finished chapter is ticked — the badge, in mint',
   '.ls-notes button.ls-on': 'the saved board being read — a selected row',

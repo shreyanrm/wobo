@@ -8,9 +8,16 @@
  *   the crumb                Learn · Mathematics  /  Practice · Mathematics
  *   the provenance pill      where this syllabus came from, in the brain's own words
  *   the subject tiles        every subject of their class, this one outlined
- *   the two tabs             Learn (the chapter rows) and Practice (the set list)
+ *   the two tabs             Learn (the climb and the chapter rows) and Practice (the set list)
+ *   the climb                the chapter in front of them as a map, topic by topic, with the two
+ *                            things a row cannot show: a topic that slipped back below the mastery
+ *                            floor, and the ground still to lay under one (screens/learn/Climb.tsx)
  *   the chapter rows         done · now · next · come back to · later, the mint bar on the one
- *                            under way; a row's state is completion AND the mastery band together
+ *                            under way; a row's state is completion AND the mastery band together.
+ *                            They sit under a new "Every chapter" label: once the climb is above
+ *                            them the list is the SECOND thing on the tab and an unheaded run of
+ *                            rows under a map reads as part of it. That label is a copy change to
+ *                            this screen and is named here so it is not mistaken for indentation.
  *   the set list             board 04's "This set", one row per chapter, ticked once mastered
  *   Wobo's line              the door to reordering the list, in conversation
  *
@@ -42,6 +49,7 @@ import {
   TopBar,
   WoboHead,
 } from '../ui/primitives';
+import { Climb } from './learn/Climb';
 import { tileLine, type UnitRow, unitLine, unitRows, unitState } from './learn/units';
 import { frameworkLabel, loadProfile } from './you/profile';
 import './learn/Learn.css';
@@ -311,47 +319,56 @@ export function SubjectScreen({ subjectId, intent }: { subjectId: string; intent
               </Card>
             </div>
           ) : (
-            <div className="ln-units" ref={listRef}>
-              {rows.map((r) => {
-                const line = unitLine(r);
-                const to = chapterRoute(r, 'learn');
-                if (r.state === 'now') {
+            <>
+              {/* THE CLIMB — the chapter in front of them, topic by topic, with the two things a
+              chapter row can never show: a topic that slipped back, and the ground still to lay
+              under one. Every node reads the same mastery state these rows do, one level down
+              (screens/learn/Climb.tsx). The chapter ledger stays underneath it. */}
+              {here && <Climb chapter={here.chapter} />}
+
+              <Label>Every chapter</Label>
+              <div className="ln-units" ref={listRef}>
+                {rows.map((r) => {
+                  const line = unitLine(r);
+                  const to = chapterRoute(r, 'learn');
+                  if (r.state === 'now') {
+                    return (
+                      <div key={r.chapter.id} className="ln-unit ln-now">
+                        <div className="ln-n">{r.chapter.index}</div>
+                        <div>
+                          <b>{r.chapter.name}</b>
+                          {line && <span>{line}</span>}
+                          <div className="ln-prog" aria-hidden="true">
+                            <i style={{ width: `${Math.round(r.progress * 100)}%` }} />
+                          </div>
+                        </div>
+                        <Button size="sm" onClick={() => router.navigate(to)}>
+                          Continue
+                        </Button>
+                      </div>
+                    );
+                  }
                   return (
-                    <div key={r.chapter.id} className="ln-unit ln-now">
+                    <a
+                      key={r.chapter.id}
+                      className={r.state === 'done' ? 'ln-unit ln-done' : 'ln-unit'}
+                      href={routeToPath(to)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.navigate(to);
+                      }}
+                    >
                       <div className="ln-n">{r.chapter.index}</div>
                       <div>
                         <b>{r.chapter.name}</b>
                         {line && <span>{line}</span>}
-                        <div className="ln-prog" aria-hidden="true">
-                          <i style={{ width: `${Math.round(r.progress * 100)}%` }} />
-                        </div>
                       </div>
-                      <Button size="sm" onClick={() => router.navigate(to)}>
-                        Continue
-                      </Button>
-                    </div>
+                      {unitState(r.state) && <span className="ln-state">{unitState(r.state)}</span>}
+                    </a>
                   );
-                }
-                return (
-                  <a
-                    key={r.chapter.id}
-                    className={r.state === 'done' ? 'ln-unit ln-done' : 'ln-unit'}
-                    href={routeToPath(to)}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      router.navigate(to);
-                    }}
-                  >
-                    <div className="ln-n">{r.chapter.index}</div>
-                    <div>
-                      <b>{r.chapter.name}</b>
-                      {line && <span>{line}</span>}
-                    </div>
-                    {unitState(r.state) && <span className="ln-state">{unitState(r.state)}</span>}
-                  </a>
-                );
-              })}
-            </div>
+                })}
+              </div>
+            </>
           )}
 
           <div className="ln-wobo">

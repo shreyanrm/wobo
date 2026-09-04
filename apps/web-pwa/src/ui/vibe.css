@@ -1,0 +1,130 @@
+/*
+ * THE VIBE LAYER — the only stylesheet in the app allowed to key off `[data-vibe]`.
+ *
+ * Ported from design/prototypes/app-climb.html, which is the target. Two blocks and nothing else:
+ * the switch itself, and the handful of declarations Focused changes. `ui/viewPref.test.tsx` holds
+ * this file to that — it fails if a `[data-vibe=…]` rule appears in any other sheet, and it fails
+ * if a rule here touches a property that could change WHICH nodes exist, their order, or whether a
+ * learner can see one. The vibe changes the costume. It never changes the climb.
+ *
+ * The climb's own sheet owns every `.cl-` rule that is not vibe-dependent — the path, the dots,
+ * the cards, the states, the phone layout. It must not redeclare anything below.
+ *
+ * Law v5 (DESIGN.md §0): white ground, tone and space instead of lines, one job per colour.
+ *
+ * There is no animation and no transition anywhere in this file, so a vibe can never be one of the
+ * three causes of jitter and there is nothing here for prefers-reduced-motion to switch off. A
+ * toggle is a repaint: the attribute changes, the marks swap, the corners come in, and that is all.
+ */
+
+/* ── the switch ─────────────────────────────────────────────────────────────
+   A group of two buttons, not a segmented radio: either one is reachable in a
+   single Tab and pressable with Enter or Space, and `aria-pressed` says which
+   look is on. It sits in the sticky bar, so toggling never moves it; what could
+   move is the map underneath, and viewPref.ts's holdScrollPlace puts that back. */
+.cl-vibe {
+  margin-left: auto;
+  display: flex;
+  gap: 3px;
+  background: var(--paper-2);
+  padding: 3px;
+  border-radius: 999px;
+  flex: 0 0 auto;
+}
+.cl-vibe button {
+  font: 500 13px / 1 var(--sans);
+  border: 0;
+  background: transparent;
+  color: var(--ink-2);
+  padding: 9px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+  min-height: 36px;
+}
+.cl-vibe button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.cl-vibe button:focus-visible {
+  outline: 3px solid var(--marigold);
+  outline-offset: 2px;
+}
+
+/* ── Focused ────────────────────────────────────────────────────────────────
+   The same eleven nodes, the costume off. Both marks are always in the DOM and
+   CSS picks one, so switching is a repaint and never a remount — no flash, and
+   no way for a mark to arrive without the node it belongs to.
+
+   The exhaustive list, and it matches the brief: the reward's mark and tone, the
+   chapter test's mark and shape, the face an aside is set in, and one step
+   tighter on the corners. Not a single word of the climb.
+
+   Every one is anchored to `:root`, where app-climb.html could afford a bare
+   `[data-vibe=…]` — a one-page prototype has one meaning for a name. This app
+   does not: screens/landing/art.tsx already puts `data-vibe` on two of its
+   illustrations, and landing/engine/motion.ts selects on it. That is DESIGN.md
+   §0 trap 1, and anchoring is what stops it from ever becoming a bug. */
+/*
+ * The one line of app-climb.html this port does NOT copy, and the reason.
+ *
+ * The prototype writes `.cl-i-f{display:none}`, which is (0,1,0). Its own `.cl-dot svg{…;
+ * display:block;…}` is (0,1,1) and outranks it, so the prototype in Quest actually paints BOTH
+ * marks inside the reward dot, one under the other. Measured in Chromium against the file itself:
+ * `getComputedStyle` says `block` for `.cl-i-q` and `block` for `.cl-i-f`.
+ *
+ * `:root:not([data-vibe='focused'])` is (0,3,0), so the resting state wins outright and no rule in
+ * any other sheet has to stay away from `display` on a dot's svg for this to hold. It also states
+ * the rule the way it is meant: a mark is hidden BECAUSE the other vibe is on.
+ */
+:root:not([data-vibe="focused"]) .cl-i-f {
+  display: none;
+}
+:root[data-vibe="focused"] .cl-i-q {
+  display: none;
+}
+:root[data-vibe="focused"] .cl-i-f {
+  display: block;
+}
+/* the reward: marigold and earned in Quest, neutral paper in Focused */
+:root[data-vibe="focused"] .cl-chest .cl-dot {
+  background: var(--paper-3);
+  color: var(--ink-2);
+  width: 52px;
+  height: 52px;
+}
+/* the chapter test: a rounded square in Quest, a circle like every other node in Focused */
+:root[data-vibe="focused"] .cl-boss .cl-dot {
+  border-radius: 50%;
+}
+/* the asides: Wobo's hand in Quest, the body face in Focused. The words do not change. */
+:root[data-vibe="focused"] .cl-loop span,
+:root[data-vibe="focused"] .cl-note {
+  font: 400 13px / 1.4 var(--sans);
+}
+:root[data-vibe="focused"] .cl-note {
+  color: var(--ink-3);
+}
+:root[data-vibe="focused"] .cl-loop span {
+  color: var(--rose);
+}
+:root[data-vibe="focused"] .cl-loop path {
+  stroke-dasharray: none;
+}
+/* corners, one step in */
+:root[data-vibe="focused"] .cl-card {
+  border-radius: 14px;
+}
+:root[data-vibe="focused"] .cl-bridge {
+  border-radius: 14px;
+}
+
+@media (max-width: 640px) {
+  /* the touch floor (DESIGN.md §2): the box grows to 44px, the type does not move */
+  .cl-vibe button {
+    min-height: 44px;
+  }
+  :root[data-vibe="focused"] .cl-chest .cl-dot {
+    width: 44px;
+    height: 44px;
+  }
+}

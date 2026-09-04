@@ -33,6 +33,9 @@ export const SCOPED_KEYS = [
   // What the re-teach ladder has already tried for each concept, and the misses standing against
   // it. The next explanation a learner is handed depends on it (wobo/reteach.ts).
   'wobo-reteach-v1',
+  // How the climb looks to this learner — Quest or Focused (ui/viewPref.ts). Two learners on one
+  // tablet do not share a taste, and the switch is theirs, not the device's.
+  'wobo-vibe-v1',
 ] as const;
 
 /** Where the last scope is remembered, so an upgrade (anonymous → account) can carry data across. */
@@ -49,6 +52,23 @@ let scope: string | null = null;
 /** The subject everything personal is currently keyed to, or null before a session exists. */
 export function currentScope(): string | null {
   return scope;
+}
+
+const scopeListeners = new Set<() => void>();
+
+/**
+ * Told whenever this device changes which learner it is keyed to.
+ *
+ * A store that reads storage ONCE — at boot, before the session is resolved — has cached a value
+ * from the wrong learner's keys, and nothing else would ever tell it. `ui/viewPref.ts` is the
+ * first: the vibe has to be on the document root before the first paint, which is earlier than
+ * anyone knows whose device this is, so it re-reads here. Returns the unsubscribe.
+ */
+export function onScopeChange(fn: () => void): () => void {
+  scopeListeners.add(fn);
+  return () => {
+    scopeListeners.delete(fn);
+  };
 }
 
 /** The storage key a base key actually lives under for the current learner. */
@@ -118,6 +138,9 @@ export function applyScope(subjectId: string | null, anonymous = false): void {
   } catch {
     // remembering the scope is a convenience; an upgrade just inherits nothing
   }
+  // Last, once the keys have moved and the scope is live, so a listener that re-reads sees the
+  // learner it was told about rather than the one it is replacing.
+  for (const l of scopeListeners) l();
 }
 
 /** The subject this device was last scoped to (across a sign-in redirect), or null. */

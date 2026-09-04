@@ -523,7 +523,7 @@ one turns a row in this document into something that cannot silently regress.
 **Re-run this register, do not re-read it.** The counts above are reproducible:
 
 ```sh
-cd /Users/depl/Documents/classess-learner/docs/conformance && python3 - <<'EOF'
+cd docs/conformance && python3 - <<'EOF'
 import re, collections, glob
 def norm(s):
     s = s.replace('*', '').strip().upper()

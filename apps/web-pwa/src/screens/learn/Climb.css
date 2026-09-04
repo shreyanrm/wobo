@@ -1,0 +1,156 @@
+/* biome-ignore-all format: ported declaration for declaration from design/prototypes/app-climb.html */
+/* biome-ignore-all lint/style/noDescendingSpecificity: the state rules keep the prototype's order, and order is what decides which of two equal selectors wins */
+/*
+ * THE CLIMB — one chapter as a map. Ported from design/prototypes/app-climb.html.
+ *
+ * This sheet owns every `.cl-` rule that is NOT vibe-dependent: the spine, the nodes, the states,
+ * the return arc, the bridge, the phone layout. `src/ui/vibe.css` owns the switch, the two marks it
+ * swaps (`.cl-i-q` / `.cl-i-f`) and every `[data-vibe=…]` rule. Neither sheet redeclares the
+ * other's property on the other's selector.
+ *
+ * LAW v5 (DESIGN.md §0). White ground; no border line anywhere; surfaces separate by tone; each
+ * colour does one job and nothing else:
+ *   mint      a topic that stayed learnt
+ *   pig       where the learner is standing (the one pointer on this view — the eyebrow above the
+ *             map is ink-3 rather than the prototype's pig for exactly that reason: inside the app
+ *             the climb shares a page, and two pigs is no pointer at all)
+ *   rose      a topic that slipped back below the floor, and the arc that goes back for it
+ *   lilac     ground beneath a topic — the bridge and its chips
+ *   marigold  a reward, and the earned moment at the end of a cleared chapter
+ *   neutral   not reached yet, and the hollow ring of a topic Wobo has no record of
+ *
+ * THE FIVE TRAPS THIS REPO HAS PAID FOR, and where each one is avoided here:
+ *   1. A short class name meaning two things. Every rule is namespaced `cl-`, and the only other
+ *      sheet that owns any of them is ui/vibe.css, by agreement.
+ *   2. Grid auto-placement never moves backwards. `.cl-l > .cl-card` is placed in column 1 AFTER
+ *      the dot in column 2, so every one of them would land on the next row. Both children pin
+ *      `grid-row`, and so do the arc (row 2) and the bridge (row 3).
+ *   3. A descendant selector reaching an inner wrapper. Every rule below that could reach one uses
+ *      a child combinator.
+ *   4. `white-space:nowrap` on anything long. There is none: a topic name is a whole sentence.
+ *   5. A CSS transition on a property something else drives. There is not one transition in this
+ *      file. The map is a set of state classes; nothing scrubs, so nothing can jitter.
+ *
+ * AND ONE THIS SHEET FOUND. `.cl-dot svg` must not carry `display`: it is (0,1,1) and vibe.css's
+ * `.cl-i-f{display:none}` is (0,1,0), so a `display:block` here would outrank it and show BOTH the
+ * quest mark and the focused mark at once. The dot is a grid, so its children are blockified
+ * anyway and the declaration was never needed.
+ */
+
+/* THE MEASURE. app-climb.html holds the head, the stats and the whole path inside
+   `.cl-wrap{width:min(760px,calc(100% - 2*var(--gutter)))}`. Inside the app the shell already pays
+   the gutter, so only the cap travels: without it the spine sits at the middle of a 1120px column
+   and every card is half a screen wide with its text pushed to the far edge, which is the one
+   measurement that made the port stop looking like the drawing.
+   The drawing centres its wrap because the climb is the whole page there. Here it shares the Learn
+   tab with the chapter ledger under it, and a 760px block centred in a 1120px column starts 180px
+   in from everything else on the screen — so it is left-aligned to the same edge as the rest. */
+.cl-climb{width:min(760px,100%)}
+
+/* the bar above the map: which chapter, and the one control that changes the look */
+.cl-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.cl-eyebrow{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+/* the head: what this chapter is, and the three counters, all read from real state */
+.cl-head{display:grid;gap:12px}
+.cl-head > h2{font:600 clamp(22px,3.2vw,30px)/1.15 var(--sans);letter-spacing:-.02em;margin:0}
+.cl-head > p{color:var(--ink-2);margin:0;max-width:52ch}
+.cl-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:8px}
+.cl-stat{min-width:0;background:var(--paper-2);border-radius:16px;padding:14px 16px;display:grid;gap:4px}
+.cl-stat > b{font:600 22px/1.1 var(--sans);font-variant-numeric:tabular-nums}
+.cl-stat > span{font:400 13px/1.3 var(--sans);color:var(--ink-2)}
+
+/* ── the path ──────────────────────────────────────────────────────────────────
+   A spine down the middle with nodes alternating either side. A serpentine drawn
+   across columns looks better in a screenshot and breaks on a phone; this reads
+   the same at 390 and at 1440, which is the point. `--reached` is the fraction of
+   the climb the learner stands at, set inline from the map. */
+.cl-path{list-style:none;margin:20px 0 0;padding:0;position:relative}
+.cl-path::before{content:"";position:absolute;left:50%;top:6px;bottom:6px;width:4px;margin-left:-2px;border-radius:2px;
+  background:linear-gradient(var(--mint) 0 var(--reached,0%),var(--paper-3) var(--reached,0%) 100%)}
+.cl-n{position:relative;display:grid;grid-template-columns:1fr 56px 1fr;align-items:center;padding:14px 0}
+.cl-dot{grid-column:2;grid-row:1;justify-self:center;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
+  background:var(--paper-3);color:var(--ink-3);box-shadow:0 0 0 6px var(--paper);position:relative;z-index:1}
+.cl-dot svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.cl-dot > b{font:600 16px/1 var(--sans);font-variant-numeric:tabular-nums}
+.cl-card{min-width:0;min-height:44px;background:var(--paper-2);border-radius:18px;padding:16px 18px;display:grid;gap:4px;align-content:center}
+.cl-card > b{font:600 16px/1.25 var(--sans)}
+.cl-meta{font:400 13px/1.35 var(--sans);color:var(--ink-2)}
+.cl-l > .cl-card{grid-column:1;grid-row:1;text-align:right;justify-items:end}
+.cl-r > .cl-card{grid-column:3;grid-row:1}
+a.cl-card:hover{box-shadow:var(--lift)}
+.cl-card:focus-visible,.cl-ground > button:focus-visible{outline:3px solid var(--marigold);outline-offset:2px}
+
+/* states — each colour has one job and never decorates */
+.cl-done > .cl-dot{background:var(--mint);color:#08301F}
+.cl-now > .cl-dot{background:var(--pig);color:#fff;box-shadow:0 0 0 6px var(--paper),0 0 0 12px var(--pig-w)}
+.cl-now > .cl-card{background:var(--pig-w);box-shadow:var(--lift)}
+.cl-debt > .cl-dot{background:var(--rose-w);color:var(--rose);box-shadow:0 0 0 6px var(--paper),inset 0 0 0 3px var(--rose)}
+.cl-debt > .cl-card{background:var(--rose-w)}
+.cl-lock > .cl-card{background:transparent}
+.cl-lock > .cl-card > b{color:var(--ink-3);font-weight:500}
+/* no record either way: a hollow ring rather than another colour, because the difference between
+   "not reached" and "nothing known" is a difference the words carry, not the palette */
+.cl-unsure > .cl-dot{background:var(--paper);box-shadow:0 0 0 6px var(--paper),inset 0 0 0 3px var(--paper-3)}
+.cl-unsure > .cl-card{background:transparent}
+.cl-unsure > .cl-card > b{color:var(--ink-3);font-weight:500}
+.cl-chest > .cl-dot{background:var(--marigold);color:#3A2A00;width:60px;height:60px}
+.cl-boss > .cl-dot{background:var(--ink);color:var(--paper);width:64px;height:64px;border-radius:20px}
+.cl-boss > .cl-card{background:var(--paper);box-shadow:var(--shadow)}
+/* THE TWO NODES THAT ARE NEVER GREYED. In the drawing the reward and the gate are the confident
+   cards on the climb; in this port they also carry a STATE, and the gate's is `ahead` until every
+   topic is learnt. `.cl-lock > .cl-card > b` above (0,3,1) would therefore paint the gate's own
+   title ink-3 at weight 500 — greyed out, indistinguishable from nodes nobody has reached. These
+   restate the ink at the same specificity, later in the sheet, which is what decides it. */
+.cl-chest > .cl-card > b,.cl-boss > .cl-card > b{color:var(--ink);font-weight:600}
+/* the chapter cleared: the one earned moment on this map */
+.cl-boss.cl-done > .cl-dot{background:var(--marigold);color:#3A2A00}
+
+/* the return arc: the one drawing here that says "we do not move on until it is mastered". It is
+   rendered only when the mastery state says a completed topic slipped, and never otherwise. */
+.cl-loop{grid-column:1 / -1;grid-row:2;display:grid;grid-template-columns:1fr 56px 1fr;align-items:center}
+.cl-loop > svg{grid-column:2;grid-row:1;justify-self:center;width:56px;height:64px;overflow:visible}
+.cl-loop svg path{fill:none;stroke:var(--rose);stroke-width:2.5;stroke-dasharray:6 6;stroke-linecap:round}
+.cl-loop > span{grid-column:3;grid-row:1;align-self:center;font:600 17px/1.2 var(--hand);color:var(--rose);padding-left:10px}
+
+/* the bridge: ground taught before the topic that needs it */
+.cl-bridge{grid-column:1 / -1;grid-row:3;margin:14px auto 0;width:min(100%,520px);background:var(--lilac-w);border-radius:18px;padding:16px 18px;display:grid;gap:10px}
+.cl-bridge > b{font:600 14px/1.3 var(--sans)}
+.cl-bridge > p{font:400 13px/1.4 var(--sans);color:var(--ink-2);margin:0}
+.cl-ground{display:flex;flex-wrap:wrap;gap:8px}
+/* 13px, not the prototype's 12: a chip here is a whole topic name rather than a glyph read by
+   shape, and DESIGN.md §2's floor for a run of prose is 13 (tests/responsive.spec.ts measures it) */
+.cl-ground > button{font:500 13px/1.2 var(--sans);min-height:36px;padding:8px 12px;border:0;border-radius:999px;background:var(--paper);color:var(--ink-2);
+  display:inline-flex;align-items:center;gap:6px;cursor:pointer;text-align:left}
+.cl-ground > button::before{content:"";flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--lilac)}
+
+.cl-note{text-align:center;color:var(--ink-3);font:600 19px/1.3 var(--hand);margin:16px 0 0}
+.cl-empty{color:var(--ink-2);margin:0}
+
+/* phone — one left rail, and every node on it */
+@media (max-width:640px){
+  .cl-n{grid-template-columns:44px 1fr;gap:14px;padding:10px 0}
+  .cl-path::before{left:22px;margin-left:-2px}
+  .cl-dot{grid-column:1;width:44px;height:44px}
+  .cl-chest > .cl-dot,.cl-boss > .cl-dot{width:44px;height:44px}
+  .cl-l > .cl-card,.cl-r > .cl-card{grid-column:2;grid-row:1;text-align:left;justify-items:start}
+  .cl-loop{grid-template-columns:44px 1fr;gap:14px}
+  .cl-loop > svg{grid-column:1;width:44px}
+  .cl-loop > span{grid-column:2;padding-left:0}
+  .cl-bridge{width:100%}
+  .cl-stats{grid-template-columns:1fr;gap:8px}
+  .cl-stat{display:flex;align-items:baseline;gap:10px}
+  .cl-ground > button{min-height:44px}
+}
+
+/* NOTHING ON THIS MAP MOVES. There is no transition and no keyframe in this file: the climb is a
+   set of state classes, the spine's fill is a gradient stop, and the arc is a static path. So a
+   reduced-motion learner is already looking at the finished picture. The rules below are the belt
+   for the braces — they name every element a later addition could animate, in both the OS setting
+   and the app's own switch (`[data-motion="reduce"]`, as progress.css does). */
+@media (prefers-reduced-motion:reduce){
+  .cl-path,.cl-n,.cl-dot,.cl-card,.cl-loop,.cl-bridge{animation:none;transition:none}
+}
+[data-motion="reduce"] .cl-path,[data-motion="reduce"] .cl-n,[data-motion="reduce"] .cl-dot,
+[data-motion="reduce"] .cl-card,[data-motion="reduce"] .cl-loop,
+[data-motion="reduce"] .cl-bridge{animation:none;transition:none}
