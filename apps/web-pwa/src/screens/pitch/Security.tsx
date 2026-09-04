@@ -170,10 +170,22 @@ const PROTECTIONS: readonly { title: string; line: string }[] = [
   },
 ];
 
+/**
+ * What no outsider has checked yet. The section is an admission, not a claim, and it is worth
+ * keeping for exactly that reason.
+ *
+ * TWO OF THESE USED TO BE DATED TO A LAUNCH: "Independent penetration test before public launch"
+ * and "SOC 2 Type I, then Type II, in the first year after launch". We are open (DESIGN.md §0,
+ * owner, 2026-09-04) — anyone can sign up today — so a promise pinned to a launch that has already
+ * happened reads as a promise already broken. The work is named; the date is not ours to invent.
+ *
+ * FLAGGED FOR THE OWNER: none of these five is verifiable in this repository. They are commitments,
+ * and only the owner can confirm they were made.
+ */
 const SCHEDULED: readonly string[] = [
-  'Independent penetration test before public launch',
+  'Independent penetration test',
   'Staff break-glass access logging with monthly review',
-  'SOC 2 Type I, then Type II, in the first year after launch',
+  'SOC 2 Type I, then Type II',
   'ISO 27001 readiness assessment',
   "A children's-safety seal evaluated once the audits are in",
 ];
@@ -191,7 +203,8 @@ const SUBS: readonly { role: string; line: string; region: string }[] = [
   },
   {
     role: 'AI model providers',
-    line: 'Answer the question without ever knowing whose it is.',
+    line:
+      'Answer the question. They are sent what a tutor needs to teach this learner: a first name, a class and board, what they are strong on, and the things the learner asked Wobo to remember, in the learner\'s own words. Never an email address, a phone number or a payment detail, and never anything under a real name.',
     region: 'US · EU',
   },
   {
