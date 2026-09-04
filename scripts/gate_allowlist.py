@@ -47,6 +47,15 @@ SKIP_PREFIXES: tuple[tuple[str, str], ...] = (
         "rebrand is documented in — the same reason docs/history/ is carved out above.",
     ),
     (
+        "docs/conformance/",
+        "the standards conformance register. Every row of it is evidence, and evidence means a real "
+        "file path or a real command and its output. The checkout directory on this machine still "
+        "carries the pre-rebrand name, so an auditor quoting the path they actually ran a command in "
+        "trips this gate. Rewriting those paths would falsify the one thing the register exists to "
+        "provide, which is a claim somebody else can go and check. Nothing here ships to a user: it "
+        "is an internal audit record, and the white-label gate still covers it.",
+    ),
+    (
         ".playwright-mcp/",
         "browser-snapshot output from QA runs. Already in .gitignore; the tracked copies predate "
         "that rule and are queued for `git rm --cached`.",
