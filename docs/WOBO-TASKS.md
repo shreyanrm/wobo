@@ -594,3 +594,129 @@ Legend: **owner** = only the owner can do it · **design** = Fable's own hand ·
 - [ ] Teach-to-unlock and the protégé economy (moderated)
 - [ ] Earn-it-forward and the integrity layer
 - [ ] Rive rig for the body, if it ever earns its cost
+
+## Wave 10 — Law v5, the depth of the product, and what the site must prove (owner, 2026-09-04)
+
+Every line here comes from the owner in one sitting. Nothing is inferred; where a decision was
+needed it was asked and the answer is recorded beside the task.
+
+### 10.1 The law (DESIGN.md §0) — applies to every surface
+- [x] White ground, colour only where it does a job — `DESIGN.md:11` law v5, built in `design/prototypes/landing-v8.html`
+- [x] One spacing rhythm: `--gutter`, `--band` (half from each side), `--colgap`; every grid child `min-width:0`
+- [x] Band raised to `clamp(96px,11vw,184px)` — owner: "spacing between sections is not enough"
+- [x] The three causes of scroll jitter banned: a CSS transition on a property GSAP scrubs; scrubbing a layout property; a tween created inside `onUpdate`
+- [x] Magnetic controls move an INNER element, never themselves — the hero button jitter
+- [x] The navbar CTA is magnetic too
+- [ ] Law v5 applied to every app screen and public page — Wave 9 running (`wf_c9c922ce-559`)
+
+### 10.2 The copy law
+- [x] No names anywhere. Not "Aanya", not any invented learner or parent
+- [x] No grade gate on any public surface. "Every subject your board sets"; anyone may sign up
+- [x] No raw allowances ("40 questions a day"); Free carries no multiplier
+- [x] Location inferred from the browser time zone, never asked (Plans lost its country switch)
+- [x] "The first question is on us" removed — it read as though ONLY the first was free
+- [x] "Tonight" removed everywhere — "this evening" where a time is needed at all
+- [x] We do not deal with schools at this stage: gone from the footer, plans, security and contact
+- [x] One mailbox for everything: support@heywobo.com. The invented safety@/accessibility@ are gone
+- [x] Nothing claimed that cannot be shown. Removed: SOC 2, ISO 27001, penetration test, thirty-day
+      backup purge with rehearsed restores, and the provider-training claim (owner: do not raise a
+      worry about ourselves that nobody asked about). Replaced with the laws we are built to
+      (DPDP, COPPA, GDPR incl. children, CCPA/CPRA) and the controls that exist: AES-256 at rest,
+      TLS 1.2+, access rules inside the database, least privilege, reviewed and gated changes
+- [ ] FERPA deliberately NOT claimed: it governs schools' education records and we serve families
+      directly. Owner to confirm if they still want it stated
+
+### 10.3 Plans
+- [x] One subscription = ONE learner, on every tier
+- [x] No capability differs between plans. Paying buys more questions a day and nothing else
+- [x] `budget.py`: pro = 5× free, max = 20× free, `plus` a legacy alias, unknown plan falls to free
+- [x] The checkout rehearsal cut from the plans page — consent belongs at the real checkout
+- [ ] Payment path itself does not exist (Checkout is promise text only)
+
+### 10.4 Brand
+- [x] The real wordmark replaces the Poppins placeholder that was shipping on every app screen —
+      `packages/wobo/src/brand/wordmark.svg`, `apps/web-pwa/src/ui/primitives/Wordmark.tsx`
+- [ ] The eyes icon still needs a two-tone extraction; a flat colour pass collapses it to a disc
+
+### 10.5 What the site must say about the product (owner: "wobot is one selling point, we do a lot more")
+- [x] Drawing is one of five things: ask → place it in your syllabus → show it in the right form →
+      try it → remember and report
+- [x] The hero answers ONE question four ways: drawn, filmed, tried, spoken
+- [x] "It teaches you, at your pace" — three beats: finds the hole beneath the chapter; tries a
+      different way when one does not land; does not move on until it stays learnt
+- [x] "The climb" — checkpoints, a reward at one, the chapter test, what is behind stays unlocked,
+      and a Quest/Focused switch showing the SAME content in two vibes
+- [ ] Ported into the app — Wave 9 then Wave 11
+
+### 10.6 The product must actually work that way (audited 2026-09-04; verdicts are from the code)
+- [ ] **Mastery gates progression.** PARTIAL: bands are computed (`platform/kgtopg-contract-seed/src/reference/in-memory.ts:144`) and reach the tutor's prompt, but `screens/learn/units.ts:39` derives done/now/later from completion alone. Nothing blocks advancing on low mastery
+- [ ] **Mastery survives a reload.** `learner.mastery_cache` (migration 0002) is never written; evidence lives in an in-memory map
+- [ ] **`getNextBestNode` has zero callers** — the "what next" chooser is orphaned
+- [ ] **Prerequisite diagnosis.** ABSENT in production: `prerequisites` is `[]` for every topic; `unmetPrereqs` (`curriculum/registry.ts:248`), `masteredGround` and `composeBridge` (`wobo/tutor.ts:246,289`) all have zero callers since the roadmap was deleted. `onboarding.diagnostic.answered.v1` with `placement_band` is defined and never emitted
+- [ ] **Re-teach differently, automatically.** PARTIAL: interests→analogy is live and reaches the model; every modality switch is learner-initiated. `LearnModalitySwitched.reason` has `repeated_miss`/`frustration` and nothing emits them
+- [ ] **Gamification.** Live: XP, level curve, streak and freezes, trophies and ceremony, boss levels with stars, combos, arcade. Missing: the map
+- [ ] **Two vibes.** ABSENT: `ui/viewPref.ts` (`'list' | 'adventure'` over identical data) was deleted
+- [ ] **Regression, mine:** commit `0bee678` silently dropped 2,755 lines — `AdventureRoadmap.tsx`
+      (1,221), `progress/Constellation.tsx` (492), `progress/Report.tsx` (470), `progress/twin-data.ts`
+      (247), `learn/legacy.tsx` (300), `ui/viewPref.ts` (25). Recovered to `design/salvage/`.
+      Owner's ruling: rebuild them to law v5 rather than restore as they were
+
+### 10.7 New pages
+- [ ] **Donate Wobo**, alongside Gift. Owner's ruling: it funds a child who cannot pay. The
+      selection rule is the one thing still to settle
+- [x] Contact rebuilt around the single mailbox, with no invented reply time
+
+### 10.8 Visual bugs found and fixed (each had a cause worth remembering)
+- [x] A class-name collision put a grey panel behind the hero's wake line
+- [x] A grid child with only absolutely-positioned content collapsed to zero width
+- [x] Headline highlights forced the page sideways: `white-space:nowrap` on a long phrase. The mark
+      is now painted ON the span with `box-decoration-break:clone`, so it wraps
+- [x] Over-reaching descendant selectors turned rows into 30px columns of single words
+- [x] Marks drawn at guessed coordinates drifted off their words (the English mark-up, the fourth
+      answer form). Marks now ride the words themselves
+- [x] The envelope painted its flap over the letter; it now falls behind, as paper does
+- [x] The hero board only drew on scroll, so the first frame was an empty card
+### 10.9 Built today, by hand (2026-09-04)
+- [x] **The Donate copy source** — `docs/copy/growth/donate-page.md`, governed the same way the gift
+      page is. It opens with the four lines that are POLICY rather than product, written as proposals,
+      because a donate page cannot exist without them and they are the owner's to set:
+      who receives a place, what a donation buys, whether the donor learns who received it, whether
+      the family learns who paid
+- [x] **The Donate page, handcrafted** — `design/prototypes/site-donate.html`. Its argument is one
+      visual: two panels side by side, one paid for by a parent and one by a stranger, drawn from the
+      same markup because they ARE the same product. Sections: the twins, three steps (no forms, no
+      proof, no thank-you letter), what a place costs at the plan price with no discount, what a
+      funded place is not, and the family's own half of the page with an example of how little needs
+      to be written. No counter, no child's face, no story, no urgency
+- [x] **The climb, handcrafted** — `design/prototypes/app-climb.html`. One spine, nodes either side,
+      states carrying colour with a job: mint learnt, pig here, rose needs another pass, lilac ground
+      beneath a topic, marigold a reward. The debt loop is the drawing that says we do not move on.
+      The bridge panel shows prerequisites being taught before the topic that needs them
+- [x] **The two vibes, rebuilt to law v5** — one markup, one order, one set of states. Quest draws
+      the reward as a chest and the test as a star and writes its asides by hand; Focused draws the
+      same nodes as an unlock and a paper in the neutral tone and sets the asides in the body face.
+      The switch cannot change what is taught, which was the owner's rule
+- [x] Proofs: 1440 / 834 / 390, both vibes, zero horizontal overflow, zero console errors
+
+### 10.10 Bugs found today
+- [x] **Every left-hand node on the climb sat 65px below its own dot.** Grid auto-placement never
+      moves backwards, so a card explicitly placed in column 1 AFTER a dot in column 2 was pushed to
+      the next row. Pinning `grid-row:1` on both fixes it. Add to the list of CSS traps in DESIGN.md
+- [x] **The debt loop pointed the wrong way** — the arrowhead was at the bottom, so a drawing that
+      means "we come back up to it" read as "carry on down"
+- [x] **The header call to action wrapped to two lines below 600px** on the site prototypes. Under
+      that width the header now carries the wordmark and one control; signing in lives in the footer.
+      STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
+
+### 10.11 Running now
+- [ ] **Wave 9** `wf_c9c922ce-559` — law v5 across the app and the public pages. Five workers landed;
+      the gate adversary is still reading the diff. 44 files uncommitted
+- [ ] **Wave 10** `wf_e8a6b7e4-1f5` — the teaching engine. Three owners in parallel: mastery gates
+      progression and survives a reload, prerequisites are populated and diagnosed, a repeated miss
+      re-teaches on a different axis by itself. Then two adversaries and a fixer
+- [ ] **Wave 11, queued** — port `app-climb.html` into the app: the map, the two vibes, the debt loop
+      and the bridge, reading the state Wave 10 makes real. Blocked only on Wave 9 releasing the app
+      screens
+- [ ] **Wave 12, queued** — the Donate page in React beside Gift, plus its route, its footer entry and
+      its sitemap line. Blocked on the four policy lines and on Wave 9 releasing `screens/site/`
+

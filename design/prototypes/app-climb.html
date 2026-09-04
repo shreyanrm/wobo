@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The climb</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────────
+   THE CLIMB — one map, two vibes.
+
+   The owner's brief, in his words: "fully gamified learning experience like
+   checkpoints, treasure chests or whatever, boss levels and so on ... not too
+   childish obviously, we keep it professional for kids who dont want all that;
+   experience remains the same but the UI changes ... same content, same
+   approach, but vibe depending on their interests."
+
+   So: ONE list of nodes, one order, one set of states. The vibe switch changes
+   the chrome and the words for the reward and the test. It never changes what
+   is there, what is next, or what is locked. Both vibes are drawn here from the
+   same markup, and the switch only rewrites the labels each node already carries.
+
+   Law v5 (DESIGN.md §0): white ground; a colour only where it does a job.
+     mint     a topic that stayed learnt
+     pig      where you are
+     rose     a topic that needs another pass — the mastery debt
+     lilac    ground beneath a topic, taught before the topic itself
+     marigold a reward
+   Nothing scrubs on scroll, so nothing can jitter: the path draws once on load,
+   and everything else is a state class.
+   ───────────────────────────────────────────────────────────────────────────── */
+:root{
+  --paper:#FFFFFF; --paper-2:#F6F6F8; --paper-3:#ECECF0; --line:#E4E4EA;
+  --ink:#14142B; --ink-2:#55556B; --ink-3:#8A8A9E;
+  --pig:#2B45FF; --marigold:#FFB629; --rose:#FF6B57; --mint:#12B981; --violet:#7C5CFF; --lilac:#B7A6FF;
+  --pig-w:#EDF0FF; --rose-w:#FFEDEB; --marigold-w:#FFF6E5; --mint-w:#E3F7F0; --lilac-w:#F6F4FF;
+  --sans:'Poppins',system-ui,-apple-system,sans-serif; --hand:'Caveat',cursive;
+  --gutter:clamp(20px,5vw,48px); --band:clamp(72px,9vw,132px);
+  --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 10px 28px rgba(20,20,43,.07);
+}
+[data-theme="dark"]{
+  --paper:#0E0E16; --paper-2:#17171F; --paper-3:#1F1F29; --line:#26262F;
+  --ink:#F4F4F7; --ink-2:#B4B4C2; --ink-3:#7E7E90;
+  --pig:#7C8CFF; --marigold:#FFC85A; --rose:#FF8A78; --mint:#3DD9A4; --violet:#A996FF; --lilac:#C9BDFF;
+  --pig-w:#1A1E3A; --rose-w:#38272C; --marigold-w:#383027; --mint-w:#1C3232; --lilac-w:#302E3E;
+  --shadow:0 24px 60px rgba(0,0,0,.5); --lift:0 10px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.55 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3{margin:0;letter-spacing:-.02em;text-wrap:balance}
+p{margin:0}
+.cl-wrap{width:min(760px,calc(100% - 2*var(--gutter)));margin:0 auto}
+
+/* ── the bar: where you are, and the one control that changes the vibe ─────── */
+.cl-top{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 86%,transparent);backdrop-filter:blur(10px)}
+.cl-top .cl-wrap{display:flex;align-items:center;gap:16px;min-height:64px}
+.cl-where{display:flex;align-items:center;gap:8px;min-width:0;font:500 14px/1 var(--sans);color:var(--ink-2)}
+.cl-where b{color:var(--ink);font-weight:600}
+.cl-vibe{margin-left:auto;display:flex;gap:3px;background:var(--paper-2);padding:3px;border-radius:999px;flex:0 0 auto}
+.cl-vibe button{font:500 13px/1 var(--sans);border:0;background:transparent;color:var(--ink-2);padding:9px 15px;border-radius:999px;cursor:pointer;min-height:36px}
+.cl-vibe button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.cl-vibe button:focus-visible,.cl-n button:focus-visible{outline:3px solid var(--marigold);outline-offset:2px}
+
+/* ── the head: what this chapter is, and the three numbers that matter ─────── */
+.cl-head{padding:calc(var(--band)/2) 0 0}
+.cl-eyebrow{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--pig)}
+.cl-head h1{font:600 clamp(26px,4.2vw,38px)/1.1 var(--sans);margin-top:12px}
+.cl-head p{color:var(--ink-2);margin-top:12px;max-width:52ch}
+.cl-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:28px}
+.cl-stat{min-width:0;background:var(--paper-2);border-radius:16px;padding:14px 16px;display:grid;gap:4px}
+.cl-stat b{font:600 22px/1.1 var(--sans);font-variant-numeric:tabular-nums}
+.cl-stat span{font:400 13px/1.3 var(--sans);color:var(--ink-2)}
+
+/* ── the path ──────────────────────────────────────────────────────────────
+   A spine down the middle with nodes alternating either side. A serpentine
+   drawn across columns looks better in a screenshot and breaks on a phone;
+   this reads the same at 390 and at 1440, which is the point. */
+.cl-path{list-style:none;margin:calc(var(--band)/2) 0 var(--band);padding:0;position:relative}
+.cl-path::before{content:"";position:absolute;left:50%;top:6px;bottom:6px;width:4px;margin-left:-2px;border-radius:2px;
+  background:linear-gradient(var(--mint) 0 var(--reached,38%),var(--paper-3) var(--reached,38%) 100%)}
+.cl-n{position:relative;display:grid;grid-template-columns:1fr 56px 1fr;align-items:center;padding:14px 0}
+.cl-dot{grid-column:2;grid-row:1;justify-self:center;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
+  background:var(--paper-3);color:var(--ink-3);box-shadow:0 0 0 6px var(--paper);position:relative;z-index:1}
+.cl-dot svg{width:24px;height:24px;display:block;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.cl-dot b{font:600 16px/1 var(--sans);font-variant-numeric:tabular-nums}
+.cl-card{min-width:0;background:var(--paper-2);border-radius:18px;padding:16px 18px;display:grid;gap:4px;align-content:center}
+.cl-card > b{font:600 16px/1.25 var(--sans)}
+.cl-meta{font:400 13px/1.35 var(--sans);color:var(--ink-2)}
+.cl-l .cl-card{grid-column:1;grid-row:1;text-align:right;justify-items:end}
+.cl-r .cl-card{grid-column:3;grid-row:1}
+
+/* states — each colour has one job and never decorates */
+.cl-done .cl-dot{background:var(--mint);color:#08301F}
+.cl-done .cl-card > b{color:var(--ink)}
+.cl-now  .cl-dot{background:var(--pig);color:#fff;box-shadow:0 0 0 6px var(--paper),0 0 0 12px var(--pig-w)}
+.cl-now  .cl-card{background:var(--pig-w);box-shadow:var(--lift)}
+.cl-debt .cl-dot{background:var(--rose-w);color:var(--rose);box-shadow:0 0 0 6px var(--paper),inset 0 0 0 3px var(--rose)}
+.cl-debt .cl-card{background:var(--rose-w)}
+.cl-lock .cl-card{background:transparent;color:var(--ink-3)}
+.cl-lock .cl-card > b{color:var(--ink-3);font-weight:500}
+.cl-chest .cl-dot{background:var(--marigold);color:#3A2A00;width:60px;height:60px}
+.cl-boss .cl-dot{background:var(--ink);color:var(--paper);width:64px;height:64px;border-radius:20px}
+.cl-boss .cl-card{background:var(--paper);box-shadow:var(--shadow)}
+
+/* the debt loop: the one drawing on this page that says "we do not move on" */
+.cl-loop{position:relative;display:grid;grid-template-columns:1fr 56px 1fr;padding:0}
+.cl-loop svg{grid-column:2;justify-self:center;width:56px;height:64px;display:block;overflow:visible}
+.cl-loop path{fill:none;stroke:var(--rose);stroke-width:2.5;stroke-dasharray:6 6;stroke-linecap:round}
+.cl-loop span{grid-column:3;align-self:center;font:600 17px/1.2 var(--hand);color:var(--rose);padding-left:10px}
+
+/* the bridge: ground taught before the topic that needs it */
+.cl-bridge{grid-column:1 / -1;grid-row:2;margin:14px auto 0;width:min(100%,520px);background:var(--lilac-w);border-radius:18px;padding:16px 18px;display:grid;gap:10px}
+.cl-bridge > b{font:600 14px/1.3 var(--sans)}
+.cl-bridge > p{font:400 13px/1.4 var(--sans);color:var(--ink-2)}
+.cl-ground{display:flex;flex-wrap:wrap;gap:8px}
+.cl-ground i{font:500 12px/1 var(--sans);font-style:normal;padding:8px 12px;border-radius:999px;background:var(--paper);color:var(--ink-2);display:inline-flex;align-items:center;gap:6px}
+.cl-ground i::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--lilac)}
+
+.cl-note{text-align:center;color:var(--ink-3);font:600 19px/1.3 var(--hand);margin-top:8px}
+
+@media (max-width:640px){
+  /* the learner knows their own class; below 640 the bar keeps the subject and the switch */
+  .cl-detail{display:none}
+  .cl-n{grid-template-columns:44px 1fr;gap:14px;padding:10px 0}
+  .cl-path::before{left:22px;margin-left:-2px}
+  .cl-dot{grid-column:1;width:44px;height:44px}
+  .cl-chest .cl-dot,.cl-boss .cl-dot{width:44px;height:44px}
+  .cl-l .cl-card,.cl-r .cl-card{grid-column:2;grid-row:1;text-align:left;justify-items:start}
+  .cl-loop{grid-template-columns:44px 1fr;gap:14px}
+  .cl-loop svg{grid-column:1;width:44px}
+  .cl-loop span{grid-column:2;padding-left:0}
+  .cl-bridge{grid-column:1 / -1;width:100%}
+  .cl-stats{grid-template-columns:1fr;gap:8px}
+  .cl-stat{display:flex;align-items:baseline;gap:10px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ── the two vibes ──────────────────────────────────────────────────────────
+   The switch changes the chrome, never the climb. Same eleven nodes, same
+   order, same states, same gating. Quest draws the reward as a chest and the
+   chapter test as a star, and writes its asides by hand. Focused draws the
+   same two nodes as an unlock and a paper, in the neutral tone, and sets the
+   asides in the same face as everything else. A learner who wants one look is
+   not given a different curriculum, and switching loses nothing. */
+.cl-i-f{display:none}
+[data-vibe="focused"] .cl-i-q{display:none}
+[data-vibe="focused"] .cl-i-f{display:block}
+[data-vibe="focused"] .cl-chest .cl-dot{background:var(--paper-3);color:var(--ink-2);width:52px;height:52px}
+[data-vibe="focused"] .cl-boss .cl-dot{border-radius:50%}
+[data-vibe="focused"] .cl-loop span,[data-vibe="focused"] .cl-note{font:400 13px/1.4 var(--sans)}
+[data-vibe="focused"] .cl-note{color:var(--ink-3)}
+[data-vibe="focused"] .cl-loop span{color:var(--rose)}
+[data-vibe="focused"] .cl-loop path{stroke-dasharray:none}
+[data-vibe="focused"] .cl-card{border-radius:14px}
+[data-vibe="focused"] .cl-bridge{border-radius:14px}
+@media (max-width:640px){[data-vibe="focused"] .cl-chest .cl-dot{width:44px;height:44px}}
+</style>
+</head>
+<body>
+
+<div class="cl-top"><div class="cl-wrap">
+  <span class="cl-where"><b>Mathematics</b><span class="cl-detail"> · Class 8 · CBSE</span></span>
+  <div class="cl-vibe" role="group" aria-label="How the climb looks">
+    <button id="vq" aria-pressed="true">Quest</button>
+    <button id="vf" aria-pressed="false">Focused</button>
+  </div>
+</div></div>
+
+<div class="cl-wrap">
+  <div class="cl-head">
+    <span class="cl-eyebrow" data-q="Chapter 4 · the climb" data-f="Chapter 4">Chapter 4 · the climb</span>
+    <h1>Fractions that are not whole</h1>
+    <p data-q="Eleven stops, one chest and a gate at the end. Nothing ahead is hidden from you, and nothing behind you is taken away."
+       data-f="Eleven topics and a chapter test. You can read ahead at any time, and anything already learnt stays open.">Eleven stops, one chest and a gate at the end. Nothing ahead is hidden from you, and nothing behind you is taken away.</p>
+    <div class="cl-stats">
+      <div class="cl-stat"><b>7</b><span data-q="stops cleared" data-f="topics learnt">stops cleared</span></div>
+      <div class="cl-stat"><b>1</b><span data-q="to go back for" data-f="needs another pass">to go back for</span></div>
+      <div class="cl-stat"><b>2</b><span data-q="ground to lay first" data-f="prerequisites to cover">ground to lay first</span></div>
+    </div>
+  </div>
+
+  <ol class="cl-path" style="--reached:56%">
+
+    <li class="cl-n cl-done cl-l">
+      <span class="cl-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg></span>
+      <div class="cl-card"><b>What the bottom number counts</b><span class="cl-meta" data-q="Cleared · still there after 9 days" data-f="Learnt · held for 9 days">Cleared · still there after 9 days</span></div>
+    </li>
+
+    <li class="cl-n cl-done cl-r">
+      <span class="cl-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg></span>
+      <div class="cl-card"><b>Halves, thirds, quarters</b><span class="cl-meta" data-q="Cleared · still there after 7 days" data-f="Learnt · held for 7 days">Cleared · still there after 7 days</span></div>
+    </li>
+
+    <li class="cl-n cl-debt cl-l">
+      <span class="cl-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 7v6M12 16.5v.5"/><circle cx="12" cy="12" r="8.5"/></svg></span>
+      <div class="cl-card"><b>Same size, different name</b><span class="cl-meta" data-q="Passed, but it slipped twice since. Coming back around." data-f="Answered, then missed twice. Scheduled again.">Passed, but it slipped twice since. Coming back around.</span></div>
+    </li>
+
+    <li class="cl-loop" aria-hidden="true">
+      <svg viewBox="0 0 56 64"><path d="M28 60 C 8 48, 8 16, 28 4"/><path d="M22 10 L28 4 L34 10"/></svg>
+      <span data-q="we go back for it" data-f="it comes back">we go back for it</span>
+    </li>
+
+    <li class="cl-n cl-done cl-r">
+      <span class="cl-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12.5 9 17.5 20 6.5"/></svg></span>
+      <div class="cl-card"><b>Adding when the bottoms match</b><span class="cl-meta" data-q="Cleared · four in a row" data-f="Learnt · four correct in a row">Cleared · four in a row</span></div>
+    </li>
+
+    <li class="cl-n cl-chest cl-l">
+      <span class="cl-dot" aria-hidden="true"><svg class="cl-i-q" viewBox="0 0 24 24"><path d="M3 9.5h18v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/><path d="M3 9.5 5 4.5h14l2 5M12 9.5v10.5M9.5 13.5h5"/></svg><svg class="cl-i-f" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 7.4-2.1"/></svg></span>
+      <div class="cl-card"><b data-q="A chest" data-f="Unlocked">A chest</b><span class="cl-meta" data-q="Three new ways for Wobo to draw a fraction. Yours from here on." data-f="Three additional ways to draw a fraction. Available from here on.">Three new ways for Wobo to draw a fraction. Yours from here on.</span></div>
+    </li>
+
+    <li class="cl-n cl-now cl-r">
+      <span class="cl-dot" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      <div class="cl-card"><b>Adding when the bottoms do not match</b><span class="cl-meta" data-q="You are here. Two ways tried; the third is the one that landed." data-f="Current topic. Two explanations tried; the third landed.">You are here. Two ways tried; the third is the one that landed.</span></div>
+    </li>
+
+    <li class="cl-n cl-lock cl-l">
+      <span class="cl-dot" aria-hidden="true"><b>8</b></span>
+      <div class="cl-card"><b>Taking one fraction from another</b><span class="cl-meta">Next</span></div>
+    </li>
+
+    <li class="cl-n cl-lock cl-r">
+      <span class="cl-dot" aria-hidden="true"><b>9</b></span>
+      <div class="cl-card"><b>A fraction of a fraction</b><span class="cl-meta" data-q="Ground to lay first" data-f="Two prerequisites are not covered yet">Ground to lay first</span></div>
+      <div class="cl-bridge">
+        <b data-q="Before this one, two short things" data-f="Covered first: two prerequisites">Before this one, two short things</b>
+        <p data-q="Wobo checked what is underneath this topic and found two gaps. They take a few minutes each, and then this stop opens by itself."
+           data-f="A short check found two prerequisites not yet held. Each takes a few minutes, after which this topic opens.">Wobo checked what is underneath this topic and found two gaps. They take a few minutes each, and then this stop opens by itself.</p>
+        <div class="cl-ground"><i>Multiplying whole numbers by parts</i><i>What "of" means in a sum</i></div>
+      </div>
+    </li>
+
+    <li class="cl-n cl-lock cl-l">
+      <span class="cl-dot" aria-hidden="true"><b>10</b></span>
+      <div class="cl-card"><b>Dividing by a fraction</b></div>
+    </li>
+
+    <li class="cl-n cl-boss cl-r">
+      <span class="cl-dot" aria-hidden="true"><svg class="cl-i-q" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg><svg class="cl-i-f" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 9h7M8.5 13h7M8.5 17h4"/></svg></span>
+      <div class="cl-card"><b data-q="The gate" data-f="Chapter test">The gate</b><span class="cl-meta" data-q="Everything in this chapter, in one sitting. Three stars to pass it clean." data-f="Every topic in this chapter, in one sitting. Eighty per cent to pass.">Everything in this chapter, in one sitting. Three stars to pass it clean.</span></div>
+    </li>
+  </ol>
+
+  <p class="cl-note" data-q="the same eleven stops either way — only the look changes" data-f="the same eleven topics either way — only the look changes">the same eleven stops either way — only the look changes</p>
+</div>
+
+<script>
+/* The vibe switch. It rewrites the labels each node already carries and toggles
+   nothing else: the order, the states and the gating are one set of data, so the
+   two vibes cannot drift apart. A learner who prefers one look is not given a
+   different curriculum. */
+const nodes = [...document.querySelectorAll('[data-q]')];
+function vibe(v) {
+  nodes.forEach((el) => { const t = el.dataset[v]; if (t) el.textContent = t; });
+  document.documentElement.dataset.vibe = v === 'q' ? 'quest' : 'focused';
+  vq.setAttribute('aria-pressed', String(v === 'q'));
+  vf.setAttribute('aria-pressed', String(v === 'f'));
+  try { localStorage.setItem('wobo-vibe-v1', v); } catch {}
+}
+vq.addEventListener('click', () => vibe('q'));
+vf.addEventListener('click', () => vibe('f'));
+let saved = 'q';
+try { saved = localStorage.getItem('wobo-vibe-v1') || 'q'; } catch {}
+vibe(saved);
+const t = new URLSearchParams(location.search).get('theme');
+if (t) document.documentElement.setAttribute('data-theme', t);
+const forced = new URLSearchParams(location.search).get('vibe');
+if (forced) vibe(forced === 'focused' ? 'f' : 'q');
+</script>
+</body>
+</html>

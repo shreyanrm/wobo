@@ -56,6 +56,28 @@ saw as jitter on 2026-09-04.
 - **Drawing is one part.** Never let a surface imply the board is the whole product: it also
   films, simulates, speaks, practises, remembers and reports.
 
+### The five traps this repo has already paid for
+Every one of these produced a bug the owner saw with his own eyes. They are cheap to avoid and
+expensive to find, so they are law rather than advice.
+1. **A short class name means two things.** `.sub`, `.quiet` and `.ask` each meant one thing in a
+   shell and another in a section, and each printed a stray box or a shifted row. Namespace every
+   class a page adds, and grep it against the shell it renders inside before shipping.
+2. **Grid auto-placement never moves backwards.** A child explicitly placed in an earlier column
+   AFTER one in a later column lands on the NEXT ROW. It put every left-hand node of the climb
+   sixty-five pixels below its own dot. Pin `grid-row` on both children.
+3. **A descendant selector reaches too far.** `.claims div`, `.report .kpi span` and their kin
+   matched inner wrappers and collapsed rows into thirty-pixel columns of single words. Use child
+   selectors. Seventeen were tightened in one sitting.
+4. **`white-space: nowrap` on anything long.** One highlighted phrase forced the whole page to
+   1731px. If a mark must ride its words, paint it on the span with `box-decoration-break: clone`
+   so it wraps.
+5. **An annotation drawn at guessed coordinates drifts.** Hand-placed SVG marks over SVG text moved
+   off their words at other widths and in other themes. A mark rides its own word: wrap the word and
+   let the mark be that element's own background or `::after`.
+Alongside them, two rules of proof: the first paint shows the page at rest, with nothing parked at
+`opacity: 0` waiting for a scroll, and every page is measured at 1440, 834 and 390 in both themes
+with `scrollWidth === clientWidth` and zero console errors before anyone calls it done.
+
 ---
 
 ## 1. The standard (law v3, superseded on colour by §0 above) — bold ink on good paper

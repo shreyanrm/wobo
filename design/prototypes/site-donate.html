@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donate Wobo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* LAW v5 (DESIGN.md §0) — white paper, colour with a job. The ground is #FFFFFF; a section
+     never gets a tint to say it is a section. Character for character the token block at the top
+     of landing-v8.html, plus the washes and lilac these site pages already name. */
+  --paper:#FFFFFF; --paper-2:#F6F6F8; --paper-3:#ECECF0; --line:#E4E4EA;
+  --ink:#14142B; --ink-2:#55556B; --ink-3:#8A8A9E;
+  --pig:#2B45FF; --pig-soft:#EDF0FF; --marigold:#FFB629; --rose:#FF6B57; --mint:#12B981; --violet:#7C5CFF; --lilac:#B7A6FF;
+  --pig-w:#EDF0FF; --violet-w:#EFEBFF; --rose-w:#FFEDEB; --marigold-w:#FFF6E5; --mint-w:#E3F7F0; --lilac-w:#F6F4FF;
+  --body:#14142B; --body-hi:#3A3A5C; --visor:#FFFFFF; --visor-lo:#EDEDF2; --eye:#2B45FF;
+  --sans:'Poppins',system-ui,-apple-system,sans-serif; --hand:'Caveat',cursive;
+  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:72px; --s6:128px;
+  --gutter:clamp(20px, 5vw, 48px); --band:clamp(72px, 9vw, 132px); --colgap:clamp(32px, 5vw, 80px);
+  --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 10px 28px rgba(20,20,43,.07);
+}
+[data-theme="dark"]{
+  /* night, designed on its own and never inverted */
+  --paper:#0E0E16; --paper-2:#17171F; --paper-3:#1F1F29; --line:#26262F;
+  --ink:#F4F4F7; --ink-2:#B4B4C2; --ink-3:#7E7E90;
+  --pig:#7C8CFF; --pig-soft:#1A1E3A; --marigold:#FFC85A; --rose:#FF8A78; --mint:#3DD9A4; --violet:#A996FF; --lilac:#C9BDFF;
+  --pig-w:#1A1E3A; --violet-w:#2C293E; --rose-w:#38272C; --marigold-w:#383027; --mint-w:#1C3232; --lilac-w:#302E3E;
+  --body:#F4F4F7; --body-hi:#FFFFFF; --visor:#0E0E16; --visor-lo:#1F1F29; --eye:#7C8CFF;
+  --shadow:0 24px 60px rgba(0,0,0,.5); --lift:0 10px 28px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{margin:0;letter-spacing:-.025em;text-wrap:balance}
+p{margin:0}
+.hand{font-family:var(--hand);font-weight:600}
+.wrap{width:min(1120px,calc(100% - 48px));margin:0 auto}
+.label{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--pig)}
+.btn{font:500 15px/1 var(--sans);padding:14px 20px;border-radius:12px;border:0;background:var(--ink);color:var(--paper);display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;cursor:pointer}
+.btn.pig{background:var(--pig);color:#fff}.btn.quiet{background:var(--paper-2);color:var(--ink)}.btn.marigold{background:var(--marigold);color:#14142B}
+.btn:focus-visible,input:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--marigold);outline-offset:2px}
+header{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--paper) 78%,transparent)}
+header .wrap{display:flex;align-items:center;gap:var(--s3);height:72px}
+header .wm svg{height:22px;width:auto;color:var(--ink);display:block}
+header nav{margin-left:auto;display:flex;gap:4px;background:var(--paper-2);padding:4px;border-radius:999px}
+header nav a{padding:10px 16px;border-radius:999px;font:500 14px/1 var(--sans);color:var(--ink-2)}
+header nav a.on{background:var(--ink);color:var(--paper)}
+header .cta{display:flex;gap:8px}
+@media (max-width:900px){header nav{display:none}}
+.blink{transform-origin:center;animation:blink 5s infinite}
+@keyframes blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}
+.reveal{opacity:1;transform:none;transition:opacity .6s ease,transform .6s ease}
+.reveal.pre{opacity:0;transform:translateY(18px)}
+
+/* hero */
+.hero{padding:var(--s5) 0 var(--s4);text-align:center}
+.hero h1{font:700 clamp(38px,5.4vw,64px)/1.0 var(--sans);letter-spacing:-.035em;margin:var(--s2) auto 0;max-width:18ch}
+.hero h1 em{font-style:normal;color:var(--pig)}
+.hero p.sub{font-size:19px;color:var(--ink-2);max-width:52ch;margin:var(--s3) auto 0}
+.region{display:inline-flex;background:var(--paper-2);border-radius:999px;padding:4px;gap:4px;margin-top:var(--s4)}
+.region button{border:0;background:transparent;font:500 14px/1 var(--sans);color:var(--ink-2);padding:10px 16px;border-radius:999px;cursor:pointer}
+.region button.on{background:var(--ink);color:var(--paper)}
+
+/* allowance drawing */
+.allow{margin:var(--s4) auto 0;max-width:560px;background:var(--paper-2);border-radius:24px;padding:var(--s3);text-align:left;display:grid;gap:12px;position:relative}
+.allow b{font-weight:600}
+.allow .bar{height:14px;border-radius:7px;background:var(--paper-3);overflow:hidden;position:relative}
+.allow .bar i{position:absolute;left:0;top:0;height:100%;border-radius:7px;background:var(--marigold);width:0;transition:width 1.4s cubic-bezier(.6,0,.2,1)}
+.allow.on .bar i{width:62%}
+.allow span{font-size:13px;color:var(--ink-3)}
+.allow .hand{font-size:24px;color:var(--pig)}
+.allow .sticker{position:absolute;right:-14px;top:-16px;background:var(--marigold);color:#14142B;font-family:var(--hand);font-weight:700;font-size:22px;padding:6px 14px;border-radius:12px;transform:rotate(6deg);box-shadow:0 10px 20px rgba(20,20,43,.12)}
+
+/* plans */
+section{padding:clamp(56px,7vw,92px) 0}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);align-items:start}
+.plan{border-radius:28px;padding:var(--s3);display:grid;gap:14px;background:var(--paper-2);position:relative}
+.plan.pro{background:var(--pig-w)}.plan.max{background:var(--ink);color:var(--paper)}
+.plan .name{font:600 14px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.plan.max .name{color:rgba(250,247,240,.6)}
+.plan .price{font:700 44px/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.plan .price small{font:500 15px/1 var(--sans);letter-spacing:0;color:var(--ink-3);margin-left:6px}
+.plan.max .price small{color:rgba(250,247,240,.6)}
+.plan .x{font-family:var(--hand);font-weight:700;font-size:26px;color:var(--pig);line-height:1}
+.plan.max .x{color:var(--marigold)}
+.plan p{font-size:15px;color:var(--ink-2)}
+.plan.max p{color:rgba(250,247,240,.75)}
+.plan ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.plan li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;font-size:15px}
+.plan li i{width:22px;height:22px;border-radius:50%;background:var(--mint);display:grid;place-items:center}
+.plan li i svg{width:12px;height:12px;fill:none;stroke:#14142B;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.plan .btn{margin-top:6px}
+.plan.max .btn{background:var(--marigold);color:#14142B}
+.plan .best{position:absolute;right:18px;top:-14px;background:var(--marigold);color:#14142B;font-family:var(--hand);font-weight:700;font-size:20px;padding:5px 12px;border-radius:10px;transform:rotate(4deg);box-shadow:0 10px 20px rgba(20,20,43,.12)}
+.plan .fine{font-size:13px;color:var(--ink-3)}
+.plan.max .fine{color:rgba(250,247,240,.5)}
+@media (max-width:900px){.plans{grid-template-columns:1fr}}
+
+/* honest table */
+.head{display:grid;gap:var(--s2);max-width:64ch;margin-bottom:var(--s4)}
+.head h2{font:700 clamp(28px,3.4vw,42px)/1.08 var(--sans)}
+.head p{color:var(--ink-2);font-size:18px}
+.tbl{border-radius:24px;overflow:hidden;background:var(--paper-2)}
+.tbl .r{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;align-items:center}
+.tbl .r+.r{border-top:2px solid var(--paper)}
+.tbl .r>div{padding:14px var(--s3);font-size:15px}
+.tbl .r.h>div{font:500 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);background:var(--paper-3);padding:var(--s2) var(--s3)}
+.tbl .r>div:first-child{font-weight:500}
+.tbl .same{color:var(--ink-3)}
+.tbl .y{display:inline-flex;align-items:center;gap:6px}
+.tbl .y i{width:10px;height:10px;border-radius:50%;background:var(--mint)}
+@media (max-width:900px){.tbl{overflow-x:auto}.tbl .r{min-width:640px}}
+
+/* gift */
+.gift{background:var(--marigold-w);border-radius:28px;padding:var(--s4);display:grid;grid-template-columns:1.1fr .9fr;gap:var(--s4);align-items:center}
+.gift h2{font:700 clamp(26px,3vw,36px)/1.08 var(--sans)}
+.gift p{color:var(--ink-2);margin-top:var(--s2)}
+.gift .row{display:flex;gap:var(--s2);margin-top:var(--s3);flex-wrap:wrap}
+.gift .btn.quiet{background:var(--paper)}
+.gift svg{width:min(100%,300px);justify-self:center;overflow:visible;filter:drop-shadow(0 20px 30px rgba(20,20,43,.14))}
+@media (max-width:900px){.gift{grid-template-columns:1fr}}
+
+/* faq */
+.faq{display:grid;gap:10px}
+.faq details{background:var(--paper-2);border-radius:18px;padding:0 var(--s3)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:var(--s2);padding:18px 0;font-weight:500;font-size:17px}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font:600 24px/1 var(--sans);color:var(--pig);transition:transform .3s}
+.faq details[open] summary::after{transform:rotate(45deg)}
+.faq details p{color:var(--ink-2);padding:0 0 18px;max-width:64ch}
+
+/* close, footer */
+.close{margin:var(--s5) 0 0;background:var(--ink);color:var(--paper);padding:var(--s6) 0;text-align:center}
+.close h2{font:700 clamp(34px,5vw,60px)/1.02 var(--sans);letter-spacing:-.035em}
+.close .hand{font-size:30px;color:var(--marigold);display:block;margin-top:var(--s2)}
+.close .row{display:flex;gap:var(--s2);justify-content:center;margin-top:var(--s4);flex-wrap:wrap}
+.close .btn{background:var(--marigold);color:#14142B}
+.close .btn.q{background:rgba(255,255,255,.12);color:var(--paper)}
+footer{background:var(--ink);color:rgba(250,247,240,.6);padding:var(--s4) 0 var(--s5);font-size:14px}
+footer .wrap{display:grid;grid-template-columns:1.4fr repeat(4,1fr);gap:var(--s3)}
+footer b{display:block;color:var(--paper);font-weight:600;margin-bottom:10px}
+footer a{display:block;padding:4px 0}
+footer .wm svg{height:22px;color:var(--paper)}
+@media (max-width:900px){footer .wrap{grid-template-columns:1fr 1fr}}
+@media (prefers-reduced-motion:reduce){.blink{animation:none}.allow .bar i{transition:none}}
+/* ── DONATE ─────────────────────────────────────────────────────────────────────
+   Every class here is namespaced dn-. Three separate visual bugs on this site came
+   from a short class name meaning one thing in a shell and another in a section
+   (.sub, .quiet, .ask), so this page cannot join them. Law v5: white ground, one
+   spacing rhythm, colour only where it does a job. */
+.dn-t{font:600 clamp(30px,4vw,46px)/1.08 var(--sans);max-width:20ch}
+.dn-lede{margin-top:var(--s2);color:var(--ink-2);max-width:58ch}
+
+/* The twins. The argument of this page is that the two panels are identical, so
+   they are literally the same markup, and nothing may make one look richer. */
+.dn-twins{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:var(--s4);align-items:center;margin-top:var(--s5)}
+.dn-twin{margin:0;min-width:0}
+.dn-twin figcaption{margin-top:var(--s3);text-align:center;font:500 14px/1.45 var(--sans);color:var(--ink-2);text-wrap:balance}
+.dn-vs{color:var(--ink-3);font-size:22px;text-align:center;transform:rotate(-4deg);white-space:nowrap}
+.dn-mini{background:var(--paper);border-radius:22px;box-shadow:var(--shadow);padding:18px;display:grid;gap:14px}
+.dn-top{display:flex;align-items:center;gap:10px;min-width:0}
+.dn-face{width:32px;height:32px;flex:0 0 auto}
+.dn-top > span{font:500 14px/1.35 var(--sans);color:var(--ink);min-width:0}
+.dn-board{background:var(--paper-2);border-radius:14px;padding:10px}
+.dn-board svg{display:block;width:100%;height:auto}
+.dn-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dn-chips > i{font:500 12px/1 var(--sans);font-style:normal;padding:8px 11px;border-radius:999px;background:var(--paper-2);color:var(--ink-2)}
+.dn-chips > i.dn-lit{background:var(--pig);color:#fff}
+.dn-foot{display:flex;align-items:center;gap:10px}
+.dn-foot > b{font:500 13px/1 var(--sans);color:var(--ink-2)}
+.dn-ring{width:18px;height:18px;border-radius:50%;flex:0 0 auto;background:conic-gradient(var(--mint) 0 78%,var(--paper-3) 78% 100%);-webkit-mask:radial-gradient(circle,transparent 50%,#000 52%);mask:radial-gradient(circle,transparent 50%,#000 52%)}
+
+/* The three steps. Numbered because they genuinely happen in that order. */
+.dn-steps{list-style:none;margin:var(--s5) 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--colgap)}
+.dn-steps > li{min-width:0;display:grid;gap:10px;align-content:start}
+.dn-steps > li > b{font:600 13px/1 var(--sans);letter-spacing:.1em;color:var(--pig)}
+.dn-steps > li > h3{font:600 21px/1.2 var(--sans)}
+.dn-steps > li > p{color:var(--ink-2);font-size:15px}
+
+/* What a place costs. */
+.dn-places{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s3);margin-top:var(--s5);align-items:stretch}
+.dn-place{min-width:0;background:var(--paper-2);border-radius:20px;padding:var(--s3);display:grid;gap:12px;align-content:start}
+.dn-place.dn-lead{background:var(--pig-w);box-shadow:var(--lift)}
+.dn-place > b{font:600 15px/1.3 var(--sans)}
+.dn-price{font:600 clamp(26px,3vw,34px)/1 var(--sans);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.dn-place > p{color:var(--ink-2);font-size:14px;min-height:2.8em}
+.dn-place .btn{width:100%}
+.dn-fine{margin-top:var(--s3);color:var(--ink-3);font-size:14px}
+
+/* What it is not. A list of denials reads best as a list, not as cards. */
+.dn-nots{list-style:none;margin:var(--s4) 0 0;padding:0;display:grid;gap:2px;max-width:62ch}
+.dn-nots > li{padding:16px 0 16px 34px;position:relative;color:var(--ink-2);font-size:16px}
+.dn-nots > li + li{box-shadow:inset 0 1px 0 var(--line)}
+.dn-nots > li::before{content:"";position:absolute;left:6px;top:22px;width:14px;height:2px;border-radius:2px;background:var(--rose)}
+
+/* The family's half of the page. It gets the largest single surface on the page,
+   because the rule is that both readers are equal and this one is not a footnote. */
+.dn-ask{background:var(--lilac-w);border-radius:28px;padding:clamp(28px,5vw,64px);display:grid;gap:var(--s2);justify-items:start;margin-top:var(--s2)}
+.dn-ask > h2{font:600 clamp(26px,3.4vw,40px)/1.12 var(--sans);max-width:20ch}
+.dn-ask > p{color:var(--ink-2);max-width:52ch}
+.dn-note{color:var(--ink-3);font-size:19px}
+
+.dn-close{display:grid;gap:var(--s2);justify-items:start;max-width:60ch}
+.dn-close > p{color:var(--ink-2)}
+
+@media (max-width:900px){
+  .dn-twins{grid-template-columns:1fr;gap:var(--s3)}
+  .dn-vs{transform:rotate(-2deg)}
+  .dn-steps{grid-template-columns:1fr;gap:var(--s4)}
+  .dn-places{grid-template-columns:1fr}
+  .dn-place > p{min-height:0}
+}
+
+/* The invitation and, beside it, how little needs to be written. The example is a template,
+   never a person: the page carries no child's story and no first name. */
+.dn-ask{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:center;gap:var(--colgap)}
+.dn-ask-say{display:grid;gap:var(--s2);justify-items:start;min-width:0}
+.dn-eg{min-width:0;background:var(--paper);border-radius:20px;padding:var(--s3);display:grid;gap:10px;box-shadow:var(--lift)}
+.dn-eg-label{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.dn-eg-line{font:500 clamp(17px,2vw,21px)/1.4 var(--sans);color:var(--ink)}
+.dn-eg-foot{font:400 14px/1.4 var(--sans);color:var(--ink-2)}
+@media (max-width:900px){.dn-ask{grid-template-columns:1fr}}
+
+/* The header CTA wrapped to two lines below 600px on every page of this site. Under that
+   width the header carries the wordmark and one control; signing in lives in the footer. */
+@media (max-width:600px){header .cta .quiet{display:none}header .wrap{gap:var(--s2)}.btn{white-space:nowrap}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<radialGradient id="hg" cx="36%" cy="30%" r="80%"><stop offset="0" style="stop-color:var(--body-hi)"/><stop offset="1" style="stop-color:var(--body)"/></radialGradient>
+<linearGradient id="vg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--visor)"/><stop offset="1" style="stop-color:var(--visor-lo)"/></linearGradient>
+<symbol id="head" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="url(#hg)"/><rect x="18" y="41" width="84" height="38" rx="19" fill="url(#vg)"/><g class="blink"><circle cx="43" cy="61" r="9" fill="var(--eye)"/><circle cx="77" cy="61" r="9" fill="var(--eye)"/><circle cx="40" cy="58" r="3" fill="var(--paper)" opacity=".85"/><circle cx="74" cy="58" r="3" fill="var(--paper)" opacity=".85"/></g></symbol>
+<symbol id="wm" viewBox="183.18 572.03 1133.63 312.64"><defs><g/></defs><g fill="currentColor" ><g transform="translate(173.553291, 879.374904)"><g><path d="M 80.328125 5.296875 C 63.648438 5.296875 50.5 1.769531 40.875 -5.28125 C 31.257812 -12.34375 24.207031 -21.5625 19.71875 -32.9375 C 15.226562 -44.320312 12.421875 -56.75 11.296875 -70.21875 C 10.179688 -83.6875 9.625 -96.832031 9.625 -109.65625 L 9.625 -234.234375 L 113.03125 -234.234375 L 113.984375 -133.703125 C 113.984375 -127.296875 115.265625 -122.164062 117.828125 -118.3125 C 120.398438 -114.46875 124.25 -113.664062 129.375 -115.90625 C 130.976562 -116.550781 132.5 -117.429688 133.9375 -118.546875 C 135.382812 -119.671875 136.429688 -121.679688 137.078125 -124.578125 L 137.078125 -234.234375 L 240.96875 -234.234375 L 241.921875 -133.703125 C 241.921875 -127.296875 243.285156 -122.164062 246.015625 -118.3125 C 248.742188 -114.46875 252.671875 -113.664062 257.796875 -115.90625 C 259.398438 -116.550781 261.003906 -117.59375 262.609375 -119.03125 C 264.210938 -120.476562 265.175781 -122.804688 265.5 -126.015625 L 263.09375 -234.234375 L 380.453125 -234.234375 L 372.75 -0.484375 L 287.140625 -0.484375 L 283.296875 -48.09375 C 279.765625 -40.082031 274.867188 -31.90625 268.609375 -23.5625 C 262.359375 -15.226562 254.34375 -8.332031 244.5625 -2.875 C 234.789062 2.570312 222.691406 5.296875 208.265625 5.296875 C 191.265625 5.296875 177.953125 1.683594 168.328125 -5.53125 C 158.710938 -12.75 151.660156 -21.96875 147.171875 -33.1875 C 141.078125 -23.25 132.660156 -14.347656 121.921875 -6.484375 C 111.179688 1.367188 97.316406 5.296875 80.328125 5.296875 Z M 80.328125 5.296875 "/></g></g></g><g fill="currentColor" ><g transform="translate(549.669146, 879.374904)"><g><path d="M 132.75 2.890625 C 109.976562 2.890625 89.296875 -0.957031 70.703125 -8.65625 C 52.109375 -16.351562 37.28125 -29.097656 26.21875 -46.890625 C 15.15625 -64.691406 9.625 -88.820312 9.625 -119.28125 C 9.625 -149.414062 15.15625 -173.460938 26.21875 -191.421875 C 37.28125 -209.378906 52.109375 -222.445312 70.703125 -230.625 C 89.296875 -238.800781 109.976562 -242.890625 132.75 -242.890625 C 155.832031 -242.890625 176.671875 -238 195.265625 -228.21875 C 213.867188 -218.4375 228.617188 -204.40625 239.515625 -186.125 C 250.421875 -167.851562 255.875 -145.570312 255.875 -119.28125 C 255.875 -91.707031 250.421875 -68.859375 239.515625 -50.734375 C 228.617188 -32.617188 213.867188 -19.148438 195.265625 -10.328125 C 176.671875 -1.515625 155.832031 2.890625 132.75 2.890625 Z M 110.625 -98.125 C 110.625 -89.78125 112.785156 -83.925781 117.109375 -80.5625 C 121.441406 -77.195312 126.65625 -75.515625 132.75 -75.515625 C 139.15625 -75.515625 144.523438 -77.4375 148.859375 -81.28125 C 153.191406 -85.132812 155.359375 -90.75 155.359375 -98.125 C 155.359375 -104.851562 153.191406 -110.0625 148.859375 -113.75 C 144.523438 -117.4375 139.15625 -119.28125 132.75 -119.28125 C 126.65625 -119.28125 121.441406 -117.753906 117.109375 -114.703125 C 112.785156 -111.660156 110.625 -106.132812 110.625 -98.125 Z M 110.625 -98.125 "/></g></g></g><g fill="currentColor" ><g transform="translate(801.21461, 879.374904)"><g><path d="M 153.90625 0 C 142.363281 0 131.378906 -2.960938 120.953125 -8.890625 C 110.535156 -14.828125 102.125 -22.125 95.71875 -30.78125 L 93.3125 -0.484375 L 12.984375 -0.484375 L 9.625 -132.75 L 13.953125 -307.34375 L 101 -307.34375 L 103.40625 -221.25 C 110.457031 -227.019531 118.710938 -231.664062 128.171875 -235.1875 C 137.628906 -238.71875 148.613281 -240.484375 161.125 -240.484375 C 191.582031 -240.484375 215.546875 -231.425781 233.015625 -213.3125 C 250.492188 -195.195312 259.234375 -164.171875 259.234375 -120.234375 C 259.234375 -90.421875 254.664062 -66.773438 245.53125 -49.296875 C 236.394531 -31.828125 223.96875 -19.242188 208.25 -11.546875 C 192.539062 -3.847656 174.425781 0 153.90625 0 Z M 117.84375 -98.59375 C 117.84375 -91.21875 119.925781 -85.765625 124.09375 -82.234375 C 128.257812 -78.710938 133.390625 -76.953125 139.484375 -76.953125 C 145.578125 -76.953125 150.707031 -78.554688 154.875 -81.765625 C 159.039062 -84.972656 161.125 -90.582031 161.125 -98.59375 C 161.125 -106.613281 159.039062 -112.222656 154.875 -115.421875 C 150.707031 -118.628906 145.578125 -120.234375 139.484375 -120.234375 C 133.390625 -120.234375 128.257812 -118.390625 124.09375 -114.703125 C 119.925781 -111.023438 117.84375 -105.65625 117.84375 -98.59375 Z M 117.84375 -98.59375 "/></g></g></g><g fill="currentColor" ><g transform="translate(1060.936512, 879.374904)"><g><path d="M 132.75 2.890625 C 109.976562 2.890625 89.296875 -0.957031 70.703125 -8.65625 C 52.109375 -16.351562 37.28125 -29.097656 26.21875 -46.890625 C 15.15625 -64.691406 9.625 -88.820312 9.625 -119.28125 C 9.625 -149.414062 15.15625 -173.460938 26.21875 -191.421875 C 37.28125 -209.378906 52.109375 -222.445312 70.703125 -230.625 C 89.296875 -238.800781 109.976562 -242.890625 132.75 -242.890625 C 155.832031 -242.890625 176.671875 -238 195.265625 -228.21875 C 213.867188 -218.4375 228.617188 -204.40625 239.515625 -186.125 C 250.421875 -167.851562 255.875 -145.570312 255.875 -119.28125 C 255.875 -91.707031 250.421875 -68.859375 239.515625 -50.734375 C 228.617188 -32.617188 213.867188 -19.148438 195.265625 -10.328125 C 176.671875 -1.515625 155.832031 2.890625 132.75 2.890625 Z M 110.625 -98.125 C 110.625 -89.78125 112.785156 -83.925781 117.109375 -80.5625 C 121.441406 -77.195312 126.65625 -75.515625 132.75 -75.515625 C 139.15625 -75.515625 144.523438 -77.4375 148.859375 -81.28125 C 153.191406 -85.132812 155.359375 -90.75 155.359375 -98.125 C 155.359375 -104.851562 153.191406 -110.0625 148.859375 -113.75 C 144.523438 -117.4375 139.15625 -119.28125 132.75 -119.28125 C 126.65625 -119.28125 121.441406 -117.753906 117.109375 -114.703125 C 112.785156 -111.660156 110.625 -106.132812 110.625 -98.125 Z M 110.625 -98.125 "/></g></g></g></symbol>
+</defs></svg>
+
+<header><div class="wrap">
+  <a class="wm" href="#"><svg viewBox="0 0 1160 340"><use href="#wm"/></svg></a>
+  <nav><a href="#">Meet Wobo</a><a href="#">How it works</a><a href="#">For parents</a><a href="#">For students</a><a href="#">Subjects</a><a href="#">Plans</a></nav>
+  <div class="cta"><a class="btn quiet" href="#">Sign in</a><a class="btn pig" href="#">Get early access</a></div>
+</div></header>
+
+<section class="hero"><div class="wrap">
+  <span class="label">Donate Wobo</span>
+  <h1>Buy a place for a child <em>who cannot</em>.</h1>
+  <p class="sub">It is the whole of Wobo. Not a smaller version, not a trial, not the good parts locked. The same subjects, the same tutor and the same everything a paying family gets.</p>
+  <div class="row"><a class="btn pig" href="#fund">Fund a place</a><a class="btn quiet" href="#ask">Ask for a place</a></div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">The same product</span>
+  <h2 class="dn-t">Spot the difference.</h2>
+  <p class="dn-lede">One of these was paid for by a parent. The other was paid for by somebody the learner will never meet. We only ever built one thing, so there is only one thing to give.</p>
+
+  <div class="dn-twins">
+    <figure class="dn-twin reveal">
+      <div class="dn-mini">
+        <div class="dn-top"><svg class="dn-face" viewBox="0 0 120 120"><use href="#head"/></svg><span>Why does the bottom number stay the same?</span></div>
+        <div class="dn-board">
+          <svg viewBox="0 0 240 96" role="img" aria-label="Two thirds shaded, then one more third added">
+            <rect x="8" y="20" width="96" height="56" rx="8" fill="var(--pig-w)"/>
+            <rect x="8" y="20" width="32" height="56" rx="8" fill="var(--pig)" opacity=".62"/>
+            <rect x="40" y="20" width="32" height="56" fill="var(--pig)" opacity=".62"/>
+            <path d="M40 20V76M72 20V76" stroke="var(--paper)" stroke-width="3"/>
+            <path d="M116 48h16m-8-8v16" stroke="var(--ink-3)" stroke-width="3" stroke-linecap="round"/>
+            <rect x="144" y="20" width="88" height="56" rx="8" fill="var(--marigold-w)"/>
+            <rect x="144" y="20" width="29" height="56" rx="8" fill="var(--marigold)"/>
+            <path d="M173 20V76M202 20V76" stroke="var(--paper)" stroke-width="3"/>
+          </svg>
+        </div>
+        <div class="dn-chips"><i class="dn-lit">Drawn</i><i>Filmed</i><i>Tried</i><i>Spoken</i></div>
+        <div class="dn-foot"><span class="dn-ring"></span><b>Kept, four days running</b></div>
+      </div>
+      <figcaption>Paid for by a parent</figcaption>
+    </figure>
+
+    <span class="hand dn-vs">spot the difference</span>
+
+    <figure class="dn-twin reveal">
+      <div class="dn-mini">
+        <div class="dn-top"><svg class="dn-face" viewBox="0 0 120 120"><use href="#head"/></svg><span>Why does the bottom number stay the same?</span></div>
+        <div class="dn-board">
+          <svg viewBox="0 0 240 96" role="img" aria-label="Two thirds shaded, then one more third added">
+            <rect x="8" y="20" width="96" height="56" rx="8" fill="var(--pig-w)"/>
+            <rect x="8" y="20" width="32" height="56" rx="8" fill="var(--pig)" opacity=".62"/>
+            <rect x="40" y="20" width="32" height="56" fill="var(--pig)" opacity=".62"/>
+            <path d="M40 20V76M72 20V76" stroke="var(--paper)" stroke-width="3"/>
+            <path d="M116 48h16m-8-8v16" stroke="var(--ink-3)" stroke-width="3" stroke-linecap="round"/>
+            <rect x="144" y="20" width="88" height="56" rx="8" fill="var(--marigold-w)"/>
+            <rect x="144" y="20" width="29" height="56" rx="8" fill="var(--marigold)"/>
+            <path d="M173 20V76M202 20V76" stroke="var(--paper)" stroke-width="3"/>
+          </svg>
+        </div>
+        <div class="dn-chips"><i class="dn-lit">Drawn</i><i>Filmed</i><i>Tried</i><i>Spoken</i></div>
+        <div class="dn-foot"><span class="dn-ring"></span><b>Kept, four days running</b></div>
+      </div>
+      <figcaption>Paid for by somebody they will never meet</figcaption>
+    </figure>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">How it works</span>
+  <h2 class="dn-t">No forms, no proof, no thank-you letter.</h2>
+  <ol class="dn-steps">
+    <li class="reveal"><b>01</b><h3>A family asks.</h3><p>One line to us is enough. We do not ask for papers, we do not score anybody's need, and nobody is ever asked about it again.</p></li>
+    <li class="reveal"><b>02</b><h3>You fund a place.</h3><p>At the same price a parent pays, for the same length. Paid once. It is not a subscription and it is not a discount.</p></li>
+    <li class="reveal"><b>03</b><h3>We open it.</h3><p>For the next family waiting. You are not told who they are, and they are not told who paid for it.</p></li>
+  </ol>
+</div></section>
+
+<section id="fund"><div class="wrap">
+  <span class="label">What a place costs</span>
+  <h2 class="dn-t">The price a parent pays. Nothing added.</h2>
+  <div class="dn-places">
+    <div class="dn-place reveal">
+      <b>One place, one month</b>
+      <div class="dn-price"><span data-in="&#8377;1,999" data-ww="$20">&#8377;1,999</span></div>
+      <p>Long enough to get past the chapter that started all this.</p>
+      <a class="btn" href="#">Fund a month</a>
+    </div>
+    <div class="dn-place dn-lead reveal">
+      <b>One place, one term</b>
+      <div class="dn-price"><span data-in="&#8377;5,997" data-ww="$60">&#8377;5,997</span></div>
+      <p>Three months. Long enough to change how a term ends.</p>
+      <a class="btn pig" href="#">Fund a term</a>
+    </div>
+    <div class="dn-place reveal">
+      <b>One place, one year</b>
+      <div class="dn-price"><span data-in="&#8377;23,988" data-ww="$240">&#8377;23,988</span></div>
+      <p>A whole year, from the first chapter to the last exam.</p>
+      <a class="btn" href="#">Fund a year</a>
+    </div>
+  </div>
+  <p class="dn-fine">Paid once. Nothing renews, for you or for them.</p>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">What it is not</span>
+  <h2 class="dn-t">A funded place is not a lesser one.</h2>
+  <ul class="dn-nots">
+    <li class="reveal">Not a trial that runs out in the middle of a chapter.</li>
+    <li class="reveal">Not a trimmed plan with the useful parts kept behind a wall.</li>
+    <li class="reveal">Not a plan that ends in a sales call to a family who already said they cannot pay.</li>
+    <li class="reveal">No advertising, ever, and none at all because somebody else paid.</li>
+    <li class="reveal">Nobody is asked to be grateful in public.</li>
+  </ul>
+</div></section>
+
+<section id="ask"><div class="wrap">
+  <div class="dn-ask reveal"><div class="dn-ask-say">
+    <span class="label">If this is you</span>
+    <h2>If money is the only thing in the way, write to us.</h2>
+    <p>One line is enough. The class and the board is all we need. There is no form, nothing to prove, and no one who will bring it up again.</p>
+    <div class="row"><a class="btn" href="mailto:support@heywobo.com">Ask for a place</a></div>
+    <span class="hand dn-note">we read every one of these ourselves</span>
+  </div>
+  <aside class="dn-eg">
+    <span class="dn-eg-label">This much is enough</span>
+    <p class="dn-eg-line">Class 8, CBSE. We cannot manage the fee this year.</p>
+    <span class="dn-eg-foot">Send it to support@heywobo.com</span>
+  </aside>
+</div></section>
+
+<section><div class="wrap"><div class="dn-close">
+  <h2 class="dn-t">The product is the same. Only the person paying changes.</h2>
+  <p>A donation is not a subscription. Nothing renews and nothing is charged again. A funded place runs the length that was paid for, then ends the way any plan ends, with everything they learnt still theirs.</p>
+  <div class="row"><a class="btn pig" href="#fund">Fund a place</a><a class="btn quiet" href="#">Gift Wobo instead</a></div>
+</div></div></section>
+<footer><div class="wrap">
+  <div><div class="wm"><svg viewBox="0 0 1160 340" style="width:120px"><use href="#wm"/></svg></div><p style="margin-top:10px;max-width:28ch">A tutor that draws, never judges, and is always there.</p></div>
+  <div><b>Wobo</b><a href="#">Meet Wobo</a><a href="#">How it works</a><a href="#">Subjects</a><a href="#">Plans</a><a href="#">Gift Wobo</a><a href="#" style="color:var(--paper)">Donate Wobo</a></div>
+  <div><b>For</b><a href="#">Parents</a><a href="#">Students</a></div>
+  <div><b>Help</b><a href="#">Help centre</a><a href="#">Contact</a><a href="#">Questions</a></div>
+  <div><b>Company</b><a href="#">About</a><a href="#">Security and trust</a><a href="#">Terms</a><a href="#">Privacy</a><a href="#">Children's privacy</a><a href="#">Cookies</a><a href="#">Accessibility</a></div>
+</div></footer>
+
+<script>
+const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.setAttribute('data-theme', t);
+const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!rm && 'IntersectionObserver' in window) {
+  const els=[...document.querySelectorAll('.reveal')];
+  els.forEach(e=>{ if (e.getBoundingClientRect().top > innerHeight) e.classList.add('pre'); });
+  const io=new IntersectionObserver(en=>en.forEach(x=>{ if(x.isIntersecting){ x.target.classList.remove('pre'); x.target.classList.add('on'); io.unobserve(x.target);} }),{threshold:.18});
+  els.forEach(e=>io.observe(e));
+} else { document.querySelectorAll('.reveal').forEach(e=>e.classList.add('on')); }
+/* Where someone is reading from is not a question worth asking. The browser's own time
+   zone answers it, so the page simply shows the right currency and never offers a choice
+   that only exists because we could not be bothered to work it out. */
+const zone = (Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
+const inIndia = zone.includes('kolkata') || zone.includes('calcutta');
+document.querySelectorAll('[data-in]').forEach((el) => { el.textContent = inIndia ? el.dataset.in : el.dataset.ww; });
+</script>
+</body>
+</html>
