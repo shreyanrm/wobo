@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The doors</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Caveat:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────────
+   THE DOORS — sign up, and sign back in.
+
+   What was wrong with the pair the owner screenshotted: a cream ground the law
+   no longer allows; everything stacked dead centre in one narrow column, which
+   is what made it read as a template; a field that was a low-contrast beige slab
+   with nothing but a placeholder to say you could type in it; four buttons of
+   identical weight so nothing led; a greyed-out provider with an apology
+   underneath it; and, on the way back in, an OR rule with nothing after it but a
+   sentence saying the other way was switched off.
+
+   What this is instead. The page is a conversation with a character, so it is
+   laid out as one: Wobo and what Wobo is saying on the left, the thing you do on
+   the right. The field is not a box, it is a ruled line you write on, which is
+   what this product is about; the rule takes the pigment and draws itself across
+   when you focus it. The primary action is the only saturated thing on the page.
+   The providers are white objects that float, so they read as buttons on white
+   paper without a single border line. Nothing that does not work is rendered as
+   a dead grey slab with an apology: it carries a small "soon" and keeps its
+   shape, which is the same call the owner made for the app store buttons.
+
+   Law v5: white ground, colour with a job, one spacing rhythm, no border lines,
+   soft shadows under floating things. Nothing here transitions a layout
+   property, so nothing can stutter.
+   ───────────────────────────────────────────────────────────────────────────── */
+:root{
+  --paper:#FFFFFF; --paper-2:#F6F6F8; --paper-3:#ECECF0; --line:#E4E4EA;
+  --ink:#14142B; --ink-2:#55556B; --ink-3:#8A8A9E;
+  --pig:#2B45FF; --marigold:#FFB629; --rose:#FF6B57; --mint:#12B981; --violet:#7C5CFF; --lilac:#B7A6FF;
+  --pig-w:#EDF0FF; --rose-w:#FFEDEB; --marigold-w:#FFF6E5; --mint-w:#E3F7F0; --lilac-w:#F6F4FF;
+  --body:#14142B; --body-hi:#3A3A5C; --visor:#FFFFFF; --visor-lo:#EDEDF2; --eye:#2B45FF;
+  --sans:'Poppins',system-ui,-apple-system,sans-serif; --hand:'Caveat',cursive;
+  --s1:8px; --s2:16px; --s3:24px; --s4:40px; --s5:72px;
+  --gutter:clamp(20px,5vw,48px); --colgap:clamp(32px,5vw,88px);
+  --shadow:0 24px 60px rgba(20,20,43,.10); --lift:0 8px 22px rgba(20,20,43,.07);
+}
+[data-theme="dark"]{
+  --paper:#0E0E16; --paper-2:#17171F; --paper-3:#1F1F29; --line:#26262F;
+  --ink:#F4F4F7; --ink-2:#B4B4C2; --ink-3:#7E7E90;
+  --pig:#7C8CFF; --marigold:#FFC85A; --rose:#FF8A78; --mint:#3DD9A4;
+  --pig-w:#1A1E3A; --marigold-w:#383027; --rose-w:#38272C;
+  --body:#F4F4F7; --body-hi:#FFFFFF; --visor:#0E0E16; --visor-lo:#1F1F29; --eye:#7C8CFF;
+  --shadow:0 24px 60px rgba(0,0,0,.5); --lift:0 8px 22px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.55 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1{margin:0;letter-spacing:-.025em;text-wrap:balance}
+p{margin:0}
+a{color:inherit}
+
+.dr{min-height:100vh;display:grid;grid-template-rows:auto 1fr;padding-bottom:var(--s5)}
+.dr + .dr{border-top:0;margin-top:var(--s5)}
+.dr-wrap{width:min(1080px,calc(100% - 2*var(--gutter)));margin:0 auto}
+
+/* the bar: the name, where you are in the run, and the other door */
+.dr-top{padding:var(--s3) 0}
+.dr-top .dr-wrap{display:flex;align-items:center;gap:var(--s3)}
+.dr-mark svg{height:22px;width:auto;color:var(--ink);display:block}
+.dr-steps{display:flex;gap:6px;margin:0 auto}
+.dr-steps i{width:22px;height:5px;border-radius:3px;background:var(--paper-3);display:block}
+.dr-steps i.on{width:34px;background:var(--pig)}
+.dr-other{font:500 14px/1 var(--sans);color:var(--ink-2);text-decoration:none;white-space:nowrap}
+.dr-other b{color:var(--ink)}
+.dr-other.btn{background:var(--paper-2);padding:12px 18px;border-radius:12px;color:var(--ink)}
+
+/* the two halves: what Wobo says, and what you do */
+.dr-body{display:grid;place-items:center}
+.dr-grid{display:grid;grid-template-columns:minmax(0,1.02fr) minmax(0,.98fr);gap:var(--colgap);align-items:center;width:100%}
+.dr-say{min-width:0;display:grid;gap:var(--s3);justify-items:start}
+.dr-who{display:flex;align-items:flex-start;gap:14px}
+.dr-face{width:84px;height:84px;flex:0 0 auto;filter:drop-shadow(0 10px 22px rgba(20,20,43,.14))}
+.dr-face .eyes{transition:transform .38s cubic-bezier(.2,.8,.2,1)}
+[data-look="field"] .dr-face .eyes{transform:translate(3px,5px)}
+.dr-bubble{position:relative;background:var(--paper-2);border-radius:16px;padding:12px 18px;font:600 21px/1.25 var(--hand);color:var(--ink);margin-top:14px;text-wrap:balance}
+.dr-bubble::before{content:"";position:absolute;left:-7px;top:18px;width:14px;height:14px;background:var(--paper-2);transform:rotate(45deg);border-radius:3px}
+.dr-say h1{font:600 clamp(30px,4vw,46px)/1.06 var(--sans);max-width:15ch}
+.dr-lede{color:var(--ink-2);max-width:38ch;text-wrap:pretty}
+
+/* the act */
+.dr-act{min-width:0;display:grid;gap:var(--s2);align-content:center}
+.dr-lab{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+/* THE FIELD. Not a box. A line you write on, which is what this product is.
+   The rule beneath takes the pigment and draws across when you focus it, so the
+   place your attention is going is the place the ink goes. */
+.dr-field{position:relative;display:flex;align-items:center;gap:12px;padding:6px 2px 14px}
+.dr-field > svg{width:22px;height:22px;flex:0 0 auto;color:var(--ink-3);fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:color .2s}
+.dr-field input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:400 20px/1.4 var(--sans);padding:6px 0;outline:none}
+.dr-field input::placeholder{color:var(--ink-3)}
+.dr-field::before{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:2px;background:var(--paper-3)}
+.dr-field::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:2px;background:var(--pig);
+  transform:scaleX(0);transform-origin:left;transition:transform .38s cubic-bezier(.2,.8,.2,1)}
+.dr-field:focus-within::after{transform:scaleX(1)}
+.dr-field:focus-within > svg{color:var(--pig)}
+
+.dr-btn{font:600 16px/1 var(--sans);border:0;border-radius:14px;min-height:56px;padding:16px 20px;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s}
+.dr-btn:focus-visible{outline:3px solid var(--marigold);outline-offset:3px}
+.dr-go{background:var(--pig);color:#fff;box-shadow:0 10px 24px rgba(43,69,255,.28)}
+.dr-go:hover{transform:translateY(-1px);box-shadow:0 14px 30px rgba(43,69,255,.34)}
+.dr-go:active{transform:translateY(0)}
+.dr-prov{background:var(--paper);color:var(--ink);box-shadow:var(--lift);font-weight:500}
+.dr-prov:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+.dr-prov > svg{width:20px;height:20px;flex:0 0 auto}
+.dr-prov[aria-disabled="true"]{cursor:default;color:var(--ink-3);box-shadow:none;background:var(--paper-2)}
+.dr-prov[aria-disabled="true"]:hover{transform:none;box-shadow:none}
+.dr-soon{margin-left:auto;font:600 11px/1 var(--sans);letter-spacing:.1em;text-transform:uppercase;
+  background:var(--marigold-w);color:#5A3B00;padding:6px 9px;border-radius:999px}
+[data-theme="dark"] .dr-soon{color:var(--marigold)}
+.dr-or{display:flex;align-items:center;gap:14px;color:var(--ink-3);font:500 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;margin:2px 0}
+.dr-or::before,.dr-or::after{content:"";flex:1;height:2px;background:var(--paper-3);border-radius:2px}
+.dr-fine{color:var(--ink-3);font-size:14px;max-width:42ch}
+.dr-fine a{color:var(--ink-2)}
+
+@media (max-width:900px){
+  .dr-grid{grid-template-columns:1fr;gap:var(--s4)}
+  .dr-say{justify-items:start}
+  .dr-face{width:64px;height:64px}
+  .dr-say h1{font-size:clamp(27px,7vw,34px)}
+  .dr-top .dr-wrap{gap:var(--s2)}
+  .dr-steps{margin:0 auto 0 0}
+}
+@media (max-width:640px){
+  /* The lead-in is a courtesy, not information: below 640 the bar keeps the name,
+     the run, and the one word that is the link. */
+  .dr-lead{display:none}
+  .dr-steps i{width:16px}
+  .dr-steps i.on{width:26px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<radialGradient id="hg" cx="36%" cy="30%" r="80%"><stop offset="0" style="stop-color:var(--body-hi)"/><stop offset="1" style="stop-color:var(--body)"/></radialGradient>
+<linearGradient id="vg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--visor)"/><stop offset="1" style="stop-color:var(--visor-lo)"/></linearGradient>
+<symbol id="head" viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" fill="url(#hg)"/><rect x="18" y="41" width="84" height="38" rx="19" fill="url(#vg)"/><g class="blink eyes"><circle cx="43" cy="61" r="9" fill="var(--eye)"/><circle cx="77" cy="61" r="9" fill="var(--eye)"/><circle cx="40" cy="58" r="3" fill="var(--paper)" opacity=".85"/><circle cx="74" cy="58" r="3" fill="var(--paper)" opacity=".85"/></g></symbol>
+<symbol id="wm" viewBox="183.18 572.03 1133.63 312.64"><defs><g/></defs><g fill="currentColor" ><g transform="translate(173.553291, 879.374904)"><g><path d="M 80.328125 5.296875 C 63.648438 5.296875 50.5 1.769531 40.875 -5.28125 C 31.257812 -12.34375 24.207031 -21.5625 19.71875 -32.9375 C 15.226562 -44.320312 12.421875 -56.75 11.296875 -70.21875 C 10.179688 -83.6875 9.625 -96.832031 9.625 -109.65625 L 9.625 -234.234375 L 113.03125 -234.234375 L 113.984375 -133.703125 C 113.984375 -127.296875 115.265625 -122.164062 117.828125 -118.3125 C 120.398438 -114.46875 124.25 -113.664062 129.375 -115.90625 C 130.976562 -116.550781 132.5 -117.429688 133.9375 -118.546875 C 135.382812 -119.671875 136.429688 -121.679688 137.078125 -124.578125 L 137.078125 -234.234375 L 240.96875 -234.234375 L 241.921875 -133.703125 C 241.921875 -127.296875 243.285156 -122.164062 246.015625 -118.3125 C 248.742188 -114.46875 252.671875 -113.664062 257.796875 -115.90625 C 259.398438 -116.550781 261.003906 -117.59375 262.609375 -119.03125 C 264.210938 -120.476562 265.175781 -122.804688 265.5 -126.015625 L 263.09375 -234.234375 L 380.453125 -234.234375 L 372.75 -0.484375 L 287.140625 -0.484375 L 283.296875 -48.09375 C 279.765625 -40.082031 274.867188 -31.90625 268.609375 -23.5625 C 262.359375 -15.226562 254.34375 -8.332031 244.5625 -2.875 C 234.789062 2.570312 222.691406 5.296875 208.265625 5.296875 C 191.265625 5.296875 177.953125 1.683594 168.328125 -5.53125 C 158.710938 -12.75 151.660156 -21.96875 147.171875 -33.1875 C 141.078125 -23.25 132.660156 -14.347656 121.921875 -6.484375 C 111.179688 1.367188 97.316406 5.296875 80.328125 5.296875 Z M 80.328125 5.296875 "/></g></g></g><g fill="currentColor" ><g transform="translate(549.669146, 879.374904)"><g><path d="M 132.75 2.890625 C 109.976562 2.890625 89.296875 -0.957031 70.703125 -8.65625 C 52.109375 -16.351562 37.28125 -29.097656 26.21875 -46.890625 C 15.15625 -64.691406 9.625 -88.820312 9.625 -119.28125 C 9.625 -149.414062 15.15625 -173.460938 26.21875 -191.421875 C 37.28125 -209.378906 52.109375 -222.445312 70.703125 -230.625 C 89.296875 -238.800781 109.976562 -242.890625 132.75 -242.890625 C 155.832031 -242.890625 176.671875 -238 195.265625 -228.21875 C 213.867188 -218.4375 228.617188 -204.40625 239.515625 -186.125 C 250.421875 -167.851562 255.875 -145.570312 255.875 -119.28125 C 255.875 -91.707031 250.421875 -68.859375 239.515625 -50.734375 C 228.617188 -32.617188 213.867188 -19.148438 195.265625 -10.328125 C 176.671875 -1.515625 155.832031 2.890625 132.75 2.890625 Z M 110.625 -98.125 C 110.625 -89.78125 112.785156 -83.925781 117.109375 -80.5625 C 121.441406 -77.195312 126.65625 -75.515625 132.75 -75.515625 C 139.15625 -75.515625 144.523438 -77.4375 148.859375 -81.28125 C 153.191406 -85.132812 155.359375 -90.75 155.359375 -98.125 C 155.359375 -104.851562 153.191406 -110.0625 148.859375 -113.75 C 144.523438 -117.4375 139.15625 -119.28125 132.75 -119.28125 C 126.65625 -119.28125 121.441406 -117.753906 117.109375 -114.703125 C 112.785156 -111.660156 110.625 -106.132812 110.625 -98.125 Z M 110.625 -98.125 "/></g></g></g><g fill="currentColor" ><g transform="translate(801.21461, 879.374904)"><g><path d="M 153.90625 0 C 142.363281 0 131.378906 -2.960938 120.953125 -8.890625 C 110.535156 -14.828125 102.125 -22.125 95.71875 -30.78125 L 93.3125 -0.484375 L 12.984375 -0.484375 L 9.625 -132.75 L 13.953125 -307.34375 L 101 -307.34375 L 103.40625 -221.25 C 110.457031 -227.019531 118.710938 -231.664062 128.171875 -235.1875 C 137.628906 -238.71875 148.613281 -240.484375 161.125 -240.484375 C 191.582031 -240.484375 215.546875 -231.425781 233.015625 -213.3125 C 250.492188 -195.195312 259.234375 -164.171875 259.234375 -120.234375 C 259.234375 -90.421875 254.664062 -66.773438 245.53125 -49.296875 C 236.394531 -31.828125 223.96875 -19.242188 208.25 -11.546875 C 192.539062 -3.847656 174.425781 0 153.90625 0 Z M 117.84375 -98.59375 C 117.84375 -91.21875 119.925781 -85.765625 124.09375 -82.234375 C 128.257812 -78.710938 133.390625 -76.953125 139.484375 -76.953125 C 145.578125 -76.953125 150.707031 -78.554688 154.875 -81.765625 C 159.039062 -84.972656 161.125 -90.582031 161.125 -98.59375 C 161.125 -106.613281 159.039062 -112.222656 154.875 -115.421875 C 150.707031 -118.628906 145.578125 -120.234375 139.484375 -120.234375 C 133.390625 -120.234375 128.257812 -118.390625 124.09375 -114.703125 C 119.925781 -111.023438 117.84375 -105.65625 117.84375 -98.59375 Z M 117.84375 -98.59375 "/></g></g></g><g fill="currentColor" ><g transform="translate(1060.936512, 879.374904)"><g><path d="M 132.75 2.890625 C 109.976562 2.890625 89.296875 -0.957031 70.703125 -8.65625 C 52.109375 -16.351562 37.28125 -29.097656 26.21875 -46.890625 C 15.15625 -64.691406 9.625 -88.820312 9.625 -119.28125 C 9.625 -149.414062 15.15625 -173.460938 26.21875 -191.421875 C 37.28125 -209.378906 52.109375 -222.445312 70.703125 -230.625 C 89.296875 -238.800781 109.976562 -242.890625 132.75 -242.890625 C 155.832031 -242.890625 176.671875 -238 195.265625 -228.21875 C 213.867188 -218.4375 228.617188 -204.40625 239.515625 -186.125 C 250.421875 -167.851562 255.875 -145.570312 255.875 -119.28125 C 255.875 -91.707031 250.421875 -68.859375 239.515625 -50.734375 C 228.617188 -32.617188 213.867188 -19.148438 195.265625 -10.328125 C 176.671875 -1.515625 155.832031 2.890625 132.75 2.890625 Z M 110.625 -98.125 C 110.625 -89.78125 112.785156 -83.925781 117.109375 -80.5625 C 121.441406 -77.195312 126.65625 -75.515625 132.75 -75.515625 C 139.15625 -75.515625 144.523438 -77.4375 148.859375 -81.28125 C 153.191406 -85.132812 155.359375 -90.75 155.359375 -98.125 C 155.359375 -104.851562 153.191406 -110.0625 148.859375 -113.75 C 144.523438 -117.4375 139.15625 -119.28125 132.75 -119.28125 C 126.65625 -119.28125 121.441406 -117.753906 117.109375 -114.703125 C 112.785156 -111.660156 110.625 -106.132812 110.625 -98.125 Z M 110.625 -98.125 "/></g></g></g></symbol>
+</defs></svg>
+
+<!-- ══ THE WAY IN ═══════════════════════════════════════════════════════════ -->
+<section class="dr" id="new">
+  <div class="dr-top"><div class="dr-wrap">
+    <a class="dr-mark" href="#"><svg viewBox="0 0 1160 340" style="width:96px"><use href="#wm"/></svg></a>
+    <div class="dr-steps" role="img" aria-label="Step one of five"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    <a class="dr-other" href="#back"><span class="dr-lead">Already have an account? </span><b>Sign in</b></a>
+  </div></div>
+
+  <div class="dr-body"><div class="dr-wrap"><div class="dr-grid">
+    <div class="dr-say">
+      <div class="dr-who">
+        <svg class="dr-face" viewBox="0 0 120 120" aria-hidden="true"><use href="#head"/></svg>
+        <span class="dr-bubble">Hi. I'm Wobo. Let's make this yours.</span>
+      </div>
+      <h1>Sign in so everything stays with you.</h1>
+      <p class="dr-lede">That is the only reason I am asking. No newsletter, no card, and nothing sold to anyone.</p>
+    </div>
+
+    <div class="dr-act">
+      <label class="dr-lab" for="who">Email or phone</label>
+      <div class="dr-field" id="fieldWho">
+        <svg id="glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/></svg>
+        <input id="who" type="text" inputmode="email" autocomplete="username" placeholder="you@example.com or +91 …" aria-describedby="whoHint">
+      </div>
+      <button class="dr-btn dr-go" type="button">Send me a code</button>
+      <div class="dr-or"><span>or</span></div>
+      <button class="dr-btn dr-prov" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6z"/><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3C3.7 21.5 7.6 24 12 24z"/><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.6 0 3.7 2.5 1.8 6.1l3.8 3C6.5 6.7 9 4.8 12 4.8z"/></svg>
+        Continue with Google
+      </button>
+      <button class="dr-btn dr-prov" type="button" aria-disabled="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.7 2.3 2.9 2.2 1.2 0 1.6-.7 3-.7 1.4 0 1.8.7 3 .7 1.3 0 2.1-1.1 2.8-2.2.9-1.2 1.3-2.5 1.3-2.5s-2.5-1-2.5-3.6zM14.2 5.3c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>
+        Continue with Apple
+        <span class="dr-soon">soon</span>
+      </button>
+      <p class="dr-fine" id="whoHint">Under 13, or under 18 in India? A parent signs in first, and I will explain why in one line when you get there.</p>
+    </div>
+  </div></div></div>
+</section>
+
+<!-- ══ THE WAY BACK ═════════════════════════════════════════════════════════ -->
+<section class="dr" id="back">
+  <div class="dr-top"><div class="dr-wrap">
+    <a class="dr-mark" href="#"><svg viewBox="0 0 1160 340" style="width:96px"><use href="#wm"/></svg></a>
+    <a class="dr-other btn" href="#new" style="margin-left:auto">Create an account</a>
+  </div></div>
+
+  <div class="dr-body"><div class="dr-wrap"><div class="dr-grid">
+    <div class="dr-say">
+      <div class="dr-who">
+        <svg class="dr-face" viewBox="0 0 120 120" aria-hidden="true"><use href="#head"/></svg>
+        <span class="dr-bubble">good to see you again</span>
+      </div>
+      <h1>Welcome back.</h1>
+      <p class="dr-lede">Everything picks up exactly where you left it, on whichever device you are holding.</p>
+    </div>
+
+    <div class="dr-act">
+      <button class="dr-btn dr-prov" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6z"/><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3C3.7 21.5 7.6 24 12 24z"/><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6l3.8-3z"/><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.6 0 3.7 2.5 1.8 6.1l3.8 3C6.5 6.7 9 4.8 12 4.8z"/></svg>
+        Continue with Google
+      </button>
+      <button class="dr-btn dr-prov" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.6 18.4h2.8"/></svg>
+        Use my phone number
+      </button>
+      <button class="dr-btn dr-prov" type="button" aria-disabled="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M16.4 12.7c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9-.7 0-1.8-.9-3-.8-1.5 0-2.9.9-3.7 2.3-1.6 2.7-.4 6.8 1.1 9 .8 1.1 1.7 2.3 2.9 2.2 1.2 0 1.6-.7 3-.7 1.4 0 1.8.7 3 .7 1.3 0 2.1-1.1 2.8-2.2.9-1.2 1.3-2.5 1.3-2.5s-2.5-1-2.5-3.6zM14.2 5.3c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.8 1.4-.6.7-1.1 1.8-1 2.9 1 .1 2.1-.5 2.8-1.3z"/></svg>
+        Continue with Apple
+        <span class="dr-soon">soon</span>
+      </button>
+      <p class="dr-fine">Signing in by email is not switched on yet. Either of the two above will get you in, and your work is the same whichever you use.</p>
+    </div>
+  </div></div></div>
+</section>
+
+<script>
+const t = new URLSearchParams(location.search).get('theme'); if (t) document.documentElement.setAttribute('data-theme', t);
+
+/* Wobo looks at what you are doing. The eyes are a transform on the group the
+   symbol already carries, so this costs one class on the root and nothing else. */
+const field = document.getElementById('fieldWho');
+const who = document.getElementById('who');
+if (field && who) {
+  who.addEventListener('focus', () => { document.documentElement.dataset.look = 'field'; });
+  who.addEventListener('blur', () => { document.documentElement.removeAttribute('data-look'); });
+
+  /* The glyph follows what is being typed rather than sitting there as decoration:
+     the moment it reads like a number, it becomes a phone. */
+  const ENVELOPE = '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/>';
+  const PHONE = '<rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10.6 18.4h2.8"/>';
+  const glyph = document.getElementById('glyph');
+  who.addEventListener('input', () => {
+    const v = who.value.trim();
+    const looksLikeNumber = v.length > 0 && /^[+\d][\d\s()-]*$/.test(v);
+    const want = looksLikeNumber ? PHONE : ENVELOPE;
+    if (glyph.innerHTML !== want) glyph.innerHTML = want;
+    who.setAttribute('inputmode', looksLikeNumber ? 'tel' : 'email');
+  });
+}
+</script>
+</body>
+</html>

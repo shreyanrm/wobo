@@ -763,3 +763,33 @@ needed it was asked and the answer is recorded beside the task.
       you paid for ends" instead of assuming a month. Wave 13 is building that record now
 - [ ] FOR THE OWNER: the rupee figures are yours. The dollar figures are derived by the same rule
       (ten months for twelve, so $200 and $500 a year) and are open to being set differently
+
+### 10.14 The doors, the footer and the c-squared (owner, 2026-09-04)
+- [x] **The doors, redesigned** — `design/prototypes/app-auth.html`, both screens. What was wrong
+      with the pair that shipped: a cream ground the law no longer allows; everything stacked dead
+      centre in one column, which is what made it read as a template; a field that was a beige slab
+      with nothing but a placeholder to say you could type in it; four buttons of identical weight so
+      nothing led; a greyed-out provider with an apology under it; and, on the way back in, an OR
+      rule with nothing after it but a sentence saying the other way was switched off
+- [x] The page is a conversation with a character, so it is laid out as one: Wobo and what Wobo is
+      saying on the left, the thing you do on the right
+- [x] **The field is a ruled line you write on**, not a box, which is what this product is about. The
+      rule takes the pigment and draws across when you focus it, and its glyph becomes a phone the
+      moment what you are typing reads like a number, switching the keyboard with it
+- [x] The primary action is the only saturated thing on the page. The providers are white objects
+      that float, so they read as buttons on white paper without one border line
+- [x] Nothing that does not work is a dead grey slab with an apology: it keeps its shape and carries
+      a small "soon", the same call the owner made for the app store buttons. The divider that
+      divided nothing is gone
+- [x] Wobo looks down at the field when you focus it
+- [x] Proved at 1440, 834, 390 and in the dark theme. Zero overflow, zero console errors
+- [x] **The footer wordmark** — the name, edge to edge, writing itself on as you arrive. On all ten
+      public pages
+- [x] **The c-squared bug** — a highlight sized from the baseline cut every superscript in half. Now
+      sized against the line box. Written into DESIGN.md as the sixth trap
+- [ ] **Port the doors into the app** (`screens/auth/Auth.tsx`, 544 lines, plus its copy). Held while
+      Wave 9 finishes the app and Wave 13 finishes the plans and settings screens
+- [ ] **Sweep the whole app for the c-squared class of bug**: anything drawn at a guessed coordinate,
+      any band sized from a baseline, any mark that does not ride its own word. The owner asked for
+      this across the application, not just where he found it
+- [ ] Apply the footer wordmark to the real site shell once Wave 9 releases `screens/site/`
