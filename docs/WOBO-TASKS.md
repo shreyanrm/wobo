@@ -793,3 +793,31 @@ needed it was asked and the answer is recorded beside the task.
       any band sized from a baseline, any mark that does not ride its own word. The owner asked for
       this across the application, not just where he found it
 - [ ] Apply the footer wordmark to the real site shell once Wave 9 releases `screens/site/`
+
+### 10.15 Development only until the owner calls it (owner, 2026-09-04)
+The owner's ruling: "run full vigurous testing towards the end once i approve that the full
+development is done, but until then work on development only", with the standards list kept in the
+back of the mind while building.
+- [x] **Wave 14 stopped mid-run** — the adversarial account-isolation audit. It can resume from cache
+      (`resumeFromRunId: wf_7adb6510-1f2`) the moment testing is approved, so nothing is lost
+- [x] **Wave 15 kept** — the conformance register is a LIST, not a test run, and it is the thing that
+      keeps the standards in the back of the mind during development
+- [x] **Wave 13 landed** — cancel is real, refunds are out of the product, and two live bugs were
+      found on the way: a privilege hole letting any learner grant themselves a paid plan, and the
+      voice path metering on the wrong column so a paying learner would have been cut off mid-sentence
+- [ ] **Wave 11 running** — the climb in the app, reading the real mastery state Wave 10 built
+- [ ] **Wave 12 running** — Donate in React beside Gift, and the depth of the product onto the pitch pages
+- [ ] **Wave 16 running** — the redesigned doors ported in, and yearly pricing on the real plans page
+      with the annual total moved to checkout
+- [ ] **Wave 15 running** — the register of global standards, every item verified or honestly marked
+      not verified
+
+### 10.16 Held for the testing pass, when the owner calls it
+- [ ] Resume Wave 14: account creation, data isolation, the shared family device, the whole journey
+- [ ] Load testing. There is none in this repo. Concurrency, the database connection ceiling, the
+      rate limiter under load, and the cost per thousand learners are all unknown
+- [ ] Dependency vulnerability scanning and secret scanning in CI
+- [ ] Accessibility testing in CI, and visual regression
+- [ ] Content protection: per-viewer watermarking, short-lived signed URLs, rate-limit hardening.
+      NOTE FOR THE OWNER: screen recording cannot be prevented on the web, so the plan is the four
+      things that do work rather than a lock that does not lock
