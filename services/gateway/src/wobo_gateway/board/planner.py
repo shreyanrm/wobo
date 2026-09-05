@@ -38,7 +38,15 @@ MAX_INTENTS = 8
 
 #: Optional embellishments a pipeline can drop to draw the simpler thing when a check fails —
 #: the "redraw once" half of BOARD.md §6.
-_EMBELLISHMENTS = ("tangent_at", "marks", "values", "equilibrium", "parts", "name")
+#:
+#: ``steps`` is here for the commonest board in Class 10 there is. A factorisation ends
+#: "x - 2 = 0 or x - 3 = 0", the CAS cannot read a disjunction, and the whole derivation was
+#: refused for it — so Wobo explained the factors over a blank board (the teaching harness,
+#: 2026-09-05). Dropping the steps reaches the path ``math._derivation`` already had for a
+#: derivation given NO steps: the CAS solves the equation itself and the chain check proves the
+#: line it produced. The learner loses the model's middle steps and keeps a proved answer, which
+#: is the right way round when the alternative is nothing at all.
+_EMBELLISHMENTS = ("tangent_at", "marks", "values", "equilibrium", "parts", "name", "steps")
 
 #: Where a re-anchored shape lands: the middle of the board, stepped down so two of them do not
 #: sit on top of each other.
@@ -171,10 +179,36 @@ def _simplify(intent: dict[str, Any]) -> dict[str, Any] | None:
     return stripped if len(stripped) != len(intent) else None
 
 
+def _flatten_intent(intent: Any) -> dict[str, Any] | None:
+    """One intent in the shape the pipelines read, or None when it is not an intent at all.
+
+    The contract is flat — ``{"pipeline": "math", "op": "graph", ...}`` — and that is what the
+    prompt now shows. It did not always: for a while the prompt printed only a TABLE of pipelines
+    and their ops, so a model reasonably wrote the nesting the table implies,
+    ``{"math": {"op": "graph", ...}}``. Every one of those was dropped, and because a dropped
+    intent is silent the learner heard "I have drawn the parabola and its tangent" over an empty
+    board. The teaching harness found it on the first live board turn it ever ran, 2026-09-05.
+
+    So the nested form is folded into the flat one here. This is not politeness towards a model: an
+    empty board under a sentence promising a drawing is the worst thing this product can do, and
+    the whole insurance against it costs one dictionary. The floor is unmoved — a key that is not
+    one of the four pipelines is still not an intent.
+    """
+    if not isinstance(intent, dict):
+        return None
+    if intent.get("pipeline") in PIPELINES:
+        return intent
+    nested = [k for k in intent if k in PIPELINES]
+    if len(nested) == 1 and isinstance(intent[nested[0]], dict):
+        return {"pipeline": nested[0], **intent[nested[0]]}
+    return None
+
+
 def _run_intents(intents: list[Any], plan: Plan) -> list[dict[str, Any]]:
     objects: list[dict[str, Any]] = []
-    for index, intent in enumerate(intents[:MAX_INTENTS]):
-        if not isinstance(intent, dict) or intent.get("pipeline") not in PIPELINES:
+    for index, raw in enumerate(intents[:MAX_INTENTS]):
+        intent = _flatten_intent(raw)
+        if intent is None:
             plan.refusals.append("an intent that names no pipeline was dropped")
             continue
         simpler = _simplify(intent)

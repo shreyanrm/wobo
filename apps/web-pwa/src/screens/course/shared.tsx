@@ -20,6 +20,7 @@ import {
   useMemo,
   useRef,
 } from 'react';
+import { scoped } from '../../store/scope';
 import { MagneticButton } from '../../ui/kit';
 
 /**
@@ -46,7 +47,7 @@ const POS_KEY = 'wobo-course-pos-v1';
 
 export function readCoursePos(topicId: string): string | number | undefined {
   try {
-    return (JSON.parse(localStorage.getItem(POS_KEY) ?? '{}') as Record<string, string | number>)[
+    return (JSON.parse(scoped.getItem(POS_KEY) ?? '{}') as Record<string, string | number>)[
       topicId
     ];
   } catch {
@@ -56,9 +57,9 @@ export function readCoursePos(topicId: string): string | number | undefined {
 
 export function writeCoursePos(topicId: string, pos: string | number): void {
   try {
-    const all = JSON.parse(localStorage.getItem(POS_KEY) ?? '{}') as Record<string, unknown>;
+    const all = JSON.parse(scoped.getItem(POS_KEY) ?? '{}') as Record<string, unknown>;
     all[topicId] = pos;
-    localStorage.setItem(POS_KEY, JSON.stringify(all));
+    scoped.setItem(POS_KEY, JSON.stringify(all));
   } catch {
     // storage unavailable — session-only resume
   }
@@ -70,7 +71,7 @@ const STARS_KEY = 'wobo-course-stars-v1';
 
 export function readCourseStars(topicId: string): 1 | 2 | 3 | undefined {
   try {
-    const v = (JSON.parse(localStorage.getItem(STARS_KEY) ?? '{}') as Record<string, number>)[
+    const v = (JSON.parse(scoped.getItem(STARS_KEY) ?? '{}') as Record<string, number>)[
       topicId
     ];
     return v === 1 || v === 2 || v === 3 ? v : undefined;
@@ -81,11 +82,11 @@ export function readCourseStars(topicId: string): 1 | 2 | 3 | undefined {
 
 export function writeCourseStars(topicId: string, stars: number): void {
   try {
-    const all = JSON.parse(localStorage.getItem(STARS_KEY) ?? '{}') as Record<string, number>;
+    const all = JSON.parse(scoped.getItem(STARS_KEY) ?? '{}') as Record<string, number>;
     // only ever record the original earn — a later replay must not overwrite it
     if (all[topicId] === undefined) {
       all[topicId] = stars;
-      localStorage.setItem(STARS_KEY, JSON.stringify(all));
+      scoped.setItem(STARS_KEY, JSON.stringify(all));
     }
   } catch {
     // storage unavailable — a replay falls back to the run's own stars

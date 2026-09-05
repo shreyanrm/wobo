@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import {
   ERASABLE_TABLES,
+  ERASURE_GAPS,
+  ERASURE_REGISTER,
   eraseSubjectRows,
+  erasureGapSentence,
   type RestFilter,
   restQuery,
   SupabaseRest,
@@ -146,12 +149,26 @@ describe('server-side erasure of one subject', () => {
     expect(seen.every((c) => c.subject === 's-1')).toBe(true);
   });
 
-  it('covers state, threads and the profile cache — nothing personal is left behind', () => {
-    expect(ERASABLE_TABLES).toContain('learner_state');
-    expect(ERASABLE_TABLES).toContain('learner_threads');
-    expect(ERASABLE_TABLES).toContain('profiles_cache');
-    // Mastery is the learner's record of what they answered; erasure has to reach it too.
-    expect(ERASABLE_TABLES).toContain('mastery_cache');
+  /**
+   * "Start over" reached 6 of 22 stores. Everything below was reachable the whole time — every one
+   * of these tables carries `subject_id` and a FOR ALL policy keyed to `auth.uid()` — and was
+   * simply not on the list, while the You screen told a family their answers and their board ink
+   * were gone.
+   */
+  it('reaches the answers, the handwriting, the sessions and the rest, not just four tables', () => {
+    for (const table of [
+      'learner_state',
+      'learner_threads',
+      'profiles_cache',
+      'mastery_cache',
+      'attempts',
+      'canvas_state',
+      'sessions',
+      'meter_state',
+      'notifications',
+    ]) {
+      expect(ERASABLE_TABLES).toContain(table);
+    }
   });
 
   it('keeps going when one table fails, and reports which did not go', async () => {
@@ -162,7 +179,7 @@ describe('server-side erasure of one subject', () => {
     };
     const result = await eraseSubjectRows(rest, 's-1');
     expect(result.failed).toEqual(['learner_threads']);
-    expect(result.erased).toEqual(['learner_state', 'profiles_cache', 'mastery_cache']);
+    expect(result.erased).toEqual(ERASABLE_TABLES.filter((t) => t !== 'learner_threads'));
   });
 
   it('erases nothing — and claims nothing — without a subject', async () => {
@@ -171,5 +188,182 @@ describe('server-side erasure of one subject', () => {
     expect(seen).toEqual([]);
     expect(result.erased).toEqual([]);
     expect(result.failed).toEqual([...ERASABLE_TABLES]);
+  });
+});
+
+/**
+ * WHY MASTERY NEVER SYNCED. `mastery_cache` holds 0 rows in production while `learner_state` holds
+ * real ones, and this is the whole reason: every failure was reported as `... failed: 400` and
+ * nothing else. PostgREST had said `PGRST204` and named the missing `evidence` column (migration
+ * 0013 has never been applied), but the body was thrown away — so `isMissingEvidenceColumn` could
+ * never match, the band-only fallback never ran, and the throw died in a `catch {}`.
+ */
+describe('a refusal says what the database actually said', () => {
+  const refusal = (status: number, body: unknown) => {
+    globalThis.fetch = ((_url: string | URL | Request, _init?: RequestInit) =>
+      Promise.resolve(
+        new Response(JSON.stringify(body), {
+          status,
+          headers: { 'content-type': 'application/json' },
+        }),
+      )) as typeof fetch;
+  };
+
+  it('carries the PostgREST code and message through an upsert', async () => {
+    refusal(400, {
+      code: 'PGRST204',
+      message: "Could not find the 'evidence' column of 'mastery_cache' in the schema cache",
+    });
+    let caught: unknown;
+    try {
+      await rest().upsert('mastery_cache', { subject_id: 's' }, 'subject_id');
+    } catch (err) {
+      caught = err;
+    }
+    const message = (caught as Error).message;
+    expect(message).toContain('PGRST204');
+    expect(message).toContain('evidence');
+    expect(message).toContain('400');
+  });
+
+  it('carries it through a select, an rpc and a delete too', async () => {
+    refusal(403, { code: '42501', message: 'permission denied for table outbox' });
+    for (const attempt of [
+      () => rest().select('outbox', { match: { subject_id: 's' } }),
+      () => rest().selectOne('outbox', { match: { subject_id: 's' } }),
+      () => rest().rpc('outbox_append_batch', { p_events: [] }),
+      () => rest().delete('outbox', { match: { subject_id: 's' } }),
+    ]) {
+      let caught: unknown;
+      try {
+        await attempt();
+      } catch (err) {
+        caught = err;
+      }
+      expect((caught as Error).message).toContain('permission denied');
+    }
+  });
+
+  it('still says something useful when the body is not JSON at all', async () => {
+    globalThis.fetch = ((_url: string | URL | Request, _init?: RequestInit) =>
+      Promise.resolve(new Response('<html>502</html>', { status: 502 }))) as typeof fetch;
+    let caught: unknown;
+    try {
+      await rest().upsert('learner_state', { subject_id: 's' }, 'subject_id');
+    } catch (err) {
+      caught = err;
+    }
+    expect((caught as Error).message).toContain('502');
+  });
+});
+
+/**
+ * The register itself. Its whole value is that it is complete: a store this client cannot delete
+ * is still named, with the grant or policy that stops it, so the gap is a fact in the code rather
+ * than something a family finds out afterwards.
+ */
+describe('the erasure register accounts for every store', () => {
+  const stores = ERASURE_REGISTER.map((entry) => entry.store);
+
+  it('names every learner table, including the ones nothing reaches', () => {
+    for (const table of [
+      'learner_state',
+      'learner_threads',
+      'profiles_cache',
+      'mastery_cache',
+      'attempts',
+      'canvas_state',
+      'sessions',
+      'meter_state',
+      'notifications',
+      'mail_preferences',
+      'parent_links',
+      'outbox',
+      'content_cache',
+    ]) {
+      expect(stores).toContain(`learner.${table}`);
+    }
+  });
+
+  it('names every curriculum table', () => {
+    for (const table of [
+      'frameworks',
+      'versions',
+      'nodes',
+      'provenance',
+      'concept_map',
+      'overlays',
+      'pins',
+      'discovery_jobs',
+      'review_queue',
+    ]) {
+      expect(stores).toContain(`curriculum.${table}`);
+    }
+  });
+
+  it('names the account and the buckets, which are the promises the documents make', () => {
+    expect(stores).toContain('auth.users');
+    expect(stores.some((s) => s.startsWith('storage:'))).toBe(true);
+  });
+
+  it('gives every store a reason, because an entry with no reason is not an entry', () => {
+    for (const entry of ERASURE_REGISTER) {
+      expect(entry.why.trim().length).toBeGreaterThan(20);
+      expect(entry.store.trim()).not.toBe('');
+    }
+  });
+
+  it('lists each store exactly once', () => {
+    expect(new Set(stores).size).toBe(stores.length);
+  });
+
+  it('derives what is deleted from the register, so the two can never disagree', () => {
+    const fromRegister = ERASURE_REGISTER.filter(
+      (e) => e.reach === 'client' && e.store.startsWith('learner.'),
+    ).map((e) => e.store.slice('learner.'.length));
+    expect([...ERASABLE_TABLES]).toEqual(fromRegister);
+  });
+
+  it('still says out loud what an erase does NOT reach', () => {
+    const gaps = ERASURE_GAPS.map((e) => e.store);
+    expect(gaps).toContain('learner.outbox');
+    expect(gaps).toContain('auth.users');
+    expect(gaps).toContain('curriculum.frameworks');
+    // If this ever empties, the honesty line on the You screen empties with it, which is the point.
+    expect(ERASURE_GAPS.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * The honesty line the You screen shows a family. It used to be typed next to the erase button and
+ * had already drifted from what the code does: it named the practice answers and the board ink,
+ * both of which the erase now takes. Generated from the register, it cannot.
+ */
+describe('the line a family reads about what an erase misses', () => {
+  it('names only what is genuinely left behind, in words a family would use', () => {
+    const line = erasureGapSentence();
+    expect(line).toContain('your account itself');
+    expect(line).toContain('a syllabus you uploaded');
+    // The things the erase NOW reaches must not be in it.
+    expect(line).not.toContain('practice');
+    expect(line).not.toContain('ink on the board');
+    expect(line).toContain('support@heywobo.com');
+  });
+
+  it('never leaks a table name, a schema or a policy at a family', () => {
+    const line = erasureGapSentence();
+    expect(line).not.toMatch(/learner\.|curriculum\.|auth\.users|RLS|subject_id/);
+  });
+
+  it('disappears entirely on the day nothing is left behind', () => {
+    expect(erasureGapSentence([])).toBe('');
+  });
+
+  it('reads as one sentence however many stores it has to name', () => {
+    const one = erasureGapSentence([
+      { store: 'x', reach: 'unreached', why: 'because', plain: 'your account itself' },
+    ]);
+    expect(one).toContain('reach your account itself.');
+    expect(one).not.toContain(' and ');
   });
 });

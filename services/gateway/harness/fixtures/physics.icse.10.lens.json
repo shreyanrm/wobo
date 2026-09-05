@@ -1,0 +1,611 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "Can you tell me whether this image is real or virtual?",
+    "t": 12219,
+    "targets": [],
+    "type": "ask"
+  },
+  "case_id": "physics.icse.10.lens",
+  "cost_usd": 0.003654,
+  "elapsed_ms": 5223.843874991871,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 1454,
+        "t": 0,
+        "text": "Ray diagram coming up.",
+        "type": "say"
+      },
+      "id": "tioEhFXQz99W:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              120.0,
+              470.0
+            ]
+          },
+          "id": "p0_1axis",
+          "kind": "line",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1100,
+            "start": 120
+          },
+          "to": {
+            "board": [
+              880.0,
+              470.0
+            ]
+          }
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:1",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              500.0,
+              470.0
+            ]
+          },
+          "id": "p0_2lens",
+          "kind": "ellipse",
+          "rx": 14.0,
+          "ry": 120.0,
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1100,
+            "start": 1220
+          }
+        },
+        "t": 1220,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:2",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 10545,
+        "t": 1674,
+        "text": "The object is beyond twice the focal length, so the image will form on the other side of the lens, between the focal point and twice the focal length.",
+        "type": "say"
+      },
+      "id": "tioEhFXQz99W:3",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              228.57,
+              344.0
+            ]
+          },
+          "from": {
+            "board": [
+              228.57,
+              470.0
+            ]
+          },
+          "id": "p0_3object",
+          "kind": "arrow",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1100,
+            "start": 2320
+          }
+        },
+        "t": 2320,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:4",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "top",
+            "object": "p0_3object"
+          },
+          "id": "p0_4objlabel",
+          "kind": "label",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1100,
+            "start": 3420
+          },
+          "text": "object"
+        },
+        "t": 3420,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:5",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              635.71,
+              533.0
+            ]
+          },
+          "from": {
+            "board": [
+              635.71,
+              470.0
+            ]
+          },
+          "id": "p0_5image",
+          "kind": "arrow",
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1100,
+            "start": 4520
+          }
+        },
+        "t": 4520,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:6",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "bottom",
+            "object": "p0_5image"
+          },
+          "id": "p0_6imglabel",
+          "kind": "label",
+          "style": {
+            "ink": "accent",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1100,
+            "start": 5620
+          },
+          "text": "image"
+        },
+        "t": 5620,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:7",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              590.48,
+              470.0
+            ]
+          },
+          "id": "p0_7focus",
+          "kind": "point",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1100,
+            "start": 6719
+          }
+        },
+        "t": 6719,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:8",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              409.52,
+              470.0
+            ]
+          },
+          "id": "p0_8focus",
+          "kind": "point",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1100,
+            "start": 7819
+          }
+        },
+        "t": 7819,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:9",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              228.57,
+              344.0
+            ]
+          },
+          "id": "p0_9ray",
+          "kind": "line",
+          "style": {
+            "ink": "accent",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1100,
+            "start": 8919
+          },
+          "to": {
+            "board": [
+              635.71,
+              533.0
+            ]
+          }
+        },
+        "t": 8919,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:10",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "p0_1axis"
+          },
+          "check": "cas.solution_satisfies",
+          "id": "p0_10num",
+          "kind": "number",
+          "precision": 2,
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1100,
+            "start": 10019
+          },
+          "unit": "cm",
+          "value": 15.0,
+          "verified": true
+        },
+        "t": 10019,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:11",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "p0_5image"
+          },
+          "check": "cas.solution_satisfies",
+          "id": "p0_11num",
+          "kind": "number",
+          "precision": 2,
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1100,
+            "start": 11119
+          },
+          "value": -0.5,
+          "verified": true
+        },
+        "t": 11119,
+        "type": "ink"
+      },
+      "id": "tioEhFXQz99W:12",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "Can you tell me whether this image is real or virtual?",
+        "t": 12219,
+        "targets": [],
+        "type": "ask"
+      },
+      "id": "tioEhFXQz99W:13",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 11,
+        "presentation": "plane",
+        "t": 12219,
+        "type": "done",
+        "verified": [
+          "cas.solution_satisfies"
+        ]
+      },
+      "id": "tioEhFXQz99W:14",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "objects": [
+    {
+      "anchor": {
+        "board": [
+          120.0,
+          470.0
+        ]
+      },
+      "id": "p0_1axis",
+      "kind": "line",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1100,
+        "start": 120
+      },
+      "to": {
+        "board": [
+          880.0,
+          470.0
+        ]
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          500.0,
+          470.0
+        ]
+      },
+      "id": "p0_2lens",
+      "kind": "ellipse",
+      "rx": 14.0,
+      "ry": 120.0,
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1100,
+        "start": 1220
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          228.57,
+          344.0
+        ]
+      },
+      "from": {
+        "board": [
+          228.57,
+          470.0
+        ]
+      },
+      "id": "p0_3object",
+      "kind": "arrow",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1100,
+        "start": 2320
+      }
+    },
+    {
+      "anchor": {
+        "at": "top",
+        "object": "p0_3object"
+      },
+      "id": "p0_4objlabel",
+      "kind": "label",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1100,
+        "start": 3420
+      },
+      "text": "object"
+    },
+    {
+      "anchor": {
+        "board": [
+          635.71,
+          533.0
+        ]
+      },
+      "from": {
+        "board": [
+          635.71,
+          470.0
+        ]
+      },
+      "id": "p0_5image",
+      "kind": "arrow",
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1100,
+        "start": 4520
+      }
+    },
+    {
+      "anchor": {
+        "at": "bottom",
+        "object": "p0_5image"
+      },
+      "id": "p0_6imglabel",
+      "kind": "label",
+      "style": {
+        "ink": "accent",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1100,
+        "start": 5620
+      },
+      "text": "image"
+    },
+    {
+      "anchor": {
+        "board": [
+          590.48,
+          470.0
+        ]
+      },
+      "id": "p0_7focus",
+      "kind": "point",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1100,
+        "start": 6719
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          409.52,
+          470.0
+        ]
+      },
+      "id": "p0_8focus",
+      "kind": "point",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1100,
+        "start": 7819
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          228.57,
+          344.0
+        ]
+      },
+      "id": "p0_9ray",
+      "kind": "line",
+      "style": {
+        "ink": "accent",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1100,
+        "start": 8919
+      },
+      "to": {
+        "board": [
+          635.71,
+          533.0
+        ]
+      }
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "p0_1axis"
+      },
+      "check": "cas.solution_satisfies",
+      "id": "p0_10num",
+      "kind": "number",
+      "precision": 2,
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1100,
+        "start": 10019
+      },
+      "unit": "cm",
+      "value": 15.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "p0_5image"
+      },
+      "check": "cas.solution_satisfies",
+      "id": "p0_11num",
+      "kind": "number",
+      "precision": 2,
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1100,
+        "start": 11119
+      },
+      "value": -0.5,
+      "verified": true
+    }
+  ],
+  "presentation": "plane",
+  "refused": [],
+  "say": "Ray diagram coming up. The object is beyond twice the focal length, so the image will form on the other side of the lens, between the focal point and twice the focal length.",
+  "status": 200,
+  "verified": [
+    "cas.solution_satisfies"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "actions": [
+    {
+      "mood": "hint",
+      "type": "setMood",
+      "withSentence": 0
+    }
+  ],
+  "ask": null,
+  "case_id": "teach.prerequisite.integers",
+  "cost_usd": 0.002569,
+  "elapsed_ms": 4129.88929200219,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "actions": [
+          {
+            "mood": "hint",
+            "type": "setMood",
+            "withSentence": 0
+          }
+        ],
+        "grounded": false,
+        "handed_answer": false,
+        "path": "inline",
+        "say": "Totally fixable. Think of negatives as a tug-of-war: if the signs match, add the sizes and keep that sign; if they differ, subtract the smaller size from the bigger and keep the bigger number\u2019s sign. Try this tiny one: what is -5 + 3?"
+      },
+      "id": "",
+      "type": "output"
+    }
+  ],
+  "mode": "prose",
+  "model_calls": 1,
+  "objects": [],
+  "presentation": "",
+  "refused": [],
+  "say": "Totally fixable. Think of negatives as a tug-of-war: if the signs match, add the sizes and keep that sign; if they differ, subtract the smaller size from the bigger and keep the bigger number\u2019s sign. Try this tiny one: what is -5 + 3?",
+  "status": 200,
+  "verified": []
+}

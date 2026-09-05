@@ -3106,7 +3106,7 @@
           "lead": [
             {
               "t": "strong",
-              "v": "If anything Wobo shows you looks wrong, write to support@heywobo.com and tell us. A person reads every message, and you get an answer."
+              "v": "If anything Wobo shows you looks wrong, tell Wobo. There is a quiet flag on every screen inside Wobo: press \"Tell Wobo\", press whichever line fits, and that is the whole thing. A person reads every one of these."
             }
           ],
           "blocks": [
@@ -3114,8 +3114,17 @@
               "k": "p",
               "text": [
                 {
+                  "t": "strong",
+                  "v": "Where it is"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
                   "t": "text",
-                  "v": "There is no flag button in Wobo yet. We would rather say that on this page than draw one here and leave you hunting for it on the screen."
+                  "v": "At the bottom of the rail on a computer, just above the row of doors on a phone, and in the top corner of a full board. It is the same control in all three places, and it already knows which lesson, question or board you were looking at, so you do not have to tell us that part."
                 }
               ]
             },
@@ -3124,7 +3133,25 @@
               "text": [
                 {
                   "t": "strong",
-                  "v": "What to send"
+                  "v": "You do not have to explain"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "Six lines, and pressing one sends it. There is a box for your own words underneath and it is optional: a flag with nothing typed in it is a complete report, and nobody will ask you why you sent it."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "strong",
+                  "v": "What to send, if you do want to type something"
                 }
               ]
             },
@@ -3134,21 +3161,60 @@
                 [
                   {
                     "t": "text",
-                    "v": "What you were looking at: the subject, the topic, and the question or the board, if you can name them."
-                  }
-                ],
-                [
-                  {
-                    "t": "text",
                     "v": "What looks wrong, in your own words. One sentence is enough."
                   }
                 ],
                 [
                   {
                     "t": "text",
-                    "v": "A screenshot, if you can take one. Your device takes a better one than we could."
+                    "v": "Nothing else is needed. The subject, the topic and the screen you were on go with it on their own."
                   }
                 ]
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "strong",
+                  "v": "What happens next"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "It goes into a queue a person works through. Anything you mark as upsetting or unsafe goes to the top of that queue and wakes somebody up the moment it arrives."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "There is no case number, no turnaround time, and no message back to you when it is settled. Those are not built, and we would rather say so here than let you wait for one."
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "strong",
+                  "v": "You can still write to us"
+                }
+              ]
+            },
+            {
+              "k": "p",
+              "text": [
+                {
+                  "t": "text",
+                  "v": "support@heywobo.com, any time, and a person answers. Use it if you would rather explain properly, or if you want an answer back."
+                }
               ]
             },
             {
@@ -3201,7 +3267,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Three things do not exist yet: a control on a lesson, a board or a diagram that you can press; a queue behind it; and a message back to you when a report is settled. All three are things we want, none of them is built, and the mailbox is the whole route today."
+                  "v": "A picture of exactly what you were looking at, drawn by our own renderer; ink and blur tools to mark it up; and a message back to you when a report is settled. All three are things we want and none of them is built."
                 }
               ]
             },
@@ -3219,8 +3285,8 @@
               ]
             }
           ],
-          "plain": "If anything Wobo shows you looks wrong, write to support@heywobo.com and tell us. A person reads every message, and you get an answer. There is no flag button in Wobo yet. We would rather say that on this page than draw one here and leave you hunting for it on the screen. What you were looking at: the subject, the topic, and the question or the board, if you can name them. What looks wrong, in your own words. One sentence is enough. A screenshot, if you can take one. Your device takes a better one than we could. On an equation practice question there is a control on the question itself: \"I think I'm right\". Wobo re-checks your answer against the equation, and where the proof is on your side the mark changes and the question is not asked again. That control is on equation practice today, and not yet on every kind of question. We read it, we work out whether the content was wrong, and we fix what was. If we think the content was right, we say why, plainly. Three things do not exist yet: a control on a lesson, a board or a diagram that you can press; a queue behind it; and a message back to you when a report is settled. All three are things we want, none of them is built, and the mailbox is the whole route today. Related: How a lesson gets made.",
-          "text": "telling us something is wrong if anything wobo shows you looks wrong, write to support@heywobo.com and tell us. a person reads every message, and you get an answer. there is no flag button in wobo yet. we would rather say that on this page than draw one here and leave you hunting for it on the screen. what to send what you were looking at: the subject, the topic, and the question or the board, if you can name them. what looks wrong, in your own words. one sentence is enough. a screenshot, if you can take one. your device takes a better one than we could. if you think a question marked you wrong on an equation practice question there is a control on the question itself: \"i think i'm right\". wobo re-checks your answer against the equation, and where the proof is on your side the mark changes and the question is not asked again. that control is on equation practice today, and not yet on every kind of question. what we do with what you send we read it, we work out whether the content was wrong, and we fix what was. if we think the content was right, we say why, plainly. what does not exist yet three things do not exist yet: a control on a lesson, a board or a diagram that you can press; a queue behind it; and a message back to you when a report is settled. all three are things we want, none of them is built, and the mailbox is the whole route today. related: how a lesson gets made."
+          "plain": "If anything Wobo shows you looks wrong, tell Wobo. There is a quiet flag on every screen inside Wobo: press \"Tell Wobo\", press whichever line fits, and that is the whole thing. A person reads every one of these. At the bottom of the rail on a computer, just above the row of doors on a phone, and in the top corner of a full board. It is the same control in all three places, and it already knows which lesson, question or board you were looking at, so you do not have to tell us that part. Six lines, and pressing one sends it. There is a box for your own words underneath and it is optional: a flag with nothing typed in it is a complete report, and nobody will ask you why you sent it. What looks wrong, in your own words. One sentence is enough. Nothing else is needed. The subject, the topic and the screen you were on go with it on their own. It goes into a queue a person works through. Anything you mark as upsetting or unsafe goes to the top of that queue and wakes somebody up the moment it arrives. There is no case number, no turnaround time, and no message back to you when it is settled. Those are not built, and we would rather say so here than let you wait for one. support@heywobo.com, any time, and a person answers. Use it if you would rather explain properly, or if you want an answer back. On an equation practice question there is a control on the question itself: \"I think I'm right\". Wobo re-checks your answer against the equation, and where the proof is on your side the mark changes and the question is not asked again. That control is on equation practice today, and not yet on every kind of question. We read it, we work out whether the content was wrong, and we fix what was. If we think the content was right, we say why, plainly. A picture of exactly what you were looking at, drawn by our own renderer; ink and blur tools to mark it up; and a message back to you when a report is settled. All three are things we want and none of them is built. Related: How a lesson gets made.",
+          "text": "telling us something is wrong if anything wobo shows you looks wrong, tell wobo. there is a quiet flag on every screen inside wobo: press \"tell wobo\", press whichever line fits, and that is the whole thing. a person reads every one of these. where it is at the bottom of the rail on a computer, just above the row of doors on a phone, and in the top corner of a full board. it is the same control in all three places, and it already knows which lesson, question or board you were looking at, so you do not have to tell us that part. you do not have to explain six lines, and pressing one sends it. there is a box for your own words underneath and it is optional: a flag with nothing typed in it is a complete report, and nobody will ask you why you sent it. what to send, if you do want to type something what looks wrong, in your own words. one sentence is enough. nothing else is needed. the subject, the topic and the screen you were on go with it on their own. what happens next it goes into a queue a person works through. anything you mark as upsetting or unsafe goes to the top of that queue and wakes somebody up the moment it arrives. there is no case number, no turnaround time, and no message back to you when it is settled. those are not built, and we would rather say so here than let you wait for one. you can still write to us support@heywobo.com, any time, and a person answers. use it if you would rather explain properly, or if you want an answer back. if you think a question marked you wrong on an equation practice question there is a control on the question itself: \"i think i'm right\". wobo re-checks your answer against the equation, and where the proof is on your side the mark changes and the question is not asked again. that control is on equation practice today, and not yet on every kind of question. what we do with what you send we read it, we work out whether the content was wrong, and we fix what was. if we think the content was right, we say why, plainly. what does not exist yet a picture of exactly what you were looking at, drawn by our own renderer; ink and blur tools to mark it up; and a message back to you when a report is settled. all three are things we want and none of them is built. related: how a lesson gets made."
         }
       ]
     },

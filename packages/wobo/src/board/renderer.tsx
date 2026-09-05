@@ -47,6 +47,7 @@ import {
 import { geometryOf, type ObjectGeometry } from './geometry';
 import { HAND_MASK_FACTOR, type HandFont, handFont, loadHandFont } from './handwriting';
 import {
+  blocksLayout,
   boardArea,
   type Camera,
   cameraArrived,
@@ -73,6 +74,7 @@ import {
   type BoardStyle,
   type InkRole,
 } from './schema';
+import { describe, type LookUp } from './spoken';
 import { type BoardObjectState, type BoardStore, FADE_MS, RENDER_BUDGET } from './store';
 import { boardStatesAt } from './timeline';
 
@@ -531,7 +533,9 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
     }
     if (entry.geometry) {
       boxes.set(key, entry.geometry.box);
-      occupied.push(entry.geometry.box);
+      // Ground rather than ink: a plotted grid must not push the notes written over it out of the
+      // plot (layout.blocksLayout). Every other kind takes its space.
+      if (blocksLayout(String(state.object.kind))) occupied.push(entry.geometry.box);
     }
     out.push({
       state,
@@ -574,6 +578,11 @@ function inkNode(
     );
   }
   const dash = Array.isArray(style?.dash) ? style.dash : style?.dash ? [8, 6] : undefined;
+  // The graphics tree, and not only the live region: a listener who walks the board with a screen
+  // reader's own cursor meets each object where it is, and every one of them says what it is. The
+  // words win where an object has its own; a shape describes itself. (No look-up here: a node in
+  // the tree is read on its own, so it says what it IS rather than what it is about.)
+  const ariaLabel = geometry.text ? geometry.text.lines.join(' ') : describe(b.state.object);
   return (
     <BoardObjectNode
       key={key}
@@ -588,7 +597,7 @@ function inkNode(
       nibPx={NIB_PX}
       slots={b.slots}
       reduced={reduced}
-      {...(geometry.text ? { ariaLabel: geometry.text.lines.join(' ') } : {})}
+      {...(ariaLabel ? { ariaLabel } : {})}
     />
   );
 }
@@ -667,26 +676,16 @@ function boardHeightOf(frame: BoardFrame): number {
 }
 
 /**
- * What a screen reader is told when this object lands. Wobo's own words, from the object itself —
- * never a description of a shape Wobo drew, which would be a caption on a picture rather than the
- * thing Wobo actually wrote.
+ * What a screen reader is told when this object lands.
+ *
+ * It used to be the words off the object and nothing else, which left twenty-two of the grammar's
+ * twenty-eight kinds silent: on a real board the triangle, the squares on its sides, the rule under
+ * the total and the ring around the answer were all announced as nothing at all. `spoken.ts` has
+ * the whole argument and every sentence; this is the seam the surface calls, and it hands the
+ * store's own `get` through so a mark can name the thing it is about.
  */
-export function spokenLabel(object: BoardObject): string {
-  const say = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
-  const o = object as unknown as Record<string, unknown>;
-  const text = say(o.text) || say(o.tex) || say(o.label) || say(o.title) || say(o.alt);
-  if (text) return text;
-  if (object.kind === 'number') {
-    const unit = say(o.unit);
-    return `${o.value}${unit ? ` ${unit}` : ''}`.trim();
-  }
-  if (object.kind === 'table' && Array.isArray(o.rows)) {
-    return (o.rows as unknown[])
-      .map((row) => (Array.isArray(row) ? row.filter((c) => typeof c === 'string').join(', ') : ''))
-      .filter(Boolean)
-      .join('. ');
-  }
-  return '';
+export function spokenLabel(object: BoardObject, look?: LookUp): string {
+  return describe(object, look);
 }
 
 export function BoardSurface(props: BoardSurfaceProps) {
@@ -744,12 +743,14 @@ export function BoardSurface(props: BoardSurfaceProps) {
       const key = `${state.object.id}#${state.generation}`;
       if (announced.current.has(key)) continue;
       announced.current.add(key);
-      const said = spokenLabel(state.object);
+      // `store.get` is handed in so a mark can say what it is about: "a line under c² = 25"
+      // rather than "a line underneath", which is the difference between a fact and an explanation.
+      const said = spokenLabel(state.object, (id) => store.get(id)?.object);
       if (said) fresh.push(said);
     }
     if (announced.current.size > RENDER_BUDGET * 2) announced.current.clear();
     if (fresh.length > 0) setAnnouncement(fresh.join('. '));
-  }, [objects]);
+  }, [objects, store]);
 
   // Caveat, once. A failure is remembered, and every `write` falls back to a progressive reveal.
   useEffect(() => {

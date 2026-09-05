@@ -630,7 +630,7 @@ export type Proactivity = 'quiet' | 'balanced' | 'proactive';
 
 export function loadProactivity(): Proactivity {
   try {
-    const v = localStorage.getItem(PROACTIVITY_KEY);
+    const v = scoped.getItem(PROACTIVITY_KEY);
     return v === 'quiet' || v === 'proactive' ? v : 'balanced';
   } catch {
     return 'balanced';
@@ -639,7 +639,7 @@ export function loadProactivity(): Proactivity {
 
 export function saveProactivity(p: Proactivity): void {
   try {
-    localStorage.setItem(PROACTIVITY_KEY, p);
+    scoped.setItem(PROACTIVITY_KEY, p);
   } catch {
     // fine
   }

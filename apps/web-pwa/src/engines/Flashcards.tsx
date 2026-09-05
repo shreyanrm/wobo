@@ -18,6 +18,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import type { BarState } from '../screens/course/shared';
 import { CardBody, rgba, whisper } from '../screens/course/shared';
+import { scoped } from '../store/scope';
 import { useSdk } from '../store/sdk';
 import { hueForTopic } from '../ui/hues';
 import { sfx } from '../ui/sound';
@@ -58,13 +59,16 @@ export function parseFlashcards(raw: unknown): FlashcardsSpec | null {
   };
 }
 
-// --- Per-card FSRS state (localStorage; the interval must survive across sessions) -----------------
+// --- Per-card FSRS state (per-learner storage; the interval must survive across sessions) ---------
+//
+// Scoped (store/scope.ts): this is a model of ONE learner's memory. On a family tablet an unscoped
+// copy would schedule a sibling's revision from the first learner's recall.
 
 const FSRS_KEY = 'wobo-fsrs-v1';
 function loadSchedule(cardKey: string): RetrievalCard | null {
   try {
     return (
-      (JSON.parse(localStorage.getItem(FSRS_KEY) ?? '{}') as Record<string, RetrievalCard>)[
+      (JSON.parse(scoped.getItem(FSRS_KEY) ?? '{}') as Record<string, RetrievalCard>)[
         cardKey
       ] ?? null
     );
@@ -74,9 +78,9 @@ function loadSchedule(cardKey: string): RetrievalCard | null {
 }
 function saveSchedule(cardKey: string, card: RetrievalCard): void {
   try {
-    const all = JSON.parse(localStorage.getItem(FSRS_KEY) ?? '{}') as Record<string, RetrievalCard>;
+    const all = JSON.parse(scoped.getItem(FSRS_KEY) ?? '{}') as Record<string, RetrievalCard>;
     all[cardKey] = card;
-    localStorage.setItem(FSRS_KEY, JSON.stringify(all));
+    scoped.setItem(FSRS_KEY, JSON.stringify(all));
   } catch {
     // storage unavailable — session-only scheduling
   }

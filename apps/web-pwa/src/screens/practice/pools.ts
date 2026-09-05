@@ -19,6 +19,7 @@
 import { chapterById, subjectById, topicById } from '../../curriculum/registry';
 import type { Topic } from '../../data/model';
 import type { MiniWorkbookSpec, WorkbookItem } from '../../engines/MiniWorkbook';
+import { onScopeChange, scoped } from '../../store/scope';
 import { topicNodeUuid } from '../course/Composing';
 
 export type ForgeSize = 10 | 20 | 40;
@@ -90,6 +91,9 @@ function keyword(text: string): string | null {
 
 const POOL_KEY = (topicId: string) => `wobo-forge-pool-v1:${topicId}`;
 const mem = new Map<string, WorkbookItem[]>();
+// The cache is one learner's pools. A device that changes learner drops it rather than serving
+// the last one's items from memory under the new one's name.
+if (typeof window !== 'undefined') onScopeChange(() => mem.clear());
 
 /** Cloze items grounded in the topic's real blurb — the recall floor every topic can supply. */
 function buildRecallPool(topic: Topic): WorkbookItem[] {
@@ -120,7 +124,7 @@ function recallPool(topic: Topic): WorkbookItem[] {
   const cached = mem.get(topic.id);
   if (cached) return cached;
   try {
-    const raw = localStorage.getItem(POOL_KEY(topic.id));
+    const raw = scoped.getItem(POOL_KEY(topic.id));
     if (raw) {
       const parsed = JSON.parse(raw) as WorkbookItem[];
       if (Array.isArray(parsed)) {
@@ -134,7 +138,7 @@ function recallPool(topic: Topic): WorkbookItem[] {
   const built = buildRecallPool(topic);
   mem.set(topic.id, built);
   try {
-    localStorage.setItem(POOL_KEY(topic.id), JSON.stringify(built));
+    scoped.setItem(POOL_KEY(topic.id), JSON.stringify(built));
   } catch {
     // storage unavailable — pool is session-only
   }

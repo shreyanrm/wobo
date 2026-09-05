@@ -15,6 +15,7 @@ import {
   type ThreadSnapshot,
 } from '../src/state';
 import type { RestFilter } from '../src/supabase';
+import { SYNC_TROUBLE_AFTER, SyncHealth } from '../src/sync-health';
 
 function state(partial: Partial<LearnerState>): LearnerState {
   return { ...emptyLearnerState(), ...partial };
@@ -27,6 +28,9 @@ class FakeStorage implements KVStorage {
   }
   setItem(key: string, value: string): void {
     this.map.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.map.delete(key);
   }
 }
 
@@ -335,6 +339,72 @@ describe('SupabaseOutboxEventProvider batching', () => {
     // The local log/mastery path was never blocked.
     expect(provider.getLog()).toHaveLength(2);
   });
+
+  /**
+   * A refusal that will never stop being a refusal (RLS, or an outbox row whose subject no longer
+   * matches the session) used to re-arm the same 800ms timer forever: a hot loop against a server
+   * that had already said no, for as long as the tab stayed open. Each failure now waits longer
+   * than the last, and the wait is capped so a genuinely-returning network is still picked up.
+   */
+  it('backs off instead of hammering a store that keeps refusing', async () => {
+    const rest = {
+      rpc: async () => {
+        throw new Error('remote store rpc outbox_append_batch failed: 403 permission denied');
+      },
+    };
+    const kgtopg = { consume: async () => ({ accepted: true, deduped: false }) };
+    const provider = new SupabaseOutboxEventProvider(DEV_DEFAULTS, kgtopg, rest, 800);
+    provider.record('session.started.v1', {
+      surface: 'pwa' as const,
+      app_version: '0.0.0',
+      locale: 'en-IN',
+      resumed: false,
+    });
+
+    const waits: number[] = [];
+    for (let i = 0; i < 4; i += 1) {
+      await provider.flush();
+      waits.push(provider.nextAttemptInMs);
+    }
+    expect(waits[0]).toBe(1_600);
+    expect(waits[1]).toBe(3_200);
+    expect(waits[3]).toBeGreaterThan(waits[2] as number);
+    expect(provider.pendingCount).toBe(1); // nothing was thrown away
+    provider.stop();
+  });
+
+  it('counts a refused flush so the learner can be told, and clears it when one lands', async () => {
+    let fail = true;
+    const rest = {
+      rpc: async () => {
+        if (fail) throw new Error('offline');
+        return 1;
+      },
+    };
+    const kgtopg = { consume: async () => ({ accepted: true, deduped: false }) };
+    const health = new SyncHealth();
+    const provider = new SupabaseOutboxEventProvider(
+      DEV_DEFAULTS,
+      kgtopg,
+      rest,
+      60_000,
+      20,
+      health,
+    );
+    provider.record('session.started.v1', {
+      surface: 'pwa' as const,
+      app_version: '0.0.0',
+      locale: 'en-IN',
+      resumed: false,
+    });
+    for (let i = 0; i < SYNC_TROUBLE_AFTER; i += 1) await provider.flush();
+    expect(health.status().stores).toContain('events');
+
+    fail = false;
+    await health.retry();
+    expect(health.status().troubled).toBe(false);
+    provider.stop();
+  });
 });
 
 // --- Wave 3: the local cache is per-account, and the pre-scope bucket is adopted exactly once ----
@@ -369,6 +439,30 @@ describe('LocalStateProvider account scoping', () => {
     const second = new LocalStateProvider(storage, SUB_B);
     expect(second.loadCache().xp).toBe(0);
     expect(second.loadThreadCache('wobo')).toBeNull();
+  });
+
+  /**
+   * THE SHARED-DEVICE LEAK. Adoption used to COPY: the pre-scope bucket was left sitting under the
+   * plain key holding one learner's XP, streak, mind and whole conversation. Every later boot is
+   * unscoped for the moment before the session resolves, so the next person to open this browser
+   * read it as their own.
+   */
+  it('takes the pre-scope bucket OFF the device, so the next person reads nothing of theirs', () => {
+    const storage = new FakeStorage();
+    storage.setItem(STATE_CACHE_KEY, JSON.stringify(state({ xp: 900 })));
+    storage.setItem(
+      'wobo-conversation-v1',
+      JSON.stringify([{ id: 'a', role: 'wobo', text: 'what A told me' }]),
+    );
+
+    const first = new LocalStateProvider(storage, SUB_A);
+    expect(first.loadCache().xp).toBe(900);
+    expect(first.loadThreadCache('wobo')?.turns).toHaveLength(1);
+
+    // Somebody else opens the browser. Their session has not landed yet, so nothing scopes them.
+    const beforeAnySession = new LocalStateProvider(storage);
+    expect(beforeAnySession.loadCache().xp).toBe(0);
+    expect(beforeAnySession.loadThreadCache('wobo')).toBeNull();
   });
 
   it('adopts once and never re-adopts: a cleared bucket stays cleared', () => {

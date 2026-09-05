@@ -1,0 +1,431 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "Can you spot which two boxes show the dominant phenotype?",
+    "t": 12219,
+    "targets": [],
+    "type": "ask"
+  },
+  "case_id": "bio.cbse.10.punnett",
+  "cost_usd": 0.002333,
+  "elapsed_ms": 3679.973166959826,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 1090,
+        "t": 0,
+        "text": "Here\u2019s the cross.",
+        "type": "say"
+      },
+      "id": "EOtQlMm2P2iZ:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              360.0,
+              340.0
+            ]
+          },
+          "id": "b0_1square",
+          "kind": "table",
+          "rows": [
+            [
+              "A",
+              "a"
+            ],
+            [
+              "A",
+              "AA"
+            ],
+            [
+              "a",
+              "Aa"
+            ]
+          ],
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1728,
+            "start": 120
+          },
+          "w": 280.0
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "EOtQlMm2P2iZ:1",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 10909,
+        "t": 1310,
+        "text": "Aa \u00d7 Aa gives a genotypic ratio of 1 AA : 2 Aa : 1 aa, and if A is dominant the phenotypic ratio is 3 dominant : 1 recessive.",
+        "type": "say"
+      },
+      "id": "EOtQlMm2P2iZ:2",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": [
+              0.25,
+              0.25
+            ],
+            "object": "b0_1square"
+          },
+          "id": "b0_2cell",
+          "kind": "write",
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1728,
+            "start": 1848
+          },
+          "text": "AA"
+        },
+        "t": 1848,
+        "type": "ink"
+      },
+      "id": "EOtQlMm2P2iZ:3",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": [
+              0.75,
+              0.25
+            ],
+            "object": "b0_1square"
+          },
+          "id": "b0_3cell",
+          "kind": "write",
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1728,
+            "start": 3577
+          },
+          "text": "Aa"
+        },
+        "t": 3577,
+        "type": "ink"
+      },
+      "id": "EOtQlMm2P2iZ:4",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": [
+              0.25,
+              0.75
+            ],
+            "object": "b0_1square"
+          },
+          "id": "b0_4cell",
+          "kind": "write",
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1728,
+            "start": 5305
+          },
+          "text": "Aa"
+        },
+        "t": 5305,
+        "type": "ink"
+      },
+      "id": "EOtQlMm2P2iZ:5",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": [
+              0.75,
+              0.75
+            ],
+            "object": "b0_1square"
+          },
+          "id": "b0_5cell",
+          "kind": "write",
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1728,
+            "start": 7034
+          },
+          "text": "aa"
+        },
+        "t": 7034,
+        "type": "ink"
+      },
+      "id": "EOtQlMm2P2iZ:6",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "bottom",
+            "object": "b0_1square"
+          },
+          "check": "board.numbers_agree:punnett cells",
+          "id": "b0_6num",
+          "kind": "number",
+          "precision": 0,
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1728,
+            "start": 8762
+          },
+          "value": 3.0,
+          "verified": true
+        },
+        "t": 8762,
+        "type": "ink"
+      },
+      "id": "EOtQlMm2P2iZ:7",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "b0_1square"
+          },
+          "check": "board.numbers_agree:punnett cells",
+          "id": "b0_7num",
+          "kind": "number",
+          "precision": 0,
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1728,
+            "start": 10491
+          },
+          "value": 1.0,
+          "verified": true
+        },
+        "t": 10491,
+        "type": "ink"
+      },
+      "id": "EOtQlMm2P2iZ:8",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "Can you spot which two boxes show the dominant phenotype?",
+        "t": 12219,
+        "targets": [],
+        "type": "ask"
+      },
+      "id": "EOtQlMm2P2iZ:9",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 7,
+        "presentation": "plane",
+        "t": 12219,
+        "type": "done",
+        "verified": [
+          "board.numbers_agree:punnett cells"
+        ]
+      },
+      "id": "EOtQlMm2P2iZ:10",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "objects": [
+    {
+      "anchor": {
+        "board": [
+          360.0,
+          340.0
+        ]
+      },
+      "id": "b0_1square",
+      "kind": "table",
+      "rows": [
+        [
+          "A",
+          "a"
+        ],
+        [
+          "A",
+          "AA"
+        ],
+        [
+          "a",
+          "Aa"
+        ]
+      ],
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1728,
+        "start": 120
+      },
+      "w": 280.0
+    },
+    {
+      "anchor": {
+        "at": [
+          0.25,
+          0.25
+        ],
+        "object": "b0_1square"
+      },
+      "id": "b0_2cell",
+      "kind": "write",
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1728,
+        "start": 1848
+      },
+      "text": "AA"
+    },
+    {
+      "anchor": {
+        "at": [
+          0.75,
+          0.25
+        ],
+        "object": "b0_1square"
+      },
+      "id": "b0_3cell",
+      "kind": "write",
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1728,
+        "start": 3577
+      },
+      "text": "Aa"
+    },
+    {
+      "anchor": {
+        "at": [
+          0.25,
+          0.75
+        ],
+        "object": "b0_1square"
+      },
+      "id": "b0_4cell",
+      "kind": "write",
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1728,
+        "start": 5305
+      },
+      "text": "Aa"
+    },
+    {
+      "anchor": {
+        "at": [
+          0.75,
+          0.75
+        ],
+        "object": "b0_1square"
+      },
+      "id": "b0_5cell",
+      "kind": "write",
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1728,
+        "start": 7034
+      },
+      "text": "aa"
+    },
+    {
+      "anchor": {
+        "at": "bottom",
+        "object": "b0_1square"
+      },
+      "check": "board.numbers_agree:punnett cells",
+      "id": "b0_6num",
+      "kind": "number",
+      "precision": 0,
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1728,
+        "start": 8762
+      },
+      "value": 3.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "b0_1square"
+      },
+      "check": "board.numbers_agree:punnett cells",
+      "id": "b0_7num",
+      "kind": "number",
+      "precision": 0,
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1728,
+        "start": 10491
+      },
+      "value": 1.0,
+      "verified": true
+    }
+  ],
+  "presentation": "plane",
+  "refused": [],
+  "say": "Here\u2019s the cross. Aa \u00d7 Aa gives a genotypic ratio of 1 AA : 2 Aa : 1 aa, and if A is dominant the phenotypic ratio is 3 dominant : 1 recessive.",
+  "status": 200,
+  "verified": [
+    "board.numbers_agree:punnett cells"
+  ]
+}

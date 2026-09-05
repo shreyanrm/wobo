@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { onScopeChange, scoped } from '../../store/scope';
 import type { ComposedWorkbook, ForgeMix, ForgeSize } from './pools';
 
 export interface ForgeAttempt {
@@ -44,7 +45,7 @@ const EVT = 'wobo-forged-changed';
 
 function load(): ForgedWorkbook[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]') as ForgedWorkbook[];
+    const raw = JSON.parse(scoped.getItem(KEY) ?? '[]') as ForgedWorkbook[];
     if (!Array.isArray(raw)) return [];
     // a build lost to a reload never finished — it stays `building`; the runner picks it up again.
     return raw.filter((w) => w && typeof w.id === 'string' && Array.isArray(w.picks));
@@ -55,10 +56,23 @@ function load(): ForgedWorkbook[] {
 
 let items: ForgedWorkbook[] = typeof window === 'undefined' ? [] : load();
 
+/*
+ * The shelf is read ONCE, at import, which is before anyone knows whose device this is. Without
+ * this the in-memory copy would still be the previous learner's after a sign-in, and the next
+ * `persist` would write it back out under the new learner's key — the leak, laundered through a
+ * module variable. Re-read on every scope change instead.
+ */
+if (typeof window !== 'undefined') {
+  onScopeChange(() => {
+    items = load();
+    window.dispatchEvent(new Event(EVT));
+  });
+}
+
 function persist(next: ForgedWorkbook[]): void {
   items = next;
   try {
-    localStorage.setItem(KEY, JSON.stringify(items));
+    scoped.setItem(KEY, JSON.stringify(items));
   } catch {
     // storage unavailable — the shelf is session-only, still fully functional in memory
   }

@@ -1,0 +1,104 @@
+{
+  "cases": [
+    {
+      "ask": "graph y = x^2 and draw the tangent at x = 1",
+      "board": "CBSE",
+      "case_id": "math.cbse.11.tangent",
+      "cost_usd": 0.0,
+      "elapsed_ms": 4123.440541996388,
+      "findings": [
+        {
+          "detail": "no quantity this case knows the truth about was asserted",
+          "dimension": "correct",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "the live board plan fell back to the keyless plan (a provider failed), so this board was drawn from keywords rather than planned by a model",
+          "dimension": "reached",
+          "evidence": "Look at this. I will draw the curve first, then the line that just touches it.",
+          "severity": "note"
+        },
+        {
+          "detail": "the planner refused an object: math.graph failed its check twice: could not read the expression 'x**2': the symbolic checker is unavailable; then could not read the expression 'x**2': the symbolic checker is unavailable",
+          "dimension": "verified",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "every object was refused, so the learner asked for a drawing and got a blank board",
+          "dimension": "drew",
+          "evidence": "math.graph failed its check twice: could not read the expression 'x**2': the symbolic checker is unavailable; then could not read the expression 'x**2': the symbolic checker is unavailable",
+          "severity": "wrong"
+        },
+        {
+          "detail": "the question asked for a drawing and nothing was drawn",
+          "dimension": "drew",
+          "evidence": "Look at this. I will draw the curve first, then the line that just touches it.",
+          "severity": "wrong"
+        },
+        {
+          "detail": "asserts without explaining: no causal or connecting language anywhere in the answer",
+          "dimension": "teaches",
+          "evidence": "Look at this. I will draw the curve first, then the line that just touches it.",
+          "severity": "weak"
+        },
+        {
+          "detail": "the second opinion scored explains at 0 out of 4",
+          "dimension": "teaches",
+          "evidence": "",
+          "severity": "weak"
+        },
+        {
+          "detail": "the second opinion scored drawing at 0 out of 4",
+          "dimension": "draws what it says",
+          "evidence": "",
+          "severity": "weak"
+        },
+        {
+          "detail": "the second opinion scored hands_back at 1 out of 4",
+          "dimension": "teaches",
+          "evidence": "",
+          "severity": "weak"
+        },
+        {
+          "detail": "The promised parabola and tangent were not drawn, so the student has nothing to inspect. The follow-up question is too vague and refers to a nonexistent diagram.",
+          "dimension": "judged",
+          "evidence": "",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 11",
+      "judge_model": "openai/gpt-5.6-sol",
+      "objects_drawn": 0,
+      "say": "Look at this. I will draw the curve first, then the line that just touches it.",
+      "scores": {
+        "correct": 2,
+        "draws what it says": 0,
+        "drew": 0,
+        "kind": 4,
+        "legible": null,
+        "reached": 4,
+        "teaches": 0,
+        "their world": null,
+        "verified": null,
+        "voice": 4
+      },
+      "subject": "mathematics",
+      "verified_checks": []
+    }
+  ],
+  "cost_usd": 0.0,
+  "judge_cost_usd": 0.00698,
+  "judge_model": "openai/gpt-5.6-sol",
+  "judge_shares_provider_with_tutor": false,
+  "mode": "live",
+  "model_calls": 0,
+  "notes": [],
+  "providers": {
+    "last text provider": true,
+    "primary text provider": true,
+    "second text provider": true
+  },
+  "started_at": "2026-09-05T06:07:06+00:00"
+}

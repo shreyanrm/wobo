@@ -1,4 +1,5 @@
 import type { SupabaseRest } from './supabase';
+import type { SyncHealth } from './sync-health';
 
 /**
  * The learner-state persistence seam. One shape (`LearnerState`) backs XP, the identity streak,
@@ -156,6 +157,26 @@ export function mergeThread(a: ThreadSnapshot, b: ThreadSnapshot): ThreadSnapsho
 export interface KVStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
+  /**
+   * Optional so an older caller's plain `{get,set}` object still satisfies the seam. Adoption needs
+   * a key to actually LEAVE the device, so `dropKey` below falls back to writing an empty value,
+   * which every reader here already treats as "nothing stored".
+   */
+  removeItem?(key: string): void;
+}
+
+/**
+ * Take a key off the device. `removeItem` when the storage has one; otherwise an empty value, which
+ * `loadCache` and `loadThreadCache` both read as absent. Never throws: a storage that refuses the
+ * write leaves the key, and the caller is no worse off than before it tried.
+ */
+function dropKey(storage: KVStorage, key: string): void {
+  try {
+    if (storage.removeItem) storage.removeItem(key);
+    else storage.setItem(key, '');
+  } catch {
+    // private mode or quota — nothing to do, and never a broken boot
+  }
 }
 
 class MemoryStorage implements KVStorage {
@@ -165,6 +186,9 @@ class MemoryStorage implements KVStorage {
   }
   setItem(key: string, value: string): void {
     this.map.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.map.delete(key);
   }
 }
 
@@ -237,21 +261,31 @@ export class LocalStateProvider implements StateProvider {
   }
 
   /**
-   * One-time, per-subject: fill this subject's empty scoped keys from the pre-scope bucket. Gated
-   * on a marker that names the claiming subject, so it runs once for the learner who was already
-   * using this device and never again — a second account reads its own (empty) bucket.
+   * One-time, per-subject: MOVE the pre-scope bucket under this subject's keys. Gated on a marker
+   * that names the claiming subject, so it runs once for the learner who was already using this
+   * device and never again — a second account reads its own (empty) bucket.
+   *
+   * It moves rather than copies, and that is the isolation half. A copy left the learner's XP,
+   * streak, mind snapshot and entire conversation sitting under the plain key. Every later boot is
+   * unscoped for the moment before the session resolves, and an unscoped provider reads the plain
+   * key — so the next person to open this browser was handed the previous learner's work as their
+   * own. The source always leaves. A scoped value that already exists is the newer truth and is
+   * never clobbered, but the plain key goes either way.
    */
   private adoptLegacyBucket(): void {
     try {
-      // One-time, full stop: the marker is written before anything is copied, so a learner who
-      // later clears their own bucket is never handed the stale legacy copy back on the next boot.
+      // One-time, full stop: the marker is written before anything moves, so a learner who later
+      // clears their own bucket is never handed the stale legacy copy back on the next boot.
       if (this.storage.getItem(ADOPTED_MARKER_KEY) !== null) return;
       this.storage.setItem(ADOPTED_MARKER_KEY, this.scope);
       for (const base of ADOPTABLE_KEYS) {
         const legacy = this.storage.getItem(base);
         if (legacy === null) continue;
-        if (this.storage.getItem(this.scoped(base)) !== null) continue; // never clobber
-        this.storage.setItem(this.scoped(base), legacy);
+        // Never clobber a scoped value that is already there; the plain key still leaves.
+        if (this.storage.getItem(this.scoped(base)) === null) {
+          this.storage.setItem(this.scoped(base), legacy);
+        }
+        dropKey(this.storage, base);
       }
     } catch {
       // storage unavailable — a fresh bucket is the correct outcome, never a broken boot
@@ -357,10 +391,20 @@ function withoutStreakColumns(row: Record<string, unknown>): Record<string, unkn
   return trimmed;
 }
 
-/** True when a write failed BECAUSE the 0007 columns are absent (PostgREST names the column). */
+/**
+ * True when a write failed BECAUSE the 0007 columns are absent, which PostgREST says by naming the
+ * column in `PGRST204`.
+ *
+ * The bare code used to be accepted on its own, as a hope: the rest client discarded the response
+ * body, so the column name never reached here and `pgrst204` was the only thing that could ever
+ * have matched (it could not either — the message was the status and nothing else). The body is
+ * carried now (`supabase.ts`), so the column name is the test. Accepting the bare code today would
+ * be a false positive with teeth: a `PGRST204` about some other column would make every later write
+ * silently drop the learner's streak-freeze budget for a reason that had nothing to do with it.
+ */
 function isMissingStreakColumn(err: unknown): boolean {
   const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return STREAK_COLUMNS.some((c) => message.includes(c)) || message.includes('pgrst204');
+  return message.includes('pgrst204') && STREAK_COLUMNS.some((c) => message.includes(c));
 }
 
 function stateFromRow(row: Record<string, unknown>): LearnerState {
@@ -397,26 +441,68 @@ export class SupabaseStateProvider extends LocalStateProvider {
     private readonly subjectId: string,
     storage?: KVStorage,
     private readonly debounceMs = 1500,
+    /**
+     * Where a failed push is COUNTED. Optional so a test or a local build can leave it out; when it
+     * is there, a run of refusals stops being invisible and the app can tell the learner the truth
+     * about work that is sitting on this device and nowhere else.
+     */
+    private readonly health?: SyncHealth,
   ) {
     // Scope the local cache to this account so a second signed-in user on the same browser starts
     // from an empty bucket (then hydrates their own remote row), never the previous user's progress.
     super(storage ?? defaultStorage(), subjectId);
+    this.health?.register('progress', () => this.upsertState(this.loadCache()));
+    // 'wobo' is the only thread the app writes (AppRuntime.tsx:414) and the only one a learner
+    // would miss. Register each new thread here the day a second one exists, or its failures will
+    // be counted by the debounced push and retried by nothing.
+    this.health?.register('conversation', () => this.pushThread('wobo'));
   }
 
   /** Write the state row, degrading to the pre-0007 shape if the streak columns are not there. */
   private async upsertState(state: LearnerState): Promise<void> {
     const row = stateToRow(this.subjectId, state);
-    if (this.streakColumnsAbsent) {
-      await this.rest.upsert('learner_state', withoutStreakColumns(row), 'subject_id');
-      return;
-    }
     try {
-      await this.rest.upsert('learner_state', row, 'subject_id');
+      if (this.streakColumnsAbsent) {
+        await this.rest.upsert('learner_state', withoutStreakColumns(row), 'subject_id');
+      } else {
+        try {
+          await this.rest.upsert('learner_state', row, 'subject_id');
+        } catch (err) {
+          if (!isMissingStreakColumn(err)) throw err;
+          this.streakColumnsAbsent = true; // remember, so every later write skips the failed attempt
+          await this.rest.upsert('learner_state', withoutStreakColumns(row), 'subject_id');
+        }
+      }
     } catch (err) {
-      if (!isMissingStreakColumn(err)) throw err;
-      this.streakColumnsAbsent = true; // remember, so every later write skips the failed attempt
-      await this.rest.upsert('learner_state', withoutStreakColumns(row), 'subject_id');
+      this.health?.failed('progress', err);
+      throw err;
     }
+    this.health?.succeeded('progress');
+  }
+
+  /**
+   * Push one thread's cached snapshot. Split out of the debounce so the retry button runs the same
+   * write the timer does, rather than a second copy of it that could drift.
+   */
+  private async pushThread(thread: string): Promise<void> {
+    const snapshot = this.loadThreadCache(thread);
+    if (!snapshot) return;
+    try {
+      await this.rest.upsert(
+        'learner_threads',
+        {
+          subject_id: this.subjectId,
+          thread,
+          turns: snapshot.turns,
+          client_updated_at: snapshot.updatedAt,
+        },
+        'subject_id,thread',
+      );
+    } catch (err) {
+      this.health?.failed('conversation', err);
+      throw err;
+    }
+    this.health?.succeeded('conversation');
   }
 
   override async hydrate(): Promise<LearnerState> {
@@ -487,20 +573,10 @@ export class SupabaseStateProvider extends LocalStateProvider {
       thread,
       setTimeout(() => {
         this.threadTimers.delete(thread);
-        const snapshot = this.loadThreadCache(thread);
-        if (!snapshot) return;
-        void this.rest
-          .upsert(
-            'learner_threads',
-            {
-              subject_id: this.subjectId,
-              thread,
-              turns: snapshot.turns,
-              client_updated_at: snapshot.updatedAt,
-            },
-            'subject_id,thread',
-          )
-          .catch(() => {});
+        // Still never thrown at the learner: the conversation is already on this device and the
+        // next push carries it. The difference is that the failure is now counted rather than
+        // dropped, so nothing goes on claiming the transcript is safely away when it is not.
+        void this.pushThread(thread).catch(() => {});
       }, this.debounceMs),
     );
   }

@@ -16,6 +16,7 @@ import { loadWorld } from '../../curriculum/world';
 import type { Topic } from '../../data/model';
 import type { Route } from '../../shell/router';
 import type { ProgressStore } from '../../store/progress';
+import { scoped } from '../../store/scope';
 import { XP_AWARDS } from '../../store/progress';
 import { hueForTopic } from '../../ui/hues';
 
@@ -56,7 +57,7 @@ const todayStr = (): string => new Date().toISOString().slice(0, 10);
 /** Whether today's bonus quest chest has already been claimed. */
 function claimedToday(): boolean {
   try {
-    return localStorage.getItem(DAILY_KEY) === todayStr();
+    return scoped.getItem(DAILY_KEY) === todayStr();
   } catch {
     return false;
   }
@@ -68,8 +69,8 @@ function claimedToday(): boolean {
  */
 export function claimDailyQuest(): boolean {
   try {
-    if (localStorage.getItem(DAILY_KEY) === todayStr()) return false;
-    localStorage.setItem(DAILY_KEY, todayStr());
+    if (scoped.getItem(DAILY_KEY) === todayStr()) return false;
+    scoped.setItem(DAILY_KEY, todayStr());
     return true;
   } catch {
     return false;

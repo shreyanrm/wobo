@@ -1,0 +1,41 @@
+{
+  "actions": [
+    {
+      "afterSentence": 1,
+      "mood": "waiting",
+      "type": "setMood"
+    }
+  ],
+  "ask": null,
+  "case_id": "math.ib.hint.no-final-answer",
+  "cost_usd": 0.001817,
+  "elapsed_ms": 3374.648040975444,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "actions": [
+          {
+            "afterSentence": 1,
+            "mood": "waiting",
+            "type": "setMood"
+          }
+        ],
+        "grounded": true,
+        "handed_answer": false,
+        "path": "inline",
+        "say": "You\u2019ve got 2x = 4, so now undo the multiplication by 2. What should you do to both sides?"
+      },
+      "id": "",
+      "type": "output"
+    }
+  ],
+  "mode": "prose",
+  "model_calls": 1,
+  "objects": [],
+  "presentation": "",
+  "refused": [],
+  "say": "You\u2019ve got 2x = 4, so now undo the multiplication by 2. What should you do to both sides?",
+  "status": 200,
+  "verified": []
+}

@@ -8,11 +8,20 @@
  *     <TopBar crumb="…" right={…} />
  *     …
  *   </AppFrame>
+ *
+ * It also carries the one thing that has to be on EVERY screen behind the door: the quiet flag
+ * (`ui/FlagControl`). The help centre published "there is a quiet flag on every lesson, question,
+ * board and diagram" while no such control existed anywhere; mounting it in the frame rather than
+ * on each screen is what makes that sentence true of all of them at once, and keeps it true of the
+ * next screen somebody adds. It rides in the rail's bottom slot beside whatever that slot is
+ * already holding, so a lesson's hold-to-talk pill never takes the flag away with it.
  */
 
 import type { ReactNode } from 'react';
+import { FlagControl } from '../ui/FlagControl';
+import type { FlagAbout } from '../ui/flag';
 import { AllowanceCard, AppShell, type NavId } from '../ui/primitives';
-import { useRouter } from './router';
+import { type Route, useRouter } from './router';
 import { allowanceNote, allowanceProgress, useAllowance } from './useAllowance';
 
 export interface AppFrameProps {
@@ -20,9 +29,27 @@ export interface AppFrameProps {
   children: ReactNode;
   /** What the rail's bottom slot holds instead of the allowance — a lesson's hold-to-talk pill. */
   bottom?: ReactNode;
+  /**
+   * What the quiet flag should report from this screen, where the screen knows more than its own
+   * address does: which practice item is being answered, which board is open. The route's own
+   * answer stands when nothing is passed, so no screen has to remember this.
+   */
+  about?: FlagAbout;
 }
 
-export function AppFrame({ active, children, bottom }: AppFrameProps) {
+/**
+ * What the flag reports when a screen has published nothing of its own: the route, and the one
+ * thing in it that names a piece of content. Nothing here is a learner's own work.
+ */
+export function aboutOfRoute(route: Route): { surface: string; content_id?: string } {
+  if (route.name === 'course') return { surface: 'lesson', content_id: route.topicId };
+  if (route.name === 'subject') return { surface: 'subject', content_id: route.subjectId };
+  if (route.name === 'sandbox' && route.topicId)
+    return { surface: 'sandbox', content_id: route.topicId };
+  return { surface: route.name };
+}
+
+export function AppFrame({ active, children, bottom, about }: AppFrameProps) {
   const router = useRouter();
   const allowance = useAllowance();
   const progress = allowanceProgress(allowance);
@@ -31,13 +58,16 @@ export function AppFrame({ active, children, bottom }: AppFrameProps) {
       active={active}
       onNavigate={(id) => router.navigate({ name: id })}
       bottom={
-        bottom ?? (
-          <AllowanceCard
-            title="Today's allowance"
-            {...(progress === undefined ? {} : { progress })}
-            note={allowanceNote(allowance)}
-          />
-        )
+        <>
+          {bottom ?? (
+            <AllowanceCard
+              title="Today's allowance"
+              {...(progress === undefined ? {} : { progress })}
+              note={allowanceNote(allowance)}
+            />
+          )}
+          <FlagControl about={{ ...aboutOfRoute(router.route), ...(about ?? {}) }} />
+        </>
       }
     >
       {children}

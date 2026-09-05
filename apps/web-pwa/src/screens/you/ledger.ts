@@ -9,12 +9,13 @@
 
 import { chapterById, loadedTopics, subjectById } from '../../curriculum/registry';
 import { loadMind } from '../../store/mind';
+import { scoped } from '../../store/scope';
 import { type Span, summarise, type WeekSummary, type WeekTopic } from './week';
 
 /** The awards-per-day counter the progress store keeps. */
 export function activityCounts(): Record<string, number> {
   try {
-    const raw = JSON.parse(localStorage.getItem('wobo-activity-counts-v1') ?? '{}');
+    const raw = JSON.parse(scoped.getItem('wobo-activity-counts-v1') ?? '{}');
     return raw && typeof raw === 'object' ? (raw as Record<string, number>) : {};
   } catch {
     return {};

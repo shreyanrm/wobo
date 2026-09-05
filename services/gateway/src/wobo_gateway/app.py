@@ -76,6 +76,9 @@ from wobo_gateway.desks_api import register_desks
 from wobo_gateway.email import register_email
 from wobo_gateway.hospitality.api import register_mail_preferences
 from wobo_gateway.hospitality.jobs import welcome_after_first_meeting
+from wobo_gateway.mind import register_mind
+from wobo_gateway.parent_api import LIMITED_PATHS as PARENT_API_LIMITED_PATHS
+from wobo_gateway.parent_api import register_parent_api
 from wobo_gateway.parents import LIMITED_PATHS as PARENT_LIMITED_PATHS
 from wobo_gateway.parents import OPEN_PATHS as PARENT_OPEN_PATHS
 from wobo_gateway.parents import register_parent_links
@@ -962,6 +965,10 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     # door. It gets a much smaller window, so filling the shared bucket costs more and matters
     # less. (Anonymous learners are keyed per address by meter_key, on the full dial.)
     unauth_limit = int(os.getenv("UNAUTH_RATE_LIMIT_PER_MINUTE", "15"))
+    # The memory sync's own dial. It is a debounced background write, not a learner asking for
+    # anything, so it gets a generous ceiling of its own rather than a share of the one the lesson
+    # is spending. Its own bucket is the point: a sync storm can starve syncs and nothing else.
+    mind_limit = int(os.getenv("MIND_RATE_LIMIT_PER_MINUTE", "120"))
     hits: dict[tuple[str, int], int] = {}
     hits_lock = threading.Lock()
 
@@ -1053,6 +1060,13 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             or path in ASK_LIMITED_PATHS
             # The parent link: an invite sends mail, the parent's pages are unauthenticated.
             or path in PARENT_LIMITED_PATHS
+            # The parent account surface (parent_api.py). Every route writes to the parent plane
+            # or calls a model, and the door itself must not be free to knock on: a student
+            # account probing for a switcher is bounded here before it is refused there.
+            or path in PARENT_API_LIMITED_PATHS
+            or path.startswith("/v1/parent/mind/")
+            or path.startswith("/v1/parent/offers/")
+            or path.startswith("/v1/me/parent-offered")
             # The plan: two of the three write to the database, and all three are free — a
             # learner is never charged a turn for reading or ending what they pay for.
             or path in BILLING_LIMITED_PATHS
@@ -1065,10 +1079,27 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             or path.startswith(ADMIN_PREFIX)
             or path in _SOFT_AUTH_PATHS
         )
+        # Wobo's memory of the learner, on its OWN bucket. Free — a learner is never charged for
+        # reading or steering what is remembered about them — and it writes to the database, so it
+        # is bounded; but it is a debounced background sync, and sharing the one 60/minute bucket
+        # with /v1/capability meant an eager sync spending the allowance the lesson needs. Its own
+        # counter, its own ceiling, and a flood of syncs can only ever starve syncs.
+        syncing = path.startswith("/v1/me/mind")
         # Declared when the client declares it, counted off the wire when it does not. This is
         # awaited BEFORE the limiter so a body that is refused is never also a model call.
         oversized = await _over_the_ceiling(request)
         key = request.state.meter_key
+
+        def _over_the_dial() -> bool:
+            """Which dial this call is counted against, and whether it has run out.
+
+            A function rather than a value because counting is the side effect: a request that is
+            refused for being too big must not also spend somebody's allowance.
+            """
+            if syncing:
+                return _over_limit(f"mind:{key}", mind_limit)
+            return limited and _over_limit(key, limit if (principal or soft) else unauth_limit)
+
         if oversized:
             response: Response = JSONResponse(
                 status_code=413,
@@ -1079,7 +1110,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             )
         # A soft-auth path carries its own shared key, so it gets the full ceiling even with
         # no learner behind it — the small one is for strangers at the front door.
-        elif limited and _over_limit(key, limit if (principal or soft) else unauth_limit):
+        elif _over_the_dial():
             response = JSONResponse(
                 status_code=429,
                 content={
@@ -1325,6 +1356,18 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         if name == "wobo.turn" and is_first_meeting(request.payload):
             welcome_after_first_meeting(principal, request.payload)
 
+        # THE RECORD REACHES THE PROMPT (docs/MEMORY-LAW.md). The dossier used to be built from
+        # whatever the browser put in `context.lifetime`, so the account's own row reached no
+        # prompt at all and a crafted payload could claim a parent had said something. Here, once,
+        # before either the streaming or the plain path: the remembered facts and interests come
+        # from the learner's row, and the parent-offered facts from the offers store.
+        if name == "wobo.turn":
+            from wobo_gateway import mind as mind_module
+
+            mind_module.ground_lifetime(
+                request.payload, subject=principal.subject, anonymous=principal.anonymous
+            )
+
         # The board (BOARD.md §4). Same route, same door, same meter — only the body differs.
         if name == "wobo.turn" and wants_event_stream(http):
             return stream_board_turn(gw, name, request, http, profile, plan)
@@ -1500,8 +1543,12 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
 
     register_voice(app)
     register_email(app)
+    register_mind(app)
     register_mail_preferences(app)
     register_parent_links(app)
+    # AFTER register_parent_links: the parent's unauthenticated accept and decline pages are
+    # literal paths under /v1/parent, and they must be matched before anything else claims them.
+    register_parent_api(app)
     register_billing(app)
     register_admin(app)
     # The console's own read surface. AFTER register_admin, because it hangs off the same

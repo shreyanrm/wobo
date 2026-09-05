@@ -1,0 +1,553 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "What coefficient does that leave in front of O\u2082?",
+    "t": 7420,
+    "targets": [],
+    "type": "ask"
+  },
+  "case_id": "chem.cbse.10.balance",
+  "cost_usd": 0.002548,
+  "elapsed_ms": 3782.766874996014,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 1454,
+        "t": 0,
+        "text": "Let\u2019s balance it cleanly.",
+        "type": "say"
+      },
+      "id": "hIeRniecNVLa:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              180.0,
+              460.0
+            ]
+          },
+          "check": "board.formula_readable",
+          "id": "c0_1ch4",
+          "kind": "write",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 664,
+            "start": 120
+          },
+          "text": "CH4"
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:1",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              274.0,
+              460.0
+            ]
+          },
+          "id": "c0_2plus",
+          "kind": "label",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 664,
+            "start": 784
+          },
+          "text": "+"
+        },
+        "t": 784,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:2",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              320.0,
+              460.0
+            ]
+          },
+          "check": "board.formula_readable",
+          "id": "c0_3o2",
+          "kind": "write",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 664,
+            "start": 1449
+          },
+          "text": "O2"
+        },
+        "t": 1449,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:3",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 5090,
+        "t": 1674,
+        "text": "Carbon gives one CO\u2082, hydrogen gives two H\u2082O, and then oxygen falls into place.",
+        "type": "say"
+      },
+      "id": "hIeRniecNVLa:4",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              484.0,
+              460.0
+            ]
+          },
+          "from": {
+            "board": [
+              394.0,
+              460.0
+            ]
+          },
+          "id": "c0_4yields",
+          "kind": "arrow",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 664,
+            "start": 2113
+          }
+        },
+        "t": 2113,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:5",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              514.0,
+              460.0
+            ]
+          },
+          "check": "board.formula_readable",
+          "id": "c0_5co2",
+          "kind": "write",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 664,
+            "start": 2778
+          },
+          "text": "CO2"
+        },
+        "t": 2778,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:6",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              608.0,
+              460.0
+            ]
+          },
+          "id": "c0_6plus",
+          "kind": "label",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 664,
+            "start": 3442
+          },
+          "text": "+"
+        },
+        "t": 3442,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:7",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              654.0,
+              460.0
+            ]
+          },
+          "check": "board.formula_readable",
+          "id": "c0_7h2o",
+          "kind": "write",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 664,
+            "start": 4106
+          },
+          "text": "H2O"
+        },
+        "t": 4106,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:8",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "left",
+            "object": "c0_3o2"
+          },
+          "check": "board.equation_balances",
+          "id": "c0_8num",
+          "kind": "number",
+          "precision": 0,
+          "style": {
+            "ink": "accent",
+            "weight": 3
+          },
+          "t": {
+            "dur": 664,
+            "start": 4771
+          },
+          "value": 2.0,
+          "verified": true
+        },
+        "t": 4771,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:9",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "left",
+            "object": "c0_7h2o"
+          },
+          "check": "board.equation_balances",
+          "id": "c0_9num",
+          "kind": "number",
+          "precision": 0,
+          "style": {
+            "ink": "accent",
+            "weight": 3
+          },
+          "t": {
+            "dur": 664,
+            "start": 5435
+          },
+          "value": 2.0,
+          "verified": true
+        },
+        "t": 5435,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:10",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              500.0,
+              600.0
+            ]
+          },
+          "id": "c0_10balancednote",
+          "kind": "write",
+          "style": {
+            "ink": "accent",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1320,
+            "start": 6100
+          },
+          "text": "same atoms on both sides"
+        },
+        "t": 6100,
+        "type": "ink"
+      },
+      "id": "hIeRniecNVLa:11",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "What coefficient does that leave in front of O\u2082?",
+        "t": 7420,
+        "targets": [],
+        "type": "ask"
+      },
+      "id": "hIeRniecNVLa:12",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 10,
+        "presentation": "plane",
+        "t": 7420,
+        "type": "done",
+        "verified": [
+          "board.equation_balances",
+          "board.formula_readable"
+        ]
+      },
+      "id": "hIeRniecNVLa:13",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "objects": [
+    {
+      "anchor": {
+        "board": [
+          180.0,
+          460.0
+        ]
+      },
+      "check": "board.formula_readable",
+      "id": "c0_1ch4",
+      "kind": "write",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 664,
+        "start": 120
+      },
+      "text": "CH4"
+    },
+    {
+      "anchor": {
+        "board": [
+          274.0,
+          460.0
+        ]
+      },
+      "id": "c0_2plus",
+      "kind": "label",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 664,
+        "start": 784
+      },
+      "text": "+"
+    },
+    {
+      "anchor": {
+        "board": [
+          320.0,
+          460.0
+        ]
+      },
+      "check": "board.formula_readable",
+      "id": "c0_3o2",
+      "kind": "write",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 664,
+        "start": 1449
+      },
+      "text": "O2"
+    },
+    {
+      "anchor": {
+        "board": [
+          484.0,
+          460.0
+        ]
+      },
+      "from": {
+        "board": [
+          394.0,
+          460.0
+        ]
+      },
+      "id": "c0_4yields",
+      "kind": "arrow",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 664,
+        "start": 2113
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          514.0,
+          460.0
+        ]
+      },
+      "check": "board.formula_readable",
+      "id": "c0_5co2",
+      "kind": "write",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 664,
+        "start": 2778
+      },
+      "text": "CO2"
+    },
+    {
+      "anchor": {
+        "board": [
+          608.0,
+          460.0
+        ]
+      },
+      "id": "c0_6plus",
+      "kind": "label",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 664,
+        "start": 3442
+      },
+      "text": "+"
+    },
+    {
+      "anchor": {
+        "board": [
+          654.0,
+          460.0
+        ]
+      },
+      "check": "board.formula_readable",
+      "id": "c0_7h2o",
+      "kind": "write",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 664,
+        "start": 4106
+      },
+      "text": "H2O"
+    },
+    {
+      "anchor": {
+        "at": "left",
+        "object": "c0_3o2"
+      },
+      "check": "board.equation_balances",
+      "id": "c0_8num",
+      "kind": "number",
+      "precision": 0,
+      "style": {
+        "ink": "accent",
+        "weight": 3
+      },
+      "t": {
+        "dur": 664,
+        "start": 4771
+      },
+      "value": 2.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "at": "left",
+        "object": "c0_7h2o"
+      },
+      "check": "board.equation_balances",
+      "id": "c0_9num",
+      "kind": "number",
+      "precision": 0,
+      "style": {
+        "ink": "accent",
+        "weight": 3
+      },
+      "t": {
+        "dur": 664,
+        "start": 5435
+      },
+      "value": 2.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "board": [
+          500.0,
+          600.0
+        ]
+      },
+      "id": "c0_10balancednote",
+      "kind": "write",
+      "style": {
+        "ink": "accent",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1320,
+        "start": 6100
+      },
+      "text": "same atoms on both sides"
+    }
+  ],
+  "presentation": "plane",
+  "refused": [],
+  "say": "Let\u2019s balance it cleanly. Carbon gives one CO\u2082, hydrogen gives two H\u2082O, and then oxygen falls into place.",
+  "status": 200,
+  "verified": [
+    "board.equation_balances",
+    "board.formula_readable"
+  ]
+}

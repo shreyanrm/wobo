@@ -179,6 +179,12 @@ class MockProvider:
             from wobo_gateway.ask_public import mock_help_answer
 
             return ProviderResponse(output=mock_help_answer(payload), tokens=0)
+        if capability == "parent.companion.turn":
+            # Wobo talking to a parent about their child, keyless: it answers from the screened
+            # context and nothing else, which is the property the suite holds it to.
+            from wobo_gateway.parent_mind import mock_parent_turn
+
+            return ProviderResponse(output=mock_parent_turn(payload), tokens=0)
         return ProviderResponse(output=_shape(capability, seed), tokens=(seed % 500) + 1)
 
 
@@ -412,6 +418,20 @@ class LiveProvider:
             from wobo_gateway.ask_public import run_help_answer
 
             output, tokens = run_help_answer(
+                provider_model=provider_model,
+                payload=payload,
+                fallbacks=fallbacks,
+                timeout_s=timeout_s,
+            )
+            return ProviderResponse(output=output, tokens=tokens)
+
+        # Wobo talking to a PARENT about their child, under parent_mind.PARENT_SYSTEM and never
+        # the tutor prompt below. The context has already been through the allow-list, and is
+        # screened again inside the runner, at the last frame before a provider.
+        if capability == "parent.companion.turn":
+            from wobo_gateway.parent_mind import run_parent_turn
+
+            output, tokens = run_parent_turn(
                 provider_model=provider_model,
                 payload=payload,
                 fallbacks=fallbacks,

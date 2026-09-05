@@ -3,8 +3,12 @@ import {
   BudgetExhaustedError,
   configureGatewayAuth,
   fetchMe,
+  GATEWAY_COPY,
   GatewayLLMProvider,
+  GatewayTimeoutError,
   gatewayFetch,
+  gatewayJson,
+  gatewayTimeoutMs,
   type LLMProvider,
   mintVoiceToken,
   SignInRequiredError,
@@ -198,5 +202,87 @@ describe('what is left of today', () => {
     expect(me.plan).toBe('free');
     expect(me.anonymous).toBe(false);
     expect(me.budget.turns.remaining).toBeNull();
+  });
+});
+
+/**
+ * NO CLIENT TIMEOUT ANYWHERE. Every call was a bare `fetch`, which has no deadline of its own, and
+ * a gateway that stops answering left a child watching a busy orb past 45 seconds with no sentence
+ * and no way out.
+ *
+ * The deadline sits just ABOVE the brain's own ceilings (`services/gateway/.../providers.py`:
+ * 60s for a turn, 180s for a generation), so it can never fire before the server would have
+ * answered, and it guards the wait for the RESPONSE HEADERS rather than the body — a streaming
+ * board turn holds its connection open long past any of these numbers on purpose.
+ */
+describe('a call that never comes back still ends', () => {
+  /** A server that accepts the connection and then says nothing. Aborts exactly as real fetch does. */
+  const hang = (): void => {
+    globalThis.fetch = ((_url: string | URL | Request, init?: RequestInit) =>
+      new Promise((_resolve, reject) => {
+        const signal = init?.signal;
+        if (signal?.aborted) return reject(signal.reason);
+        signal?.addEventListener('abort', () => reject(signal.reason));
+      })) as typeof fetch;
+  };
+
+  it('gives up on a hung call and says one plain line, never a status code', async () => {
+    hang();
+    let caught: unknown;
+    try {
+      await gatewayFetch('https://brain.test/v1/me', {}, 20);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(GatewayTimeoutError);
+    expect((caught as Error).message).toBe(GATEWAY_COPY.slow);
+    expect((caught as Error).message).not.toMatch(/\d{3}|abort|timeout/i);
+  });
+
+  it('waits longer for a generation than for a turn, and longer than the brain does', () => {
+    expect(gatewayTimeoutMs('https://brain.test/v1/capability/wobo.turn')).toBeGreaterThan(60_000);
+    expect(gatewayTimeoutMs('https://brain.test/v1/capability/generate.course')).toBeGreaterThan(
+      180_000,
+    );
+    expect(gatewayTimeoutMs('https://brain.test/v1/capability/curriculum.discovery')).toBe(
+      gatewayTimeoutMs('https://brain.test/v1/capability/generate.course'),
+    );
+    // Anything else is a turn, which is what the brain does with a name it does not know.
+    expect(gatewayTimeoutMs('https://brain.test/v1/me')).toBe(
+      gatewayTimeoutMs('https://brain.test/v1/capability/wobo.turn'),
+    );
+  });
+
+  it('keeps the caller’s own cancel working alongside the deadline', async () => {
+    hang();
+    const ctrl = new AbortController();
+    const inFlight = gatewayFetch('https://brain.test/v1/me', { signal: ctrl.signal }, 60_000);
+    ctrl.abort(new Error('the learner walked away'));
+    let caught: unknown;
+    try {
+      await inFlight;
+    } catch (err) {
+      caught = err;
+    }
+    // The learner's own cancel, not ours: a deliberate stop must never read as a fault.
+    expect(caught).not.toBeInstanceOf(GatewayTimeoutError);
+  });
+
+  it('never fires once the response has started, so a streaming turn is not cut off', async () => {
+    globalThis.fetch = ((_url: string | URL | Request, _init?: RequestInit) =>
+      Promise.resolve(new Response('ok', { status: 200 }))) as typeof fetch;
+    const res = await gatewayFetch('https://brain.test/v1/capability/wobo.turn', {}, 5);
+    await new Promise((r) => setTimeout(r, 25));
+    expect(await res.text()).toBe('ok'); // the body outlived the deadline, which is the point
+  });
+
+  it('does not leave a timer running behind a call that answered', async () => {
+    globalThis.fetch = ((_url: string | URL | Request, init?: RequestInit) =>
+      Promise.resolve(new Response('{}', { status: 200 })).then((r) => {
+        expect(init?.signal?.aborted).toBe(false);
+        return r;
+      })) as typeof fetch;
+    await gatewayJson('https://brain.test/v1/me', {}, 50);
+    await new Promise((r) => setTimeout(r, 80));
   });
 });

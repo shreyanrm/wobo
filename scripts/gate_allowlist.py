@@ -285,6 +285,12 @@ WHITE_LABEL: tuple[Allowed, ...] = (
         "not.toMatch(/401|gemini|openai|claude|litellm/i)",
         "the assertion that a gateway error never names a provider.",
     ),
+    Allowed(
+        "apps/web-pwa/src/store/SaveTrouble.test.ts",
+        "not.toMatch(/supabase|postgrest|pgrst|fetch|http/i)",
+        "the assertion that the save-trouble line a learner reads never names the store that "
+        "refused the write, or any of its jargon. The test has to spell what it forbids.",
+    ),
     *(
         Allowed("apps/web-pwa/src/wobo/refusals.test.ts", needle,
                 "the test that proves a provider error is rewritten in Wobo's voice.")
@@ -358,6 +364,22 @@ PRONOUNS: tuple[Allowed, ...] = (
             "the persona prompt stating the rule to the model."),
     Allowed("services/gateway/tests/test_wobo.py", "no she/her",
             "the assertion that the rule is in the prompt."),
+    Allowed(
+        "services/gateway/tests/test_teaching_harness.py",
+        "Wobo will help you with this tonight. She is powered by Gemini.",
+        "the same harness test, on the ask frame: one sentence that breaks the white-label law, "
+        "the no-gendering law and the late-hour law at once, which is the point of the case. The "
+        "string is the violation being detected.",
+    ),
+    Allowed(
+        "services/gateway/tests/test_teaching_harness.py",
+        "Wobo will draw it once he is ready.",
+        "the teaching harness's own test that it CATCHES a gendered Wobo. The harness reads what "
+        "a live model actually says, which is the one place §19 had never been enforced — the "
+        "gates below scan source and the built bundle, and nothing scanned an answer. The string "
+        "is the violation being detected, so removing it would delete the only test that the "
+        "detector works.",
+    ),
     # Human referents and real content, which the rule was never about.
     Allowed("WOBO-CAPABILITIES.md", "how long was she on today?",
             "a parent asking about their own child."),

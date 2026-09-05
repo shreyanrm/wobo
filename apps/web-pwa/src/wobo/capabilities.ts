@@ -28,6 +28,7 @@ import { chaptersBySubject, topicById } from '../curriculum/registry';
 import type { Topic } from '../data/model';
 import type { Router } from '../shell/router';
 import { clearMind, eraseFromBrain, preferredAnalogy } from '../store/mind';
+import { scoped } from '../store/scope';
 import type { ActionAttachment } from './paths/types';
 import { resetReteach } from './reteach';
 
@@ -129,9 +130,9 @@ const CAPABILITIES: Record<CapabilityId, WoboCapability> = {
       // land the journey at the boss door (the course player resumes from this position)
       try {
         const key = 'wobo-course-pos-v1';
-        const pos = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, string>;
+        const pos = JSON.parse(scoped.getItem(key) ?? '{}') as Record<string, string>;
         pos[topic.id] = 'bossdoor';
-        localStorage.setItem(key, JSON.stringify(pos));
+        scoped.setItem(key, JSON.stringify(pos));
       } catch {
         // position is a nicety; the course still opens
       }

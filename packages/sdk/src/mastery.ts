@@ -2,6 +2,7 @@ import type { MasteryBand } from '@wobo/contracts';
 import type { MasterySnapshot } from '@wobo/kgtopg-contract-seed';
 import type { KVStorage } from './state';
 import type { SupabaseRest } from './supabase';
+import type { SyncHealth } from './sync-health';
 
 /**
  * WHERE MASTERY LIVES.
@@ -206,9 +207,15 @@ type MasteryRest = Pick<SupabaseRest, 'select' | 'upsert'>;
 /** The column added by migration 0013; a project without it still stores bands. */
 const EVIDENCE_COLUMN = 'evidence';
 
+/**
+ * True when the write failed BECAUSE `evidence` is absent, which PostgREST says by naming the column
+ * in `PGRST204`. Both halves are required: see the matching note in `state.ts`. Accepting the bare
+ * code would drop a learner's evidence for the rest of the session on the strength of an unrelated
+ * schema-cache miss.
+ */
 function isMissingEvidenceColumn(err: unknown): boolean {
   const message = (err instanceof Error ? err.message : String(err)).toLowerCase();
-  return message.includes(EVIDENCE_COLUMN) || message.includes('pgrst204');
+  return message.includes('pgrst204') && message.includes(EVIDENCE_COLUMN);
 }
 
 function snapshotFromRows(rows: Record<string, unknown>[]): MasterySnapshot {
@@ -248,35 +255,37 @@ export class SupabaseMasteryProvider extends LocalMasteryProvider implements Mas
     private readonly subjectId: string,
     storage?: KVStorage,
     private readonly debounceMs = 1500,
+    /** Where a failed push is counted. See `sync-health.ts`; optional, so local builds are unchanged. */
+    private readonly health?: SyncHealth,
   ) {
     super(storage ?? defaultStorage(), subjectId);
+    this.health?.register('mastery', () => this.push(this.loadCache()));
   }
 
   private async push(snapshot: MasterySnapshot): Promise<void> {
     const rows = rowsFromSnapshot(this.subjectId, snapshot);
     if (rows.length === 0) return;
     const conflict = 'subject_id,node_id,scope';
-    if (this.evidenceColumnAbsent) {
-      await this.rest.upsert(
-        'mastery_cache',
-        rows.map(({ evidence: _evidence, ...rest }) => rest),
-        conflict,
-      );
-      return;
-    }
+    const bandsOnly = () => rows.map(({ evidence: _evidence, ...rest }) => rest);
     try {
-      await this.rest.upsert('mastery_cache', rows, conflict);
+      if (this.evidenceColumnAbsent) {
+        await this.rest.upsert('mastery_cache', bandsOnly(), conflict);
+      } else {
+        try {
+          await this.rest.upsert('mastery_cache', rows, conflict);
+        } catch (err) {
+          if (!isMissingEvidenceColumn(err)) throw err;
+          // The project predates migration 0013: keep the bands, and remember so every later write
+          // skips the failed attempt. Evidence stays local-only until the migration lands.
+          this.evidenceColumnAbsent = true;
+          await this.rest.upsert('mastery_cache', bandsOnly(), conflict);
+        }
+      }
     } catch (err) {
-      if (!isMissingEvidenceColumn(err)) throw err;
-      // The project predates migration 0013: keep the bands, and remember so every later write
-      // skips the failed attempt. Evidence stays local-only until the migration lands.
-      this.evidenceColumnAbsent = true;
-      await this.rest.upsert(
-        'mastery_cache',
-        rows.map(({ evidence: _evidence, ...rest }) => rest),
-        conflict,
-      );
+      this.health?.failed('mastery', err);
+      throw err;
     }
+    this.health?.succeeded('mastery');
   }
 
   override async hydrate(): Promise<MasterySnapshot> {

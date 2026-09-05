@@ -135,6 +135,34 @@ def _graph(intent: dict[str, Any], draft: Draft) -> Draft:
     return draft
 
 
+def _clip_to_frame(
+    frame: Frame, x0: float, y0: float, slope: float
+) -> list[tuple[float, float]]:
+    """The line y - y0 = slope (x - x0), cut to the rectangle the plot actually shows.
+
+    Data coordinates in, data coordinates out. Both vertical edges first; then, whenever the line
+    leaves through the top or the bottom instead, the horizontal edge where it does. A horizontal
+    tangent (slope 0) never crosses those, which is why the division is guarded rather than
+    assumed.
+    """
+    at = lambda x: y0 + slope * (x - x0)  # noqa: E731 — one expression, named for the reader
+    points: list[tuple[float, float]] = []
+    for x in (frame.xmin, frame.xmax):
+        y = at(x)
+        if frame.ymin <= y <= frame.ymax:
+            points.append((x, y))
+    if abs(slope) > 1e-12:
+        for y in (frame.ymin, frame.ymax):
+            x = x0 + (y - y0) / slope
+            if frame.xmin <= x <= frame.xmax:
+                points.append((x, y))
+    # Two ends, and the two furthest apart when a corner is crossed twice.
+    unique = sorted({(round(px, 9), round(py, 9)) for px, py in points})
+    if len(unique) < 2:
+        raise Unverified("the tangent does not cross the part of the graph being shown")
+    return [unique[0], unique[-1]]
+
+
 def _tangent(
     draft: Draft, frame: Frame, expr: str, var: str, x0: float, curve_id: str
 ) -> None:
@@ -157,11 +185,13 @@ def _tangent(
         style=accent(3),
         hint="touch",
     )
-    # The tangent is drawn across the frame, so its endpoints are the frame edges, not guesses.
-    ends = [
-        (frame.xmin, y0 + slope * (frame.xmin - x0)),
-        (frame.xmax, y0 + slope * (frame.xmax - x0)),
-    ]
+    # The tangent is drawn across the frame, so its endpoints are the frame edges, not guesses —
+    # and the frame has FOUR edges. Taking only the two vertical ones let a steep tangent run far
+    # past the top or the bottom of the plot, where ``Frame.at`` clamped it to the 1000-unit board
+    # rather than to the graph: "y = x^2, tangent at x = 1" drew a line from inside the axes to the
+    # very bottom edge of the board, across everything else on it, and its own label was then
+    # pushed off the board avoiding it. Found by the teaching harness, 2026-09-05.
+    ends = _clip_to_frame(frame, x0, y0, slope)
     draft.add(
         "line",
         anchor=board(*frame.at(*ends[0])),
@@ -235,8 +265,20 @@ def _derivation(intent: dict[str, Any], draft: Draft) -> Draft:
     if not steps:
         # No steps were named, so the last line is COMPUTED rather than accepted: the CAS solves
         # the equation and the chain check below proves the line it produced.
+        #
+        # ONE ROOT IS NOT EVERY ROOT. This used to write ``x = <first root>`` whatever came back,
+        # and for anything with more than one solution the chain check rightly refused it: a
+        # quadratic's ``x = 2`` throws away the 3. So the whole board was refused for every
+        # quadratic asked for as a derivation, which is most of Class 10. Two roots are written as
+        # the factored form instead, which is both what the chapter is teaching and the one single
+        # equation that keeps the solution set whole.
         var_name = str(intent.get("var") or "x")
-        steps = [f"{var_name} = {root}" for root in verify.solve_equation(equation, var_name)[:1]]
+        roots = verify.solve_equation(equation, var_name)
+        steps = (
+            [f"{var_name} = {roots[0]}"]
+            if len(roots) == 1
+            else ["*".join(f"({var_name} - ({r}))" for r in roots) + " = 0"]
+        )
     if len(steps) > 12:
         raise Unverified("a derivation of more than twelve steps is more than one board")
     try:
@@ -274,6 +316,76 @@ def _derivation(intent: dict[str, Any], draft: Draft) -> Draft:
     return draft
 
 
+def _right_triangle(intent: dict[str, Any], draft: Draft) -> Draft:
+    """A right triangle from its two legs, with the hypotenuse COMPUTED and proved twice.
+
+    The commonest figure in the syllabus, and the board could not draw it: ``construction`` knew
+    the perpendicular bisector and nothing else, so "a right triangle has legs of 3 cm and 4 cm,
+    draw it and work out the hypotenuse" reached no pipeline at all and the learner got an
+    explanation over an empty board (the teaching harness, 2026-09-05).
+
+    The hypotenuse is the whole problem, so it is verified the way every other number on this board
+    is: two independent routes that have to agree. The theorem's closed form, and the plain
+    distance between the two vertices the triangle was actually drawn from.
+    """
+    raw = intent.get("legs") or []
+    if not (isinstance(raw, (list, tuple)) and len(raw) == 2):
+        raise Unverified("a right triangle is drawn from its two legs")
+    try:
+        a, b = float(raw[0]), float(raw[1])
+    except (TypeError, ValueError) as exc:
+        raise Unverified("a leg is a number") from exc
+    if not (a > 0 and b > 0) or max(a, b) > 1e6:
+        raise Unverified("both legs are positive and finite")
+
+    unit = str(intent.get("unit") or "").strip()[:8] or None
+    from_theorem = (a * a + b * b) ** 0.5
+    # The other route: the distance between the two vertices as placed, which is what is drawn.
+    from_drawing = (((a - 0.0) ** 2) + ((0.0 - b) ** 2)) ** 0.5
+    hypotenuse = draft.ledger.record(
+        verify.numbers_agree("hypotenuse", from_theorem, from_drawing)
+    )
+
+    span = max(a, b) * 1.35
+    frame = Frame(xmin=-span * 0.2, xmax=span, ymin=-span * 0.2, ymax=span)
+    corner = (0.0, 0.0)
+    along = (a, 0.0)
+    up = (0.0, b)
+    triangle = draft.add(
+        "polygon",
+        anchor=board(*frame.at(*corner)),
+        points=[frame.at(*corner), frame.at(*along), frame.at(*up)],
+        style=wobo(2),
+        hint="triangle",
+    )
+    # The right angle, marked where it is, so the drawing says which angle the theorem is about.
+    draft.add(
+        "polyline",
+        anchor=board(*frame.at(0.0, span * 0.09)),
+        points=[
+            frame.at(0.0, span * 0.09),
+            frame.at(span * 0.09, span * 0.09),
+            frame.at(span * 0.09, 0.0),
+        ],
+        style=faint(1),
+        hint="rightangle",
+    )
+    base = draft.add("point", anchor=board(*frame.at(a / 2, 0.0)), style=faint(1), hint="basemid")
+    side = draft.add("point", anchor=board(*frame.at(0.0, b / 2)), style=faint(1), hint="sidemid")
+    face = draft.add(
+        "point", anchor=board(*frame.at(a / 2, b / 2)), style=accent(3), hint="hypmid"
+    )
+    draft.number(a, hypotenuse.name, anchor=on(base, "bottom"), unit=unit, style=wobo(1))
+    draft.number(b, hypotenuse.name, anchor=on(side, "left"), unit=unit, style=wobo(1))
+    draft.number(from_theorem, hypotenuse.name, anchor=on(face, "right"), unit=unit,
+                 style=accent(2))
+    draft.add(
+        "label", anchor=on(triangle, "top"), text="the right angle is the one it is about",
+        style=faint(1), hint="note",
+    )
+    return draft
+
+
 def _construction(intent: dict[str, Any], draft: Draft) -> Draft:
     """A ruler-and-compass construction, with the arcs visible — the perpendicular bisector.
 
@@ -281,6 +393,8 @@ def _construction(intent: dict[str, Any], draft: Draft) -> Draft:
     from both ends, and the bisector meets the segment at a right angle.
     """
     what = str(intent.get("what") or "perpendicular_bisector")
+    if what == "right_triangle":
+        return _right_triangle(intent, draft)
     if what != "perpendicular_bisector":
         raise Unverified(f"construction {what!r} is not one I know")
     raw = intent.get("segment") or [[-2.0, -1.0], [2.0, 1.0]]

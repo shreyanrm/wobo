@@ -182,7 +182,21 @@ export const CurveShapeSchema = z.object({
   points,
   closed: z.boolean().optional(),
 });
-export const PolygonShapeSchema = z.object({ ...common, kind: z.literal('polygon'), points });
+export const PolygonShapeSchema = z.object({
+  ...common,
+  kind: z.literal('polygon'),
+  points,
+  /**
+   * What Wobo calls this shape, for a learner who is listening rather than looking.
+   *
+   * A polygon says what it IS from its own points — "a square", "a right-angled triangle" — and on
+   * the Pythagoras board that is three identical sentences for the three squares that ARE the
+   * proof. Nothing in the points says which one sits on the hypotenuse. A title is the board naming
+   * its own shape, spoken and never drawn, exactly as `alt` names an image and `label` names a
+   * number. Nothing here is a claim about a quantity, so nothing here is under the number law.
+   */
+  title: z.string().max(80).optional(),
+});
 export const EllipseShapeSchema = z.object({
   ...common,
   kind: z.literal('ellipse'),

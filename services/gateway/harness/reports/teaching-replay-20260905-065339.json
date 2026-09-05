@@ -1,0 +1,695 @@
+{
+  "cases": [
+    {
+      "ask": "solve x^2 - 5x + 6 = 0 and show me on the board how the factors work",
+      "board": "CBSE",
+      "case_id": "math.cbse.10.quadratic",
+      "cost_usd": 0.005118,
+      "elapsed_ms": 7968.95675000269,
+      "findings": [
+        {
+          "detail": "no quantity this case knows the truth about was asserted",
+          "dimension": "correct",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "2 number(s) in the spoken line, which no verifier signs: 6, 5",
+          "dimension": "verified",
+          "evidence": "",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 10",
+      "judge_model": "",
+      "objects_drawn": 3,
+      "say": "Let\u2019s split the middle term. We need two numbers that multiply to 6 and add to \u22125, so the quadratic becomes a product of two brackets.",
+      "scores": {
+        "correct": 2,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 4,
+        "their world": null,
+        "verified": 4,
+        "voice": 4
+      },
+      "subject": "mathematics",
+      "verified_checks": [
+        "cas.step_chain"
+      ]
+    },
+    {
+      "ask": "graph y = x^2 and draw the tangent at x = 1",
+      "board": "CBSE",
+      "case_id": "math.cbse.11.tangent",
+      "cost_usd": 0.002524,
+      "elapsed_ms": 4002.811833983287,
+      "findings": [
+        {
+          "detail": "2 number(s) in the spoken line, which no verifier signs: 1, 2",
+          "dimension": "verified",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: grid at [120, 120 760x700] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_1grid",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: axis at [108, 740.26 802.95x45.09] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_2xaxis",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: axis at [488, 108 42.98x724] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_3yaxis",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: curve at [112, 179.74 776x580.52] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_4curve",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: point at [586.67, 657.53 46x38] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_6touch",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: line at [486.93, 430.64 401.07x397.36] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_7tangent",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: number at [642.67, 844.63 46.44x36.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_8num",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: write at [586.67, 891.93 98.46x36.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_9slopenote",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 11",
+      "judge_model": "",
+      "objects_drawn": 9,
+      "say": "Here\u2019s the parabola and its tangent. The tangent at x = 1 has slope 2, so it just kisses the curve there.",
+      "scores": {
+        "correct": 4,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 4,
+        "their world": null,
+        "verified": 4,
+        "voice": 4
+      },
+      "subject": "mathematics",
+      "verified_checks": [
+        "board.readable:function",
+        "board.numbers_agree:tangent slope"
+      ]
+    },
+    {
+      "ask": "a right triangle has legs of 3 cm and 4 cm. draw it and work out the hypotenuse",
+      "board": "ICSE",
+      "case_id": "math.icse.9.pythagoras",
+      "cost_usd": 0.002454,
+      "elapsed_ms": 3767.9105840506963,
+      "findings": [
+        {
+          "detail": "no quantity this case knows the truth about was asserted",
+          "dimension": "correct",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "asserts without explaining: no causal or connecting language anywhere in the answer",
+          "dimension": "teaches",
+          "evidence": "Let\u2019s build it. I\u2019ve drawn the right triangle from its two given legs, and the hypotenuse is computed on the diagram. Can you spot which side sits opposite the right angle?",
+          "severity": "weak"
+        },
+        {
+          "detail": "none of the ideas this question is about appear: ['squar', 'pythagoras', 'theorem']",
+          "dimension": "teaches",
+          "evidence": "Let\u2019s build it. I\u2019ve drawn the right triangle from its two given legs, and the hypotenuse is computed on the diagram. Can you spot which side sits opposite the right angle?",
+          "severity": "weak"
+        },
+        {
+          "detail": "needs-camera: polygon at [238.67, 263.23 367.85x448.1] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_1triangle",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: polyline at [238.67, 642.83 73x68.5] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_2rightangle",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: point at [382.59, 671.33 46x38] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_3basemid",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: number at [382.59, 719.33 81.15x36.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_6num",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: number at [438.59, 782.18 81.15x36.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "m0_8num",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 9",
+      "judge_model": "",
+      "objects_drawn": 9,
+      "say": "Let\u2019s build it. I\u2019ve drawn the right triangle from its two given legs, and the hypotenuse is computed on the diagram. Can you spot which side sits opposite the right angle?",
+      "scores": {
+        "correct": 2,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 1,
+        "their world": null,
+        "verified": 4,
+        "voice": 4
+      },
+      "subject": "mathematics",
+      "verified_checks": [
+        "board.numbers_agree:hypotenuse"
+      ]
+    },
+    {
+      "ask": "i am stuck, what do i do next",
+      "board": "IB Diploma Programme",
+      "case_id": "math.ib.hint.no-final-answer",
+      "cost_usd": 0.001817,
+      "elapsed_ms": 3374.648040975444,
+      "findings": [
+        {
+          "detail": "3 number(s) in the spoken line, which no verifier signs: 2, 4, 2",
+          "dimension": "verified",
+          "evidence": "",
+          "severity": "note"
+        }
+      ],
+      "grade": "MYP 4",
+      "judge_model": "",
+      "objects_drawn": 0,
+      "say": "You\u2019ve got 2x = 4, so now undo the multiplication by 2. What should you do to both sides?",
+      "scores": {
+        "correct": 4,
+        "drew": null,
+        "legible": null,
+        "reached": 4,
+        "teaches": 4,
+        "their world": null,
+        "verified": null,
+        "voice": 4
+      },
+      "subject": "mathematics",
+      "verified_checks": []
+    },
+    {
+      "ask": "a ball is thrown at 20 m/s at 45 degrees. draw its path and tell me how high it gets",
+      "board": "CBSE",
+      "case_id": "physics.cbse.11.projectile",
+      "cost_usd": 0.003366,
+      "elapsed_ms": 4861.590332991909,
+      "findings": [
+        {
+          "detail": "no quantity this case knows the truth about was asserted",
+          "dimension": "correct",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: axis at [108, 808 892x73.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_1ground",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: curve at [112, 293.48 739.81x534.52] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_2path",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: write at [441.9, 923.28 413.34x36.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_6apexnote",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: number at [347.9, 922.58 84x36.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_7num",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: number at [112, 931.2 84x36.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_8num",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 11",
+      "judge_model": "",
+      "objects_drawn": 8,
+      "say": "Here\u2019s its flight. The peak comes from the vertical part of the launch speed, and the trajectory shows the maximum height for you.",
+      "scores": {
+        "correct": 2,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 4,
+        "their world": null,
+        "verified": 4,
+        "voice": 4
+      },
+      "subject": "physics",
+      "verified_checks": [
+        "board.units_agree",
+        "board.units_agree",
+        "board.numbers_agree:apex height",
+        "board.numbers_agree:range"
+      ]
+    },
+    {
+      "ask": "draw the ray diagram for an object 30 cm in front of a converging lens of focal length 10 cm",
+      "board": "ICSE",
+      "case_id": "physics.icse.10.lens",
+      "cost_usd": 0.003654,
+      "elapsed_ms": 5223.843874991871,
+      "findings": [
+        {
+          "detail": "no quantity this case knows the truth about was asserted",
+          "dimension": "correct",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: ellipse at [480, 344 40x252] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_2lens",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: arrow at [619.71, 454 32x95] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_5image",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [619.71, 559 41.01x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_6imglabel",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: line at [220.57, 336 423.14x205] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "p0_9ray",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 10",
+      "judge_model": "",
+      "objects_drawn": 11,
+      "say": "Ray diagram coming up. The object is beyond twice the focal length, so the image will form on the other side of the lens, between the focal point and twice the focal length.",
+      "scores": {
+        "correct": 2,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 4,
+        "their world": null,
+        "verified": 4,
+        "voice": 4
+      },
+      "subject": "physics",
+      "verified_checks": [
+        "cas.solution_satisfies"
+      ]
+    },
+    {
+      "ask": "balance the equation for methane burning in oxygen and show me the coefficients",
+      "board": "CBSE",
+      "case_id": "chem.cbse.10.balance",
+      "cost_usd": 0.002548,
+      "elapsed_ms": 3782.766874996014,
+      "findings": [
+        {
+          "detail": "no quantity this case knows the truth about was asserted",
+          "dimension": "correct",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "asserts without explaining: no causal or connecting language anywhere in the answer",
+          "dimension": "teaches",
+          "evidence": "Let\u2019s balance it cleanly. Carbon gives one CO\u2082, hydrogen gives two H\u2082O, and then oxygen falls into place.",
+          "severity": "weak"
+        },
+        {
+          "detail": "needs-camera: write at [500, 600 258.78x36.6] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "c0_10balancednote",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 10",
+      "judge_model": "",
+      "objects_drawn": 10,
+      "say": "Let\u2019s balance it cleanly. Carbon gives one CO\u2082, hydrogen gives two H\u2082O, and then oxygen falls into place.",
+      "scores": {
+        "correct": 2,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 2,
+        "their world": null,
+        "verified": 4,
+        "voice": 4
+      },
+      "subject": "chemistry",
+      "verified_checks": [
+        "board.equation_balances",
+        "board.formula_readable"
+      ]
+    },
+    {
+      "ask": "cross Aa with Aa and draw me the punnett square, then tell me the ratio",
+      "board": "CBSE",
+      "case_id": "bio.cbse.10.punnett",
+      "cost_usd": 0.002333,
+      "elapsed_ms": 3679.973166959826,
+      "findings": [
+        {
+          "detail": "5 number(s) in the spoken line, which no verifier signs: 1, 2, 1, 3, 1",
+          "dimension": "verified",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "asserts without explaining: no causal or connecting language anywhere in the answer",
+          "dimension": "teaches",
+          "evidence": "Here\u2019s the cross. Aa \u00d7 Aa gives a genotypic ratio of 1 AA : 2 Aa : 1 aa, and if A is dominant the phenotypic ratio is 3 dominant : 1 recessive.",
+          "severity": "weak"
+        },
+        {
+          "detail": "none of the ideas this question is about appear: ['3:1', '3 : 1', '1:2:1', '1 : 2 : 1', 'three to one']",
+          "dimension": "teaches",
+          "evidence": "Here\u2019s the cross. Aa \u00d7 Aa gives a genotypic ratio of 1 AA : 2 Aa : 1 aa, and if A is dominant the phenotypic ratio is 3 dominant : 1 recessive.",
+          "severity": "weak"
+        }
+      ],
+      "grade": "Class 10",
+      "judge_model": "",
+      "objects_drawn": 7,
+      "say": "Here\u2019s the cross. Aa \u00d7 Aa gives a genotypic ratio of 1 AA : 2 Aa : 1 aa, and if A is dominant the phenotypic ratio is 3 dominant : 1 recessive.",
+      "scores": {
+        "correct": 4,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 1,
+        "their world": null,
+        "verified": 4,
+        "voice": 4
+      },
+      "subject": "biology",
+      "verified_checks": [
+        "board.numbers_agree:punnett cells"
+      ]
+    },
+    {
+      "ask": "draw a plant cell and label the parts",
+      "board": "ICSE",
+      "case_id": "bio.icse.9.plant-cell",
+      "cost_usd": 0.002175,
+      "elapsed_ms": 3747.1954579814337,
+      "findings": [
+        {
+          "detail": "needs-camera: ellipse at [214, 254 532x412] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_1outline",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: polygon at [192, 232 576x456] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_2wall",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: arrow at [651.05, 623.82 32x32] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_6pointer",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [693.05, 700.08 103.66x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_7part",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: arrow at [397.24, 655.75 35.72x44.48] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_8pointer",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [442.96, 701.41 71.83x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_9part",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: arrow at [193.71, 460.11 220.8x115.68] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_10pointer",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [424.51, 762.41 52.36x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_11part",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [235.71, 715.19 81.62x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_13part",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [442.96, 818.03 51.48x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_15part",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [693.05, 745.68 105.51x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_17part",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 9",
+      "judge_model": "",
+      "objects_drawn": 17,
+      "say": "Plant cell, coming up. I\u2019ve drawn the main parts so you can spot the sturdy cell wall, chloroplasts, and large vacuole at a glance.",
+      "scores": {
+        "correct": 4,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 4,
+        "their world": null,
+        "verified": null,
+        "voice": 4
+      },
+      "subject": "biology",
+      "verified_checks": [
+        "board.fact_supported"
+      ]
+    },
+    {
+      "ask": "draw me a timeline of the national movement from the Jallianwala Bagh massacre to independence",
+      "board": "CBSE",
+      "case_id": "social.cbse.10.timeline",
+      "cost_usd": 0.005513,
+      "elapsed_ms": 6574.436374998186,
+      "findings": [
+        {
+          "detail": "no quantity this case knows the truth about was asserted",
+          "dimension": "correct",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [161.43, 530.68 452.36x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_10event",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [405.71, 567.52 142.71x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_19event",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [432.86, 604.36 85.49x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_22event",
+          "severity": "note"
+        },
+        {
+          "detail": "needs-camera: label at [514.29, 641.2 184.73x26.84] sits below the resting view (527.78)",
+          "dimension": "legible",
+          "evidence": "b0_25event",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 10",
+      "judge_model": "",
+      "objects_drawn": 32,
+      "say": "Here\u2019s the national movement in order. I\u2019ve marked the big turning points from Jallianwala Bagh to independence, so you can trace how the struggle gathered force.",
+      "scores": {
+        "correct": 2,
+        "drew": 4,
+        "legible": 4,
+        "reached": 4,
+        "teaches": 4,
+        "their world": null,
+        "verified": 4,
+        "voice": 4
+      },
+      "subject": "social science",
+      "verified_checks": [
+        "board.in_bounds:year 1919",
+        "board.in_bounds:year 1920",
+        "board.in_bounds:year 1922",
+        "board.in_bounds:year 1928",
+        "board.in_bounds:year 1930",
+        "board.in_bounds:year 1931",
+        "board.in_bounds:year 1932",
+        "board.in_bounds:year 1935",
+        "board.in_bounds:year 1942",
+        "board.in_bounds:year 1947"
+      ]
+    },
+    {
+      "ask": "i do not get equivalent fractions, can you explain them",
+      "board": "CBSE",
+      "case_id": "teach.their-world.cricket",
+      "cost_usd": 0.002459,
+      "elapsed_ms": 4032.292084011715,
+      "findings": [
+        {
+          "detail": "4 number(s) in the spoken line, which no verifier signs: 1, 2, 2, 4",
+          "dimension": "verified",
+          "evidence": "",
+          "severity": "note"
+        },
+        {
+          "detail": "never checks understanding: no question to the learner and no ask frame",
+          "dimension": "teaches",
+          "evidence": "Equivalent fractions are different-looking fractions worth the same amount, like 1/2 and 2/4: if you multiply both top and bottom by the same number, the fraction keeps its value.",
+          "severity": "weak"
+        },
+        {
+          "detail": "none of the ideas this question is about appear: ['cricket', 'bat', 'over', 'run', 'wicket', 'bowl', 'innings']",
+          "dimension": "teaches",
+          "evidence": "Equivalent fractions are different-looking fractions worth the same amount, like 1/2 and 2/4: if you multiply both top and bottom by the same number, the fraction keeps its value.",
+          "severity": "weak"
+        },
+        {
+          "detail": "the dossier says this learner is into cricket and the answer never reaches for it",
+          "dimension": "their world",
+          "evidence": "Equivalent fractions are different-looking fractions worth the same amount, like 1/2 and 2/4: if you multiply both top and bottom by the same number, the fraction keeps its value.",
+          "severity": "weak"
+        }
+      ],
+      "grade": "Class 7",
+      "judge_model": "",
+      "objects_drawn": 0,
+      "say": "Equivalent fractions are different-looking fractions worth the same amount, like 1/2 and 2/4: if you multiply both top and bottom by the same number, the fraction keeps its value.",
+      "scores": {
+        "correct": 4,
+        "drew": null,
+        "legible": null,
+        "reached": 4,
+        "teaches": 1,
+        "their world": 0,
+        "verified": null,
+        "voice": 4
+      },
+      "subject": "mathematics",
+      "verified_checks": []
+    },
+    {
+      "ask": "we are on rational numbers but i keep getting the minus signs wrong when i add them, i do not really get negative numbers",
+      "board": "CBSE",
+      "case_id": "teach.prerequisite.integers",
+      "cost_usd": 0.002569,
+      "elapsed_ms": 4129.88929200219,
+      "findings": [
+        {
+          "detail": "2 number(s) in the spoken line, which no verifier signs: -5, 3",
+          "dimension": "verified",
+          "evidence": "",
+          "severity": "note"
+        }
+      ],
+      "grade": "Class 7",
+      "judge_model": "",
+      "objects_drawn": 0,
+      "say": "Totally fixable. Think of negatives as a tug-of-war: if the signs match, add the sizes and keep that sign; if they differ, subtract the smaller size from the bigger and keep the bigger number\u2019s sign. Try this tiny one: what is -5 + 3?",
+      "scores": {
+        "correct": 4,
+        "drew": null,
+        "legible": null,
+        "reached": 4,
+        "teaches": 4,
+        "their world": null,
+        "verified": null,
+        "voice": 4
+      },
+      "subject": "mathematics",
+      "verified_checks": []
+    }
+  ],
+  "cost_usd": 0.03653000000000001,
+  "judge_cost_usd": 0.0,
+  "judge_model": "",
+  "judge_shares_provider_with_tutor": false,
+  "mode": "replay",
+  "model_calls": 12,
+  "notes": [
+    "recorded transcripts: this run proves the CHECKS work, never that the tutor is answering well today"
+  ],
+  "providers": {},
+  "started_at": "2026-09-05T06:53:38+00:00"
+}

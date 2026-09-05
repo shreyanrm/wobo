@@ -82,6 +82,8 @@ calls `authenticate(request.headers)` (`app.py:687`) for every path starting `/v
 | 0.27 | `POST /v1/me/subscription/resume` | `billing.py:778` | middleware | `principal.subject` (`billing.py:785-789`) | no |
 | 0.28 | `POST /v1/ask` | `ask_public.py:1055` | open by design (`ask_public.py:70`) | none — a public help box; bounded per hashed client (`ask_public.py:733-743`) | no |
 | 0.29 | `GET /v1/ask/suggestions` | `ask_public.py:1134` | open by design | none | no |
+| 0.30 | `GET /v1/me/mind` | `mind.py:847` | middleware | `principal.subject` (`mind.py:852,855`) | no |
+| 0.31 | `PUT /v1/me/mind` | `mind.py:859` | middleware | `principal.subject` (`mind.py:864,870`) | no |
 
 **Verdict on the inventory:** no route reads a learner identity out of a request body or query
 string. Two fields that used to do so are accepted-and-ignored on purpose and documented as such:

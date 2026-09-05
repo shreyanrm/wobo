@@ -312,7 +312,19 @@ def _ray(intent: dict[str, Any], draft: Draft) -> Draft:
     except CasError as exc:
         raise Unverified(f"the lens equation could not be checked: {exc}") from exc
     magnification = image / u
-    draft.ledger.record(verify.units_agree("f", "m", {"f": "m"}))
+    # THE UNIT IS THE LEARNER'S, NOT OURS. This pipeline is unit-agnostic: it works in whatever
+    # the numbers arrived in, and the CAS signs the MAGNITUDE. It used to hard-code metres on the
+    # image distance it drew, so "an object 30 cm in front of a lens of focal length 10 cm" was
+    # answered on the board with "15.0 m" — a number the verifier had genuinely proved, published
+    # with a unit nobody had given it, wrong by a factor of a hundred. Caught on the live run of
+    # 2026-09-05. A unit is written when the intent declares one and left off when it does not.
+    #
+    # The dimensional check that used to sit here went with it. ``units_agree("f", "m", {"f":
+    # "m"})`` asks whether a quantity declared in metres carries metres: it is a tautology, it
+    # passed for every ray diagram ever drawn, and it proved nothing about the number beside it.
+    # What earns the image distance its place on the board is ``cas.solution_satisfies`` — the
+    # lens equation solved and then proved by substitution — and that is what it names.
+    unit = str(intent.get("unit") or "").strip()[:8] or None
 
     span = max(abs(u), abs(image), abs(focal)) * 1.4
     frame = Frame(xmin=-span, xmax=span, ymin=-span * 0.5, ymax=span * 0.5)
@@ -354,7 +366,7 @@ def _ray(intent: dict[str, Any], draft: Draft) -> Draft:
         style=accent(1),
         hint="ray",
     )
-    draft.number(image, "cas.solution_satisfies", anchor=on(axis, "right"), unit="m",
+    draft.number(image, "cas.solution_satisfies", anchor=on(axis, "right"), unit=unit,
                  style=accent(2))
     draft.number(magnification, "cas.solution_satisfies", anchor=on(img, "right"), style=wobo(1))
     return draft

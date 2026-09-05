@@ -201,6 +201,7 @@ function pythagoras(): GoldenBoard {
     {
       id: 'square-a',
       kind: 'polygon',
+      title: 'the square on side a, the shorter leg',
       ...shape([right, foot, [foot[0], foot[1] + ax], [right[0], right[1] + ax]]),
       style: style('faint', 1),
     },
@@ -211,6 +212,7 @@ function pythagoras(): GoldenBoard {
     {
       id: 'square-b',
       kind: 'polygon',
+      title: 'the square on side b, the upright leg',
       ...shape([apex, right, [right[0] - ay, right[1]], [apex[0] - ay, apex[1]]]),
       style: style('faint', 1),
     },
@@ -221,6 +223,7 @@ function pythagoras(): GoldenBoard {
     {
       id: 'square-c',
       kind: 'polygon',
+      title: 'the tilted square on the hypotenuse, the one the other two fill',
       ...shape([
         apex,
         foot,

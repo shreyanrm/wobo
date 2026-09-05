@@ -398,6 +398,8 @@ class ParentLinkStore(Protocol):
 
     def linked(self) -> list[ParentLink]: ...
 
+    def by_email_hash(self, digest: str) -> list[ParentLink]: ...
+
 
 class InMemoryParentLinkStore:
     """The suite's store, and a local run without a project."""
@@ -451,6 +453,10 @@ class InMemoryParentLinkStore:
     def linked(self) -> list[ParentLink]:
         with self._lock:
             return [r for r in self.rows.values() if r.status == "linked"]
+
+    def by_email_hash(self, digest: str) -> list[ParentLink]:
+        with self._lock:
+            return [r for r in self.rows.values() if r.parent_email_hash == digest and r.active]
 
     def forget(self, learner_id: str) -> int:
         """The erase path: every row of this learner's, gone. Returns how many."""
@@ -579,6 +585,28 @@ class PostgrestParentLinkStore:
 
     def linked(self) -> list[ParentLink]:
         rows = self._call("GET", {"select": "*", "status": "eq.linked", "limit": "5000"})
+        return [from_row(row) for row in rows]
+
+    def by_email_hash(self, digest: str) -> list[ParentLink]:
+        """Every ACTIVE link naming this address, by its keyed digest.
+
+        This is how a family linked before parent accounts existed is picked up: the parent signs
+        up with the same address, the digest matches, and
+        :func:`wobo_gateway.parent_account.claim_links` turns the row into a real relationship
+        between two accounts. Nobody is stranded and nobody is re-invited. The digest is checked
+        for shape before it reaches the filter, the same rule as every other id here.
+        """
+        if not re.match(r"^[0-9a-f]{64}$", digest or ""):
+            return []
+        rows = self._call(
+            "GET",
+            {
+                "select": "*",
+                "parent_email_hash": f"eq.{digest}",
+                "status": "in.(invited,linked)",
+                "limit": "50",
+            },
+        )
         return [from_row(row) for row in rows]
 
 
@@ -850,7 +878,57 @@ def decline(store: ParentLinkStore, token: str | None, *, now: datetime | None =
         "parent link: declined",
         extra={"fields": {"learner": found.link.learner_id, "link": found.link.id}},
     )
+    _stop_the_parent_account(found.link)
     return Outcome("done", updated or replace(found.link, status="revoked", revoked_at=moment))
+
+
+def _stop_the_parent_account(link: ParentLink) -> None:
+    """A link ended: the parent account that held it stops at once, and its mind of this child is
+    retired for good (docs/TWO-MINDS.md, "what happens when the link ends").
+
+    Access is already gone the moment the row says ``revoked`` — every parent read re-reads this
+    table and nothing is cached (:func:`wobo_gateway.parent_account.children`). This is the
+    SECOND half: the parent's remembered picture of this child is retired, and retirement is
+    one-way, because consent to be talked about is not retroactive. Re-making the link does not
+    bring it back. The facts the parent offered and the child ACCEPTED stay in the child's mind,
+    because they are the child's now and the child can see and remove them.
+
+    Never raises. A learner ending a link must not fail because the parent plane is unreachable;
+    the link is revoked either way, which is the half that stops the reading.
+    """
+    try:
+        from wobo_gateway import parent_account, parent_mind
+
+        store = parent_account.get_store()
+        binding = store.link_by_link_id(link.id)
+        if binding is None:
+            return
+        parent_mind.retire_for_link_end(
+            store,
+            parent_account_id=binding.parent_account_id,
+            learner_id=binding.learner_id,
+        )
+        # A pending offer is a write this parent has already staged into the child's mind. It
+        # survived the revoke because nothing here touched it, and accepting it afterwards put one
+        # permanent sentence into the mind of a child who had just removed them. Withdrawn here,
+        # so the route's refusal is not the only thing standing between them.
+        for offer in store.offers(parent_account_id=binding.parent_account_id):
+            if offer.learner_id != binding.learner_id or offer.status != "pending":
+                continue
+            store.put_offer(replace(offer, status="withdrawn", decided_at=datetime.now(UTC)))
+        selection = store.selection(binding.parent_account_id)
+        if selection is not None and selection.learner_id == binding.learner_id:
+            store.clear_selection(binding.parent_account_id)
+        # The household layer is not about one child, so nothing learner-scoped ever retired it.
+        # A parent whose every link has ended is not a live writer on our store and is not
+        # somebody the household is still being described to.
+        if parent_account.stands_down(store, binding.parent_account_id):
+            parent_mind.retire_family_layer(store, binding.parent_account_id)
+    except Exception as exc:
+        logger.warning(
+            "parent link: the parent account was not stood down",
+            extra={"fields": {"link": link.id, "error": str(exc)}},
+        )
 
 
 def _revocation(moment: datetime, by: str) -> dict[str, Any]:
@@ -874,6 +952,7 @@ def revoke(
         return None
     updated = store.update(current.id, _revocation(moment, "learner"))
     logger.info("parent link: ended by learner", extra={"fields": {"learner": learner_id}})
+    _stop_the_parent_account(current)
     return updated or replace(current, status="revoked", revoked_at=moment, parent_email=None)
 
 

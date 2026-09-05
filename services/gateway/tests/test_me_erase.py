@@ -26,7 +26,7 @@ SSE = {"Accept": "text/event-stream"}
 
 @pytest.fixture(autouse=True)
 def _clean(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> Any:
-    from wobo_gateway import parents
+    from wobo_gateway import parent_account, parents
     from wobo_gateway.hospitality import preferences as prefs_mod
 
     monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path))
@@ -34,9 +34,13 @@ def _clean(tmp_path: Any, monkeypatch: pytest.MonkeyPatch) -> Any:
     # the hospitality stores start empty and in memory, and never leak into the next test
     prefs_mod.set_store(prefs_mod.InMemoryPreferencesStore())
     parents.set_store(parents.InMemoryParentLinkStore())
+    # the parent plane (migration 0019) the same way: the erase reaches it, so it has to be here
+    # and it has to be empty, or one test's family is the next test's count
+    parent_account.set_store(parent_account.InMemoryParentStore())
     yield
     prefs_mod.set_store(None)
     parents.set_store(None)
+    parent_account.set_store(None)
 
 
 @pytest.fixture
@@ -143,11 +147,15 @@ def test_a_learner_with_nothing_remembered_is_told_the_truth(
     body = erase(client, auth()).json()
     assert body["erased"] == {
         "facts": 0,
+        # Wobo's own mind (0020) is reached through its own store, which holds nothing here
+        "mind": 0,
         "twin_summary": False,
         "threads": 0,
         "boards": 0,
         "mail_preferences": 0,
         "parent_links": 0,
+        # the parent plane (0019): no parent account holds this learner, so nothing to let go of
+        "parent_plane": 0,
     }
     # nothing to empty, so nothing written; the deletes are still attempted, and count zero
     assert [c[0] for c in store.calls] == ["GET", "DELETE", "DELETE", "DELETE"]

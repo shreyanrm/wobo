@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { onScopeChange, scoped } from './scope';
 
 export type DownloadStatus = 'queued' | 'downloading' | 'ready' | 'failed';
 
@@ -31,7 +32,7 @@ const EVT = 'wobo-downloads-changed';
 
 function load(): Download[] {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? '[]') as Download[];
+    const raw = JSON.parse(scoped.getItem(KEY) ?? '[]') as Download[];
     if (!Array.isArray(raw)) return [];
     // A generation lost to a reload was mid-flight and never finished — put it back in line so
     // the runner picks it up again. Nothing is ever stranded as "downloading" across a boot.
@@ -47,10 +48,19 @@ function load(): Download[] {
 // and the in-memory copy never drift, and one window event fans the change to all listeners.
 let items: Download[] = typeof window === 'undefined' ? [] : load();
 
+// Read once at import, which is before the session resolves. Re-read whenever the device changes
+// learner, or the mirror would carry the last learner's queue into the next one's storage.
+if (typeof window !== 'undefined') {
+  onScopeChange(() => {
+    items = load();
+    window.dispatchEvent(new Event(EVT));
+  });
+}
+
 function persist(next: Download[]): void {
   items = next;
   try {
-    localStorage.setItem(KEY, JSON.stringify(items));
+    scoped.setItem(KEY, JSON.stringify(items));
   } catch {
     // storage unavailable — the queue is session-only, still fully functional in memory
   }

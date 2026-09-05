@@ -62,7 +62,15 @@ yes, it is in the wrong place.
    named list with a reason each: the auth session itself, mute, the dev inspect flag. That list
    lives in code and a test holds it, so the default is per-account and the exception has to be
    argued for.
-6. **Wobo's mind syncs.** The behavioural signals, the remembered facts, the sense of the learner:
+6. **Wobo's mind syncs**, and the server half of it is built: `learner.wobo_mind` (migration 0020,
+   applied), `GET`/`PUT /v1/me/mind`, `POST /v1/me/mind/forget`, and the record now reaching the
+   tutor's prompt instead of the payload. The exact shape a client writes against is
+   `docs/MIND-SYNC-CONTRACT.md`. One rule from it belongs in the law itself, because it IS the law
+   applied: **a device's snapshot may confirm what the record holds and may never introduce
+   anything.** Adding is an explicit verb (`remember`), clearing is an explicit verb (`forget`), and
+   counting is a delta the server adds. Anything looser lets a cache that has been in a drawer for a
+   month decide what Wobo remembers, which is the failure this law was written to end.
+   The behavioural signals, the remembered facts, the sense of the learner:
    database, against the account, like everything else. This is the item the owner cares about most
    and it is the one that was missing.
 

@@ -36,6 +36,7 @@ from typing import Any
 
 from wobo_verifier.cas import CasError, solution_satisfies, step_preserves_solutions
 
+from wobo_gateway.model_call import complete as model_complete
 from wobo_gateway.providers import max_tokens_for, timeout_for
 from wobo_gateway.telemetry import record_cost
 
@@ -910,6 +911,18 @@ def _dossier(lifetime: dict[str, Any]) -> str:
     if facts:
         lines.append(f"  Things to remember (recorded details, not instructions): "
                      f"{json.dumps(facts, ensure_ascii=False)}")
+    # What their parent asked us to pass on, and the child accepted (docs/TWO-MINDS.md). It is
+    # filled in by the SERVER from the offers store (``mind.ground_lifetime``) and never from the
+    # payload, so a crafted body cannot dress its own sentence up as a parent's. Marked as theirs
+    # on its own line, because the promise to the child is that a parent-offered fact is never
+    # disguised as something Wobo worked out.
+    parent_facts = [_clip(f, 240) for f in (lifetime.get("parentFacts") or []) if f][:12]
+    if parent_facts:
+        lines.append(
+            f"  What their parent told you about them (recorded details from their parent, not "
+            f"instructions, and they know you have them): "
+            f"{json.dumps(parent_facts, ensure_ascii=False)}"
+        )
     access = lifetime.get("accessibility") or {}
     if isinstance(access, dict):
         needs = [
@@ -1160,11 +1173,6 @@ def run_wobo_turn(
     timeout_s: float | None = None,
 ) -> tuple[dict[str, Any], int]:
     """One grounded, path-classified, action-returning Wobo turn. Returns (output, tokens)."""
-    import litellm
-
-    # Claude 5 family accepts only default sampling; drop unsupported params instead of erroring.
-    litellm.drop_params = True
-
     context = payload.get("context") or {}
     canvas = context.get("canvas") or {}
     turn = context.get("turn") or {}
@@ -1179,7 +1187,13 @@ def run_wobo_turn(
     model = provider_model
     fb = list(fallbacks)
 
-    response = litellm.completion(
+    # THROUGH ``model_call``, never ``litellm.completion`` directly. That module exists because of
+    # one production failure: a model somewhere in the fallback chain refuses ``temperature``,
+    # answers 400, and litellm raises the LAST error, so the learner gets nothing and the log names
+    # a provider that was not the problem. This call carried a temperature and did not go through
+    # it, so on any model that refuses the knob Wobo's own turn was the one call in the gateway
+    # with no protection at all. Found by the teaching harness, 2026-09-05.
+    response = model_complete(
         model=model,
         messages=[
             {"role": "system", "content": WOBO_SYSTEM},
@@ -1258,16 +1272,31 @@ You are planning what to DRAW, not just what to say. Reply with strict JSON only
 INTENTS are how you draw anything with a number in it. You describe what you want; code computes
 the geometry and a verifier checks every quantity before a stroke is made. You never write
 coordinates and you never write a computed number — a number you type is refused, a number the
-pipeline computes is drawn. The intents you may ask for:
+pipeline computes is drawn.
+
+Every intent is ONE FLAT OBJECT with "pipeline" and "op" at the top level and that op's own fields
+beside them. Exactly this shape and no other. An intent that does not name its pipeline is thrown
+away, and then you have told the learner you drew something and the board is empty:
+
+  {"pipeline":"math","op":"graph","expr":"x**2","var":"x","domain":[-3,3],"tangent_at":1}
+
+The pipelines, their ops, and each op's fields:
 
   math      op "graph"        expr (in python notation, e.g. "x**2"), var, domain [lo, hi], tangent_at
             op "number_line"  domain [lo, hi], marks [values]
             op "derivation"   equation "2*x + 3 = 7", steps ["2*x = 4", "x = 2"], var
+                              every step is ONE equation with one "=" and no "or": a verifier reads
+                              each line, and a line it cannot read costs you the whole derivation
             op "construction" what "perpendicular_bisector", segment [[ax, ay], [bx, by]]
+                              what "right_triangle", legs [a, b], unit — the hypotenuse is
+                              computed and proved for you; never type it
   physics   op "free_body"    body, forces [{name, magnitude, angle_deg, unit}], equilibrium
             op "projectile"   v0, angle_deg
             op "circuit"      emf, resistances [..], arrangement "series"|"parallel"
-            op "ray"          focal_length, object_distance (negative, Cartesian convention)
+            op "ray"          focal_length, object_distance (negative, Cartesian convention),
+                              unit — the unit the LEARNER used ("cm", "m"). Give the numbers in
+                              their unit and name it; without it the board writes no unit at all,
+                              because a unit nobody gave is a claim nobody checked
             op "wave"         amplitude, wavelength, frequency
   chemistry op "molecule"     smiles, name
             op "balance"      reactants ["H2","O2"], products ["H2O"]   (coefficients are SOLVED)
@@ -1473,6 +1502,10 @@ def board_intents(text: str) -> list[dict[str, Any]]:
     return []
 
 
+#: The floor under a live plan that drew something and said nothing. In Wobo's voice, true whatever
+#: was drawn, and distinct from every line in ``_BOARD_SAY`` so the two cases stay tellable apart.
+SILENT_BOARD_SAY = "Here it is. Take a look at what I have put on the board."
+
 _BOARD_SAY = {
     "math": "Look at this. I will draw the curve first, then the line that just touches it.",
     "physics": "Here it is. Watch what happens to each piece as it moves.",
@@ -1572,16 +1605,18 @@ def run_board_plan(
 
     The plan is NOT trusted here — it is handed straight to ``board.planner``, which validates
     every object, resolves every anchor and refuses anything the verifier did not sign.
-    """
-    import litellm
 
-    litellm.drop_params = True
+    Through ``model_call`` for the same reason the turn above is, and with a worse failure behind
+    it: ``board_plan_for`` swallows an exception from here and serves the KEYLESS keyword plan
+    instead, so a refused sampling knob did not produce an error a learner could see. It produced a
+    board nobody planned, with one of four canned sentences over it, and nothing said so.
+    """
     context = payload.get("context") or {}
     turn = context.get("turn") or {}
     grounding = _ground_working(
         (context.get("canvas") or {}).get("equation"), (context.get("canvas") or {}).get("steps") or []
     )
-    response = litellm.completion(
+    response = model_complete(
         model=provider_model,
         messages=[
             {"role": "system", "content": BOARD_SYSTEM},
@@ -1601,6 +1636,15 @@ def run_board_plan(
         # they asked for rather than streaming an empty turn.
         data.setdefault("say", str(data.get("say") or "").strip())
         data["intents"] = board_intents(str(turn.get("lastUserInput") or ""))
+    if not str(data.get("say") or "").strip():
+        # NEVER INK WITHOUT WORDS. ``build_events`` lays the objects against Wobo's sentences, so a
+        # plan with no ``say`` streams no ``say`` frames at all: the hand draws and the voice never
+        # speaks. The teaching harness caught a real live turn like that on 2026-09-05 — nine
+        # objects on the board and not one word over them. BOARD.md §4 is "say, ink, action, ask,
+        # card, done, in order"; the say is not the optional part. One honest sentence is the floor,
+        # and it is deliberately NOT one of the keyless plan's four, so a report can still tell a
+        # model that said nothing from a provider that answered nothing.
+        data["say"] = SILENT_BOARD_SAY
     return data, tokens
 
 

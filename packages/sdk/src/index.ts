@@ -34,3 +34,4 @@ export * from './mastery';
 export * from './providers';
 export * from './state';
 export * from './supabase';
+export * from './sync-health';

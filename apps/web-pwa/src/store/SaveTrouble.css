@@ -1,0 +1,84 @@
+/*
+ * The save-trouble strip. One line and one button, at the foot of the screen.
+ *
+ * ON A PHONE IT SITS ABOVE THE NAVIGATION, NEVER OVER IT. The rail becomes a fixed bottom tab bar
+ * under 900px (`ui/primitives/ui.css`), at the same left/right/bottom coordinates, with an opaque
+ * background and a lower stacking order. A strip pinned to bottom:0 covered it completely, and it
+ * stays for as long as the save is troubled — so a child on a bad connection lost the only way of
+ * moving between screens for the whole session. `--rail-h` is the tab bar's own height, declared
+ * beside the rail so the two cannot drift.
+ *
+ * Every class is namespaced `wst-` (DESIGN.md §0, trap 1) and appears nowhere else in the repo.
+ * No descendant selectors (trap 3), no `nowrap` (trap 4), no grid placement (trap 2). Colour does
+ * one job: rose is this palette's "needs care", used as a hairline above the strip and nowhere
+ * else, so the strip reads as a note rather than an alarm.
+ */
+
+.wst-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px var(--gutter);
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--paper-2);
+  border-top: 1px solid var(--rose);
+  color: var(--ink-2);
+  /* The strip never widens the page: the line wraps instead (trap 4). */
+  min-width: 0;
+}
+
+/*
+ * Room at the foot of the page for the strip itself, so the last line of a lesson is never left
+ * behind it with no way to scroll to it. `--wst-height` is the strip's own measured height
+ * (SaveTrouble.tsx publishes it, and sets it back to 0 the moment the strip goes), so this is
+ * `padding-bottom: 0` on every ordinary screen. It is here rather than on `.wk-main` because that
+ * rule is ported verbatim from the prototype and `ui.test.ts` holds it to the letter.
+ */
+body {
+  padding-bottom: var(--wst-height, 0px);
+}
+
+@media (max-width: 900px) {
+  .wst-bar {
+    bottom: calc(var(--rail-h, 0px) + env(safe-area-inset-bottom, 0px));
+    /* The rail already carries the safe-area inset below it, so the strip does not repeat it. */
+    padding-bottom: 12px;
+  }
+}
+
+.wst-line {
+  margin: 0;
+  font: 400 14px / 1.5 var(--sans);
+  color: var(--ink-2);
+  max-width: 62ch;
+  min-width: 0;
+}
+
+.wst-again {
+  font: 500 14px / 1 var(--sans);
+  padding: 10px 16px;
+  min-height: 40px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--paper-3);
+  color: var(--ink);
+  cursor: pointer;
+  flex: none;
+}
+
+.wst-again:disabled {
+  cursor: default;
+  color: var(--ink-3);
+}
+
+.wst-again:focus-visible {
+  outline: 2px solid var(--pig);
+  outline-offset: 2px;
+}

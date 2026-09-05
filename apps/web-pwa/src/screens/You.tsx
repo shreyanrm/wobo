@@ -10,6 +10,7 @@
  * Nothing here is a mock of a feature: a row with nothing behind it on this build says so.
  */
 
+import { erasureGapSentence } from '@wobo/sdk';
 import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { adoptFramework, adoptOwnSyllabus, askDiscovery, chooseLevel } from '../curriculum/adopt';
@@ -234,6 +235,9 @@ export function You() {
   const language = profile.language?.trim() || 'English';
 
   // --- your data -----------------------------------------------------------------------------------
+  // What a complete, fully successful erase still leaves standing, in a family's own words and
+  // built from the register rather than typed alongside it.
+  const gapLine = erasureGapSentence();
   const [confirming, setConfirming] = useState(false);
   const [erasing, setErasing] = useState(false);
   const account = sdk.account;
@@ -625,17 +629,15 @@ export function You() {
                   our servers. it cannot be undone.
                 </p>
                 {/*
-                  HONESTY (docs/conformance/privacy-and-children.md §J). The erase reaches 6 of the
-                  22 durable stores. Your individual practice answers, your board ink, your session
-                  rows, an uploaded syllabus and the account itself are NOT reached, and this line
-                  must not imply they are. The help centre says the same in full, and says where to
-                  write to have the rest done by hand.
+                  HONESTY (docs/conformance/privacy-and-children.md §J). This sentence is GENERATED
+                  from the erasure register (`ERASURE_GAPS`, packages/sdk/src/supabase.ts), which
+                  names every durable store and either the erase that reaches it or the grant that
+                  stops it. It used to be typed here by hand, and it had already drifted: it named
+                  the practice answers and the board ink, both of which the erase now takes. Nothing
+                  to edit here again. Close a gap in the register and the words for it leave this
+                  screen on their own; when nothing is left behind, the paragraph disappears.
                 */}
-                <p>
-                  it does not yet reach your answers to practice questions, your ink on the board,
-                  or a syllabus you uploaded, and your account itself stays open. write to
-                  support@heywobo.com to have those removed too.
-                </p>
+                {gapLine ? <p>{gapLine}</p> : null}
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <Button size="sm" onClick={startOver} disabled={erasing}>
                     {erasing ? 'erasing…' : 'erase and start over'}

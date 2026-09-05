@@ -860,5 +860,135 @@ and public-page task below is PAUSED, not cancelled.
       promise text
 - [ ] **Operations**, authorised by the owner: *"do whatever is needed"*. Monitoring, alerting,
       backups and a rehearsed restore, dependency and secret scanning in CI, branch protection
-- [ ] **The migrations reach production.** Six have never been applied, so subscriptions, the ledger,
-      the reports queue, the admin register and mastery evidence have no table behind them
+- [x] **The migrations reach production.** Done 2026-09-05: `0013`-`0018` with commit `1d0614f`,
+      then `0019_parent_accounts` and `0020_wobo_mind`, which the erase path needs to answer at all.
+      `docs/OPERATIONS.md` §8 records what was applied, by whom, and how to undo the last two
+
+### 20.1 The teaching harness, and the six bugs it found on its first day (2026-09-05)
+
+The owner's first priority, built and then RUN. `services/gateway/harness/` is the first test in
+this repository that asks whether the teaching is any good rather than whether the plumbing around
+it works. Twelve real questions across five subjects and three boards, plus the re-teach ladder
+probe that is appended to the score sheet as a thirteenth row, driven through the real
+`POST /v1/capability/wobo.turn` — the real door, safety screen, meter, planner, verifier and wire —
+with real models behind them. About $0.17 a run and roughly a minute. Deliberately NOT in
+`uv run pytest`: it calls real models and the owner pays.
+
+- [x] **The harness.** Answers checked against ground truth computed a different way round from the
+      product; the board MEASURED with the product's own `geometryOf` and its real handwriting font,
+      not described; the teaching marked on a rubric by the other provider; a report per dimension,
+      rolled up by subject and by board, with every finding's evidence beside it. `--replay` scores
+      recorded transcripts for free, which is the mode CI can run
+- [x] **Its own test** — `services/gateway/tests/test_teaching_harness.py`, in the default suite.
+      Every check is driven against a transcript containing the failure it exists to catch, and each
+      one was proved to FAIL when the check was broken on purpose. Since 2026-09-05 it also walks
+      the twelve RECORDED transcripts in `harness/fixtures/` and fails a claim that never fires on
+      its own case's real turn, which is the seam the hand-built transcripts were hiding (below)
+
+**What it found, in the order it found it.** Every one is fixed, and every fix has a test that
+fails without it.
+
+- [x] **Wobo's own two model calls had no protection at all.** `model_call.py` was written on
+      2026-09-04 because a model in the fallback chain refuses `temperature`, answers 400, and the
+      learner gets nothing. Every call in the gateway was routed through it except the two that
+      TEACH: `run_wobo_turn` and `run_board_plan` called `litellm.completion` directly
+- [x] **And the protection itself had a hole a third provider opened.** With three models in the
+      chain the middle one refused the knob, the last failed on a bad key, and what surfaced was an
+      authentication error naming no knob — so no retry fired. Every live board plan in the gateway
+      failed this way, and because `board_plan_for` degrades to the keyless keyword plan rather than
+      erroring, no learner and no log ever said so. The rule now is the chain itself: with a
+      fallback in play the error is one model's opinion and one attempt without the optional knobs
+      is owed before the whole call is written off
+- [x] **The board grammar never told the model the shape of an intent.** `BOARD_SYSTEM` printed a
+      table of pipelines and ops and never the object, so the model wrote `{"math": {...}}`, the
+      planner dropped it, and the turn streamed *"I've drawn the parabola and its tangent"* over an
+      empty board. The prompt now carries the object, a test proves the prompt's own example is one
+      a pipeline can draw, and the planner folds the nested shape into the flat one
+- [x] **A timeline with no dates on it.** `_timeline` records one check per event named after its
+      year and wrote the bare `board.in_bounds:year` on every number, so the planner's own law
+      refused all seven and the line was drawn with nothing on it but labels
+- [x] **A quadratic could not be drawn at all.** A factorisation ends "x - 2 = 0 or x - 3 = 0", the
+      CAS cannot read a disjunction, and the whole derivation was refused for it. Worse, the
+      no-steps fallback wrote `x = <first root>` and threw the other root away, which the chain
+      check rightly refused. Steps are now droppable, and a multi-root answer is written as the
+      factored form, which is both checkable and what the chapter teaches
+- [x] **"15.0 m" for an image 15 centimetres away.** `_ray` is unit-agnostic and hard-coded metres
+      on the distance it drew, so a number the CAS had genuinely proved was published with a unit
+      nobody gave it, wrong by a factor of a hundred. The unit is the learner's now, or there is
+      none. The tautological dimensional check beside it (`units_agree("f", "m", {"f": "m"})`) went
+      with it: it passed for every ray diagram ever drawn and proved nothing
+- [x] **The board could not draw a right triangle.** The commonest figure in Class 9, and
+      `construction` knew only the perpendicular bisector, so "legs of 3 cm and 4 cm, draw it and
+      work out the hypotenuse" reached no pipeline and the learner got an explanation over an empty
+      board. `what: "right_triangle"` computes the hypotenuse and proves it two ways
+- [x] **Four drawing bugs, all measured rather than guessed.** A plotted grid counted as an obstacle,
+      so every note written inside a graph was pushed down and off the bottom of the board; the two
+      label loops stepped down with no bound at all; a steep tangent ran from inside the axes to the
+      very bottom edge of the board; and an x-axis label was written past the right edge on every
+      projectile board. A fifth was introduced by the bound and caught by the next run: clamping a
+      label onto the board AFTER the collision search slid a timeline's last event on top of the one
+      before it
+
+**What the last run says, and what is still open.** Both live runs of 2026-09-05 ended
+`verdict: FAILED` (`harness/reports/teaching-live-20260905-060715.md:8` and `...-064734.md:8`), and
+the row of 4.00s that used to open this paragraph did not say so. It says so now, first: the second
+run failed on one WRONG finding, and that finding is the Punnett entry below rather than anything
+about layout. With that named, the drawing dimensions of that same run were `drew` 4.00, `legible`
+4.00, `verified` 4.00, `voice` 4.00 and `changes approach` 4.00 — the re-teach ladder fires by
+itself on the second miss and the rung it picks comes back a genuinely different lesson (4% and 45%
+similar to the first explanation).
+
+**And the arithmetic that was meant to catch a wrong number was not reading the product.** Found on
+2026-09-05 by running every claim in the bank against the product's own recorded transcripts: 8 of
+9 matched NOTHING. The patterns were written the way prose reads (`jallianwala[^.\n]{0,60}?(\d{4})`)
+and the real history board draws the year as its own object ABOVE the event label, which no
+single-line pattern can bridge. Proved end to end by editing the recorded timeline to date the
+Jallianwala Bagh massacre to 1921: `correct` stayed at 4 of 4 and the run verdict stayed "nothing
+false reached a learner". All of the following are fixed, each with a test that fails without it.
+
+- [x] **A board number is matched by its IDENTITY now** — the verifier check it names, its unit, and
+      the words on the objects sharing its anchor — rather than by hunting for a phrase near it in a
+      blob of joined text. 13 of 13 claims fire on their own recorded transcript, against 1 of 9
+      before, and the 1921 mutation above now fails the run
+- [x] **The `ask` frame is read by every check.** It is a full sentence Wobo puts in front of a
+      child and only one boolean ever read it, so `check_claims`, `check_forbidden` and
+      `check_voice` were all blind to it. An ask prompt reading "Divide both sides by 2, so x = 2"
+      scored 4 of 4 on the one case whose whole purpose is the graduated-hint law
+- [x] **A question with no ground truth is scored 2 and labelled unchecked**, not 4. Five of the
+      twelve cases have no claims, and each was being handed a free top mark on `correct` for
+      producing non-empty text — which then propped up the by-subject and by-board rollups
+- [x] **The judge can no longer fail a run by itself.** Its `errors` were recorded at WRONG, the
+      fatal severity, which is the exact authority the doctrine says it must never have; it had
+      already failed a run by marking with g = 9.8. A judged error is a WEAKNESS now, reported in
+      full for a person to settle
+- [x] **`their world` was one common English word away from a free 4.** The check was a bare
+      substring test, so a generic fractions explanation containing "Moreover" passed the cricket
+      case, because "Moreover" contains "over"
+
+- [ ] **`teaches` is the weakest dimension at 1.92 of 4**, on the product whose whole claim is that
+      it teaches. The second opinion says the same thing about nearly every answer: the result is
+      right and the reason is missing. The persona's "two to four sentences" cap is part of it
+- [ ] **The learner's own world is reached for only sometimes.** The dossier carries it, the prompt
+      demands it, and across runs the cricket case scored 4 and 0. Non-deterministic teaching on a
+      law that is not optional
+- [ ] **Wobo's spoken line is not covered by the verified-number law.** The law is enforced on board
+      OBJECTS; the say is model-authored prose that passes the safety screen and nothing else. Every
+      run records how much unverified arithmetic is riding on it (two to five numbers a turn)
+- [ ] **The ray diagram draws no construction rays** — the two principal rays are the lesson, and
+      `_ray` draws one connecting line instead. The judge caught it on three runs running
+- [ ] **THE WRONG FACT: the Punnett turn asks a child for two boxes when three are dominant.** The
+      recorded turn (`harness/fixtures/bio.cbse.10.punnett.json`) asks a Class 10 CBSE learner *"Can
+      you spot which two boxes show the dominant phenotype?"* — an Aa x Aa cross gives AA, Aa and
+      aA, which is three, so a child who answers correctly is told they are wrong by their own
+      tutor. It is the single WRONG finding that failed the last live run. It is now caught by
+      arithmetic rather than by a judge's opinion (`test_the_recorded_punnett_turn_asks_for_two_
+      boxes_when_three_are_dominant`), which means a repeat fails the run. What is still OPEN is the
+      teaching side: the prompt is model-authored, so the fix is in `BOARD_SYSTEM`'s own words about
+      counting cells before asking about them
+- [ ] **The Punnett square draws two of its four cells twice**, once inside the table's own rows and
+      once as an overlaid write
+- [ ] **Two of the three model providers are unreachable from this machine** (one out of credit, one
+      with an invalid key), so every live run above was answered by the second provider alone. The
+      harness reports this rather than assuming a chain it did not get
+- [ ] **The second opinion shares a provider with the tutor** for the same reason, which is a weaker
+      cross-check than the routing doctrine asks for. The report says so on every run

@@ -120,7 +120,9 @@ _FIELDS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     "line": (("to",), ()),
     "polyline": (("points",), ()),
     "curve": (("points",), ("closed",)),
-    "polygon": (("points",), ()),
+    # ``title`` is the board naming its own shape for a listener: spoken, never drawn. Three
+    # identical squares on a Pythagoras board are three identical sentences without it.
+    "polygon": (("points",), ("title",)),
     "ellipse": (("rx", "ry"), ()),
     "axis": (("orientation", "min", "max", "step", "length"), ("label", "ticks")),
     "grid": (("cols", "rows", "w", "h"), ()),

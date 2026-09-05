@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { type Actor, type Context, makeEvent, type WoboEvent } from '@wobo/contracts';
 import { ATOM_NODE_IDS, type MasterySnapshot } from '@wobo/kgtopg-contract-seed';
 import { createSdk } from '../src/client';
@@ -12,6 +12,7 @@ import {
   SupabaseMasteryProvider,
 } from '../src/mastery';
 import type { KVStorage } from '../src/state';
+import { SupabaseRest } from '../src/supabase';
 
 class Mem implements KVStorage {
   readonly map = new Map<string, string>();
@@ -277,5 +278,125 @@ describe('the sdk, end to end', () => {
       false,
       true,
     ]);
+  });
+});
+
+/**
+ * THE WHOLE REASON `mastery_cache` HOLDS ZERO ROWS IN PRODUCTION.
+ *
+ * The unit tests above hand the provider a fake whose error message already names the column, so
+ * they passed while the real thing failed on every write for every learner. Wired to the real
+ * `SupabaseRest`, migration 0013 is unapplied, PostgREST answers PGRST204, and the band-only
+ * fallback has to actually run. This is the seam the fake was hiding.
+ */
+describe('mastery writes through the real rest client', () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  it('degrades to the band-only row when the database predates migration 0013', async () => {
+    const bodies: unknown[] = [];
+    globalThis.fetch = ((url: string | URL | Request, init?: RequestInit) => {
+      const target = String(url);
+      if (target.includes('mastery_cache?on_conflict')) {
+        const sent = JSON.parse(String(init?.body)) as Record<string, unknown>[];
+        bodies.push(sent);
+        if (sent.some((row) => 'evidence' in row)) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                code: 'PGRST204',
+                message:
+                  "Could not find the 'evidence' column of 'mastery_cache' in the schema cache",
+              }),
+              { status: 400, headers: { 'content-type': 'application/json' } },
+            ),
+          );
+        }
+        return Promise.resolve(new Response(null, { status: 201 }));
+      }
+      return Promise.resolve(
+        new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }),
+      );
+    }) as typeof fetch;
+
+    const rest = new SupabaseRest({
+      url: 'https://p.supabase.co',
+      anonKey: 'anon',
+      accessToken: 'jwt',
+    });
+    const provider = new SupabaseMasteryProvider(rest, SUBJECT, new Mem(), 0);
+    provider.save(snapshot('n1', 'secure', ['e1']));
+    await provider.hydrate();
+
+    // Two attempts: the one that names `evidence`, then the one the database can actually take.
+    expect(bodies).toHaveLength(2);
+    const accepted = (bodies[1] as Record<string, unknown>[])[0] as Record<string, unknown>;
+    expect(accepted.band).toBe('secure');
+    expect(accepted.subject_id).toBe(SUBJECT);
+    expect(accepted).not.toHaveProperty('evidence');
+  });
+});
+
+/**
+ * The column-absent fallback is a real degradation: it stops sending the learner's evidence for the
+ * rest of the session. It has to fire on the exact refusal it is for and nothing else, and now that
+ * the rest client carries the response body it CAN, where before it was matching on a status line
+ * that never named anything.
+ */
+describe('the migration-0013 fallback fires only on its own refusal', () => {
+  const realFetch = globalThis.fetch;
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const failWith = (body: unknown) => {
+    const sent: Record<string, unknown>[][] = [];
+    globalThis.fetch = ((url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).includes('mastery_cache?on_conflict')) {
+        sent.push(JSON.parse(String(init?.body)) as Record<string, unknown>[]);
+        return Promise.resolve(
+          new Response(JSON.stringify(body), {
+            status: 400,
+            headers: { 'content-type': 'application/json' },
+          }),
+        );
+      }
+      return Promise.resolve(
+        new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }),
+      );
+    }) as typeof fetch;
+    return sent;
+  };
+
+  const push = async (sent: Record<string, unknown>[][]) => {
+    const rest = new SupabaseRest({
+      url: 'https://p.supabase.co',
+      anonKey: 'anon',
+      accessToken: 'jwt',
+    });
+    const provider = new SupabaseMasteryProvider(rest, SUBJECT, new Mem(), 0);
+    provider.save(snapshot('n1', 'secure', ['e1']));
+    await provider.hydrate();
+    return sent;
+  };
+
+  it('does not drop the evidence for a PGRST204 about some other column', async () => {
+    const sent = await push(
+      failWith({ code: 'PGRST204', message: "Could not find the 'scope' column" }),
+    );
+    // One attempt, evidence intact. A retry without evidence would have been a silent data loss
+    // for the rest of the session on the strength of an unrelated schema-cache miss.
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.[0]).toHaveProperty('evidence');
+  });
+
+  it('does not drop the evidence for an ordinary refusal that happens to say the word', async () => {
+    const sent = await push(
+      failWith({ code: '42501', message: 'permission denied for column evidence' }),
+    );
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.[0]).toHaveProperty('evidence');
   });
 });

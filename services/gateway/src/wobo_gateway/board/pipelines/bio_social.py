@@ -305,8 +305,13 @@ def _timeline(intent: dict[str, Any], draft: Draft) -> Draft:
     )
     for year, label in events:
         tick = draft.add("point", anchor=board(*frame.at(year, 0)), style=accent(3), hint="tick")
+        # The check's name carries the year, because that is how it was RECORDED above
+        # (``verify.in_bounds(f"year {year}", ...)`` -> ``board.in_bounds:year 1919``). Writing the
+        # bare ``board.in_bounds:year`` here named a check that never ran, so the planner's own law
+        # refused every number and the learner got a timeline with no dates on it. Found by the
+        # teaching harness, 2026-09-05, on "a timeline of the national movement".
         draft.number(
-            year, "board.in_bounds:year", anchor=on(tick, "top"), decimals=0, style=wobo(1)
+            year, f"board.in_bounds:year {year}", anchor=on(tick, "top"), decimals=0, style=wobo(1)
         )
         draft.add("label", anchor=on(tick, "bottom"), text=label, style=faint(1), hint="event")
     draft.add("underline", anchor=on(line), style=faint(1), hint="span")

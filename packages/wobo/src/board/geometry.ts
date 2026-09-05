@@ -30,7 +30,7 @@ import {
 } from './handwriting';
 import { LABEL_MARGIN, placeLabel, placeLabelAt } from './layout';
 import { fillStroke, penRng, penStroke, polylineLength, ruledStroke, type Stroke } from './pen';
-import type { AnchorAt, BoardObject, BoardPoint } from './schema';
+import { BOARD_UNITS, type AnchorAt, type BoardObject, type BoardPoint } from './schema';
 
 /** Everything the renderer needs to paint one object. */
 export interface ObjectGeometry {
@@ -111,6 +111,9 @@ function arrowHead(tip: BoardPoint, dir: BoardPoint, len: number): Stroke {
 
 /** The clear air an arrowhead keeps off the thing it points at, in board units (BOARD.md §7). */
 export const ARROW_GAP = 6;
+
+/** The margin an axis's reported box keeps around its rule, its ticks and its label. */
+const AXIS_BOX_PAD = 12;
 
 /**
  * The point on `box`'s outline facing `towards`, backed off by `gap`.
@@ -594,11 +597,29 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         }
       }
       if (object.label && ctx.font) {
-        const origin: BoardPoint = horizontal
+        // Past the arrowhead, unless past the arrowhead is past the BOARD. An x-axis 760 units
+        // long starting at 120 ends at 880, so "distance in metres" was written from 890 and ran
+        // to 1040 — off the right edge of a 1000-unit square, on every projectile board there is.
+        // Measured there by the teaching harness, 2026-09-05. When it will not fit it goes under
+        // the end of the axis instead, pulled back just far enough to sit on the board.
+        const beside: BoardPoint = horizontal
           ? [end[0] + 10, end[1] + 4]
           : [end[0] + 10, end[1] - 8];
-        const w = writeText(ctx.font, object.label, origin, { size: LABEL_SIZE });
-        glyphs.push(...w.glyphs);
+        let written = writeText(ctx.font, object.label, beside, { size: LABEL_SIZE });
+        // How far the GLYPHS actually reach, plus the pad this box reports, minus the board. An
+        // estimated width is not good enough here: it is the measured ink that either fits or does
+        // not, and a label two units over the edge is still a label over the edge.
+        const inked = unionBox(written.glyphs.map((g) => g.box));
+        const over = inked ? inked.x + inked.w + AXIS_BOX_PAD - BOARD_UNITS : 0;
+        if (over > 0) {
+          written = writeText(
+            ctx.font,
+            object.label,
+            [Math.max(0, beside[0] - over), end[1] + LABEL_SIZE + 10],
+            { size: LABEL_SIZE },
+          );
+        }
+        glyphs.push(...written.glyphs);
       }
       const bounds =
         unionBox([pointBox(p), pointBox(end), ...glyphs.map((g) => g.box)]) ?? pointBox(p);
@@ -606,7 +627,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         strokes,
         glyphs,
         size: LABEL_SIZE,
-        box: padBox(bounds, 12),
+        box: padBox(bounds, AXIS_BOX_PAD),
         length: totalLength(strokes, glyphs),
       };
     }

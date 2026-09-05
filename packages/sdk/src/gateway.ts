@@ -31,6 +31,11 @@ export const GATEWAY_COPY = {
   budgetAt: (when: string) =>
     `That is everything I can carry today. I am free again at ${when} — come back then and we keep going.`,
   trouble: 'Give me a moment, then ask me again.',
+  /**
+   * The call never came back. Plain, unalarming, and it hands the turn back to the learner instead
+   * of leaving them watching a busy orb. No status code, no "timeout", no fault of theirs.
+   */
+  slow: 'That one is taking longer than it should. Ask me again and I will have another go.',
 } as const;
 
 let current: GatewayAuthConfig = {};
@@ -69,6 +74,23 @@ export class BudgetExhaustedError extends Error {
     this.name = 'BudgetExhaustedError';
     this.resetAt = resetAt;
     this.remaining = remaining;
+  }
+}
+
+/**
+ * THE CALL NEVER CAME BACK.
+ *
+ * Distinct from `GatewayError`, which is a refusal the brain actually sent. Nothing answered here,
+ * so there is no status and nothing to report upward except that the learner should try again.
+ */
+export class GatewayTimeoutError extends Error {
+  readonly code = 'gateway_timeout';
+  /** The deadline that fired, in ms. For a log; the learner sees `message` and nothing else. */
+  readonly afterMs: number;
+  constructor(afterMs: number, message: string = GATEWAY_COPY.slow) {
+    super(message);
+    this.name = 'GatewayTimeoutError';
+    this.afterMs = afterMs;
   }
 }
 
@@ -122,21 +144,148 @@ export async function throwForGatewayStatus(res: Response): Promise<void> {
   throw new GatewayError(res.status, body.message || GATEWAY_COPY.trouble);
 }
 
+// --- Deadlines -----------------------------------------------------------------------------------
+
 /**
- * fetch, with identity attached. Returns the raw response so silent-degrade callers (voice, TTS)
- * can simply give up; callers that speak to the learner pass it through `throwForGatewayStatus`.
+ * HOW LONG A LEARNER IS EVER ASKED TO WAIT.
+ *
+ * `fetch` has no deadline of its own, and nothing in this client supplied one: a gateway that
+ * stopped answering left a child watching a busy orb past forty-five seconds with no sentence and
+ * no way out. These two numbers sit just ABOVE the brain's own ceilings, so the deadline can never
+ * fire before the server would have answered and turn a slow lesson into a false failure. Keep them
+ * in step with `TURN_TIMEOUT_S` / `GENERATION_TIMEOUT_S` in
+ * `services/gateway/src/wobo_gateway/providers.py` (60s and 180s).
  */
-export async function gatewayFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const headers = new Headers(init.headers);
-  for (const [k, v] of Object.entries(await gatewayAuthHeaders())) headers.set(k, v);
-  return fetch(url, { ...init, headers });
+export const GATEWAY_TURN_TIMEOUT_MS = 65_000;
+export const GATEWAY_GENERATION_TIMEOUT_MS = 190_000;
+
+/**
+ * The heavy capability class, mirroring `budget.py`'s `CAPABILITY_CLASS`: longest matching prefix
+ * wins, and an unknown name is a turn — the same call the brain makes, so a capability can never be
+ * metered as a generation here and timed out as a turn there.
+ */
+const GENERATION_PREFIXES = [
+  'engine.',
+  'compose',
+  'video',
+  'podcast',
+  'generate.course',
+  'generate.digest',
+  'curriculum.discovery',
+  'curriculum.own.read',
+] as const;
+
+/** The capability a gateway URL names, or null when the route is not a capability post. */
+function capabilityOf(url: string): string | null {
+  const match = /\/v1\/capability\/([^/?#]+)/.exec(url);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
-/** fetch + identity + typed refusals + JSON. The path most callers want. */
-export async function gatewayJson<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const res = await gatewayFetch(url, init);
-  await throwForGatewayStatus(res);
-  return (await res.json()) as T;
+/** The deadline for one call to this URL. Exported so a caller can reason about it, and tested. */
+export function gatewayTimeoutMs(url: string): number {
+  const capability = capabilityOf(url);
+  if (capability && GENERATION_PREFIXES.some((p) => capability.startsWith(p))) {
+    return GATEWAY_GENERATION_TIMEOUT_MS;
+  }
+  return GATEWAY_TURN_TIMEOUT_MS;
+}
+
+/**
+ * One signal that fires when either of two does. `AbortSignal.any` where the runtime has it; the
+ * manual wiring otherwise, because a caller's own cancel (the learner stopping a turn) must keep
+ * working on every browser this ships to, deadline or no deadline.
+ */
+function combineSignals(caller: AbortSignal | null | undefined, ours: AbortSignal): AbortSignal {
+  if (!caller) return ours;
+  const any = (AbortSignal as { any?: (signals: AbortSignal[]) => AbortSignal }).any;
+  if (any) return any([caller, ours]);
+  const controller = new AbortController();
+  const forward = (from: AbortSignal) => () => controller.abort(from.reason);
+  if (caller.aborted) controller.abort(caller.reason);
+  else if (ours.aborted) controller.abort(ours.reason);
+  else {
+    caller.addEventListener('abort', forward(caller), { once: true });
+    ours.addEventListener('abort', forward(ours), { once: true });
+  }
+  return controller.signal;
+}
+
+/**
+ * fetch, with identity attached and a deadline on the wait for the response. Returns the raw
+ * response so silent-degrade callers (voice, TTS) can simply give up; callers that speak to the
+ * learner pass it through `throwForGatewayStatus`.
+ *
+ * The deadline guards the wait for the HEADERS and is cleared the moment they arrive. That is
+ * deliberate: the board turn streams its answer and holds the connection open long past any of
+ * these numbers on purpose, and a deadline on the whole response would cut a lesson in half. What
+ * the register found — a call hanging past forty-five seconds with nothing on screen — is a
+ * response that never starts, and that is exactly what this catches.
+ *
+ * `timeoutMs` of `null` opts out entirely; a caller doing its own deadline should say so rather
+ * than inherit two.
+ */
+export async function gatewayFetch(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs: number | null = gatewayTimeoutMs(url),
+): Promise<Response> {
+  const headers = new Headers(init.headers);
+  for (const [k, v] of Object.entries(await gatewayAuthHeaders())) headers.set(k, v);
+  if (timeoutMs === null) return fetch(url, { ...init, headers });
+
+  const deadline = new AbortController();
+  const expired = new GatewayTimeoutError(timeoutMs);
+  const timer = setTimeout(() => deadline.abort(expired), timeoutMs);
+  try {
+    return await fetch(url, {
+      ...init,
+      headers,
+      signal: combineSignals(init.signal, deadline.signal),
+    });
+  } catch (err) {
+    // Only OUR deadline becomes the "taking longer than it should" line. A learner who cancelled,
+    // or a network that dropped, is a different fact and keeps its own error.
+    if (deadline.signal.aborted) throw expired;
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * fetch + identity + typed refusals + JSON. The path most callers want.
+ *
+ * One deadline covers the headers AND the body here, because this path reads a single body to
+ * completion: a response that begins and then stalls mid-JSON is the same hang to a learner as one
+ * that never begins.
+ */
+export async function gatewayJson<T>(
+  url: string,
+  init: RequestInit = {},
+  timeoutMs: number | null = gatewayTimeoutMs(url),
+): Promise<T> {
+  if (timeoutMs === null) {
+    const res = await gatewayFetch(url, init, null);
+    await throwForGatewayStatus(res);
+    return (await res.json()) as T;
+  }
+  const deadline = new AbortController();
+  const expired = new GatewayTimeoutError(timeoutMs);
+  const timer = setTimeout(() => deadline.abort(expired), timeoutMs);
+  try {
+    const res = await gatewayFetch(
+      url,
+      { ...init, signal: combineSignals(init.signal, deadline.signal) },
+      null,
+    );
+    await throwForGatewayStatus(res);
+    return (await res.json()) as T;
+  } catch (err) {
+    if (deadline.signal.aborted) throw expired;
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // --- The voice seam ------------------------------------------------------------------------------

@@ -34,6 +34,7 @@ import {
 } from '@wobo/wobo';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import { FlagControl } from '../ui/FlagControl';
 import { Button } from '../ui/primitives';
 import { saveBoardToNotes } from './board-notes';
 import { boardTargets, boardTurn, focusRegionsFor, lessonStore, screenStore } from './board-turn';
@@ -250,6 +251,13 @@ function LessonBoard({
       <Button size="sm" tone="quiet" className="ls-back" onClick={() => lessonView.view('plane')}>
         back to the lesson
       </Button>
+      {/* The full board covers the shell, and the shell is where the quiet flag lives (AppFrame).
+          Without this copy the one surface the help centre names first — the board — would be the
+          one surface with no way to say anything is wrong with it. */}
+      <FlagControl
+        placement="corner"
+        about={{ surface: 'board', ...(title ? { content_id: title } : {}) }}
+      />
     </div>
   );
 }

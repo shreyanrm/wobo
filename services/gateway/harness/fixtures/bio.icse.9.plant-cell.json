@@ -1,0 +1,889 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "Which part would you like to learn the function of first?",
+    "t": 9142,
+    "targets": [],
+    "type": "ask"
+  },
+  "case_id": "bio.icse.9.plant-cell",
+  "cost_usd": 0.002175,
+  "elapsed_ms": 3747.1954579814337,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 1454,
+        "t": 0,
+        "text": "Plant cell, coming up.",
+        "type": "say"
+      },
+      "id": "78ab4nynQsDP:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              480.0,
+              460.0
+            ]
+          },
+          "id": "b0_1outline",
+          "kind": "ellipse",
+          "rx": 260.0,
+          "ry": 200.0,
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 519,
+            "start": 120
+          }
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:1",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              200.0,
+              240.0
+            ]
+          },
+          "id": "b0_2wall",
+          "kind": "polygon",
+          "points": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              560.0,
+              0.0
+            ],
+            [
+              560.0,
+              440.0
+            ],
+            [
+              0.0,
+              440.0
+            ]
+          ],
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 998,
+            "start": 639
+          }
+        },
+        "t": 639,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:2",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              480.0,
+              440.0
+            ]
+          },
+          "id": "b0_3nucleus",
+          "kind": "ellipse",
+          "rx": 70.0,
+          "ry": 60.0,
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 519,
+            "start": 1158
+          }
+        },
+        "t": 1158,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:3",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 7272,
+        "t": 1674,
+        "text": "I\u2019ve drawn the main parts so you can spot the sturdy cell wall, chloroplasts, and large vacuole at a glance.",
+        "type": "say"
+      },
+      "id": "78ab4nynQsDP:4",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              780.0,
+              460.0
+            ]
+          },
+          "from": {
+            "object": "b0_1outline"
+          },
+          "id": "b0_4pointer",
+          "kind": "arrow",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 1678
+          }
+        },
+        "t": 1678,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:5",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "b0_4pointer"
+          },
+          "id": "b0_5part",
+          "kind": "label",
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 2197
+          },
+          "text": "cell wall"
+        },
+        "t": 2197,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:6",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              667.05,
+              639.82
+            ]
+          },
+          "from": {
+            "object": "b0_1outline"
+          },
+          "id": "b0_6pointer",
+          "kind": "arrow",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 2716
+          }
+        },
+        "t": 2716,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:7",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "b0_6pointer"
+          },
+          "id": "b0_7part",
+          "kind": "label",
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 715,
+            "start": 3235
+          },
+          "text": "cell membrane"
+        },
+        "t": 3235,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:8",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              413.24,
+              684.23
+            ]
+          },
+          "from": {
+            "object": "b0_1outline"
+          },
+          "id": "b0_8pointer",
+          "kind": "arrow",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 3754
+          }
+        },
+        "t": 3754,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:9",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "b0_8pointer"
+          },
+          "id": "b0_9part",
+          "kind": "label",
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 4273
+          },
+          "text": "cytoplasm"
+        },
+        "t": 4273,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:10",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              209.71,
+              559.79
+            ]
+          },
+          "from": {
+            "object": "b0_3nucleus"
+          },
+          "id": "b0_10pointer",
+          "kind": "arrow",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 4793
+          }
+        },
+        "t": 4793,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:11",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "b0_10pointer"
+          },
+          "id": "b0_11part",
+          "kind": "label",
+          "style": {
+            "ink": "accent",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 5312
+          },
+          "text": "nucleus"
+        },
+        "t": 5312,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:12",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              209.71,
+              360.21
+            ]
+          },
+          "from": {
+            "object": "b0_1outline"
+          },
+          "id": "b0_12pointer",
+          "kind": "arrow",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 5831
+          }
+        },
+        "t": 5831,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:13",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "b0_12pointer"
+          },
+          "id": "b0_13part",
+          "kind": "label",
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 605,
+            "start": 6350
+          },
+          "text": "chloroplast"
+        },
+        "t": 6350,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:14",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              413.24,
+              235.77
+            ]
+          },
+          "from": {
+            "object": "b0_1outline"
+          },
+          "id": "b0_14pointer",
+          "kind": "arrow",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 6869
+          }
+        },
+        "t": 6869,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:15",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "b0_14pointer"
+          },
+          "id": "b0_15part",
+          "kind": "label",
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 7388
+          },
+          "text": "vacuole"
+        },
+        "t": 7388,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:16",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              667.05,
+              280.18
+            ]
+          },
+          "from": {
+            "object": "b0_1outline"
+          },
+          "id": "b0_16pointer",
+          "kind": "arrow",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 519,
+            "start": 7908
+          }
+        },
+        "t": 7908,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:17",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "b0_16pointer"
+          },
+          "id": "b0_17part",
+          "kind": "label",
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 715,
+            "start": 8427
+          },
+          "text": "mitochondrion"
+        },
+        "t": 8427,
+        "type": "ink"
+      },
+      "id": "78ab4nynQsDP:18",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "Which part would you like to learn the function of first?",
+        "t": 9142,
+        "targets": [],
+        "type": "ask"
+      },
+      "id": "78ab4nynQsDP:19",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 17,
+        "presentation": "plane",
+        "t": 9142,
+        "type": "done",
+        "verified": [
+          "board.fact_supported"
+        ]
+      },
+      "id": "78ab4nynQsDP:20",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "objects": [
+    {
+      "anchor": {
+        "board": [
+          480.0,
+          460.0
+        ]
+      },
+      "id": "b0_1outline",
+      "kind": "ellipse",
+      "rx": 260.0,
+      "ry": 200.0,
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 519,
+        "start": 120
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          200.0,
+          240.0
+        ]
+      },
+      "id": "b0_2wall",
+      "kind": "polygon",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          560.0,
+          0.0
+        ],
+        [
+          560.0,
+          440.0
+        ],
+        [
+          0.0,
+          440.0
+        ]
+      ],
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 998,
+        "start": 639
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          480.0,
+          440.0
+        ]
+      },
+      "id": "b0_3nucleus",
+      "kind": "ellipse",
+      "rx": 70.0,
+      "ry": 60.0,
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 519,
+        "start": 1158
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          780.0,
+          460.0
+        ]
+      },
+      "from": {
+        "object": "b0_1outline"
+      },
+      "id": "b0_4pointer",
+      "kind": "arrow",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 1678
+      }
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "b0_4pointer"
+      },
+      "id": "b0_5part",
+      "kind": "label",
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 2197
+      },
+      "text": "cell wall"
+    },
+    {
+      "anchor": {
+        "board": [
+          667.05,
+          639.82
+        ]
+      },
+      "from": {
+        "object": "b0_1outline"
+      },
+      "id": "b0_6pointer",
+      "kind": "arrow",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 2716
+      }
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "b0_6pointer"
+      },
+      "id": "b0_7part",
+      "kind": "label",
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 715,
+        "start": 3235
+      },
+      "text": "cell membrane"
+    },
+    {
+      "anchor": {
+        "board": [
+          413.24,
+          684.23
+        ]
+      },
+      "from": {
+        "object": "b0_1outline"
+      },
+      "id": "b0_8pointer",
+      "kind": "arrow",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 3754
+      }
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "b0_8pointer"
+      },
+      "id": "b0_9part",
+      "kind": "label",
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 4273
+      },
+      "text": "cytoplasm"
+    },
+    {
+      "anchor": {
+        "board": [
+          209.71,
+          559.79
+        ]
+      },
+      "from": {
+        "object": "b0_3nucleus"
+      },
+      "id": "b0_10pointer",
+      "kind": "arrow",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 4793
+      }
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "b0_10pointer"
+      },
+      "id": "b0_11part",
+      "kind": "label",
+      "style": {
+        "ink": "accent",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 5312
+      },
+      "text": "nucleus"
+    },
+    {
+      "anchor": {
+        "board": [
+          209.71,
+          360.21
+        ]
+      },
+      "from": {
+        "object": "b0_1outline"
+      },
+      "id": "b0_12pointer",
+      "kind": "arrow",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 5831
+      }
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "b0_12pointer"
+      },
+      "id": "b0_13part",
+      "kind": "label",
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 605,
+        "start": 6350
+      },
+      "text": "chloroplast"
+    },
+    {
+      "anchor": {
+        "board": [
+          413.24,
+          235.77
+        ]
+      },
+      "from": {
+        "object": "b0_1outline"
+      },
+      "id": "b0_14pointer",
+      "kind": "arrow",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 6869
+      }
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "b0_14pointer"
+      },
+      "id": "b0_15part",
+      "kind": "label",
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 7388
+      },
+      "text": "vacuole"
+    },
+    {
+      "anchor": {
+        "board": [
+          667.05,
+          280.18
+        ]
+      },
+      "from": {
+        "object": "b0_1outline"
+      },
+      "id": "b0_16pointer",
+      "kind": "arrow",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 519,
+        "start": 7908
+      }
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "b0_16pointer"
+      },
+      "id": "b0_17part",
+      "kind": "label",
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 715,
+        "start": 8427
+      },
+      "text": "mitochondrion"
+    }
+  ],
+  "presentation": "plane",
+  "refused": [],
+  "say": "Plant cell, coming up. I\u2019ve drawn the main parts so you can spot the sturdy cell wall, chloroplasts, and large vacuole at a glance.",
+  "status": 200,
+  "verified": [
+    "board.fact_supported"
+  ]
+}

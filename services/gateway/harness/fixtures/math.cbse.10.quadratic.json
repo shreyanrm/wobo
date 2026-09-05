@@ -1,0 +1,211 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "Which value of x makes the first bracket, x \u2212 2, equal zero?",
+    "t": 9674,
+    "targets": [],
+    "type": "ask"
+  },
+  "case_id": "math.cbse.10.quadratic",
+  "cost_usd": 0.005118,
+  "elapsed_ms": 7968.95675000269,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 1818,
+        "t": 0,
+        "text": "Let\u2019s split the middle term.",
+        "type": "say"
+      },
+      "id": "sd-EAzgVhuq8:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              200.0,
+              200.0
+            ]
+          },
+          "check": "cas.step_chain",
+          "depends": [
+            "x"
+          ],
+          "id": "m0_1given",
+          "kind": "write",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 3185,
+            "start": 120
+          },
+          "text": "x**2 - 5*x + 6 = 0"
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "sd-EAzgVhuq8:1",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 7636,
+        "t": 2038,
+        "text": "We need two numbers that multiply to 6 and add to \u22125, so the quadratic becomes a product of two brackets.",
+        "type": "say"
+      },
+      "id": "sd-EAzgVhuq8:2",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "bottom",
+            "object": "m0_1given"
+          },
+          "check": "cas.step_chain",
+          "depends": [
+            "x"
+          ],
+          "id": "m0_2step1",
+          "kind": "write",
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 3185,
+            "start": 3305
+          },
+          "text": "(x - 2)*(x - 3) = 0"
+        },
+        "t": 3305,
+        "type": "ink"
+      },
+      "id": "sd-EAzgVhuq8:3",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "object": "m0_2step1"
+          },
+          "id": "m0_3substituted",
+          "kind": "underline",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 3185,
+            "start": 6489
+          }
+        },
+        "t": 6489,
+        "type": "ink"
+      },
+      "id": "sd-EAzgVhuq8:4",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "Which value of x makes the first bracket, x \u2212 2, equal zero?",
+        "t": 9674,
+        "targets": [],
+        "type": "ask"
+      },
+      "id": "sd-EAzgVhuq8:5",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 3,
+        "presentation": "plane",
+        "t": 9674,
+        "type": "done",
+        "verified": [
+          "cas.step_chain"
+        ]
+      },
+      "id": "sd-EAzgVhuq8:6",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "objects": [
+    {
+      "anchor": {
+        "board": [
+          200.0,
+          200.0
+        ]
+      },
+      "check": "cas.step_chain",
+      "depends": [
+        "x"
+      ],
+      "id": "m0_1given",
+      "kind": "write",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 3185,
+        "start": 120
+      },
+      "text": "x**2 - 5*x + 6 = 0"
+    },
+    {
+      "anchor": {
+        "at": "bottom",
+        "object": "m0_1given"
+      },
+      "check": "cas.step_chain",
+      "depends": [
+        "x"
+      ],
+      "id": "m0_2step1",
+      "kind": "write",
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 3185,
+        "start": 3305
+      },
+      "text": "(x - 2)*(x - 3) = 0"
+    },
+    {
+      "anchor": {
+        "object": "m0_2step1"
+      },
+      "id": "m0_3substituted",
+      "kind": "underline",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 3185,
+        "start": 6489
+      }
+    }
+  ],
+  "presentation": "plane",
+  "refused": [],
+  "say": "Let\u2019s split the middle term. We need two numbers that multiply to 6 and add to \u22125, so the quadratic becomes a product of two brackets.",
+  "status": 200,
+  "verified": [
+    "cas.step_chain"
+  ]
+}

@@ -165,6 +165,7 @@
       "object": {
         "id": "square-a",
         "kind": "polygon",
+        "title": "the square on side a, the shorter leg",
         "anchor": {
           "board": [260, 390]
         },
@@ -185,6 +186,7 @@
       "object": {
         "id": "square-b",
         "kind": "polygon",
+        "title": "the square on side b, the upright leg",
         "anchor": {
           "board": [170, 300]
         },
@@ -205,6 +207,7 @@
       "object": {
         "id": "square-c",
         "kind": "polygon",
+        "title": "the tilted square on the hypotenuse, the one the other two fill",
         "anchor": {
           "board": [260, 180]
         },

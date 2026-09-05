@@ -10,7 +10,7 @@ Draft of 3 September 2026. Version 0.1. Written by the Wobo team, not yet review
 >
 > Each of those is a choice you make, one at a time. Nothing is shared automatically.
 >
-> Today the first of those is an email to support@heywobo.com, and the third is switched off. This document says which parts of it are built and which are not, rather than describing the finished shape as though it were here.
+> Today the first of those is a quiet flag control inside Wobo, or an email to support@heywobo.com, and the third is switched off. This document says which parts of it are built and which are not, rather than describing the finished shape as though it were here.
 
 ---
 
@@ -26,17 +26,17 @@ There is no fourth thing. Wobo has no learner-to-learner messaging, no comments,
 
 ## 2. Telling us something is wrong
 
-**Where, today.** support@heywobo.com, read by a person. There is no flag control in the product: not on a lesson, not on a board, not on a practice item, and Wobo has no spoken command that raises one. We have written that plainly here because the alternative is a child hunting a screen for a control that was only ever on a page.
+**Where.** A quiet flag control sits on every screen inside Wobo: in the rail on a computer, above the row of doors on a phone, and in the corner of a full board. Pressing one of six lines sends the report; typing anything is optional. It carries the reason, your words if you typed any, and pointers at what was on screen (which lesson, question or board, and the subject), and nothing else from your device. Wobo has no spoken command that raises one. support@heywobo.com is still there and still read by a person, and it is the better route when you want an answer back.
 
 **The one exception.** On an equation practice question there is an "I think I'm right" control on the question itself. It re-checks the answer against the equation and changes the mark where the proof is on the learner's side. That is a regrade, not a report, and it reaches nobody.
 
-**What happens to what you send.** We read it, we work out whether the content was wrong, and we fix what was. We answer you either way. There is no queue, no case number, no priority ordering by how many people reported the same thing, and no automatic message back when something is settled, because none of that is built.
+**What happens to what you send.** It goes into a queue a person works through, and a report marked upsetting or unsafe goes to the top of that queue and raises an alarm the moment it arrives. We read it, we work out whether the content was wrong, and we fix what was. There is no case number, no ordering by how many people reported the same thing, and no automatic message back when something is settled, because none of that is built. A message you send to the mailbox is answered; a flag raised in the product is read, and it is not a conversation.
 
-**What a report contains.** Only what you chose to send us. We do not take a picture of your screen, and nothing is collected from your device when you write to us.
+**What a report contains.** What you chose to send us, and pointers at what was on screen when you sent it: the kind of thing it was, which one, and the subject. We do not take a picture of your screen, we do not copy your work or your answers into a report, and nothing at all is collected from your device when you write to the mailbox instead.
 
 **Time.** We do not publish a turnaround time, because we have not staffed one and a target nobody is held to is worse than no target. What we will say is that a message about a child being at risk is read before anything else in the mailbox.
 
-**What we intend to build, and have not.** A quiet control on every piece of content Wobo produces; a picture of exactly what you were looking at, drawn by our own renderer rather than captured from your device; ink and blur tools to mark it up; a queue a person works through; and a message back when a report is settled. None of it exists today. When it does, this section is rewritten, and a turnaround time goes in it only once somebody is answerable for meeting it.
+**What we intend to build, and have not.** A picture of exactly what you were looking at, drawn by our own renderer rather than captured from your device; ink and blur tools to mark it up; and a message back when a report is settled. None of those three exists today. (The control itself and the queue behind it were on this list until 5 September 2026, and both are now built; this paragraph is the record of that.) A turnaround time goes in here only once somebody is answerable for meeting it.
 
 **Abuse.** Flooding us with false reports takes attention away from real problems, and repeated abuse is dealt with under `acceptable-use.md`.
 

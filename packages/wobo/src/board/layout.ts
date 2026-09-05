@@ -19,6 +19,49 @@ export const OBJECT_GAP = 14;
 /** The board's own breathing room — the screen breathes (DESIGN.md §2). */
 export const BOARD_PADDING = 28;
 
+/**
+ * Kinds that are GROUND rather than ink, and so never push a written note out of the way.
+ *
+ * A plotted graph rules a `grid` across its whole drawing area before it draws anything. The
+ * renderer puts every drawn box into `occupied`, so that grid — 700 units of it — was an obstacle,
+ * and every note anchored inside the plot stepped down until it was clear of it, which meant down
+ * and off the bottom of the board. The teaching harness measured a live "graph y = x^2 with the
+ * tangent at x = 1" on 2026-09-05 and found the slope value at y = 1024 and the words "slope here"
+ * at y = 1071, on a board 1000 units tall.
+ *
+ * A tutor writes ON graph paper. That is what graph paper is for.
+ */
+const GROUND_KINDS: ReadonlySet<string> = new Set(['grid']);
+
+/** Does an object of this kind push a label out of the way? */
+export function blocksLayout(kind: string): boolean {
+  return !GROUND_KINDS.has(kind);
+}
+
+/**
+ * A box pulled back onto the board horizontally. Applied BEFORE the collision search, never after.
+ *
+ * After is a trap, and it cost a real board: a timeline's last events sit near the right edge, so
+ * clamping their labels afterwards slid them left into labels the search had already cleared —
+ * "Cabinet Mission and Interim Government" landed on top of "Civil Disobedience Movement and Dandi
+ * March" on the live run of 2026-09-05. Whatever moves a box has to move before the search, or the
+ * search is answering a question about a position the box does not end up in.
+ */
+function withinBoard(box: BoardRect): BoardRect {
+  return { ...box, x: Math.max(0, Math.min(box.x, BOARD_UNITS - box.w)) };
+}
+
+/**
+ * The lowest a label's TOP may be placed and still leave the whole label on the board.
+ *
+ * Both placement loops below used to step down with no bound at all — 200 times in one, 60 in the
+ * other — so a crowded board did not produce a tight fit, it produced a note nobody can read
+ * because it is past the edge. Off the board is worse than beside something.
+ */
+function keepOnBoard(box: BoardRect): BoardRect {
+  return { ...box, y: Math.max(0, Math.min(box.y, BOARD_UNITS - box.h)) };
+}
+
 export interface Size {
   w: number;
   h: number;
@@ -79,10 +122,14 @@ export function placeLabel(
     ...size,
   };
   let guard = 0;
-  while (clashes(fallback, occupied, margin * 0.5) && guard++ < 200) {
+  while (
+    clashes(fallback, occupied, margin * 0.5) &&
+    fallback.y + size.h + margin <= BOARD_UNITS &&
+    guard++ < 200
+  ) {
     fallback.y += size.h + margin;
   }
-  return fallback;
+  return keepOnBoard(fallback);
 }
 
 /**
@@ -122,14 +169,22 @@ export function placeLabelAt(
     left: { x: anchor.x - margin - size.w, y: midY, ...size },
     right: { x: anchor.x + anchor.w + margin, y: midY, ...size },
   };
-  const box = placed[at];
-  if (!box) return null;
+  const asked = placed[at];
+  if (!asked) return null;
+  // Horizontally first, so the collision search below answers a question about where this label
+  // is actually going to sit.
+  const box = withinBoard(asked);
   // Clear of anything already down, moving along the side it was asked for.
   const step = at.startsWith('top') ? -(size.h + margin) : size.h + margin;
   const out = { ...box };
   let guard = 0;
-  while (clashes(out, occupied, margin * 0.5) && guard++ < 60) out.y += step;
-  return out;
+  while (clashes(out, occupied, margin * 0.5) && guard++ < 60) {
+    const next = out.y + step;
+    // Never off the board: a note past the edge is not a tighter fit, it is a note nobody reads.
+    if (next < 0 || next + size.h > BOARD_UNITS) break;
+    out.y = next;
+  }
+  return keepOnBoard(out);
 }
 
 /**

@@ -168,6 +168,10 @@ button.wk-tile{border:0;cursor:pointer;text-align:left;font:inherit;color:inheri
 
 /* phone: rail becomes a bottom tab bar */
 @media (max-width:900px){
+  /* The tab bar's own height, published so that everything else pinned to the bottom of a phone
+     screen can sit ABOVE it rather than on top of it. The save-trouble strip covered the whole
+     rail before this existed, which took away the only way a child moves between screens. */
+  :root{--rail-h:76px}
   .wk-shell{grid-template-columns:1fr;min-height:100vh}
   .wk-rail{position:fixed;left:0;right:0;bottom:0;z-index:10;flex-direction:row;justify-content:space-around;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--paper);box-shadow:0 -10px 30px rgba(20,20,43,.08);gap:0}
   .wk-rail .wk-wm,.wk-rail .wk-spacer,.wk-rail .wk-bottom{display:none}

@@ -26,6 +26,8 @@ import {
 import { hueForTopic } from '../ui/hues';
 import { sfx } from '../ui/sound';
 import { earnedTrophyKeys, type TrophyAward, topTrophyKey, trophyAwardFor } from '../ui/trophies';
+import { SaveTrouble } from './SaveTrouble';
+import { scoped } from './scope';
 import { useSdk } from './sdk';
 
 export type XpReason =
@@ -159,7 +161,7 @@ const CELEBRATED_KEY = 'wobo-trophies-celebrated-v1';
 
 function loadCelebrated(): Set<string> | null {
   try {
-    const raw = localStorage.getItem(CELEBRATED_KEY);
+    const raw = scoped.getItem(CELEBRATED_KEY);
     return raw ? new Set(JSON.parse(raw) as string[]) : null;
   } catch {
     return null;
@@ -168,7 +170,7 @@ function loadCelebrated(): Set<string> | null {
 
 function saveCelebrated(set: Set<string>): void {
   try {
-    localStorage.setItem(CELEBRATED_KEY, JSON.stringify([...set]));
+    scoped.setItem(CELEBRATED_KEY, JSON.stringify([...set]));
   } catch {
     // storage unavailable — the ceremony still fires this session, just isn't remembered
   }
@@ -177,10 +179,10 @@ function saveCelebrated(set: Set<string>): void {
 function bumpToday() {
   try {
     const key = 'wobo-activity-counts-v1';
-    const counts = JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, number>;
+    const counts = JSON.parse(scoped.getItem(key) ?? '{}') as Record<string, number>;
     const t = today();
     counts[t] = (counts[t] ?? 0) + 1;
-    localStorage.setItem(key, JSON.stringify(counts));
+    scoped.setItem(key, JSON.stringify(counts));
   } catch {
     // storage unavailable — heat map just stays cool
   }
@@ -447,5 +449,17 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <Ctx.Provider value={store}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={store}>
+      {children}
+      {/*
+        The one place the learner is told their work is not landing (`store/SaveTrouble.tsx`).
+        It hangs off THIS provider on purpose: this is the store that owns the child's XP, streak
+        and completions, and the sentence is about exactly that work failing to reach their
+        account. It renders nothing at all until a run of failed saves crosses the threshold in
+        `sync-health.ts`, so the ordinary screen is untouched.
+      */}
+      <SaveTrouble />
+    </Ctx.Provider>
+  );
 }

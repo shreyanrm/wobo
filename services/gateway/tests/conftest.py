@@ -96,6 +96,13 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
     # module exists to close.
     monkeypatch.setenv("SUBSCRIPTIONS_STORE", "memory")
     billing.set_store(None)
+    # Wobo's mind: a fresh in-process store per test, and never a project one. It is the most
+    # personal row we hold, so the suite must not be able to reach a real one even by accident,
+    # and one test's remembered facts must never be another test's.
+    from wobo_gateway import mind as mind_mod
+
+    monkeypatch.setenv("WOBO_MIND_STORE", "memory")
+    mind_mod.set_store(None)
     auth.reset_jwks_cache()
     voice.reset_tokens()
     # Mail: console transport, an empty in-memory send log, and background sends run inline so

@@ -27,6 +27,7 @@ import {
 } from './providers';
 import { LocalStateProvider, type StateProvider, SupabaseStateProvider } from './state';
 import { ERASABLE_TABLES, type ErasureResult, eraseSubjectRows, SupabaseRest } from './supabase';
+import { SyncHealth } from './sync-health';
 
 /**
  * The assembled SDK — the one surface the app consumes. It wires the identity boundary, the KGtoPG
@@ -66,6 +67,15 @@ export interface Sdk {
    * configured (a keyless build has no meter to read). The client never computes a limit; it asks.
    */
   me(): Promise<Me | null>;
+  /**
+   * WHETHER THE LEARNER'S WORK IS ACTUALLY LANDING (`sync-health.ts`).
+   *
+   * Every remote write reports here. Past a run of failures the app is allowed to say one calm
+   * sentence with a way to try again, instead of the boot loader going on promising "Your place is
+   * saved" against a database that is refusing every write. Present in every mode; in a local build
+   * nothing ever reports to it, so it is permanently quiet.
+   */
+  sync: SyncHealth;
   /**
    * The optional account layer — Supabase Auth as an ADDITIVE identity+sync layer, present whenever
    * the Supabase env keys are configured (even in dev-mock/local mode). Signing in never becomes a
@@ -125,6 +135,8 @@ const NIL_SUBJECT = '00000000-0000-0000-0000-000000000000';
 
 export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   const config = resolveConfig(overrides);
+  // One counter for the whole SDK, handed to every provider that writes remotely.
+  const sync = new SyncHealth();
 
   if (!config.devAuth && (!config.supabaseUrl || !config.supabaseAnonKey)) {
     // Secrets/keys come from env only — live auth without them is a misconfiguration, not a mode.
@@ -174,7 +186,7 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   // band a returning learner sees is their whole history, not the last five minutes of it. Local
   // mode and a signed-out learner get the localStorage half and work exactly as before.
   const mastery: MasteryProvider = rest
-    ? new SupabaseMasteryProvider(rest, subjectId)
+    ? new SupabaseMasteryProvider(rest, subjectId, undefined, undefined, sync)
     : new LocalMasteryProvider(undefined, supabaseAuth?.subjectId ?? '');
 
   // Events go through the real contract; evidence-bearing events update mastery via the consumer
@@ -217,7 +229,7 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   });
 
   events = rest
-    ? new SupabaseOutboxEventProvider(attribution, kgtopg, rest)
+    ? new SupabaseOutboxEventProvider(attribution, kgtopg, rest, undefined, undefined, sync)
     : new InMemoryEventProvider(attribution, kgtopg);
   const eventProvider: EventProvider = events;
 
@@ -226,7 +238,7 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   // previous one's XP, streak and conversation. The pre-scope bucket is adopted once, by the first
   // subject to claim the device (state.ts).
   const state: StateProvider = rest
-    ? new SupabaseStateProvider(rest, subjectId)
+    ? new SupabaseStateProvider(rest, subjectId, undefined, undefined, sync)
     : new LocalStateProvider(undefined, supabaseAuth?.subjectId ?? '');
 
   // One anonymous sign-in per device, at most one in flight: the boot effect asks for it, and any
@@ -301,7 +313,10 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
             });
             return (row as CachedProfile | null) ?? null;
           } catch {
-            return null; // offline or unreadable — treat as no cached profile
+            // A READ, not a write: nothing of the learner's is lost by failing it, so it does not
+            // go to `sync` — the local profile already answers every screen. Treated as no cached
+            // profile, which is what an offline device genuinely has.
+            return null;
           }
         },
         signInWithGoogle: (redirectTo) => supabaseAuth.auth.signInWithGoogle(redirectTo),
@@ -316,8 +331,12 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
           if (!sub || !accountRest) return;
           try {
             await accountRest.upsert('profiles_cache', { subject_id: sub, ...row }, 'subject_id');
-          } catch {
-            // best-effort — offline or the row is not yet writable; the local profile still holds
+            sync.succeeded('profile');
+          } catch (err) {
+            // Still best-effort, still never thrown at the learner: the local profile holds and the
+            // next sync carries it. Counted rather than dropped, because the learner's own name and
+            // class not reaching their account is exactly the kind of loss they should hear about.
+            sync.failed('profile', err);
           }
         },
       }
@@ -350,6 +369,7 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
     state,
     mastery: masteryLayer,
     me,
+    sync,
     account,
   };
 }

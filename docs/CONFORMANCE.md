@@ -150,11 +150,14 @@ real fix. Every one is traceable to the domain row in brackets.
     watching a busy orb with no sentence and no way out. *Smallest fix: a default `AbortSignal.timeout`
     in `gatewayFetch`, just above the gateway's own ceilings.* [reliability 5.1, 7.7]
 
-12. **Two of fourteen migrations have never been applied to production.** Verified 2026-09-04:
-    `list_migrations` returns 8 versions; `list_tables` returns 22 tables and no `subscriptions`. Any
-    conformance claim resting on `0013` or `0014` was a claim about SQL that has never run.
-    *Smallest fix: `supabase migration repair` for the pre ledger four, then `db push` for `0013` and
-    `0014`.* [testing 8.4, corrected after challenge C6; privacy J12; app security 1.3]
+12. **CLOSED 2026-09-05: every migration in the repository is applied.** It was two of fourteen on
+    2026-09-04, then six of twenty on the page that recorded it, and both numbers were wrong by the
+    time they were read. `list_migrations` now returns `0001`, `0006`-`0018`, `0019_parent_accounts`
+    and `0020_wobo_mind`; `0002`-`0005` predate the ledger and their tables are in use. What made
+    this urgent rather than tidy: `learner.wobo_mind` and the whole `parent` schema are both on the
+    erase path, so `POST /v1/me/erase` answered 502 for every learner while they were missing.
+    See `docs/OPERATIONS.md` §8, which also records that a build agent applied the last two and how
+    to undo them. [testing 8.4, corrected after challenge C6; privacy J12; app security 1.3]
 
 13. **A known vulnerable `aiohttp` runs in the live voice relay** (three advisories, fix in 3.14.3),
     17 JS advisories sit in the build path, and nothing in CI checks either. *Smallest fix:
@@ -366,7 +369,7 @@ assembly on 2026-09-04 before any status was changed.
 | supply chain 10.3 | N/A / NOT MET | NOT MET | A dual status let the row sit in the N/A column while the prose said otherwise. |
 | testing 3.1 | MET | NOT VERIFIED at HEAD | The challenger ran the journey suite and got 3 failed of 3. |
 | testing 3.2 | MET | PARTIAL | The suite stubs both subscription routes with `page.route` and runs with no gateway and no database. |
-| testing 8.4 | NOT VERIFIED | NOT MET | Settled here: 8 of 14 migrations in the ledger, `0013` and `0014` provably unapplied. |
+| testing 8.4 | NOT VERIFIED | MET as of 2026-09-05 | Every migration in the repository is applied and `list_migrations` shows it, ending at `0020_wobo_mind`. |
 | testing 9.1 | MET | MET for stability, stale for green | Stable across four runs at 7 fail / 1611 pass, not 0 fail. |
 | accessibility A13 | MET | PARTIAL | The grep cannot see the product's audio: every Wobo reply plays aloud from an always mounted narrator. |
 

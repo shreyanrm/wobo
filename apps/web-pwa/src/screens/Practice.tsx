@@ -146,7 +146,10 @@ export function Practice() {
   const mood = result ? (result.correct ? 'celebrate' : 'hint') : 'idle';
 
   return (
-    <AppFrame active="practice">
+    // The question is one of the four surfaces the help centre names as carrying a quiet flag, and
+    // the flag itself lives in the frame. This is how it learns WHICH question is on screen, so a
+    // child who says "this looks wrong" does not also have to say which one they meant.
+    <AppFrame active="practice" about={{ surface: 'question', content_id: spec.id }}>
       <h1 className="pr-sr">Practice</h1>
       <TopBar
         crumb={`Practice · ${SET_TITLE} · ${pos + 1} of ${N}`}

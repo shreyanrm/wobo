@@ -2,6 +2,7 @@ import { type EventType, makeEvent, newId, type PayloadOf, type WoboEvent } from
 import type { EventConsumer } from '@wobo/kgtopg-contract-seed';
 import type { SdkConfig } from './config';
 import type { SupabaseRest } from './supabase';
+import type { SyncHealth } from './sync-health';
 
 /**
  * The event backbone. Every meaningful action records one WoboEvent through the real contract.
@@ -99,6 +100,9 @@ export class InMemoryEventProvider implements EventProvider {
   }
 }
 
+/** The longest a failed batch ever waits before trying again. A returning network is picked up. */
+export const OUTBOX_MAX_BACKOFF_MS = 60_000;
+
 /**
  * The live transport: everything InMemoryEventProvider does (log + immediate local mastery), plus
  * batched inserts into `learner.outbox` via `outbox_append_batch` — the transactional-outbox side
@@ -106,12 +110,27 @@ export class InMemoryEventProvider implements EventProvider {
  * at-least-once retries are no-ops). A failed flush re-queues the batch and retries on the next
  * record/flush (and on its own re-armed timer, so a batch is never left waiting on the learner);
  * the local log and mastery loop are never blocked by the network.
+ *
+ * WHOSE ID DOES A QUEUED WRITE LAND UNDER? The learner who recorded it, always, and there is a
+ * belt and braces for it. Each event is stamped with the attribution subject at `record` time
+ * (`InMemoryEventProvider.record`, from the config the SDK was assembled with), and the queue is
+ * never re-stamped. Server side, `learner.outbox_append` (migration 0002) refuses outright when
+ * `auth.uid()` is not the event's `actor.subject_id`, so a batch that somehow met a different
+ * session's token is rejected rather than filed under the wrong child. And the app-side sign-out
+ * navigates (`shell/CommandPalette.tsx`), which tears this queue down with the document, so the
+ * two-learners-one-page case does not arise in the first place. What WAS wrong is what happens
+ * after such a refusal: the retry re-armed the same 800ms timer forever, hammering a server that
+ * had already said no. Hence the backoff below.
+ *
  * ponytail: the pending queue is in-memory — events recorded fully offline that never see another
  * flush are lost with the tab; move the queue to localStorage if offline sessions must survive.
+ * Keyed by subject when it moves, or it becomes the leak the paragraph above rules out.
  */
 export class SupabaseOutboxEventProvider extends InMemoryEventProvider {
   private pending: WoboEvent[] = [];
   private timer: ReturnType<typeof setTimeout> | null = null;
+  /** Consecutive failed flushes. Drives the backoff; reset by the first one that lands. */
+  private flushFailures = 0;
 
   constructor(
     config: SdkConfig,
@@ -119,8 +138,27 @@ export class SupabaseOutboxEventProvider extends InMemoryEventProvider {
     private readonly rest: Pick<SupabaseRest, 'rpc'>,
     private readonly flushAfterMs = 800,
     private readonly maxBatch = 20,
+    /** Where a failed flush is counted. See `sync-health.ts`. */
+    private readonly health?: SyncHealth,
   ) {
     super(config, consumer);
+    this.health?.register('events', () => this.flushOrThrow());
+  }
+
+  /**
+   * How long the next attempt waits: the base delay doubled once per consecutive failure, capped.
+   * Zero failures is the ordinary batching delay, so a working device is unchanged.
+   */
+  get nextAttemptInMs(): number {
+    return Math.min(this.flushAfterMs * 2 ** this.flushFailures, OUTBOX_MAX_BACKOFF_MS);
+  }
+
+  /** Stop the timer. For a test, and for any caller that wants the queue to stop retrying. */
+  stop(): void {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
   }
 
   override record<T extends EventType>(
@@ -141,27 +179,41 @@ export class SupabaseOutboxEventProvider extends InMemoryEventProvider {
   /** Arm the flush timer if nothing is armed — the batch always has a next attempt of its own. */
   private arm(): void {
     if (this.timer || this.pending.length === 0) return;
-    this.timer = setTimeout(() => void this.flush(), this.flushAfterMs);
+    this.timer = setTimeout(() => void this.flush(), this.nextAttemptInMs);
   }
 
   /** Push the pending batch to the outbox. Resolves to the number of events accepted. */
   async flush(): Promise<number> {
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
+    try {
+      return await this.flushOrThrow();
+    } catch {
+      return 0; // recording an event never throws at a tap, and neither does giving up on one
     }
+  }
+
+  /**
+   * The same flush, but it reports the refusal to its caller. The retry button needs to know
+   * whether the push landed; `flush` above is the fire-and-forget door every other caller uses.
+   */
+  private async flushOrThrow(): Promise<number> {
+    this.stop();
     if (this.pending.length === 0) return 0;
     const batch = this.pending;
     this.pending = [];
     try {
       await this.rest.rpc('outbox_append_batch', { p_events: batch });
+      this.flushFailures = 0;
+      this.health?.succeeded('events');
       return batch.length;
-    } catch {
+    } catch (err) {
       this.pending = [...batch, ...this.pending]; // keep order; retry on the next record/flush
+      this.flushFailures += 1;
+      this.health?.failed('events', err);
       // Re-arm: a failed flush cleared the timer, so without this the batch would sit until the
       // learner happened to record another event — and a tab closed first takes it with them.
+      // The wait grows with the run, so a permanent refusal is not a hot loop against the server.
       this.arm();
-      return 0;
+      throw err;
     }
   }
 

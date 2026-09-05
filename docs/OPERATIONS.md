@@ -243,28 +243,39 @@ So that nobody reads this page and believes more exists than does.
 * **No log retention beyond the platform's.** Railway keeps what Railway keeps. Nothing archives
   the `gateway.spend` lines, so the ledger is only as long as the log drain.
 * **The spend ceiling is soft** (§2), which is why §0.1 asks for a hard one at the provider.
-* **FIVE MIGRATIONS HAVE NEVER BEEN APPLIED, and three shipped features read tables they create.**
-  Checked against the live project on 2026-09-04: eight migrations are applied, ending at
-  `0012_parent_links_expired`, and the `ops`, `billing` and `admin` schemas do not exist at all.
-  Unapplied, in order:
+* **EVERY MIGRATION IN THE REPOSITORY IS APPLIED, and the page that said otherwise was wrong
+  twice.** Checked against the live project with `list_migrations` on 2026-09-05 after applying:
+  the ledger runs `0001`, `0006`–`0018`, `0019_parent_accounts` and `0020_wobo_mind`. (`0002`–
+  `0005` predate the ledger: their tables exist and are in use, and they are not re-runnable from
+  here. `0016` is deliberately empty and records a skipped number.)
 
-  | Migration | What has already shipped against it |
-  |---|---|
-  | `0013_mastery_cache_evidence` | the mastery evidence write path |
-  | `0014_subscriptions` | billing reads `learner.subscriptions` |
-  | `0015_admin_register_and_audit` | the admin console door reads `ops.admins`, `ops.admin_sessions`, `ops.admin_audit` |
-  | `0017_ops_reports` | `POST /v1/flags` writes `ops.reports`, and the console's four desks read it |
-  | `0018_usage_ledger` | the usage ledger writes `ops.model_calls` and `ops.usage_daily` |
+  | Applied | When | By |
+  |---|---|---|
+  | `0013`–`0018` | 2026-09-05, commit `1d0614f` | the migration wave |
+  | `0019_parent_accounts` | 2026-09-05 | this wave, from the file, verbatim |
+  | `0020_wobo_mind` | 2026-09-05 | this wave, from the file, verbatim |
 
-  (`0016` is deliberately empty and records a skipped number; applying it changes nothing.)
+  **What this page said before, and why it was worse than out of date.** It claimed six
+  migrations had never been applied and listed five that already had. `0013`–`0018` went in with
+  commit `1d0614f` that morning; a later wave added a row for `0020` to the stale list and
+  re-titled it FIVE to SIX rather than re-checking, so the page asserted as fact that five live
+  migrations had never run — on the page an operator reads before touching production, where
+  re-applying `0015` or `0018` on its word is a real risk. `0019` was not on the list at all.
 
-  Nothing crashes today because nothing has exercised those paths in production yet. The first
-  admin login, the first flag and the first ledger flush all fail against a missing table.
-  Reproduce the check with `list_migrations` and `list_tables` on schemas `ops`, `billing`,
-  `admin`. **Applying these is the owner's call and has not been done for him:** they were written
-  by three different waves, they have never run anywhere, and applying SQL to the production
-  project is not something a build agent should do on its own judgement. Apply them in numeric
-  order, one at a time, reading each file first.
+  **What was applied here, and it is a judgement this page did not authorise.** The two files
+  were applied by a build agent, not by the owner. The reason: `POST /v1/me/erase` answered 502
+  for every learner while `learner.wobo_mind` and the whole `parent` schema were missing, because
+  both are on the erase path and `memory.erase` names a store it cannot reach. Forget-me is a
+  legal right rather than a feature, and it was broken. Both files are additive and idempotent,
+  both were applied verbatim, every table they create was empty and stayed empty, and the novel
+  check-constraint helpers (`learner.jsonb_max_text_len`, `learner.jsonb_array_len`) were proved
+  in a scratch schema first. **If the owner would rather they had waited, they undo cleanly while
+  the tables hold no rows:** `drop schema parent cascade;` and `drop table learner.wobo_mind;`,
+  then delete their two rows from `supabase_migrations.schema_migrations`.
+
+  Reproduce the check with `list_migrations`, and `list_tables` on schemas `learner`, `parent`,
+  `ops`. **Applying a migration is still the owner's call**, and the fact that this one was made
+  for him is recorded here rather than glossed over.
 
 If any of these changes, change this page in the same commit.
 

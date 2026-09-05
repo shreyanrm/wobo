@@ -150,3 +150,89 @@ def test_a_chain_that_all_accepts_the_knob_keeps_it(fake, monkeypatch) -> None:
     )
     model_call.complete(model="a", fallbacks=["b"], temperature=0.2)
     assert f.calls[0]["temperature"] == 0.2
+
+
+def test_a_chain_whose_last_error_hides_a_middle_refusal_still_retries(fake) -> None:
+    """The third-provider case, found live on 2026-09-05.
+
+    The chain is three models deep now (``routing``: "A THIRD provider on every text chain"). The
+    middle one refuses ``temperature``; the LAST one fails for an unrelated reason — a bad key, an
+    empty balance — and litellm raises only that one. So the error we are handed is an
+    ``APIConnectionError`` about a provider that never had an opinion about the knob, and the
+    heuristics above see nothing to act on.
+
+    What it cost: every live board plan in the gateway failed, ``board_plan_for`` swallowed the
+    failure exactly as it is designed to, and the learner got the KEYLESS keyword board with one of
+    four canned sentences over it. A board nobody planned, served as though somebody had.
+
+    The rule this test fixes in place: when the call carried an optional knob AND there was a
+    fallback chain, the error we were handed provably does not speak for the models it did not come
+    from, so one attempt without the knobs is owed before the failure is reported.
+    """
+    hidden = Exception(
+        "litellm.APIConnectionError: litellm.AuthenticationError: GeminiException - "
+        '{"error": {"code": 401, "message": "Request had invalid authentication credentials."}}'
+    )
+    f = fake([hidden, "answered without it"])
+    out = model_call.complete(
+        model="openai/terra",
+        fallbacks=["anthropic/opus", "gemini/flash"],
+        temperature=0.2,
+        max_tokens=900,
+    )
+    assert out == "answered without it"
+    assert len(f.calls) == 2
+    assert "temperature" not in f.calls[1]
+    assert f.calls[1]["max_tokens"] == 900
+
+
+def test_a_timeout_in_a_chain_is_still_a_timeout(fake) -> None:
+    """The clock is not a hidden knob refusal, and a second pass down the chain doubles it.
+
+    ``timeout=timeout_for(...)`` bounds each call at 60s for a turn; the client's own deadline
+    (``packages/sdk/src/gateway.ts``) is 65s. Retrying a timed-out chain made the worst case 120s,
+    so the learner was shown "that one is taking longer than it should" while the gateway was
+    still working, and the owner paid for the second call anyway.
+    """
+    f = fake([TimeoutError("Request timed out after 60s")])
+    with pytest.raises(TimeoutError):
+        model_call.complete(
+            model="openai/terra", fallbacks=["anthropic/opus", "gemini/flash"], temperature=0.7
+        )
+    assert len(f.calls) == 1, "a chain does not buy a timeout a second pass"
+
+
+def test_the_blind_retry_only_uses_time_left_inside_the_deadline(fake) -> None:
+    """A retry that outlives the caller's ceiling is worse than no retry at all."""
+
+    class Hidden(Exception):
+        pass
+
+    f = fake([Hidden("APIConnectionError: authentication"), "answered without it"])
+    with pytest.raises(Hidden):
+        model_call.complete(
+            model="openai/terra", fallbacks=["anthropic/opus"], temperature=0.2, timeout=1.0
+        )
+    assert len(f.calls) == 1, "there was no room left in the deadline for a second attempt"
+
+    f = fake([Hidden("APIConnectionError: authentication"), "answered without it"])
+    assert (
+        model_call.complete(
+            model="openai/terra", fallbacks=["anthropic/opus"], temperature=0.2, timeout=60.0
+        )
+        == "answered without it"
+    )
+    assert len(f.calls) == 2 and "temperature" not in f.calls[1]
+    assert f.calls[1]["timeout"] < 60.0, "the retry inherits what is left, not a fresh 60 seconds"
+
+
+def test_a_single_model_that_simply_fell_over_is_still_raised_as_it_came(fake) -> None:
+    """The broadening above is bounded by the fallback chain, and only by it.
+
+    With ONE model in play, the error we were handed IS the whole story, so a timeout stays a
+    timeout and an ailing provider is not asked twice.
+    """
+    f = fake([TimeoutError("Request timed out after 30s")])
+    with pytest.raises(TimeoutError):
+        model_call.complete(model="openai/terra", temperature=0.2)
+    assert len(f.calls) == 1

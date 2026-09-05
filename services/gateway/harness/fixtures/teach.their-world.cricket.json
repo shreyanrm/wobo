@@ -1,0 +1,39 @@
+{
+  "actions": [
+    {
+      "mood": "thinking",
+      "type": "setMood"
+    }
+  ],
+  "ask": null,
+  "case_id": "teach.their-world.cricket",
+  "cost_usd": 0.002459,
+  "elapsed_ms": 4032.292084011715,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "actions": [
+          {
+            "mood": "thinking",
+            "type": "setMood"
+          }
+        ],
+        "grounded": false,
+        "handed_answer": false,
+        "path": "inline",
+        "say": "Equivalent fractions are different-looking fractions worth the same amount, like 1/2 and 2/4: if you multiply both top and bottom by the same number, the fraction keeps its value."
+      },
+      "id": "",
+      "type": "output"
+    }
+  ],
+  "mode": "prose",
+  "model_calls": 1,
+  "objects": [],
+  "presentation": "",
+  "refused": [],
+  "say": "Equivalent fractions are different-looking fractions worth the same amount, like 1/2 and 2/4: if you multiply both top and bottom by the same number, the fraction keeps its value.",
+  "status": 200,
+  "verified": []
+}

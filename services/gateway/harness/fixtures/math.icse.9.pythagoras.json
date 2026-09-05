@@ -1,0 +1,547 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "Which side is the hypotenuse?",
+    "t": 12513,
+    "targets": [],
+    "type": "ask"
+  },
+  "case_id": "math.icse.9.pythagoras",
+  "cost_usd": 0.002454,
+  "elapsed_ms": 3767.9105840506963,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 1090,
+        "t": 0,
+        "text": "Let\u2019s build it.",
+        "type": "say"
+      },
+      "id": "P1FfFpNiVETu:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              246.67,
+              703.33
+            ]
+          },
+          "id": "m0_1triangle",
+          "kind": "polygon",
+          "points": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              351.85,
+              0.0
+            ],
+            [
+              0.0,
+              -432.1
+            ]
+          ],
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1288,
+            "start": 120
+          }
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:1",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 6545,
+        "t": 1310,
+        "text": "I\u2019ve drawn the right triangle from its two given legs, and the hypotenuse is computed on the diagram.",
+        "type": "say"
+      },
+      "id": "P1FfFpNiVETu:2",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              246.67,
+              650.83
+            ]
+          },
+          "id": "m0_2rightangle",
+          "kind": "polyline",
+          "points": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              57.0,
+              0.0
+            ],
+            [
+              57.0,
+              52.5
+            ]
+          ],
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1288,
+            "start": 1408
+          }
+        },
+        "t": 1408,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:3",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              422.59,
+              703.33
+            ]
+          },
+          "id": "m0_3basemid",
+          "kind": "point",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1288,
+            "start": 2696
+          }
+        },
+        "t": 2696,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:4",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              246.67,
+              487.28
+            ]
+          },
+          "id": "m0_4sidemid",
+          "kind": "point",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1288,
+            "start": 3984
+          }
+        },
+        "t": 3984,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:5",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              422.59,
+              487.28
+            ]
+          },
+          "id": "m0_5hypmid",
+          "kind": "point",
+          "style": {
+            "ink": "accent",
+            "weight": 3
+          },
+          "t": {
+            "dur": 1288,
+            "start": 5272
+          }
+        },
+        "t": 5272,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:6",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "bottom",
+            "object": "m0_3basemid"
+          },
+          "check": "board.numbers_agree:hypotenuse",
+          "id": "m0_6num",
+          "kind": "number",
+          "precision": 2,
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1288,
+            "start": 6559
+          },
+          "unit": "cm",
+          "value": 3.0,
+          "verified": true
+        },
+        "t": 6559,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:7",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "left",
+            "object": "m0_4sidemid"
+          },
+          "check": "board.numbers_agree:hypotenuse",
+          "id": "m0_7num",
+          "kind": "number",
+          "precision": 2,
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1288,
+            "start": 7847
+          },
+          "unit": "cm",
+          "value": 4.0,
+          "verified": true
+        },
+        "t": 7847,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:8",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 3636,
+        "t": 8075,
+        "text": "Can you spot which side sits opposite the right angle?",
+        "type": "say"
+      },
+      "id": "P1FfFpNiVETu:9",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "m0_5hypmid"
+          },
+          "check": "board.numbers_agree:hypotenuse",
+          "id": "m0_8num",
+          "kind": "number",
+          "precision": 2,
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1288,
+            "start": 9135
+          },
+          "unit": "cm",
+          "value": 5.0,
+          "verified": true
+        },
+        "t": 9135,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:10",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "top",
+            "object": "m0_1triangle"
+          },
+          "id": "m0_9note",
+          "kind": "label",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 2090,
+            "start": 10423
+          },
+          "text": "the right angle is the one it is about"
+        },
+        "t": 10423,
+        "type": "ink"
+      },
+      "id": "P1FfFpNiVETu:11",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "Which side is the hypotenuse?",
+        "t": 12513,
+        "targets": [],
+        "type": "ask"
+      },
+      "id": "P1FfFpNiVETu:12",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 9,
+        "presentation": "plane",
+        "t": 12513,
+        "type": "done",
+        "verified": [
+          "board.numbers_agree:hypotenuse"
+        ]
+      },
+      "id": "P1FfFpNiVETu:13",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "objects": [
+    {
+      "anchor": {
+        "board": [
+          246.67,
+          703.33
+        ]
+      },
+      "id": "m0_1triangle",
+      "kind": "polygon",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          351.85,
+          0.0
+        ],
+        [
+          0.0,
+          -432.1
+        ]
+      ],
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1288,
+        "start": 120
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          246.67,
+          650.83
+        ]
+      },
+      "id": "m0_2rightangle",
+      "kind": "polyline",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          57.0,
+          0.0
+        ],
+        [
+          57.0,
+          52.5
+        ]
+      ],
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1288,
+        "start": 1408
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          422.59,
+          703.33
+        ]
+      },
+      "id": "m0_3basemid",
+      "kind": "point",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1288,
+        "start": 2696
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          246.67,
+          487.28
+        ]
+      },
+      "id": "m0_4sidemid",
+      "kind": "point",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1288,
+        "start": 3984
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          422.59,
+          487.28
+        ]
+      },
+      "id": "m0_5hypmid",
+      "kind": "point",
+      "style": {
+        "ink": "accent",
+        "weight": 3
+      },
+      "t": {
+        "dur": 1288,
+        "start": 5272
+      }
+    },
+    {
+      "anchor": {
+        "at": "bottom",
+        "object": "m0_3basemid"
+      },
+      "check": "board.numbers_agree:hypotenuse",
+      "id": "m0_6num",
+      "kind": "number",
+      "precision": 2,
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1288,
+        "start": 6559
+      },
+      "unit": "cm",
+      "value": 3.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "at": "left",
+        "object": "m0_4sidemid"
+      },
+      "check": "board.numbers_agree:hypotenuse",
+      "id": "m0_7num",
+      "kind": "number",
+      "precision": 2,
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1288,
+        "start": 7847
+      },
+      "unit": "cm",
+      "value": 4.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "m0_5hypmid"
+      },
+      "check": "board.numbers_agree:hypotenuse",
+      "id": "m0_8num",
+      "kind": "number",
+      "precision": 2,
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1288,
+        "start": 9135
+      },
+      "unit": "cm",
+      "value": 5.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "at": "top",
+        "object": "m0_1triangle"
+      },
+      "id": "m0_9note",
+      "kind": "label",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 2090,
+        "start": 10423
+      },
+      "text": "the right angle is the one it is about"
+    }
+  ],
+  "presentation": "plane",
+  "refused": [],
+  "say": "Let\u2019s build it. I\u2019ve drawn the right triangle from its two given legs, and the hypotenuse is computed on the diagram. Can you spot which side sits opposite the right angle?",
+  "status": 200,
+  "verified": [
+    "board.numbers_agree:hypotenuse"
+  ]
+}

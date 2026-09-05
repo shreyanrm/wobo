@@ -198,7 +198,7 @@ function dayString(offset = 0): string {
 export function markToday(): string[] {
   let marks: string[] = [];
   try {
-    marks = JSON.parse(localStorage.getItem(ACTIVITY_KEY) ?? '[]') as string[];
+    marks = JSON.parse(scoped.getItem(ACTIVITY_KEY) ?? '[]') as string[];
   } catch {
     marks = [];
   }
@@ -206,7 +206,7 @@ export function markToday(): string[] {
   if (!marks.includes(t)) marks.push(t);
   marks = marks.slice(-30);
   try {
-    localStorage.setItem(ACTIVITY_KEY, JSON.stringify(marks));
+    scoped.setItem(ACTIVITY_KEY, JSON.stringify(marks));
   } catch {
     // fine
   }
