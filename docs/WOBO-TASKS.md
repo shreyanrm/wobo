@@ -992,3 +992,25 @@ false reached a learner". All of the following are fixed, each with a test that 
       harness reports this rather than assuming a chain it did not get
 - [ ] **The second opinion shares a provider with the tutor** for the same reason, which is a weaker
       cross-check than the routing doctrine asks for. The report says so on every run
+
+### 10.17 How Wobo sees the screen (owner, 2026-09-05)
+The owner's ruling, reasoning from first principles: an overlay with a scroll hold is right, and
+the one case that needs a screenshot is a VIDEO, because a frame has no structure to point at,
+so there you pause, capture, lock and annotate, and nowhere else.
+
+Verified against the code, and the design already matches, with one refinement:
+- [x] **Everything we render is registered, never photographed.** Every screen registers semantic
+      targets (id, kind, label, live rect, actions). "Nothing is ever placed by pixels." No vision
+      call, no screenshot, nothing about a child's screen ever leaves as an image
+- [x] **Wobo's OWN films need no screenshot either.** `wobo/video.ts`: the frame at the paused
+      timestamp IS a scene spec, every drawable part carries an id, and on pause those parts
+      register as surface targets, so Wobo annotates the exact arrow in the exact frame. The player
+      returns to the paused millisecond afterwards. Wired through `engines/MotionPlayer.tsx` and
+      `wobo/Stage.tsx`
+- [x] **There is no external video in the product today.** No embed, no iframe, no video upload.
+      Learner uploads are photographs of a page, handed to the model as an image at upload time,
+      which is input rather than a screenshot
+- [ ] **THE ONE SCREENSHOT CASE, recorded so it is built right if it ever arrives:** video we did
+      not make (a YouTube embed, a learner's clip). Pause, capture the frame, hold scroll, annotate,
+      release. That is the owner's design and it is the only place a screenshot is permitted
+- [ ] Scroll hold during an active stroke on any surface: Wave 22, running
