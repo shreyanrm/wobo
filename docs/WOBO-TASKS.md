@@ -1035,3 +1035,25 @@ adversary poisons it: one account × 100 edits, 20 fresh accounts, 30 real accou
 real chapter — the document must win; then a genuinely dropped chapter must mint a new version.
 
 **State.** Building. Run `wf_5b2d02c9-074`, task `wozfy0307`.
+
+### 10.19 Onboarding: one sign-in, not two (owner, 2026-09-05)
+
+**Ask.** A first-time learner should be impressed; one sign-in, every step seen in pixels, the
+aha moment proven.
+
+**Landed, `0dad66f` (wave 23).** Step one of /onboarding renders the same Auth door as /sign-up
+(a `run` prop says where Google lands and what happens on sign-in); the 77-class private copy is
+deleted and a test keeps it deleted. An empty submit says one line and puts the caret in the
+first missing thing, in page order, on the door, on step two and on the parent step. The stepper
+is one shared nav with real Back buttons; a reload resumes where the learner was, never past the
+door or an unanswered question; an anonymous Supabase session no longer counts as signed in.
+Every step measured at 1440/834/390, light and dark: no sideways scroll, nothing at opacity 0, no
+control under 44px on a phone. Adversary raised 9, fixer closed 9, each held by a test proven to
+fail without the change. Shots in `shots/onboarding-2026-09-05/`.
+
+**Open, queued behind wave 22.** The sample chips on step three ("Why is the sky blue?") land as
+handwritten text, not ink, because `boardShapeOf` routes plain prose away from the board while
+the headline says "I'll draw it". Fix: one `draw: true` on `AskOptions`, honoured where
+`boardShapeOf` is computed, passed by step three for the first question. Wave 22 owns
+`presentation.ts` and `AppRuntime`; do it the moment it lands, then re-run
+`tests/onboarding.spec.ts` against a live key to prove the aha draws.
