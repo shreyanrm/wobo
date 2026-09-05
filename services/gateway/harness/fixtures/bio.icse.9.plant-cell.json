@@ -1,24 +1,24 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "Which part would you like to learn the function of first?",
-    "t": 9142,
+    "prompt": "Which labelled part carries out photosynthesis?",
+    "t": 13893,
     "targets": [],
     "type": "ask"
   },
   "case_id": "bio.icse.9.plant-cell",
-  "cost_usd": 0.002175,
-  "elapsed_ms": 3747.1954579814337,
+  "cost_usd": 0.002595,
+  "elapsed_ms": 5343.6612079967745,
   "error": "",
   "events": [
     {
       "data": {
-        "dur": 1454,
+        "dur": 1090,
         "t": 0,
-        "text": "Plant cell, coming up.",
+        "text": "Let\u2019s build it.",
         "type": "say"
       },
-      "id": "78ab4nynQsDP:0",
+      "id": "AvoWkKS1T1ys:0",
       "type": "say"
     },
     {
@@ -39,14 +39,14 @@
             "weight": 2
           },
           "t": {
-            "dur": 519,
+            "dur": 810,
             "start": 120
           }
         },
         "t": 120,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:1",
+      "id": "AvoWkKS1T1ys:1",
       "type": "ink"
     },
     {
@@ -84,14 +84,24 @@
           },
           "t": {
             "dur": 998,
-            "start": 639
+            "start": 930
           }
         },
-        "t": 639,
+        "t": 930,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:2",
+      "id": "AvoWkKS1T1ys:2",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 9454,
+        "t": 1310,
+        "text": "A plant cell has a cell wall because it needs a firm outer layer for support, rather like a tiny box around the softer cell membrane.",
+        "type": "say"
+      },
+      "id": "AvoWkKS1T1ys:3",
+      "type": "say"
     },
     {
       "data": {
@@ -111,25 +121,15 @@
             "weight": 2
           },
           "t": {
-            "dur": 519,
-            "start": 1158
+            "dur": 810,
+            "start": 1740
           }
         },
-        "t": 1158,
+        "t": 1740,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:3",
+      "id": "AvoWkKS1T1ys:4",
       "type": "ink"
-    },
-    {
-      "data": {
-        "dur": 7272,
-        "t": 1674,
-        "text": "I\u2019ve drawn the main parts so you can spot the sturdy cell wall, chloroplasts, and large vacuole at a glance.",
-        "type": "say"
-      },
-      "id": "78ab4nynQsDP:4",
-      "type": "say"
     },
     {
       "data": {
@@ -150,14 +150,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 1678
+            "dur": 810,
+            "start": 2551
           }
         },
-        "t": 1678,
+        "t": 2551,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:5",
+      "id": "AvoWkKS1T1ys:5",
       "type": "ink"
     },
     {
@@ -174,15 +174,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 2197
+            "dur": 810,
+            "start": 3361
           },
           "text": "cell wall"
         },
-        "t": 2197,
+        "t": 3361,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:6",
+      "id": "AvoWkKS1T1ys:6",
       "type": "ink"
     },
     {
@@ -204,14 +204,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 2716
+            "dur": 810,
+            "start": 4171
           }
         },
-        "t": 2716,
+        "t": 4171,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:7",
+      "id": "AvoWkKS1T1ys:7",
       "type": "ink"
     },
     {
@@ -228,15 +228,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 715,
-            "start": 3235
+            "dur": 810,
+            "start": 4981
           },
           "text": "cell membrane"
         },
-        "t": 3235,
+        "t": 4981,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:8",
+      "id": "AvoWkKS1T1ys:8",
       "type": "ink"
     },
     {
@@ -258,14 +258,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 3754
+            "dur": 810,
+            "start": 5791
           }
         },
-        "t": 3754,
+        "t": 5791,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:9",
+      "id": "AvoWkKS1T1ys:9",
       "type": "ink"
     },
     {
@@ -282,15 +282,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 4273
+            "dur": 810,
+            "start": 6601
           },
           "text": "cytoplasm"
         },
-        "t": 4273,
+        "t": 6601,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:10",
+      "id": "AvoWkKS1T1ys:10",
       "type": "ink"
     },
     {
@@ -312,14 +312,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 4793
+            "dur": 810,
+            "start": 7412
           }
         },
-        "t": 4793,
+        "t": 7412,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:11",
+      "id": "AvoWkKS1T1ys:11",
       "type": "ink"
     },
     {
@@ -336,15 +336,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 5312
+            "dur": 810,
+            "start": 8222
           },
           "text": "nucleus"
         },
-        "t": 5312,
+        "t": 8222,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:12",
+      "id": "AvoWkKS1T1ys:12",
       "type": "ink"
     },
     {
@@ -366,14 +366,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 5831
+            "dur": 810,
+            "start": 9032
           }
         },
-        "t": 5831,
+        "t": 9032,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:13",
+      "id": "AvoWkKS1T1ys:13",
       "type": "ink"
     },
     {
@@ -390,15 +390,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 605,
-            "start": 6350
+            "dur": 810,
+            "start": 9842
           },
           "text": "chloroplast"
         },
-        "t": 6350,
+        "t": 9842,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:14",
+      "id": "AvoWkKS1T1ys:14",
       "type": "ink"
     },
     {
@@ -420,15 +420,25 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 6869
+            "dur": 810,
+            "start": 10652
           }
         },
-        "t": 6869,
+        "t": 10652,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:15",
+      "id": "AvoWkKS1T1ys:15",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 2909,
+        "t": 10984,
+        "text": "I\u2019ve labelled the main parts for your revision.",
+        "type": "say"
+      },
+      "id": "AvoWkKS1T1ys:16",
+      "type": "say"
     },
     {
       "data": {
@@ -444,15 +454,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 7388
+            "dur": 810,
+            "start": 11462
           },
           "text": "vacuole"
         },
-        "t": 7388,
+        "t": 11462,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:16",
+      "id": "AvoWkKS1T1ys:17",
       "type": "ink"
     },
     {
@@ -474,14 +484,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 519,
-            "start": 7908
+            "dur": 810,
+            "start": 12273
           }
         },
-        "t": 7908,
+        "t": 12273,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:17",
+      "id": "AvoWkKS1T1ys:18",
       "type": "ink"
     },
     {
@@ -498,38 +508,38 @@
             "weight": 1
           },
           "t": {
-            "dur": 715,
-            "start": 8427
+            "dur": 810,
+            "start": 13083
           },
           "text": "mitochondrion"
         },
-        "t": 8427,
+        "t": 13083,
         "type": "ink"
       },
-      "id": "78ab4nynQsDP:18",
+      "id": "AvoWkKS1T1ys:19",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "Which part would you like to learn the function of first?",
-        "t": 9142,
+        "prompt": "Which labelled part carries out photosynthesis?",
+        "t": 13893,
         "targets": [],
         "type": "ask"
       },
-      "id": "78ab4nynQsDP:19",
+      "id": "AvoWkKS1T1ys:20",
       "type": "ask"
     },
     {
       "data": {
         "objects": 17,
-        "presentation": "plane",
-        "t": 9142,
+        "presentation": "full",
+        "t": 13893,
         "type": "done",
         "verified": [
           "board.fact_supported"
         ]
       },
-      "id": "78ab4nynQsDP:20",
+      "id": "AvoWkKS1T1ys:21",
       "type": "done"
     }
   ],
@@ -552,7 +562,7 @@
         "weight": 2
       },
       "t": {
-        "dur": 519,
+        "dur": 810,
         "start": 120
       }
     },
@@ -589,7 +599,7 @@
       },
       "t": {
         "dur": 998,
-        "start": 639
+        "start": 930
       }
     },
     {
@@ -608,8 +618,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 519,
-        "start": 1158
+        "dur": 810,
+        "start": 1740
       }
     },
     {
@@ -629,8 +639,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 1678
+        "dur": 810,
+        "start": 2551
       }
     },
     {
@@ -645,8 +655,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 2197
+        "dur": 810,
+        "start": 3361
       },
       "text": "cell wall"
     },
@@ -667,8 +677,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 2716
+        "dur": 810,
+        "start": 4171
       }
     },
     {
@@ -683,8 +693,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 715,
-        "start": 3235
+        "dur": 810,
+        "start": 4981
       },
       "text": "cell membrane"
     },
@@ -705,8 +715,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 3754
+        "dur": 810,
+        "start": 5791
       }
     },
     {
@@ -721,8 +731,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 4273
+        "dur": 810,
+        "start": 6601
       },
       "text": "cytoplasm"
     },
@@ -743,8 +753,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 4793
+        "dur": 810,
+        "start": 7412
       }
     },
     {
@@ -759,8 +769,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 5312
+        "dur": 810,
+        "start": 8222
       },
       "text": "nucleus"
     },
@@ -781,8 +791,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 5831
+        "dur": 810,
+        "start": 9032
       }
     },
     {
@@ -797,8 +807,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 605,
-        "start": 6350
+        "dur": 810,
+        "start": 9842
       },
       "text": "chloroplast"
     },
@@ -819,8 +829,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 6869
+        "dur": 810,
+        "start": 10652
       }
     },
     {
@@ -835,8 +845,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 7388
+        "dur": 810,
+        "start": 11462
       },
       "text": "vacuole"
     },
@@ -857,8 +867,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 519,
-        "start": 7908
+        "dur": 810,
+        "start": 12273
       }
     },
     {
@@ -873,15 +883,15 @@
         "weight": 1
       },
       "t": {
-        "dur": 715,
-        "start": 8427
+        "dur": 810,
+        "start": 13083
       },
       "text": "mitochondrion"
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Plant cell, coming up. I\u2019ve drawn the main parts so you can spot the sturdy cell wall, chloroplasts, and large vacuole at a glance.",
+  "say": "Let\u2019s build it. A plant cell has a cell wall because it needs a firm outer layer for support, rather like a tiny box around the softer cell membrane. I\u2019ve labelled the main parts for your revision.",
   "status": 200,
   "verified": [
     "board.fact_supported"

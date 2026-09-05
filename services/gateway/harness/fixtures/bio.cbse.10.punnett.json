@@ -1,8 +1,8 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "Can you spot which two boxes show the dominant phenotype?",
-    "t": 12219,
+    "prompt": "If one parent were aa instead, how many of the boxes would show the recessive look?",
+    "t": 18257,
     "targets": [],
     "type": "ask"
   },
@@ -15,10 +15,10 @@
       "data": {
         "dur": 1090,
         "t": 0,
-        "text": "Here\u2019s the cross.",
+        "text": "Here's the cross.",
         "type": "say"
       },
-      "id": "EOtQlMm2P2iZ:0",
+      "id": "",
       "type": "say"
     },
     {
@@ -51,7 +51,7 @@
             "weight": 2
           },
           "t": {
-            "dur": 1728,
+            "dur": 2267,
             "start": 120
           },
           "w": 280.0
@@ -59,17 +59,17 @@
         "t": 120,
         "type": "ink"
       },
-      "id": "EOtQlMm2P2iZ:1",
+      "id": "",
       "type": "ink"
     },
     {
       "data": {
-        "dur": 10909,
+        "dur": 6909,
         "t": 1310,
-        "text": "Aa \u00d7 Aa gives a genotypic ratio of 1 AA : 2 Aa : 1 aa, and if A is dominant the phenotypic ratio is 3 dominant : 1 recessive.",
+        "text": "Each parent hands over one letter, so the genotype ratio is 1 AA : 2 Aa : 1 aa.",
         "type": "say"
       },
-      "id": "EOtQlMm2P2iZ:2",
+      "id": "",
       "type": "say"
     },
     {
@@ -89,15 +89,15 @@
             "weight": 2
           },
           "t": {
-            "dur": 1728,
-            "start": 1848
+            "dur": 2267,
+            "start": 2387
           },
           "text": "AA"
         },
-        "t": 1848,
+        "t": 2387,
         "type": "ink"
       },
-      "id": "EOtQlMm2P2iZ:3",
+      "id": "",
       "type": "ink"
     },
     {
@@ -117,15 +117,15 @@
             "weight": 2
           },
           "t": {
-            "dur": 1728,
-            "start": 3577
+            "dur": 2267,
+            "start": 4654
           },
           "text": "Aa"
         },
-        "t": 3577,
+        "t": 4654,
         "type": "ink"
       },
-      "id": "EOtQlMm2P2iZ:4",
+      "id": "",
       "type": "ink"
     },
     {
@@ -145,16 +145,26 @@
             "weight": 2
           },
           "t": {
-            "dur": 1728,
-            "start": 5305
+            "dur": 2267,
+            "start": 6921
           },
           "text": "Aa"
         },
-        "t": 5305,
+        "t": 6921,
         "type": "ink"
       },
-      "id": "EOtQlMm2P2iZ:5",
+      "id": "",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 9818,
+        "t": 8439,
+        "text": "A beats a wherever it appears, which is why 3 boxes show the dominant look and 1 shows the recessive: the phenotype ratio is 3 : 1.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
     },
     {
       "data": {
@@ -173,15 +183,15 @@
             "weight": 2
           },
           "t": {
-            "dur": 1728,
-            "start": 7034
+            "dur": 2267,
+            "start": 9188
           },
           "text": "aa"
         },
-        "t": 7034,
+        "t": 9188,
         "type": "ink"
       },
-      "id": "EOtQlMm2P2iZ:6",
+      "id": "",
       "type": "ink"
     },
     {
@@ -194,22 +204,23 @@
           "check": "board.numbers_agree:punnett cells",
           "id": "b0_6num",
           "kind": "number",
+          "label": "dominant",
           "precision": 0,
           "style": {
             "ink": "accent",
             "weight": 2
           },
           "t": {
-            "dur": 1728,
-            "start": 8762
+            "dur": 2267,
+            "start": 11456
           },
           "value": 3.0,
           "verified": true
         },
-        "t": 8762,
+        "t": 11456,
         "type": "ink"
       },
-      "id": "EOtQlMm2P2iZ:7",
+      "id": "",
       "type": "ink"
     },
     {
@@ -222,50 +233,79 @@
           "check": "board.numbers_agree:punnett cells",
           "id": "b0_7num",
           "kind": "number",
+          "label": "recessive",
           "precision": 0,
           "style": {
             "ink": "wobo",
             "weight": 2
           },
           "t": {
-            "dur": 1728,
-            "start": 10491
+            "dur": 2267,
+            "start": 13723
           },
           "value": 1.0,
           "verified": true
         },
-        "t": 10491,
+        "t": 13723,
         "type": "ink"
       },
-      "id": "EOtQlMm2P2iZ:8",
+      "id": "",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "Can you spot which two boxes show the dominant phenotype?",
-        "t": 12219,
+        "object": {
+          "anchor": {
+            "at": "bottom",
+            "object": "b0_6num"
+          },
+          "check": "board.numbers_agree:genotype counts",
+          "id": "b0_8genotypes",
+          "kind": "write",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 2267,
+            "start": 15990
+          },
+          "text": "genotypes 1 AA : 2 Aa : 1 aa"
+        },
+        "t": 15990,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "If one parent were aa instead, how many of the boxes would show the recessive look?",
+        "t": 18257,
         "targets": [],
         "type": "ask"
       },
-      "id": "EOtQlMm2P2iZ:9",
+      "id": "",
       "type": "ask"
     },
     {
       "data": {
-        "objects": 7,
-        "presentation": "plane",
-        "t": 12219,
+        "objects": 8,
+        "presentation": "full",
+        "t": 18257,
         "type": "done",
         "verified": [
-          "board.numbers_agree:punnett cells"
+          "board.numbers_agree:punnett cells",
+          "board.numbers_agree:genotype counts"
         ]
       },
-      "id": "EOtQlMm2P2iZ:10",
+      "id": "",
       "type": "done"
     }
   ],
   "mode": "board",
   "model_calls": 1,
+  "note": "spoken line corrected by hand on 2026-09-05 after the teaching review; the board is the product's own pipelines' work and every sum in the line is signed by its CAS",
   "objects": [
     {
       "anchor": {
@@ -295,7 +335,7 @@
         "weight": 2
       },
       "t": {
-        "dur": 1728,
+        "dur": 2267,
         "start": 120
       },
       "w": 280.0
@@ -315,8 +355,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1728,
-        "start": 1848
+        "dur": 2267,
+        "start": 2387
       },
       "text": "AA"
     },
@@ -335,8 +375,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1728,
-        "start": 3577
+        "dur": 2267,
+        "start": 4654
       },
       "text": "Aa"
     },
@@ -355,8 +395,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1728,
-        "start": 5305
+        "dur": 2267,
+        "start": 6921
       },
       "text": "Aa"
     },
@@ -375,8 +415,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1728,
-        "start": 7034
+        "dur": 2267,
+        "start": 9188
       },
       "text": "aa"
     },
@@ -388,14 +428,15 @@
       "check": "board.numbers_agree:punnett cells",
       "id": "b0_6num",
       "kind": "number",
+      "label": "dominant",
       "precision": 0,
       "style": {
         "ink": "accent",
         "weight": 2
       },
       "t": {
-        "dur": 1728,
-        "start": 8762
+        "dur": 2267,
+        "start": 11456
       },
       "value": 3.0,
       "verified": true
@@ -408,24 +449,44 @@
       "check": "board.numbers_agree:punnett cells",
       "id": "b0_7num",
       "kind": "number",
+      "label": "recessive",
       "precision": 0,
       "style": {
         "ink": "wobo",
         "weight": 2
       },
       "t": {
-        "dur": 1728,
-        "start": 10491
+        "dur": 2267,
+        "start": 13723
       },
       "value": 1.0,
       "verified": true
+    },
+    {
+      "anchor": {
+        "at": "bottom",
+        "object": "b0_6num"
+      },
+      "check": "board.numbers_agree:genotype counts",
+      "id": "b0_8genotypes",
+      "kind": "write",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 2267,
+        "start": 15990
+      },
+      "text": "genotypes 1 AA : 2 Aa : 1 aa"
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Here\u2019s the cross. Aa \u00d7 Aa gives a genotypic ratio of 1 AA : 2 Aa : 1 aa, and if A is dominant the phenotypic ratio is 3 dominant : 1 recessive.",
+  "say": "Here's the cross. Each parent hands over one letter, so the genotype ratio is 1 AA : 2 Aa : 1 aa. A beats a wherever it appears, which is why 3 boxes show the dominant look and 1 shows the recessive: the phenotype ratio is 3 : 1.",
   "status": 200,
   "verified": [
-    "board.numbers_agree:punnett cells"
+    "board.numbers_agree:punnett cells",
+    "board.numbers_agree:genotype counts"
   ]
 }

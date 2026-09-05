@@ -41,6 +41,7 @@ import {
   TopBar,
 } from '../ui/primitives';
 import { setThemePref, type ThemePref, useThemePref } from '../ui/theme';
+import { DoubtMemory } from './doubt/DoubtMemory';
 import { GradeBoardPicker } from './you/GradeBoardPicker';
 import { weeklyNote } from './you/ledger';
 import { chosenNames, type MailPrefsView, readMailPrefs, writeCalendars } from './you/mailPrefs';
@@ -648,6 +649,13 @@ export function You() {
                 </div>
               </div>
             ) : null}
+            {/* The photos a learner took of their doubts: the memory law's visible half for
+                bytes (screens/doubt). Each row's remove reaches the server before the device. */}
+            <ToggleRow
+              title="Your doubts"
+              hint="Photos you took of a page, and what Wobo read on them"
+            />
+            <DoubtMemory />
             <ToggleRow
               title="Larger text"
               hint="Bump the type size across the whole app"

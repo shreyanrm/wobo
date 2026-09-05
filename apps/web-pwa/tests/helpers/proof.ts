@@ -77,6 +77,9 @@ export const APP_ROUTES: readonly RouteCase[] = [
   // unreachable from anywhere in the app, which is why the row now measures the screen itself.
   { id: 'progress', path: '/progress', ready: 'Your map' },
   { id: 'you', path: '/you', ready: 'Learning strengths' },
+  // The doubt solver's capture screen (screens/doubt): the camera on a phone, the picker and the
+  // drop zone on a laptop. Keyless it can go no further than this, which is the surface to measure.
+  { id: 'doubt', path: '/doubt', ready: 'Take a photo of the doubt' },
   // The parent's read-only view of the You page, reached from its Parents card.
   { id: 'parent', path: '/parent', ready: 'Questions word for word' },
   // A subject door is addressed by the subject's own name — the registry keys subjects by what

@@ -54,6 +54,11 @@ const EXACT: Record<string, Route> = {
   courses: { name: 'learn' },
   catalog: { name: 'learn' },
   atom: { name: 'course', topicId: ATOM_TOPIC_ID },
+  // The doubt solver: a photo of the page, read back, explained on the photo (screens/doubt).
+  doubt: { name: 'doubt' },
+  'doubt solver': { name: 'doubt' },
+  'my doubts': { name: 'doubt' },
+  camera: { name: 'doubt' },
 };
 
 /** Canonical subject ids by the names a learner actually types (displaySubjectById resolves them). */
@@ -111,6 +116,8 @@ function matchLoose(s: string): Route | null {
   if (/\bparent(?:'s)? view\b/.test(s)) return { name: 'parent' };
   if (/\b(?:practice|practise|sandbox)\b/.test(s)) return { name: 'practice' };
   if (/\b(?:profile|settings|account)\b/.test(s)) return { name: 'you' };
+  // "open the camera", "show me my doubts": the doubt solver, only ever behind a go-there verb.
+  if (/\b(?:doubts?|doubt solver|camera)\b/.test(s)) return { name: 'doubt' };
   if (/\b(?:library|subjects?|courses?|catalogue?|catalog|learn)\b/.test(s))
     return { name: 'learn' };
   if (/\batom\b/.test(s)) return { name: 'course', topicId: ATOM_TOPIC_ID };
@@ -142,6 +149,8 @@ function destSay(route: Route): string {
       return 'Opening your profile.';
     case 'parent':
       return "Opening the parent's view.";
+    case 'doubt':
+      return 'Opening the camera. Point it at the page.';
     case 'subject':
       return `Taking you to ${subjectName(route.subjectId)}.`;
     case 'course':

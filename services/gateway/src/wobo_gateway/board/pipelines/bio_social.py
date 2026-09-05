@@ -234,6 +234,20 @@ def _punnett(intent: dict[str, Any], draft: Draft) -> Draft:
         raise Unverified("that cross does not produce a square")
     dominant, recessive = phenotype_ratio(cells)
     draft.ledger.record(verify.numbers_agree("punnett cells", dominant + recessive, 4.0))
+    # The GENOTYPE ratio too, under its own name. A live turn said "the square shows the genotype
+    # ratio" over a board that carried only the 3 and the 1: every number verified, the name wrong.
+    # With both ratios drawn and labelled there is nothing for a sentence to misname.
+    genotypes: list[tuple[str, int]] = []
+    for cell in cells:
+        for i, (name, count) in enumerate(genotypes):
+            if name == cell:
+                genotypes[i] = (name, count + 1)
+                break
+        else:
+            genotypes.append((cell, 1))
+    genotype_check = draft.ledger.record(
+        verify.numbers_agree("genotype counts", float(sum(n for _, n in genotypes)), 4.0)
+    )
 
     table = draft.add(
         "table",
@@ -253,11 +267,12 @@ def _punnett(intent: dict[str, Any], draft: Draft) -> Draft:
             hint="cell",
             dur=320,
         )
-    draft.number(
+    dominant_num = draft.number(
         dominant,
         "board.numbers_agree:punnett cells",
         anchor=on(table, "bottom"),
         decimals=0,
+        label="dominant",
         style=accent(2),
     )
     draft.number(
@@ -265,7 +280,16 @@ def _punnett(intent: dict[str, Any], draft: Draft) -> Draft:
         "board.numbers_agree:punnett cells",
         anchor=on(table, "right"),
         decimals=0,
+        label="recessive",
         style=wobo(2),
+    )
+    draft.add(
+        "write",
+        anchor=on(dominant_num, "bottom"),
+        text="genotypes " + " : ".join(f"{count} {name}" for name, count in genotypes),
+        check=genotype_check.name,
+        style=faint(1),
+        hint="genotypes",
     )
     return draft
 

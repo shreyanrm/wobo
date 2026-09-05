@@ -13,7 +13,7 @@
  */
 
 import type { ImageSpec, Item as WireItem } from '@wobo/contracts/plexus';
-import { useWoboBus } from '@wobo/wobo';
+import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type GroundReport, groundFor, subscribeGround } from '../../curriculum/placement';
@@ -1054,14 +1054,7 @@ function InkScreen({
           style={{ display: 'flex', flexDirection: 'column', gap: 13 }}
         >
           {outline.map((line, i) => (
-            <motion.div
-              key={line}
-              variants={rise}
-              style={{ fontSize: '1.02rem', color: 'var(--wobo-ink-900)', lineHeight: 1.45 }}
-            >
-              <span style={{ ...whisper, marginRight: 10 }}>{i + 1}</span>
-              {line}
-            </motion.div>
+            <OutlineLine key={line} index={i} line={line} />
           ))}
           <div style={{ ...lead, marginTop: 4 }}>
             {course?.seeded
@@ -1073,6 +1066,29 @@ function InkScreen({
         </motion.div>
       )}
     </CardBody>
+  );
+}
+
+/**
+ * One line of the course outline, registered so Wobo can answer "which step is the boss?" with a
+ * ring on that line rather than a paragraph about it. The board payload captured from /course on
+ * 2026-09-05 carried two page targets, the download toast and the advance button, so the lesson's
+ * own outline was not a thing Wobo could point at.
+ */
+function OutlineLine({ index, line }: { index: number; line: string }) {
+  const ref = useRegisterTarget<HTMLDivElement>(`course-outline-${index + 1}`, {
+    kind: 'step',
+    label: `step ${index + 1} of the course: ${line}`,
+  });
+  return (
+    <motion.div
+      ref={ref}
+      variants={rise}
+      style={{ fontSize: '1.02rem', color: 'var(--wobo-ink-900)', lineHeight: 1.45 }}
+    >
+      <span style={{ ...whisper, marginRight: 10 }}>{index + 1}</span>
+      {line}
+    </motion.div>
   );
 }
 

@@ -18,6 +18,7 @@ import {
   hasSyncAnchor,
   parseActions,
   plane,
+  scrollHold,
   surfaceRegistry,
   useWoboBus,
   type WoboHandlers,
@@ -28,6 +29,8 @@ import {
 import { AnimatePresence, motion } from 'framer-motion';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { ONBOARDED_KEY, SIGNIN_SOURCE_KEY } from './App';
+import { answerBody, doubtAnswerPath } from './screens/doubt/api';
+import { doubtCaption } from './screens/doubt/caption';
 import { StateLayer } from './screens/states/StateHost';
 import { boardName, loadProfile, mergeAccount } from './screens/you/profile';
 import { resolveDestination } from './shell/destinations';
@@ -91,10 +94,11 @@ import { holdToTalkEnd, holdToTalkStart } from './wobo/hold';
 import { MODE_BY_ID, modeFromText, modePrompt } from './wobo/modes';
 import { resolveTurnExtras, type TurnExtras } from './wobo/paths';
 import { useLifeSignals } from './wobo/presence';
+import { lookingAt } from './wobo/looking';
 import { boardShapeOf, isLessonRoute } from './wobo/presentation';
 import { refusalLine } from './wobo/refusals';
 import { WoboStage } from './wobo/Stage';
-import { registerPerformance, SpeechNarrator, speakLine } from './wobo/speech';
+import { beatOfTurn, registerPerformance, SpeechNarrator, speakLine } from './wobo/speech';
 import { changeVariable, gatewayBrain } from './wobo/variables';
 
 // LAZY: one chunk per screen, fetched on the navigation that needs it. Each of these pulls its own
@@ -131,6 +135,9 @@ const SubjectScreen = lazy(() =>
   import('./screens/SubjectScreen').then((m) => ({ default: m.SubjectScreen })),
 );
 const You = lazy(() => import('./screens/You').then((m) => ({ default: m.You })));
+const DoubtScreen = lazy(() =>
+  import('./screens/doubt/DoubtScreen').then((m) => ({ default: m.DoubtScreen })),
+);
 const ParentView = lazy(() =>
   import('./screens/you/ParentView').then((m) => ({ default: m.ParentView })),
 );
@@ -249,6 +256,16 @@ function Screen() {
     }
     if (d === 'forward' || d === 'back') sfx.whoosh();
   }, [key]);
+  // Leaving a screen mid-stroke: the hold lets go on the spot and the ink that was about the old
+  // page goes with it. Measured on 2026-09-05: for ~200 ms after a navigation the previous page's
+  // ring was still drawing itself over the new page, with the page held.
+  const { clearMarks } = useWoboBus();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the route is the trigger
+  useEffect(() => {
+    if (prevRef.current === null) return;
+    scrollHold.releaseAll();
+    clearMarks();
+  }, [route.name]);
   return (
     <AnimatePresence mode="popLayout" initial={false} custom={dir}>
       <motion.div
@@ -278,6 +295,7 @@ function Screen() {
           {route.name === 'sandbox' && <Course topicId={route.topicId ?? ''} sandbox />}
           {route.name === 'progress' && <ProgressScreen />}
           {route.name === 'you' && <You />}
+          {route.name === 'doubt' && <DoubtScreen />}
           {route.name === 'parent' && <ParentView />}
           {route.name === 'concept' && route.which === 'engines' && <EnginesGallery />}
           {/* the public site's own addresses, from the one table both hosts share */}
@@ -349,7 +367,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
   const [turns, setTurns] = useState<ChatTurn[]>(() =>
     boot.tail.length > 0
       ? boot.tail
-      : [{ id: 'seed', role: 'wobo', text: 'Ask me anything — I can see the page you are on.' }],
+      : [{ id: 'seed', role: 'wobo', text: 'Ask me anything. I can see the page you are on.' }],
   );
   const loadedStart = useRef(boot.start);
   const [hasOlder, setHasOlder] = useState(boot.start > 0);
@@ -449,9 +467,17 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     context: ReturnType<typeof bus.assembleContext>,
     /** The rung of the assistance ladder this turn is on — the one thing the screen cannot report. */
     mode?: string,
+    /**
+     * A doubt from a photo (screens/doubt): the confirmed reading and the regions the brain found,
+     * riding beside the packet so the ink can anchor to the photo's registered regions.
+     */
+    doubt?: AskOptions['doubt'],
   ) => {
     const line = say({ role: 'wobo', text: '' });
-    const title = context.curriculum?.nodeName ?? (context.page.state.title as string | undefined);
+    const title = doubt
+      ? 'your doubt'
+      : (context.curriculum?.nodeName ?? (context.page.state.title as string | undefined));
+    if (doubt) doubtCaption.begin();
     try {
       const outcome = await boardTurn.run({
         gatewayUrl: GATEWAY_URL as string,
@@ -460,11 +486,21 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         // run the inbound safety screen. Unwrapping it here handed the brain an empty turn,
         // so a board turn planned nothing and was screened against nothing.
         payload: boardTurnPayload(context, mode ? { task: { mode } } : {}),
+        // The doubt's answer streams the same frames from its own door, with the learner's
+        // corrections as the body (services/gateway doubt.py composes the packet from the photo).
+        ...(doubt
+          ? { endpoint: doubtAnswerPath(doubt.id), body: answerBody(doubt.lines, doubt.words) }
+          : {}),
         route: route.name,
         ...(shape.override ? { override: shape.override } : {}),
         origin: orbOrigin(),
         ...(title ? { title } : {}),
-        onSay: (said) => growTurn(line.id, said),
+        onSay: (said, t, dur) => {
+          growTurn(line.id, said);
+          // The doubt screen prints the caption sentence by sentence ON THE BEAT (law 5 for the
+          // sound-off learner), so it takes the say frame with its time, not the joined text.
+          if (doubt) doubtCaption.say(said, t ?? 0, dur);
+        },
         onAsk: (prompt) => growTurn(line.id, prompt),
         onAction: (action) => bus.dispatch(parseActions([action])),
         onCard: (card) => {
@@ -503,6 +539,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       }
       setMood('idle');
     } finally {
+      if (doubt) doubtCaption.end();
       setBusy(false);
     }
   };
@@ -524,12 +561,12 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       : say({ role: 'user', text });
     setBusy(true);
     setMood('thinking');
-    // Optimistic ink: Wobo reacts in <100ms — a point at what Wobo is looking at, before the model
-    // returns. The real actions replace this the moment they land, so it never lingers wrong.
-    const targets = bus.getTargets();
-    const looking =
-      targets.find((t) => /equation|expression|step|option/.test(t.kind)) ?? targets[0];
-    if (looking) bus.dispatch([{ type: 'point', targetId: looking.id, ttl: 2200 }]);
+    // Optimistic ink: Wobo reacts in <100ms with a point at the thing the learner's words are
+    // about, before the model returns. Only that thing (wobo/looking.ts): ringing the first target
+    // on the screen for every turn put a ring round the download toast for "hello", and held the
+    // page for it. The real actions replace this the moment they land.
+    const looking = lookingAt(text, surfaceRegistry);
+    if (looking) bus.dispatch([{ type: 'point', targetId: looking, ttl: 2200 }]);
     // Wobo remembers what matters, not the transcript: a short recent window, with Wobo's own long
     // explanations clipped — the archive is for the learner to scroll, never re-fed to the model.
     const recent = [...turns.slice(-7), userTurn].map((t) => ({
@@ -597,18 +634,34 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     );
     try {
       const context = bus.assembleContext();
+      // A doubt from a photo always streams (the ink has to land on the photo inside the
+      // sentences about it), carries the confirmed reading beside the packet, and skips every
+      // shortcut below: it is never a navigation, a "show me", or a wipe. Keyless, there is
+      // nobody to read the page, and the screen has already said so.
+      if (options.doubt) {
+        if (!GATEWAY_URL) {
+          say({ role: 'wobo', text: 'I need to be connected to read a photo.' });
+          setMood('idle');
+          setBusy(false);
+          return;
+        }
+        await askBoard(text, { board: true }, context, 'explain_this', options.doubt);
+        return;
+      }
       // The learner's word about the surface is obeyed before anything is asked of the brain:
       // "close the board" is not a question, and "fresh board" has to be true before Wobo draws.
       const mode = modeFromText(text);
       const shape = boardShapeOf(text, {
         hasFocus: turnFocus() !== null,
         modeDraws: mode ? MODE_BY_ID[mode].draws : false,
+        // A question about a thing on this screen is answered on it, in place.
+        namesTarget: looking !== null,
       });
       if (shape.word?.dismiss) {
         plane.dismiss();
         say({
           role: 'wobo',
-          text: 'Put away — say the word and it comes back with your ink on it.',
+          text: 'Put away. Say the word and it comes back with your ink on it.',
         });
         setMood('idle');
         return;
@@ -629,13 +682,13 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       if (armed && isConfirmation(text)) {
         disarm();
         const result = await showMe(armed.targetId);
-        say({ role: 'wobo', text: result.ok ? `done — ${armed.label}.` : result.say });
+        say({ role: 'wobo', text: result.ok ? `Done: ${armed.label}.` : result.say });
         setMood('idle');
         return;
       }
       if (armed && isDecline(text)) {
         disarm();
-        say({ role: 'wobo', text: 'left alone — it is yours to press when you want it.' });
+        say({ role: 'wobo', text: 'Left alone. It is yours to press when you want it.' });
         setMood('idle');
         return;
       }
@@ -662,7 +715,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
           armDoIt(target.id, target.label);
           say({
             role: 'wobo',
-            text: `I can do that — ${target.label}. Say go ahead and I will.`,
+            text: `I can do that: ${target.label}. Say go ahead and I will.`,
           });
           setMood('idle');
           return;
@@ -748,7 +801,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
                   ? `Here is everything I am keeping about you:\n${lines
                       .map((l) => `· ${l}`)
                       .join('\n')}\n\nSay the word and I will forget any of it.`
-                  : 'I have not saved anything about you yet — tell me what matters and I will keep it.',
+                  : 'I have not saved anything about you yet. Tell me what matters and I will keep it.',
             });
           } else if (a.scope === 'all') {
             // The whole memory is not something a model reply gets to take. Wobo offers the wipe as
@@ -756,7 +809,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
             // capability, on the learner's tap alone — and nothing is erased if they walk away.
             say({
               role: 'wobo',
-              text: 'I can let go of everything I know about you — that cannot be undone, so tell me to go ahead and I will.',
+              text: 'I can let go of everything I know about you. That cannot be undone, so tell me to go ahead and I will.',
               extras: { path: 'action', action: forgetAllOffer(crypto.randomUUID()) },
             });
           } else {
@@ -766,8 +819,8 @@ function AppInner({ sdk }: { sdk: Sdk }) {
               role: 'wobo',
               text:
                 removed.length > 0
-                  ? `Forgotten — I let go of “${removed.join('”, “')}”.`
-                  : 'I could not find that in what I remember — nothing to forget there.',
+                  ? `Forgotten. I let go of “${removed.join('”, “')}”.`
+                  : 'I could not find that in what I remember, so there is nothing to forget there.',
             });
           }
         }
@@ -806,7 +859,11 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       // with no anchors keeps the original all-at-once behavior.
       const anchored = actions.filter(hasSyncAnchor);
       const immediate = actions.filter((a) => !hasSyncAnchor(a));
-      if (spokenTurnId && anchored.length > 0) registerPerformance(spokenTurnId, anchored);
+      // What kind of line this is (voice.md 10b): the crisis line, the mood the tutor set, or a
+      // step. Read off the tutor's own output here and told to the voice; never guessed from words.
+      if (spokenTurnId) {
+        registerPerformance(spokenTurnId, anchored, beatOfTurn(actions, output.safety));
+      }
       bus.dispatch(immediate);
       setMood(actions.length > 0 ? 'explaining' : 'idle');
     } catch (err) {

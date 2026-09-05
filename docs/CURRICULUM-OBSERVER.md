@@ -119,3 +119,36 @@ In the console: per version, the learner count, the top consensus signals with t
 the observer did (re-read, minted, queued, nothing), and the diff of any minted version. And a
 switch to require review for every correction, for the first months, until the observer has earned
 trust.
+
+---
+
+## 9. As built (2026-09-05)
+
+`services/gateway/src/wobo_gateway/curriculum/observer.py`, migration `0022_curriculum_observer`,
+and the desk in `desks_api.py`. Where the build had to choose, it chose this:
+
+- **The count is a keyed digest, never a subject id** (`observer.voter_hash`, HMAC under
+  `OBSERVER_PEPPER` or the service-role key, the construction `reports.handle` uses). The schema
+  checks the columns are digests. One row per (version, node, op, learner) is a unique constraint,
+  and the `observer_signals` view counts a vote only joined to a row in `observer_use`.
+- **Real use** is one `wobo.turn` with `context.curriculum.nodeId` naming a topic we hold, from a
+  signed-in session. Anonymous sessions never count, because a subject you can mint is not a
+  learner. The share's denominator is learners of the same subject of the same version, not of the
+  whole edition.
+- **The minting path is the freshness path.** The re-read is `freshness.run_freshness_check`
+  itself, and a reconciled correction goes through `run_discovery(..., supersedes=)` with the
+  proposed reading handed in at the generate seam, so it passes the parser, every structural check
+  and the second reader exactly as any extraction does. The only version made any other way is a
+  `community` one, and it says so in its status, its label and its provenance.
+- **The model never decides alone, in code.** Its differences must cite a page of the document,
+  its proposed reading must parse with citations and pass the structural checks, and whether that
+  reading matches the consensus is decided by `matches_consensus`, never by the model's own claim.
+- **The switch** lives in `curriculum.observer_settings`; a missing row is ON. Only an owner
+  (`admin.manage`) turns it off, and the trail carries the flip.
+- **The scheduler** is `observer.tick(job_store, budget=)`, one call the discovery worker makes
+  on its cadence with its own job store and budget. It runs `run_pass`, bounded to three subjects
+  and five minutes per tick, and refuses unless `WOBO_DISCOVERY_WORKER` is on. The worker loop is
+  the discovery worker's, not a second one; until that loop ships, nothing here moves, and the
+  desk says so.
+- **Production** has the migration written, not applied: `curriculum.observer_*` holds no tables
+  yet, and the hooks say "not counting" once in the log and never cost a learner an edit.

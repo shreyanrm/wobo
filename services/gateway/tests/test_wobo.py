@@ -378,7 +378,15 @@ def _turn_with_model_text(monkeypatch, text: str) -> dict:
     monkeypatch.setattr(litellm, "completion", lambda **_kw: _FakeResponse(text))
     out, _tokens = run_wobo_turn(
         provider_model="anthropic/claude-sonnet-5",  # the turn tier
-        payload={"context": {"turn": {"lastUserInput": "I am stuck", "recentTurns": []}}},
+        payload={
+            "context": {
+                "turn": {"lastUserInput": "I am stuck", "recentTurns": []},
+                # The working the learner is stuck on. The spoken-number law (``spoken``) lets
+                # Wobo repeat the 3 in it because it is theirs; a turn with no canvas would have
+                # nothing to license "the 3" against.
+                "canvas": {"equation": "2*x + 3 = 7", "steps": ["2*x + 3 - 3 = 7"]},
+            }
+        },
     )
     return out
 

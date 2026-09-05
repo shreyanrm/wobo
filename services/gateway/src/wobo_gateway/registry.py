@@ -237,6 +237,30 @@ _POLICIES: dict[str, RoutingPolicy] = {
         _policy("curriculum.own.confirm", Tier.TINY, CacheTier.NONE, max_latency_ms=1200),
         _policy("curriculum.own.publish", Tier.TINY, CacheTier.NONE, max_latency_ms=1500),
         _policy("curriculum.own.offer", Tier.TINY, CacheTier.NONE, max_latency_ms=1500),
+        # --- the doubt solver (doubt.py): the one place the product needs vision --------
+        # A photograph of a page of work comes in the door at POST /v1/doubt, never through
+        # /v1/capability (the route refuses these two names by hand). The screen is a tiny-tier
+        # vision verdict about ONE image: is it a page of work, is there a face, are there
+        # details a page does not need. The read is the generate tier structuring what is on the
+        # page into lines with boxes, which is the same tier the own-syllabus photo already goes
+        # to. Neither is cached: two photos are never the same photo, and a cached reading of a
+        # child's page served to another child is a privacy bug before it is a groundedness one.
+        _policy(
+            "doubt.screen",
+            Tier.TINY,
+            CacheTier.NONE,
+            max_latency_ms=4000,
+            cost_ceiling=0.005,
+            max_tokens=200,
+        ),
+        _policy(
+            "doubt.read",
+            Tier.GENERATE,
+            CacheTier.NONE,
+            max_latency_ms=20000,
+            cost_ceiling=0.05,
+            max_tokens=1500,
+        ),
         # --- reason: the hard list ------------------------------------------------------
         # Mathematics goes through the CAS verifier first; this is the model that reads the
         # result. Its fallback rung is the verify tier, so a check is never marked by the same
@@ -284,6 +308,8 @@ EXPECTED_CAPABILITIES: tuple[str, ...] = (
     "curriculum.own.publish",
     "curriculum.own.offer",
     "help.answer",
+    "doubt.screen",
+    "doubt.read",
 )
 
 

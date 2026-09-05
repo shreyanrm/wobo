@@ -33,9 +33,19 @@ Every one of them carries the accent as a line in the system instruction rather 
 ``generationConfig.speechConfig.languageCode``. That is deliberate: the native-audio model
 detects the spoken language itself, and an unknown or unsupported setup field is rejected by
 the upstream, which closes the socket instantly and takes the microphone with it — exactly how
-voice died once before on a retired model id. An instruction cannot fail that way. Wobo's voice
-is one voice everywhere; only the accent moves, and it is chosen for clarity and warmth and
-never to signal a gender (WOBO-PLAN §19).
+voice died once before on a retired model id. An instruction in the system field cannot fail
+that way on the sockets. It can on the one-shot line: the REST text-to-speech model answers 500
+to a ``systemInstruction``, so there the same words ride in the prompt ahead of the line
+(``plexus.media.spoken_prompt``). Wobo's voice is one voice everywhere; only the accent moves,
+and it is chosen for clarity and warmth and never to signal a gender (WOBO-PLAN §19).
+
+**The beat (docs/copy/voice.md 10b).** The style instruction used to be one flat "warm, natural
+voice" for every line, so "you got it" and "not quite" were read identically: the screen-reader
+failure 10b names. Now the tutor, who already knows what a line is, tells the voice as one small
+enum (:data:`BEATS`: ``win``, ``miss``, ``ask``, ``step``, ``crisis``), and the instruction leans
+that way by a degree (:func:`beat_instruction`). The voice never infers the beat from the words;
+it is told, and a beat it was not told is the step. It rides the one-shot body (``beat``) and the
+read-aloud socket's URL beside the token, and like the accent it is only ever an instruction.
 """
 
 from __future__ import annotations
@@ -50,7 +60,7 @@ import threading
 import time
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
@@ -199,6 +209,87 @@ def accent_instruction(accent: str) -> str:
         f"Speak in {spoken}, in the accent a learner there would hear from a teacher — "
         "the same voice and the same warmth wherever you are, only the accent moves."
     )
+
+
+# --- the beat (docs/copy/voice.md 10b) -------------------------------------------------------
+#
+# "The emotion follows the beat, and it is small." Five kinds of line, named by the tutor and
+# carried to the voice; the voice is told, it never guesses from the words. Kept to five on purpose:
+# a sixth beat is a taste call for the owner, not a default anyone adds in passing.
+Beat = Literal["win", "miss", "ask", "step", "crisis"]
+BEATS: tuple[Beat, ...] = ("win", "miss", "ask", "step", "crisis")
+#: The default: calm, even, unhurried. A line whose beat nobody named is a step.
+DEFAULT_BEAT: Beat = "step"
+
+# The lean, in the words of 10b, one short instruction per beat. Each says HOW, never WHAT: the
+# verbatim rule is restated once below and holds for all five. "Than your usual" is the degree.
+_BEAT_IN_WORDS: dict[str, str] = {
+    "win": (
+        "The learner just got it. Read this a little brighter and a little quicker than your "
+        "usual: pleased, not thrilled."
+    ),
+    "miss": (
+        "The learner just missed. Read this gently, a little softer and a little slower than "
+        "your usual: steady, never disappointed, never a sigh."
+    ),
+    "ask": (
+        "Wobo is asking the learner a question. Read this curious and open, with a slight lift "
+        "at the end."
+    ),
+    "step": "Wobo is explaining a step. Read this calm, even and unhurried: your usual voice.",
+    "crisis": (
+        "The learner may be in trouble. Read this quietly and slowly, the softest of all: warm, "
+        "close, low, with no urgency in your voice at all."
+    ),
+}
+# Tuned by measurement on 2026-09-05 (harness/listen.py, three clips per wording of one line, 27
+# A/B clips in all, re-measured the same day). What separates cleanly is PACE: the win reads
+# 3.9 to 4.2 s, the miss 4.6 to 5.2 s, the crisis 4.9 to 5.8 s, and the old crisis wording 4.6 s
+# against 5.2 s for this one. Level and pitch do not separate: the ranges overlap by more than
+# the lean (crisis old wording -14.5 dB, -16.3 to -12.2, against new -16.6 dB, -18.7 to -14.2;
+# miss old pitch 216 Hz, 195 to 235, against new 199 Hz, 168 to 216), and on the listening set
+# the step clip was the quietest of the five (-19.7 dB against the crisis's -18.1) with the two
+# step clips 5.1 dB apart. So "the softest of all" is the instruction, not yet a measured fact;
+# "the slowest" is. The step is NOT the pre-beat voice: the control (accent only) read 3.67 s and
+# the step 4.2 to 4.6 s, 14 to 24 percent slower on the same line; "calm, even and unhurried" is a
+# real lean, and whether a slower default is wanted is the owner's ear. The ask's "slight lift at
+# the end" has not been heard: every clip so far was a statement and every one ended lower than
+# it ran (end delta -54 to -113 Hz). A stronger win ("a smile in your voice") read SLOWER than
+# this one and a stronger ask ended lower, n=3 inside a 40 Hz spread, so those stayed.
+
+# What does not change, whatever the beat. Said once so five leans cannot drift into five voices.
+_HELD_STEADY = (
+    "Lean that way by a degree, never by a mile. Read exactly the words as written: never add a "
+    "word, never perform them. Nothing is read as an exclamation. No laugh, no gasp, no sound "
+    "effect."
+)
+
+
+def beat_of(value: object) -> Beat:
+    """The beat a caller named, or the step when it named none or one we do not have.
+
+    A beat only chooses a lean, never a voice, a model or a cost, so an unknown one is not an
+    error at a socket: it is the default. The typed HTTP body refuses instead (:class:`TtsBody`),
+    because there the caller can be told.
+    """
+    if isinstance(value, str):
+        named = value.strip().lower()
+        if named in _BEAT_IN_WORDS:
+            return named  # type: ignore[return-value]
+    return DEFAULT_BEAT
+
+
+def beat_instruction(beat: Beat = DEFAULT_BEAT) -> str:
+    """The one line that tells the voice what kind of line it is reading. Deterministic per beat:
+    the same beat asks for the same thing every time, so the same line read twice sounds the same
+    twice."""
+    return _BEAT_IN_WORDS[beat_of(beat)]
+
+
+def spoken_instruction(accent: str, beat: Beat = DEFAULT_BEAT) -> str:
+    """How a line is to be said aloud: the accent, the beat, and what never changes. One
+    instruction for every spoken path, never a setup field (see the module docstring)."""
+    return f"{accent_instruction(accent)}\n\n{beat_instruction(beat)} {_HELD_STEADY}"
 
 
 @dataclass(frozen=True)
@@ -391,27 +482,31 @@ def _setup_message(accent: str = AMERICAN_ENGLISH) -> dict[str, Any]:
     }
 
 
-def _tts_setup_message(accent: str = AMERICAN_ENGLISH) -> dict[str, Any]:
+def _tts_setup_message(accent: str = AMERICAN_ENGLISH, beat: Beat = DEFAULT_BEAT) -> dict[str, Any]:
     """Setup for the read-aloud streaming voice — verbatim persona, audio out only.
 
     Same accent as the live mic: a learner who hears Indian English when they speak to Wobo must
     not hear American English when Wobo reads a typed line back. One voice, one accent, both
-    sockets."""
+    sockets. And the beat (10b): the same line leans the way the tutor said it should."""
     return {
         "setup": {
             "model": f"models/{VOICE_MODEL}",
             "generationConfig": {"responseModalities": ["AUDIO"]},
             "systemInstruction": {
-                "parts": [{"text": f"{_READ_VERBATIM}\n\n{accent_instruction(accent)}"}]
+                "parts": [{"text": f"{_READ_VERBATIM}\n\n{spoken_instruction(accent, beat)}"}]
             },
         }
     }
 
 
 class TtsBody(BaseModel):
-    """One spoken line — capped so the TTS bill is bounded per call."""
+    """One spoken line — capped so the TTS bill is bounded per call.
+
+    ``beat`` is what kind of line this is, named by the tutor (10b). Typed as the closed set so
+    a beat we do not have is refused with a 422 rather than guessed at; omitted, it is the step."""
 
     text: str = Field(min_length=1, max_length=600)
+    beat: Beat = DEFAULT_BEAT
 
 
 def _charge_voice(request: Request, capability: str) -> None:
@@ -464,9 +559,7 @@ def register_voice(app: FastAPI) -> None:
         # opens, it opens on our key.
         _charge_voice(request, "voice.session")
         principal = request.state.principal
-        accent = learner_accent(
-            principal.claims, request.headers.get("accept-language")
-        )
+        accent = learner_accent(principal.claims, request.headers.get("accept-language"))
         return voice_session(principal.subject, accent)
 
     @app.post("/v1/voice/tts")
@@ -487,10 +580,12 @@ def register_voice(app: FastAPI) -> None:
         accent = learner_accent(
             request.state.principal.claims, request.headers.get("accept-language")
         )
-        audio = synthesize_narration(body.text, instruction=accent_instruction(accent))
+        audio = synthesize_narration(body.text, instruction=spoken_instruction(accent, body.beat))
         if audio is None:
             raise HTTPException(status_code=502, detail="tts failed")
-        return {**audio, "accent": accent}
+        # The accent and the beat are reported beside the audio: the honest statement of what
+        # the learner is about to hear.
+        return {**audio, "accent": accent, "beat": body.beat}
 
     @app.websocket("/v1/voice/relay")
     async def relay(client: WebSocket) -> None:
@@ -577,7 +672,11 @@ def register_voice(app: FastAPI) -> None:
             except (WebSocketDisconnect, RuntimeError):
                 return
             if text.strip():
-                await _stream_one_line(client, aiohttp, key, text, accent=grant.accent)
+                # The beat rides the URL beside the token, not the first frame: the frame is the
+                # line itself, and a gateway older than the beat would have read a JSON frame
+                # aloud. A beat chooses only a lean, so an unknown one is the step, never a close.
+                beat = beat_of(client.query_params.get("beat"))
+                await _stream_one_line(client, aiohttp, key, text, accent=grant.accent, beat=beat)
         with contextlib.suppress(RuntimeError):
             await client.close()
 
@@ -589,6 +688,7 @@ async def _stream_one_line(
     text: str,
     *,
     accent: str = AMERICAN_ENGLISH,
+    beat: Beat = DEFAULT_BEAT,
 ) -> None:
     """Open Gemini Live for one read-aloud turn and pipe its frames to the browser."""
     try:
@@ -596,7 +696,7 @@ async def _stream_one_line(
             aiohttp.ClientSession() as http,
             http.ws_connect(f"{_GEMINI_LIVE_URL}?key={key}") as gemini,
         ):
-            await gemini.send_str(json.dumps(_tts_setup_message(accent)))
+            await gemini.send_str(json.dumps(_tts_setup_message(accent, beat)))
             await gemini.send_str(
                 json.dumps(
                     {

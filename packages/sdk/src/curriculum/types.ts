@@ -130,7 +130,12 @@ export interface CurriculumFrameworkView {
   notListed: NotListedDoor | null;
 }
 
-/** The state machine a discovery job walks (worker 2's `JobState`). */
+/**
+ * The state machine a discovery job walks, in the registry's vocabulary (`curriculum.discovery_jobs`,
+ * migration 0008): a job ends at `stored`, `failed` or `refused`. `fetching` and `provisional` are
+ * the run's own stage names and are kept so an older brain is still read. Whether a job is over is
+ * `open`, never a comparison against this list.
+ */
 export type DiscoveryState =
   | 'queued'
   | 'searching'
@@ -138,6 +143,8 @@ export type DiscoveryState =
   | 'extracting'
   | 'checking'
   | 'provisional'
+  | 'stored'
+  | 'failed'
   | 'refused';
 
 /** What the brain shows while it is still looking. Never a syllabus, always a status. */

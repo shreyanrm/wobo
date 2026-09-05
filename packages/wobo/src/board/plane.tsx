@@ -244,6 +244,31 @@ export interface WoboPlaneProps
  * whether it is here is on the `plane` controller, so a word ("board"), a gesture, or a turn can
  * summon it without prop drilling.
  */
+/** The panels a plane must not open underneath: the Companion drawer, and any other open dialog. */
+const DRAWER_SELECTOR = 'aside[role="dialog"]';
+
+/**
+ * Where a plane that has never been placed opens: the lower right, above Wobo's orb, and to the
+ * LEFT of anything already open on the right. At 1280 wide the plane used to open at x 656 with
+ * the Companion drawer (x 860 onward) sitting on top of its controls and the right end of its
+ * drawing (the 2026-09-05 review): the drawn answer was half covered by the composer that asked
+ * for it. Pure, so the rule is testable without a window.
+ */
+export function placeClearOf(
+  viewport: { w: number; h: number },
+  size: { w: number; h: number },
+  blocked: PlaneRect[],
+): { x: number; y: number } {
+  let x = Math.max(24, viewport.w - size.w - 104);
+  const y = Math.max(24, viewport.h - size.h - 132);
+  for (const b of blocked) {
+    const overlapsX = x < b.x + b.w && x + size.w > b.x;
+    const overlapsY = y < b.y + b.h && y + size.h > b.y;
+    if (overlapsX && overlapsY) x = Math.min(x, b.x - size.w - 16);
+  }
+  return { x: Math.max(24, x), y };
+}
+
 export function WoboPlane(props: WoboPlaneProps) {
   const state = usePlane();
   const store = useBoard(state.boardId);
@@ -252,14 +277,21 @@ export function WoboPlane(props: WoboPlaneProps) {
   const dragging = useRef<{ dx: number; dy: number } | null>(null);
   const resizing = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
 
-  // A plane that has never been placed opens in the lower right, above Wobo's orb.
+  // A plane that has never been placed opens in the lower right, above Wobo's orb, and clear of
+  // whatever is already open on that side (the Companion drawer the learner asked from).
   useEffect(() => {
     if (!state.open || phone) return;
     if (state.rect.x !== 0 || state.rect.y !== 0) return;
-    plane.move({
-      x: Math.max(24, window.innerWidth - state.rect.w - 104),
-      y: Math.max(24, window.innerHeight - state.rect.h - 132),
-    });
+    plane.move(
+      placeClearOf(
+        { w: window.innerWidth, h: window.innerHeight },
+        { w: state.rect.w, h: state.rect.h },
+        Array.from(document.querySelectorAll(DRAWER_SELECTOR)).map((el) => {
+          const r = el.getBoundingClientRect();
+          return { x: r.left, y: r.top, w: r.width, h: r.height };
+        }),
+      ),
+    );
   }, [state.open, state.rect.x, state.rect.y, state.rect.w, state.rect.h, phone]);
 
   useEffect(() => {

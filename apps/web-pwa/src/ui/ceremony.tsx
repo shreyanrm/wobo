@@ -169,7 +169,7 @@ export function Ceremony({ award, onDismiss }: { award: TrophyAward; onDismiss: 
   // sound + voice land on the same beat as the light (DESIGN law): the fanfare, then Wobo's one line.
   useEffect(() => {
     sfx.fanfare();
-    void speakLine(award.woboLine);
+    void speakLine(award.woboLine, { beat: 'win' }); // pleased, not thrilled (voice.md 10b)
   }, [award.woboLine]);
 
   // Wobo rests on screen a moment, then the trophy leaves for its shelf. A tap skips the wait.

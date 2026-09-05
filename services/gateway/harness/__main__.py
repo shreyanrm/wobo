@@ -90,6 +90,9 @@ def main(argv: list[str] | None = None) -> int:
                 run.notes.append(f"no recorded transcript for {case.id}; it was skipped")
                 continue
 
+        if transcript.note:
+            # A corrected recording is not evidence about the tutor: say so where it is read.
+            run.notes.append(f"{case.id}: {transcript.note}")
         scored = checks.score_transcript(case, transcript)
         if not transcript.error:
             drawing.check_drawing(case, transcript, scored)
@@ -138,7 +141,8 @@ def main(argv: list[str] | None = None) -> int:
                 ),
                 scores=result.scored.scores,
                 findings=result.scored.findings,
-                say=" | ".join(t.say[:160] for t in result.transcripts),
+                # Every rung in full: the owner reads what Wobo said, not the first 160 characters.
+                say=" | ".join(t.say for t in result.transcripts),
                 objects_drawn=sum(len(t.objects) for t in result.transcripts),
                 cost_usd=result.cost_usd,
             )

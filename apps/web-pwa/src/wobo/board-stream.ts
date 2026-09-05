@@ -215,6 +215,15 @@ export interface StreamBoardTurnOptions {
    * call — so the return value is exactly the thing that is not there when a resume is wanted.
    */
   onEventId?: (id: string) => void;
+  /**
+   * THE SAME WIRE AT ANOTHER DOOR. The doubt solver's answer (`POST /v1/doubt/{id}/answer`,
+   * services/gateway doubt.py) streams the same say, ink, ask, card, done frames, but the gateway
+   * composes the packet itself from the photo it read; the client sends only the learner's
+   * corrections. `endpoint` is the path under the gateway, `body` replaces the `{ payload }`
+   * envelope. Left out, this is the ordinary board turn, unchanged.
+   */
+  endpoint?: string;
+  body?: Record<string, unknown>;
 }
 
 export interface StreamBoardTurnResult {
@@ -237,10 +246,10 @@ export async function streamBoardTurn(
     'content-type': 'application/json',
   };
   if (lastEventId) headers['last-event-id'] = lastEventId;
-  const res = await gatewayFetch(`${gatewayUrl}/v1/capability/wobo.turn`, {
+  const res = await gatewayFetch(`${gatewayUrl}${options.endpoint ?? '/v1/capability/wobo.turn'}`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ payload: { ...payload, ...(board ? { board } : {}) } }),
+    body: JSON.stringify(options.body ?? { payload: { ...payload, ...(board ? { board } : {}) } }),
     ...(signal ? { signal } : {}),
   });
   await throwForGatewayStatus(res);

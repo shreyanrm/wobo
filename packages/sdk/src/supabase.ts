@@ -214,6 +214,11 @@ export const ERASURE_REGISTER: readonly ErasureEntry[] = [
     why: 'May hold learner-associated media (register I36, J11). No bucket sweep exists on either path.',
   },
   {
+    store: 'learner.doubts + storage: doubt-photos (device wobo-doubts-v1)',
+    reach: 'gateway',
+    why: 'A photo of a page the learner took, screened and stripped of its metadata, with what Wobo read on it (migration 0021, doubt.py). The memory page removes one with DELETE /v1/doubt/{id}, which takes the row AND the object in the bucket; POST /v1/me/erase sweeps both (memory.py). The device keeps only the listing (wobo-doubts-v1, account-scoped, swept with every wobo- key), never the bytes.',
+  },
+  {
     store: 'gateway mail log (MAIL_LOG_PATH)',
     reach: 'unreached',
     plain: 'our record of mail we sent you',

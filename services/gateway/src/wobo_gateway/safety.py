@@ -32,6 +32,7 @@ because nothing tells anyone: see :data:`SUPPORT` and the note above it.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Protocol
 
 from wobo_gateway import safety_model
@@ -108,19 +109,29 @@ DEFAULT_CLASSIFIER: SafetyClassifier = LayeredClassifier()
 
 # --- Wobo's safety copy — calm, warm, certain; no emoji, no exclamation marks -------------------
 
+# Sentence case, because the persona law says so and because a parent reading over a shoulder
+# reads these lines more than any other. The lowercase-sentence affectation is the feed register
+# voice.md 10a names as too street, and it sat in the one line that most needs a steady adult.
 CRISIS_SAY = (
-    "that sounds really heavy, and I'm glad you told me. you deserve support from a real person "
-    "who can be right there with you. please talk to a parent, a teacher, or an adult you "
-    "trust. if you want someone to listen right now, Childline is free at 1098, and Tele-MANAS "
+    "That sounds really heavy, and I'm glad you told me. You deserve support from a real person "
+    "who can be right there with you. Please talk to a parent, a teacher, or an adult you "
+    "trust. If you want someone to listen right now, Childline is free at 1098, and Tele-MANAS "
     "at 14416, any hour. I'm staying here with you too."
 )
 
 MODERATION_SAY = (
-    "let's keep this a kind place. I'm happy to talk about almost anything, so try asking me "
+    "Let's keep this a kind place. I'm happy to talk about almost anything, so try asking me "
     "again in different words."
 )
 
-OUTBOUND_REPLACEMENT_SAY = "let me put that differently. ask me once more."
+OUTBOUND_REPLACEMENT_SAY = "Let me put that differently. Ask me once more."
+
+#: What a child hears when ONE check did not answer and the rules had not settled the message:
+#: not a helpline, not "keep it kind", a plain ask to try again. "draw a plant cell and label the
+#: parts" came back as the Childline script on 2026-09-05 because the outbound screen's model
+#: refused a temperature at the same second another was out of credit. A transient classifier
+#: failure must never read as concern about what the child said.
+UNCHECKED_SAY = "I couldn't check that one just now. Ask me again in a moment."
 
 #: What a child hears when the turn is held because the CHECKER is down, not because of anything
 #: they said. Without this line a provider outage handed every concern-adjacent turn the full
@@ -129,7 +140,7 @@ OUTBOUND_REPLACEMENT_SAY = "let me put that differently. ask me once more."
 #: so — kindly, honestly, and without pretending the lesson can carry on.
 OUTAGE_SAY = (
     "I want to be careful with that one, and the part of me that checks is not working just now. "
-    "let's come back to it in a little while. if something is heavy, please tell a parent, a "
+    "Let's come back to it in a little while. If something is heavy, please tell a parent, a "
     "teacher, or an adult you trust."
 )
 
@@ -163,14 +174,27 @@ def _safety_block(verdict: SafetyVerdict, action: str) -> dict[str, Any]:
     return block
 
 
-def _gated_output(verdict: SafetyVerdict) -> dict[str, Any]:
-    crisis = verdict.category == CATEGORY_CRISIS
-    if verdict.source == safety_model.SOURCE_OUTAGE and not crisis:
+def _held_say(verdict: SafetyVerdict, *, replacement: str) -> str:
+    """The line for a screened turn: the crisis script ONLY on a positive crisis verdict from a
+    witness that answered (the rules, or a model); the plain unchecked line when one check did
+    not answer; the outage line when the checker is known to be down."""
+    if verdict.category == CATEGORY_CRISIS and verdict.source not in (
+        safety_model.SOURCE_FAIL_SAFE,
+        safety_model.SOURCE_OUTAGE,
+    ):
+        return CRISIS_SAY
+    if verdict.source == safety_model.SOURCE_OUTAGE:
         # Held because the checker is down. Never the crisis script and never "keep this kind",
         # which would tell a child doing civics homework that they were unkind.
-        say = OUTAGE_SAY
-    else:
-        say = CRISIS_SAY if crisis else MODERATION_SAY
+        return OUTAGE_SAY
+    if verdict.source == safety_model.SOURCE_FAIL_SAFE:
+        return UNCHECKED_SAY
+    return replacement
+
+
+def _gated_output(verdict: SafetyVerdict) -> dict[str, Any]:
+    crisis = verdict.category == CATEGORY_CRISIS
+    say = _held_say(verdict, replacement=MODERATION_SAY)
     return {
         # Stay with the child, stop the lesson, name a real adult. Not a lecture, not a refusal,
         # and not a word about the message being flagged or filed anywhere.
@@ -423,7 +447,7 @@ def screen_outbound(
         return output
     replaced = {
         **output,
-        "say": CRISIS_SAY if verdict.category == CATEGORY_CRISIS else OUTBOUND_REPLACEMENT_SAY,
+        "say": _held_say(verdict, replacement=OUTBOUND_REPLACEMENT_SAY),
         "actions": [],
         "safety": _safety_block(verdict, "blocked"),
     }
@@ -437,6 +461,85 @@ def screen_outbound(
 # The pre-rename names, kept so no caller has to change in the same commit as the behaviour.
 screen_wobo_inbound = screen_inbound
 screen_wobo_outbound = screen_outbound
+
+
+# --- the image screen (doubt.py) ----------------------------------------------------------------
+#
+# The one place the product looks at a photograph is the doubt solver, and a photograph is the one
+# input with no structure to walk: a face, another child's name on a worksheet header, a home
+# address, a page that is not work at all. So before a photo is READ or KEPT it is screened, and the
+# screen has the same posture as the text screen above: it fails CLOSED. A checker that cannot run
+# is not a pass. The model half lives beside the reader in :mod:`wobo_gateway.doubt` (it is a
+# vision call on the tiny tier); this is the verdict, the copy, and the rule that a failure to
+# screen is a refusal to keep.
+
+IMAGE_FACE_SAY = "I can only read a page of work, not a person. Try a photo of just the page."
+IMAGE_NOT_A_PAGE_SAY = (
+    "That does not look like a page of work. Try a photo of the sum, the page or the diagram you "
+    "are stuck on."
+)
+IMAGE_PERSONAL_SAY = (
+    "That page has someone's details on it. Keep the photo to the work itself and I will read it."
+)
+IMAGE_SCREEN_OUTAGE_SAY = (
+    "I could not check that photo just now, so I have not kept it. Try again in a little while."
+)
+
+#: Why a photo was refused: a face, personal details a page does not need, not a page of work, or
+#: the screen itself did not run. The last is the fail-closed case and it is named so a surface can
+#: say "try again" rather than "not allowed".
+IMAGE_REFUSAL_COPY: dict[str, str] = {
+    "face": IMAGE_FACE_SAY,
+    "not_a_page": IMAGE_NOT_A_PAGE_SAY,
+    "personal": IMAGE_PERSONAL_SAY,
+    "outage": IMAGE_SCREEN_OUTAGE_SAY,
+}
+
+
+@dataclass(frozen=True)
+class ImageVerdict:
+    """What the image screen decided. ``crop`` is a fraction box ``(x0, y0, x1, y1)`` of the page
+    that IS the work, when the rest of the photo carried something a page does not need: the
+    caller keeps the crop and nothing else."""
+
+    allowed: bool
+    reason: str | None = None
+    crop: tuple[float, float, float, float] | None = None
+    #: True when the screen found personal details and the photo is allowed ONLY because it also
+    #: found the work apart from them (``crop``). A caller re-screening the crop reads this: the
+    #: same answer a second time means the details are still there, and that is a refusal.
+    details: bool = False
+
+    @property
+    def say(self) -> str:
+        if self.allowed:
+            return ""
+        return IMAGE_REFUSAL_COPY.get(self.reason or "", IMAGE_NOT_A_PAGE_SAY)
+
+
+class ImageScreen(Protocol):
+    """The seam. Anything that looks at pixels and answers :class:`ImageVerdict` drops in."""
+
+    def screen(self, *, image: bytes, media_type: str) -> ImageVerdict: ...
+
+
+def screen_image(image: bytes, *, media_type: str, screen: ImageScreen) -> ImageVerdict:
+    """Screen one photograph before it is read or kept. FAILS CLOSED.
+
+    A screen that raises, times out, or answers nothing is an ``outage`` refusal, never a pass:
+    the photo is not kept and the learner is told the checker did not run. This is the property
+    the whole doubt path rests on, and it is held here rather than in every caller so a caller that
+    forgets the try/except still cannot keep an unscreened photo.
+    """
+    if not image:
+        return ImageVerdict(allowed=False, reason="not_a_page")
+    try:
+        verdict = screen.screen(image=image, media_type=media_type)
+    except Exception:  # noqa: BLE001 - whatever failed, the answer is "not kept"
+        return ImageVerdict(allowed=False, reason="outage")
+    if not isinstance(verdict, ImageVerdict):
+        return ImageVerdict(allowed=False, reason="outage")
+    return verdict
 
 
 def moderate(text: str, classifier: SafetyClassifier = DEFAULT_CLASSIFIER) -> dict[str, Any]:
@@ -459,10 +562,18 @@ __all__ = [
     "CATEGORY_OK",
     "CRISIS_SAY",
     "DEFAULT_CLASSIFIER",
+    "IMAGE_FACE_SAY",
+    "IMAGE_NOT_A_PAGE_SAY",
+    "IMAGE_PERSONAL_SAY",
+    "IMAGE_REFUSAL_COPY",
+    "IMAGE_SCREEN_OUTAGE_SAY",
+    "ImageScreen",
+    "ImageVerdict",
     "LEARNER_FACING_CAPABILITIES",
     "MODERATION_SAY",
     "OUTAGE_SAY",
     "OUTBOUND_REPLACEMENT_SAY",
+    "UNCHECKED_SAY",
     "SUPPORT",
     "KeywordClassifier",
     "LayeredClassifier",
@@ -471,6 +582,7 @@ __all__ = [
     "SafetyVerdict",
     "inbound_text",
     "moderate",
+    "screen_image",
     "screen_inbound",
     "screen_outbound",
     "screen_model_words",

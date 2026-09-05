@@ -7,7 +7,7 @@ the build; nothing is written from memory, and a syllabus that could not be fetc
 or does not exist is stored as a negative result rather than as an empty syllabus. A
 missing unit list is a fact about the world, not a licence to invent one.
 
-121 files. **Nothing here is `verified`.** Every file is `provisional`; 50 of them carry `read_off_source: true`, meaning the units below were read off the board's own document, and 71 carry `discovery_state: "blocked"` with a blocker code and no units at all. 333 units and 711 topics in total.
+121 files. 15 `verified`, 106 `provisional`. 50 of them carry `read_off_source: true`, meaning the units below were read off the board's own document, and 71 carry `discovery_state: "blocked"` with a blocker code and no units at all. 333 units and 711 topics in total. Every provisional file carries a `status_reason` saying exactly why it is not verified; the row-by-row account is `docs/curriculum/VERIFICATION.md`.
 
 ## The shape of a file
 
@@ -22,13 +22,14 @@ applies_to?        the academic year a version predating it is still in force fo
 exam_year?         CISCE publishes per examination year; this is the year this level sits
 level, level_order the class, and its number for sorting
 subject, course_code?, stage?
-status             provisional everywhere in this directory (see below)
+status             verified | provisional (see below)
+status_reason?     on a provisional file: what the verification pass could not find or decide
 read_off_source    true when the units were read off the board's own document
 discovery_state?   "blocked" on a file with no units, with a blocker code beside it
 blocker?           browser_required | no_official_document | document_not_machine_readable
 provenance         extractor, verifier, checks_passed[], checks_failed[], verified_at,
-                   verified_by - the checks are run in code at build time and recorded
-                   as they came out, pass or fail
+                   verified_by, verification - the build's checks and the verification
+                   pass's checks, recorded as they came out, pass or fail
 documents[]        every source document, with url, fetched_at, document_sha256 (of the
                    bytes fetched), extracted_text_sha256 (of the text the build read)
                    and the extraction method
@@ -55,16 +56,20 @@ not exist yet, and an empty list says so.
 of that document, and the heading it sits under. `document_id` always resolves to an
 entry in the same file's `documents[]`.
 
-## Status, and why nothing here says verified
+## Status
 
-`docs/CURRICULUM.md` section 4.4 stores discovery output as `provisional`, section 4.5
-earns `verified` only after the verify tier has re-read the source independently and
-either the owner or two learners have promoted it, and section 5 renders `verified` to
-the learner as "Official CBSE 2026-27, verified". None of that has happened to any file
-here. So every file is `provisional`, and the separate boolean `read_off_source` carries
-the weaker, true claim: a build read these units off the board's own document at the page
-each `source_ref` names. `verified` is reserved for whatever writes the review-queue
-promotion, and `provenance.verified_at` and `provenance.verified_by` are null until then.
+`docs/CURRICULUM.md` section 4.4 stores discovery output as `provisional` and section 4.5
+earns `verified` only after the source has been re-read independently. The build that
+wrote these files did the first half: `read_off_source: true` is the weaker, true claim
+that a build read the units off the board's own document at the page each `source_ref`
+names. The verification pass (`wobo_gateway.curriculum.discovery.audit`) does the second
+half: it fetches every cited document again, checks the bytes against the recorded hash,
+looks for every unit and topic name on the page it cites, checks the count against the
+document's own numbering, and asks the verify tier only where code cannot decide. A file
+that holds becomes `verified`, with `provenance.verifier`, `verified_at`, `verified_by`
+and every check in `provenance.verification`. One that does not stays `provisional` and
+carries a `status_reason` naming exactly what could not be found or decided. Nothing is
+edited to make it pass. `docs/curriculum/VERIFICATION.md` is the row-by-row account.
 
 `provisional` covers three different situations, told apart by `discovery_state` and
 `blocker`: the document was read and the units are here; the document exists but could
@@ -94,164 +99,164 @@ below record.
 
 ### CBSE, Central Board of Secondary Education
 
-| File | Level | Subject | State | Units | Topics | Source |
-|---|---|---|---|---|---|---|
-| `cbse/class-6-mathematics.json` | Class 6 | Mathematics | read off source | 1 | 10 | Ganita Prakash, textbook of Mathematics for Grade 6 (prelims) |
-| `cbse/class-6-science.json` | Class 6 | Science | read off source | 1 | 12 | Curiosity, textbook of Science for Grade 6 (prelims) |
-| `cbse/class-6-social-science.json` | Class 6 | Social Science | read off source | 5 | 14 | Exploring Society: India and Beyond, Social Science for Grade 6 (prelims) |
-| `cbse/class-7-mathematics.json` | Class 7 | Mathematics | read off source | 2 | 15 | Ganita Prakash, textbook of Mathematics for Grade 7, Part 1 (prelims); Ganita Prakash, textbook of Mathematics for Grade 7, Part 2 (prelims) |
-| `cbse/class-7-science.json` | Class 7 | Science | read off source | 1 | 12 | Curiosity, textbook of Science for Grade 7 (prelims) |
-| `cbse/class-7-social-science.json` | Class 7 | Social Science | read off source | 10 | 20 | Exploring Society: India and Beyond, Social Science for Grade 7, Part 1 (prelims); Exploring Society: India and Beyond, Social Science for Grade 7, Part 2 (prelims) |
-| `cbse/class-8-mathematics.json` | Class 8 | Mathematics | read off source | 2 | 14 | Ganita Prakash, textbook of Mathematics for Grade 8, Part 1 (prelims); Ganita Prakash, textbook of Mathematics for Grade 8, Part 2 (prelims) |
-| `cbse/class-8-science.json` | Class 8 | Science | read off source | 1 | 13 | Curiosity, textbook of Science for Grade 8 (prelims) |
-| `cbse/class-8-social-science.json` | Class 8 | Social Science | read off source | 9 | 15 | Exploring Society: India and Beyond, Social Science for Grade 8, Part 1 (prelims); Exploring Society: India and Beyond, Social Science for Grade 8, Part 2 (prelims) |
-| `cbse/class-9-mathematics.json` | Class 9 | Mathematics | read off source | 6 | 15 | Mathematics, Class IX, Secondary Curriculum Part 1, 2026-27 |
-| `cbse/class-9-science.json` | Class 9 | Science | read off source | 4 | 12 | Science, Class IX, Secondary Curriculum Part 1, 2026-27 |
-| `cbse/class-9-social-science.json` | Class 9 | Social Science | read off source | 16 | 74 | Social Science, Class IX, Secondary Curriculum Part 1, 2026-27 |
-| `cbse/class-10-mathematics.json` | Class 10 | Mathematics | read off source | 7 | 15 | Mathematics, Class X, Secondary Curriculum Part 1, 2026-27 |
-| `cbse/class-10-science.json` | Class 10 | Science | read off source | 5 | 19 | Science, Class X, Secondary Curriculum Part 1, 2026-27 |
-| `cbse/class-10-social-science.json` | Class 10 | Social Science | read off source | 4 | 21 | Social Science (087), Class X, 2026-27 |
-| `cbse/class-11-biology.json` | Class 11 | Biology | read off source | 5 | 19 | Biology, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
-| `cbse/class-11-chemistry.json` | Class 11 | Chemistry | read off source | 9 | 66 | Chemistry, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
-| `cbse/class-11-mathematics.json` | Class 11 | Mathematics | read off source | 5 | 13 | Mathematics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
-| `cbse/class-11-physics.json` | Class 11 | Physics | read off source | 10 | 14 | Physics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
-| `cbse/class-12-biology.json` | Class 12 | Biology | read off source | 5 | 13 | Biology, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
-| `cbse/class-12-chemistry.json` | Class 12 | Chemistry | read off source | 10 | 61 | Chemistry, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
-| `cbse/class-12-mathematics.json` | Class 12 | Mathematics | read off source | 6 | 13 | Mathematics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
-| `cbse/class-12-physics.json` | Class 12 | Physics | read off source | 9 | 14 | Physics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
+| File | Level | Subject | Status | State | Units | Topics | Source |
+|---|---|---|---|---|---|---|---|
+| `cbse/class-6-mathematics.json` | Class 6 | Mathematics | provisional | read off source | 1 | 10 | Ganita Prakash, textbook of Mathematics for Grade 6 (prelims) |
+| `cbse/class-6-science.json` | Class 6 | Science | provisional | read off source | 1 | 12 | Curiosity, textbook of Science for Grade 6 (prelims) |
+| `cbse/class-6-social-science.json` | Class 6 | Social Science | provisional | read off source | 5 | 14 | Exploring Society: India and Beyond, Social Science for Grade 6 (prelims) |
+| `cbse/class-7-mathematics.json` | Class 7 | Mathematics | provisional | read off source | 2 | 15 | Ganita Prakash, textbook of Mathematics for Grade 7, Part 1 (prelims); Ganita Prakash, textbook of Mathematics for Grade 7, Part 2 (prelims) |
+| `cbse/class-7-science.json` | Class 7 | Science | provisional | read off source | 1 | 12 | Curiosity, textbook of Science for Grade 7 (prelims) |
+| `cbse/class-7-social-science.json` | Class 7 | Social Science | provisional | read off source | 10 | 20 | Exploring Society: India and Beyond, Social Science for Grade 7, Part 1 (prelims); Exploring Society: India and Beyond, Social Science for Grade 7, Part 2 (prelims) |
+| `cbse/class-8-mathematics.json` | Class 8 | Mathematics | provisional | read off source | 2 | 14 | Ganita Prakash, textbook of Mathematics for Grade 8, Part 1 (prelims); Ganita Prakash, textbook of Mathematics for Grade 8, Part 2 (prelims) |
+| `cbse/class-8-science.json` | Class 8 | Science | provisional | read off source | 1 | 13 | Curiosity, textbook of Science for Grade 8 (prelims) |
+| `cbse/class-8-social-science.json` | Class 8 | Social Science | provisional | read off source | 9 | 15 | Exploring Society: India and Beyond, Social Science for Grade 8, Part 1 (prelims); Exploring Society: India and Beyond, Social Science for Grade 8, Part 2 (prelims) |
+| `cbse/class-9-mathematics.json` | Class 9 | Mathematics | verified | read off source | 6 | 15 | Mathematics, Class IX, Secondary Curriculum Part 1, 2026-27 |
+| `cbse/class-9-science.json` | Class 9 | Science | verified | read off source | 4 | 12 | Science, Class IX, Secondary Curriculum Part 1, 2026-27 |
+| `cbse/class-9-social-science.json` | Class 9 | Social Science | provisional | read off source | 16 | 74 | Social Science, Class IX, Secondary Curriculum Part 1, 2026-27 |
+| `cbse/class-10-mathematics.json` | Class 10 | Mathematics | verified | read off source | 7 | 15 | Mathematics, Class X, Secondary Curriculum Part 1, 2026-27 |
+| `cbse/class-10-science.json` | Class 10 | Science | verified | read off source | 5 | 19 | Science, Class X, Secondary Curriculum Part 1, 2026-27 |
+| `cbse/class-10-social-science.json` | Class 10 | Social Science | provisional | read off source | 4 | 21 | Social Science (087), Class X, 2026-27 |
+| `cbse/class-11-biology.json` | Class 11 | Biology | verified | read off source | 5 | 19 | Biology, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
+| `cbse/class-11-chemistry.json` | Class 11 | Chemistry | verified | read off source | 9 | 66 | Chemistry, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
+| `cbse/class-11-mathematics.json` | Class 11 | Mathematics | provisional | read off source | 5 | 13 | Mathematics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
+| `cbse/class-11-physics.json` | Class 11 | Physics | verified | read off source | 10 | 14 | Physics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
+| `cbse/class-12-biology.json` | Class 12 | Biology | verified | read off source | 5 | 13 | Biology, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
+| `cbse/class-12-chemistry.json` | Class 12 | Chemistry | provisional | read off source | 10 | 61 | Chemistry, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
+| `cbse/class-12-mathematics.json` | Class 12 | Mathematics | verified | read off source | 6 | 13 | Mathematics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
+| `cbse/class-12-physics.json` | Class 12 | Physics | verified | read off source | 9 | 14 | Physics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27 |
 
 ### ICSE, Council for the Indian School Certificate Examinations
 
-| File | Level | Subject | State | Units | Topics | Source |
-|---|---|---|---|---|---|---|
-| `icse/class-6-mathematics.json` | Class 6 | Mathematics | blocked, no official document | - | - | no document |
-| `icse/class-6-science.json` | Class 6 | Science | blocked, no official document | - | - | no document |
-| `icse/class-6-social-studies.json` | Class 6 | Social Studies | blocked, no official document | - | - | no document |
-| `icse/class-7-mathematics.json` | Class 7 | Mathematics | blocked, no official document | - | - | no document |
-| `icse/class-7-science.json` | Class 7 | Science | blocked, no official document | - | - | no document |
-| `icse/class-7-social-studies.json` | Class 7 | Social Studies | blocked, no official document | - | - | no document |
-| `icse/class-8-mathematics.json` | Class 8 | Mathematics | blocked, no official document | - | - | no document |
-| `icse/class-8-science.json` | Class 8 | Science | blocked, no official document | - | - | no document |
-| `icse/class-8-social-studies.json` | Class 8 | Social Studies | blocked, no official document | - | - | no document |
-| `icse/class-9-biology.json` | Class 9 | Biology | read off source | 7 | withdrawn | Biology (52), ICSE examination year 2027 |
-| `icse/class-9-chemistry.json` | Class 9 | Chemistry | read off source | 8 | withdrawn | Chemistry (52), ICSE examination year 2027 |
-| `icse/class-9-geography.json` | Class 9 | Geography | read off source | 5 | withdrawn | Geography (53), ICSE examination year 2027 |
-| `icse/class-9-history-and-civics.json` | Class 9 | History and Civics | read off source | 11 | withdrawn | History & Civics (53), ICSE examination year 2027 |
-| `icse/class-9-mathematics.json` | Class 9 | Mathematics | read off source | 8 | withdrawn | Mathematics (51), ICSE examination year 2027 |
-| `icse/class-9-physics.json` | Class 9 | Physics | read off source | 8 | withdrawn | Physics (52), ICSE examination year 2027 |
-| `icse/class-10-biology.json` | Class 10 | Biology | read off source | 6 | withdrawn | Biology (52), ICSE examination year 2027 |
-| `icse/class-10-chemistry.json` | Class 10 | Chemistry | read off source | 9 | withdrawn | Chemistry (52), ICSE examination year 2027 |
-| `icse/class-10-geography.json` | Class 10 | Geography | read off source | 11 | withdrawn | Geography (53), ICSE examination year 2027 |
-| `icse/class-10-history-and-civics.json` | Class 10 | History and Civics | read off source | 6 | withdrawn | History & Civics (53), ICSE examination year 2027 |
-| `icse/class-10-mathematics.json` | Class 10 | Mathematics | read off source | 7 | withdrawn | Mathematics (51), ICSE examination year 2027 |
-| `icse/class-10-physics.json` | Class 10 | Physics | read off source | 6 | withdrawn | Physics (52), ICSE examination year 2027 |
+| File | Level | Subject | Status | State | Units | Topics | Source |
+|---|---|---|---|---|---|---|---|
+| `icse/class-6-mathematics.json` | Class 6 | Mathematics | provisional | blocked, no official document | - | - | no document |
+| `icse/class-6-science.json` | Class 6 | Science | provisional | blocked, no official document | - | - | no document |
+| `icse/class-6-social-studies.json` | Class 6 | Social Studies | provisional | blocked, no official document | - | - | no document |
+| `icse/class-7-mathematics.json` | Class 7 | Mathematics | provisional | blocked, no official document | - | - | no document |
+| `icse/class-7-science.json` | Class 7 | Science | provisional | blocked, no official document | - | - | no document |
+| `icse/class-7-social-studies.json` | Class 7 | Social Studies | provisional | blocked, no official document | - | - | no document |
+| `icse/class-8-mathematics.json` | Class 8 | Mathematics | provisional | blocked, no official document | - | - | no document |
+| `icse/class-8-science.json` | Class 8 | Science | provisional | blocked, no official document | - | - | no document |
+| `icse/class-8-social-studies.json` | Class 8 | Social Studies | provisional | blocked, no official document | - | - | no document |
+| `icse/class-9-biology.json` | Class 9 | Biology | provisional | read off source | 7 | withdrawn | Biology (52), ICSE examination year 2027 |
+| `icse/class-9-chemistry.json` | Class 9 | Chemistry | provisional | read off source | 8 | withdrawn | Chemistry (52), ICSE examination year 2027 |
+| `icse/class-9-geography.json` | Class 9 | Geography | provisional | read off source | 5 | withdrawn | Geography (53), ICSE examination year 2027 |
+| `icse/class-9-history-and-civics.json` | Class 9 | History and Civics | provisional | read off source | 11 | withdrawn | History & Civics (53), ICSE examination year 2027 |
+| `icse/class-9-mathematics.json` | Class 9 | Mathematics | provisional | read off source | 8 | withdrawn | Mathematics (51), ICSE examination year 2027 |
+| `icse/class-9-physics.json` | Class 9 | Physics | provisional | read off source | 8 | withdrawn | Physics (52), ICSE examination year 2027 |
+| `icse/class-10-biology.json` | Class 10 | Biology | provisional | read off source | 6 | withdrawn | Biology (52), ICSE examination year 2027 |
+| `icse/class-10-chemistry.json` | Class 10 | Chemistry | provisional | read off source | 9 | withdrawn | Chemistry (52), ICSE examination year 2027 |
+| `icse/class-10-geography.json` | Class 10 | Geography | provisional | read off source | 11 | withdrawn | Geography (53), ICSE examination year 2027 |
+| `icse/class-10-history-and-civics.json` | Class 10 | History and Civics | provisional | read off source | 6 | withdrawn | History & Civics (53), ICSE examination year 2027 |
+| `icse/class-10-mathematics.json` | Class 10 | Mathematics | provisional | read off source | 7 | withdrawn | Mathematics (51), ICSE examination year 2027 |
+| `icse/class-10-physics.json` | Class 10 | Physics | provisional | read off source | 6 | withdrawn | Physics (52), ICSE examination year 2027 |
 
 ### ISC, Council for the Indian School Certificate Examinations
 
-| File | Level | Subject | State | Units | Topics | Source |
-|---|---|---|---|---|---|---|
-| `isc/class-11-biology.json` | Class 11 | Biology | read off source | 5 | withdrawn | Biology, ISC examination year 2027 |
-| `isc/class-11-chemistry.json` | Class 11 | Chemistry | read off source | 9 | withdrawn | Chemistry, ISC examination year 2027 |
-| `isc/class-11-mathematics.json` | Class 11 | Mathematics | read off source | 5 | withdrawn | Mathematics, ISC examination year 2027 |
-| `isc/class-11-physics.json` | Class 11 | Physics | read off source | 10 | withdrawn | Physics, ISC examination year 2027 |
-| `isc/class-12-biology.json` | Class 12 | Biology | read off source | 5 | withdrawn | Biology, ISC examination year 2027 |
-| `isc/class-12-chemistry.json` | Class 12 | Chemistry | read off source | 10 | withdrawn | Chemistry, ISC examination year 2027 |
-| `isc/class-12-mathematics.json` | Class 12 | Mathematics | read off source | 7 | withdrawn | Mathematics, ISC examination year 2027 |
-| `isc/class-12-physics.json` | Class 12 | Physics | read off source | 9 | withdrawn | Physics, ISC examination year 2027 |
+| File | Level | Subject | Status | State | Units | Topics | Source |
+|---|---|---|---|---|---|---|---|
+| `isc/class-11-biology.json` | Class 11 | Biology | provisional | read off source | 5 | withdrawn | Biology, ISC examination year 2027 |
+| `isc/class-11-chemistry.json` | Class 11 | Chemistry | provisional | read off source | 9 | withdrawn | Chemistry, ISC examination year 2027 |
+| `isc/class-11-mathematics.json` | Class 11 | Mathematics | provisional | read off source | 5 | withdrawn | Mathematics, ISC examination year 2027 |
+| `isc/class-11-physics.json` | Class 11 | Physics | provisional | read off source | 10 | withdrawn | Physics, ISC examination year 2027 |
+| `isc/class-12-biology.json` | Class 12 | Biology | provisional | read off source | 5 | withdrawn | Biology, ISC examination year 2027 |
+| `isc/class-12-chemistry.json` | Class 12 | Chemistry | provisional | read off source | 10 | withdrawn | Chemistry, ISC examination year 2027 |
+| `isc/class-12-mathematics.json` | Class 12 | Mathematics | provisional | read off source | 7 | withdrawn | Mathematics, ISC examination year 2027 |
+| `isc/class-12-physics.json` | Class 12 | Physics | provisional | read off source | 9 | withdrawn | Physics, ISC examination year 2027 |
 
 ### Telangana
 
-| File | Level | Subject | State | Units | Topics | Source |
-|---|---|---|---|---|---|---|
-| `telangana/class-6-mathematics.json` | Class 6 | Mathematics | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-6-science.json` | Class 6 | Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-6-social-science.json` | Class 6 | Social Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-7-mathematics.json` | Class 7 | Mathematics | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-7-science.json` | Class 7 | Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-7-social-science.json` | Class 7 | Social Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-8-mathematics.json` | Class 8 | Mathematics | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-8-science.json` | Class 8 | Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-8-social-science.json` | Class 8 | Social Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-9-mathematics.json` | Class 9 | Mathematics | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-9-science.json` | Class 9 | Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-9-social-science.json` | Class 9 | Social Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-10-mathematics.json` | Class 10 | Mathematics | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-10-science.json` | Class 10 | Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
-| `telangana/class-10-social-science.json` | Class 10 | Social Science | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| File | Level | Subject | Status | State | Units | Topics | Source |
+|---|---|---|---|---|---|---|---|
+| `telangana/class-6-mathematics.json` | Class 6 | Mathematics | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-6-science.json` | Class 6 | Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-6-social-science.json` | Class 6 | Social Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-7-mathematics.json` | Class 7 | Mathematics | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-7-science.json` | Class 7 | Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-7-social-science.json` | Class 7 | Social Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-8-mathematics.json` | Class 8 | Mathematics | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-8-science.json` | Class 8 | Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-8-social-science.json` | Class 8 | Social Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-9-mathematics.json` | Class 9 | Mathematics | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-9-science.json` | Class 9 | Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-9-social-science.json` | Class 9 | Social Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-10-mathematics.json` | Class 10 | Mathematics | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-10-science.json` | Class 10 | Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
+| `telangana/class-10-social-science.json` | Class 10 | Social Science | provisional | blocked, browser required | - | - | State Council of Educational Research and Training, Telangana - site index; Board of Secondary Education, Telangana - site index |
 
 ### Andhra Pradesh
 
-| File | Level | Subject | State | Units | Topics | Source |
-|---|---|---|---|---|---|---|
-| `andhra-pradesh/class-6-mathematics.json` | Class 6 | Mathematics | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-6-science.json` | Class 6 | Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-6-social-science.json` | Class 6 | Social Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-7-mathematics.json` | Class 7 | Mathematics | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-7-science.json` | Class 7 | Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-7-social-science.json` | Class 7 | Social Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-8-mathematics.json` | Class 8 | Mathematics | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-8-science.json` | Class 8 | Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-8-social-science.json` | Class 8 | Social Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-9-mathematics.json` | Class 9 | Mathematics | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-9-science.json` | Class 9 | Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-9-social-science.json` | Class 9 | Social Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-10-mathematics.json` | Class 10 | Mathematics | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-10-science.json` | Class 10 | Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
-| `andhra-pradesh/class-10-social-science.json` | Class 10 | Social Science | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| File | Level | Subject | Status | State | Units | Topics | Source |
+|---|---|---|---|---|---|---|---|
+| `andhra-pradesh/class-6-mathematics.json` | Class 6 | Mathematics | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-6-science.json` | Class 6 | Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-6-social-science.json` | Class 6 | Social Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-7-mathematics.json` | Class 7 | Mathematics | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-7-science.json` | Class 7 | Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-7-social-science.json` | Class 7 | Social Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-8-mathematics.json` | Class 8 | Mathematics | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-8-science.json` | Class 8 | Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-8-social-science.json` | Class 8 | Social Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-9-mathematics.json` | Class 9 | Mathematics | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-9-science.json` | Class 9 | Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-9-social-science.json` | Class 9 | Social Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-10-mathematics.json` | Class 10 | Mathematics | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-10-science.json` | Class 10 | Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
+| `andhra-pradesh/class-10-social-science.json` | Class 10 | Social Science | provisional | blocked, no official document | - | - | Board of Secondary Education, Andhra Pradesh - site index |
 
 ### Maharashtra
 
-| File | Level | Subject | State | Units | Topics | Source |
-|---|---|---|---|---|---|---|
-| `maharashtra/class-6-mathematics.json` | Class 6 | Mathematics | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-6-science.json` | Class 6 | Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-6-social-science.json` | Class 6 | Social Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-7-mathematics.json` | Class 7 | Mathematics | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-7-science.json` | Class 7 | Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-7-social-science.json` | Class 7 | Social Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-8-mathematics.json` | Class 8 | Mathematics | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-8-science.json` | Class 8 | Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-8-social-science.json` | Class 8 | Social Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-9-mathematics.json` | Class 9 | Mathematics | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-9-science.json` | Class 9 | Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-9-social-science.json` | Class 9 | Social Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-10-mathematics.json` | Class 10 | Mathematics | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-10-science.json` | Class 10 | Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
-| `maharashtra/class-10-social-science.json` | Class 10 | Social Science | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| File | Level | Subject | Status | State | Units | Topics | Source |
+|---|---|---|---|---|---|---|---|
+| `maharashtra/class-6-mathematics.json` | Class 6 | Mathematics | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-6-science.json` | Class 6 | Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-6-social-science.json` | Class 6 | Social Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-7-mathematics.json` | Class 7 | Mathematics | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-7-science.json` | Class 7 | Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-7-social-science.json` | Class 7 | Social Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-8-mathematics.json` | Class 8 | Mathematics | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-8-science.json` | Class 8 | Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-8-social-science.json` | Class 8 | Social Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-9-mathematics.json` | Class 9 | Mathematics | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-9-science.json` | Class 9 | Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-9-social-science.json` | Class 9 | Social Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-10-mathematics.json` | Class 10 | Mathematics | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-10-science.json` | Class 10 | Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
+| `maharashtra/class-10-social-science.json` | Class 10 | Social Science | provisional | blocked, browser required | - | - | Maharashtra State Bureau of Textbook Production and Curriculum Research (Balbharati) - site index |
 
 ### Karnataka School Examination and Assessment Board
 
-| File | Level | Subject | State | Units | Topics | Source |
-|---|---|---|---|---|---|---|
-| `karnataka/class-6-mathematics.json` | Class 6 | Mathematics | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-6-science.json` | Class 6 | Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-6-social-science.json` | Class 6 | Social Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-7-mathematics.json` | Class 7 | Mathematics | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-7-science.json` | Class 7 | Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-7-social-science.json` | Class 7 | Social Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-8-mathematics.json` | Class 8 | Mathematics | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-8-science.json` | Class 8 | Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-8-social-science.json` | Class 8 | Social Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-9-mathematics.json` | Class 9 | Mathematics | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-9-science.json` | Class 9 | Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-9-social-science.json` | Class 9 | Social Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-10-mathematics.json` | Class 10 | Mathematics | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-10-science.json` | Class 10 | Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
-| `karnataka/class-10-social-science.json` | Class 10 | Social Science | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| File | Level | Subject | Status | State | Units | Topics | Source |
+|---|---|---|---|---|---|---|---|
+| `karnataka/class-6-mathematics.json` | Class 6 | Mathematics | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-6-science.json` | Class 6 | Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-6-social-science.json` | Class 6 | Social Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-7-mathematics.json` | Class 7 | Mathematics | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-7-science.json` | Class 7 | Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-7-social-science.json` | Class 7 | Social Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-8-mathematics.json` | Class 8 | Mathematics | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-8-science.json` | Class 8 | Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-8-social-science.json` | Class 8 | Social Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-9-mathematics.json` | Class 9 | Mathematics | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-9-science.json` | Class 9 | Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-9-social-science.json` | Class 9 | Social Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-10-mathematics.json` | Class 10 | Mathematics | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-10-science.json` | Class 10 | Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
+| `karnataka/class-10-social-science.json` | Class 10 | Social Science | provisional | blocked, browser required | - | - | Karnataka Textbook Society textbook portal - index |
 
 ### NIOS, National Institute of Open Schooling
 
-| File | Level | Subject | State | Units | Topics | Source |
-|---|---|---|---|---|---|---|
-| `nios/class-10-english.json` | Class 10 | English | blocked, document not machine readable | - | - | Bifurcation of syllabus, English (202), NIOS secondary course |
-| `nios/class-10-mathematics.json` | Class 10 | Mathematics | read off source | 6 | 26 | Bifurcation of syllabus, Mathematics (211), NIOS secondary course |
-| `nios/class-10-science-and-technology.json` | Class 10 | Science and Technology | read off source | 7 | 32 | Bifurcation of syllabus, Science and Technology (212), NIOS secondary course |
-| `nios/class-10-social-science.json` | Class 10 | Social Science | read off source | 4 | 28 | Bifurcation of syllabus, Social Science (213), NIOS secondary course |
-| `nios/class-12-biology.json` | Class 12 | Biology | read off source | 5 | 31 | Bifurcation of syllabus, Biology (314), NIOS senior secondary course |
-| `nios/class-12-chemistry.json` | Class 12 | Chemistry | read off source | 8 | 32 | Bifurcation of syllabus, Chemistry (313), NIOS senior secondary course |
-| `nios/class-12-english.json` | Class 12 | English | blocked, document not machine readable | - | - | Bifurcation of syllabus, English (302), NIOS senior secondary course |
-| `nios/class-12-mathematics.json` | Class 12 | Mathematics | read off source | 10 | 38 | Bifurcation of syllabus, Mathematics (311), NIOS senior secondary course |
-| `nios/class-12-physics.json` | Class 12 | Physics | read off source | 8 | 30 | Bifurcation of syllabus, Physics (312), NIOS senior secondary course |
+| File | Level | Subject | Status | State | Units | Topics | Source |
+|---|---|---|---|---|---|---|---|
+| `nios/class-10-english.json` | Class 10 | English | provisional | blocked, document not machine readable | - | - | Bifurcation of syllabus, English (202), NIOS secondary course |
+| `nios/class-10-mathematics.json` | Class 10 | Mathematics | verified | read off source | 6 | 26 | Bifurcation of syllabus, Mathematics (211), NIOS secondary course |
+| `nios/class-10-science-and-technology.json` | Class 10 | Science and Technology | provisional | read off source | 7 | 32 | Bifurcation of syllabus, Science and Technology (212), NIOS secondary course |
+| `nios/class-10-social-science.json` | Class 10 | Social Science | verified | read off source | 4 | 28 | Bifurcation of syllabus, Social Science (213), NIOS secondary course |
+| `nios/class-12-biology.json` | Class 12 | Biology | verified | read off source | 5 | 31 | Bifurcation of syllabus, Biology (314), NIOS senior secondary course |
+| `nios/class-12-chemistry.json` | Class 12 | Chemistry | provisional | read off source | 8 | 32 | Bifurcation of syllabus, Chemistry (313), NIOS senior secondary course |
+| `nios/class-12-english.json` | Class 12 | English | provisional | blocked, document not machine readable | - | - | Bifurcation of syllabus, English (302), NIOS senior secondary course |
+| `nios/class-12-mathematics.json` | Class 12 | Mathematics | verified | read off source | 10 | 38 | Bifurcation of syllabus, Mathematics (311), NIOS senior secondary course |
+| `nios/class-12-physics.json` | Class 12 | Physics | verified | read off source | 8 | 30 | Bifurcation of syllabus, Physics (312), NIOS senior secondary course |
 
 ## Source documents
 

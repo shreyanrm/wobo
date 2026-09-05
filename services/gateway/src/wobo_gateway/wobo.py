@@ -31,14 +31,18 @@ the registry once it is trained, with no change here.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
 from wobo_verifier.cas import CasError, solution_satisfies, step_preserves_solutions
 
+from wobo_gateway import spoken
 from wobo_gateway.model_call import complete as model_complete
 from wobo_gateway.providers import max_tokens_for, timeout_for
 from wobo_gateway.telemetry import record_cost
+
+logger = logging.getLogger("wobo_gateway.wobo")
 
 # The one line Wobo says the very first time a learner meets Wobo (owner copy, 2026-09-02) — shown
 # letter by letter in Wobo's handwriting and spoken by TTS. Verbatim: never paraphrase it.
@@ -65,6 +69,23 @@ by sentence, so a short opener means the learner hears you almost immediately in
 long first line. When a learner earns a real win, celebrate it like you
 mean it — real warmth, real delight; never saccharine, never shouty. Write in sentence case, with no
 emoji and no exclamation marks.
+
+THE REGISTER (the owner, 2026-09-05: "good vocabulary, not too professional and not too street").
+You talk the way a good teacher talks to a learner they like: plain short words, short sentences,
+confident, warm, never performing. Two ways to miss, and both lose a learner in a sentence.
+TOO PROFESSIONAL is the textbook voice: "it is imperative to observe that the sum of their squares is
+equivalent to"; long words where a short one exists, the passive, a lecture where a line would do.
+TOO STREET is an adult doing a teenager: "lowkey easy fr, no cap"; slang, hype, anything borrowed
+from a feed, which a fifteen year old hears as a performance. The target is this, from a real turn:
+"Totally fixable. Think of negatives as a tug-of-war: if the signs match, add the sizes and keep
+that sign; if they differ, subtract the smaller from the bigger and keep the bigger number's sign.
+Try this tiny one: what is -5 + 3?" Prefer the short word: use, not utilise; start, not commence;
+because, not due to the fact that. Contractions are good: "that's", "you'll", "let's".
+Indian English, because that is who is reading: revision, marks, class 8, syllabus, board, the chapter;
+never grade or semester. (A quiz is one of your own components, and when they ask for one, that is
+its name.) No em dashes anywhere in what you say: a colon, a comma or a full stop does the job. Talk TO the learner, never down to them and never up at them. Read
+every line back as a fifteen year old who finds mascots embarrassing AND as a parent reading over
+their shoulder; if either would wince, it is wrong.
 
 You are directly plugged into the learner's app: you can SEE their working through the app's own
 state (a canvas plus a registry of elements you may draw on), and you can act on the page. You
@@ -97,6 +118,49 @@ you heard and check it before you act on it. Never route, solve, or run a capabi
 transcript, and never make them repeat something you did catch clearly. When they DICTATE maths, the
 brackets are invisible in speech: "one over x plus two" could be two different expressions. Echo the
 expression back in proper notation first, confirm that is what they meant, and only then solve it."""
+
+# How every answer teaches. One block, word for word, in the five-path turn AND the board plan,
+# placed at the END of each system prompt where it is the last law the model reads before the
+# packet. It exists because the teaching harness (2026-09-05) found the persona right and the
+# consistency wrong: one answer in three had a reason, a check and the learner's own world in it,
+# and two in three were correct, textbook and flat. Each of the three lines below is measured by
+# ``harness/checks.py`` on every run, so a prompt that stops producing it is a prompt that fails.
+TEACHING_LAW = """HOW EVERY ANSWER TEACHES. Three things, and every one of them is checked on every turn:
+- THE WHY. A fact says what is so; a lesson says why. Whenever you tell them something new, the
+  reason rides in the same breath, in causal words: "because", "which means", "that is why", "think
+  of it as". "The hypotenuse is 5" is a fact. "The hypotenuse is 5 because the two squares on the
+  legs, 9 and 16, add up to the square on the long side, 25" is teaching. One reason, one sentence.
+  Short and causal beats long and flat; never a lecture.
+- THE CHECK. You never finish a thought without finding out whether it landed. End with ONE tiny
+  question sized to them, one they can answer in a breath: "Try this tiny one: what is -5 + 3?"
+  Never a quiz, never a test, and never "do you understand?" or "does that make sense?", which
+  nobody answers honestly. On the board this question is your "ask".
+- THEIR WORLD. When the dossier says what they are into, the example comes from there, named, in
+  your first two sentences: a cricketer gets equivalent fractions in overs and runs, not in slices
+  of pizza. This is the difference between a tutor who knows them and a textbook. Never invent an
+  interest the dossier does not name; with no world given, one plain concrete example is right.
+- THE ANSWER THEY ASKED FOR. When they ask you to work something out or to tell them a number,
+  your say TELLS them: the number, then the why. "The curve will show the greatest height" hands
+  the answer to a picture; "it gets to about 10.2 m, because only the up part of the speed fights
+  gravity" is teaching. The working is said out loud as a sum ("9 + 16 = 25, so the long side is
+  5"), never the rule restated as its own reason ("it follows Pythagoras because the squares add").
+None of this makes the answer longer. Two to four sentences is still the whole answer, and a child
+reads a sentence and a half and stops, so the why comes early and the check comes last.
+
+HOW IT SOUNDS. Talk to them: "you", "we", "let's", a question. Never an essay's closing line
+("notice how movements, negotiations and sacrifice all pushed..."); three abstract nouns in a row
+is a lecture, and a fifteen year old stops reading at the second. Their world only where it truly
+fits: a real thing a cricketer does, never an invented one ("scores in half an over" is not
+cricket); if their world does not fit the idea, say the plain version.
+
+NUMBERS YOU SAY OUT LOUD. Every number in your spoken line is one of three things: a number they
+gave you (in their question or their working), a number the verifier drew on the board, or a small
+sum written out in full so code can confirm it ("9 + 16 = 25", "1/2 = 2/4"; never "1/2 and 2/4 are
+the same"). Write numbers as digits, never as words ("3 balls out of 6", not "three balls out of
+six"): a number spelled out is still a number, and the law reads it. A number you worked out in
+your head never goes into your say: name the quantity ("the hypotenuse", "the slope") and let the
+board carry the value, or make it theirs to find in your question. A sentence that breaks this is
+not spoken."""
 
 WOBO_SYSTEM = (
     WOBO_PERSONA
@@ -255,7 +319,7 @@ Truth and warmth (the register most turns actually live in):
 - Grade the CONCEPT, never the language or the spelling. "becoz gravity" is right about gravity;
   say so, model the correct term gently, and never dock them for the words in a second language.
 - Exam in hours and they know nothing — cram triage, not panic. Give the 3-5 highest-yield topics
-  most likely to move marks tonight, in order, start the first, and say plainly what to skip.
+  most likely to move marks before the paper, in order, start the first, and say plainly what to skip.
 - "write it like a 5-mark CBSE answer" wants format, not just facts: the board's mark allocation and
   the step structure it rewards. Coach the shape of the answer, not only its correctness.
 - "but my TEACHER said it's different" — reconcile without undermining the teacher. Verify; if they
@@ -311,7 +375,7 @@ Leave anchors off anything you want at once. Let your mood follow the moment acr
 the instant they land it.
 
 Walk a multi-step problem one step at a time — never dump the whole solution. Ink ONE step, then
-CHECK before you move on: hand the next move back to them ("your turn — which side does the 3 go
+CHECK before you move on: hand the next move back to them ("your turn: which side does the 3 go
 to?") and STOP there. Wait for what they actually do. React to their real move — a check mark and
 honest praise when they get it, a gentle redirect (not the answer) when they slip — and only then
 ink the next step. The board fills in the way a real worked example does, stone by stone, with them.
@@ -319,7 +383,7 @@ ink the next step. The board fills in the way a real worked example does, stone 
 Two worked shapes (yours to adapt to the real problem, never to copy verbatim):
 Solving 2x + 3 = 7, first step — you explain, ink in time, then check and wait:
 {"path":"inline",
- "say":"Okay, 2x plus 3 equals 7. To get 2x on its own, we undo the plus 3. Your turn — what do we do to both sides?",
+ "say":"Okay, 2x plus 3 equals 7. To get 2x on its own, we undo the plus 3. Your turn: what do we do to both sides?",
  "actions":[
    {"type":"setMood","mood":"thinking","withSentence":0},
    {"type":"annotate","targetId":"term-plus-3","mark":"circle","level":"primary","withSentence":1},
@@ -328,7 +392,7 @@ Solving 2x + 3 = 7, first step — you explain, ink in time, then check and wait
  ]}
 They answer and write 2x = 4 — you affirm that step, ink the next, check again:
 {"path":"inline",
- "say":"Yes — subtract 3 from both sides and you get 2x equals 4. Last move now: 2x means 2 times x, so what undoes the times 2?",
+ "say":"Yes, subtract 3 from both sides and you get 2x equals 4. Last move now: 2x means 2 times x, so what undoes the times 2?",
  "actions":[
    {"type":"annotate","targetId":"step-2x-eq-4","mark":"check","level":"primary","withSentence":0},
    {"type":"annotate","targetId":"coefficient-2","mark":"underline","level":"secondary","afterSentence":1},
@@ -337,8 +401,14 @@ They answer and write 2x = 4 — you affirm that step, ink the next, check again
 One step per turn, a real check between them, marks anchored to the words, a note written on the page
 in time with your voice — that is the whole move.
 
+"""
+    + TEACHING_LAW
+    + """
+
 Reply with strict JSON only, no prose outside it:
-{"path":"<one of the five>","say":"<one short sentence>","actions":[ ... ],
+{"path":"<one of the five>",
+ "say":"<two to four short sentences: a short opener, the why, and the check last>",
+ "actions":[ ... ],
  "component":{...}?, "viz":{...}?, "action":{...}?, "route":{...}?}"""
 )
 
@@ -677,11 +747,11 @@ def _apply_classification(
 # --- the mock turn (keyless: deterministic classification over verified seed artifacts) -----------
 
 _MOCK_SAY = {
-    "inline": "Peek at the step where you moved a term across — something's hiding there.",
-    "component": "Here — I made this just for you. Give it a poke and watch what happens.",
-    "visualization": "Let me draw it instead — this one is easier to show than to say.",
-    "action": "Ooh, I can do that for you — here is what I have in mind.",
-    "route": "Come on, I will take you there.",
+    "inline": "Peek at the step where you moved a term across. Something's hiding there.",
+    "component": "Here, I made this just for you. Give it a poke and watch what happens.",
+    "visualization": "Let me draw it instead. This one's easier to show than to say.",
+    "action": "Ooh, I can do that for you. Here's what I have in mind.",
+    "route": "Come on, I'll take you there.",
 }
 
 
@@ -754,7 +824,7 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
     if name and re.search(r"\b(my name|who am i)\b", text, re.IGNORECASE):
         return {
             "path": "inline",
-            "say": f"You're {name} — of course I remember.",
+            "say": f"You're {name}, of course I remember.",
             "actions": [{"type": "setMood", "mood": "idle"}],
             "grounded": True,
             "handed_answer": False,
@@ -765,7 +835,7 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
     if re.search(r"\b(what|everything)\s+(do\s+)?you\s+(remember|know)\b", text, re.IGNORECASE):
         return {
             "path": "inline",
-            "say": "Here is everything I am keeping about you — say the word and I will forget any of it.",
+            "say": "Here's everything I'm keeping about you. Say the word and I'll forget any of it.",
             "actions": [{"type": "forget", "scope": "show"}],
             "grounded": True,
             "handed_answer": False,
@@ -773,7 +843,7 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
     if re.search(r"\b(forget|delete|clear|wipe)\s+(everything|it\s+all|all of it)\b", text, re.IGNORECASE):
         return {
             "path": "inline",
-            "say": "Done — I cleared everything I was keeping about you.",
+            "say": "Done. I cleared everything I was keeping about you.",
             "actions": [{"type": "forget", "scope": "all"}],
             "grounded": True,
             "handed_answer": False,
@@ -784,7 +854,7 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
         if target:
             return {
                 "path": "inline",
-                "say": "Okay — letting that go.",
+                "say": "Okay, letting that go.",
                 "actions": [{"type": "forget", "scope": "fact", "target": target}],
                 "grounded": True,
                 "handed_answer": False,
@@ -798,7 +868,7 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
             if fact:
                 return {
                     "path": "inline",
-                    "say": "Got it — I'll remember that.",
+                    "say": "Got it, I'll remember that.",
                     "actions": [
                         {"type": "remember", "text": fact},
                         {"type": "setMood", "mood": "correct"},
@@ -897,6 +967,16 @@ def _dossier(lifetime: dict[str, Any]) -> str:
     ]
     if bio:
         lines.append("  " + " · ".join(bio))
+    # What they are into, as the account holds it (``mind.ground_lifetime`` fills ``interests``
+    # from the learner's own row). This line did not exist before 2026-09-05: the interests the
+    # learner named at onboarding were grounded into the payload on every turn and then rendered
+    # into no prompt at all, which is one reason "their world" scored 0.00 of 4 in the harness.
+    interests = [_clip(i, 80) for i in (lifetime.get("interests") or []) if str(i).strip()][:8]
+    if interests:
+        lines.append(
+            "  Their world (every example and analogy in this answer comes from here): "
+            + ", ".join(interests)
+        )
     twin = _clip(lifetime.get("twinSummary") or "", 1000)
     if twin:
         lines.append(f"  What they're like: {twin}")
@@ -948,6 +1028,21 @@ def _dossier(lifetime: dict[str, Any]) -> str:
     if not lines:
         return ""
     return "Who you are teaching:\n" + "\n".join(lines) + "\n\n"
+
+
+def has_world(lifetime: dict[str, Any]) -> bool:
+    """Does the dossier say anything about what this learner is into?
+
+    Interests, remembered facts and the twin summary are where a world lives. Name, age and class
+    are not a world, so a dossier of those alone is "no world given" and the prompt says nothing
+    that would tempt the model to invent one.
+    """
+    if not isinstance(lifetime, dict):
+        return False
+    for key in ("interests", "facts", "parentFacts"):
+        if any(str(v).strip() for v in (lifetime.get(key) or []) if v is not None):
+            return True
+    return bool(str(lifetime.get("twinSummary") or "").strip())
 
 
 _MASTERY_BAND_ORDER = ("independent", "secure", "developing", "emerging")
@@ -1110,6 +1205,17 @@ def _build_user_prompt(
         )
 
     clock = f"Local time for the learner right now: {local_time}\n" if local_time else ""
+    # The one instruction the harness found the model ignoring, moved to the LAST line it reads.
+    # The persona says "reach for THEIR world" once, a thousand words up; the model read the
+    # dossier and then explained equivalent fractions with pizza. This does not quote the dossier
+    # (it is learner-authored data inside the fence) — it points at it and says what to do.
+    world = (
+        "Their world is in the dossier above (what they are into, the things to remember, what "
+        "they are like). The example in THIS answer comes from it, named. "
+        if has_world(lifetime)
+        else "No world is given for this learner, so use one plain concrete example and invent "
+        "no interest. "
+    )
     meeting = (
         f"FIRST MEETING — this learner is meeting you for the very first time. Your reply is your "
         f'introduction and nothing else: say exactly "{WOBO_INTRO}", word for word, path "inline".\n'
@@ -1145,7 +1251,9 @@ def _build_user_prompt(
         "concretely (name the real stops, chapters, stars, options — never a page you cannot see). "
         "Classify this turn into exactly one path, then give the reply (a graduated hint when they "
         "are working a problem) and any overlay actions pointing at the exact place that needs "
-        "attention."
+        "attention. "
+        f"{world}"
+        "Say WHY in causal words, and end on one tiny check they can answer in a breath."
     )
 
 
@@ -1187,52 +1295,83 @@ def run_wobo_turn(
     model = provider_model
     fb = list(fallbacks)
 
-    # THROUGH ``model_call``, never ``litellm.completion`` directly. That module exists because of
-    # one production failure: a model somewhere in the fallback chain refuses ``temperature``,
-    # answers 400, and litellm raises the LAST error, so the learner gets nothing and the log names
-    # a provider that was not the problem. This call carried a temperature and did not go through
-    # it, so on any model that refuses the knob Wobo's own turn was the one call in the gateway
-    # with no protection at all. Found by the teaching harness, 2026-09-05.
-    response = model_complete(
-        model=model,
-        messages=[
-            {"role": "system", "content": WOBO_SYSTEM},
-            {
-                "role": "user",
-                "content": _build_user_prompt(
-                    context, grounding, first_meeting=is_first_meeting(payload)
-                ),
-            },
-        ],
-        fallbacks=fb or None,
-        max_tokens=max_tokens_for("wobo.turn", 500),
-        temperature=0.3,
-        # A turn is the short class: the learner is waiting on it, so it fails fast rather than
-        # holding the request (and the orb) open on a stalled provider.
-        timeout=timeout_for("wobo.turn", timeout_s),
-    )
-    record_cost(capability="wobo.turn", model=model, response=response)
-    text = response.choices[0].message.content or ""
-    data = _extract_json(text)
-    # A model that answered in plain prose (no JSON envelope at all) still said something useful;
-    # serving the canned line over it throws the real answer away and makes Wobo look deaf. So an
-    # unparseable reply becomes the say line verbatim, and the canned line is kept for the only case
-    # it fits: nothing came back. The outbound safety screen in app.py still runs over whatever this
-    # returns, so prose takes exactly the same pass as an enveloped say.
+    messages: list[dict[str, str]] = [
+        {"role": "system", "content": WOBO_SYSTEM},
+        {
+            "role": "user",
+            "content": _build_user_prompt(
+                context, grounding, first_meeting=is_first_meeting(payload)
+            ),
+        },
+    ]
+    tokens = 0
+    given = spoken.given_numbers(context)
     canned = "Let us look at your working together."
-    envelope_say = str(data.get("say") or "").strip() if data else text.strip()
-    say = envelope_say or canned
+    data: dict[str, Any] = {}
+    say = canned
+    decided = spoken.audit("", given=given, verified=set())
+    # Two passes at most: the answer, and one more if its spoken line broke the number law.
+    for attempt in range(2):
+        # THROUGH ``model_call``, never ``litellm.completion`` directly. That module exists because
+        # of one production failure: a model somewhere in the fallback chain refuses
+        # ``temperature``, answers 400, and litellm raises the LAST error, so the learner gets
+        # nothing and the log names a provider that was not the problem. This call carried a
+        # temperature and did not go through it, so on any model that refuses the knob Wobo's own
+        # turn was the one call in the gateway with no protection at all. Found by the teaching
+        # harness, 2026-09-05.
+        response = model_complete(
+            model=model,
+            messages=messages,
+            fallbacks=fb or None,
+            max_tokens=max_tokens_for("wobo.turn", 500),
+            temperature=0.3,
+            # A turn is the short class: the learner is waiting on it, so it fails fast rather
+            # than holding the request (and the orb) open on a stalled provider.
+            timeout=timeout_for("wobo.turn", timeout_s),
+        )
+        record_cost(capability="wobo.turn", model=model, response=response)
+        text = response.choices[0].message.content or ""
+        data = _extract_json(text)
+        # A model that answered in plain prose (no JSON envelope at all) still said something
+        # useful; serving the canned line over it throws the real answer away and makes Wobo look
+        # deaf. So an unparseable reply becomes the say line verbatim, and the canned line is kept
+        # for the only case it fits: nothing came back. The outbound safety screen in app.py still
+        # runs over whatever this returns, so prose takes exactly the same pass as an enveloped say.
+        envelope_say = str(data.get("say") or "").strip() if data else text.strip()
+        say = envelope_say or canned
+        usage = getattr(response, "usage", None)
+        tokens += int(getattr(usage, "total_tokens", 0) or 0)
+
+        # THE SPOKEN-NUMBER LAW (``spoken``). There is no board on this path, so nothing a verifier
+        # drew can license a number: what the learner gave, a sum written out in full, or a
+        # question. A line that breaks it gets one more try with the offending numerals named,
+        # because on this path a dropped sentence is usually the whole answer.
+        decided = spoken.audit(say, given=given, verified=set())
+        if decided.clean or attempt == 1:
+            break
+        messages = [
+            *messages,
+            {"role": "assistant", "content": text},
+            {"role": "user", "content": spoken.retry_note(decided)},
+        ]
+    if not decided.clean:
+        logger.warning(
+            "spoken-number law dropped a sentence from a turn",
+            extra={"fields": {"unsaid": [n for n, _ in decided.unsaid][:6]}},
+        )
+    say = decided.say or canned
     actions = data.get("actions", [])
     if not isinstance(actions, list):
         actions = []
-    usage = getattr(response, "usage", None)
-    tokens = int(getattr(usage, "total_tokens", 0) or 0)
 
     out: dict[str, Any] = {
         "say": say,
         "actions": actions,
         "grounded": grounding is not None,
         "handed_answer": False,
+        # The sums the spoken line wrote out and the CAS confirmed. Additive: the wire can prove
+        # every number in ``say`` the way the board's ``done`` frame proves every drawn one.
+        "verified": [c.name for c in decided.checks],
     }
     # The model's own classification wins when valid; the keyword classifier is the safety net.
     classification: dict[str, Any] = (
@@ -1289,7 +1428,9 @@ The pipelines, their ops, and each op's fields:
                               each line, and a line it cannot read costs you the whole derivation
             op "construction" what "perpendicular_bisector", segment [[ax, ay], [bx, by]]
                               what "right_triangle", legs [a, b], unit — the hypotenuse is
-                              computed and proved for you; never type it
+                              computed and proved for you; never type it. Add squares true
+                              when they ask WHY the squares add: the square on each side is
+                              drawn with its area, and the areas are the proof
   physics   op "free_body"    body, forces [{name, magnitude, angle_deg, unit}], equilibrium
             op "projectile"   v0, angle_deg
             op "circuit"      emf, resistances [..], arrangement "series"|"parallel"
@@ -1319,12 +1460,30 @@ that is not on their screen is thrown away, so only ever use ids you were actual
 Add "meta":{"beat":{"with":1}} to an object to land it as you BEGIN that sentence, or
 {"after":1} to land it as you finish it. You point before you say "this".
 
-Choose the presentation: "screen" for a pointer or one line over what is already there, "plane" for
-a derivation or a diagram from scratch, "full" inside a lesson. If they asked for the board, give
-them the plane.
+WHERE TO DRAW — decide this before you plan a single intent. Read the targets you were given: they
+are exactly what the learner is looking at. If the thing you need to point at is ALREADY ON THEIR
+SCREEN (a chip, a line of the lesson, a step of their own working, a part of a diagram in front of
+them), mark it in place: objects anchored to that {"target": ...}, no intents, no board. A ring
+round the right chip and three words beside it teaches more than a fresh diagram of the same thing
+on a board that slides over it. Open the board only when there is something NEW to build — a graph,
+a construction, a derivation, a diagram that is not on the page. When they ask you to draw,
+construct, graph, or show WHY, and the thing that would show it is not on their screen, that is a
+pipeline intent on the board even if a related chip is on the screen: rings round a triangle they
+can already see do not build the squares on its sides. The surface follows the ink: marks
+on what is there stay on the screen, anything built from scratch goes to the plane, and inside a
+lesson the board is the screen. "presentation" is your reading of that rule ("screen", "plane" or
+"full"); the ink you actually draw is what decides, and the learner's own word ("board", "here")
+beats both.
 
 Draw one step at a time and hand the next move back with "ask" rather than finishing the problem
-for them. Keep "say" in sentence case, with no emoji and no exclamation marks."""
+for them. Keep "say" in sentence case, with no emoji and no exclamation marks.
+
+"""
+    + TEACHING_LAW
+    + """
+On the board that means: the numbers live in the objects the pipelines drew, and your "say" carries
+the WHY they come out that way; your "ask" is the check, one tiny question about what is now on the
+board."""
 )
 
 # The keyless twin: deterministic intent extraction so the whole board works in mock mode. Keep in
@@ -1506,11 +1665,14 @@ def board_intents(text: str) -> list[dict[str, Any]]:
 #: was drawn, and distinct from every line in ``_BOARD_SAY`` so the two cases stay tellable apart.
 SILENT_BOARD_SAY = "Here it is. Take a look at what I have put on the board."
 
+#: Each line is true of anything its family draws: nothing is named that a number line, a lens or a
+#: timeline would not carry. The maths line used to promise "the curve first, then the line that
+#: just touches it" over every maths board, including a number line with no curve on it.
 _BOARD_SAY = {
-    "math": "Look at this. I will draw the curve first, then the line that just touches it.",
+    "math": "Look at this. I'll draw it a piece at a time, and you tell me the part that looks off.",
     "physics": "Here it is. Watch what happens to each piece as it moves.",
-    "chemistry": "Let me build it. Each bond goes on in the order you would draw it yourself.",
-    "bio_social": "Here. I will label it as I go, and you tell me the one I miss.",
+    "chemistry": "Let me build it. Each part goes on in the order you'd draw it yourself.",
+    "bio_social": "Here. I'll label it as I go, and you tell me the one I miss.",
 }
 
 
@@ -1551,10 +1713,10 @@ def _focus_plan(context: dict[str, Any], text: str) -> dict[str, Any] | None:
     anchor = {"focus": fid}
     what = str(focus.get("text") or "").strip()
     said = (
-        f"This part — {what}." if what and len(what) <= 90 else "This part, the bit you drew around."
+        f"This part: {what}." if what and len(what) <= 90 else "This part, the bit you drew around."
     )
     return {
-        "say": f"{said} Let us look at what it is doing.",
+        "say": f"{said} Let's look at what it's doing.",
         "intents": [],
         "objects": [
             {
@@ -1576,6 +1738,106 @@ def _focus_plan(context: dict[str, Any], text: str) -> dict[str, Any] | None:
     }
 
 
+# The keyless twin of the WHERE TO DRAW rule in ``BOARD_SYSTEM``: a question that names something
+# already on the learner's screen is answered by marking it there, not by opening a board.
+_STOPWORDS = frozenset(
+    "the a an this that these those is are was were be been what which where why how does do did "
+    "can could would should it its of on in at to for with and or not me my your you i we they "
+    "tell show explain about there here one ones side step line part thing".split()
+)
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in re.findall(r"[a-z][a-z0-9']{2,}", (text or "").lower()) if w not in _STOPWORDS}
+
+
+def _screen_targets(context: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every target the client says is on the screen, from both lists the packet carries
+    (``planner.Surface.from_context`` reads the same two)."""
+    out: list[dict[str, Any]] = [t for t in (context.get("targets") or []) if isinstance(t, dict)]
+    packet = context.get("packet")
+    screen = (packet.get("screen") if isinstance(packet, dict) else None) or {}
+    for surface in (screen.get("surfaces") or []) if isinstance(screen, dict) else []:
+        if isinstance(surface, dict):
+            out.extend(t for t in (surface.get("targets") or []) if isinstance(t, dict))
+    return out
+
+
+def target_named_by(text: str, targets: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The screen target the learner's words name, or None.
+
+    A target is named when a content word of its label (or its live text) is in the question:
+    "which side is the hypotenuse" names the chip labelled "the hypotenuse". Ties go to the target
+    with the most words in common; a target no word of the question reaches is never chosen, so an
+    ordinary sentence does not get a ring round the nearest chip.
+    """
+    asked = _words(text)
+    if not asked:
+        return None
+    best: tuple[int, dict[str, Any]] | None = None
+    for target in targets:
+        if not str(target.get("id") or "").strip():
+            continue
+        named = _words(f"{target.get('label') or ''} {target.get('text') or ''}")
+        shared = len(asked & named)
+        if shared and (best is None or shared > best[0]):
+            best = (shared, target)
+    return best[1] if best else None
+
+
+#: A request to MARK something on the screen: "draw a ring round the button that starts the
+#: course", "circle the hypotenuse", "point at step 2". These carried no question mark, so the
+#: keyless twin returned None and the turn fell to the ordinary path, which streamed a stock SVG
+#: card and claimed a drawing (the 2026-09-05 review, finding 17).
+_MARK_IT = re.compile(
+    r"\b(ring|circle|mark|highlight|underline|point (?:at|to)|show me|where is|where's)\b",
+    re.IGNORECASE,
+)
+
+
+def _target_plan(context: dict[str, Any], text: str) -> dict[str, Any] | None:
+    """Wobo marks the thing on the screen the learner asked about: a ring, and a word beside it.
+
+    Nothing here is invented — the anchor is a target id the client registered, and the ring goes
+    where that target is, however the page moves under it. No intent, so no board: this is the
+    keyless proof that a question about what is already on the screen is answered on the screen.
+    """
+    text = text or ""
+    if (
+        not _ABOUT_THIS.search(text)
+        and not text.rstrip().endswith("?")
+        and not _MARK_IT.search(text)
+    ):
+        return None
+    target = target_named_by(text, _screen_targets(context))
+    if target is None:
+        return None
+    tid = str(target["id"])
+    what = str(target.get("label") or tid).strip()
+    return {
+        "say": f"Right here: {what}. Look at this part first.",
+        "presentation": "screen",
+        "intents": [],
+        "objects": [
+            {
+                "id": "t1ring",
+                "kind": "circle",
+                "anchor": {"target": tid},
+                "pad": 8,
+                "style": {"ink": "accent", "weight": 2},
+            },
+            {
+                "id": "t2note",
+                "kind": "write",
+                "anchor": {"target": tid, "at": "bottom"},
+                "text": "this one",
+                "style": {"ink": "wobo", "weight": 2},
+            },
+        ],
+        "ask": {"prompt": "What do you notice about it?", "targets": [tid]},
+    }
+
+
 def mock_board_plan(payload: dict[str, Any]) -> dict[str, Any] | None:
     """A deterministic, network-free board plan. None when this turn is not a drawing."""
     context = payload.get("context") or {}
@@ -1583,8 +1845,9 @@ def mock_board_plan(payload: dict[str, Any]) -> dict[str, Any] | None:
     text = str(turn.get("lastUserInput") or "")
     intents = board_intents(text)
     if not intents:
-        # No subject to draw, but perhaps something in hand to mark.
-        return _focus_plan(context, text)
+        # No subject to draw, but perhaps something in hand to mark: the region they circled
+        # first, then the thing on the screen their words name.
+        return _focus_plan(context, text) or _target_plan(context, text)
     family = str(intents[0].get("pipeline") or "math")
     return {
         "say": _BOARD_SAY.get(family, _BOARD_SAY["math"]),

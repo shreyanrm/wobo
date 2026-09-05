@@ -9,6 +9,7 @@
 
 import { gatewayFetch, mintVoiceToken, voiceSocketUrl } from '@wobo/sdk';
 import {
+  type PerformancePlan,
   planPerformance,
   useWoboBus,
   type WoboAction,
@@ -196,9 +197,78 @@ export function sentences(text: string): string[] {
   return out.length > 0 ? out : [text.trim()];
 }
 
+// --- THE BEAT (docs/copy/voice.md 10b): the emotion follows the beat, and it is small ------------
+//
+// The gateway's voice used to read every line in one flat register, so "you got it" and "not quite"
+// sounded identical. The tutor already knows what a line is: it sets a mood on the turn, it anchors
+// that mood to a sentence, it marks a crisis, and the board's `ask` event is a question by name. That
+// knowledge is carried to the voice here as one small enum. Nothing here reads the words to guess.
+
+/** What kind of line this is. The gateway holds the same five (`wobo_gateway.voice.BEATS`). */
+export type VoiceBeat = 'win' | 'miss' | 'ask' | 'step' | 'crisis';
+
+/** The mood the tutor set, read as a beat. Calm moods have no opinion and fall to the caller's. */
+export function beatOfMood(mood: WoboMood | undefined): VoiceBeat | undefined {
+  switch (mood) {
+    case 'correct':
+    case 'celebrate':
+      return 'win';
+    case 'oops':
+    case 'hint':
+      return 'miss';
+    case 'waiting': // "waiting when the move is theirs": Wobo just asked and is holding still
+      return 'ask';
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * One turn's beat: the crisis line first (the softest of all, whatever mood rode along), else the
+ * last mood the tutor set on the turn, else the step. The safety block is the gateway's own, never
+ * a reading of the text.
+ */
+export function beatOfTurn(actions: WoboAction[], safety?: { category?: string }): VoiceBeat {
+  if (safety?.category === 'crisis') return 'crisis';
+  let beat: VoiceBeat = 'step';
+  for (const a of actions) {
+    const b = a.type === 'setMood' ? beatOfMood(a.mood as WoboMood) : undefined;
+    if (b) beat = b;
+  }
+  return beat;
+}
+
+/**
+ * The beat of each sentence in a choreographed turn: a mood anchored `withSentence` i leans that
+ * sentence, one anchored `afterSentence` i leans the next, and a lean carries forward until the
+ * next one. Sentences before any anchored mood take the turn's beat.
+ *
+ * A crisis turn is the crisis beat on every sentence. The anchored moods on such a turn come from
+ * the model's own actions, and a `celebrate` anchored to sentence one used to flip the rest of the
+ * turn to a win: the one accident the beat exists to rule out. The safety block is the gateway's,
+ * and it outranks anything the model anchored.
+ */
+export function sentenceBeats(plan: PerformancePlan, count: number, turnBeat: VoiceBeat): VoiceBeat[] {
+  if (turnBeat === 'crisis') return Array.from({ length: count }, (): VoiceBeat => 'crisis');
+  const out: VoiceBeat[] = [];
+  let current: VoiceBeat = turnBeat;
+  for (let i = 0; i < count; i++) {
+    current = beatOfMood(moodOfBeat(plan.atStart.get(i) ?? [])) ?? current;
+    out.push(current);
+    current = beatOfMood(moodOfBeat(plan.atEnd.get(i) ?? [])) ?? current;
+  }
+  return out;
+}
+
+/** The beat rides the socket URL beside the token. The first frame stays the line itself. */
+export function withBeat(url: string, beat: VoiceBeat): string {
+  return `${url}&beat=${beat}`;
+}
+
 /** Synthesize one sentence to PCM samples (or null when keyless/rate-limited/muted). */
 async function synth(
   text: string,
+  beat: VoiceBeat = 'step',
 ): Promise<{ samples: Float32Array<ArrayBuffer>; rate: number } | null> {
   // Offline (or keyless): don't burn the timeout on a fetch that can't land — fall straight to
   // text. The reply is already on screen; Wobo's voice is the grace, not the help.
@@ -211,7 +281,7 @@ async function synth(
     const res = await gatewayFetch(`${GATEWAY_URL}/v1/voice/tts`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ text: text.slice(0, 600) }),
+      body: JSON.stringify({ text: text.slice(0, 600), beat }),
       signal: ctrl.signal,
     });
     if (!res.ok) return null; // quota 502 / any non-ok → silent-safe, gate releases via onDone
@@ -286,7 +356,7 @@ async function playSamples(
 async function speakStream(
   text: string,
   gen: number,
-  opts?: { onDone?: () => void },
+  opts?: { onDone?: () => void; beat?: VoiceBeat },
 ): Promise<boolean> {
   if (!GATEWAY_URL || !text.trim() || isOffline()) return false;
   const ctx = speechCtx();
@@ -301,7 +371,10 @@ async function speakStream(
   const minted = await mintVoiceToken(GATEWAY_URL);
   if (!minted) return false;
   if (gen !== speechGen) return true; // superseded while minting
-  const url = voiceSocketUrl(GATEWAY_URL, '/v1/voice/tts/stream', minted.token);
+  const url = withBeat(
+    voiceSocketUrl(GATEWAY_URL, '/v1/voice/tts/stream', minted.token),
+    opts?.beat ?? 'step',
+  );
   return new Promise<boolean>((resolve) => {
     let ws: WebSocket;
     try {
@@ -392,7 +465,10 @@ export function onceCallback(fn?: () => void): () => void {
   };
 }
 
-export async function speakLine(text: string, opts?: { onDone?: () => void }): Promise<void> {
+export async function speakLine(
+  text: string,
+  opts?: { onDone?: () => void; beat?: VoiceBeat },
+): Promise<void> {
   // Guaranteed-once: muted, keyless, superseded, thrown or finished — the gate always releases.
   // (A whole-body finally can't do this: the streaming path resolves before its audio ends and
   // fires onDone from a timer afterwards, so a finally here would pre-empt it.)
@@ -405,7 +481,8 @@ export async function speakLine(text: string, opts?: { onDone?: () => void }): P
   const gen = ++speechGen;
   // Fast path: stream the whole line (first audio ~4s sooner). If it can't start, fall through to
   // the buffered sentence pipeline below — voice never regresses.
-  if (await speakStream(text, gen, { onDone: finish })) {
+  const beat = opts?.beat ?? 'step';
+  if (await speakStream(text, gen, { onDone: finish, beat })) {
     // Handled — the stream fires `finish` when its audio drains. Unless it was superseded, in which
     // case nothing more is coming and the gate would hang: release it now.
     if (gen !== speechGen) finish();
@@ -420,14 +497,14 @@ export async function speakLine(text: string, opts?: { onDone?: () => void }): P
     // the rest stays on screen. Grace degrades, the words don't.
     const all = sentences(text);
     const parts = currentFidelity() === 'low' ? all.slice(0, 2) : all;
-    let pending = synth(parts[0] as string);
+    let pending = synth(parts[0] as string, beat);
     for (let i = 0; i < parts.length; i++) {
       const cur = await pending;
       if (gen !== speechGen) {
         finish(); // a newer utterance took over
         return;
       }
-      pending = i + 1 < parts.length ? synth(parts[i + 1] as string) : Promise.resolve(null);
+      pending = i + 1 < parts.length ? synth(parts[i + 1] as string, beat) : Promise.resolve(null);
       if (isMuted()) {
         finish(); // muted mid-flight — respect it, but never strand the gate
         return;
@@ -468,14 +545,17 @@ async function speakSentences(
   segs: string[],
   gen: number,
   hooks?: { onStart?: (i: number, voicedMs?: number) => void; onEnd?: (i: number) => void },
+  beats: VoiceBeat[] = [],
 ): Promise<void> {
   const canVoice = Boolean(GATEWAY_URL) && !isMuted();
   const voiceCount = currentFidelity() === 'low' ? Math.min(2, segs.length) : segs.length;
-  let pending = canVoice && segs.length > 0 ? synth(segs[0] as string) : null;
+  const beatAt = (i: number): VoiceBeat => beats[i] ?? 'step';
+  let pending = canVoice && segs.length > 0 ? synth(segs[0] as string, beatAt(0)) : null;
   for (let i = 0; i < segs.length; i++) {
     const cur = pending ? await pending : null;
     if (gen !== speechGen) return;
-    pending = canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string) : null;
+    pending =
+      canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string, beatAt(i + 1)) : null;
     const voicedMs = cur ? (cur.samples.length / cur.rate) * 1000 : undefined;
     hooks?.onStart?.(i, voicedMs);
     if (cur && !isMuted()) await playSamples(cur.samples, cur.rate, gen);
@@ -499,10 +579,10 @@ function traceBeat(kind: string, i: number, count: number, voicedMs?: number): v
   });
 }
 
-const moodOfBeat = (beat: WoboAction[]): WoboMood | undefined => {
+function moodOfBeat(beat: WoboAction[]): WoboMood | undefined {
   const m = beat.find((a) => a.type === 'setMood');
   return m && 'mood' in m ? (m.mood as WoboMood) : undefined;
-};
+}
 
 /**
  * Perform one choreographed turn: speak `text` and land each anchored action on its sentence beat.
@@ -513,10 +593,13 @@ export async function performTurn(
   text: string,
   actions: WoboAction[],
   bus: Pick<WoboBus, 'addBeat' | 'beginTurn'>,
-  opts?: { onMood?: (m: WoboMood) => void },
+  opts?: { onMood?: (m: WoboMood) => void; beat?: VoiceBeat },
 ): Promise<void> {
   const segs = sentences(text);
   const plan = planPerformance(actions, segs.length);
+  // The voice leans with the mood on each sentence (10b): brighter on the check mark, curious on
+  // the question. The turn's own beat holds until the first anchored mood.
+  const beats = sentenceBeats(plan, segs.length, opts?.beat ?? 'step');
   stopSpeaking();
   const gen = ++speechGen;
   bus.beginTurn(); // this turn's ink starts a fresh redrawable set
@@ -542,10 +625,15 @@ export async function performTurn(
     traceBeat(kind, i, beat.length, voicedMs);
   };
   try {
-    await speakSentences(segs, gen, {
-      onStart: (i, voicedMs) => runBeat(plan.atStart.get(i), i, voicedMs, 'withSentence', 's'),
-      onEnd: (i) => runBeat(plan.atEnd.get(i), i, undefined, 'afterSentence', 'e'),
-    });
+    await speakSentences(
+      segs,
+      gen,
+      {
+        onStart: (i, voicedMs) => runBeat(plan.atStart.get(i), i, voicedMs, 'withSentence', 's'),
+        onEnd: (i) => runBeat(plan.atEnd.get(i), i, undefined, 'afterSentence', 'e'),
+      },
+      beats,
+    );
   } finally {
     // Never strand ink: if the performance was cut short, land the beats that never fired — through
     // runBeat, so their mood and trace are honoured too.
@@ -575,8 +663,8 @@ export interface UtteranceClock {
 }
 
 export interface Utterance {
-  /** Queue a line of Wobo's. Safe to call while Wobo is already speaking. */
-  say: (text: string) => void;
+  /** Queue a line of Wobo's, with what kind of line it is (10b). Safe to call mid-speech. */
+  say: (text: string, beat?: VoiceBeat) => void;
   /** No more lines are coming; `done` resolves once the queue drains. */
   end: () => void;
   /** The learner cut Wobo off: the voice stops mid-word and the queue is dropped. */
@@ -593,7 +681,7 @@ export function startUtterance(clock?: () => UtteranceClock | null | undefined):
   stopSpeaking();
   const gen = ++speechGen;
   clock?.()?.beginUtterance();
-  const queue: string[] = [];
+  const queue: { text: string; beat: VoiceBeat }[] = [];
   let ended = false;
   let wake: (() => void) | null = null;
   const nudge = () => {
@@ -614,15 +702,16 @@ export function startUtterance(clock?: () => UtteranceClock | null | undefined):
         continue;
       }
       const canVoice = Boolean(GATEWAY_URL) && !isMuted();
-      const segs = sentences(next);
+      const segs = sentences(next.text);
       // Low-fi (reduced motion, Data Saver, 2G): voice the first couple of sentences, read the rest
       // on the clock. Grace degrades; the timing the ink is paced against does not.
       const voiceCount = currentFidelity() === 'low' ? Math.min(2, segs.length) : segs.length;
-      let pending = canVoice && segs.length > 0 ? synth(segs[0] as string) : null;
+      let pending = canVoice && segs.length > 0 ? synth(segs[0] as string, next.beat) : null;
       for (let i = 0; i < segs.length; i++) {
         const cur = pending ? await pending : null;
         if (gen !== speechGen) return;
-        pending = canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string) : null;
+        pending =
+          canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string, next.beat) : null;
         if (cur && !isMuted()) await playSamples(cur.samples, cur.rate, gen);
         else await waitMs(estimateReadMs(segs[i] as string));
         if (gen !== speechGen) return;
@@ -631,9 +720,9 @@ export function startUtterance(clock?: () => UtteranceClock | null | undefined):
   })();
 
   return {
-    say(text: string) {
+    say(text: string, beat: VoiceBeat = 'step') {
       if (!text.trim()) return;
-      queue.push(text);
+      queue.push({ text, beat });
       nudge();
     },
     end() {
@@ -650,13 +739,21 @@ export function startUtterance(clock?: () => UtteranceClock | null | undefined):
   };
 }
 
-// A turn's anchored actions, handed from App's ask() to the conductor and consumed once, keyed by
-// the wobo turn's id (so it never mis-fires on an identical-looking line).
-const pendingPerformances = new Map<string, WoboAction[]>();
-export function registerPerformance(turnId: string, anchored: WoboAction[]): void {
-  if (anchored.length > 0) pendingPerformances.set(turnId, anchored);
+// A turn's anchored actions and its beat, handed from App's ask() to the conductor and consumed
+// once, keyed by the wobo turn's id (so it never mis-fires on an identical-looking line).
+interface Performance {
+  anchored: WoboAction[];
+  beat: VoiceBeat;
 }
-function takePerformance(turnId: string): WoboAction[] | undefined {
+const pendingPerformances = new Map<string, Performance>();
+export function registerPerformance(
+  turnId: string,
+  anchored: WoboAction[],
+  beat: VoiceBeat = 'step',
+): void {
+  if (anchored.length > 0 || beat !== 'step') pendingPerformances.set(turnId, { anchored, beat });
+}
+function takePerformance(turnId: string): Performance | undefined {
   const p = pendingPerformances.get(turnId);
   if (p) pendingPerformances.delete(turnId);
   return p;
@@ -685,9 +782,12 @@ export function SpeechNarrator() {
     if (last?.role !== 'wobo' || last.id === 'seed') return;
     if (spokenUpTo.current === last.id) return;
     spokenUpTo.current = last.id;
-    const anchored = takePerformance(last.id);
-    if (anchored) void performTurn(last.text, anchored, bus, { onMood: setMood });
-    else void speakLine(last.text);
+    const perf = takePerformance(last.id);
+    if (perf && perf.anchored.length > 0) {
+      void performTurn(last.text, perf.anchored, bus, { onMood: setMood, beat: perf.beat });
+    } else {
+      void speakLine(last.text, { beat: perf?.beat ?? 'step' });
+    }
   }, [turns, bus, setMood]);
   // Dev-only verification seam: lets a live check drive a controlled choreographed turn against the
   // real app and measure the beats. Never compiled into a production build (import.meta.env.DEV).

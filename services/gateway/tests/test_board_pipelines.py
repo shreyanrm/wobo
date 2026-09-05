@@ -154,10 +154,18 @@ def test_punnett_ratio_comes_from_the_verifier() -> None:
     draft = run_intent(
         {"pipeline": "bio_social", "op": "punnett", "parent_a": "Aa", "parent_b": "Aa"}
     )
-    cells = [o for o in draft.objects if o["kind"] == "write"]
+    cells = [o for o in draft.objects if o["kind"] == "write" and o.get("check") is None]
     assert [o["text"] for o in cells] == ["AA", "Aa", "Aa", "aa"]
     numbers = [o for o in draft.objects if o["kind"] == "number"]
     assert [o["value"] for o in numbers] == [3.0, 1.0]
+    # Both ratios, each under its own name: the phenotype numbers are labelled, and the
+    # genotype ratio is written beside them with its own check, so no sentence can call the
+    # 3 and the 1 "the genotype ratio" over a board that carries nothing else.
+    assert [o.get("label") for o in numbers] == ["dominant", "recessive"]
+    genotypes = [o for o in draft.objects if o.get("hint") == "genotypes" or o["id"].endswith("genotypes")]
+    assert genotypes and genotypes[0]["text"] == "genotypes 1 AA : 2 Aa : 1 aa"
+    assert genotypes[0]["check"] == "board.numbers_agree:genotype counts"
+    assert any(c.name == "board.numbers_agree:genotype counts" and c.passed for c in draft.ledger.checks)
 
 
 def test_timeline_refuses_two_events_in_one_year() -> None:

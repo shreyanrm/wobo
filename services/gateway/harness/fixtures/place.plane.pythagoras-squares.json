@@ -1,0 +1,964 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "If the legs were 6 cm and 8 cm, what would the area of the square on the long side be?",
+    "t": 17529,
+    "targets": [
+      "tri-hyp"
+    ],
+    "type": "ask"
+  },
+  "case_id": "place.plane.pythagoras-squares",
+  "cost_usd": 0.004882,
+  "elapsed_ms": 5697.195083019324,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 1090,
+        "t": 0,
+        "text": "Let's build it.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              396.36,
+              610.0
+            ]
+          },
+          "id": "m0_1triangle",
+          "kind": "polygon",
+          "points": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              185.07,
+              0.0
+            ],
+            [
+              0.0,
+              -250.0
+            ]
+          ],
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1161,
+            "start": 120
+          }
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              396.36,
+              580.0
+            ]
+          },
+          "id": "m0_2rightangle",
+          "kind": "polyline",
+          "points": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              29.61,
+              0.0
+            ],
+            [
+              29.61,
+              30.0
+            ]
+          ],
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 1281
+          }
+        },
+        "t": 1281,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 10181,
+        "t": 1310,
+        "text": "The square on the long side has area 25 cm\u00b2, and the two on the legs have 9 cm\u00b2 and 16 cm\u00b2, and 9 + 16 = 25.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              488.9,
+              610.0
+            ]
+          },
+          "id": "m0_3basemid",
+          "kind": "point",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 2441
+          }
+        },
+        "t": 2441,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              396.36,
+              485.0
+            ]
+          },
+          "id": "m0_4sidemid",
+          "kind": "point",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 3602
+          }
+        },
+        "t": 3602,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              488.9,
+              485.0
+            ]
+          },
+          "id": "m0_5hypmid",
+          "kind": "point",
+          "style": {
+            "ink": "accent",
+            "weight": 3
+          },
+          "t": {
+            "dur": 1161,
+            "start": 4762
+          }
+        },
+        "t": 4762,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "bottom",
+            "object": "m0_3basemid"
+          },
+          "check": "board.numbers_agree:hypotenuse",
+          "id": "m0_6num",
+          "kind": "number",
+          "precision": 2,
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 5923
+          },
+          "unit": "cm",
+          "value": 3.0,
+          "verified": true
+        },
+        "t": 5923,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "left",
+            "object": "m0_4sidemid"
+          },
+          "check": "board.numbers_agree:hypotenuse",
+          "id": "m0_7num",
+          "kind": "number",
+          "precision": 2,
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 7084
+          },
+          "unit": "cm",
+          "value": 4.0,
+          "verified": true
+        },
+        "t": 7084,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "right",
+            "object": "m0_5hypmid"
+          },
+          "check": "board.numbers_agree:hypotenuse",
+          "id": "m0_8num",
+          "kind": "number",
+          "label": "hypotenuse",
+          "precision": 2,
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1161,
+            "start": 8244
+          },
+          "unit": "cm",
+          "value": 5.0,
+          "verified": true
+        },
+        "t": 8244,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              396.36,
+              610.0
+            ]
+          },
+          "id": "m0_9sqbase",
+          "kind": "polygon",
+          "points": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              185.07,
+              0.0
+            ],
+            [
+              185.07,
+              187.5
+            ],
+            [
+              0.0,
+              187.5
+            ]
+          ],
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 9405
+          }
+        },
+        "t": 9405,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              507.4,
+              737.5
+            ]
+          },
+          "check": "board.numbers_agree:square areas",
+          "id": "m0_10num",
+          "kind": "number",
+          "label": "area",
+          "precision": 0,
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 10565
+          },
+          "unit": "cm\u00b2",
+          "value": 9.0,
+          "verified": true
+        },
+        "t": 10565,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 5818,
+        "t": 11711,
+        "text": "That's why the big square equals the two small ones added together: the areas match exactly.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              396.36,
+              610.0
+            ]
+          },
+          "id": "m0_11sqside",
+          "kind": "polygon",
+          "points": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              -250.0
+            ],
+            [
+              -246.75,
+              -250.0
+            ],
+            [
+              -246.75,
+              0.0
+            ]
+          ],
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 11726
+          }
+        },
+        "t": 11726,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              243.38,
+              520.0
+            ]
+          },
+          "check": "board.numbers_agree:square areas",
+          "id": "m0_12num",
+          "kind": "number",
+          "label": "area",
+          "precision": 0,
+          "style": {
+            "ink": "wobo",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 12887
+          },
+          "unit": "cm\u00b2",
+          "value": 16.0,
+          "verified": true
+        },
+        "t": 12887,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              581.43,
+              610.0
+            ]
+          },
+          "id": "m0_13sqhyp",
+          "kind": "polygon",
+          "points": [
+            [
+              0.0,
+              0.0
+            ],
+            [
+              -185.07,
+              -250.0
+            ],
+            [
+              61.69,
+              -437.5
+            ],
+            [
+              246.75,
+              -187.5
+            ]
+          ],
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 14047
+          }
+        },
+        "t": 14047,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "board": [
+              612.27,
+              391.25
+            ]
+          },
+          "check": "board.numbers_agree:square areas",
+          "id": "m0_14num",
+          "kind": "number",
+          "label": "area",
+          "precision": 0,
+          "style": {
+            "ink": "accent",
+            "weight": 1
+          },
+          "t": {
+            "dur": 1161,
+            "start": 15208
+          },
+          "unit": "cm\u00b2",
+          "value": 25.0,
+          "verified": true
+        },
+        "t": 15208,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "target": "tri-hyp"
+          },
+          "id": "m1",
+          "kind": "circle",
+          "pad": 8,
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 1161,
+            "start": 16368
+          }
+        },
+        "t": 16368,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "If the legs were 6 cm and 8 cm, what would the area of the square on the long side be?",
+        "t": 17529,
+        "targets": [
+          "tri-hyp"
+        ],
+        "type": "ask"
+      },
+      "id": "",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 15,
+        "presentation": "plane",
+        "t": 17529,
+        "type": "done",
+        "verified": [
+          "board.numbers_agree:hypotenuse",
+          "board.numbers_agree:square areas",
+          "say.arithmetic:9 + 16 = 25"
+        ]
+      },
+      "id": "",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "note": "spoken line corrected by hand on 2026-09-05 after the teaching review; the board is the product's own pipelines' work and every sum in the line is signed by its CAS",
+  "objects": [
+    {
+      "anchor": {
+        "board": [
+          396.36,
+          610.0
+        ]
+      },
+      "id": "m0_1triangle",
+      "kind": "polygon",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          185.07,
+          0.0
+        ],
+        [
+          0.0,
+          -250.0
+        ]
+      ],
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1161,
+        "start": 120
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          396.36,
+          580.0
+        ]
+      },
+      "id": "m0_2rightangle",
+      "kind": "polyline",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          29.61,
+          0.0
+        ],
+        [
+          29.61,
+          30.0
+        ]
+      ],
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 1281
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          488.9,
+          610.0
+        ]
+      },
+      "id": "m0_3basemid",
+      "kind": "point",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 2441
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          396.36,
+          485.0
+        ]
+      },
+      "id": "m0_4sidemid",
+      "kind": "point",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 3602
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          488.9,
+          485.0
+        ]
+      },
+      "id": "m0_5hypmid",
+      "kind": "point",
+      "style": {
+        "ink": "accent",
+        "weight": 3
+      },
+      "t": {
+        "dur": 1161,
+        "start": 4762
+      }
+    },
+    {
+      "anchor": {
+        "at": "bottom",
+        "object": "m0_3basemid"
+      },
+      "check": "board.numbers_agree:hypotenuse",
+      "id": "m0_6num",
+      "kind": "number",
+      "precision": 2,
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 5923
+      },
+      "unit": "cm",
+      "value": 3.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "at": "left",
+        "object": "m0_4sidemid"
+      },
+      "check": "board.numbers_agree:hypotenuse",
+      "id": "m0_7num",
+      "kind": "number",
+      "precision": 2,
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 7084
+      },
+      "unit": "cm",
+      "value": 4.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "at": "right",
+        "object": "m0_5hypmid"
+      },
+      "check": "board.numbers_agree:hypotenuse",
+      "id": "m0_8num",
+      "kind": "number",
+      "label": "hypotenuse",
+      "precision": 2,
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1161,
+        "start": 8244
+      },
+      "unit": "cm",
+      "value": 5.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "board": [
+          396.36,
+          610.0
+        ]
+      },
+      "id": "m0_9sqbase",
+      "kind": "polygon",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          185.07,
+          0.0
+        ],
+        [
+          185.07,
+          187.5
+        ],
+        [
+          0.0,
+          187.5
+        ]
+      ],
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 9405
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          507.4,
+          737.5
+        ]
+      },
+      "check": "board.numbers_agree:square areas",
+      "id": "m0_10num",
+      "kind": "number",
+      "label": "area",
+      "precision": 0,
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 10565
+      },
+      "unit": "cm\u00b2",
+      "value": 9.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "board": [
+          396.36,
+          610.0
+        ]
+      },
+      "id": "m0_11sqside",
+      "kind": "polygon",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          -250.0
+        ],
+        [
+          -246.75,
+          -250.0
+        ],
+        [
+          -246.75,
+          0.0
+        ]
+      ],
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 11726
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          243.38,
+          520.0
+        ]
+      },
+      "check": "board.numbers_agree:square areas",
+      "id": "m0_12num",
+      "kind": "number",
+      "label": "area",
+      "precision": 0,
+      "style": {
+        "ink": "wobo",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 12887
+      },
+      "unit": "cm\u00b2",
+      "value": 16.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "board": [
+          581.43,
+          610.0
+        ]
+      },
+      "id": "m0_13sqhyp",
+      "kind": "polygon",
+      "points": [
+        [
+          0.0,
+          0.0
+        ],
+        [
+          -185.07,
+          -250.0
+        ],
+        [
+          61.69,
+          -437.5
+        ],
+        [
+          246.75,
+          -187.5
+        ]
+      ],
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 14047
+      }
+    },
+    {
+      "anchor": {
+        "board": [
+          612.27,
+          391.25
+        ]
+      },
+      "check": "board.numbers_agree:square areas",
+      "id": "m0_14num",
+      "kind": "number",
+      "label": "area",
+      "precision": 0,
+      "style": {
+        "ink": "accent",
+        "weight": 1
+      },
+      "t": {
+        "dur": 1161,
+        "start": 15208
+      },
+      "unit": "cm\u00b2",
+      "value": 25.0,
+      "verified": true
+    },
+    {
+      "anchor": {
+        "target": "tri-hyp"
+      },
+      "id": "m1",
+      "kind": "circle",
+      "pad": 8,
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 1161,
+        "start": 16368
+      }
+    }
+  ],
+  "presentation": "plane",
+  "refused": [],
+  "say": "Let's build it. The square on the long side has area 25 cm\u00b2, and the two on the legs have 9 cm\u00b2 and 16 cm\u00b2, and 9 + 16 = 25. That's why the big square equals the two small ones added together: the areas match exactly.",
+  "status": 200,
+  "verified": [
+    "board.numbers_agree:hypotenuse",
+    "board.numbers_agree:square areas",
+    "say.arithmetic:9 + 16 = 25"
+  ]
+}

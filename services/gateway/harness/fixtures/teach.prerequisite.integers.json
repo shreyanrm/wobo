@@ -2,14 +2,13 @@
   "actions": [
     {
       "mood": "hint",
-      "type": "setMood",
-      "withSentence": 0
+      "type": "setMood"
     }
   ],
   "ask": null,
   "case_id": "teach.prerequisite.integers",
-  "cost_usd": 0.002569,
-  "elapsed_ms": 4129.88929200219,
+  "cost_usd": 0.002841,
+  "elapsed_ms": 3306.8910840083845,
   "error": "",
   "events": [
     {
@@ -17,14 +16,14 @@
         "actions": [
           {
             "mood": "hint",
-            "type": "setMood",
-            "withSentence": 0
+            "type": "setMood"
           }
         ],
         "grounded": false,
         "handed_answer": false,
         "path": "inline",
-        "say": "Totally fixable. Think of negatives as a tug-of-war: if the signs match, add the sizes and keep that sign; if they differ, subtract the smaller size from the bigger and keep the bigger number\u2019s sign. Try this tiny one: what is -5 + 3?"
+        "say": "Totally fixable. Think of negatives as a tug-of-war: when the signs differ, subtract the smaller size from the bigger one and keep the bigger number\u2019s sign, because that side has more pull. Try this tiny one: what is -5 + 3?",
+        "verified": []
       },
       "id": "",
       "type": "output"
@@ -35,7 +34,7 @@
   "objects": [],
   "presentation": "",
   "refused": [],
-  "say": "Totally fixable. Think of negatives as a tug-of-war: if the signs match, add the sizes and keep that sign; if they differ, subtract the smaller size from the bigger and keep the bigger number\u2019s sign. Try this tiny one: what is -5 + 3?",
+  "say": "Totally fixable. Think of negatives as a tug-of-war: when the signs differ, subtract the smaller size from the bigger one and keep the bigger number\u2019s sign, because that side has more pull. Try this tiny one: what is -5 + 3?",
   "status": 200,
   "verified": []
 }

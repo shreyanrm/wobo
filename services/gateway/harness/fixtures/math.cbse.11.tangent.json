@@ -1,24 +1,24 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "Can you spot the point where the tangent touches the curve?",
-    "t": 8219,
+    "prompt": "What slope do you read from the tangent?",
+    "t": 12439,
     "targets": [],
     "type": "ask"
   },
   "case_id": "math.cbse.11.tangent",
-  "cost_usd": 0.002524,
-  "elapsed_ms": 4002.811833983287,
+  "cost_usd": 0.004454,
+  "elapsed_ms": 5533.879459020682,
   "error": "",
   "events": [
     {
       "data": {
-        "dur": 2181,
+        "dur": 1090,
         "t": 0,
-        "text": "Here\u2019s the parabola and its tangent.",
+        "text": "Here it is.",
         "type": "say"
       },
-      "id": "X4EbOZXdDOy6:0",
+      "id": "R_pwnlPMTqRm:0",
       "type": "say"
     },
     {
@@ -40,7 +40,7 @@
             "weight": 1
           },
           "t": {
-            "dur": 900,
+            "dur": 1369,
             "start": 120
           },
           "w": 760.0
@@ -48,8 +48,18 @@
         "t": 120,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:1",
+      "id": "R_pwnlPMTqRm:1",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 8000,
+        "t": 1310,
+        "text": "The tangent touches the curve at the chosen point and has the same slope there, because it shows the curve\u2019s instant direction.",
+        "type": "say"
+      },
+      "id": "R_pwnlPMTqRm:2",
+      "type": "say"
     },
     {
       "data": {
@@ -73,15 +83,15 @@
             "weight": 2
           },
           "t": {
-            "dur": 900,
-            "start": 1020
+            "dur": 1369,
+            "start": 1489
           },
           "ticks": true
         },
-        "t": 1020,
+        "t": 1489,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:2",
+      "id": "R_pwnlPMTqRm:3",
       "type": "ink"
     },
     {
@@ -106,26 +116,16 @@
             "weight": 2
           },
           "t": {
-            "dur": 900,
-            "start": 1920
+            "dur": 1369,
+            "start": 2858
           },
           "ticks": true
         },
-        "t": 1920,
+        "t": 2858,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:3",
+      "id": "R_pwnlPMTqRm:4",
       "type": "ink"
-    },
-    {
-      "data": {
-        "dur": 5818,
-        "t": 2401,
-        "text": "The tangent at x = 1 has slope 2, so it just kisses the curve there.",
-        "type": "say"
-      },
-      "id": "X4EbOZXdDOy6:4",
-      "type": "say"
     },
     {
       "data": {
@@ -629,14 +629,14 @@
             "weight": 2
           },
           "t": {
-            "dur": 922,
-            "start": 2820
+            "dur": 1369,
+            "start": 4226
           }
         },
-        "t": 2820,
+        "t": 4226,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:5",
+      "id": "R_pwnlPMTqRm:5",
       "type": "ink"
     },
     {
@@ -654,15 +654,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 900,
-            "start": 3720
+            "dur": 1369,
+            "start": 5595
           },
           "tex": "y = x**2"
         },
-        "t": 3720,
+        "t": 5595,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:6",
+      "id": "R_pwnlPMTqRm:6",
       "type": "ink"
     },
     {
@@ -681,14 +681,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 900,
-            "start": 4619
+            "dur": 1369,
+            "start": 6964
           }
         },
-        "t": 4619,
+        "t": 6964,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:7",
+      "id": "R_pwnlPMTqRm:7",
       "type": "ink"
     },
     {
@@ -707,8 +707,8 @@
             "weight": 2
           },
           "t": {
-            "dur": 900,
-            "start": 5519
+            "dur": 1369,
+            "start": 8333
           },
           "to": {
             "board": [
@@ -717,11 +717,21 @@
             ]
           }
         },
-        "t": 5519,
+        "t": 8333,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:8",
+      "id": "R_pwnlPMTqRm:8",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 2909,
+        "t": 9530,
+        "text": "What slope do you read from the tangent?",
+        "type": "say"
+      },
+      "id": "R_pwnlPMTqRm:9",
+      "type": "say"
     },
     {
       "data": {
@@ -739,16 +749,16 @@
             "weight": 2
           },
           "t": {
-            "dur": 900,
-            "start": 6419
+            "dur": 1369,
+            "start": 9701
           },
           "value": 2.0,
           "verified": true
         },
-        "t": 6419,
+        "t": 9701,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:9",
+      "id": "R_pwnlPMTqRm:10",
       "type": "ink"
     },
     {
@@ -765,39 +775,39 @@
             "weight": 1
           },
           "t": {
-            "dur": 900,
-            "start": 7319
+            "dur": 1369,
+            "start": 11070
           },
           "text": "slope here"
         },
-        "t": 7319,
+        "t": 11070,
         "type": "ink"
       },
-      "id": "X4EbOZXdDOy6:10",
+      "id": "R_pwnlPMTqRm:11",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "Can you spot the point where the tangent touches the curve?",
-        "t": 8219,
+        "prompt": "What slope do you read from the tangent?",
+        "t": 12439,
         "targets": [],
         "type": "ask"
       },
-      "id": "X4EbOZXdDOy6:11",
+      "id": "R_pwnlPMTqRm:12",
       "type": "ask"
     },
     {
       "data": {
         "objects": 9,
-        "presentation": "plane",
-        "t": 8219,
+        "presentation": "full",
+        "t": 12439,
         "type": "done",
         "verified": [
           "board.readable:function",
           "board.numbers_agree:tangent slope"
         ]
       },
-      "id": "X4EbOZXdDOy6:12",
+      "id": "R_pwnlPMTqRm:13",
       "type": "done"
     }
   ],
@@ -821,7 +831,7 @@
         "weight": 1
       },
       "t": {
-        "dur": 900,
+        "dur": 1369,
         "start": 120
       },
       "w": 760.0
@@ -846,8 +856,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 900,
-        "start": 1020
+        "dur": 1369,
+        "start": 1489
       },
       "ticks": true
     },
@@ -871,8 +881,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 900,
-        "start": 1920
+        "dur": 1369,
+        "start": 2858
       },
       "ticks": true
     },
@@ -1376,8 +1386,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 922,
-        "start": 2820
+        "dur": 1369,
+        "start": 4226
       }
     },
     {
@@ -1393,8 +1403,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 900,
-        "start": 3720
+        "dur": 1369,
+        "start": 5595
       },
       "tex": "y = x**2"
     },
@@ -1412,8 +1422,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 900,
-        "start": 4619
+        "dur": 1369,
+        "start": 6964
       }
     },
     {
@@ -1430,8 +1440,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 900,
-        "start": 5519
+        "dur": 1369,
+        "start": 8333
       },
       "to": {
         "board": [
@@ -1454,8 +1464,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 900,
-        "start": 6419
+        "dur": 1369,
+        "start": 9701
       },
       "value": 2.0,
       "verified": true
@@ -1472,15 +1482,15 @@
         "weight": 1
       },
       "t": {
-        "dur": 900,
-        "start": 7319
+        "dur": 1369,
+        "start": 11070
       },
       "text": "slope here"
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Here\u2019s the parabola and its tangent. The tangent at x = 1 has slope 2, so it just kisses the curve there.",
+  "say": "Here it is. The tangent touches the curve at the chosen point and has the same slope there, because it shows the curve\u2019s instant direction. What slope do you read from the tangent?",
   "status": 200,
   "verified": [
     "board.readable:function",

@@ -158,14 +158,20 @@ class Draft:
         unit: str | None = None,
         decimals: int = 2,
         style: dict[str, Any] | None = None,
+        label: str | None = None,
     ) -> str:
         """A computed number, carrying the name of the check that earned it. The only way a
-        numeral reaches the board — ``verified`` is the hand's flag, ``check`` is the receipt."""
+        numeral reaches the board — ``verified`` is the hand's flag, ``check`` is the receipt.
+
+        ``label`` is the word beside it that says WHAT it is. A projectile board wrote 14.14 m/s
+        at the apex with nothing saying it was the across-speed, and a judge reading the board
+        could not tell (the 2026-09-05 review); a number nobody can name teaches nothing."""
         return self.add(
             "number",
             anchor=anchor,
             value=round(float(value), 6),
             unit=unit,
+            label=label,
             precision=decimals,
             verified=True,
             check=check,

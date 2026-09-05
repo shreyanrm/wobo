@@ -7,6 +7,7 @@
 
 import type { FocusObject, WoboMood } from '@wobo/wobo';
 import { createContext, useContext } from 'react';
+import type { DoubtPacket } from '../screens/doubt/flow';
 import { scoped } from '../store/scope';
 import type { TurnExtras } from './paths/types';
 
@@ -31,6 +32,13 @@ export interface AskOptions {
    * mode palette stays loud, because a mode is a button the child pressed.
    */
   silent?: boolean;
+  /**
+   * THE LEARNER IS ASKING ABOUT A PHOTO (screens/doubt). The confirmed reading and the regions
+   * the brain found ride the turn's payload under `doubt`, and the turn always streams: the ink
+   * has to land on the photo's registered regions inside the sentences about them (the owner's
+   * law, wobo/doubt-surface.ts `checkBeats`), which only the board wire can do.
+   */
+  doubt?: DoubtPacket;
 }
 
 export interface WoboChat {

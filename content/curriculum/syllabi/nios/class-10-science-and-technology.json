@@ -23,6 +23,7 @@
   "subject": "Science and Technology",
   "course_code": "212",
   "status": "provisional",
+  "status_reason": "every_name_is_in_the_source: not in the source: unit 7: Human Environment",
   "read_off_source": true,
   "provenance": {
     "extractor": "deterministic text extraction from the fetched document; no model in the loop",
@@ -37,11 +38,104 @@
       "topic_order_is_1_to_n_within_every_unit",
       "no_unit_left_without_topics",
       "no_duplicate_topic_name_within_a_unit",
-      "no_page_tail_bled_into_a_node"
+      "no_page_tail_bled_into_a_node",
+      "orders_run_1_to_n",
+      "no_empty_name",
+      "no_duplicate_name_within_a_unit",
+      "every_unit_has_a_topic_layer",
+      "source_fetched",
+      "source_bytes_match_the_build",
+      "every_name_is_on_its_cited_page",
+      "coverage_matches_the_documents_numbering"
     ],
-    "checks_failed": [],
+    "checks_failed": [
+      "every_name_is_in_the_source"
+    ],
     "verified_at": null,
-    "verified_by": null
+    "verified_by": null,
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "flag",
+      "checks": [
+        {
+          "name": "orders_run_1_to_n",
+          "passed": true,
+          "detail": "orders run 1..n"
+        },
+        {
+          "name": "no_empty_name",
+          "passed": true,
+          "detail": "every node has a name"
+        },
+        {
+          "name": "no_duplicate_name_within_a_unit",
+          "passed": true,
+          "detail": "no unit repeats a name"
+        },
+        {
+          "name": "every_unit_has_a_topic_layer",
+          "passed": true,
+          "detail": "every unit carries its topics"
+        },
+        {
+          "name": "source_fetched",
+          "passed": true,
+          "detail": "every cited document was fetched"
+        },
+        {
+          "name": "source_bytes_match_the_build",
+          "passed": true,
+          "detail": "the bytes fetched today hash to what the build recorded"
+        },
+        {
+          "name": "every_name_is_in_the_source",
+          "passed": false,
+          "detail": "not in the source: unit 7: Human Environment"
+        },
+        {
+          "name": "every_name_is_on_its_cited_page",
+          "passed": true,
+          "detail": "38 of 39 names verbatim on the page they cite; the rest within one page"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": true,
+          "detail": "the document numbers 7 units; the file has 7 units"
+        }
+      ],
+      "names": {
+        "verbatim_on_cited_page": 38,
+        "not_found": 1
+      },
+      "sources": {
+        "nios-bif-212": {
+          "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/10th/212.pdf",
+          "title": "Bifurcation of syllabus, Science and Technology (212), NIOS secondary course",
+          "fetched": true,
+          "transport": "local copy nios-bif-212.pdf (urllib refused (unreachable: URLError)), hashed against the build",
+          "fetched_at": "2026-09-05T10:32:53Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 1,
+          "sha256_matches_build": true
+        }
+      },
+      "coverage": {
+        "nios-bif-212": {
+          "cited_pages": [
+            1
+          ],
+          "numbered_runs": [],
+          "unit_markers": 7,
+          "units": 7,
+          "topics": 32,
+          "verdict": "the document numbers 7 units; the file has 7 units"
+        }
+      },
+      "second_reader": null,
+      "reasons": [
+        "every_name_is_in_the_source: not in the source: unit 7: Human Environment"
+      ]
+    }
   },
   "documents": [
     {

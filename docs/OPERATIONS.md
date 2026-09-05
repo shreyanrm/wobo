@@ -255,6 +255,29 @@ So that nobody reads this page and believes more exists than does.
   | `0019_parent_accounts` | 2026-09-05 | this wave, from the file, verbatim |
   | `0020_wobo_mind` | 2026-09-05 | this wave, from the file, verbatim |
 
+  **One migration in the repository is NOT applied, on purpose: `0021_doubts`** (2026-09-05, the
+  doubt solver wave). It creates `learner.doubts` and the private `doubt-photos` bucket for
+  `POST /v1/doubt` (`services/gateway/src/wobo_gateway/doubt.py`). It is additive and idempotent,
+  and applying it is the owner's call, so this wave did not. Until it is applied the gateway is
+  safe and honest without it: `POST /v1/doubt` on a configured project answers 503 `not_kept`
+  (the photo is read and NOT kept), `GET /v1/doubt` lists nothing, and `POST /v1/me/erase` counts
+  zero doubts and zero photos rather than answering 502 (`doubt.StoreMissing`, the lesson of 0020
+  below). Apply with `list_migrations` open, from the file, verbatim, and move it into the table
+  above in the same commit.
+
+  **A second migration is NOT applied, for the same reason: `0022_curriculum_observer`**
+  (2026-09-05, the syllabus observer, `docs/CURRICULUM-OBSERVER.md`). It adds four tables and two
+  views to `curriculum` (`observer_use`, `observer_votes`, `observer_actions`, `observer_settings`,
+  `observer_learners`, `observer_signals`), none readable by a learner, and lets the review queue
+  take `kind = 'consensus'`. Checked read-only on 2026-09-05 with `list_migrations` (the ledger
+  ends at `0020_wobo_mind`) and a count of `information_schema.tables` (zero `observer_%` tables):
+  nothing of it is in the project, and this wave wrote nothing there. Until it is applied the
+  gateway is honest without it: the observer's store refuses (`observer.UnconfiguredObserverStore`
+  is what a project without the tables amounts to, once PostgREST answers 404), every hook swallows
+  that refusal so no learner loses an edit, a flag or a turn, and `GET /v1/admin/observer`
+  answers `readable: false` with no editions rather than an empty desk. Apply after `0008` and
+  `0009`, from the file, verbatim, and move it into the table above in the same commit.
+
   **What this page said before, and why it was worse than out of date.** It claimed six
   migrations had never been applied and listed five that already had. `0013`–`0018` went in with
   commit `1d0614f` that morning; a later wave added a row for `0020` to the stale list and
@@ -281,7 +304,99 @@ If any of these changes, change this page in the same commit.
 
 ---
 
-## 9. Where the code is
+## 9. The curriculum registry: the seed, the worker, and the re-check
+
+Three things, written 2026-09-05, when the owner asked whether the syllabus was accurate and the
+honest answer was that production held no syllabus at all: `curriculum.frameworks`, `versions`
+and `nodes` had zero rows, the seed had never been loaded, and the discovery worker was scheduled
+by nobody. What each one costs is stated plainly, because two of them spend money.
+
+### 9.1 Publishing the seed (you do this once, and again whenever the seed changes)
+
+`content/curriculum` holds 268 frameworks and 121 stored syllabus files. Fifty of those files
+carry chapters (CBSE classes 6 to 12, ICSE, ISC and NIOS); the other 71 are honest negative
+results, a blocker code and a note saying the board publishes no document we could read for
+that class, and they mint nothing. The publish command reads the seed through the same loader
+the gateway uses and writes it in dependency order with `on conflict do nothing` on every row,
+so running it twice writes nothing the second time.
+
+```bash
+cd services/gateway
+uv run python -m wobo_gateway.curriculum.publish --dry-run     # counts, writes nothing
+uv run python -m wobo_gateway.curriculum.publish --emit-sql    # harness/reports/publish-seed.sql
+uv run python -m wobo_gateway.curriculum.publish               # through the store, needs the service role
+```
+
+The SQL file is the way to production: paste it into the Supabase SQL editor (it needs no key
+and this command never reads one). It is one transaction, 1.6 MB, and its header states the
+rows it carries. After applying, run the query the header repeats:
+
+```sql
+select (select count(*) from curriculum.frameworks) as frameworks,
+       (select count(*) from curriculum.versions)   as versions,
+       (select count(*) from curriculum.nodes)      as nodes,
+       (select count(*) from curriculum.provenance) as provenance;
+```
+
+Expect `268, 4, 1493, 1493` on an empty registry (more if discovery has run since). Every id is
+the uuid5 of its natural key, the same one the in-memory store mints and a learner's pin already
+names, so the file can be re-applied after a seed change and only the new rows land. A version
+that is already in the registry is never rewritten: 0008 freezes a published version, and a
+correction is a new version with `supersedes`.
+
+Every seeded syllabus is `provisional`: extracted from the board's own document with page-level
+source refs, never yet re-read against it. That is what the re-check below is for.
+
+### 9.2 The discovery worker (one variable, and what it costs)
+
+```bash
+railway variables --set WOBO_DISCOVERY_WORKER=1     # then redeploy
+```
+
+Off, which is the default, a learner who opens a class and subject we do not hold is told so in
+one line with the own-syllabus door open, and the row is recorded for the day the worker is on.
+On, the gateway starts one thread that every 30 seconds (`WOBO_DISCOVERY_INTERVAL_S`) does four
+things in order: re-queues jobs a dead process left open, runs up to three queued discoveries
+(claimed with one conditional write, so a second replica cannot run the same job), re-checks one
+stored subject on the freshness calendar, and runs the syllabus observer's pass. The line a
+learner polls (`curriculum.status`) is the stage the run is genuinely at.
+
+**What it costs.** One discovery is a web search on the provider's own search tool, one
+extraction on the generate tier and one re-reading on the verify tier: budget it at one
+generated lesson, 0.20 USD at most. Every discovery and every re-check is charged as a
+generation to the worker's own meter subject, which has the free plan's allowance, so the
+worker spends at most `FREE_DAILY_GENERATIONS` (default 8) generations a day, about 1.60 USD
+worst case, and then leaves the rest queued with a line that says it will look again tomorrow.
+It also stops the moment the spend ceiling (§2) is refusing the stranger lane, so it can never
+spend a paying learner's headroom. The one replica in `railway.json` is still load-bearing: the
+claim is safe across replicas, the meters are not.
+
+### 9.3 First selection verifies from the web (`WOBO_RECHECK`)
+
+The first time any learner opens a provisional (board, class, subject), the stored reading is
+checked against the board's document before its chapters are shown: the document is fetched and
+its hash compared, and if unchanged the reading is checked in code and by the second reader.
+The learner reads "Checking this against the board's document now" while it runs and the
+next learner is served what it found: "Official CBSE 2026-27, verified", or the provisional
+label with one plain reason (the document could not be reached; what we read did not match, so
+a person will look at it in the review queue; the day's checking allowance is spent), with the
+own-syllabus door open beside it. A document that changed becomes a new version with
+`supersedes`, and learners on the old one are offered the diff.
+
+It is **on whenever `LLM_MODE=live`** and off in mock mode, because a mock second reader
+would agree with anything; `WOBO_RECHECK=0` turns it off, `WOBO_RECHECK=1` forces it on. It
+costs one fetch and one verify-tier reading per subject, once, then monthly: budget 0.20 USD a
+check, at most 8 a day on its own meter subject, under the same spend ceiling. With the worker
+on, the same check runs one subject a tick in the background, so most first selections find
+the reading already checked and wait for nothing.
+
+Two limits, stated: the registry stores one source document per version, so the four two-part
+NCERT syllabi (CBSE classes 7 and 8, Mathematics and Social Science) can only be checked
+against their first part and will land in the review queue saying the second part "cites
+another document"; and a slow board host (ncert.nic.in took over 30 seconds from here) reads
+as unreachable and is retried after six hours.
+
+## 10. Where the code is
 
 | Concern | File |
 |---|---|
@@ -291,7 +406,12 @@ If any of these changes, change this page in the same commit.
 | Where the ceiling is enforced | `services/gateway/src/wobo_gateway/app.py` (`Gateway.invoke`, `stream_board_turn`) |
 | Where a call's cost is priced | `services/gateway/src/wobo_gateway/telemetry.py` (`record_cost`) |
 | The per-learner daily allowance | `services/gateway/src/wobo_gateway/budget.py` |
+| Publishing the seed, and the SQL it emits | `services/gateway/src/wobo_gateway/curriculum/publish.py` |
+| The discovery worker and its switch | `services/gateway/src/wobo_gateway/curriculum/discovery/worker.py` |
+| A read syllabus becoming registry rows | `services/gateway/src/wobo_gateway/curriculum/discovery/persist.py` |
+| The re-check on first selection and on the calendar | `services/gateway/src/wobo_gateway/curriculum/recheck.py` |
 | Deploy steps and rollback | `DEPLOY.md` |
 
-Tests: `services/gateway/tests/test_spend.py`, `test_alerts.py`, `test_health.py`.
+Tests: `services/gateway/tests/test_spend.py`, `test_alerts.py`, `test_health.py`,
+`test_curriculum_publish.py`, `test_discovery_worker.py`, `test_curriculum_recheck.py`.
 Run them with `cd services/gateway && uv run pytest -q`.

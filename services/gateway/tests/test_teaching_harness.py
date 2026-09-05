@@ -22,8 +22,11 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from harness import cases as case_bank  # noqa: E402
-from harness import checks, drawing  # noqa: E402
-from harness import runner  # noqa: E402
+from harness import (  # noqa: E402
+    checks,
+    drawing,
+    runner,  # noqa: E402
+)
 from harness.runner import Transcript  # noqa: E402
 
 
@@ -141,13 +144,16 @@ def test_a_board_whose_numbers_all_name_a_check_that_ran_passes() -> None:
     assert scored.scores["verified"] == 4
 
 
-def test_unverified_arithmetic_in_the_spoken_line_is_put_on_the_record() -> None:
-    """The law covers board objects and not the say. That gap is reported on every run."""
+def test_unverified_arithmetic_in_the_spoken_line_fails_the_run() -> None:
+    """The law used to cover board objects and not the say, and this test only asked that the
+    gap be counted. The gap is closed (``wobo_gateway.spoken``): a spoken number nothing signed
+    is WRONG, the same as a drawn one."""
     case = case_bank.by_id("chem.cbse.10.balance")
     scored = checks.score_transcript(case, _transcript(say="You need 2 of them for 1 methane."))
     assert any(
-        f.severity == checks.NOTE and "no verifier signs" in f.detail for f in scored.findings
+        f.severity == checks.WRONG and "nothing signed" in f.detail for f in scored.findings
     )
+    assert scored.scores["verified"] == 0
 
 
 # --- the drawing --------------------------------------------------------------------------------
@@ -409,7 +415,15 @@ def test_the_recorded_punnett_turn_asks_for_two_boxes_when_three_are_dominant() 
     could not.
     """
     case = case_bank.by_id("bio.cbse.10.punnett")
-    scored = checks.score_transcript(case, _recorded(case.id))
+    # The recording was corrected on 2026-09-05 (see the fixture's ``note``), so the wrong ask
+    # is rebuilt here exactly as it was spoken, over the recorded board.
+    recorded = _recorded(case.id)
+    recorded.ask = {
+        "type": "ask",
+        "prompt": "Can you spot which two boxes show the dominant phenotype?",
+        "targets": [],
+    }
+    scored = checks.score_transcript(case, recorded)
     assert any("dominant phenotype" in f.detail for f in scored.wrong), [
         f.detail for f in scored.findings
     ]
@@ -533,3 +547,373 @@ def test_the_second_opinion_can_never_fail_a_run_on_its_own() -> None:
 def test_the_bank_covers_more_than_one_subject_and_more_than_one_board() -> None:
     assert len(case_bank.subjects()) >= 5
     assert len(case_bank.boards()) >= 3
+
+
+# --- it drew where the learner was looking (the owner, 2026-09-05) -----------------------------
+
+
+def _ring(target: str, obj_id: str = "r1") -> dict[str, Any]:
+    return {"id": obj_id, "kind": "circle", "anchor": {"target": target}}
+
+
+def test_opening_the_board_for_something_already_on_the_screen_is_caught() -> None:
+    """The failure the owner named: a ring round the hypotenuse chip, and the board opened for it."""
+    case = case_bank.by_id("place.screen.pythagoras-side")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="The hypotenuse is the side opposite the right angle, because it is the longest.",
+            objects=[_ring("tri-hyp")],
+            presentation="plane",
+            ask={"prompt": "Which angle is it opposite?"},
+        ),
+    )
+    assert scored.scores["in place"] == 0
+    assert any("opened the board" in f.detail for f in scored.weak)
+
+
+def test_a_mark_in_place_on_the_right_chip_scores_full() -> None:
+    case = case_bank.by_id("place.screen.pythagoras-side")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="This one, because it sits opposite the right angle.",
+            objects=[_ring("tri-hyp")],
+            presentation="screen",
+            ask={"prompt": "Which angle is it opposite?"},
+        ),
+    )
+    assert scored.scores["in place"] == 4
+    assert not [f for f in scored.weak if f.dimension == "in place"]
+
+
+def test_a_mark_on_the_wrong_chip_is_a_pointer_at_the_wrong_thing() -> None:
+    case = case_bank.by_id("place.screen.pythagoras-side")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="This side, because it is opposite the right angle.",
+            objects=[_ring("tri-leg-a")],
+            presentation="screen",
+            ask={"prompt": "Can you see why?"},
+        ),
+    )
+    assert scored.scores["in place"] == 1
+    assert any("wrong thing" in f.detail for f in scored.weak)
+
+
+def test_redrawing_the_thing_from_scratch_when_it_is_on_the_screen_is_caught() -> None:
+    case = case_bank.by_id("place.screen.pythagoras-side")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="Here is the triangle again, because the hypotenuse is opposite the right angle.",
+            objects=[
+                {"id": "p1", "kind": "polygon", "anchor": {"board": [300, 300]}, "points": [[0, 0], [1, 1]]},
+                _ring("tri-hyp"),
+            ],
+            presentation="screen",
+            ask={"prompt": "Which side?"},
+        ),
+    )
+    assert scored.scores["in place"] == 1
+    assert any("from scratch" in f.detail for f in scored.weak)
+
+
+def test_staying_on_the_screen_when_there_is_something_to_build_is_caught() -> None:
+    case = case_bank.by_id("place.plane.pythagoras-squares")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="Think of the squares on each side, because their areas add up.",
+            objects=[_ring("tri-hyp")],
+            presentation="screen",
+            ask={"prompt": "What is the area of the square on the base?"},
+        ),
+    )
+    assert scored.scores["in place"] == 0
+    assert any("something new to build" in f.detail for f in scored.weak)
+
+
+def test_the_surface_is_not_judged_on_a_question_that_does_not_test_it() -> None:
+    case = case_bank.by_id("math.cbse.11.tangent")
+    scored = checks.score_transcript(case, _transcript(say="Here.", presentation="plane"))
+    assert scored.scores["in place"] is None
+
+
+# --- the spoken-number law, proved on the transcript -------------------------------------------
+#
+# ``test_unverified_arithmetic_in_the_spoken_line_is_put_on_the_record`` above was written when the
+# say was outside the law and the check could only count. It is kept for what it still proves (a
+# spoken number is read at all); these are the teeth.
+
+
+def test_a_spoken_number_nothing_signed_is_wrong_not_a_note() -> None:
+    case = case_bank.by_id("math.icse.9.pythagoras")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="The hypotenuse is 5 because the squares add up. Which side is longest?",
+            objects=[{"id": "p", "kind": "polygon", "anchor": {"board": [300, 300]},
+                      "points": [[0, 0], [300, 0], [0, 400]]}],
+        ),
+    )
+    assert any(f.severity == checks.WRONG and "nothing signed" in f.detail for f in scored.findings)
+    assert scored.scores["verified"] == 0
+
+
+def test_a_spoken_number_the_learner_gave_is_licensed() -> None:
+    case = case_bank.by_id("math.icse.9.pythagoras")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="Legs of 3 cm and 4 cm, because the right angle sits between them. "
+            "Which side is opposite it?",
+        ),
+    )
+    assert not [f for f in scored.wrong if f.dimension == "verified"], scored.wrong
+
+
+def test_a_spoken_number_the_verifier_drew_is_licensed() -> None:
+    case = case_bank.by_id("math.icse.9.pythagoras")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="The hypotenuse is 5 because the two squares add up to the third. "
+            "Which square is the biggest?",
+            objects=[{"id": "n", "kind": "number", "value": 5.0, "unit": "cm",
+                      "anchor": {"board": [300, 300]},
+                      "check": "board.numbers_agree:hypotenuse"}],
+            verified=["board.numbers_agree:hypotenuse"],
+        ),
+    )
+    assert not [f for f in scored.wrong if f.dimension == "verified"], scored.wrong
+    assert scored.scores["verified"] == 4
+
+
+def test_a_spoken_sum_counts_only_when_the_product_signed_it_and_it_holds() -> None:
+    case = case_bank.by_id("math.icse.9.pythagoras")
+    say = "It is 5 because 9 + 16 = 25 and 5 × 5 = 25. Which side is longest?"
+    unsigned = checks.score_transcript(case, _transcript(say=say))
+    assert any("nothing signed" in f.detail for f in unsigned.wrong), "a sum the ledger never saw"
+    signed = checks.score_transcript(
+        case,
+        _transcript(
+            say=say, verified=["say.arithmetic:9 + 16 = 25", "say.arithmetic:5 * 5 = 25"]
+        ),
+    )
+    assert not [f for f in signed.wrong if f.dimension == "verified"], signed.wrong
+
+
+def test_a_signed_sum_the_harness_finds_false_is_a_contradiction() -> None:
+    """Two routes: the product's SymPy and this file's fractions. A laundering token that names
+    a false sum is caught by the second."""
+    case = case_bank.by_id("math.icse.9.pythagoras")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            say="It is 6 because 9 + 16 = 36. Which side is longest?",
+            verified=["say.arithmetic:9 + 16 = 36"],
+        ),
+    )
+    assert any("is false" in f.detail for f in scored.wrong)
+
+
+def test_a_question_may_carry_the_numbers_it_hands_over() -> None:
+    case = case_bank.by_id("teach.prerequisite.integers")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            mode="prose",
+            say="Totally fixable. Think of negatives as a tug of war, because the bigger side "
+            "wins and keeps its sign. Try this tiny one: what is -5 + 3?",
+        ),
+    )
+    assert not [f for f in scored.wrong if f.dimension == "verified"], scored.wrong
+
+
+# --- presence, not only absence ----------------------------------------------------------------
+
+
+def test_the_why_and_the_check_are_put_on_the_record_when_present() -> None:
+    case = case_bank.by_id("teach.prerequisite.integers")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            mode="prose",
+            say="Totally fixable. Signs that differ pull against each other, because a minus "
+            "is a step back. Try this tiny one: what is -5 + 3?",
+        ),
+    )
+    notes = [f.detail for f in scored.findings if f.dimension == "teaches"]
+    assert any(n.startswith('explains: "because"') for n in notes), notes
+    assert any(n.startswith('checks: "') and "-5 + 3" in n for n in notes), notes
+    assert scored.scores["teaches"] == 4
+
+
+def test_a_hollow_check_does_not_count_as_handing_the_move_back() -> None:
+    """"Does that make sense?" is banned by name in ``wobo.TEACHING_LAW``."""
+    case = case_bank.by_id("teach.prerequisite.integers")
+    scored = checks.score_transcript(
+        case,
+        _transcript(
+            mode="prose",
+            say="Negatives are numbers below zero, because zero is the middle. "
+            "Does that make sense?",
+        ),
+    )
+    assert any("hollow check" in f.detail for f in scored.weak)
+    assert scored.scores["teaches"] == 2
+
+
+# --- the register: not too professional, not too street (voice.md section 10a) -----------------
+
+
+def _voice_of(say: str) -> checks.Scored:
+    out = checks.Scored()
+    checks.check_voice(_transcript(say=say), out)
+    return out
+
+
+def test_the_target_register_scores_full() -> None:
+    """The turn the owner pointed at as already right. If this ever scores below 4 the lists have
+    grown a word a good teacher uses."""
+    out = _voice_of(
+        "Totally fixable. Think of negatives as a tug-of-war: if the signs match, add the sizes "
+        "and keep that sign; if they differ, subtract the smaller from the bigger and keep the "
+        "bigger number's sign. Try this tiny one: what is -5 + 3?"
+    )
+    assert out.scores["voice"] == 4
+    assert not out.weak
+
+
+def test_too_street_is_marked_down_and_named() -> None:
+    out = _voice_of(
+        "ok so pythagoras is lowkey easy fr, the two small squares literally just add up to the "
+        "big one, no cap"
+    )
+    assert out.scores["voice"] <= 2
+    assert any("too street" in f.detail and "lowkey" in f.detail for f in out.weak)
+
+
+def test_too_professional_is_marked_down_and_named() -> None:
+    out = _voice_of(
+        "Let us examine the relationship between the two legs and the hypotenuse. It is "
+        "imperative to observe that the sum of their squares is equivalent to the square of the "
+        "hypotenuse."
+    )
+    assert out.scores["voice"] <= 2
+    assert any("too professional" in f.detail for f in out.weak)
+
+
+def test_the_american_school_year_is_the_textbook_voice_too() -> None:
+    """Indian English, because that is who is reading: class 8, not grade 8; a test, not a quiz."""
+    out = _voice_of("This is a grade 8 topic and it comes up in every quiz.")
+    assert out.scores["voice"] <= 2
+    assert any("too professional" in f.detail for f in out.weak)
+
+
+def test_a_candle_that_is_lit_and_a_fair_bet_are_not_slang() -> None:
+    """The street list is words with no honest classroom use, so a science or probability answer
+    keeps its full marks."""
+    out = _voice_of(
+        "The candle stays lit because the jar still holds oxygen. Would you bet on the red ball "
+        "or the blue one?"
+    )
+    assert out.scores["voice"] == 4
+
+
+def test_the_helpline_numbers_in_the_crisis_line_are_the_products_own() -> None:
+    """A live run on 2026-09-05 replaced a plant-cell lesson with the crisis line (a transient
+    provider failure on the outbound screen), and the harness called 1098 and 14416 numbers
+    nothing signed. They are ``safety.SUPPORT``, written by a person: licensed, while the missing
+    drawing still fails the case on its own."""
+    from wobo_gateway import safety
+
+    case = case_bank.by_id("bio.icse.9.plant-cell")
+    scored = checks.score_transcript(case, _transcript(say=safety.CRISIS_SAY, objects=[]))
+    assert not [f for f in scored.wrong if f.dimension == "verified"], scored.wrong
+    assert any(f.dimension == "drew" for f in scored.wrong)
+
+
+
+# --- the doubt solver's two laws, measured (doubt.py; the owner, 2026-09-05) ---------------------
+
+
+def _doubt_transcript(**over: Any) -> Transcript:
+    """A doubt turn as the wire carries it: the reading's lines, then say and ink frames with t."""
+    base: dict[str, Any] = {
+        "mode": "doubt",
+        "presentation": "screen",
+        "reading": [
+            {"id": "r1", "text": "3x + 5 = 20", "box": [0.1, 0.2, 0.6, 0.28]},
+            {"id": "r2", "text": "Solve for x.", "box": [0.1, 0.3, 0.4, 0.34]},
+        ],
+        "say": "Look at the five. It moves across and becomes minus five. So x is 5.",
+        "objects": [_ring("r1"), _ring("r2", "r2ring")],
+        "events": [
+            {"id": "", "type": "say", "data": {"text": "Look at the five.", "t": 0, "dur": 900}},
+            {"id": "", "type": "ink", "data": {"object": _ring("r1"), "t": 0}},
+            {"id": "", "type": "say", "data": {"text": "It moves across.", "t": 1100, "dur": 900}},
+            {"id": "", "type": "ink", "data": {"object": _ring("r2", "r2ring"), "t": 1100}},
+            {"id": "", "type": "done", "data": {"presentation": "screen", "objects": 2, "t": 2000}},
+        ],
+    }
+    base.update(over)
+    return _transcript(**base)
+
+
+def test_a_conforming_doubt_turn_is_on_the_page_and_in_the_beat() -> None:
+    case = case_bank.by_id("doubt.cbse.8.linear-photo")
+    scored = checks.score_transcript(case, _doubt_transcript())
+    assert scored.scores["in place"] == 4, scored.findings
+    assert not [f for f in scored.wrong if f.dimension == "in place"]
+
+
+def test_a_mark_the_gateway_refused_as_off_the_page_fails_the_run() -> None:
+    """The number the harness measures: 'off the page: N' in the done frame, and N > 0 is wrong."""
+    case = case_bank.by_id("doubt.cbse.8.linear-photo")
+    scored = checks.score_transcript(
+        case,
+        _doubt_transcript(
+            refused=[
+                "off the page: 2 mark(s) placed by pixels rather than on a line of the page "
+                "were not drawn"
+            ],
+            off_page=2,
+        ),
+    )
+    assert scored.scores["in place"] == 0
+    assert any("2 mark(s) were placed by pixels" in f.detail for f in scored.wrong)
+
+
+def test_ink_anchored_to_something_that_is_not_a_line_of_the_page_fails() -> None:
+    case = case_bank.by_id("doubt.cbse.8.linear-photo")
+    stray = {"id": "g", "kind": "circle", "anchor": {"board": [500, 500]}}
+    scored = checks.score_transcript(case, _doubt_transcript(objects=[_ring("r1"), stray]))
+    assert scored.scores["in place"] == 0
+    assert any("not a line of the page" in f.detail for f in scored.wrong)
+
+
+def test_ink_that_lands_with_no_sentence_starting_on_it_fails_the_beat_law() -> None:
+    """Law 5: an ink frame at a time no say frame starts is a drawing with no words."""
+    case = case_bank.by_id("doubt.cbse.8.linear-photo")
+    events = _doubt_transcript().events
+    events[3] = {"id": "", "type": "ink", "data": {"object": _ring("r2", "r2ring"), "t": 640}}
+    scored = checks.score_transcript(case, _doubt_transcript(events=events))
+    assert scored.scores["in place"] == 0
+    assert any("no sentence starting on it" in f.detail for f in scored.wrong)
+    # and a turn that drew and said nothing at all is the owner's "just draw on the image"
+    silent = [e for e in _doubt_transcript().events if e["type"] != "say"]
+    scored = checks.score_transcript(case, _doubt_transcript(say="", events=silent))
+    assert any("said nothing" in f.detail for f in scored.wrong)
+
+
+def test_the_recorded_doubt_turn_is_labelled_keyless_and_measures_zero_off_the_page() -> None:
+    """The fixture in the bank was recorded without a key, and says so; a replay reads that note
+    rather than mistaking it for a vision model's reading."""
+    transcript = _recorded("doubt.cbse.8.linear-photo")
+    assert transcript.mode == "doubt" and "KEYLESS" in transcript.note
+    assert transcript.reading and transcript.off_page == 0
+    scored = checks.score_transcript(case_bank.by_id("doubt.cbse.8.linear-photo"), transcript)
+    assert not [f for f in scored.wrong if f.dimension == "in place"]

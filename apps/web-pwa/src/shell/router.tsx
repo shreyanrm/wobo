@@ -40,6 +40,8 @@ export type Route =
   | { name: 'sandbox'; topicId?: string }
   | { name: 'progress' }
   | { name: 'you' }
+  /** The doubt solver: a photo of the page, read back, explained on the photo. */
+  | { name: 'doubt' }
   // The parent's view of the week — read-only, the page the Sunday note links to (WOBO-PLAN §14).
   | { name: 'parent' }
   // The public document pages: what Wobo is, and how to use it. Readable signed out.
@@ -130,6 +132,7 @@ const PLAIN_ROUTES = new Set([
   'practice',
   'progress',
   'you',
+  'doubt',
   'parent',
   'about',
   'help',

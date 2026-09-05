@@ -65,6 +65,10 @@ A turn is a stream of events in order:
 
 Wobo picks one; the learner can override with a word ("board", "here") or a gesture.
 
+**The rule: the ink decides the surface.** When the thing to point at is already on the learner's screen (a chip, a line of the lesson, a step of their own working, a part of a diagram they are looking at), Wobo annotates it in place: a mark anchored to that registry target, on the screen, following the thing as the page moves. The board opens only when there is something new to build, and never with nothing on it. The brain's own naming of a surface is a hint, not the decision (`planner.choose_presentation`, `presentation.ts`); the learner's word beats both.
+
+**Scroll during a stroke.** Finished ink needs no lock: it is anchored and re-measured on scroll. A stroke in progress does: the page is held still for exactly as long as a page-anchored stroke is mid-flight, released on the frame it lands, and the registry re-anchors on the release (`scroll-hold.ts`). It never holds longer than 1.5 s, Escape always releases it, and a finger that was already moving when the stroke began keeps its scroll.
+
 | Presentation | When | Ink | Life |
 |---|---|---|---|
 | **On the screen** | a pointer, one line, a small clarification | anchored to what's there | fades after the utterance |

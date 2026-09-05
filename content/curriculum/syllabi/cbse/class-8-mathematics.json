@@ -30,6 +30,7 @@
   "level_order": 8,
   "subject": "Mathematics",
   "status": "provisional",
+  "status_reason": "2 names matched only weakly: unit 1: Ganita Prakash, Grade 8, Part 1 (container_named_by_the_build_its_chapters_verbatim); unit 2: Ganita Prakash, Grade 8, Part 2 (container_named_by_the_build_its_chapters_verbatim); the second reader does not agree: The extraction invents a unit title, \"Ganita Prakash, Grade 8, Part 1\", instead of listing the document's chapters as units.; The extraction invents a unit titled \"Ganita Prakash, Grade 8, Part 2\" instead of listing the document's seven chapters as units.",
   "read_off_source": true,
   "provenance": {
     "extractor": "deterministic text extraction from the fetched document; no model in the loop",
@@ -44,11 +45,165 @@
       "topic_order_is_1_to_n_within_every_unit",
       "no_unit_left_without_topics",
       "no_duplicate_topic_name_within_a_unit",
-      "no_page_tail_bled_into_a_node"
+      "no_page_tail_bled_into_a_node",
+      "orders_run_1_to_n",
+      "no_empty_name",
+      "no_duplicate_name_within_a_unit",
+      "every_unit_has_a_topic_layer",
+      "source_fetched",
+      "source_bytes_match_the_build",
+      "every_name_is_in_the_source",
+      "every_name_is_on_its_cited_page",
+      "coverage_matches_the_documents_numbering"
     ],
-    "checks_failed": [],
+    "checks_failed": [
+      "second_reader_agrees"
+    ],
     "verified_at": null,
-    "verified_by": null
+    "verified_by": null,
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "flag",
+      "checks": [
+        {
+          "name": "orders_run_1_to_n",
+          "passed": true,
+          "detail": "orders run 1..n"
+        },
+        {
+          "name": "no_empty_name",
+          "passed": true,
+          "detail": "every node has a name"
+        },
+        {
+          "name": "no_duplicate_name_within_a_unit",
+          "passed": true,
+          "detail": "no unit repeats a name"
+        },
+        {
+          "name": "every_unit_has_a_topic_layer",
+          "passed": true,
+          "detail": "every unit carries its topics"
+        },
+        {
+          "name": "source_fetched",
+          "passed": true,
+          "detail": "every cited document was fetched"
+        },
+        {
+          "name": "source_bytes_match_the_build",
+          "passed": true,
+          "detail": "the bytes fetched today hash to what the build recorded"
+        },
+        {
+          "name": "every_name_is_in_the_source",
+          "passed": true,
+          "detail": "16 names found in the source"
+        },
+        {
+          "name": "every_name_is_on_its_cited_page",
+          "passed": true,
+          "detail": "14 of 16 names verbatim on the page they cite; the rest within one page"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": true,
+          "detail": "the document numbers 7; the file has 7 topics"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": true,
+          "detail": "the document numbers 7; the file has 7 topics"
+        },
+        {
+          "name": "second_reader_agrees",
+          "passed": false,
+          "detail": "The extraction invents a unit title, \"Ganita Prakash, Grade 8, Part 1\", instead of listing the document's chapters as units.; The extraction invents a unit titled \"Ganita Prakash, Grade 8, Part 2\" instead of listing the document's seven chapters as units."
+        }
+      ],
+      "names": {
+        "container_named_by_the_build_its_chapters_verbatim": 2,
+        "verbatim_on_cited_page": 14
+      },
+      "sources": {
+        "ncert-8-ganita1": {
+          "url": "https://ncert.nic.in/textbook/pdf/hegp1ps.pdf",
+          "title": "Ganita Prakash, textbook of Mathematics for Grade 8, Part 1 (prelims)",
+          "fetched": true,
+          "transport": "urllib GET",
+          "fetched_at": "2026-09-05T10:31:36Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 16,
+          "sha256_matches_build": true
+        },
+        "ncert-8-ganita2": {
+          "url": "https://ncert.nic.in/textbook/pdf/hegp2ps.pdf",
+          "title": "Ganita Prakash, textbook of Mathematics for Grade 8, Part 2 (prelims)",
+          "fetched": true,
+          "transport": "urllib GET",
+          "fetched_at": "2026-09-05T10:31:42Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 16,
+          "sha256_matches_build": true
+        }
+      },
+      "coverage": {
+        "ncert-8-ganita1": {
+          "cited_pages": [
+            15
+          ],
+          "numbered_runs": [],
+          "unit_markers": 7,
+          "units": 1,
+          "topics": 7,
+          "verdict": "the document numbers 7; the file has 7 topics"
+        },
+        "ncert-8-ganita2": {
+          "cited_pages": [
+            15
+          ],
+          "numbered_runs": [],
+          "unit_markers": 7,
+          "units": 1,
+          "topics": 7,
+          "verdict": "the document numbers 7; the file has 7 topics"
+        }
+      },
+      "second_reader": {
+        "verdicts": [
+          {
+            "document_id": "ncert-8-ganita1",
+            "asked": true,
+            "model": "gpt-5.6-terra",
+            "passed": false,
+            "detail": "The extraction invents a unit title, \"Ganita Prakash, Grade 8, Part 1\", instead of listing the document's chapters as units.",
+            "problems": [
+              "The extraction invents a unit title, \"Ganita Prakash, Grade 8, Part 1\", instead of listing the document's chapters as units."
+            ],
+            "cost_usd": 0.01515,
+            "prompt_tokens": 7299,
+            "completion_tokens": 46
+          },
+          {
+            "document_id": "ncert-8-ganita2",
+            "asked": true,
+            "model": "gpt-5.6-terra",
+            "passed": false,
+            "detail": "The extraction invents a unit titled \"Ganita Prakash, Grade 8, Part 2\" instead of listing the document's seven chapters as units.",
+            "problems": [
+              "The extraction invents a unit titled \"Ganita Prakash, Grade 8, Part 2\" instead of listing the document's seven chapters as units."
+            ],
+            "cost_usd": 0.015176,
+            "prompt_tokens": 7312,
+            "completion_tokens": 46
+          }
+        ]
+      },
+      "reasons": [
+        "2 names matched only weakly: unit 1: Ganita Prakash, Grade 8, Part 1 (container_named_by_the_build_its_chapters_verbatim); unit 2: Ganita Prakash, Grade 8, Part 2 (container_named_by_the_build_its_chapters_verbatim)",
+        "the second reader does not agree: The extraction invents a unit title, \"Ganita Prakash, Grade 8, Part 1\", instead of listing the document's chapters as units.; The extraction invents a unit titled \"Ganita Prakash, Grade 8, Part 2\" instead of listing the document's seven chapters as units."
+      ]
+    }
   },
   "documents": [
     {

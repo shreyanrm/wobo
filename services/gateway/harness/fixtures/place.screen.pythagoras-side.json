@@ -1,0 +1,161 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "Which angle is opposite the hypotenuse?",
+    "t": 7491,
+    "targets": [
+      "tri-right"
+    ],
+    "type": "ask"
+  },
+  "case_id": "place.screen.pythagoras-side",
+  "cost_usd": 0.003806,
+  "elapsed_ms": 3815.6211669556797,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 1090,
+        "t": 0,
+        "text": "The sloping side.",
+        "type": "say"
+      },
+      "id": "Dao3lsfQLgJx:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "target": "tri-right"
+          },
+          "from": {
+            "target": "tri-hyp"
+          },
+          "id": "m2",
+          "kind": "arrow",
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 7371,
+            "start": 120
+          }
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "Dao3lsfQLgJx:1",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 6181,
+        "t": 1310,
+        "text": "It is the hypotenuse because it sits opposite the right angle, so it is the longest side.",
+        "type": "say"
+      },
+      "id": "Dao3lsfQLgJx:2",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "target": "tri-hyp"
+          },
+          "id": "m1",
+          "kind": "circle",
+          "meta": {
+            "beat": {
+              "with": 1
+            }
+          },
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 240,
+            "start": 1310
+          }
+        },
+        "t": 1310,
+        "type": "ink"
+      },
+      "id": "Dao3lsfQLgJx:3",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "Which angle is opposite the hypotenuse?",
+        "t": 7491,
+        "targets": [
+          "tri-right"
+        ],
+        "type": "ask"
+      },
+      "id": "Dao3lsfQLgJx:4",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 2,
+        "presentation": "screen",
+        "t": 7491,
+        "type": "done",
+        "verified": []
+      },
+      "id": "Dao3lsfQLgJx:5",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "objects": [
+    {
+      "anchor": {
+        "target": "tri-right"
+      },
+      "from": {
+        "target": "tri-hyp"
+      },
+      "id": "m2",
+      "kind": "arrow",
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 7371,
+        "start": 120
+      }
+    },
+    {
+      "anchor": {
+        "target": "tri-hyp"
+      },
+      "id": "m1",
+      "kind": "circle",
+      "meta": {
+        "beat": {
+          "with": 1
+        }
+      },
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 240,
+        "start": 1310
+      }
+    }
+  ],
+  "presentation": "screen",
+  "refused": [],
+  "say": "The sloping side. It is the hypotenuse because it sits opposite the right angle, so it is the longest side.",
+  "status": 200,
+  "verified": []
+}

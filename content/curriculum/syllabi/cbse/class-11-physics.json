@@ -29,11 +29,11 @@
   "level": "Class 11",
   "level_order": 11,
   "subject": "Physics",
-  "status": "provisional",
+  "status": "verified",
   "read_off_source": true,
   "provenance": {
     "extractor": "deterministic text extraction from the fetched document; no model in the loop",
-    "verifier": null,
+    "verifier": "gpt-5.6-terra",
     "checks_passed": [
       "unit_order_is_1_to_n",
       "no_empty_unit_name",
@@ -44,11 +44,129 @@
       "topic_order_is_1_to_n_within_every_unit",
       "no_unit_left_without_topics",
       "no_duplicate_topic_name_within_a_unit",
-      "no_page_tail_bled_into_a_node"
+      "no_page_tail_bled_into_a_node",
+      "orders_run_1_to_n",
+      "no_empty_name",
+      "no_duplicate_name_within_a_unit",
+      "every_unit_has_a_topic_layer",
+      "source_fetched",
+      "source_bytes_match_the_build",
+      "every_name_is_in_the_source",
+      "every_name_is_on_its_cited_page",
+      "second_reader_agrees"
     ],
     "checks_failed": [],
-    "verified_at": null,
-    "verified_by": null
+    "verified_at": "2026-09-05T10:28:15Z",
+    "verified_by": "system",
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "hold",
+      "checks": [
+        {
+          "name": "orders_run_1_to_n",
+          "passed": true,
+          "detail": "orders run 1..n"
+        },
+        {
+          "name": "no_empty_name",
+          "passed": true,
+          "detail": "every node has a name"
+        },
+        {
+          "name": "no_duplicate_name_within_a_unit",
+          "passed": true,
+          "detail": "no unit repeats a name"
+        },
+        {
+          "name": "every_unit_has_a_topic_layer",
+          "passed": true,
+          "detail": "every unit carries its topics"
+        },
+        {
+          "name": "source_fetched",
+          "passed": true,
+          "detail": "every cited document was fetched"
+        },
+        {
+          "name": "source_bytes_match_the_build",
+          "passed": true,
+          "detail": "the bytes fetched today hash to what the build recorded"
+        },
+        {
+          "name": "every_name_is_in_the_source",
+          "passed": true,
+          "detail": "24 names found in the source"
+        },
+        {
+          "name": "every_name_is_on_its_cited_page",
+          "passed": true,
+          "detail": "23 of 24 names verbatim on the page they cite; the rest within one page"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": null,
+          "detail": "the cited pages number nothing code can count"
+        },
+        {
+          "name": "second_reader_agrees",
+          "passed": true,
+          "detail": "the second reader read the source and agrees"
+        }
+      ],
+      "names": {
+        "verbatim_on_cited_page": 23,
+        "verbatim_elsewhere_in_document": 1
+      },
+      "sources": {
+        "cbse-1112-physics": {
+          "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Physics_SecP2_2026-27.pdf",
+          "title": "Physics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+          "fetched": true,
+          "transport": "urllib GET",
+          "fetched_at": "2026-09-05T10:28:23Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 23,
+          "sha256_matches_build": true
+        }
+      },
+      "coverage": {
+        "cbse-1112-physics": {
+          "cited_pages": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ],
+          "numbered_runs": [
+            14,
+            14
+          ],
+          "unit_markers": 14,
+          "units": 10,
+          "topics": 14,
+          "verdict": "the document's numbering on the cited pages (14+14) does not line up with the file's 10 units and 14 topics"
+        }
+      },
+      "second_reader": {
+        "verdicts": [
+          {
+            "document_id": "cbse-1112-physics",
+            "asked": true,
+            "model": "gpt-5.6-terra",
+            "passed": true,
+            "detail": "the second reader read the source and agrees",
+            "problems": [],
+            "cost_usd": 0.018044,
+            "prompt_tokens": 8404,
+            "completion_tokens": 103
+          }
+        ]
+      },
+      "reasons": [
+        "coverage: the cited pages number nothing code can count"
+      ]
+    }
   },
   "documents": [
     {
@@ -71,6 +189,14 @@
         "document_id": "cbse-1112-physics",
         "page": 2,
         "section": "Course structure Class 11, Unit I"
+      },
+      "marks_group": {
+        "units": [
+          "I",
+          "II",
+          "III"
+        ],
+        "marks": 23
       },
       "topics": [
         {
@@ -99,6 +225,14 @@
         "document_id": "cbse-1112-physics",
         "page": 2,
         "section": "Course structure Class 11, Unit II"
+      },
+      "marks_group": {
+        "units": [
+          "I",
+          "II",
+          "III"
+        ],
+        "marks": 23
       },
       "topics": [
         {
@@ -131,7 +265,6 @@
         }
       ],
       "unit_number": "II",
-      "marks": 23,
       "order": 2,
       "name": "Kinematics",
       "id": "n_1192c65d70e950f4",
@@ -142,6 +275,14 @@
         "document_id": "cbse-1112-physics",
         "page": 2,
         "section": "Course structure Class 11, Unit III"
+      },
+      "marks_group": {
+        "units": [
+          "I",
+          "II",
+          "III"
+        ],
+        "marks": 23
       },
       "topics": [
         {
@@ -171,6 +312,14 @@
         "page": 2,
         "section": "Course structure Class 11, Unit IV"
       },
+      "marks_group": {
+        "units": [
+          "IV",
+          "V",
+          "VI"
+        ],
+        "marks": 17
+      },
       "topics": [
         {
           "source_ref": {
@@ -199,6 +348,14 @@
         "page": 2,
         "section": "Course structure Class 11, Unit V"
       },
+      "marks_group": {
+        "units": [
+          "IV",
+          "V",
+          "VI"
+        ],
+        "marks": 17
+      },
       "topics": [
         {
           "source_ref": {
@@ -216,7 +373,6 @@
         }
       ],
       "unit_number": "V",
-      "marks": 17,
       "order": 5,
       "name": "Motion of System of Particles and Rigid Body",
       "id": "n_e97794a81cf56e8c",
@@ -227,6 +383,14 @@
         "document_id": "cbse-1112-physics",
         "page": 2,
         "section": "Course structure Class 11, Unit VI"
+      },
+      "marks_group": {
+        "units": [
+          "IV",
+          "V",
+          "VI"
+        ],
+        "marks": 17
       },
       "topics": [
         {
@@ -255,6 +419,14 @@
         "document_id": "cbse-1112-physics",
         "page": 2,
         "section": "Course structure Class 11, Unit VII"
+      },
+      "marks_group": {
+        "units": [
+          "VII",
+          "VIII",
+          "IX"
+        ],
+        "marks": 20
       },
       "topics": [
         {
@@ -312,6 +484,14 @@
         "page": 2,
         "section": "Course structure Class 11, Unit VIII"
       },
+      "marks_group": {
+        "units": [
+          "VII",
+          "VIII",
+          "IX"
+        ],
+        "marks": 20
+      },
       "topics": [
         {
           "source_ref": {
@@ -329,7 +509,6 @@
         }
       ],
       "unit_number": "VIII",
-      "marks": 20,
       "order": 8,
       "name": "Thermodynamics",
       "id": "n_96a8333cf5ac1f31",
@@ -340,6 +519,14 @@
         "document_id": "cbse-1112-physics",
         "page": 2,
         "section": "Course structure Class 11, Unit IX"
+      },
+      "marks_group": {
+        "units": [
+          "VII",
+          "VIII",
+          "IX"
+        ],
+        "marks": 20
       },
       "topics": [
         {
@@ -368,6 +555,12 @@
         "document_id": "cbse-1112-physics",
         "page": 2,
         "section": "Course structure Class 11, Unit X"
+      },
+      "marks_group": {
+        "units": [
+          "X"
+        ],
+        "marks": 10
       },
       "topics": [
         {
@@ -400,12 +593,11 @@
         }
       ],
       "unit_number": "X",
-      "marks": 10,
       "order": 10,
       "name": "Oscillations and Waves",
       "id": "n_f5449b6aa966f646",
       "aliases": []
     }
   ],
-  "note": "Units and chapters are the course structure table; each chapter carries the detailed contents the document states for it. The document assigns marks to groups of units rather than to every unit, so marks are recorded only where the table puts a figure on that unit's own row. Where a unit's contents are stated as one run of prose, the topics below are that prose split at its own commas, semicolons and full stops; every topic string is verbatim, only the boundaries are ours, and the unit keeps the untouched prose in `contents`."
+  "note": "Units and chapters are the course structure table; each chapter carries the detailed contents the document states for it. The table prints one marks figure per bracketed group of units, never per unit: `marks_group` on every unit names the units that share the figure and the figure itself, read off the table's drawn cell borders on the cited page, and no unit carries a figure of its own. The groups sum to the table's total of 70. Where a unit's contents are stated as one run of prose, the topics below are that prose split at its own commas, semicolons and full stops; every topic string is verbatim, only the boundaries are ours, and the unit keeps the untouched prose in `contents`."
 }

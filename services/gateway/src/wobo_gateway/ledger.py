@@ -91,6 +91,10 @@ GENERATION = "generation"
 VIDEO_SECOND = "video_second"
 SPOKEN_SECOND = "spoken_second"
 IMAGE = "image"
+#: One photographed doubt, read and answered (doubt.py). Its own unit because the owner asked what
+#: one costs, and a vision call is dearer than a text turn: folding it into ``turn`` would hide the
+#: one number this feature has to be priced on.
+DOUBT = "doubt"
 
 #: Where a cost figure came from. ``unpriced`` is a real answer and is never quietly rendered as
 #: zero: a zero understates the bill forever, and the console shows unpriced calls beside the
@@ -117,6 +121,7 @@ _UNIT_BY_PREFIX: dict[str, str] = {
     "curriculum.own.read": GENERATION,
     "voice.tts": SPOKEN_SECOND,
     "voice.narration": SPOKEN_SECOND,
+    "doubt.": DOUBT,
 }
 _PREFIXES: tuple[tuple[str, str], ...] = tuple(
     sorted(_UNIT_BY_PREFIX.items(), key=lambda item: len(item[0]), reverse=True)

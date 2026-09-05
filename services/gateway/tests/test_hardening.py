@@ -660,7 +660,10 @@ def test_the_prompt_keeps_both_ends_when_it_is_capped() -> None:
     # The head is the fence opener plus the screen line; the tail is the instruction.
     assert prompt.startswith("<<<LEARNER_CONTEXT")
     assert "Current screen:" in prompt[:400]
-    assert prompt.rstrip().endswith("attention.")
+    # The instruction is the tail: it survives the cap whole, down to its last line, which is
+    # the teaching law's closing ask (``wobo._build_user_prompt``).
+    assert "Classify this turn into exactly one path" in prompt[-1500:]
+    assert prompt.rstrip().endswith("in a breath.")
 
 
 def test_an_oversized_request_body_is_refused_at_the_door(auth) -> None:

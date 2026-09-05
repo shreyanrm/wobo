@@ -1028,7 +1028,20 @@ Console desk with a require-review switch, default on.
 adversary poisons it: one account × 100 edits, 20 fresh accounts, 30 real accounts removing a
 real chapter — the document must win; then a genuinely dropped chapter must mint a new version.
 
-**State.** Building. Run `wf_5b2d02c9-074`, task `wozfy0307`.
+**State.** Built, 2026-09-05 (run `wf_5b2d02c9-074`, task `wozfy0307`). What landed, and the
+proof for each: `curriculum/observer.py` (counts, thresholds, the re-read, the reconciler, the
+run, the desk view); migration `0022_curriculum_observer.sql` (four tables, two views, never a
+subject id, NOT applied to the project, owner's call, `docs/OPERATIONS.md`); hooks in
+`curriculum/api.py` (overlay write), `reports.py` (`not_my_syllabus` flag, `about` carries
+`version_id` + `node_id`) and `app.py` (`wobo.turn` is real use); `GET /v1/admin/observer` and
+`POST /v1/admin/observer/review-switch` (owner only, default on) in `desks_api.py`. Tests:
+`test_curriculum_observer.py` (§3 to §7, the poisoning file written first: one account × 100 edits
+is one vote, twenty fresh accounts are none, thirty real accounts cannot remove a chapter the
+document lists, a dropped chapter mints through the freshness path), `test_observer_desk.py`
+(the hooks and the desk through the real admin door), `test_observer_schema.py` (0022 as a
+contract). Not yet wired: the worker loop that calls `observer.run_pass` on the discovery
+worker's cadence (the PUBLISH builder owns the loop; `run_pass` refuses unless
+`WOBO_DISCOVERY_WORKER` is on), and the console screen for the desk.
 
 ### 10.19 Onboarding: one sign-in, not two (owner, 2026-09-05)
 

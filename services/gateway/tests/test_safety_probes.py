@@ -365,11 +365,17 @@ def test_the_same_message_is_asked_once(stub: Any) -> None:
 def test_a_moderation_call_that_fails_screens_rather_than_letting_it_through(
     stub: Any, failure: Exception
 ) -> None:
-    """The rule the whole layer hangs on. An outage must never be a way past the screen."""
+    """The rule the whole layer hangs on. An outage must never be a way past the screen.
+
+    And never a way INTO the crisis script either: a concern-adjacent message is HELD when the
+    checker did not answer (the plain "ask me again" line), and the Childline script is reached
+    only by a positive crisis verdict from a witness that actually answered (the owner's wave,
+    2026-09-05, after "draw a plant cell" came back as the crisis line during a provider wobble).
+    """
     stub(raises=failure)
     verdict = _layered().classify("i feel so alone and i cant sleep")
     assert verdict.flagged
-    assert verdict.category == CATEGORY_CRISIS
+    assert verdict.category != CATEGORY_CRISIS, "a failed check is not a crisis verdict"
     assert verdict.source == "fail_safe"
 
 

@@ -60,10 +60,13 @@ def test_a_derivation_whose_steps_cannot_be_checked_still_draws_the_answer() -> 
     )
     assert plan.objects, f"nothing was drawn: {plan.refusals}"
     written = " ".join(o.get("text", "") for o in plan.objects if o["kind"] == "write")
-    assert "x**2 - 5*x + 6 = 0" in written, "the equation the learner asked about is on the board"
-    assert "x - (2)" in written and "x - (3)" in written, (
+    # Written as a hand writes it, never as the CAS reads it: "x**2 - 5*x + 6 = 0" and
+    # "(x - (2))*(x - (3)) = 0" reached a Class 10 board verbatim (the 2026-09-05 review).
+    assert "x^2 - 5x + 6 = 0" in written, "the equation the learner asked about is on the board"
+    assert "(x - 2)(x - 3) = 0" in written, (
         "and so is the factored form the CAS proved, carrying BOTH roots"
     )
+    assert "**" not in written and "*" not in written, written
 
 
 def test_a_derivation_whose_steps_do_check_keeps_them() -> None:
@@ -78,7 +81,7 @@ def test_a_derivation_whose_steps_do_check_keeps_them() -> None:
         }
     )
     written = [o.get("text", "") for o in plan.objects if o["kind"] == "write"]
-    assert "2*x = 4" in written, "the learner's own middle step survived"
+    assert "2x = 4" in written, "the learner's own middle step survived"
 
 
 def test_a_lens_never_puts_a_unit_on_a_number_nobody_gave_it() -> None:

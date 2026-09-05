@@ -1,0 +1,80 @@
+{
+  "actions": [
+    {
+      "mood": "thinking",
+      "type": "setMood"
+    }
+  ],
+  "ask": null,
+  "case_id": "doubt.cbse.8.linear-photo",
+  "cost_usd": 0.0,
+  "elapsed_ms": 67.752750008367,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 3636,
+        "t": 0,
+        "text": "Peek at the step where you moved a term across.",
+        "type": "say"
+      },
+      "id": "ubMiEoD12OBa:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "dur": 1090,
+        "t": 3856,
+        "text": "Something's hiding there.",
+        "type": "say"
+      },
+      "id": "ubMiEoD12OBa:1",
+      "type": "say"
+    },
+    {
+      "data": {
+        "action": {
+          "mood": "thinking",
+          "type": "setMood"
+        },
+        "t": 4946,
+        "type": "action"
+      },
+      "id": "ubMiEoD12OBa:2",
+      "type": "action"
+    },
+    {
+      "data": {
+        "objects": 0,
+        "presentation": "screen",
+        "t": 4946,
+        "type": "done",
+        "verified": []
+      },
+      "id": "ubMiEoD12OBa:3",
+      "type": "done"
+    }
+  ],
+  "mode": "doubt",
+  "model_calls": 0,
+  "note": "recorded KEYLESS (LLM_MODE=mock, MockEyes): the reading is the mock eyes' one line and the plan is the keyless planner's, so this proves the checks and the wire, never that a vision model reads a page well. Re-record with --live to measure the real reader.",
+  "objects": [],
+  "off_page": 0,
+  "presentation": "screen",
+  "reading": [
+    {
+      "box": [
+        0.1,
+        0.1,
+        0.9,
+        0.9
+      ],
+      "id": "r1",
+      "text": "(the page, as far as I could read it without my eyes)"
+    }
+  ],
+  "refused": [],
+  "say": "Peek at the step where you moved a term across. Something's hiding there.",
+  "status": 200,
+  "verified": []
+}

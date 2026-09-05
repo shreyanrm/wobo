@@ -215,7 +215,7 @@ export async function showMe(targetId: string, options: ShowMeOptions = {}): Pro
     x: typeof window === 'undefined' ? to.x : window.innerWidth - 72,
     y: typeof window === 'undefined' ? to.y : window.innerHeight - 96,
   };
-  const saying = `here — ${target.label}`;
+  const saying = `here: ${target.label}`;
   showCursor.set({ at: from, saying, tapping: false });
 
   const reduced = options.reduced ?? prefersReducedMotion();

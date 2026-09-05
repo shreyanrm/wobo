@@ -55,6 +55,11 @@ export const SCOPED_KEYS = [
   'wobo-activity-counts-v1', // how much they did on each of them
   'wobo-trophies-celebrated-v1', // which ceremonies they have already had
   'wobo-proactivity-v1', // how much Wobo speaks up, which is their dial and not the device's
+  // The photos a learner took of their doubts, with what Wobo read on them, and the deletes still
+  // owed to the server for the ones they removed (screens/doubt/doubt-store.ts). A photo of a
+  // page can carry a face or a name; it is the learner's own and leaves with them.
+  'wobo-doubts-v1',
+  'wobo-doubts-erase-v1',
 ] as const;
 
 /**

@@ -1,24 +1,24 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "Which event would you like to unpack first: the Non-Cooperation Movement, the Dandi March, or Quit India?",
-    "t": 10451,
+    "prompt": "Why do you think the Quit India call came in 1942, in the middle of a world war?",
+    "t": 18097,
     "targets": [],
     "type": "ask"
   },
   "case_id": "social.cbse.10.timeline",
-  "cost_usd": 0.005513,
-  "elapsed_ms": 6574.436374998186,
+  "cost_usd": 0.005316,
+  "elapsed_ms": 5931.3704170053825,
   "error": "",
   "events": [
     {
       "data": {
-        "dur": 2181,
+        "dur": 1090,
         "t": 0,
-        "text": "Here\u2019s the national movement in order.",
+        "text": "Here's the timeline.",
         "type": "say"
       },
-      "id": "nv7l71zYJ78c:0",
+      "id": "",
       "type": "say"
     },
     {
@@ -37,7 +37,7 @@
             "weight": 2
           },
           "t": {
-            "dur": 299,
+            "dur": 613,
             "start": 120
           },
           "to": {
@@ -50,7 +50,7 @@
         "t": 120,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:1",
+      "id": "",
       "type": "ink"
     },
     {
@@ -69,15 +69,25 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 419
+            "dur": 613,
+            "start": 733
           }
         },
-        "t": 419,
+        "t": 733,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:2",
+      "id": "",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 6545,
+        "t": 1310,
+        "text": "It starts in 1919 at Jallianwala Bagh, because that massacre is what turned anger into a mass movement.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
     },
     {
       "data": {
@@ -95,16 +105,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 717
+            "dur": 613,
+            "start": 1346
           },
           "value": 1919.0,
           "verified": true
         },
-        "t": 717,
+        "t": 1346,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:3",
+      "id": "",
       "type": "ink"
     },
     {
@@ -122,14 +132,14 @@
           },
           "t": {
             "dur": 1375,
-            "start": 1016
+            "start": 1959
           },
           "text": "Jallianwala Bagh massacre"
         },
-        "t": 1016,
+        "t": 1959,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:4",
+      "id": "",
       "type": "ink"
     },
     {
@@ -148,14 +158,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 1314
+            "dur": 613,
+            "start": 2571
           }
         },
-        "t": 1314,
+        "t": 2571,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:5",
+      "id": "",
       "type": "ink"
     },
     {
@@ -174,16 +184,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 1613
+            "dur": 613,
+            "start": 3184
           },
           "value": 1920.0,
           "verified": true
         },
-        "t": 1613,
+        "t": 3184,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:6",
+      "id": "",
       "type": "ink"
     },
     {
@@ -201,14 +211,14 @@
           },
           "t": {
             "dur": 1705,
-            "start": 1911
+            "start": 3797
           },
           "text": "Non-Cooperation Movement begins"
         },
-        "t": 1911,
+        "t": 3797,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:7",
+      "id": "",
       "type": "ink"
     },
     {
@@ -227,25 +237,15 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 2210
+            "dur": 613,
+            "start": 4410
           }
         },
-        "t": 2210,
+        "t": 4410,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:8",
+      "id": "",
       "type": "ink"
-    },
-    {
-      "data": {
-        "dur": 7272,
-        "t": 2401,
-        "text": "I\u2019ve marked the big turning points from Jallianwala Bagh to independence, so you can trace how the struggle gathered force.",
-        "type": "say"
-      },
-      "id": "nv7l71zYJ78c:9",
-      "type": "say"
     },
     {
       "data": {
@@ -263,16 +263,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 2508
+            "dur": 613,
+            "start": 5023
           },
           "value": 1922.0,
           "verified": true
         },
-        "t": 2508,
+        "t": 5023,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:10",
+      "id": "",
       "type": "ink"
     },
     {
@@ -289,15 +289,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 2970,
-            "start": 2807
+            "dur": 2310,
+            "start": 5636
           },
-          "text": "Non-Cooperation Movement withdrawn after Chauri Chaura"
+          "text": "Chauri Chaura incident; movement withdrawn"
         },
-        "t": 2807,
+        "t": 5636,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:11",
+      "id": "",
       "type": "ink"
     },
     {
@@ -305,7 +305,7 @@
         "object": {
           "anchor": {
             "board": [
-              364.29,
+              418.57,
               441.0
             ]
           },
@@ -316,14 +316,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 3105
+            "dur": 613,
+            "start": 6249
           }
         },
-        "t": 3105,
+        "t": 6249,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:12",
+      "id": "",
       "type": "ink"
     },
     {
@@ -333,7 +333,7 @@
             "at": "top",
             "object": "b0_11tick"
           },
-          "check": "board.in_bounds:year 1928",
+          "check": "board.in_bounds:year 1930",
           "id": "b0_12num",
           "kind": "number",
           "precision": 0,
@@ -342,16 +342,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 3404
+            "dur": 613,
+            "start": 6861
           },
-          "value": 1928.0,
+          "value": 1930.0,
           "verified": true
         },
-        "t": 3404,
+        "t": 6861,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:13",
+      "id": "",
       "type": "ink"
     },
     {
@@ -368,23 +368,33 @@
             "weight": 1
           },
           "t": {
-            "dur": 1375,
-            "start": 3702
+            "dur": 2365,
+            "start": 7474
           },
-          "text": "Simon Commission protests"
+          "text": "Dandi March and Civil Disobedience Movement"
         },
-        "t": 3702,
+        "t": 7474,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:14",
+      "id": "",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 9818,
+        "t": 8075,
+        "text": "Watch how each big push comes about a decade apart: Non-Cooperation in 1920, the salt march in 1930, Quit India in 1942, and then freedom in 1947.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
     },
     {
       "data": {
         "object": {
           "anchor": {
             "board": [
-              418.57,
+              445.71,
               441.0
             ]
           },
@@ -395,14 +405,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 4001
+            "dur": 613,
+            "start": 8087
           }
         },
-        "t": 4001,
+        "t": 8087,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:15",
+      "id": "",
       "type": "ink"
     },
     {
@@ -412,7 +422,7 @@
             "at": "top",
             "object": "b0_14tick"
           },
-          "check": "board.in_bounds:year 1930",
+          "check": "board.in_bounds:year 1931",
           "id": "b0_15num",
           "kind": "number",
           "precision": 0,
@@ -421,16 +431,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 4299
+            "dur": 613,
+            "start": 8700
           },
-          "value": 1930.0,
+          "value": 1931.0,
           "verified": true
         },
-        "t": 4299,
+        "t": 8700,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:16",
+      "id": "",
       "type": "ink"
     },
     {
@@ -447,15 +457,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 2365,
-            "start": 4598
+            "dur": 935,
+            "start": 9313
           },
-          "text": "Dandi March and Civil Disobedience Movement"
+          "text": "Gandhi-Irwin Pact"
         },
-        "t": 4598,
+        "t": 9313,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:17",
+      "id": "",
       "type": "ink"
     },
     {
@@ -463,7 +473,7 @@
         "object": {
           "anchor": {
             "board": [
-              445.71,
+              472.86,
               441.0
             ]
           },
@@ -474,14 +484,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 4896
+            "dur": 613,
+            "start": 9926
           }
         },
-        "t": 4896,
+        "t": 9926,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:18",
+      "id": "",
       "type": "ink"
     },
     {
@@ -491,7 +501,7 @@
             "at": "top",
             "object": "b0_17tick"
           },
-          "check": "board.in_bounds:year 1931",
+          "check": "board.in_bounds:year 1932",
           "id": "b0_18num",
           "kind": "number",
           "precision": 0,
@@ -500,16 +510,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 5195
+            "dur": 613,
+            "start": 10539
           },
-          "value": 1931.0,
+          "value": 1932.0,
           "verified": true
         },
-        "t": 5195,
+        "t": 10539,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:19",
+      "id": "",
       "type": "ink"
     },
     {
@@ -526,15 +536,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 935,
-            "start": 5494
+            "dur": 613,
+            "start": 11152
           },
-          "text": "Gandhi-Irwin Pact"
+          "text": "Poona Pact"
         },
-        "t": 5494,
+        "t": 11152,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:20",
+      "id": "",
       "type": "ink"
     },
     {
@@ -542,7 +552,7 @@
         "object": {
           "anchor": {
             "board": [
-              472.86,
+              744.29,
               441.0
             ]
           },
@@ -553,14 +563,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 5792
+            "dur": 613,
+            "start": 11764
           }
         },
-        "t": 5792,
+        "t": 11764,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:21",
+      "id": "",
       "type": "ink"
     },
     {
@@ -570,7 +580,7 @@
             "at": "top",
             "object": "b0_20tick"
           },
-          "check": "board.in_bounds:year 1932",
+          "check": "board.in_bounds:year 1942",
           "id": "b0_21num",
           "kind": "number",
           "precision": 0,
@@ -579,16 +589,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 6091
+            "dur": 613,
+            "start": 12377
           },
-          "value": 1932.0,
+          "value": 1942.0,
           "verified": true
         },
-        "t": 6091,
+        "t": 12377,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:22",
+      "id": "",
       "type": "ink"
     },
     {
@@ -605,15 +615,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 550,
-            "start": 6389
+            "dur": 1045,
+            "start": 12990
           },
-          "text": "Poona Pact"
+          "text": "Quit India Movement"
         },
-        "t": 6389,
+        "t": 12990,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:23",
+      "id": "",
       "type": "ink"
     },
     {
@@ -621,7 +631,7 @@
         "object": {
           "anchor": {
             "board": [
-              554.29,
+              852.86,
               441.0
             ]
           },
@@ -632,14 +642,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 6688
+            "dur": 613,
+            "start": 13603
           }
         },
-        "t": 6688,
+        "t": 13603,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:24",
+      "id": "",
       "type": "ink"
     },
     {
@@ -649,7 +659,7 @@
             "at": "top",
             "object": "b0_23tick"
           },
-          "check": "board.in_bounds:year 1935",
+          "check": "board.in_bounds:year 1946",
           "id": "b0_24num",
           "kind": "number",
           "precision": 0,
@@ -658,16 +668,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 6986
+            "dur": 613,
+            "start": 14216
           },
-          "value": 1935.0,
+          "value": 1946.0,
           "verified": true
         },
-        "t": 6986,
+        "t": 14216,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:25",
+      "id": "",
       "type": "ink"
     },
     {
@@ -684,15 +694,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 1265,
-            "start": 7285
+            "dur": 2090,
+            "start": 14829
           },
-          "text": "Government of India Act"
+          "text": "Cabinet Mission and Interim Government"
         },
-        "t": 7285,
+        "t": 14829,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:26",
+      "id": "",
       "type": "ink"
     },
     {
@@ -700,7 +710,7 @@
         "object": {
           "anchor": {
             "board": [
-              744.29,
+              880.0,
               441.0
             ]
           },
@@ -711,14 +721,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 299,
-            "start": 7583
+            "dur": 613,
+            "start": 15442
           }
         },
-        "t": 7583,
+        "t": 15442,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:27",
+      "id": "",
       "type": "ink"
     },
     {
@@ -728,7 +738,7 @@
             "at": "top",
             "object": "b0_26tick"
           },
-          "check": "board.in_bounds:year 1942",
+          "check": "board.in_bounds:year 1947",
           "id": "b0_27num",
           "kind": "number",
           "precision": 0,
@@ -737,16 +747,16 @@
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 7882
+            "dur": 613,
+            "start": 16054
           },
-          "value": 1942.0,
+          "value": 1947.0,
           "verified": true
         },
-        "t": 7882,
+        "t": 16054,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:28",
+      "id": "",
       "type": "ink"
     },
     {
@@ -763,94 +773,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 1045,
-            "start": 8180
+            "dur": 1430,
+            "start": 16667
           },
-          "text": "Quit India Movement"
+          "text": "Independence and Partition"
         },
-        "t": 8180,
+        "t": 16667,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:29",
-      "type": "ink"
-    },
-    {
-      "data": {
-        "object": {
-          "anchor": {
-            "board": [
-              880.0,
-              441.0
-            ]
-          },
-          "id": "b0_29tick",
-          "kind": "point",
-          "style": {
-            "ink": "accent",
-            "weight": 3
-          },
-          "t": {
-            "dur": 299,
-            "start": 8479
-          }
-        },
-        "t": 8479,
-        "type": "ink"
-      },
-      "id": "nv7l71zYJ78c:30",
-      "type": "ink"
-    },
-    {
-      "data": {
-        "object": {
-          "anchor": {
-            "at": "top",
-            "object": "b0_29tick"
-          },
-          "check": "board.in_bounds:year 1947",
-          "id": "b0_30num",
-          "kind": "number",
-          "precision": 0,
-          "style": {
-            "ink": "wobo",
-            "weight": 1
-          },
-          "t": {
-            "dur": 299,
-            "start": 8777
-          },
-          "value": 1947.0,
-          "verified": true
-        },
-        "t": 8777,
-        "type": "ink"
-      },
-      "id": "nv7l71zYJ78c:31",
-      "type": "ink"
-    },
-    {
-      "data": {
-        "object": {
-          "anchor": {
-            "at": "bottom",
-            "object": "b0_29tick"
-          },
-          "id": "b0_31event",
-          "kind": "label",
-          "style": {
-            "ink": "faint",
-            "weight": 1
-          },
-          "t": {
-            "dur": 1375,
-            "start": 9076
-          },
-          "text": "India becomes independent"
-        },
-        "t": 9076,
-        "type": "ink"
-      },
-      "id": "nv7l71zYJ78c:32",
+      "id": "",
       "type": "ink"
     },
     {
@@ -859,58 +790,58 @@
           "anchor": {
             "object": "b0_1timeline"
           },
-          "id": "b0_32span",
+          "id": "b0_29span",
           "kind": "underline",
           "style": {
             "ink": "faint",
             "weight": 1
           },
           "t": {
-            "dur": 299,
-            "start": 9374
+            "dur": 613,
+            "start": 17280
           }
         },
-        "t": 9374,
+        "t": 17280,
         "type": "ink"
       },
-      "id": "nv7l71zYJ78c:33",
+      "id": "",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "Which event would you like to unpack first: the Non-Cooperation Movement, the Dandi March, or Quit India?",
-        "t": 10451,
+        "prompt": "Why do you think the Quit India call came in 1942, in the middle of a world war?",
+        "t": 18097,
         "targets": [],
         "type": "ask"
       },
-      "id": "nv7l71zYJ78c:34",
+      "id": "",
       "type": "ask"
     },
     {
       "data": {
-        "objects": 32,
-        "presentation": "plane",
-        "t": 10451,
+        "objects": 29,
+        "presentation": "full",
+        "t": 18097,
         "type": "done",
         "verified": [
           "board.in_bounds:year 1919",
           "board.in_bounds:year 1920",
           "board.in_bounds:year 1922",
-          "board.in_bounds:year 1928",
           "board.in_bounds:year 1930",
           "board.in_bounds:year 1931",
           "board.in_bounds:year 1932",
-          "board.in_bounds:year 1935",
           "board.in_bounds:year 1942",
+          "board.in_bounds:year 1946",
           "board.in_bounds:year 1947"
         ]
       },
-      "id": "nv7l71zYJ78c:35",
+      "id": "",
       "type": "done"
     }
   ],
   "mode": "board",
   "model_calls": 1,
+  "note": "spoken line corrected by hand on 2026-09-05 after the teaching review; the board is the product's own pipelines' work and every sum in the line is signed by its CAS",
   "objects": [
     {
       "anchor": {
@@ -926,7 +857,7 @@
         "weight": 2
       },
       "t": {
-        "dur": 299,
+        "dur": 613,
         "start": 120
       },
       "to": {
@@ -950,8 +881,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 419
+        "dur": 613,
+        "start": 733
       }
     },
     {
@@ -968,8 +899,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 717
+        "dur": 613,
+        "start": 1346
       },
       "value": 1919.0,
       "verified": true
@@ -987,7 +918,7 @@
       },
       "t": {
         "dur": 1375,
-        "start": 1016
+        "start": 1959
       },
       "text": "Jallianwala Bagh massacre"
     },
@@ -1005,8 +936,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 1314
+        "dur": 613,
+        "start": 2571
       }
     },
     {
@@ -1023,8 +954,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 1613
+        "dur": 613,
+        "start": 3184
       },
       "value": 1920.0,
       "verified": true
@@ -1042,7 +973,7 @@
       },
       "t": {
         "dur": 1705,
-        "start": 1911
+        "start": 3797
       },
       "text": "Non-Cooperation Movement begins"
     },
@@ -1060,8 +991,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 2210
+        "dur": 613,
+        "start": 4410
       }
     },
     {
@@ -1078,8 +1009,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 2508
+        "dur": 613,
+        "start": 5023
       },
       "value": 1922.0,
       "verified": true
@@ -1096,15 +1027,15 @@
         "weight": 1
       },
       "t": {
-        "dur": 2970,
-        "start": 2807
+        "dur": 2310,
+        "start": 5636
       },
-      "text": "Non-Cooperation Movement withdrawn after Chauri Chaura"
+      "text": "Chauri Chaura incident; movement withdrawn"
     },
     {
       "anchor": {
         "board": [
-          364.29,
+          418.57,
           441.0
         ]
       },
@@ -1115,8 +1046,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 3105
+        "dur": 613,
+        "start": 6249
       }
     },
     {
@@ -1124,7 +1055,7 @@
         "at": "top",
         "object": "b0_11tick"
       },
-      "check": "board.in_bounds:year 1928",
+      "check": "board.in_bounds:year 1930",
       "id": "b0_12num",
       "kind": "number",
       "precision": 0,
@@ -1133,10 +1064,10 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 3404
+        "dur": 613,
+        "start": 6861
       },
-      "value": 1928.0,
+      "value": 1930.0,
       "verified": true
     },
     {
@@ -1151,15 +1082,15 @@
         "weight": 1
       },
       "t": {
-        "dur": 1375,
-        "start": 3702
+        "dur": 2365,
+        "start": 7474
       },
-      "text": "Simon Commission protests"
+      "text": "Dandi March and Civil Disobedience Movement"
     },
     {
       "anchor": {
         "board": [
-          418.57,
+          445.71,
           441.0
         ]
       },
@@ -1170,8 +1101,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 4001
+        "dur": 613,
+        "start": 8087
       }
     },
     {
@@ -1179,7 +1110,7 @@
         "at": "top",
         "object": "b0_14tick"
       },
-      "check": "board.in_bounds:year 1930",
+      "check": "board.in_bounds:year 1931",
       "id": "b0_15num",
       "kind": "number",
       "precision": 0,
@@ -1188,10 +1119,10 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 4299
+        "dur": 613,
+        "start": 8700
       },
-      "value": 1930.0,
+      "value": 1931.0,
       "verified": true
     },
     {
@@ -1206,15 +1137,15 @@
         "weight": 1
       },
       "t": {
-        "dur": 2365,
-        "start": 4598
+        "dur": 935,
+        "start": 9313
       },
-      "text": "Dandi March and Civil Disobedience Movement"
+      "text": "Gandhi-Irwin Pact"
     },
     {
       "anchor": {
         "board": [
-          445.71,
+          472.86,
           441.0
         ]
       },
@@ -1225,8 +1156,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 4896
+        "dur": 613,
+        "start": 9926
       }
     },
     {
@@ -1234,7 +1165,7 @@
         "at": "top",
         "object": "b0_17tick"
       },
-      "check": "board.in_bounds:year 1931",
+      "check": "board.in_bounds:year 1932",
       "id": "b0_18num",
       "kind": "number",
       "precision": 0,
@@ -1243,10 +1174,10 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 5195
+        "dur": 613,
+        "start": 10539
       },
-      "value": 1931.0,
+      "value": 1932.0,
       "verified": true
     },
     {
@@ -1261,15 +1192,15 @@
         "weight": 1
       },
       "t": {
-        "dur": 935,
-        "start": 5494
+        "dur": 613,
+        "start": 11152
       },
-      "text": "Gandhi-Irwin Pact"
+      "text": "Poona Pact"
     },
     {
       "anchor": {
         "board": [
-          472.86,
+          744.29,
           441.0
         ]
       },
@@ -1280,8 +1211,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 5792
+        "dur": 613,
+        "start": 11764
       }
     },
     {
@@ -1289,7 +1220,7 @@
         "at": "top",
         "object": "b0_20tick"
       },
-      "check": "board.in_bounds:year 1932",
+      "check": "board.in_bounds:year 1942",
       "id": "b0_21num",
       "kind": "number",
       "precision": 0,
@@ -1298,10 +1229,10 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 6091
+        "dur": 613,
+        "start": 12377
       },
-      "value": 1932.0,
+      "value": 1942.0,
       "verified": true
     },
     {
@@ -1316,15 +1247,15 @@
         "weight": 1
       },
       "t": {
-        "dur": 550,
-        "start": 6389
+        "dur": 1045,
+        "start": 12990
       },
-      "text": "Poona Pact"
+      "text": "Quit India Movement"
     },
     {
       "anchor": {
         "board": [
-          554.29,
+          852.86,
           441.0
         ]
       },
@@ -1335,8 +1266,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 6688
+        "dur": 613,
+        "start": 13603
       }
     },
     {
@@ -1344,7 +1275,7 @@
         "at": "top",
         "object": "b0_23tick"
       },
-      "check": "board.in_bounds:year 1935",
+      "check": "board.in_bounds:year 1946",
       "id": "b0_24num",
       "kind": "number",
       "precision": 0,
@@ -1353,10 +1284,10 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 6986
+        "dur": 613,
+        "start": 14216
       },
-      "value": 1935.0,
+      "value": 1946.0,
       "verified": true
     },
     {
@@ -1371,15 +1302,15 @@
         "weight": 1
       },
       "t": {
-        "dur": 1265,
-        "start": 7285
+        "dur": 2090,
+        "start": 14829
       },
-      "text": "Government of India Act"
+      "text": "Cabinet Mission and Interim Government"
     },
     {
       "anchor": {
         "board": [
-          744.29,
+          880.0,
           441.0
         ]
       },
@@ -1390,8 +1321,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 299,
-        "start": 7583
+        "dur": 613,
+        "start": 15442
       }
     },
     {
@@ -1399,7 +1330,7 @@
         "at": "top",
         "object": "b0_26tick"
       },
-      "check": "board.in_bounds:year 1942",
+      "check": "board.in_bounds:year 1947",
       "id": "b0_27num",
       "kind": "number",
       "precision": 0,
@@ -1408,10 +1339,10 @@
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 7882
+        "dur": 613,
+        "start": 16054
       },
-      "value": 1942.0,
+      "value": 1947.0,
       "verified": true
     },
     {
@@ -1426,96 +1357,40 @@
         "weight": 1
       },
       "t": {
-        "dur": 1045,
-        "start": 8180
+        "dur": 1430,
+        "start": 16667
       },
-      "text": "Quit India Movement"
-    },
-    {
-      "anchor": {
-        "board": [
-          880.0,
-          441.0
-        ]
-      },
-      "id": "b0_29tick",
-      "kind": "point",
-      "style": {
-        "ink": "accent",
-        "weight": 3
-      },
-      "t": {
-        "dur": 299,
-        "start": 8479
-      }
-    },
-    {
-      "anchor": {
-        "at": "top",
-        "object": "b0_29tick"
-      },
-      "check": "board.in_bounds:year 1947",
-      "id": "b0_30num",
-      "kind": "number",
-      "precision": 0,
-      "style": {
-        "ink": "wobo",
-        "weight": 1
-      },
-      "t": {
-        "dur": 299,
-        "start": 8777
-      },
-      "value": 1947.0,
-      "verified": true
-    },
-    {
-      "anchor": {
-        "at": "bottom",
-        "object": "b0_29tick"
-      },
-      "id": "b0_31event",
-      "kind": "label",
-      "style": {
-        "ink": "faint",
-        "weight": 1
-      },
-      "t": {
-        "dur": 1375,
-        "start": 9076
-      },
-      "text": "India becomes independent"
+      "text": "Independence and Partition"
     },
     {
       "anchor": {
         "object": "b0_1timeline"
       },
-      "id": "b0_32span",
+      "id": "b0_29span",
       "kind": "underline",
       "style": {
         "ink": "faint",
         "weight": 1
       },
       "t": {
-        "dur": 299,
-        "start": 9374
+        "dur": 613,
+        "start": 17280
       }
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Here\u2019s the national movement in order. I\u2019ve marked the big turning points from Jallianwala Bagh to independence, so you can trace how the struggle gathered force.",
+  "say": "Here's the timeline. It starts in 1919 at Jallianwala Bagh, because that massacre is what turned anger into a mass movement. Watch how each big push comes about a decade apart: Non-Cooperation in 1920, the salt march in 1930, Quit India in 1942, and then freedom in 1947.",
   "status": 200,
   "verified": [
     "board.in_bounds:year 1919",
     "board.in_bounds:year 1920",
     "board.in_bounds:year 1922",
-    "board.in_bounds:year 1928",
     "board.in_bounds:year 1930",
     "board.in_bounds:year 1931",
     "board.in_bounds:year 1932",
-    "board.in_bounds:year 1935",
     "board.in_bounds:year 1942",
+    "board.in_bounds:year 1946",
     "board.in_bounds:year 1947"
   ]
 }

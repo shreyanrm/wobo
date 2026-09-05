@@ -3,9 +3,18 @@
 /**
  * Which surface Wobo draws on (docs/BOARD.md §5).
  *
- * Wobo's rule: a pointer or one line stays on the screen; a derivation or a diagram from scratch gets
- * the plane; a lesson gets the full board. The learner overrides it with a word — "board" pushes the
- * ink onto the plane, "here" brings it back onto the screen — and the override wins over everything.
+ * THE RULE, in one line: the ink decides the surface, and only the learner's word beats it.
+ *
+ * When the thing to point at is already on the learner's screen — a chip, a line of the lesson, a
+ * step of their own working, a part of a diagram in front of them — Wobo annotates it in place: a
+ * mark anchored to that registry target, drawn on the screen, following the thing as the page
+ * moves. The board opens only when there is something NEW to build (a graph, a construction, a
+ * derivation, a diagram that is not on the page), and a lesson has the full board. A board never
+ * opens with nothing on it. The brain applies the same rule the same way (`board/planner.py`,
+ * `choose_presentation`), and the brain's own naming of a surface is a hint, never the decision:
+ * every drawn answer used to open the board because the model wrote "plane" out of habit (the
+ * owner, 2026-09-05). The learner overrides it all with a word — "board" pushes the ink onto the
+ * plane, "here" brings it back onto the screen — and the override wins over everything.
  *
  * The choice has to be made as the FIRST object arrives, not when the plan finishes: the pen starts
  * within a second, and a stroke cannot wait for a `done` frame. So the decision is a small state
@@ -231,6 +240,9 @@ const DRAWS =
  * focus. Without this a lasso followed by "why?" fell through to a paragraph, which is exactly
  * the slideshow BOARD.md §11 warns about.
  */
+/** A request to put a mark on a thing: a ring, a circle, an underline, a pointer. */
+const MARKS = /\b(ring|circle|mark|highlight|underline|point\s+(at|to))\b/i;
+
 const ASKS_ABOUT_IT =
   /^\s*(why|how|what|explain|tell\s+me|huh|i\s+don'?t\s+(get|understand))\b|\bwhat\s+(is|are|does)\s+(this|that|it)\b|\?\s*$/i;
 
@@ -249,7 +261,7 @@ export interface BoardShape {
  */
 export function boardShapeOf(
   text: string,
-  opts: { hasFocus?: boolean; modeDraws?: boolean } = {},
+  opts: { hasFocus?: boolean; modeDraws?: boolean; namesTarget?: boolean } = {},
 ): BoardShape {
   const word = presentationWord(text);
   if (word?.dismiss || word?.wipe) return { board: false, ...(word ? { word } : {}) };
@@ -257,8 +269,13 @@ export function boardShapeOf(
   const asked = Boolean(override) || DRAWS.test(text);
   const byMode = Boolean(opts.modeDraws && opts.hasFocus);
   const aboutFocus = Boolean(opts.hasFocus) && ASKS_ABOUT_IT.test(text);
+  // A question about something ALREADY ON THE SCREEN is answered in place, with a ring on it
+  // (docs/BOARD.md §5). That is a planner turn too: it streams, and the ink lands on the
+  // registered target. "which button starts the course?" used to go to the plain conversation,
+  // and the learner got words about a button they were looking at (the 2026-09-05 review).
+  const aboutTheScreen = Boolean(opts.namesTarget) && (ASKS_ABOUT_IT.test(text) || MARKS.test(text));
   return {
-    board: asked || byMode || aboutFocus,
+    board: asked || byMode || aboutFocus || aboutTheScreen,
     ...(override ? { override } : {}),
     ...(word ? { word } : {}),
   };

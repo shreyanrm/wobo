@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'bun:test';
 import type { WoboAction, WoboBus, WoboMood } from '@wobo/wobo';
-import { onceCallback, performTurn, sentences, speakLine } from './speech';
+import { planPerformance } from '@wobo/wobo';
+import {
+  beatOfMood,
+  beatOfTurn,
+  onceCallback,
+  performTurn,
+  sentenceBeats,
+  sentences,
+  speakLine,
+  withBeat,
+} from './speech';
 
 describe('the sentence splitter — where a period really ends a breath', () => {
   it('keeps decimals in one piece', () => {
@@ -104,4 +114,79 @@ describe('performTurn — one performance, every beat once', () => {
     expect(new Set(targets).size).toBe(3); // no duplicates
     expect(moods).toEqual([]);
   }, 30000);
+});
+
+// --- the beat (docs/copy/voice.md 10b): the tutor knows what a line is, and the voice is told ------
+
+describe('the beat travels with the line', () => {
+  it('maps the moods the tutor already sets onto the five beats, and has no opinion otherwise', () => {
+    expect(beatOfMood('correct')).toBe('win');
+    expect(beatOfMood('celebrate')).toBe('win');
+    expect(beatOfMood('oops')).toBe('miss');
+    expect(beatOfMood('hint')).toBe('miss');
+    expect(beatOfMood('waiting')).toBe('ask'); // "waiting" when the move is theirs: Wobo just asked
+    for (const calm of ['thinking', 'idle', 'explaining', 'listening', 'resting'] as WoboMood[]) {
+      expect(beatOfMood(calm)).toBeUndefined();
+    }
+    expect(beatOfMood(undefined)).toBeUndefined();
+  });
+
+  it("reads a turn's beat off its last setMood, and a crisis beats every mood", () => {
+    const won: WoboAction[] = [
+      { type: 'setMood', mood: 'thinking' },
+      { type: 'setMood', mood: 'correct' },
+    ];
+    expect(beatOfTurn(won)).toBe('win');
+    expect(beatOfTurn([{ type: 'setMood', mood: 'hint' }])).toBe('miss');
+    expect(beatOfTurn([])).toBe('step');
+    expect(beatOfTurn([{ type: 'setMood', mood: 'thinking' }])).toBe('step');
+    // the crisis line is the softest of all, whatever mood rode along with it
+    expect(beatOfTurn(won, { category: 'crisis' })).toBe('crisis');
+    expect(beatOfTurn([], { category: 'moderation' })).toBe('step');
+  });
+
+  it('gives each sentence of a choreographed turn its own beat, carried forward until the next', () => {
+    // The worked shape from the tutor's own prompt: thinking on the setup, waiting on the question.
+    const actions: WoboAction[] = [
+      { type: 'setMood', mood: 'thinking', withSentence: 0 },
+      { type: 'setMood', mood: 'waiting', withSentence: 2 },
+    ];
+    expect(sentenceBeats(planPerformance(actions, 3), 3, 'step')).toEqual(['step', 'step', 'ask']);
+    // a check mark on sentence 0 and "waiting" AFTER sentence 1: the win, then the question
+    const affirmed: WoboAction[] = [
+      { type: 'setMood', mood: 'correct', withSentence: 0 },
+      { type: 'setMood', mood: 'waiting', afterSentence: 0 },
+    ];
+    expect(sentenceBeats(planPerformance(affirmed, 2), 2, 'step')).toEqual(['win', 'ask']);
+    // no anchored mood at all: the turn's beat, every sentence
+    expect(sentenceBeats(planPerformance([], 2), 2, 'miss')).toEqual(['miss', 'miss']);
+  });
+
+  it('reads every sentence of a crisis turn as the crisis, whatever mood the model anchored', () => {
+    // The turn-level guarantee (beatOfTurn puts the crisis first) used to stop at the turn: a
+    // `celebrate` the model anchored to sentence 1 re-leaned sentences 1 and 2 to a win, so the
+    // softest line of all was read brightly by accident. The safety block is the gateway's own.
+    const cheered: WoboAction[] = [{ type: 'setMood', mood: 'celebrate', withSentence: 1 }];
+    expect(beatOfTurn(cheered, { category: 'crisis' })).toBe('crisis');
+    expect(sentenceBeats(planPerformance(cheered, 3), 3, 'crisis')).toEqual([
+      'crisis',
+      'crisis',
+      'crisis',
+    ]);
+    const after: WoboAction[] = [
+      { type: 'setMood', mood: 'correct', withSentence: 0 },
+      { type: 'setMood', mood: 'waiting', afterSentence: 0 },
+    ];
+    expect(sentenceBeats(planPerformance(after, 2), 2, 'crisis')).toEqual(['crisis', 'crisis']);
+    // and the same anchors on an ordinary turn still lean, so the guard is the crisis alone
+    expect(sentenceBeats(planPerformance(cheered, 3), 3, 'step')).toEqual(['step', 'win', 'win']);
+  });
+
+  it('carries the beat on the socket URL beside the token, never in the spoken frame', () => {
+    const url = withBeat('wss://brain.test/v1/voice/tts/stream?token=abc', 'win');
+    expect(url).toBe('wss://brain.test/v1/voice/tts/stream?token=abc&beat=win');
+    expect(withBeat('wss://brain.test/v1/voice/tts/stream?token=abc', 'step')).toBe(
+      'wss://brain.test/v1/voice/tts/stream?token=abc&beat=step',
+    );
+  });
 });

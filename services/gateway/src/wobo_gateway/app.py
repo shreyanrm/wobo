@@ -37,7 +37,7 @@ import threading
 import time
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Protocol
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -54,6 +54,7 @@ from wobo_gateway import (
     ledger,
     safety_model,
     spend,
+    spoken,
 )
 from wobo_gateway.admin_auth import ADMIN_PREFIX, assert_admin_surface, register_admin
 from wobo_gateway.ask_public import LIMITED_PATHS as ASK_LIMITED_PATHS
@@ -73,6 +74,7 @@ from wobo_gateway.billing import register_billing
 from wobo_gateway.cache import CacheBackend, CacheEntry, InMemoryCache, cache_key
 from wobo_gateway.console_api import register_console
 from wobo_gateway.desks_api import register_desks
+from wobo_gateway.doubt import register_doubt
 from wobo_gateway.email import register_email
 from wobo_gateway.hospitality.api import register_mail_preferences
 from wobo_gateway.hospitality.jobs import welcome_after_first_meeting
@@ -527,6 +529,17 @@ _SOFT_AUTH_PATHS = frozenset(
 # to buy a frontier context window out of one metered turn (the prompt builder caps its own
 # output too — this stops the bytes at the door, before anything parses them).
 _MAX_BODY_BYTES = int(os.getenv("MAX_REQUEST_BYTES", str(256 * 1024)))
+# The one route that legitimately carries a photograph: the doubt solver (doubt.py). Its ceiling
+# is its own, on its own path prefix, so the context-packet ceiling above stays exactly where it
+# is for everything else. 8 MB is the base64 of doubt.MAX_IMAGE_BYTES with a little room for the
+# learner's words around it; doubt.prepare_image bounds the decoded bytes again on the inside.
+_DOUBT_PATH = "/v1/doubt"
+_DOUBT_MAX_BODY_BYTES = int(os.getenv("DOUBT_MAX_REQUEST_BYTES", str(8 * 1024 * 1024 + 64 * 1024)))
+
+
+def _ceiling_for(path: str) -> int:
+    """How big a body this path may carry. A photo route, or a context packet."""
+    return _DOUBT_MAX_BODY_BYTES if path.startswith(_DOUBT_PATH) else _MAX_BODY_BYTES
 
 
 def _client_ip(request: Request) -> str:
@@ -644,16 +657,17 @@ async def _over_the_ceiling(request: Request) -> bool:
     ``BaseHTTPMiddleware`` replays to the app underneath us. Without that the route would read an
     empty body: consuming the stream here consumes it for everyone.
     """
+    ceiling = _ceiling_for(request.url.path)
     declared = _declared_size(request)
     if declared is not None:
-        return declared > _MAX_BODY_BYTES
+        return declared > ceiling
     if request.method not in _BODY_METHODS:
         return False
     chunks: list[bytes] = []
     total = 0
     async for chunk in request.stream():
         total += len(chunk)
-        if total > _MAX_BODY_BYTES:
+        if total > ceiling:
             return True  # stop reading: the rest of this body is never coming into memory
         chunks.append(chunk)
     request._body = b"".join(chunks)  # noqa: SLF001 — the cache Request.body() itself fills
@@ -760,6 +774,22 @@ def _one_shot_turn(say: str, owner: str, headers: dict[str, str]) -> StreamingRe
     return _stream(turn, -1, headers)
 
 
+class TurnShaper(Protocol):
+    """Two hooks a caller may hang on a board turn without a second turn being built.
+
+    The doubt solver (``doubt.py``) is the one caller today: it composes THIS turn over a photo,
+    and its laws — a mark lands on a line of the page or not at all, and every stroke is paired
+    with the sentence that explains it — are shaped onto the plan here, between the same planner,
+    verifier and screens every other turn goes through. ``shape_model_plan`` sees the model's
+    plan before the planner does; ``shape_plan`` sees the finished, screened plan before it is
+    laid on the wire.
+    """
+
+    def shape_model_plan(self, plan: dict[str, Any]) -> dict[str, Any]: ...
+
+    def shape_plan(self, plan: Any) -> Any: ...
+
+
 def stream_board_turn(
     gw: Gateway,
     name: str,
@@ -767,6 +797,8 @@ def stream_board_turn(
     http: Request,
     profile: Any,
     plan: str,
+    *,
+    shaper: TurnShaper | None = None,
 ) -> Response:
     """One streamed turn: say, ink, action, ask, card, done.
 
@@ -860,6 +892,8 @@ def stream_board_turn(
             model_plan = None
         else:
             model_plan = board_plan_for(request.payload, live=live)
+            if model_plan is not None and shaper is not None:
+                model_plan = shaper.shape_model_plan(model_plan)
         context = request.payload.get("context") or {}
         board_context = request.payload.get("board") or {}
 
@@ -875,6 +909,12 @@ def stream_board_turn(
             actions = [a for a in (output.get("actions") or []) if isinstance(a, dict)]
         else:
             plan = plan_board(model_plan, context=context, board_context=board_context)
+            # THE SPOKEN-NUMBER LAW (``spoken``): the verifier has now signed every number on the
+            # board, so this is the first moment the line Wobo says OVER it can be held to the
+            # same standard. A number in the say that the learner did not give, the verifier did
+            # not draw and no written-out sum confirms is not spoken; the ink choreographed to
+            # later sentences is re-anchored so it still lands on words.
+            spoken.enforce_board(plan, context)
             # THE WHOLE PLAN, not the spoken line. This used to hand the screen
             # ``{"say": plan.say, "actions": []}`` and pass ``plan.objects`` and ``plan.ask``
             # straight to ``build_events``, which emits every object as an ``ink`` event and the
@@ -914,6 +954,8 @@ def stream_board_turn(
         budget.refund(meter, name)
         raise
 
+    if shaper is not None:
+        plan = shaper.shape_plan(plan)
     turn = board_stream.new_turn(
         owner, board_stream.build_events(plan, actions=actions, card=card)
     )
@@ -1049,6 +1091,9 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             # and unmetered without a limiter is an open tap on the board store and the database.
             or path.startswith("/v1/board/")
             or path == "/v1/me/erase"
+            # The doubt solver (doubt.py): two vision calls and a board turn behind one door,
+            # and a photo body on every knock. Metered inside; bounded per caller here.
+            or path.startswith(_DOUBT_PATH)
             or path == "/v1/voice/session"
             or path == "/v1/voice/tts"
             # The mail dials write to the database, and the stop link is unauthenticated by
@@ -1337,6 +1382,17 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         name = canonical_capability(name)
         if name not in set(capabilities()):
             raise HTTPException(status_code=404, detail=f"unknown capability: {name}")
+        # The doubt solver's two vision capabilities exist at this door for the registry, the
+        # meter and the ledger, and NOT as a text prompt anybody can post here: a photo comes in
+        # through /v1/doubt, screened and bounded, or it does not come in (doubt.py).
+        if name.startswith("doubt."):
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "code": "use_doubt_route",
+                    "message": "Send me the photo at /v1/doubt and I will read it there.",
+                },
+            )
 
         # Derived, never declared: the tier comes from the learner's stored record, and the plan
         # from their subscription — which ends by itself when the period paid for does.
@@ -1366,6 +1422,14 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
 
             mind_module.ground_lifetime(
                 request.payload, subject=principal.subject, anonymous=principal.anonymous
+            )
+            # One turn on a topic is what makes this account a learner of that syllabus, and
+            # only a learner's edits count toward correcting it (docs/CURRICULUM-OBSERVER.md §6).
+            # Off the request thread, anonymous never, and it never raises.
+            from wobo_gateway.curriculum import observer as syllabus_observer
+
+            syllabus_observer.note_turn(
+                principal.subject, request.payload, anonymous=principal.anonymous
             )
 
         # The board (BOARD.md §4). Same route, same door, same meter — only the body differs.
@@ -1560,6 +1624,9 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     register_desks(app)
     register_reports(app)
     register_public_ask(app, gw)
+    # Wobo's eyes (doubt.py): the photo door, its answer over the existing board turn, and the
+    # memory page's list and delete. Behind the one door and the one limiter like everything else.
+    register_doubt(app, gw)
 
     # The console's two structural rules, checked once against the BUILT app rather than trusted:
     # every /v1/admin route is behind the guard (only the login is not, and it is named), and none
@@ -1568,6 +1635,12 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     # serving a console somebody can map or reach. It is deliberately the LAST thing create_app
     # does: nothing may be mounted after the check that reads what was mounted.
     assert_admin_surface(app)
+
+    # The discovery worker (CURRICULUM.md §4, docs/OPERATIONS.md §10). Starts nothing unless
+    # WOBO_DISCOVERY_WORKER is on; a thread is not a route, so it sits after the surface check.
+    from wobo_gateway.curriculum.discovery.worker import start_if_enabled
+
+    start_if_enabled()
 
     return app
 

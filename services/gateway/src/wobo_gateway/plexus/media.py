@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import struct
+from typing import Any
 
 logger = logging.getLogger("wobo.gateway")
 
@@ -21,6 +22,9 @@ TTS_MODEL = "gemini-2.5-flash-preview-tts"
 _TTS_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{TTS_MODEL}:generateContent"
 _HTTP_TIMEOUT_S = 60.0
 _VOICE = "Kore"
+#: How many times one line is asked for when the answer is 200 with no audio in it. Two: the
+#: second ask has answered every time it was tried, and a third would only delay the fallback.
+_SILENT_200_TRIES = 2
 
 
 def synthesize_narration(
@@ -28,10 +32,24 @@ def synthesize_narration(
 ) -> dict[str, str] | None:
     """Narration audio for a motion piece. ``{"mime", "b64"}`` or ``None``.
 
-    ``instruction`` is an optional system instruction carried with the line — how it is to be
-    spoken, never what is said. The read-aloud path uses it for the learner's accent
-    (``wobo_gateway.voice.accent_instruction``), so a one-shot spoken line lands in the same
-    English as the live microphone; a narration that asks for nothing is unchanged.
+    ``instruction`` is an optional instruction carried with the line — how it is to be spoken,
+    never what is said. The read-aloud path uses it for the learner's accent and for the beat
+    (``wobo_gateway.voice.spoken_instruction``: a win, a miss, a question, a step or the crisis
+    line, docs/copy/voice.md 10b), so a one-shot spoken line lands in the same English as the
+    live microphone and leans the way the tutor said it should; a narration that asks for nothing
+    is unchanged. The instruction changes how the line is read and nothing about what is recorded
+    for it: the ledger below measures the audio that came back, not the words sent.
+
+    **It rides in the prompt, never as ``systemInstruction``.** The live sockets put their
+    instruction in the setup's system field and the native-audio model honours it. This REST
+    text-to-speech model does not: with a ``systemInstruction`` in the body it answers
+    ``500 INTERNAL`` to every call, and with the same words in front of the line it answers with
+    audio. Verified on 2026-09-05 against the production key, which means every one-shot line
+    since the accent was added here had failed upstream and fallen back to the device's own
+    voice. So the instruction is written ahead of the text, the way the vendor's own examples
+    steer a reading, with one plain sentence between them that says where the words to read
+    begin (:func:`spoken_prompt`). The listening pass transcribes what came back and the
+    transcript is the line and only the line.
 
     ``capability`` is which seam asked. It exists only for the usage ledger: this call is a paid
     request to Google that does NOT pass through ``telemetry.record_cost`` (it is a raw HTTPS POST,
@@ -50,47 +68,111 @@ def synthesize_narration(
         return None
 
     body: dict[str, object] = {
-        "contents": [{"parts": [{"text": text}]}],
+        # The instruction, when there is one, is in the prompt ahead of the line: this model
+        # returns 500 to a systemInstruction field (see the docstring), and asked for in words
+        # here it is honoured. Never a speechConfig field beyond the voice: an unsupported config
+        # key is rejected by the upstream and the line comes back silent.
+        "contents": [{"parts": [{"text": spoken_prompt(text, instruction)}]}],
         "generationConfig": {
             "responseModalities": ["AUDIO"],
             "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": _VOICE}}},
         },
     }
-    if instruction and instruction.strip():
-        # An instruction, never a setup field: the accent is asked for in words for the same
-        # reason the sockets ask for it in words (see wobo_gateway.voice) — an unsupported
-        # config key is rejected by the upstream and the line comes back silent.
-        body["systemInstruction"] = {"parts": [{"text": instruction.strip()}]}
-    req = urllib.request.Request(
-        _TTS_URL,
-        data=json.dumps(body).encode(),
-        headers={"Content-Type": "application/json", "x-goog-api-key": key},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=_HTTP_TIMEOUT_S) as resp:
-            payload = json.loads(resp.read().decode())
-    except urllib.error.HTTPError as exc:  # Google rejected it — surface WHY (key/billing/model)
-        detail = ""
-        with contextlib.suppress(OSError):
-            detail = exc.read().decode(errors="replace")[:300]
-        logger.warning("tts: Google HTTP %s via %s — %s", exc.code, key_name, detail)
-        return None
-    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
-        # a fast failure here (before a real round-trip) means the container cannot reach Google
-        logger.warning("tts: request failed via %s — %s: %s", key_name, type(exc).__name__, exc)
-        return None
+    # Once, and once more only when Google said 200 and sent no audio part: on the listening pass
+    # of 2026-09-05 one read in eight came back that way, and the same prompt answered with audio
+    # on the next call every time. An HTTP error or a dead network is not retried: that is a
+    # reason, not a shrug, and the client falls back to the device voice at once.
+    for attempt in range(_SILENT_200_TRIES):
+        req = urllib.request.Request(
+            _TTS_URL,
+            data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json", "x-goog-api-key": key},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=_HTTP_TIMEOUT_S) as resp:
+                payload = json.loads(resp.read().decode())
+        except (
+            urllib.error.HTTPError
+        ) as exc:  # Google rejected it — surface WHY (key/billing/model)
+            detail = ""
+            with contextlib.suppress(OSError):
+                detail = exc.read().decode(errors="replace")[:300]
+            logger.warning("tts: Google HTTP %s via %s — %s", exc.code, key_name, detail)
+            return None
+        except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+            # a fast failure here (before a real round-trip) means the container cannot reach Google
+            logger.warning("tts: request failed via %s — %s: %s", key_name, type(exc).__name__, exc)
+            return None
 
-    for cand in payload.get("candidates") or []:
-        for part in (cand.get("content") or {}).get("parts") or []:
-            inline = part.get("inlineData") or part.get("inline_data")
-            if inline and inline.get("data"):
-                mime = inline.get("mimeType") or inline.get("mime_type") or "audio/pcm;rate=24000"
-                audio = _as_playable(str(mime), str(inline["data"]))
-                _record_spoken(capability, audio)
-                return audio
-    logger.warning("tts: Google 200 but no audio in response via %s", key_name)
+        for cand in payload.get("candidates") or []:
+            for part in (cand.get("content") or {}).get("parts") or []:
+                inline = part.get("inlineData") or part.get("inline_data")
+                if inline and inline.get("data"):
+                    mime = (
+                        inline.get("mimeType") or inline.get("mime_type") or "audio/pcm;rate=24000"
+                    )
+                    audio = _as_playable(str(mime), str(inline["data"]))
+                    _record_spoken(capability, audio)
+                    return audio
+        refused = refusal_in(payload)
+        if refused:
+            # A 200 with no audio is also what a refusal looks like, and a refusal asked again
+            # is a second paid call that refuses the same words. Logged as what it is, once.
+            logger.warning("tts: Google refused the line via %s — %s", key_name, refused)
+            return None
+        logger.warning(
+            "tts: Google 200 but no audio in response via %s (try %d of %d)",
+            key_name,
+            attempt + 1,
+            _SILENT_200_TRIES,
+        )
     return None
+
+
+def refusal_in(payload: dict[str, Any]) -> str | None:
+    """Why a 200 carried no audio, when the answer says so: the prompt was blocked
+    (``promptFeedback.blockReason``) or a candidate was stopped for a reason other than finishing
+    (``finishReason`` of SAFETY, RECITATION, BLOCKLIST, PROHIBITED_CONTENT, SPII ...). ``None``
+    for the silent 200 that answers on the next ask, which is the only case worth a retry."""
+    feedback = payload.get("promptFeedback") or payload.get("prompt_feedback") or {}
+    reason = feedback.get("blockReason") or feedback.get("block_reason")
+    if reason:
+        return f"prompt blocked: {reason}"
+    for cand in payload.get("candidates") or []:
+        finish = str(cand.get("finishReason") or cand.get("finish_reason") or "")
+        if finish and finish.upper() not in _FINISHED:
+            return f"candidate stopped: {finish}"
+    return None
+
+
+#: The finish reasons that mean the model finished, not refused. Anything else is a refusal.
+_FINISHED = frozenset({"STOP", "MAX_TOKENS", "FINISH_REASON_UNSPECIFIED"})
+
+
+#: The one sentence between the instruction and the line. It says where the words to read begin,
+#: so the model reads the line and not the instruction; it never describes the line itself. It
+#: points at a position (everything after this sentence) and not at a punctuation mark: the marker
+#: used to say "after the colon", and the instruction ahead of it carries two or three colons of
+#: its own ("than your usual: pleased, not thrilled", "as written: never add a word"), so a line
+#: that carried a colon too ("Look here: the sign") had two candidate starts. Every listened clip
+#: had used a colon-free line, so that ambiguity had never been read; now there is none to read.
+_READ_ONLY_THIS = (
+    "Everything after this sentence is the text to read aloud, exactly as written, and "
+    "nothing else."
+)
+
+
+def spoken_prompt(text: str, instruction: str | None = None) -> str:
+    """What is sent to the text-to-speech model: the line alone, or the instruction, one plain
+    sentence marking where the line starts, a blank line, and then the line, exactly as given.
+
+    Deterministic: the same line under the same instruction is the same prompt, so the same line
+    read twice sounds the same twice (docs/copy/voice.md 10b)."""
+    how = (instruction or "").strip()
+    if not how:
+        return text
+    return f"{how}\n\n{_READ_ONLY_THIS}\n\n{text}"
 
 
 def _record_spoken(capability: str, audio: dict[str, str]) -> None:

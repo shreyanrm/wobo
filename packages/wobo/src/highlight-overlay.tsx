@@ -2,10 +2,11 @@
 
 import { fontFamily, woboHighlight, zIndex } from '@wobo/config';
 import { useReducedMotion } from '@wobo/motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import type { ActiveAnnotation, ActiveHighlight, ActiveNote } from './actions';
 import { useWoboBus } from './context-bus';
 import { inkRng, type Mark, markPath, noteRotation } from './freehand';
+import { scrollHold } from './scroll-hold';
 
 const DEFAULT_TTL = 6000;
 const FADE = 500;
@@ -197,6 +198,33 @@ export function rectLookup(
 }
 
 /**
+ * True while any ring or stroke mark on the overlay is still drawing itself on: the page is held
+ * still for exactly that long (`scroll-hold.ts`). A note being written is not a stroke — it is
+ * text arriving — and a mark that has landed follows its target on its own, so neither holds.
+ */
+export function overlayInFlight(
+  marks: {
+    highlights: readonly { bornAt?: number }[];
+    annotations: readonly { bornAt?: number; durationMs: number }[];
+  },
+  now: number,
+  bornAtDefault: number,
+  reduced: boolean,
+): boolean {
+  if (reduced) return false;
+  const age = (bornAt: number | undefined): number => now - (bornAt ?? bornAtDefault);
+  for (const h of marks.highlights) {
+    const a = age(h.bornAt);
+    if (a >= 0 && a < woboHighlight.drawMs) return true;
+  }
+  for (const m of marks.annotations) {
+    const a = age(m.bornAt);
+    if (a >= 0 && a < m.durationMs) return true;
+  }
+  return false;
+}
+
+/**
  * WoboOverlay — the visible half of "every page is a canvas Wobo is plugged into", drawn in Wobo's own
  * hand. Pointing at a region is a hand-wobbled ultramarine ring on the target's box — one pigment,
  * a whisper of frost inside, never a coloured wash; every stroke mark DRAWS ITSELF
@@ -214,8 +242,6 @@ export function WoboOverlay() {
   const active = bus.highlights.length + bus.annotations.length + bus.notes.length > 0;
   useLiveTick(active);
 
-  if (!active) return null;
-
   const now = performance.now();
   /** Each mark ages from its own paint time; a pre-timeline turn shares the dispatch clock. */
   const ageOf = (bornAt: number | undefined): number => now - (bornAt ?? bus.marksBornAt);
@@ -224,6 +250,41 @@ export function WoboOverlay() {
   const reink = bus.reinkNonce ? String(bus.reinkNonce) : '';
   // One index and one measurement pass for the whole frame.
   const rectOf = rectLookup(bus.getTargets());
+
+  // The scroll hold: the page stands still while a ring or a stroke is drawing itself on, and is
+  // let go on the frame it lands (the live tick above re-renders every frame while ink is live).
+  const holdToken = useId();
+  const holding =
+    active &&
+    overlayInFlight(
+      {
+        highlights: bus.highlights,
+        annotations: bus.annotations.map((a: ActiveAnnotation) => {
+          const rect = rectOf(a.targetId);
+          return {
+            bornAt: a.bornAt,
+            durationMs: rect
+              ? strokeDurationMs(
+                  a.mark as Mark,
+                  rect.width,
+                  rect.height,
+                  inkRng(a.targetId, a.mark, `dur${a.level}${reink}`),
+                )
+              : 0,
+          };
+        }),
+      },
+      now,
+      bus.marksBornAt,
+      reduced,
+    );
+  useEffect(() => {
+    scrollHold.set(holdToken, holding);
+  }, [holdToken, holding]);
+  useEffect(() => () => scrollHold.release(holdToken), [holdToken]);
+  useEffect(() => (active ? scrollHold.watch() : undefined), [active]);
+
+  if (!active) return null;
 
   return (
     <div

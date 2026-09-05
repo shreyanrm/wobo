@@ -435,16 +435,17 @@ def tier_complete(
     here — and the tier's own cross-provider fallback chain rides along, so a discovery never
     stalls on one provider having a bad afternoon.
     """
-    import litellm  # lazy: mock mode and tests never import litellm
-
+    from wobo_gateway.model_call import complete as model_complete
     from wobo_gateway.providers import GENERATION_TIMEOUT_S
     from wobo_gateway.routing import resolve_any, tier_fallbacks, tier_model
     from wobo_gateway.telemetry import record_cost
 
-    litellm.drop_params = True
     spec = tier_model(tier)
     fallbacks = [resolve_any(name).provider_model for name in tier_fallbacks(tier)]
-    response = litellm.completion(
+    # Through ``model_call``, never ``litellm.completion`` directly (``wobo.py`` says why): one
+    # model in the fallback chain refusing ``temperature`` must not read as the whole chain
+    # being down. The seed verification pass hit exactly that on 2026-09-05.
+    response = model_complete(
         model=spec.provider_model,
         messages=[
             {"role": "system", "content": system},

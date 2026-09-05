@@ -156,6 +156,9 @@ def test_a_learner_with_nothing_remembered_is_told_the_truth(
         "parent_links": 0,
         # the parent plane (0019): no parent account holds this learner, so nothing to let go of
         "parent_plane": 0,
+        # the doubt solver (0021): no photographed page, so no row and no object in the bucket
+        "doubts": 0,
+        "photos": 0,
     }
     # nothing to empty, so nothing written; the deletes are still attempted, and count zero
     assert [c[0] for c in store.calls] == ["GET", "DELETE", "DELETE", "DELETE"]

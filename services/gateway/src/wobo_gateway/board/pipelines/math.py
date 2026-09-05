@@ -8,6 +8,8 @@ difference, and the two must agree before the line is drawn.
 
 from __future__ import annotations
 
+import re
+
 from typing import Any
 
 from wobo_gateway.board import verify
@@ -253,6 +255,60 @@ def _number_line(intent: dict[str, Any], draft: Draft) -> Draft:
     return draft
 
 
+_PAREN_NUMBER = re.compile(r"\(\s*(-?\d+(?:\.\d+)?)\s*\)")
+#: ``x**2 - 5*x + 6 = 0`` with the spaces taken out: a monic quadratic set equal to zero.
+_MONIC_QUADRATIC = re.compile(
+    r"^(?P<var>[a-z])\*\*2(?:[+-]\d+(?:\.\d+)?\*(?P=var))?(?:[+-]\d+(?:\.\d+)?)?=0$"
+)
+
+
+def pretty_algebra(expr: str) -> str:
+    """The line as a hand writes it, from the line the CAS read.
+
+    The CAS speaks Python: ``x**2 - 5*x + 6 = 0`` and ``(x - (2))*(x - (3)) = 0``. Those exact
+    strings reached a Class 10 learner's board as their factorisation (the 2026-09-05 review),
+    because nothing between the verifier and the pen knew that ``**`` is a power or that ``*``
+    is not a glyph. This is that something. It changes no value: every number and every operator
+    is the verified line's own, only spelt the way the chapter spells it. ``^`` is what the
+    handwriting layer raises as a superscript.
+    """
+    out = _PAREN_NUMBER.sub(r"\1", expr)
+    out = re.sub(r"-\s*-\s*(\d)", r"+ \1", out)
+    out = re.sub(r"\+\s*-\s*(\d)", r"- \1", out)
+    out = out.replace("**", "^")
+    out = re.sub(r"(\d|\))\s*\*\s*([A-Za-z(])", r"\1\2", out)
+    out = re.sub(r"([A-Za-z])\s*\*\s*([A-Za-z(])", r"\1\2", out)
+    return out.replace("*", "×")
+
+
+def _split_middle_term(equation: str, var_name: str, roots: list[str]) -> list[str] | None:
+    """The three lines a Class 10 chapter writes for a monic quadratic with two whole roots:
+    the middle term split, the common bracket taken out, the two factors. None when the
+    equation is not that shape, and then the factored line stands alone as before.
+
+    The say used to promise "let's split the middle term" over a board that jumped straight to
+    the factors (the 2026-09-05 review). Every line here goes through ``verify_step_chain`` like
+    any step the model could have written, so a slip in this arithmetic refuses the board."""
+    if len(roots) != 2 or not _MONIC_QUADRATIC.match(equation.replace(" ", "")):
+        return None
+    try:
+        values = [float(r) for r in roots]
+    except ValueError:
+        return None
+    if any(v != int(v) for v in values):
+        return None
+    p, q = (-int(v) for v in values)  # x^2 + (p + q)x + pq, with the roots -p and -q
+
+    def term(n: int, tail: str = "") -> str:
+        return f"{'-' if n < 0 else '+'} {abs(n)}{tail}"
+
+    return [
+        f"{var_name}**2 {term(p, '*' + var_name)} {term(q, '*' + var_name)} {term(p * q)} = 0",
+        f"{var_name}*({var_name} {term(q)}) {term(p, '*(' + var_name + ' ' + term(q) + ')')} = 0",
+        f"({var_name} {term(p)})*({var_name} {term(q)}) = 0",
+    ]
+
+
 def _derivation(intent: dict[str, Any], draft: Draft) -> Draft:
     """A derivation is written line by line, each line anchored under the one above, and the
     whole chain is proved by the CAS before the first character is drawn."""
@@ -274,11 +330,12 @@ def _derivation(intent: dict[str, Any], draft: Draft) -> Draft:
         # equation that keeps the solution set whole.
         var_name = str(intent.get("var") or "x")
         roots = verify.solve_equation(equation, var_name)
-        steps = (
-            [f"{var_name} = {roots[0]}"]
-            if len(roots) == 1
-            else ["*".join(f"({var_name} - ({r}))" for r in roots) + " = 0"]
-        )
+        if len(roots) == 1:
+            steps = [f"{var_name} = {roots[0]}"]
+        else:
+            steps = _split_middle_term(equation, var_name, roots) or [
+                "*".join(f"({var_name} - ({r}))" for r in roots) + " = 0"
+            ]
     if len(steps) > 12:
         raise Unverified("a derivation of more than twelve steps is more than one board")
     try:
@@ -291,7 +348,7 @@ def _derivation(intent: dict[str, Any], draft: Draft) -> Draft:
     previous = draft.add(
         "write",
         anchor=board(200.0, 200.0),
-        text=equation,
+        text=pretty_algebra(equation),
         check=check.name,
         depends=variables,
         style=wobo(2),
@@ -301,7 +358,7 @@ def _derivation(intent: dict[str, Any], draft: Draft) -> Draft:
         previous = draft.add(
             "write",
             anchor=on(previous, "bottom"),
-            text=step,
+            text=pretty_algebra(step),
             check=check.name,
             depends=variables,
             style=wobo(2) if i < len(steps) - 1 else accent(2),
@@ -346,11 +403,19 @@ def _right_triangle(intent: dict[str, Any], draft: Draft) -> Draft:
         verify.numbers_agree("hypotenuse", from_theorem, from_drawing)
     )
 
-    span = max(a, b) * 1.35
-    frame = Frame(xmin=-span * 0.2, xmax=span, ymin=-span * 0.2, ymax=span)
+    squares = bool(intent.get("squares"))
+    if squares:
+        # Room for the square on each side: the base's hangs below, the height's to the left, and
+        # the hypotenuse's reaches up to (a + b, a + b).
+        frame = Frame(xmin=-b * 1.12, xmax=(a + b) * 1.12, ymin=-a * 1.12, ymax=(a + b) * 1.12)
+    else:
+        span = max(a, b) * 1.35
+        frame = Frame(xmin=-span * 0.2, xmax=span, ymin=-span * 0.2, ymax=span)
     corner = (0.0, 0.0)
     along = (a, 0.0)
     up = (0.0, b)
+    # The size of the right-angle mark, in the triangle's own units.
+    mark = min(a, b) * 0.16
     triangle = draft.add(
         "polygon",
         anchor=board(*frame.at(*corner)),
@@ -361,11 +426,11 @@ def _right_triangle(intent: dict[str, Any], draft: Draft) -> Draft:
     # The right angle, marked where it is, so the drawing says which angle the theorem is about.
     draft.add(
         "polyline",
-        anchor=board(*frame.at(0.0, span * 0.09)),
+        anchor=board(*frame.at(0.0, mark)),
         points=[
-            frame.at(0.0, span * 0.09),
-            frame.at(span * 0.09, span * 0.09),
-            frame.at(span * 0.09, 0.0),
+            frame.at(0.0, mark),
+            frame.at(mark, mark),
+            frame.at(mark, 0.0),
         ],
         style=faint(1),
         hint="rightangle",
@@ -378,11 +443,51 @@ def _right_triangle(intent: dict[str, Any], draft: Draft) -> Draft:
     draft.number(a, hypotenuse.name, anchor=on(base, "bottom"), unit=unit, style=wobo(1))
     draft.number(b, hypotenuse.name, anchor=on(side, "left"), unit=unit, style=wobo(1))
     draft.number(from_theorem, hypotenuse.name, anchor=on(face, "right"), unit=unit,
-                 style=accent(2))
-    draft.add(
-        "label", anchor=on(triangle, "top"), text="the right angle is the one it is about",
-        style=faint(1), hint="note",
-    )
+                 label="hypotenuse", style=accent(2))
+    if squares:
+        # "Show me WHY": the square on each side, with its area, and the areas are the proof.
+        # The areas are checked the way the hypotenuse is, by two routes that must agree: the
+        # legs' squares summed, and the hypotenuse squared from the drawn distance.
+        areas = draft.ledger.record(
+            verify.numbers_agree("square areas", a * a + b * b, from_drawing * from_drawing)
+        )
+        area_unit = f"{unit}²" if unit else None
+        # Each area sits deep inside its square, away from the side length written on the edge
+        # they share (the legibility probe found "area 16 cm²" on top of "4.00 cm").
+        for hint, corners, centre, area in (
+            ("sqbase", [(0.0, 0.0), (a, 0.0), (a, -a), (0.0, -a)], (a * 0.6, -a * 0.68), a * a),
+            ("sqside", [(0.0, 0.0), (0.0, b), (-b, b), (-b, 0.0)], (-b * 0.62, b * 0.36), b * b),
+            (
+                "sqhyp",
+                [(a, 0.0), (0.0, b), (b, a + b), (a + b, a)],
+                ((a + b) / 2, (a + b) / 2),
+                from_theorem * from_theorem,
+            ),
+        ):
+            draft.add(
+                "polygon",
+                anchor=board(*frame.at(*corners[0])),
+                points=[frame.at(x, y) for x, y in corners],
+                style=faint(1),
+                hint=hint,
+            )
+            draft.number(
+                area,
+                areas.name,
+                anchor=board(*frame.at(*centre)),
+                unit=area_unit,
+                decimals=0,
+                label="area",
+                style=accent(1) if hint == "sqhyp" else wobo(1),
+            )
+    else:
+        # The one label on the plain triangle says what the theorem needs: which corner is the
+        # right angle. The old line here, "the right angle is the one it is about", was called
+        # confusing by two judges in a row (the 2026-09-05 review).
+        draft.add(
+            "label", anchor=on(triangle, "top"), text="the right angle sits between the two legs",
+            style=faint(1), hint="note",
+        )
     return draft
 
 

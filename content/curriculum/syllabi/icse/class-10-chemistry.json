@@ -22,6 +22,7 @@
   "level_order": 10,
   "subject": "Chemistry",
   "status": "provisional",
+  "status_reason": "the unit list holds against the source, but 9 of 9 units have no topic layer (topics: null), so the syllabus is incomplete and cannot be called verified",
   "read_off_source": true,
   "provenance": {
     "extractor": "deterministic text extraction from the fetched document; no model in the loop",
@@ -32,11 +33,108 @@
       "no_duplicate_unit_name",
       "every_unit_has_a_source_ref",
       "every_source_ref_resolves_to_a_document",
-      "every_document_carries_a_hash"
+      "every_document_carries_a_hash",
+      "orders_run_1_to_n",
+      "no_empty_name",
+      "no_duplicate_name_within_a_unit",
+      "source_fetched",
+      "source_bytes_match_the_build",
+      "every_name_is_in_the_source",
+      "every_name_is_on_its_cited_page"
     ],
-    "checks_failed": [],
+    "checks_failed": [
+      "every_unit_has_a_topic_layer"
+    ],
     "verified_at": null,
-    "verified_by": null
+    "verified_by": null,
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "incomplete",
+      "checks": [
+        {
+          "name": "orders_run_1_to_n",
+          "passed": true,
+          "detail": "orders run 1..n"
+        },
+        {
+          "name": "no_empty_name",
+          "passed": true,
+          "detail": "every node has a name"
+        },
+        {
+          "name": "no_duplicate_name_within_a_unit",
+          "passed": true,
+          "detail": "no unit repeats a name"
+        },
+        {
+          "name": "every_unit_has_a_topic_layer",
+          "passed": false,
+          "detail": "9 of 9 units have topics: null (withdrawn)"
+        },
+        {
+          "name": "source_fetched",
+          "passed": true,
+          "detail": "every cited document was fetched"
+        },
+        {
+          "name": "source_bytes_match_the_build",
+          "passed": true,
+          "detail": "the bytes fetched today hash to what the build recorded"
+        },
+        {
+          "name": "every_name_is_in_the_source",
+          "passed": true,
+          "detail": "9 names found in the source"
+        },
+        {
+          "name": "every_name_is_on_its_cited_page",
+          "passed": true,
+          "detail": "9 of 9 names verbatim on the page they cite"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": null,
+          "detail": "the cited pages number nothing code can count"
+        }
+      ],
+      "names": {
+        "verbatim_on_cited_page": 9
+      },
+      "sources": {
+        "icse-chemistry": {
+          "url": "https://cisce.org/wp-content/uploads/2025/03/11.-Chemistry.pdf",
+          "title": "Chemistry (52), ICSE examination year 2027",
+          "fetched": true,
+          "transport": "urllib GET",
+          "fetched_at": "2026-09-05T10:32:40Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 14,
+          "sha256_matches_build": true
+        }
+      },
+      "coverage": {
+        "icse-chemistry": {
+          "cited_pages": [
+            8,
+            9,
+            10,
+            11,
+            12
+          ],
+          "numbered_runs": [
+            2
+          ],
+          "unit_markers": null,
+          "units": 9,
+          "topics": 0,
+          "verdict": "the document's numbering on the cited pages (2) does not line up with the file's 9 units and 0 topics"
+        }
+      },
+      "second_reader": null,
+      "reasons": [
+        "the unit list holds against the source, but 9 of 9 units have no topic layer (topics: null), so the syllabus is incomplete and cannot be called verified"
+      ]
+    }
   },
   "documents": [
     {

@@ -71,6 +71,8 @@ const KINDS: CurriculumKind[] = [
 ];
 const STATUSES: CurriculumStatus[] = ['verified', 'provisional', 'community', 'personal'];
 const NODE_KINDS: CurriculumNodeKind[] = ['level', 'subject', 'unit', 'topic', 'objective'];
+const TERMINAL = new Set(['stored', 'failed', 'refused', 'provisional']);
+
 const STATES: DiscoveryState[] = [
   'queued',
   'searching',
@@ -78,6 +80,8 @@ const STATES: DiscoveryState[] = [
   'extracting',
   'checking',
   'provisional',
+  'stored',
+  'failed',
   'refused',
 ];
 
@@ -419,7 +423,8 @@ export function parseStatus(raw: unknown): CurriculumStatusView {
     jobId: str(pick(job, 'id', 'job_id') ?? pick(r, 'job_id', 'jobId')),
     state: state && (STATES as string[]).includes(state) ? (state as DiscoveryState) : null,
     message: str(r.message) ?? '',
-    open: state !== 'refused',
+    // The brain says whether the job is still working; a state name is a stage, not a verdict.
+    open: job.open !== undefined ? job.open !== false : !TERMINAL.has(state ?? ''),
     notListed:
       pick(r, 'not_listed', 'notListed') !== undefined
         ? parseNotListed(pick(r, 'not_listed', 'notListed'))

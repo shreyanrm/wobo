@@ -395,7 +395,9 @@ def _speaking_lines() -> Iterator[tuple[str, str]]:
     from wobo_gateway import ask_public, safety
     from wobo_gateway.email_templates import TEMPLATES, render
 
-    for name in ("CRISIS_SAY", "MODERATION_SAY", "OUTBOUND_REPLACEMENT_SAY", "OUTAGE_SAY"):
+    for name in (
+        "CRISIS_SAY", "MODERATION_SAY", "OUTBOUND_REPLACEMENT_SAY", "OUTAGE_SAY", "UNCHECKED_SAY"
+    ):
         yield f"safety.{name}", getattr(safety, name)
     for i, line in enumerate(ask_public.PUBLIC_STRINGS):
         yield f"ask_public.PUBLIC_STRINGS[{i}]", line

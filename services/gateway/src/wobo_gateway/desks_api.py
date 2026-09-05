@@ -42,6 +42,7 @@ from pydantic import BaseModel, Field
 
 from wobo_gateway import reports
 from wobo_gateway.admin_auth import (
+    ADMIN_MANAGE,
     CONSOLE_READ,
     LEARNER_READ,
     SUPPORT_ACT,
@@ -49,6 +50,8 @@ from wobo_gateway.admin_auth import (
     admin_router,
     requires,
 )
+from wobo_gateway.curriculum import observer as syllabus_observer
+from wobo_gateway.curriculum import store as curriculum_store
 from wobo_gateway.reports import (
     KINDS,
     MAX_NOTE,
@@ -115,6 +118,34 @@ FEEDS: dict[str, dict[str, str]] = {
         ),
     },
 }
+
+
+#: The observer desk's own plain line (docs/CURRICULUM-OBSERVER.md §8), served beside its
+#: numbers for the same reason :data:`FEEDS` is: an empty desk must say what would fill it.
+OBSERVER_FEED: dict[str, str] = {
+    "what": (
+        "Per syllabus edition: how many learners really use it, which chapters a large share of "
+        "them have all removed, added, renamed or reordered, and what the observer did about it."
+    ),
+    "feeds": (
+        "curriculum.overlay.apply (every edit), POST /v1/flags with reason not_my_syllabus and "
+        "about.version_id + about.node_id (a flag on a chapter), and wobo.turn with "
+        "context.curriculum.nodeId (real use). Counted under a keyed digest, never a learner id."
+    ),
+    "missing": (
+        "Nothing here moves until the discovery worker is switched on (WOBO_DISCOVERY_WORKER): "
+        "the observer runs on its cadence and under its budget. With require_review on, which is "
+        "the default, every correction waits in the review queue for a person."
+    ),
+}
+
+
+class ReviewSwitchBody(BaseModel):
+    """The require-review switch (CURRICULUM-OBSERVER.md §8). Owner only: turning it off lets
+    the observer publish a correction the document and the reconciler agreed on without a
+    person reading it first."""
+
+    require_review: bool
 
 
 class MoveBody(BaseModel):
@@ -384,6 +415,68 @@ def register_desks(app: FastAPI) -> None:
             raise HTTPException(status_code=404, detail="Not Found")
         return queue_view(moved)
 
+    @router.get("/observer")
+    def observer_desk(
+        limit: int = Query(20, ge=1, le=50),
+        ctx: AdminContext = Depends(requires(CONSOLE_READ)),
+    ) -> dict[str, Any]:
+        """The syllabus observer, per edition (CURRICULUM-OBSERVER.md §8).
+
+        The same honesty bit as every other desk: ``readable`` false means the counts could not
+        be reached, and then there are no editions rather than an empty list that would read as
+        "nobody has edited anything". Nothing on a row is a name that was not looked up or a
+        number that was not counted.
+        """
+        ctx.audit(
+            "observer.desk.read", resource_type="curriculum.observer", detail={"limit": limit}
+        )
+        try:
+            view = syllabus_observer.desk_view(
+                observer=syllabus_observer.get_observer(),
+                curriculum_store=curriculum_store.get_store(),
+                limit=limit,
+            )
+        except (curriculum_store.StoreUnavailable, StoreUnavailable):
+            return {
+                "readable": False,
+                "enabled": syllabus_observer.enabled(),
+                "require_review": None,
+                "versions": [],
+                "feed": OBSERVER_FEED,
+            }
+        return {
+            "readable": True,
+            **view,
+            "feed": OBSERVER_FEED,
+            "shown": len(view["versions"]),
+            "limit": limit,
+        }
+
+    @router.post("/observer/review-switch")
+    def observer_review_switch(
+        body: ReviewSwitchBody, ctx: AdminContext = Depends(requires(ADMIN_MANAGE))
+    ) -> dict[str, Any]:
+        """Require a person for every correction, or not. On by default, and only an owner
+        turns it off (§8: "for the first months, until the observer has earned trust")."""
+        ctx.audit(
+            "observer.review_switch",
+            resource_type="curriculum.observer",
+            detail={"require_review": body.require_review},
+        )
+        try:
+            value = syllabus_observer.get_observer().set_require_review(
+                body.require_review, by=ctx.admin.email
+            )
+        except curriculum_store.StoreUnavailable as exc:
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "code": "desk_unavailable",
+                    "message": "I could not save that just now. Try me again in a moment.",
+                },
+            ) from exc
+        return {"require_review": value, "set_by": ctx.admin.email}
+
     app.include_router(router)
 
 
@@ -409,4 +502,12 @@ def _find(report_id: str) -> Report:
     return found
 
 
-__all__ = ["DEFAULT_PAGE", "FEEDS", "MAX_PAGE", "desk_summary", "queue_view", "register_desks"]
+__all__ = [
+    "DEFAULT_PAGE",
+    "FEEDS",
+    "MAX_PAGE",
+    "OBSERVER_FEED",
+    "desk_summary",
+    "queue_view",
+    "register_desks",
+]

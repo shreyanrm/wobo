@@ -190,7 +190,14 @@ def _projectile(intent: dict[str, Any], draft: Draft) -> Draft:
         style=accent(2),
         hint="vx",
     )
-    draft.number(vx, "board.units_agree", anchor=on(apex_point, "top"), unit="m/s", style=accent(2))
+    draft.number(
+        vx,
+        "board.units_agree",
+        anchor=on(apex_point, "top"),
+        unit="m/s",
+        label="across-speed",
+        style=accent(2),
+    )
     draft.add(
         "write",
         anchor=on(apex_point, "bottom"),
@@ -203,6 +210,7 @@ def _projectile(intent: dict[str, Any], draft: Draft) -> Draft:
         "board.numbers_agree:apex height",
         anchor=on(apex_point, "left"),
         unit="m",
+        label="how high",
         style=wobo(1),
     )
     draft.number(

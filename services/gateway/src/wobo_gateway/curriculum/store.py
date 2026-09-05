@@ -51,6 +51,7 @@ from wobo_gateway.curriculum.models import (
     Version,
     coerce_job_state,
     in_scope,
+    job_is_open,
     level_order,
 )
 
@@ -93,6 +94,13 @@ def safe_subject(subject: str | None) -> str | None:
 
 def seed_id(*parts: str) -> str:
     return str(uuid.uuid5(SEED_NAMESPACE, "|".join(parts)))
+
+
+def provenance_id(version_id: str, node_id: str | None) -> str:
+    """The id of the provenance row for one node (or the version-level row when ``node_id`` is
+    None). Deterministic, so a replayed write is the same row and ``on conflict do nothing`` is
+    what makes the publish command idempotent rather than a duplicate."""
+    return seed_id("provenance", version_id, node_id or "")
 
 
 def content_root() -> Path:
@@ -185,6 +193,11 @@ class Seed:
     # document could be read for this class and subject. It is a deliberate answer, not a failure
     # to read the seed, so it is counted apart from `skipped` and never raises the alarm below.
     blocked_syllabi: int = 0
+    # Ids already emitted. A version's level node is the same row for every syllabus file of
+    # that class (same version, same name, same order, so the same uuid5), and it used to be
+    # emitted once per file: 37 duplicate rows in the real seed, which the in-memory store
+    # silently folded and a database insert would have to skip. One row per id, at the source.
+    _ids: set[str] = field(default_factory=set, repr=False, compare=False)
 
     @property
     def skipped(self) -> int:
@@ -244,9 +257,25 @@ def _syllabus_nodes(document: dict[str, Any], version: Version, seed: Seed) -> i
     source_url = source_doc.get("url") if isinstance(source_doc, dict) else None
     fetched_at = source_doc.get("fetched_at") if isinstance(source_doc, dict) else None
     doc_hash = source_doc.get("document_sha256") if isinstance(source_doc, dict) else None
+    # The file's own provenance (CURRICULUM.md §5) is the record of who checked it and when.
+    # This used to hard-code ``verified_by="owner"`` for any verified file, which would have
+    # credited the owner with a verification the audit pass made in code or on the verify tier.
+    file_provenance = (
+        document.get("provenance") if isinstance(document.get("provenance"), dict) else {}
+    )
+    verifier_model = file_provenance.get("verifier") or None
+    checks_passed = tuple(
+        str(check) for check in (file_provenance.get("checks_passed") or []) if str(check).strip()
+    ) or ("seeded", "source_attached")
+    is_verified = version.status is Status.VERIFIED
+    verified_by = (file_provenance.get("verified_by") or "owner") if is_verified else None
+    verified_at = (file_provenance.get("verified_at") or fetched_at) if is_verified else None
 
     def emit(kind: NodeKind, name: str, parent: str | None, order: int, ref: Any) -> str:
         ident = seed_id(version.id, kind.value, parent or "", name, str(order))
+        if ident in seed._ids:
+            return ident
+        seed._ids.add(ident)
         seed.nodes.append(
             Node(
                 id=ident,
@@ -266,9 +295,10 @@ def _syllabus_nodes(document: dict[str, Any], version: Version, seed: Seed) -> i
                 source_page_or_section=_section_of(ref),
                 document_hash=doc_hash,
                 fetched_at=fetched_at,
-                checks_passed=("seeded", "source_attached"),
-                verified_by="owner" if version.status is Status.VERIFIED else None,
-                verified_at=fetched_at if version.status is Status.VERIFIED else None,
+                verifier_model=verifier_model,
+                checks_passed=checks_passed,
+                verified_by=verified_by,
+                verified_at=verified_at,
             )
         )
         return ident
@@ -513,6 +543,8 @@ class CurriculumStore(Protocol):
 
     def provenance_for(self, version_id: str, node_id: str | None = ...) -> Provenance | None: ...
 
+    def all_provenance(self, version_id: str) -> list[Provenance]: ...
+
     def get_overlay(self, subject: str, version_id: str) -> Overlay | None: ...
 
     def put_overlay(self, overlay: Overlay) -> Overlay: ...
@@ -561,6 +593,25 @@ class CurriculumStore(Protocol):
         message: str | None = ...,
         result: dict[str, Any] | None = ...,
     ) -> DiscoveryJob | None: ...
+
+    def latest_job(
+        self, *, framework_id: str | None, query: str, level: str | None, subject: str | None
+    ) -> DiscoveryJob | None: ...
+
+    def queued_jobs(self, *, limit: int = ...) -> list[DiscoveryJob]: ...
+
+    def stale_open_jobs(self, *, older_than_s: float) -> list[DiscoveryJob]: ...
+
+    def claim_job(
+        self,
+        job_id: str,
+        *,
+        state: JobState | str,
+        message: str | None = ...,
+        result: dict[str, Any] | None = ...,
+    ) -> DiscoveryJob | None: ...
+
+    def all_versions(self, *, limit: int = ...) -> list[Version]: ...
 
 
 def _sorted_nodes(nodes: Iterable[Node]) -> list[Node]:
@@ -736,6 +787,10 @@ class InMemoryStore(_PersonalDrafts):
             for record in records:
                 self._provenance[(record.version_id, record.node_id)] = record
 
+    def all_provenance(self, version_id: str) -> list[Provenance]:
+        with self._lock:
+            return [p for (vid, _), p in self._provenance.items() if vid == version_id]
+
     # -- moderation (§6: an offered syllabus is checked by a person before anyone else sees it)
     def put_review_row(self, row: dict[str, Any]) -> dict[str, Any]:
         stored = deepcopy(row)
@@ -882,6 +937,73 @@ class InMemoryStore(_PersonalDrafts):
             job.updated_at = datetime.now(UTC).isoformat()
             return job
 
+    def latest_job(
+        self, *, framework_id: str | None, query: str, level: str | None, subject: str | None
+    ) -> DiscoveryJob | None:
+        """The newest job about this syllabus, whatever its state and however old.
+
+        This is the record of what was last done for a (framework, level, subject): the first
+        learner's verify pass, or the discovery that stored it. ``find_recent_job`` answers "is
+        it worth asking again"; this answers "what happened".
+        """
+        key = _job_key(framework_id, query, level, subject)
+        with self._lock:
+            found = [
+                job
+                for job in self._jobs.values()
+                if _job_key(job.framework_id, job.query, job.level, job.subject) == key
+            ]
+        found.sort(key=lambda job: job.created_at or "", reverse=True)
+        return found[0] if found else None
+
+    def queued_jobs(self, *, limit: int = 20) -> list[DiscoveryJob]:
+        with self._lock:
+            queued = [job for job in self._jobs.values() if job.state is JobState.QUEUED]
+        queued.sort(key=lambda job: job.created_at or "")
+        return queued[: max(1, limit)]
+
+    def stale_open_jobs(self, *, older_than_s: float) -> list[DiscoveryJob]:
+        """Jobs a worker claimed and never finished: open, past ``queued``, and untouched for
+        longer than a run is allowed to take. The process that owned them is gone."""
+        with self._lock:
+            open_jobs = [
+                job for job in self._jobs.values() if job.open and job.state is not JobState.QUEUED
+            ]
+        return [
+            job
+            for job in open_jobs
+            if (_age_seconds(job.updated_at or job.created_at) or 0.0) > older_than_s
+        ]
+
+    def claim_job(
+        self,
+        job_id: str,
+        *,
+        state: JobState | str,
+        message: str | None = None,
+        result: dict[str, Any] | None = None,
+    ) -> DiscoveryJob | None:
+        """Take a queued job, atomically. None when it is not queued any more: another worker
+        (or another replica) already has it, and two of them must never run one job."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None or job.state is not JobState.QUEUED:
+                return None
+            job.state = coerce_job_state(state)
+            job.attempts += 1
+            if message is not None:
+                job.message = message
+            if result is not None:
+                job.result = result
+            job.updated_at = datetime.now(UTC).isoformat()
+            return job
+
+    def all_versions(self, *, limit: int = 500) -> list[Version]:
+        with self._lock:
+            rows = list(self._versions.values())
+        rows.sort(key=lambda v: (v.published_at or "", v.label), reverse=True)
+        return rows[: max(1, limit)]
+
 
 def _visible(framework: Framework, subject: str | None) -> bool:
     """The RLS rule, mirrored: a public row, or this learner's own personal framework."""
@@ -1024,11 +1146,16 @@ class PostgrestStore(_PersonalDrafts):
         *,
         params: Sequence[tuple[str, str]] = (),
         on_conflict: str | None = None,
+        resolution: str = "merge-duplicates",
     ) -> list[dict[str, Any]]:
+        """One upsert. ``merge-duplicates`` is the ordinary upsert (``on conflict do update``);
+        ``ignore-duplicates`` is ``on conflict do nothing``, which is the only write the immutable
+        tables accept twice: 0008's ``refuse_published_edit`` trigger fires on the UPDATE half of
+        a merge, so a replayed write of a published version's nodes must not update at all."""
         prefer = "return=representation"
         query = list(params)
         if on_conflict:
-            prefer = f"resolution=merge-duplicates,{prefer}"
+            prefer = f"resolution={resolution},{prefer}"
             query.append(("on_conflict", on_conflict))
         status, body = self._call(
             "POST",
@@ -1169,9 +1296,7 @@ class PostgrestStore(_PersonalDrafts):
             return
         # Parents before children: `nodes.parent_id` is a foreign key onto this same table.
         depth = {NodeKind.LEVEL: 0, NodeKind.SUBJECT: 1, NodeKind.UNIT: 2, NodeKind.TOPIC: 3}
-        for _, batch in sorted(
-            _grouped(nodes, key=lambda node: depth.get(node.kind, 4)).items()
-        ):
+        for _, batch in sorted(_grouped(nodes, key=lambda node: depth.get(node.kind, 4)).items()):
             self._write(
                 "nodes",
                 [
@@ -1188,6 +1313,7 @@ class PostgrestStore(_PersonalDrafts):
                     for node in batch
                 ],
                 on_conflict="id",
+                resolution="ignore-duplicates",
             )
 
     def put_provenance(self, records: Sequence[Provenance]) -> None:
@@ -1197,6 +1323,7 @@ class PostgrestStore(_PersonalDrafts):
             "provenance",
             [
                 {
+                    "id": provenance_id(record.version_id, record.node_id),
                     "version_id": record.version_id,
                     "node_id": record.node_id,
                     "source_url": record.source_url,
@@ -1211,6 +1338,8 @@ class PostgrestStore(_PersonalDrafts):
                 }
                 for record in records
             ],
+            on_conflict="id",
+            resolution="ignore-duplicates",
         )
 
     # -- moderation
@@ -1273,6 +1402,13 @@ class PostgrestStore(_PersonalDrafts):
         if not rows and node_id:
             return self.provenance_for(version_id, None)
         return Provenance.from_row(rows[0]) if rows else None
+
+    def all_provenance(self, version_id: str) -> list[Provenance]:
+        rows = self._rows(
+            "provenance",
+            [("select", "*"), ("version_id", f"eq.{version_id}"), ("limit", "5000")],
+        )
+        return [Provenance.from_row(row) for row in rows]
 
     # -- the learner
     def get_overlay(self, subject: str, version_id: str) -> Overlay | None:
@@ -1452,11 +1588,14 @@ class PostgrestStore(_PersonalDrafts):
         message: str | None = None,
         result: dict[str, Any] | None = None,
     ) -> DiscoveryJob | None:
-        patch: dict[str, Any] = {"state": coerce_job_state(state).value}
+        resolved = coerce_job_state(state)
+        patch: dict[str, Any] = {"state": resolved.value}
         if message is not None:
             patch["message"] = message
         if result is not None:
             patch["result"] = result
+        if not job_is_open(resolved):
+            patch["finished_at"] = datetime.now(UTC).isoformat()
         status, body = self._call(
             "PATCH",
             self._url("discovery_jobs", [("id", f"eq.{job_id}")]),
@@ -1466,6 +1605,85 @@ class PostgrestStore(_PersonalDrafts):
         if status >= 400 or not isinstance(body, list) or not body:
             return None
         return _job(body[0])
+
+    def latest_job(
+        self, *, framework_id: str | None, query: str, level: str | None, subject: str | None
+    ) -> DiscoveryJob | None:
+        params = self._job_params(framework_id, query, level, subject, open_only=False)
+        rows = self._rows("discovery_jobs", params)
+        return _job(rows[0]) if rows else None
+
+    def queued_jobs(self, *, limit: int = 20) -> list[DiscoveryJob]:
+        rows = self._rows(
+            "discovery_jobs",
+            [
+                ("select", "*"),
+                ("state", "eq.queued"),
+                ("order", "created_at.asc"),
+                ("limit", str(max(1, limit))),
+            ],
+        )
+        return [_job(row) for row in rows]
+
+    def stale_open_jobs(self, *, older_than_s: float) -> list[DiscoveryJob]:
+        since = (datetime.now(UTC) - timedelta(seconds=older_than_s)).isoformat()
+        rows = self._rows(
+            "discovery_jobs",
+            [
+                ("select", "*"),
+                ("state", "in.(searching,extracting,checking)"),
+                ("updated_at", f"lt.{since}"),
+                ("order", "updated_at.asc"),
+                ("limit", "50"),
+            ],
+        )
+        return [_job(row) for row in rows]
+
+    def claim_job(
+        self,
+        job_id: str,
+        *,
+        state: JobState | str,
+        message: str | None = None,
+        result: dict[str, Any] | None = None,
+    ) -> DiscoveryJob | None:
+        """One conditional PATCH: ``id = ? and state = 'queued'``. PostgREST answers with the rows
+        it changed, so an empty answer means another worker got there first and this one must
+        walk away. That is the whole of "two replicas cannot both run one job", and it lives in
+        the database rather than in a lock one process holds."""
+        current = self.get_job(job_id)
+        if current is None or current.state is not JobState.QUEUED:
+            return None
+        patch: dict[str, Any] = {
+            "state": coerce_job_state(state).value,
+            "attempts": current.attempts + 1,
+            "started_at": datetime.now(UTC).isoformat(),
+        }
+        if message is not None:
+            patch["message"] = message
+        if result is not None:
+            patch["result"] = result
+        status, body = self._call(
+            "PATCH",
+            self._url("discovery_jobs", [("id", f"eq.{job_id}"), ("state", "eq.queued")]),
+            self._headers(write=True, prefer="return=representation"),
+            json.dumps(patch).encode(),
+        )
+        if status >= 400 or not isinstance(body, list) or not body:
+            return None
+        return _job(body[0])
+
+    def all_versions(self, *, limit: int = 500) -> list[Version]:
+        return _versions(
+            self._rows(
+                "versions",
+                [
+                    ("select", "*"),
+                    ("order", "published_at.desc.nullslast,label.desc"),
+                    ("limit", str(max(1, limit))),
+                ],
+            )
+        )
 
 
 _LIKE_SPECIALS = str.maketrans({"*": " ", "%": " ", "_": " ", "(": " ", ")": " ", ",": " "})

@@ -34,12 +34,31 @@ whatever happened.
 Reports are written to `harness/reports/` as markdown and JSON. Transcripts are written to
 `harness/fixtures/` as they are produced, so the next `--replay` costs nothing.
 
+## The listening pass
+
+The spoken voice leans with the beat (docs/copy/voice.md 10b): a little brighter on a win, softer
+on a miss, a lift on a question, calm on a step, softest on the crisis line. The wiring is tested;
+whether the leans are audible, apart, and small is a person's ear. `listen.py` reads one short
+line under every beat and a control, writes the WAVs and a measurement sheet to
+`harness/reports/listen-<stamp>/`, and its docstring says what to listen for, in which order.
+
+```sh
+cd services/gateway
+uv run python -m harness.listen                       # the default line, Indian English
+uv run python -m harness.listen --line "Not quite. Look at the sign on the second term."
+```
+
+Eight calls of one short line, a few seconds of audio, recorded in the ledger as `voice.tts`
+spoken seconds like any read-aloud line. It needs a Google AI Studio key in `GEMINI_API_KEY` or
+`GOOGLE_AI_API_KEY`, from the environment or `.env.local`, and it never prints one.
+
 ## What it is made of
 
 | file | what it does |
 | --- | --- |
 | `cases.py` | the questions, and the ground truth each is judged against — computed here, a different way round from the product |
 | `runner.py` | drives `POST /v1/capability/wobo.turn` on the real app: the real door, safety screen, meter, planner, verifier and wire |
+| `runner.py`, again | for the doubt case: draws a page, sends it through `POST /v1/doubt` and the answer through `POST /v1/doubt/{id}/answer`, and records the lines read and the `off the page` count |
 | `checks.py` | everything decidable by arithmetic — a wrong number, the verified-number law, an empty board, the voice laws |
 | `drawing.py` + `geometry_probe.ts` | the board measured with the product's own `geometryOf` and its real handwriting font |
 | `ladder.py` + `ladder_probe.ts` | the re-teach ladder driven for real, then its chosen rung sent through the real gateway |
@@ -73,13 +92,21 @@ run against the product's own recorded transcripts, and a timeline dating the Ja
 massacre to 1921 scored four out of four. `test_teaching_harness.py` now walks every recorded
 fixture and fails if a claim does not fire on its own case's real transcript.
 
+**The doubt solver is measured on its own wire.** `doubt.cbse.8.linear-photo` photographs a page
+the runner draws and goes through `POST /v1/doubt` and `/answer` (doubt.py). `check_on_the_page`
+reads the two laws nothing else measures: the `off the page: N` count the gateway puts in the
+`done` frame (a mark placed by pixels rather than on a line of the page; N above zero fails the
+run), every drawn mark anchored to a line the reader found, and every ink frame at the timestamp
+of a say frame. The recorded fixture was made KEYLESS (mock eyes, the keyless planner) and its
+`note` says so; `--live` re-records it against the real reader.
+
 **The drawing is measured, not described.** `geometry_probe.ts` runs `geometryOf` — the exact
 function the renderer paints from — with the real font loaded, and reports where the ink actually
 lands: off the 1000-unit board, clipped past the right edge, or written on top of another label.
 Without bun on the machine the drawing check is SKIPPED and says so. It is never quietly passed.
 
 **A report, not a tick.** The owner needs to see where the teaching is weak. Every question gets a
-score out of four on ten dimensions, rolled up by subject and by board so a weak subject is visible
+score out of four on eleven dimensions (`in place` is the newest: did the answer mark the thing already on the learner's screen rather than open a board over it, and did the ink land on the right target), rolled up by subject and by board so a weak subject is visible
 at a glance, and every finding carries the evidence beside it.
 
 **It says what it does not know.** A question whose truth nothing here can check is scored 2 and
@@ -97,6 +124,10 @@ One entry in `cases.py`. The fields that matter:
   is a contradiction and fails the run. `must_include` names the values that have to be among them.
 * `needs_drawing` / `expect_kinds` — an empty board on a question that asked for a drawing is a
   failure, not a style choice.
+* `expect_presentation` / `must_mark` — where the answer belongs (`"screen"` when the thing to
+  point at is already registered on the learner's screen, `"plane"` when there is something new to
+  build) and the target ids at least one mark must land on. `context.targets` is the screen the
+  client would have registered, so the check is a set membership against real ids, never pixels.
 * `forbid` — for the laws that say what Wobo must NOT do, such as handing the final value of x to a
   learner who is mid-working.
 * `world` — the learner's own interest, when the case is testing whether the teaching reaches for
@@ -106,3 +137,14 @@ Write the truth into the case, not into the regex, and then **run the case live 
 claim fires on what came back**. `test_teaching_harness.py` walks `fixtures/` and fails a claim
 that never matches its own recorded transcript, because a claim that matches nothing is a green
 tick over an unread answer.
+
+## Corrected recordings
+
+Some fixtures were re-recorded by hand after the teaching review of 2026-09-05, with
+`uv run python -m harness.rerecord <case> --say ... --ask ... --intents ...`. The board on such a
+fixture is still the product's pipelines' own work from the intents given, every sum in the spoken
+line is signed by the product's CAS (`say.arithmetic:...` in `verified`), and the events are built
+by the same `build_events` the wire uses; only the WORDS were written by a person rather than a
+model on the day. Each carries a `note` saying so, and a replay report lists every corrected case in
+its notes, so a corrected recording is never mistaken for evidence that the tutor answers that way
+live. A live run overwrites it.

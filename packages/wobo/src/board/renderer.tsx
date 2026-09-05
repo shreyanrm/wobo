@@ -28,11 +28,13 @@ import {
   type RefObject,
   useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
+import { scrollHold } from '../scroll-hold';
 import {
   anchorSignature,
   type BoardFrame,
@@ -688,6 +690,26 @@ export function spokenLabel(object: BoardObject, look?: LookUp): string {
   return describe(object, look);
 }
 
+/**
+ * True while any page-anchored object's pen is mid-stroke at `now`: the one condition under which
+ * the page is held still (`scroll-hold.ts`). Board-space ink never holds the page — the page
+ * cannot move under it — and reduced motion lands every stroke at once, so it never holds either.
+ */
+export function strokesInFlight(
+  built: readonly { state: { object: { id: string }; startAt: number }; durMs: number }[],
+  pageAnchored: ReadonlySet<string>,
+  now: number,
+  reduced: boolean,
+): boolean {
+  if (reduced) return false;
+  for (const b of built) {
+    if (!pageAnchored.has(b.state.object.id)) continue;
+    const progress = objectProgress(now, b.state.startAt, b.durMs, false);
+    if (progress > 0 && progress < 1) return true;
+  }
+  return false;
+}
+
 export function BoardSurface(props: BoardSurfaceProps) {
   const {
     store,
@@ -959,6 +981,18 @@ export function BoardSurface(props: BoardSurfaceProps) {
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, [animating, hasScreenAnchor, cameraSettling, measure]);
+
+  // --- The scroll hold ----------------------------------------------------------------------------
+  // The page stands still exactly while a page-anchored stroke is mid-flight, and not a frame
+  // longer: the loop above re-renders every frame while anything is drawing, so the frame a stroke
+  // lands is the frame the hold is released, and the registry re-anchors on the release.
+  const holdToken = useId();
+  const holding = scrubAt === null && strokesInFlight(built, liveIds, now, reduced);
+  useEffect(() => {
+    scrollHold.set(holdToken, holding);
+  }, [holdToken, holding]);
+  useEffect(() => () => scrollHold.release(holdToken), [holdToken]);
+  useEffect(() => (hasScreenAnchor ? scrollHold.watch() : undefined), [hasScreenAnchor]);
 
   // --- Paint ------------------------------------------------------------------------------------------
   // Ink that has landed and is not fading goes into one memoised layer that React skips in a single

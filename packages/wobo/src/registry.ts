@@ -19,6 +19,7 @@
  */
 
 import { createElement, type ReactElement, useEffect, useRef, useSyncExternalStore } from 'react';
+import { scrollHold } from './scroll-hold';
 
 // --- The contract --------------------------------------------------------------------------------
 
@@ -539,6 +540,15 @@ export class SurfaceRegistry {
     return this.version;
   }
 
+  /**
+   * The page may have moved: tell every consumer the rects it holds are stale. Scroll and resize
+   * call this on their own; the scroll hold calls it the instant it lets the page go, so ink that
+   * landed while the page was held re-anchors on the same frame the hold ends.
+   */
+  remeasure(): void {
+    this.bump();
+  }
+
   /** Test seam: forget everything. */
   reset(): void {
     this.entries.clear();
@@ -575,9 +585,15 @@ export class SurfaceRegistry {
       }
       for (const target of this.getTargets()) this.observeElements([target]);
     }
+    // The instant the scroll hold lets go, re-anchor: a scroll the hold could not refuse (a
+    // programmatic one, a finger that was already moving) may have moved the page under a stroke.
+    const unhold = scrollHold.subscribe((held) => {
+      if (!held) this.bump();
+    });
     this.detachLayout = () => {
       window.removeEventListener('scroll', onScroll, { capture: true } as EventListenerOptions);
       window.removeEventListener('resize', onResize);
+      unhold();
     };
   }
 

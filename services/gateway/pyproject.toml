@@ -28,6 +28,7 @@ dependencies = [
     # HTML is handled by the standard library's parser — no second dependency for that half.
     "pypdf>=5.1",
     "uvicorn[standard]>=0.30",
+    "pillow>=11.0",
 ]
 
 [build-system]

@@ -124,8 +124,14 @@ REPORTS_PER_DAY = 20
 #: ``about`` is a small, closed set of pointers. A key that is not here is DROPPED rather than
 #: stored — the one rule keeping a learner's work out of ``ops.reports``.
 ABOUT_KEYS: frozenset[str] = frozenset(
-    {"surface", "content_id", "subject", "board", "grade", "capability", "route", "build"}
-)
+    {
+        "surface", "content_id", "subject", "board", "grade", "capability", "route", "build",
+        # A ``not_my_syllabus`` flag points at the exact chapter, so the syllabus observer can
+        # count it with the removes on that node (docs/CURRICULUM-OBSERVER.md §3). Two opaque ids,
+        # never a name and never the learner's edits.
+        "version_id", "node_id",
+    }
+)  # fmt: skip
 _ABOUT_VALUE_RE = re.compile(r"^[\w .:@/#+-]{1,200}$")
 _EMAIL_RE = re.compile(r'^[^@\s"]+@[^@\s.]+(?:\.[^@\s.]+)+$')
 
@@ -836,15 +842,16 @@ def _intake(request: Request, kind: str, body: IntakeBody, *, allow_anonymous: b
         reply_to = normalise_email(getattr(body, "reply_to", None))
     except NotKept as exc:
         raise not_kept(exc) from exc
+    about = normalise_about(body.about)
     try:
-        return raise_report(
+        report = raise_report(
             get_store(),
             kind=kind,
             reason=reason,
             note=note,
             learner_id=learner_id,
             contact_email=reply_to,
-            about=normalise_about(body.about),
+            about=about,
             source="app",
         )
     except Refused as exc:
@@ -853,6 +860,17 @@ def _intake(request: Request, kind: str, body: IntakeBody, *, allow_anonymous: b
         ) from exc
     except StoreUnavailable as exc:
         raise unavailable() from exc
+    if kind == "flag" and reason == "not_my_syllabus":
+        # The syllabus observer counts this flag with the removes on the chapter it points at
+        # (docs/CURRICULUM-OBSERVER.md §3). After the row is written, never before it, and never
+        # raising: the flag is kept whether or not anybody is counting. An anonymous session is
+        # a report but not a vote, because a subject you can mint is not a learner (§6).
+        principal = getattr(request.state, "principal", None)
+        if principal is not None and not principal.anonymous:
+            from wobo_gateway.curriculum import observer as syllabus_observer
+
+            syllabus_observer.note_flag(learner_id, about)
+    return report
 
 
 def register_reports(app: FastAPI) -> None:

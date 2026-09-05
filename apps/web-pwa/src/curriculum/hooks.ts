@@ -520,7 +520,9 @@ export function useDiscoveryStatus(
           (next) => {
             if (!live) return;
             setStatus(next);
-            const done = next.state === 'provisional' || next.state === 'refused';
+            // Terminal is what the brain says, not a state name: a stored job is done and so is a
+            // failed one, and neither is spelled "provisional".
+            const done = !next.open;
             if (done) finished.current?.(next);
             else handle = setTimeout(tick, POLL_MS);
           },

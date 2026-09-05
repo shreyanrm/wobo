@@ -103,6 +103,14 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setenv("WOBO_MIND_STORE", "memory")
     mind_mod.set_store(None)
+    # The doubt solver's record (doubt.py): a photograph of a child's page and what was read from
+    # it. In process, fresh per test, and never a project one, for the same reason the mind is not.
+    from wobo_gateway import doubt as doubt_mod
+
+    monkeypatch.setenv("DOUBT_STORE", "memory")
+    doubt_mod.set_store(None)
+    doubt_mod.set_eyes(None)
+    doubt_mod.OFF_PAGE["count"] = 0
     auth.reset_jwks_cache()
     voice.reset_tokens()
     # Mail: console transport, an empty in-memory send log, and background sends run inline so

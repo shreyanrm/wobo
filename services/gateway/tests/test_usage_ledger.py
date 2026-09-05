@@ -62,8 +62,9 @@ def store(monkeypatch: pytest.MonkeyPatch) -> FakeStore:
     """A configured ledger with no autoflush: the test decides when a batch goes."""
     monkeypatch.setenv("USAGE_LEDGER_PEPPER", "a-pepper-for-the-suite")
     fake = FakeStore()
-    ledger.configure(base_url="https://project.example", service_key="svc", transport=fake,
-                     autoflush=False)
+    ledger.configure(
+        base_url="https://project.example", service_key="svc", transport=fake, autoflush=False
+    )
     return fake
 
 
@@ -98,8 +99,20 @@ def test_fields_is_the_whole_allowlist_and_names_nothing_a_child_said() -> None:
         "unit_count",
     )
     forbidden = (
-        "question", "answer", "prompt", "completion", "message", "text", "content",
-        "concept", "title", "topic", "transcript", "body", "subject", "email",
+        "question",
+        "answer",
+        "prompt",
+        "completion",
+        "message",
+        "text",
+        "content",
+        "concept",
+        "title",
+        "topic",
+        "transcript",
+        "body",
+        "subject",
+        "email",
     )
     for field in ledger.FIELDS:
         assert not any(word in field for word in forbidden), field
@@ -127,8 +140,9 @@ def test_a_recorded_call_carries_no_word_of_what_the_learner_asked(store: FakeSt
 # --- 2. writing the ledger cannot break a lesson --------------------------------------------------
 def test_a_transport_that_raises_never_reaches_the_caller(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("USAGE_LEDGER_PEPPER", "p")
-    ledger.configure(base_url="https://x", service_key="k", transport=FakeStore(raises=True),
-                     autoflush=False)
+    ledger.configure(
+        base_url="https://x", service_key="k", transport=FakeStore(raises=True), autoflush=False
+    )
     ledger.record(capability="wobo.turn", model_served="m", cost_usd=0.01)
     assert ledger.flush_now() == 0  # no exception escaped
     state = ledger.state()
@@ -189,9 +203,12 @@ def test_a_call_litellm_cannot_price_is_recorded_as_unpriced_not_dropped(
         model = "some-vendor/brand-new-model"
         usage = {"prompt_tokens": 11, "completion_tokens": 3}
 
-    assert telemetry.record_cost(
-        capability="engine.video", model="some-vendor/brand-new-model", response=Response()
-    ) is None
+    assert (
+        telemetry.record_cost(
+            capability="engine.video", model="some-vendor/brand-new-model", response=Response()
+        )
+        is None
+    )
     ledger.flush_now()
 
     assert len(store.rows) == 1
@@ -328,7 +345,9 @@ def test_a_capability_is_classified_into_the_unit_it_is_measured_in() -> None:
 
 def test_a_delivery_row_carries_the_unit_and_no_money(store: FakeStore) -> None:
     ledger.record_delivery(
-        capability="engine.video", unit_kind=ledger.VIDEO_SECOND, unit_count=93.5,
+        capability="engine.video",
+        unit_kind=ledger.VIDEO_SECOND,
+        unit_count=93.5,
         model_served="anthropic/claude-x",
     )
     ledger.flush_now()
@@ -370,8 +389,11 @@ class _GoogleSaid:
     def __init__(self, seconds: float) -> None:
         self.payload = {
             "candidates": [
-                {"content": {"parts": [{"inlineData": {"mimeType": "audio/wav",
-                                                       "data": _wav(seconds)}}]}}
+                {
+                    "content": {
+                        "parts": [{"inlineData": {"mimeType": "audio/wav", "data": _wav(seconds)}}]
+                    }
+                }
             ]
         }
 
@@ -484,7 +506,7 @@ def test_a_cache_hit_is_recorded_as_a_served_turn_that_cost_zero(store: FakeStor
 
     gw = Gateway(MockProvider(), InMemoryCache(), MetricsSink())
     request = CapabilityRequest(payload={"topic": "fractions"})
-    gw.invoke("generate.course", request)          # fills the cache
+    gw.invoke("generate.course", request)  # fills the cache
     store.calls.clear()
     result = gw.invoke("generate.course", request)  # served from it
     assert result.cache_hit is True
@@ -522,8 +544,9 @@ def test_reading_the_rollup_asks_for_a_day_range_in_the_ops_schema(
             return 200, [{"day": "2026-09-01", "capability": "wobo.turn"}]
 
     reader = Reader()
-    ledger.configure(base_url="https://p.example", service_key="svc", transport=reader,
-                     autoflush=False)
+    ledger.configure(
+        base_url="https://p.example", service_key="svc", transport=reader, autoflush=False
+    )
     rows = ledger.read_daily(since=date(2026, 9, 1), until=date(2026, 9, 4))
     assert rows == [{"day": "2026-09-01", "capability": "wobo.turn"}]
     _method, url, headers, _ = reader.calls[0]
@@ -539,8 +562,9 @@ def test_a_ledger_that_cannot_be_read_answers_none_and_not_an_empty_day(
     that renders them the same way is lying about one of them."""
     from datetime import date
 
-    ledger.configure(base_url="https://p", service_key="k", transport=FakeStore(status=503),
-                     autoflush=False)
+    ledger.configure(
+        base_url="https://p", service_key="k", transport=FakeStore(status=503), autoflush=False
+    )
     assert ledger.read_daily(since=date(2026, 9, 1), until=date(2026, 9, 2)) is None
 
 
@@ -550,6 +574,24 @@ def test_a_read_that_throws_shows_as_could_not_ask_and_not_as_a_500() -> None:
     money."""
     from datetime import date
 
-    ledger.configure(base_url="https://p", service_key="k", transport=FakeStore(raises=True),
-                     autoflush=False)
+    ledger.configure(
+        base_url="https://p", service_key="k", transport=FakeStore(raises=True), autoflush=False
+    )
     assert ledger.read_daily(since=date(2026, 9, 1), until=date(2026, 9, 2)) is None
+
+
+def test_a_beat_changes_the_lean_and_not_the_ledger(
+    store: FakeStore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The style instruction (voice.md 10b) does not change what a line costs: the unit is still
+    the measured second of audio, whatever the beat, and the beat leaves no unit of its own."""
+    from wobo_gateway import voice
+
+    softer = voice.spoken_instruction("en-IN", "miss")
+    assert _speak(monkeypatch, 1.5, instruction=softer) is not None
+    ledger.flush_now()
+    row = store.rows[0]
+    assert row["capability"] == "voice.tts"
+    assert row["unit_kind"] == ledger.SPOKEN_SECOND
+    assert row["unit_count"] == pytest.approx(1.5, abs=0.01)
+    assert len(store.rows) == 1

@@ -1,22 +1,22 @@
 {
   "actions": [
     {
-      "afterSentence": 1,
+      "afterSentence": 2,
       "mood": "waiting",
       "type": "setMood"
     }
   ],
   "ask": null,
   "case_id": "math.ib.hint.no-final-answer",
-  "cost_usd": 0.001817,
-  "elapsed_ms": 3374.648040975444,
+  "cost_usd": 0.014694,
+  "elapsed_ms": 4108.800749992952,
   "error": "",
   "events": [
     {
       "data": {
         "actions": [
           {
-            "afterSentence": 1,
+            "afterSentence": 2,
             "mood": "waiting",
             "type": "setMood"
           }
@@ -24,7 +24,8 @@
         "grounded": true,
         "handed_answer": false,
         "path": "inline",
-        "say": "You\u2019ve got 2x = 4, so now undo the multiplication by 2. What should you do to both sides?"
+        "say": "You\u2019ve cleared the plus 3 neatly. Now undo the multiplication by 2, because x needs to be on its own. What should you do to both sides?",
+        "verified": []
       },
       "id": "",
       "type": "output"
@@ -35,7 +36,7 @@
   "objects": [],
   "presentation": "",
   "refused": [],
-  "say": "You\u2019ve got 2x = 4, so now undo the multiplication by 2. What should you do to both sides?",
+  "say": "You\u2019ve cleared the plus 3 neatly. Now undo the multiplication by 2, because x needs to be on its own. What should you do to both sides?",
   "status": 200,
   "verified": []
 }

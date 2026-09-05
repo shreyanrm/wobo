@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Any
 
 from harness import cases as case_bank
-from harness import runner
+from harness import checks, runner
 from harness.checks import NOTE, WEAK, WRONG, Scored
 
 PROBE = Path(__file__).resolve().parent / "ladder_probe.ts"
@@ -89,7 +89,35 @@ def _case_for(ask: str, *, mode: str, case_id: str) -> case_bank.Case:
         },
         needs_drawing=mode == "board",
         expect_question=False,
+        world=WORLD,
+        world_words=case_bank.by_id("teach.their-world.cricket").world_words,
     )
+
+
+#: The dimensions every rung is held to, exactly as a turn is. The ladder used to measure only
+#: "changes approach", so a rung could be a wrong number, a yes-or-no check and a lecture and
+#: still score 4.00, and the report cut each rung to 160 characters so nobody could read the rest.
+RUNG_DIMENSIONS = ("verified", "teaches", "voice", "their world")
+
+
+def score_rung(case: case_bank.Case, transcript: Any, out: Scored, *, rung: str) -> None:
+    """Hold one rung to the turn laws and fold the result into the ladder's score.
+
+    Each dimension keeps the WORST rung: a ladder that teaches well twice and lectures once has
+    lectured. Findings carry the rung's name so the report says which one."""
+    scored = Scored()
+    checks.check_say_numbers(case, transcript, scored)
+    checks.check_teaching(case, transcript, scored)
+    checks.check_their_world(case, transcript, scored)
+    checks.check_voice(transcript, scored)
+    for finding in scored.findings:
+        out.add(finding.severity, finding.dimension, f"{rung} rung: {finding.detail}", finding.evidence)
+    for dimension in RUNG_DIMENSIONS:
+        value = scored.scores.get(dimension)
+        if value is None:
+            continue
+        current = out.scores.get(dimension)
+        out.scores[dimension] = value if current is None else min(current, value)
 
 
 def run(client: Any, token: str) -> LadderResult:
@@ -137,6 +165,8 @@ def run(client: Any, token: str) -> LadderResult:
     baseline = runner.run_case(client, baseline_case, token)
     out.transcripts.append(baseline)
     out.cost_usd += baseline.cost_usd
+    if not baseline.error:
+        score_rung(baseline_case, baseline, out.scored, rung="explain")
 
     for index, switch in enumerate(switches, start=1):
         rung = str(switch.get("approach") or "?")
@@ -163,6 +193,7 @@ def run(client: Any, token: str) -> LadderResult:
                 "learner was told it would be drawn and it was not",
                 transcript.say[:300],
             )
+        score_rung(case, transcript, out.scored, rung=rung)
         if rung == "their_world":
             lowered = transcript.everything_said().lower()
             if WORLD not in lowered:

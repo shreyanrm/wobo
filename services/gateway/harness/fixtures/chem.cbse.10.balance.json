@@ -1,24 +1,24 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "What coefficient does that leave in front of O\u2082?",
-    "t": 7420,
+    "prompt": "Which element would you balance first?",
+    "t": 11218,
     "targets": [],
     "type": "ask"
   },
   "case_id": "chem.cbse.10.balance",
-  "cost_usd": 0.002548,
-  "elapsed_ms": 3782.766874996014,
+  "cost_usd": 0.004306,
+  "elapsed_ms": 5512.376042024698,
   "error": "",
   "events": [
     {
       "data": {
-        "dur": 1454,
+        "dur": 1090,
         "t": 0,
-        "text": "Let\u2019s balance it cleanly.",
+        "text": "Let\u2019s build it.",
         "type": "say"
       },
-      "id": "hIeRniecNVLa:0",
+      "id": "WM_ongEqK_5Y:0",
       "type": "say"
     },
     {
@@ -38,7 +38,7 @@
             "weight": 2
           },
           "t": {
-            "dur": 664,
+            "dur": 1086,
             "start": 120
           },
           "text": "CH4"
@@ -46,7 +46,7 @@
         "t": 120,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:1",
+      "id": "WM_ongEqK_5Y:1",
       "type": "ink"
     },
     {
@@ -65,16 +65,26 @@
             "weight": 2
           },
           "t": {
-            "dur": 664,
-            "start": 784
+            "dur": 1086,
+            "start": 1206
           },
           "text": "+"
         },
-        "t": 784,
+        "t": 1206,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:2",
+      "id": "WM_ongEqK_5Y:2",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 5818,
+        "t": 1310,
+        "text": "The equation balances because both sides must contain the same number of each kind of atom.",
+        "type": "say"
+      },
+      "id": "WM_ongEqK_5Y:3",
+      "type": "say"
     },
     {
       "data": {
@@ -93,26 +103,16 @@
             "weight": 2
           },
           "t": {
-            "dur": 664,
-            "start": 1449
+            "dur": 1086,
+            "start": 2293
           },
           "text": "O2"
         },
-        "t": 1449,
+        "t": 2293,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:3",
+      "id": "WM_ongEqK_5Y:4",
       "type": "ink"
-    },
-    {
-      "data": {
-        "dur": 5090,
-        "t": 1674,
-        "text": "Carbon gives one CO\u2082, hydrogen gives two H\u2082O, and then oxygen falls into place.",
-        "type": "say"
-      },
-      "id": "hIeRniecNVLa:4",
-      "type": "say"
     },
     {
       "data": {
@@ -136,14 +136,14 @@
             "weight": 2
           },
           "t": {
-            "dur": 664,
-            "start": 2113
+            "dur": 1086,
+            "start": 3379
           }
         },
-        "t": 2113,
+        "t": 3379,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:5",
+      "id": "WM_ongEqK_5Y:5",
       "type": "ink"
     },
     {
@@ -163,15 +163,15 @@
             "weight": 2
           },
           "t": {
-            "dur": 664,
-            "start": 2778
+            "dur": 1086,
+            "start": 4466
           },
           "text": "CO2"
         },
-        "t": 2778,
+        "t": 4466,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:6",
+      "id": "WM_ongEqK_5Y:6",
       "type": "ink"
     },
     {
@@ -190,15 +190,15 @@
             "weight": 2
           },
           "t": {
-            "dur": 664,
-            "start": 3442
+            "dur": 1086,
+            "start": 5552
           },
           "text": "+"
         },
-        "t": 3442,
+        "t": 5552,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:7",
+      "id": "WM_ongEqK_5Y:7",
       "type": "ink"
     },
     {
@@ -218,16 +218,26 @@
             "weight": 2
           },
           "t": {
-            "dur": 664,
-            "start": 4106
+            "dur": 1086,
+            "start": 6638
           },
           "text": "H2O"
         },
-        "t": 4106,
+        "t": 6638,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:8",
+      "id": "WM_ongEqK_5Y:8",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 3636,
+        "t": 7348,
+        "text": "Start with carbon, then hydrogen, and leave oxygen until last.",
+        "type": "say"
+      },
+      "id": "WM_ongEqK_5Y:9",
+      "type": "say"
     },
     {
       "data": {
@@ -245,16 +255,16 @@
             "weight": 3
           },
           "t": {
-            "dur": 664,
-            "start": 4771
+            "dur": 1086,
+            "start": 7725
           },
           "value": 2.0,
           "verified": true
         },
-        "t": 4771,
+        "t": 7725,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:9",
+      "id": "WM_ongEqK_5Y:10",
       "type": "ink"
     },
     {
@@ -273,16 +283,16 @@
             "weight": 3
           },
           "t": {
-            "dur": 664,
-            "start": 5435
+            "dur": 1086,
+            "start": 8811
           },
           "value": 2.0,
           "verified": true
         },
-        "t": 5435,
+        "t": 8811,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:10",
+      "id": "WM_ongEqK_5Y:11",
       "type": "ink"
     },
     {
@@ -302,38 +312,38 @@
           },
           "t": {
             "dur": 1320,
-            "start": 6100
+            "start": 9898
           },
           "text": "same atoms on both sides"
         },
-        "t": 6100,
+        "t": 9898,
         "type": "ink"
       },
-      "id": "hIeRniecNVLa:11",
+      "id": "WM_ongEqK_5Y:12",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "What coefficient does that leave in front of O\u2082?",
-        "t": 7420,
+        "prompt": "Which element would you balance first?",
+        "t": 11218,
         "targets": [],
         "type": "ask"
       },
-      "id": "hIeRniecNVLa:12",
+      "id": "WM_ongEqK_5Y:13",
       "type": "ask"
     },
     {
       "data": {
         "objects": 10,
-        "presentation": "plane",
-        "t": 7420,
+        "presentation": "full",
+        "t": 11218,
         "type": "done",
         "verified": [
           "board.equation_balances",
           "board.formula_readable"
         ]
       },
-      "id": "hIeRniecNVLa:13",
+      "id": "WM_ongEqK_5Y:14",
       "type": "done"
     }
   ],
@@ -355,7 +365,7 @@
         "weight": 2
       },
       "t": {
-        "dur": 664,
+        "dur": 1086,
         "start": 120
       },
       "text": "CH4"
@@ -374,8 +384,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 664,
-        "start": 784
+        "dur": 1086,
+        "start": 1206
       },
       "text": "+"
     },
@@ -394,8 +404,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 664,
-        "start": 1449
+        "dur": 1086,
+        "start": 2293
       },
       "text": "O2"
     },
@@ -419,8 +429,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 664,
-        "start": 2113
+        "dur": 1086,
+        "start": 3379
       }
     },
     {
@@ -438,8 +448,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 664,
-        "start": 2778
+        "dur": 1086,
+        "start": 4466
       },
       "text": "CO2"
     },
@@ -457,8 +467,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 664,
-        "start": 3442
+        "dur": 1086,
+        "start": 5552
       },
       "text": "+"
     },
@@ -477,8 +487,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 664,
-        "start": 4106
+        "dur": 1086,
+        "start": 6638
       },
       "text": "H2O"
     },
@@ -496,8 +506,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 664,
-        "start": 4771
+        "dur": 1086,
+        "start": 7725
       },
       "value": 2.0,
       "verified": true
@@ -516,8 +526,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 664,
-        "start": 5435
+        "dur": 1086,
+        "start": 8811
       },
       "value": 2.0,
       "verified": true
@@ -537,14 +547,14 @@
       },
       "t": {
         "dur": 1320,
-        "start": 6100
+        "start": 9898
       },
       "text": "same atoms on both sides"
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Let\u2019s balance it cleanly. Carbon gives one CO\u2082, hydrogen gives two H\u2082O, and then oxygen falls into place.",
+  "say": "Let\u2019s build it. The equation balances because both sides must contain the same number of each kind of atom. Start with carbon, then hydrogen, and leave oxygen until last.",
   "status": 200,
   "verified": [
     "board.equation_balances",

@@ -352,3 +352,75 @@ def test_a_mark_on_a_region_nobody_circled_is_still_refused() -> None:
     )
     assert plan.objects == []
     assert plan.refusals
+
+
+# --- the ink decides the surface (the owner, 2026-09-05: "wobo doesn't have to draw every
+# single time on the board") ------------------------------------------------------------------
+def test_a_model_that_asks_for_the_plane_is_overruled_when_every_mark_is_on_the_screen() -> None:
+    """The failure this exists to catch: every drawn answer opened the board, because the model
+    wrote "plane" out of habit and the planner took its word. A mark about something already on
+    the learner's screen is drawn there, whatever the model called the surface."""
+    plan = plan_board(
+        {"objects": [mark("m1"), mark("m2", kind="underline")], "presentation": "plane"},
+        context=TARGETS,
+    )
+    assert plan.presentation == "screen"
+
+
+def test_an_empty_plan_never_opens_an_empty_board() -> None:
+    plan = plan_board({"objects": [], "presentation": "plane"})
+    assert plan.objects == []
+    assert plan.presentation == "screen"
+
+
+def test_a_mark_hung_off_a_screen_mark_stays_on_the_screen_with_it() -> None:
+    """`{object: m1}` where m1 is on a chip: the note lives where the ring lives."""
+    plan = plan_board(
+        {
+            "objects": [
+                mark("m1"),
+                {"id": "m2", "kind": "write", "anchor": {"object": "m1", "at": "bottom"}, "text": "here"},
+            ]
+        },
+        context=TARGETS,
+    )
+    assert plan.presentation == "screen"
+
+
+def test_more_than_three_marks_on_the_screen_is_still_the_screen() -> None:
+    """A mark about something on the page cannot leave the page (presentation.ts, `staysOnScreen`):
+    on a board it would point at nothing. So there is no count past which they move."""
+    plan = plan_board({"objects": [mark(f"m{i}") for i in range(6)]}, context=TARGETS)
+    assert plan.presentation == "screen"
+
+
+def test_something_new_to_build_opens_the_plane_whatever_the_model_called_it() -> None:
+    plan = plan_board(
+        {"intents": [{"pipeline": "math", "op": "graph", "expr": "x**2"}], "presentation": "screen"},
+        context=TARGETS,
+    )
+    assert plan.presentation == "plane"
+
+
+def test_a_mark_on_a_previous_board_object_belongs_to_the_board() -> None:
+    plan = plan_board(
+        {"objects": [{"id": "m1", "kind": "circle", "anchor": {"object": "curve-1"}}]},
+        context=TARGETS,
+        board_context={"drawn": ["curve-1"]},
+    )
+    assert plan.presentation == "plane"
+
+
+def test_a_label_hung_on_a_chip_is_on_the_screen_with_the_chip() -> None:
+    """The anchor decides, not the kind: the live harness drew a ring plus a label on the
+    hypotenuse chip and the planner sent the pair to the plane because `label` is a shape."""
+    plan = plan_board(
+        {
+            "objects": [
+                mark("m1"),
+                {"id": "m2", "kind": "label", "anchor": {"target": "step-2"}, "text": "here"},
+            ]
+        },
+        context=TARGETS,
+    )
+    assert plan.presentation == "screen"

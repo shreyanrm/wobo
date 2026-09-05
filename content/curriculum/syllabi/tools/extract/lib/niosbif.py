@@ -18,6 +18,21 @@ ITEM_ANY = re.compile(
 NUMMOD = re.compile(r"^\s{0,5}(\d{1,2})\.\s+([A-Z]\S.*)$")
 
 
+
+def module_number(raw: str) -> str:
+    """The module's roman numeral as the document means it, not as its type was set.
+
+    The 2023 Mathematics (311) bifurcation prints the second module as "Module- ll": two
+    lower-case letters L where II was meant. Read as a roman numeral that is "LL", which is not
+    one (L never repeats), and the file carried it as a unit number a learner cannot read. A run
+    of nothing but L is the typist's I, so it is read as that run of I; every other token is
+    kept exactly as printed, upper-cased.
+    """
+    token = raw.strip()
+    if token and set(token.lower()) == {"l"}:
+        return "I" * len(token)
+    return token.upper()
+
 def _positions(lines):
     xs = []
     for ln in lines:
@@ -49,7 +64,7 @@ def parse(key):
         m = NUMMOD.match(raw[:lw]) if use_num else MODLINE.match(raw)
         if m:
             cur = {
-                "number": m.group(1).upper(),
+                "number": module_number(m.group(1)),
                 "title_parts": [],
                 "page": pages[i],
                 "items": {},

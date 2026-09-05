@@ -30,6 +30,7 @@
   "level_order": 6,
   "subject": "Mathematics",
   "status": "provisional",
+  "status_reason": "1 names matched only weakly: unit 1: Ganita Prakash, Grade 6 (container_named_by_the_build_its_chapters_verbatim); the second reader does not agree: The extraction invents a single unit titled \"Ganita Prakash, Grade 6\" instead of listing the document's ten chapters as units.",
   "read_off_source": true,
   "provenance": {
     "extractor": "deterministic text extraction from the fetched document; no model in the loop",
@@ -44,11 +45,127 @@
       "topic_order_is_1_to_n_within_every_unit",
       "no_unit_left_without_topics",
       "no_duplicate_topic_name_within_a_unit",
-      "no_page_tail_bled_into_a_node"
+      "no_page_tail_bled_into_a_node",
+      "orders_run_1_to_n",
+      "no_empty_name",
+      "no_duplicate_name_within_a_unit",
+      "every_unit_has_a_topic_layer",
+      "source_fetched",
+      "source_bytes_match_the_build",
+      "every_name_is_in_the_source",
+      "every_name_is_on_its_cited_page",
+      "coverage_matches_the_documents_numbering"
     ],
-    "checks_failed": [],
+    "checks_failed": [
+      "second_reader_agrees"
+    ],
     "verified_at": null,
-    "verified_by": null
+    "verified_by": null,
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "flag",
+      "checks": [
+        {
+          "name": "orders_run_1_to_n",
+          "passed": true,
+          "detail": "orders run 1..n"
+        },
+        {
+          "name": "no_empty_name",
+          "passed": true,
+          "detail": "every node has a name"
+        },
+        {
+          "name": "no_duplicate_name_within_a_unit",
+          "passed": true,
+          "detail": "no unit repeats a name"
+        },
+        {
+          "name": "every_unit_has_a_topic_layer",
+          "passed": true,
+          "detail": "every unit carries its topics"
+        },
+        {
+          "name": "source_fetched",
+          "passed": true,
+          "detail": "every cited document was fetched"
+        },
+        {
+          "name": "source_bytes_match_the_build",
+          "passed": true,
+          "detail": "the bytes fetched today hash to what the build recorded"
+        },
+        {
+          "name": "every_name_is_in_the_source",
+          "passed": true,
+          "detail": "11 names found in the source"
+        },
+        {
+          "name": "every_name_is_on_its_cited_page",
+          "passed": true,
+          "detail": "10 of 11 names verbatim on the page they cite; the rest within one page"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": true,
+          "detail": "the document numbers 10; the file has 10 topics"
+        },
+        {
+          "name": "second_reader_agrees",
+          "passed": false,
+          "detail": "The extraction invents a single unit titled \"Ganita Prakash, Grade 6\" instead of listing the document's ten chapters as units."
+        }
+      ],
+      "names": {
+        "container_named_by_the_build_its_chapters_verbatim": 1,
+        "verbatim_on_cited_page": 10
+      },
+      "sources": {
+        "ncert-6-ganita": {
+          "url": "https://ncert.nic.in/textbook/pdf/fegp1ps.pdf",
+          "title": "Ganita Prakash, textbook of Mathematics for Grade 6 (prelims)",
+          "fetched": true,
+          "transport": "urllib GET",
+          "fetched_at": "2026-09-05T10:28:25Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 20,
+          "sha256_matches_build": true
+        }
+      },
+      "coverage": {
+        "ncert-6-ganita": {
+          "cited_pages": [
+            19
+          ],
+          "numbered_runs": [],
+          "unit_markers": 10,
+          "units": 1,
+          "topics": 10,
+          "verdict": "the document numbers 10; the file has 10 topics"
+        }
+      },
+      "second_reader": {
+        "verdicts": [
+          {
+            "document_id": "ncert-6-ganita",
+            "asked": true,
+            "model": "gpt-5.6-terra",
+            "passed": false,
+            "detail": "The extraction invents a single unit titled \"Ganita Prakash, Grade 6\" instead of listing the document's ten chapters as units.",
+            "problems": [
+              "The extraction invents a single unit titled \"Ganita Prakash, Grade 6\" instead of listing the document's ten chapters as units."
+            ],
+            "cost_usd": 0.017164,
+            "prompt_tokens": 8324,
+            "completion_tokens": 43
+          }
+        ]
+      },
+      "reasons": [
+        "1 names matched only weakly: unit 1: Ganita Prakash, Grade 6 (container_named_by_the_build_its_chapters_verbatim)",
+        "the second reader does not agree: The extraction invents a single unit titled \"Ganita Prakash, Grade 6\" instead of listing the document's ten chapters as units."
+      ]
+    }
   },
   "documents": [
     {

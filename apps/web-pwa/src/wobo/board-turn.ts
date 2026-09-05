@@ -65,12 +65,21 @@ export interface RunBoardTurn {
   route: string;
   /** The learner's word: "board", "here", "the full board". */
   override?: Presentation | null;
+  /**
+   * The same frames at another door (board-stream.ts): the doubt solver's answer streams from
+   * `POST /v1/doubt/{id}/answer` with the learner's corrections as the body. Both optional.
+   */
+  endpoint?: string;
+  body?: Record<string, unknown>;
   /** Where the plane slides from — Wobo's orb. */
   origin?: { x: number; y: number };
   /** The lesson or topic the board belongs to; it names the export and the save. */
   title?: string;
-  /** Wobo's spoken line, handed back so the transcript carries what Wobo said. */
-  onSay?: (text: string) => void;
+  /**
+   * Wobo's spoken line, handed back so the transcript carries what Wobo said, with the moment on
+   * the utterance clock it is spoken (`t`) and how long it takes, as the wire carried them.
+   */
+  onSay?: (text: string, t?: number, durMs?: number) => void;
   /** An action frame — the caller runs it through the permission ladder. */
   onAction?: (action: unknown) => void;
   /** A component or visualisation the ordinary turn would have attached. */
@@ -255,9 +264,9 @@ class BoardConductor {
     this.utterance = utterance;
 
     const handlers = {
-      onSay: (text: string) => {
+      onSay: (text: string, t?: number, durMs?: number) => {
         said.push(text);
-        options.onSay?.(text);
+        options.onSay?.(text, t, durMs);
         utterance.say(text);
       },
       onInk: (event: BoardEvent & { type: 'ink' }) => {
@@ -274,13 +283,13 @@ class BoardConductor {
       onAsk: (prompt: string, targets: string[]) => {
         this.store.applyEvent({ type: 'ask', prompt, targets, t: 0 } as BoardEvent);
         // An `ask` pauses the performance and waits for the learner — so Wobo has to actually
-        // ask it out loud, on the same voice as the rest of the turn.
-        utterance.say(prompt);
+        // ask it out loud, on the same voice as the rest of the turn, and as a question (10b).
+        utterance.say(prompt, 'ask');
         options.onAsk?.(prompt, targets);
         this.set({ ask: { prompt, targets } });
       },
       onCard: (card: unknown) => options.onCard?.(card),
-      onDone: (done: BoardDone) => this.finish(done, origin, title),
+      onDone: (done: BoardDone) => this.finish(done),
     };
 
     const open = (): Promise<unknown> =>
@@ -289,6 +298,8 @@ class BoardConductor {
         payload,
         board: this.boardContext(route, override),
         signal: controller.signal,
+        ...(options.endpoint ? { endpoint: options.endpoint } : {}),
+        ...(options.body ? { body: options.body } : {}),
         handlers,
         // BOARD.md §4: "on resume the brain continues from the last acknowledged event". The id is
         // recorded as each frame lands rather than read off the return value, because a network
@@ -339,21 +350,17 @@ class BoardConductor {
   }
 
   /**
-   * The plan closed. The brain's own choice of surface is honoured when nothing has been drawn yet
-   * (an empty plan that says "this belongs on the plane"); once ink is down, moving it would be a
-   * jump the learner did not ask for.
+   * The plan closed. The surface was decided object by object as the ink landed (`PresentationChoice`:
+   * a mark about something on the screen stays on the screen, something built from scratch opens
+   * the plane), and the `done` frame does not reopen that decision. It used to: an empty plan that
+   * named the plane opened an empty board over the thing the learner was reading, which is the
+   * board at its worst and the owner's complaint in one frame (2026-09-05). A board opens only
+   * when there is something on it, and that is known by the time `done` arrives.
    */
-  private finish(done: BoardDone, origin?: { x: number; y: number }, title?: string): void {
+  private finish(done: BoardDone): void {
     const closed = { type: 'done', t: 0 } as BoardEvent;
     this.store.applyEvent(closed);
     if (this.store !== screenStore) screenStore.applyEvent(closed);
-    if (
-      done.presentation &&
-      done.presentation !== this.state.presentation &&
-      this.inked.length === 0
-    ) {
-      this.promote(done.presentation, origin, title);
-    }
     this.set({
       ...(done.verified ? { verified: done.verified } : {}),
       ...(done.objects !== undefined ? { objects: done.objects } : {}),

@@ -1,24 +1,24 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "Which side is the hypotenuse?",
-    "t": 12513,
+    "prompt": "If the legs were 6 cm and 8 cm, what would the long side be?",
+    "t": 15459,
     "targets": [],
     "type": "ask"
   },
   "case_id": "math.icse.9.pythagoras",
-  "cost_usd": 0.002454,
-  "elapsed_ms": 3767.9105840506963,
+  "cost_usd": 0.006354,
+  "elapsed_ms": 6752.376249991357,
   "error": "",
   "events": [
     {
       "data": {
         "dur": 1090,
         "t": 0,
-        "text": "Let\u2019s build it.",
+        "text": "Let's build it.",
         "type": "say"
       },
-      "id": "P1FfFpNiVETu:0",
+      "id": "",
       "type": "say"
     },
     {
@@ -51,24 +51,24 @@
             "weight": 2
           },
           "t": {
-            "dur": 1288,
+            "dur": 1636,
             "start": 120
           }
         },
         "t": 120,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:1",
+      "id": "",
       "type": "ink"
     },
     {
       "data": {
         "dur": 6545,
         "t": 1310,
-        "text": "I\u2019ve drawn the right triangle from its two given legs, and the hypotenuse is computed on the diagram.",
+        "text": "The long side is 5 cm, because 3\u00b2 + 4\u00b2 = 9 + 16 = 25 = 5\u00b2.",
         "type": "say"
       },
-      "id": "P1FfFpNiVETu:2",
+      "id": "",
       "type": "say"
     },
     {
@@ -77,7 +77,7 @@
           "anchor": {
             "board": [
               246.67,
-              650.83
+              651.48
             ]
           },
           "id": "m0_2rightangle",
@@ -88,12 +88,12 @@
               0.0
             ],
             [
-              57.0,
+              56.29,
               0.0
             ],
             [
-              57.0,
-              52.5
+              56.29,
+              51.85
             ]
           ],
           "style": {
@@ -101,14 +101,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 1288,
-            "start": 1408
+            "dur": 1636,
+            "start": 1756
           }
         },
-        "t": 1408,
+        "t": 1756,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:3",
+      "id": "",
       "type": "ink"
     },
     {
@@ -127,14 +127,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 1288,
-            "start": 2696
+            "dur": 1636,
+            "start": 3391
           }
         },
-        "t": 2696,
+        "t": 3391,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:4",
+      "id": "",
       "type": "ink"
     },
     {
@@ -153,14 +153,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 1288,
-            "start": 3984
+            "dur": 1636,
+            "start": 5027
           }
         },
-        "t": 3984,
+        "t": 5027,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:5",
+      "id": "",
       "type": "ink"
     },
     {
@@ -179,15 +179,25 @@
             "weight": 3
           },
           "t": {
-            "dur": 1288,
-            "start": 5272
+            "dur": 1636,
+            "start": 6662
           }
         },
-        "t": 5272,
+        "t": 6662,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:6",
+      "id": "",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 4727,
+        "t": 8075,
+        "text": "Square the two legs, add them, and you have the long side squared.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
     },
     {
       "data": {
@@ -205,17 +215,17 @@
             "weight": 1
           },
           "t": {
-            "dur": 1288,
-            "start": 6559
+            "dur": 1636,
+            "start": 8298
           },
           "unit": "cm",
           "value": 3.0,
           "verified": true
         },
-        "t": 6559,
+        "t": 8298,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:7",
+      "id": "",
       "type": "ink"
     },
     {
@@ -234,28 +244,18 @@
             "weight": 1
           },
           "t": {
-            "dur": 1288,
-            "start": 7847
+            "dur": 1636,
+            "start": 9933
           },
           "unit": "cm",
           "value": 4.0,
           "verified": true
         },
-        "t": 7847,
+        "t": 9933,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:8",
+      "id": "",
       "type": "ink"
-    },
-    {
-      "data": {
-        "dur": 3636,
-        "t": 8075,
-        "text": "Can you spot which side sits opposite the right angle?",
-        "type": "say"
-      },
-      "id": "P1FfFpNiVETu:9",
-      "type": "say"
     },
     {
       "data": {
@@ -267,24 +267,35 @@
           "check": "board.numbers_agree:hypotenuse",
           "id": "m0_8num",
           "kind": "number",
+          "label": "hypotenuse",
           "precision": 2,
           "style": {
             "ink": "accent",
             "weight": 2
           },
           "t": {
-            "dur": 1288,
-            "start": 9135
+            "dur": 1636,
+            "start": 11569
           },
           "unit": "cm",
           "value": 5.0,
           "verified": true
         },
-        "t": 9135,
+        "t": 11569,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:10",
+      "id": "",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 1818,
+        "t": 13022,
+        "text": "That's the whole of Pythagoras.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
     },
     {
       "data": {
@@ -300,43 +311,45 @@
             "weight": 1
           },
           "t": {
-            "dur": 2090,
-            "start": 10423
+            "dur": 2255,
+            "start": 13204
           },
-          "text": "the right angle is the one it is about"
+          "text": "the right angle sits between the two legs"
         },
-        "t": 10423,
+        "t": 13204,
         "type": "ink"
       },
-      "id": "P1FfFpNiVETu:11",
+      "id": "",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "Which side is the hypotenuse?",
-        "t": 12513,
+        "prompt": "If the legs were 6 cm and 8 cm, what would the long side be?",
+        "t": 15459,
         "targets": [],
         "type": "ask"
       },
-      "id": "P1FfFpNiVETu:12",
+      "id": "",
       "type": "ask"
     },
     {
       "data": {
         "objects": 9,
-        "presentation": "plane",
-        "t": 12513,
+        "presentation": "full",
+        "t": 15459,
         "type": "done",
         "verified": [
-          "board.numbers_agree:hypotenuse"
+          "board.numbers_agree:hypotenuse",
+          "say.arithmetic:3**2 + 4**2 = 9 + 16 = 25 = 5**2"
         ]
       },
-      "id": "P1FfFpNiVETu:13",
+      "id": "",
       "type": "done"
     }
   ],
   "mode": "board",
   "model_calls": 1,
+  "note": "spoken line corrected by hand on 2026-09-05 after the teaching review; the board is the product's own pipelines' work and every sum in the line is signed by its CAS",
   "objects": [
     {
       "anchor": {
@@ -366,7 +379,7 @@
         "weight": 2
       },
       "t": {
-        "dur": 1288,
+        "dur": 1636,
         "start": 120
       }
     },
@@ -374,7 +387,7 @@
       "anchor": {
         "board": [
           246.67,
-          650.83
+          651.48
         ]
       },
       "id": "m0_2rightangle",
@@ -385,12 +398,12 @@
           0.0
         ],
         [
-          57.0,
+          56.29,
           0.0
         ],
         [
-          57.0,
-          52.5
+          56.29,
+          51.85
         ]
       ],
       "style": {
@@ -398,8 +411,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1288,
-        "start": 1408
+        "dur": 1636,
+        "start": 1756
       }
     },
     {
@@ -416,8 +429,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1288,
-        "start": 2696
+        "dur": 1636,
+        "start": 3391
       }
     },
     {
@@ -434,8 +447,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1288,
-        "start": 3984
+        "dur": 1636,
+        "start": 5027
       }
     },
     {
@@ -452,8 +465,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 1288,
-        "start": 5272
+        "dur": 1636,
+        "start": 6662
       }
     },
     {
@@ -470,8 +483,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1288,
-        "start": 6559
+        "dur": 1636,
+        "start": 8298
       },
       "unit": "cm",
       "value": 3.0,
@@ -491,8 +504,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1288,
-        "start": 7847
+        "dur": 1636,
+        "start": 9933
       },
       "unit": "cm",
       "value": 4.0,
@@ -506,14 +519,15 @@
       "check": "board.numbers_agree:hypotenuse",
       "id": "m0_8num",
       "kind": "number",
+      "label": "hypotenuse",
       "precision": 2,
       "style": {
         "ink": "accent",
         "weight": 2
       },
       "t": {
-        "dur": 1288,
-        "start": 9135
+        "dur": 1636,
+        "start": 11569
       },
       "unit": "cm",
       "value": 5.0,
@@ -531,17 +545,18 @@
         "weight": 1
       },
       "t": {
-        "dur": 2090,
-        "start": 10423
+        "dur": 2255,
+        "start": 13204
       },
-      "text": "the right angle is the one it is about"
+      "text": "the right angle sits between the two legs"
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Let\u2019s build it. I\u2019ve drawn the right triangle from its two given legs, and the hypotenuse is computed on the diagram. Can you spot which side sits opposite the right angle?",
+  "say": "Let's build it. The long side is 5 cm, because 3\u00b2 + 4\u00b2 = 9 + 16 = 25 = 5\u00b2. Square the two legs, add them, and you have the long side squared. That's the whole of Pythagoras.",
   "status": 200,
   "verified": [
-    "board.numbers_agree:hypotenuse"
+    "board.numbers_agree:hypotenuse",
+    "say.arithmetic:3**2 + 4**2 = 9 + 16 = 25 = 5**2"
   ]
 }

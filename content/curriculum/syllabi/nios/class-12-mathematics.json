@@ -22,11 +22,11 @@
   "stage": "senior secondary",
   "subject": "Mathematics",
   "course_code": "311",
-  "status": "provisional",
+  "status": "verified",
   "read_off_source": true,
   "provenance": {
     "extractor": "deterministic text extraction from the fetched document; no model in the loop",
-    "verifier": null,
+    "verifier": "gpt-5.6-terra",
     "checks_passed": [
       "unit_order_is_1_to_n",
       "no_empty_unit_name",
@@ -37,11 +37,121 @@
       "topic_order_is_1_to_n_within_every_unit",
       "no_unit_left_without_topics",
       "no_duplicate_topic_name_within_a_unit",
-      "no_page_tail_bled_into_a_node"
+      "no_page_tail_bled_into_a_node",
+      "orders_run_1_to_n",
+      "no_empty_name",
+      "no_duplicate_name_within_a_unit",
+      "every_unit_has_a_topic_layer",
+      "source_fetched",
+      "source_bytes_match_the_build",
+      "every_name_is_in_the_source",
+      "every_name_is_on_its_cited_page",
+      "second_reader_agrees"
     ],
     "checks_failed": [],
-    "verified_at": null,
-    "verified_by": null
+    "verified_at": "2026-09-05T10:28:15Z",
+    "verified_by": "system",
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "hold",
+      "checks": [
+        {
+          "name": "orders_run_1_to_n",
+          "passed": true,
+          "detail": "orders run 1..n"
+        },
+        {
+          "name": "no_empty_name",
+          "passed": true,
+          "detail": "every node has a name"
+        },
+        {
+          "name": "no_duplicate_name_within_a_unit",
+          "passed": true,
+          "detail": "no unit repeats a name"
+        },
+        {
+          "name": "every_unit_has_a_topic_layer",
+          "passed": true,
+          "detail": "every unit carries its topics"
+        },
+        {
+          "name": "source_fetched",
+          "passed": true,
+          "detail": "every cited document was fetched"
+        },
+        {
+          "name": "source_bytes_match_the_build",
+          "passed": true,
+          "detail": "the bytes fetched today hash to what the build recorded"
+        },
+        {
+          "name": "every_name_is_in_the_source",
+          "passed": true,
+          "detail": "48 names found in the source"
+        },
+        {
+          "name": "every_name_is_on_its_cited_page",
+          "passed": true,
+          "detail": "48 of 48 names verbatim on the page they cite"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": null,
+          "detail": "the cited pages number nothing code can count"
+        },
+        {
+          "name": "second_reader_agrees",
+          "passed": true,
+          "detail": "the second reader read the source and agrees"
+        }
+      ],
+      "names": {
+        "verbatim_on_cited_page": 48
+      },
+      "sources": {
+        "nios-bif-311": {
+          "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/311Bifurcation.pdf",
+          "title": "Bifurcation of syllabus, Mathematics (311), NIOS senior secondary course",
+          "fetched": true,
+          "transport": "local copy nios-bif-311.pdf (urllib refused (unreachable: URLError)), hashed against the build",
+          "fetched_at": "2026-09-05T10:32:54Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 1,
+          "sha256_matches_build": true
+        }
+      },
+      "coverage": {
+        "nios-bif-311": {
+          "cited_pages": [
+            1
+          ],
+          "numbered_runs": [],
+          "unit_markers": null,
+          "units": 10,
+          "topics": 38,
+          "verdict": "the cited pages number nothing code can count"
+        }
+      },
+      "second_reader": {
+        "verdicts": [
+          {
+            "document_id": "nios-bif-311",
+            "asked": true,
+            "model": "gpt-5.6-terra",
+            "passed": true,
+            "detail": "the second reader read the source and agrees",
+            "problems": [],
+            "cost_usd": 0.004908,
+            "prompt_tokens": 1134,
+            "completion_tokens": 220
+          }
+        ]
+      },
+      "reasons": [
+        "coverage: the cited pages number nothing code can count"
+      ]
+    }
   },
   "documents": [
     {
@@ -142,14 +252,14 @@
       "source_ref": {
         "document_id": "nios-bif-311",
         "page": 1,
-        "section": "Module LL"
+        "section": "Module II"
       },
       "topics": [
         {
           "source_ref": {
             "document_id": "nios-bif-311",
             "page": 1,
-            "section": "Module LL: Sequences and Series"
+            "section": "Module II: Sequences and Series"
           },
           "lesson_number": 6,
           "order": 1,
@@ -162,7 +272,7 @@
           "source_ref": {
             "document_id": "nios-bif-311",
             "page": 1,
-            "section": "Module LL: Sequences and Series"
+            "section": "Module II: Sequences and Series"
           },
           "lesson_number": 7,
           "order": 2,
@@ -172,7 +282,7 @@
           "concept_ids": []
         }
       ],
-      "unit_number": "LL",
+      "unit_number": "II",
       "order": 2,
       "name": "Sequences and Series",
       "id": "n_444a32cfd8ace628",
@@ -694,5 +804,5 @@
       "aliases": []
     }
   ],
-  "note": "NIOS states its syllabus as a bifurcation table: one row per module, with that module's lessons split between the tutor-marked assignment (40 per cent) and the public examination (60 per cent). Units here are the modules and topics are the lessons, merged back into lesson order. NIOS runs a course, not a class-by-class syllabus; the secondary course is equivalent to class 10 and the senior secondary course to class 12. Version note: the bifurcation document NIOS publishes is the 2023 edition, which is the edition still in force; this file is stamped version 2023 and applies_to 2026-27 rather than claiming a 2026-27 document that does not exist."
+  "note": "NIOS states its syllabus as a bifurcation table: one row per module, with that module's lessons split between the tutor-marked assignment (40 per cent) and the public examination (60 per cent). Units here are the modules and topics are the lessons, merged back into lesson order. NIOS runs a course, not a class-by-class syllabus; the secondary course is equivalent to class 10 and the senior secondary course to class 12. Version note: the bifurcation document NIOS publishes is the 2023 edition, which is the edition still in force; this file is stamped version 2023 and applies_to 2026-27 rather than claiming a 2026-27 document that does not exist. The document prints the second module's number as 'Module- ll' (two lower-case letters L) where the sequence and its neighbours make it Module II; it is recorded as II."
 }

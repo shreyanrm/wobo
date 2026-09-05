@@ -91,6 +91,13 @@ class Erasure:
     #: remembered picture of them. A learner asking to be forgotten is forgotten by the people who
     #: were allowed to ask about them too.
     parent_plane: int = 0
+    #: The doubt solver (doubt.py, migration 0021): the rows in ``learner.doubts`` and the photos
+    #: in the ``doubt-photos`` bucket. The bucket is reached, not only the table: the erasure
+    #: register (docs/conformance/privacy-and-children.md, I36) had every storage bucket down as
+    #: "erased by: nothing", and a photograph of a child's page is the one object in a bucket
+    #: that is unmistakably theirs.
+    doubts: int = 0
+    photos: int = 0
     #: True when a durable store was configured and answered. False means device-side only.
     durable: bool = False
     #: Stores that refused. Non-empty means the learner has NOT been fully forgotten.
@@ -107,6 +114,8 @@ class Erasure:
                 "mail_preferences": self.mail_preferences,
                 "parent_links": self.parent_links,
                 "parent_plane": self.parent_plane,
+                "doubts": self.doubts,
+                "photos": self.photos,
             },
             "durable": self.durable,
             "failed": list(self.failed),
@@ -332,6 +341,17 @@ def erase(subject: str, *, board_key: str) -> Erasure:
     except Exception as exc:
         logger.warning("memory: parent plane erase failed", extra={"fields": {"error": str(exc)}})
         out.failed.append("parent_plane")
+
+    # The photographed doubts (0021): the rows AND the objects in the bucket, through the doubt
+    # store's own seam so the erase is one call whether the record lives in the project or in this
+    # process. Counted separately, because "your photos are gone" is the sentence a parent asks for.
+    try:
+        from wobo_gateway import doubt as doubt_store
+
+        out.doubts, out.photos = doubt_store.get_store().forget_all(subject)
+    except Exception as exc:  # noqa: BLE001 - a store that refused is NAMED, never glossed over
+        logger.warning("memory: doubt erase failed", extra={"fields": {"error": str(exc)}})
+        out.failed.append(doubt_store.TABLE)
 
     prefs_gone, links_gone = _forget_in_process(subject)
     out.mail_preferences += prefs_gone

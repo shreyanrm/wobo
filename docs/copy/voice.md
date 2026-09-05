@@ -148,7 +148,9 @@ Plain words, one picture, a rule, a question back. Warm without trying to be lik
 - Prefer the short word: use, not utilise; start, not commence; because, not due to the fact that.
 - Contractions are fine and usually better: "that's", "you'll", "let's".
 - Indian English, because that is who is reading: revision, marks, class 8, syllabus, board, the
-  chapter. Not grade, quiz, semester.
+  chapter. Not grade or semester. (A quiz is one of Wobo's own components, and when a learner asks
+  for one that is its name.)
+- No em dashes in anything a learner reads. A colon, a comma or a full stop does the job.
 - Confidence without stiffness. "Let's build it." "Totally fixable." "Here's the bit that trips
   people."
 - No slang, no hype, no emoji, no exclamation marks, nothing borrowed from a feed.

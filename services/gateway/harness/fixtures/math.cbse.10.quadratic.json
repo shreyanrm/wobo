@@ -1,24 +1,24 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "Which value of x makes the first bracket, x \u2212 2, equal zero?",
-    "t": 9674,
+    "prompt": "Try the same trick on x\u00b2 - 7x + 12: which two numbers multiply to 12 and add to -7?",
+    "t": 30113,
     "targets": [],
     "type": "ask"
   },
   "case_id": "math.cbse.10.quadratic",
-  "cost_usd": 0.005118,
-  "elapsed_ms": 7968.95675000269,
+  "cost_usd": 0.011698,
+  "elapsed_ms": 8492.42054100614,
   "error": "",
   "events": [
     {
       "data": {
         "dur": 1818,
         "t": 0,
-        "text": "Let\u2019s split the middle term.",
+        "text": "Let's split the middle term.",
         "type": "say"
       },
-      "id": "sd-EAzgVhuq8:0",
+      "id": "",
       "type": "say"
     },
     {
@@ -41,25 +41,25 @@
             "weight": 2
           },
           "t": {
-            "dur": 3185,
+            "dur": 4285,
             "start": 120
           },
-          "text": "x**2 - 5*x + 6 = 0"
+          "text": "x^2 - 5x + 6 = 0"
         },
         "t": 120,
         "type": "ink"
       },
-      "id": "sd-EAzgVhuq8:1",
+      "id": "",
       "type": "ink"
     },
     {
       "data": {
-        "dur": 7636,
+        "dur": 10909,
         "t": 2038,
-        "text": "We need two numbers that multiply to 6 and add to \u22125, so the quadratic becomes a product of two brackets.",
+        "text": "We want two numbers that multiply to 6 and add to -5, and -2 and -3 do it, because -2 \u00d7 -3 = 6 and -2 + -3 = -5.",
         "type": "say"
       },
-      "id": "sd-EAzgVhuq8:2",
+      "id": "",
       "type": "say"
     },
     {
@@ -76,19 +76,19 @@
           "id": "m0_2step1",
           "kind": "write",
           "style": {
-            "ink": "accent",
+            "ink": "wobo",
             "weight": 2
           },
           "t": {
-            "dur": 3185,
-            "start": 3305
+            "dur": 4285,
+            "start": 4405
           },
-          "text": "(x - 2)*(x - 3) = 0"
+          "text": "x^2 - 2x - 3x + 6 = 0"
         },
-        "t": 3305,
+        "t": 4405,
         "type": "ink"
       },
-      "id": "sd-EAzgVhuq8:3",
+      "id": "",
       "type": "ink"
     },
     {
@@ -104,42 +104,169 @@
             "weight": 1
           },
           "t": {
-            "dur": 3185,
-            "start": 6489
+            "dur": 4285,
+            "start": 8689
           }
         },
-        "t": 6489,
+        "t": 8689,
         "type": "ink"
       },
-      "id": "sd-EAzgVhuq8:4",
+      "id": "",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "Which value of x makes the first bracket, x \u2212 2, equal zero?",
-        "t": 9674,
+        "object": {
+          "anchor": {
+            "at": "bottom",
+            "object": "m0_2step1"
+          },
+          "check": "cas.step_chain",
+          "depends": [
+            "x"
+          ],
+          "id": "m0_4step2",
+          "kind": "write",
+          "style": {
+            "ink": "wobo",
+            "weight": 2
+          },
+          "t": {
+            "dur": 4285,
+            "start": 12974
+          },
+          "text": "x(x - 3) - 2(x - 3) = 0"
+        },
+        "t": 12974,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 9454,
+        "t": 13167,
+        "text": "So -5x splits into -2x - 3x, the common bracket (x - 3) comes out, and we're left with (x - 2)(x - 3) = 0.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "object": "m0_4step2"
+          },
+          "id": "m0_5substituted",
+          "kind": "underline",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 4285,
+            "start": 17259
+          }
+        },
+        "t": 17259,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "at": "bottom",
+            "object": "m0_4step2"
+          },
+          "check": "cas.step_chain",
+          "depends": [
+            "x"
+          ],
+          "id": "m0_6step3",
+          "kind": "write",
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 4285,
+            "start": 21544
+          },
+          "text": "(x - 2)(x - 3) = 0"
+        },
+        "t": 21544,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 7272,
+        "t": 22841,
+        "text": "A product is zero only when one factor is zero, which is why x = 2 or x = 3.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "object": "m0_6step3"
+          },
+          "id": "m0_7substituted",
+          "kind": "underline",
+          "style": {
+            "ink": "faint",
+            "weight": 1
+          },
+          "t": {
+            "dur": 4285,
+            "start": 25828
+          }
+        },
+        "t": 25828,
+        "type": "ink"
+      },
+      "id": "",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "prompt": "Try the same trick on x\u00b2 - 7x + 12: which two numbers multiply to 12 and add to -7?",
+        "t": 30113,
         "targets": [],
         "type": "ask"
       },
-      "id": "sd-EAzgVhuq8:5",
+      "id": "",
       "type": "ask"
     },
     {
       "data": {
-        "objects": 3,
-        "presentation": "plane",
-        "t": 9674,
+        "objects": 7,
+        "presentation": "full",
+        "t": 30113,
         "type": "done",
         "verified": [
-          "cas.step_chain"
+          "cas.step_chain",
+          "say.arithmetic:-2 * -3 = 6",
+          "say.arithmetic:-2 + -3 = -5"
         ]
       },
-      "id": "sd-EAzgVhuq8:6",
+      "id": "",
       "type": "done"
     }
   ],
   "mode": "board",
   "model_calls": 1,
+  "note": "spoken line corrected by hand on 2026-09-05 after the teaching review; the board is the product's own pipelines' work and every sum in the line is signed by its CAS",
   "objects": [
     {
       "anchor": {
@@ -159,10 +286,10 @@
         "weight": 2
       },
       "t": {
-        "dur": 3185,
+        "dur": 4285,
         "start": 120
       },
-      "text": "x**2 - 5*x + 6 = 0"
+      "text": "x^2 - 5x + 6 = 0"
     },
     {
       "anchor": {
@@ -176,14 +303,14 @@
       "id": "m0_2step1",
       "kind": "write",
       "style": {
-        "ink": "accent",
+        "ink": "wobo",
         "weight": 2
       },
       "t": {
-        "dur": 3185,
-        "start": 3305
+        "dur": 4285,
+        "start": 4405
       },
-      "text": "(x - 2)*(x - 3) = 0"
+      "text": "x^2 - 2x - 3x + 6 = 0"
     },
     {
       "anchor": {
@@ -196,16 +323,90 @@
         "weight": 1
       },
       "t": {
-        "dur": 3185,
-        "start": 6489
+        "dur": 4285,
+        "start": 8689
+      }
+    },
+    {
+      "anchor": {
+        "at": "bottom",
+        "object": "m0_2step1"
+      },
+      "check": "cas.step_chain",
+      "depends": [
+        "x"
+      ],
+      "id": "m0_4step2",
+      "kind": "write",
+      "style": {
+        "ink": "wobo",
+        "weight": 2
+      },
+      "t": {
+        "dur": 4285,
+        "start": 12974
+      },
+      "text": "x(x - 3) - 2(x - 3) = 0"
+    },
+    {
+      "anchor": {
+        "object": "m0_4step2"
+      },
+      "id": "m0_5substituted",
+      "kind": "underline",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 4285,
+        "start": 17259
+      }
+    },
+    {
+      "anchor": {
+        "at": "bottom",
+        "object": "m0_4step2"
+      },
+      "check": "cas.step_chain",
+      "depends": [
+        "x"
+      ],
+      "id": "m0_6step3",
+      "kind": "write",
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 4285,
+        "start": 21544
+      },
+      "text": "(x - 2)(x - 3) = 0"
+    },
+    {
+      "anchor": {
+        "object": "m0_6step3"
+      },
+      "id": "m0_7substituted",
+      "kind": "underline",
+      "style": {
+        "ink": "faint",
+        "weight": 1
+      },
+      "t": {
+        "dur": 4285,
+        "start": 25828
       }
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Let\u2019s split the middle term. We need two numbers that multiply to 6 and add to \u22125, so the quadratic becomes a product of two brackets.",
+  "say": "Let's split the middle term. We want two numbers that multiply to 6 and add to -5, and -2 and -3 do it, because -2 \u00d7 -3 = 6 and -2 + -3 = -5. So -5x splits into -2x - 3x, the common bracket (x - 3) comes out, and we're left with (x - 2)(x - 3) = 0. A product is zero only when one factor is zero, which is why x = 2 or x = 3.",
   "status": 200,
   "verified": [
-    "cas.step_chain"
+    "cas.step_chain",
+    "say.arithmetic:-2 * -3 = 6",
+    "say.arithmetic:-2 + -3 = -5"
   ]
 }

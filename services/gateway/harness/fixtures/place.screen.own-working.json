@@ -1,0 +1,124 @@
+{
+  "actions": [],
+  "ask": {
+    "prompt": "What is 7 \u2212 3?",
+    "t": 4583,
+    "targets": [
+      "step-2"
+    ],
+    "type": "ask"
+  },
+  "case_id": "place.screen.own-working",
+  "cost_usd": 0.005012,
+  "elapsed_ms": 5065.8359579974785,
+  "error": "",
+  "events": [
+    {
+      "data": {
+        "dur": 2545,
+        "t": 0,
+        "text": "The slip is in this second step.",
+        "type": "say"
+      },
+      "id": "8B_ju5Y_prSo:0",
+      "type": "say"
+    },
+    {
+      "data": {
+        "object": {
+          "anchor": {
+            "target": "step-2"
+          },
+          "id": "m1",
+          "kind": "circle",
+          "meta": {
+            "beat": {
+              "with": 1
+            }
+          },
+          "style": {
+            "ink": "accent",
+            "weight": 2
+          },
+          "t": {
+            "dur": 240,
+            "start": 120
+          }
+        },
+        "t": 120,
+        "type": "ink"
+      },
+      "id": "8B_ju5Y_prSo:1",
+      "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 1818,
+        "t": 2765,
+        "text": "What is 7 \u2212 3?",
+        "type": "say"
+      },
+      "id": "8B_ju5Y_prSo:2",
+      "type": "say"
+    },
+    {
+      "data": {
+        "prompt": "What is 7 \u2212 3?",
+        "t": 4583,
+        "targets": [
+          "step-2"
+        ],
+        "type": "ask"
+      },
+      "id": "8B_ju5Y_prSo:3",
+      "type": "ask"
+    },
+    {
+      "data": {
+        "objects": 1,
+        "presentation": "screen",
+        "refused": [
+          "m2: an object showing a number must name the check that verified it (check: ...)",
+          "not spoken: '\u22123' in 'When +3 crosses the equals sign, it becomes \u22123, so the right side needs 7 \u2212 3, not 10.' is a number no verifier produced"
+        ],
+        "t": 4583,
+        "type": "done",
+        "verified": []
+      },
+      "id": "8B_ju5Y_prSo:4",
+      "type": "done"
+    }
+  ],
+  "mode": "board",
+  "model_calls": 1,
+  "objects": [
+    {
+      "anchor": {
+        "target": "step-2"
+      },
+      "id": "m1",
+      "kind": "circle",
+      "meta": {
+        "beat": {
+          "with": 1
+        }
+      },
+      "style": {
+        "ink": "accent",
+        "weight": 2
+      },
+      "t": {
+        "dur": 240,
+        "start": 120
+      }
+    }
+  ],
+  "presentation": "screen",
+  "refused": [
+    "m2: an object showing a number must name the check that verified it (check: ...)",
+    "not spoken: '\u22123' in 'When +3 crosses the equals sign, it becomes \u22123, so the right side needs 7 \u2212 3, not 10.' is a number no verifier produced"
+  ],
+  "say": "The slip is in this second step. What is 7 \u2212 3?",
+  "status": 200,
+  "verified": []
+}

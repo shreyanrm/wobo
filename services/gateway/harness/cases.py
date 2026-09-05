@@ -118,13 +118,32 @@ class Claim:
 
 
 @dataclass(frozen=True)
+class Misnaming:
+    """A right number under the wrong name: the swap a tutor makes, written down so it is caught.
+
+    ``phrase`` names the thing ("genotype ratio"); ``wrong_beside`` is what must never follow it
+    inside the same sentence, up to the next ``stop`` phrase; ``needs`` is a value that has to be
+    somewhere on the record (spoken, asked or drawn) whenever the phrase is used at all, because a
+    genotype ratio without a 2 in it is the phenotype ratio wearing the wrong name.
+    """
+
+    phrase: str
+    why: str
+    wrong_beside: str = ""
+    stop: str = ""
+    needs: float | None = None
+
+
+@dataclass(frozen=True)
 class Case:
     id: str
     board: str
     grade: str
     subject: str
     ask: str
-    #: ``board`` streams over SSE and may draw; ``prose`` is the ordinary five-path turn.
+    #: ``board`` streams over SSE and may draw; ``prose`` is the ordinary five-path turn;
+    #: ``doubt`` is a PHOTO of a page through ``POST /v1/doubt`` and its answer through
+    #: ``POST /v1/doubt/{id}/answer`` (doubt.py), the one path with vision in it.
     mode: str = "board"
     #: Extra context blocks merged into ``payload.context`` — the dossier, the canvas, the route.
     context: dict[str, Any] = field(default_factory=dict)
@@ -148,12 +167,50 @@ class Case:
     expect_question: bool = True
     #: What the words say is on the board, for the judge's drawing check.
     drawing_brief: str = ""
+    #: Where the answer belongs: ``"screen"`` when the thing to point at is already on the
+    #: learner's screen (annotate it in place, no board), ``"plane"`` when there is something new
+    #: to build. None when the question does not test the surface choice.
+    expect_presentation: str | None = None
+    #: Target ids at least one mark must land on — the chip, the step, the part they asked about.
+    #: The ids are the ones ``context.targets`` registers for this case, so the check is a set
+    #: membership against what the client would have on the screen, never a guess from pixels.
+    must_mark: tuple[str, ...] = ()
+    #: They asked Wobo to WORK IT OUT: the spoken line has to carry a sum written out in full and
+    #: confirmed by the product's CAS (``say.arithmetic:...`` in the ledger), not the theorem
+    #: restated as its own reason.
+    expect_working: bool = False
+    #: They asked for a NUMBER: every value the claims say must be stated has to be spoken or
+    #: asked, not left for the board to carry. "The curve will show the greatest height" is a
+    #: picture handed the answer.
+    answer_in_say: bool = False
+    #: The words that can only mean this learner's world. ``expect_any`` is the topic's own words
+    #: and may carry "over" and "run"; these may not, or "go over this again" is cricket.
+    world_words: tuple[str, ...] = ()
+    #: The names that are easy to swap, and the values that give the swap away.
+    misnamings: tuple[Misnaming, ...] = ()
 
 
 #: A root of a quadratic, as this product actually writes one. Two shapes, and the board uses the
 #: second: "x = 2" in a sentence, and the factor "(x - 2)" on the board's own working. The opening
 #: bracket is what keeps it off the given equation, where "5*x + 6" is not a root of anything.
 _A_ROOT = r"\bx\s*=|\(\s*x\s*[-−]"
+
+
+#: A screen the client would register for a right triangle the learner is looking at: the shape
+#: the scene bus publishes (``context-bus.tsx``: id, kind, label), which is exactly what the brain
+#: is handed as "Targets you may draw on".
+_TRIANGLE_ON_SCREEN = (
+    {"id": "tri-leg-a", "kind": "side", "label": "the base, 3 cm"},
+    {"id": "tri-leg-b", "kind": "side", "label": "the height, 4 cm"},
+    {"id": "tri-hyp", "kind": "side", "label": "the hypotenuse"},
+    {"id": "tri-right", "kind": "angle", "label": "the right angle"},
+)
+
+#: The learner's own working, as the canvas registers each step. Step 2 is the slip.
+_WORKING_ON_SCREEN = (
+    {"id": "step-1", "kind": "step", "label": "step 1: 2x + 3 = 7", "text": "2x + 3 = 7"},
+    {"id": "step-2", "kind": "step", "label": "step 2: 2x = 10", "text": "2x = 10"},
+)
 
 
 CASES: tuple[Case, ...] = (
@@ -175,6 +232,10 @@ CASES: tuple[Case, ...] = (
             ),
         ),
         expect_any=("factor", "factorise", "factorize", "product", "sum"),
+        # "solve": the roots are said, not only written. The say "the factors work because their
+        # product is the constant term" never reached 2 or 3, and the board it sat over wrote
+        # "(x - (2))*(x - (3))" in Python.
+        answer_in_say=True,
         drawing_brief="the factorisation of x squared minus five x plus six, worked on the board",
     ),
     Case(
@@ -221,6 +282,11 @@ CASES: tuple[Case, ...] = (
             ),
         ),
         expect_any=("square", "squares", "squared", "pythagoras", "theorem"),
+        # "work out the hypotenuse": the working is said (9 + 16 = 25) and so is the 5. A say
+        # that scored 4 on the word "because" while restating Pythagoras as its own reason and
+        # never reaching 5 was the first finding of the 2026-09-05 review.
+        expect_working=True,
+        answer_in_say=True,
         drawing_brief="a right-angled triangle with legs of three and four and its hypotenuse",
     ),
     Case(
@@ -266,6 +332,9 @@ CASES: tuple[Case, ...] = (
                 tolerance=0.6,
             ),
         ),
+        # "tell me how high it gets": the height is TOLD. "The curve will show the greatest
+        # height" scored full teaching marks while never telling them.
+        answer_in_say=True,
         drawing_brief="the parabolic flight path of a ball thrown at forty five degrees",
     ),
     Case(
@@ -355,6 +424,24 @@ CASES: tuple[Case, ...] = (
                 words=True,
             ),
         ),
+        # The two ratios have different names and a live turn swapped them: "the square shows the
+        # genotype ratio" over a board reading 3 and 1. Every number was verified; the name was
+        # wrong. A genotype ratio for Aa x Aa always has a 2 in it.
+        misnamings=(
+            Misnaming(
+                phrase=r"genotyp\w*\s+ratio",
+                wrong_beside=r"\b3\s*:\s*1\b|\b3\s+dominant\b|\bthree\s+to\s+one\b",
+                stop=r"phenotyp\w*",
+                needs=2.0,
+                why="the genotype ratio of Aa x Aa is 1:2:1; 3:1 is the phenotype ratio",
+            ),
+            Misnaming(
+                phrase=r"phenotyp\w*\s+ratio",
+                wrong_beside=r"\b1\s*:\s*2\s*:\s*1\b",
+                stop=r"genotyp\w*",
+                why="the phenotype ratio of Aa x Aa is 3:1; 1:2:1 is the genotype ratio",
+            ),
+        ),
         # 1:2:1 genotype, 3:1 phenotype. Counted by hand off the four boxes: AA, Aa, aA, aa.
         # The ratio, however a tutor writes it: "3:1", "3 : 1", or spelled into the sentence as
         # "3 dominant : 1 recessive", which is the form the recorded turn actually used.
@@ -432,6 +519,29 @@ CASES: tuple[Case, ...] = (
         ask="i do not get equivalent fractions, can you explain them",
         mode="prose",
         world="cricket",
+        # Only words that cannot mean anything but cricket. "over", "run" and "bat" are in
+        # ``expect_any`` below for the topic check and are NOT here: "go over this again" is not
+        # the learner's world.
+        world_words=(
+            "cricket",
+            "batting",
+            "batsman",
+            "batter",
+            "bowl",
+            "bowler",
+            "bowling",
+            "bowled",
+            "one over",
+            "wicket",
+            "wickets",
+            "innings",
+            "overs",
+            "an over",
+            "the over",
+            "six balls",
+            "runs",
+            "boundary",
+        ),
         context={
             "curriculum": {"nodeName": "equivalent fractions"},
             "lifetime": {
@@ -458,6 +568,88 @@ CASES: tuple[Case, ...] = (
         ),
         drawing_brief="",
     ),
+    # --- drawing where the learner is looking (the owner, 2026-09-05) -----------------------
+    #
+    # "wobo doesn't have to draw every single time on the board, it can draw onto the screen as
+    # well cause it knows the context anyways." The screen below is what the client registers:
+    # every part has a stable id, and a mark anchored to one lands on it. Two questions share it.
+    # One is a pointer at something already there; one is something new to build. The harness
+    # measures which surface each answer chose, and where the ink actually landed.
+    Case(
+        id="place.screen.pythagoras-side",
+        board="ICSE",
+        grade="Class 9",
+        subject="mathematics",
+        ask="which side is the hypotenuse?",
+        context={
+            "page": {"route": "practice", "state": {"title": "a right triangle, 3 cm by 4 cm"}},
+            "targets": _TRIANGLE_ON_SCREEN,
+            "curriculum": {"nodeName": "Pythagoras theorem"},
+        },
+        expect_presentation="screen",
+        must_mark=("tri-hyp",),
+        expect_any=("right angle", "opposite", "longest", "hypotenuse"),
+        drawing_brief="",
+    ),
+    Case(
+        id="place.screen.own-working",
+        board="CBSE",
+        grade="Class 8",
+        subject="mathematics",
+        ask="i think i made a mistake somewhere, where is it?",
+        context={
+            "page": {"route": "practice", "state": {"title": "solving 2x + 3 = 7"}},
+            "targets": _WORKING_ON_SCREEN,
+            "canvas": {"equation": "2*x + 3 = 7", "steps": ["2*x + 3 = 7", "2*x = 10"]},
+            "curriculum": {"nodeName": "linear equations in one variable"},
+        },
+        expect_presentation="screen",
+        must_mark=("step-2",),
+        # The graduated-hint law still holds while pointing: the slip is shown, never the answer.
+        forbid=("x = 2", "x=2", "x is 2"),
+        expect_any=("subtract", "minus", "both sides", "take away", "3"),
+        drawing_brief="",
+    ),
+    Case(
+        id="place.plane.pythagoras-squares",
+        board="ICSE",
+        grade="Class 9",
+        subject="mathematics",
+        ask=(
+            "draw the right triangle with legs 3 cm and 4 cm and show me why the square on the "
+            "hypotenuse equals the other two squares"
+        ),
+        context={
+            "page": {"route": "practice", "state": {"title": "a right triangle, 3 cm by 4 cm"}},
+            "targets": _TRIANGLE_ON_SCREEN,
+            "curriculum": {"nodeName": "Pythagoras theorem"},
+        },
+        needs_drawing=True,
+        expect_kinds=frozenset({"polygon", "polyline", "line", "curve"}),
+        expect_presentation="plane",
+        claims=(
+            Claim(
+                name="the three sides of a 3-4 right triangle, in centimetres",
+                about=r"hypotenuse",
+                truth=(3.0, 4.0, HYPOTENUSE),
+                tolerance=1e-3,
+            ),
+            Claim(
+                # "show me WHY the square on the hypotenuse equals the other two": the squares are
+                # drawn, with their areas, and the areas are the proof. A board that drew the
+                # triangle and no squares under a sentence about squares was a claim nothing
+                # showed (the 2026-09-05 review, finding 2).
+                name="the areas of the squares on a 3-4-5 right triangle",
+                about=r"square areas",
+                truth=(9.0, 16.0, 25.0),
+                tolerance=1e-3,
+                where="board",
+                must_include=(9.0, 16.0, 25.0),
+            ),
+        ),
+        expect_any=("square", "squares", "squared", "pythagoras", "theorem"),
+        drawing_brief="a right triangle with a square built on each of its three sides",
+    ),
     Case(
         # The prerequisite case. The learner's own words say the ground beneath is missing; a tutor
         # that ploughs on with the topic has failed the claim the product makes about itself.
@@ -483,6 +675,30 @@ CASES: tuple[Case, ...] = (
         drawing_brief="",
     ),
 )
+
+
+#: The doubt solver's page, photographed (doubt.py). The runner draws it (``runner.page_image``):
+#: "3x + 5 = 20" and "Solve for x." on a white page, so the reading has lines to anchor to. What
+#: is measured is the two laws nothing else measures: every mark on a LINE OF THE PAGE, never a
+#: pixel guess (law 3, the ``off the page`` count in the done frame), and every ink frame at the
+#: timestamp of a say frame (law 5, "it explains while it draws"). The claims are the equation's
+#: own: x is 5, and nothing else may be called x.
+DOUBT_CASE = Case(
+    id="doubt.cbse.8.linear-photo",
+    board="CBSE",
+    grade="Class 8",
+    subject="mathematics",
+    ask="I do not get how the 5 moves to the other side",
+    mode="doubt",
+    expect_presentation="screen",
+    # No claim yet: the recording in the bank was made keyless, and a claim has to fire on its own
+    # recorded transcript (``test_every_claim_fires_on_its_own_recorded_transcript``). A live
+    # re-record earns it: ``Claim("x from 3x + 5 = 20", r"\\bx\\s*(?:=|is)", (5.0,), window=12)``.
+    expect_any=("subtract", "minus", "take away", "both sides", "other side", "5"),
+    drawing_brief="a ring or an underline on the line of the page that the words are about",
+)
+
+CASES = (*CASES, DOUBT_CASE)
 
 
 def by_id(case_id: str) -> Case:

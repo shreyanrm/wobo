@@ -23,6 +23,7 @@
   "subject": "English",
   "course_code": "302",
   "status": "provisional",
+  "status_reason": "not checked: the file holds no units (blocker: document_not_machine_readable)",
   "read_off_source": false,
   "discovery_state": "blocked",
   "blocker": "document_not_machine_readable",
@@ -34,7 +35,19 @@
     ],
     "checks_failed": [],
     "verified_at": null,
-    "verified_by": null
+    "verified_by": null,
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "blocked",
+      "checks": [],
+      "names": {},
+      "sources": {},
+      "coverage": {},
+      "second_reader": null,
+      "reasons": [
+        "not checked: the file holds no units (blocker: document_not_machine_readable)"
+      ]
+    }
   },
   "documents": [
     {

@@ -30,6 +30,7 @@
   "level_order": 7,
   "subject": "Social Science",
   "status": "provisional",
+  "status_reason": "5 names matched only weakly: unit 6: Theme A - India and the World: Land and the People (Part 2) (container_named_by_the_build_its_chapters_verbatim); unit 7: Theme B - Tapestry of the Past (Part 2) (container_named_by_the_build_its_chapters_verbatim); unit 8: Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2) (container_named_by_the_build_its_chapters_verbatim); unit 9: Theme D - Governance and Democracy (Part 2) (container_named_by_the_build_its_chapters_verbatim); unit 10: Theme E - Economic Life Around Us (Part 2) (container_named_by_the_build_its_chapters_verbatim); the second reader does not agree: Every theme title incorrectly adds “(Part 2)”, which does not appear in the contents.; The extraction replaces the document’s em dash in each theme heading with a hyphen.",
   "read_off_source": true,
   "provenance": {
     "extractor": "deterministic text extraction from the fetched document; no model in the loop",
@@ -44,11 +45,168 @@
       "topic_order_is_1_to_n_within_every_unit",
       "no_unit_left_without_topics",
       "no_duplicate_topic_name_within_a_unit",
-      "no_page_tail_bled_into_a_node"
+      "no_page_tail_bled_into_a_node",
+      "orders_run_1_to_n",
+      "no_empty_name",
+      "no_duplicate_name_within_a_unit",
+      "every_unit_has_a_topic_layer",
+      "source_fetched",
+      "source_bytes_match_the_build",
+      "every_name_is_in_the_source",
+      "every_name_is_on_its_cited_page",
+      "coverage_matches_the_documents_numbering"
     ],
-    "checks_failed": [],
+    "checks_failed": [
+      "second_reader_agrees"
+    ],
     "verified_at": null,
-    "verified_by": null
+    "verified_by": null,
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "flag",
+      "checks": [
+        {
+          "name": "orders_run_1_to_n",
+          "passed": true,
+          "detail": "orders run 1..n"
+        },
+        {
+          "name": "no_empty_name",
+          "passed": true,
+          "detail": "every node has a name"
+        },
+        {
+          "name": "no_duplicate_name_within_a_unit",
+          "passed": true,
+          "detail": "no unit repeats a name"
+        },
+        {
+          "name": "every_unit_has_a_topic_layer",
+          "passed": true,
+          "detail": "every unit carries its topics"
+        },
+        {
+          "name": "source_fetched",
+          "passed": true,
+          "detail": "every cited document was fetched"
+        },
+        {
+          "name": "source_bytes_match_the_build",
+          "passed": true,
+          "detail": "the bytes fetched today hash to what the build recorded"
+        },
+        {
+          "name": "every_name_is_in_the_source",
+          "passed": true,
+          "detail": "30 names found in the source"
+        },
+        {
+          "name": "every_name_is_on_its_cited_page",
+          "passed": true,
+          "detail": "25 of 30 names verbatim on the page they cite; the rest within one page"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": true,
+          "detail": "the document numbers 12 chapters; the file has 12 topics"
+        },
+        {
+          "name": "coverage_matches_the_documents_numbering",
+          "passed": true,
+          "detail": "the document numbers 8 chapters; the file has 8 topics"
+        },
+        {
+          "name": "second_reader_agrees",
+          "passed": false,
+          "detail": "Every theme title incorrectly adds “(Part 2)”, which does not appear in the contents.; The extraction replaces the document’s em dash in each theme heading with a hyphen."
+        }
+      ],
+      "names": {
+        "verbatim_on_cited_page": 25,
+        "container_named_by_the_build_its_chapters_verbatim": 5
+      },
+      "sources": {
+        "ncert-7-society1": {
+          "url": "https://ncert.nic.in/textbook/pdf/gees1ps.pdf",
+          "title": "Exploring Society: India and Beyond, Social Science for Grade 7, Part 1 (prelims)",
+          "fetched": true,
+          "transport": "urllib GET",
+          "fetched_at": "2026-09-05T10:30:27Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 22,
+          "sha256_matches_build": true
+        },
+        "ncert-7-society2": {
+          "url": "https://ncert.nic.in/textbook/pdf/gees2ps.pdf",
+          "title": "Exploring Society: India and Beyond, Social Science for Grade 7, Part 2 (prelims)",
+          "fetched": true,
+          "transport": "urllib GET",
+          "fetched_at": "2026-09-05T10:31:09Z",
+          "extraction": "pypdf and pdftotext -layout, page-anchored",
+          "pages": 16,
+          "sha256_matches_build": true
+        }
+      },
+      "coverage": {
+        "ncert-7-society1": {
+          "cited_pages": [
+            21
+          ],
+          "numbered_runs": [
+            12
+          ],
+          "unit_markers": 12,
+          "units": 5,
+          "topics": 12,
+          "verdict": "the document numbers 12 chapters; the file has 12 topics"
+        },
+        "ncert-7-society2": {
+          "cited_pages": [
+            15
+          ],
+          "numbered_runs": [
+            8
+          ],
+          "unit_markers": 8,
+          "units": 5,
+          "topics": 8,
+          "verdict": "the document numbers 8 chapters; the file has 8 topics"
+        }
+      },
+      "second_reader": {
+        "verdicts": [
+          {
+            "document_id": "ncert-7-society1",
+            "asked": true,
+            "model": "gpt-5.6-terra",
+            "passed": true,
+            "detail": "the second reader read the source and agrees",
+            "problems": [],
+            "cost_usd": 0.016706,
+            "prompt_tokens": 8275,
+            "completion_tokens": 13
+          },
+          {
+            "document_id": "ncert-7-society2",
+            "asked": true,
+            "model": "gpt-5.6-terra",
+            "passed": false,
+            "detail": "Every theme title incorrectly adds “(Part 2)”, which does not appear in the contents.; The extraction replaces the document’s em dash in each theme heading with a hyphen.",
+            "problems": [
+              "Every theme title incorrectly adds “(Part 2)”, which does not appear in the contents.",
+              "The extraction replaces the document’s em dash in each theme heading with a hyphen."
+            ],
+            "cost_usd": 0.014324,
+            "prompt_tokens": 6376,
+            "completion_tokens": 131
+          }
+        ]
+      },
+      "reasons": [
+        "5 names matched only weakly: unit 6: Theme A - India and the World: Land and the People (Part 2) (container_named_by_the_build_its_chapters_verbatim); unit 7: Theme B - Tapestry of the Past (Part 2) (container_named_by_the_build_its_chapters_verbatim); unit 8: Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2) (container_named_by_the_build_its_chapters_verbatim); unit 9: Theme D - Governance and Democracy (Part 2) (container_named_by_the_build_its_chapters_verbatim); unit 10: Theme E - Economic Life Around Us (Part 2) (container_named_by_the_build_its_chapters_verbatim)",
+        "the second reader does not agree: Every theme title incorrectly adds “(Part 2)”, which does not appear in the contents.; The extraction replaces the document’s em dash in each theme heading with a hyphen."
+      ]
+    }
   },
   "documents": [
     {

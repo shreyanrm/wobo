@@ -26,6 +26,7 @@ DIMENSIONS = (
     "correct",
     "verified",
     "drew",
+    "in place",
     "draws what it says",
     "legible",
     "teaches",

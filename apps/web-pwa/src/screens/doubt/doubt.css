@@ -1,0 +1,85 @@
+/* biome-ignore-all format: one rule per line, as every app sheet is written */
+/*
+ * The doubt solver (owner, 2026-09-05) — law v5 (DESIGN.md §0): white ground, paper-2 surfaces,
+ * colour with a job. Pig is the one pointer on the view (Explain, then Another doubt); marigold is
+ * the highlighter behind the part of the page being read; nothing is washed to say it is a card.
+ * Every control is 44px or taller at every width. `db-` so nothing here meets a rule from another
+ * screen (trap 1). No transition rides transform or opacity (§8): the pen owns those.
+ */
+
+/* the entry — one tap from wherever a learner is. A floating disc, because it floats: --lift */
+.db-entry{position:fixed;right:20px;bottom:128px;z-index:900;width:52px;height:52px;border-radius:999px;background:var(--paper-2);color:var(--ink);display:grid;place-items:center;box-shadow:var(--lift);cursor:pointer}
+.db-entry:hover{background:var(--paper-3)}
+.db-entry:focus-within{outline:3px solid var(--pig);outline-offset:2px}
+.db-entry > svg{width:24px;height:24px}
+button.db-entry{border:0;padding:0;font:inherit}
+button.db-entry:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
+.db-entry > input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.db-entry-note{position:fixed;right:20px;bottom:190px;z-index:900;max-width:min(320px,calc(100vw - 40px));background:var(--paper-2);color:var(--ink);border-radius:14px;padding:10px 14px;font:500 14px/1.4 var(--sans);box-shadow:var(--lift)}
+@media (max-width:900px){
+  .db-entry{right:12px;bottom:calc(84px + var(--wst-height,0px) + env(safe-area-inset-bottom))}
+  .db-entry-note{right:12px;bottom:calc(146px + var(--wst-height,0px) + env(safe-area-inset-bottom))}
+}
+
+/* the screen */
+.db-wrap{display:grid;gap:20px}
+.db-grid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;align-items:start}
+.db-grid > *{min-width:0}
+@media (max-width:1100px){.db-grid{grid-template-columns:1fr}}
+
+/* before a photo: the camera on a phone, the picker and the drop zone on a laptop */
+.db-drop{border-radius:22px;background:var(--paper-2);padding:28px 24px;display:grid;gap:14px;justify-items:center;text-align:center;min-height:300px;align-content:center}
+.db-drop.db-over{background:var(--paper-3)}
+.db-drop > h2{font:600 22px/1.3 var(--sans);letter-spacing:-.02em}
+.db-drop > p{color:var(--ink-2);max-width:38ch}
+label.db-take{cursor:pointer;position:relative}
+label.db-take > input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+label.db-take:focus-within{outline:3px solid var(--pig);outline-offset:2px}
+.db-error{color:var(--rose);font-weight:500}
+
+/* the photo, registered */
+.db-stage{position:relative;border-radius:22px;background:var(--paper-2);padding:14px;display:grid;gap:12px;justify-items:center}
+.db-photo{position:relative;max-width:100%;border-radius:14px;overflow:hidden;background:var(--paper-3);touch-action:pan-y;overscroll-behavior:contain}
+.db-photo.db-held{touch-action:none}
+.db-photo > img{position:absolute;left:50%;top:50%;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.db-region{position:absolute;border:0;background:transparent;padding:0;margin:0;border-radius:10px;cursor:pointer;color:transparent;font-size:0;outline:2.5px solid transparent}
+.db-region.db-lit{background:color-mix(in srgb,var(--marigold) 32%,transparent);outline-color:var(--marigold)}
+.db-region:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
+.db-tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.db-tools > .wk-btn{min-height:44px}
+
+/* the reading, shown before anything else */
+.db-read{border-radius:22px;background:var(--paper-2);padding:22px;display:grid;gap:14px;align-content:start}
+.db-read > h2{font:600 20px/1.3 var(--sans);letter-spacing:-.02em}
+.db-line{font-family:var(--hand);font-weight:600;font-size:26px;line-height:1.15;color:var(--ink)}
+.db-lines{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.db-lines > li{display:grid}
+.db-text{width:100%;min-height:48px;border:0;border-radius:12px;background:var(--paper);color:var(--ink);font:500 17px/1.5 var(--sans);padding:10px 14px}
+.db-text:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
+.db-lines > .db-lit-row > .db-text{box-shadow:inset 0 0 0 2.5px var(--marigold)}
+.db-words{display:grid;gap:6px}
+.db-words > textarea.db-text{resize:vertical;min-height:56px;font-size:16px}
+.db-parts{display:flex;flex-wrap:wrap;gap:8px}
+.db-parts > button{min-height:44px;min-width:44px}
+.db-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.db-row > .wk-btn{min-height:44px}
+.db-drop > .db-row{justify-content:center}
+.db-said{font:400 16px/1.55 var(--sans);color:var(--ink-2);min-height:1.55em}
+.db-said > b{color:var(--ink);font-weight:600}
+.db-note{font-size:14px;color:var(--ink-3);line-height:1.45}
+.db-busy{display:flex;align-items:center;gap:10px;color:var(--ink-2)}
+.db-place{display:grid;gap:10px}
+.db-place > p{color:var(--ink-2)}
+
+/* the memory page's list */
+.db-mem{display:grid;gap:8px}
+.db-mem-row{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--paper);border-radius:14px;padding:10px 12px}
+.db-mem-row > img,.db-mem-row > .db-mem-blank{display:block;width:56px;height:56px;object-fit:cover;border-radius:12px;background:var(--paper-3)}
+.db-mem-row > div > b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:600;color:var(--ink);font-size:15px;line-height:1.35}
+.db-mem-row > div > span{display:block;color:var(--ink-3);font-size:13px}
+.db-mem-row > .wk-btn{min-height:44px}
+@media (max-width:900px){
+  .db-mem-row{grid-template-columns:48px minmax(0,1fr)}
+  .db-mem-row > img,.db-mem-row > .db-mem-blank{width:48px;height:48px}
+  .db-mem-row > .wk-btn{grid-column:2}
+}

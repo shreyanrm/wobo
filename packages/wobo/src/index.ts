@@ -22,3 +22,4 @@ export * from './highlight-overlay';
 export * from './identity';
 export * from './packet';
 export * from './registry';
+export * from './scroll-hold';

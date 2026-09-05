@@ -18,6 +18,7 @@
  */
 
 import type { ReactNode } from 'react';
+import { DoubtEntry } from '../screens/doubt/DoubtEntry';
 import { FlagControl } from '../ui/FlagControl';
 import type { FlagAbout } from '../ui/flag';
 import { AllowanceCard, AppShell, type NavId } from '../ui/primitives';
@@ -71,6 +72,9 @@ export function AppFrame({ active, children, bottom, about }: AppFrameProps) {
       }
     >
       {children}
+      {/* The doubt solver's door, one tap from every screen behind the frame (screens/doubt).
+          The doubt screen carries its own camera control, so the floating one stands down there. */}
+      {router.route.name !== 'doubt' ? <DoubtEntry /> : null}
     </AppShell>
   );
 }

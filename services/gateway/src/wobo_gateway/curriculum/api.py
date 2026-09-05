@@ -94,17 +94,15 @@ OUT_OF_BAND = f"I teach classes {LEVEL_MIN} to {LEVEL_MAX}. That one is outside 
 def discovery_worker_running() -> bool:
     """Is there anything that will move a queued discovery job?
 
-    Today: no. ``curriculum.discovery_jobs`` is written by :func:`_units` and drained by nothing —
-    :func:`discovery.job.run_discovery` exists and is scheduled by no one — so a job sits at
-    ``queued`` for ever while the learner reads "Looking for the official syllabus now". That is a
-    promise about a search nobody is running, and §4.6 asks for the opposite: say so in one line
-    and open the own-syllabus door immediately.
-
-    So until a worker exists, the job is recorded (a learner asked, and the row is what a worker
-    will pick up) and refused in the same breath. ``WOBO_DISCOVERY_WORKER=1`` is how the day a
-    worker ships flips this back, and nothing else in this file has to change.
+    Only when the owner has switched the worker on (``WOBO_DISCOVERY_WORKER=1``, started by
+    ``create_app`` through :func:`discovery.worker.start_if_enabled`; the cost is in
+    ``docs/OPERATIONS.md``). With it off, a job is recorded (a learner asked, and the row is what
+    the worker picks up the day it is on) and refused in the same breath, because "Looking for the
+    official syllabus now" about a search nobody is running is the promise §4.6 forbids.
     """
-    return (os.getenv("WOBO_DISCOVERY_WORKER") or "").strip().lower() in ("1", "true", "yes", "on")
+    from wobo_gateway.curriculum.discovery.worker import enabled
+
+    return enabled()
 
 
 class CurriculumError(Exception):
@@ -266,15 +264,21 @@ def _find_child(nodes: Sequence[Node], name: str) -> Node | None:
     return None
 
 
+def _locate(
+    store: CurriculumStore, version: Version, level: str, subject_name: str
+) -> tuple[Node | None, Node | None]:
+    level_node = _find_child(store.children(version.id, None, kind=NodeKind.LEVEL), level)
+    if level_node is None:
+        return None, None
+    return level_node, _find_child(
+        store.children(version.id, level_node.id, kind=NodeKind.SUBJECT), subject_name
+    )
+
+
 def _locate_subject(
     store: CurriculumStore, version: Version, level: str, subject_name: str
 ) -> Node | None:
-    level_node = _find_child(store.children(version.id, None, kind=NodeKind.LEVEL), level)
-    if level_node is None:
-        return None
-    return _find_child(
-        store.children(version.id, level_node.id, kind=NodeKind.SUBJECT), subject_name
-    )
+    return _locate(store, version, level, subject_name)[1]
 
 
 def _overlay(store: CurriculumStore, subject: str, version_id: str) -> Overlay:
@@ -417,8 +421,8 @@ def _units(payload: dict[str, Any], subject: str, store: CurriculumStore) -> dic
     version = _version(store, framework, payload, subject)
     _check_level_band(store, framework, version, level)
 
-    subject_node = (
-        _locate_subject(store, version, level, subject_name) if version is not None else None
+    level_node, subject_node = (
+        _locate(store, version, level, subject_name) if version is not None else (None, None)
     )
     units = (
         store.children(version.id, subject_node.id, kind=NodeKind.UNIT)
@@ -442,15 +446,71 @@ def _units(payload: dict[str, Any], subject: str, store: CurriculumStore) -> dic
         }
 
     # Narrowed by the branch above: units are non-empty only when both were found.
-    ops = _overlay(store, subject, version.id).patch if subject else []
-    return {
+    block = {
         **_framework_block(framework, version),
         "level": level,
         "subject": subject_name,
         "subject_id": subject_node.id,
-        "status": "ready",
-        "units": _views(store, version, units, ops, subject_node.id),
     }
+    # First selection verifies from the web (docs/CURRICULUM-OBSERVER.md §2). A provisional
+    # subject is checked against the board's document before its chapters are shown, once, with
+    # an honest line while the check runs; the next learner reads what it found. Whatever it
+    # found, the chapters served are the stored ones: the check labels, it never invents.
+    check = _first_selection(store, framework, version, level_node, subject_node)
+    if check is not None and check.state == "checking":
+        job = check.job
+        return {
+            **block,
+            "status": "checking",
+            "units": [],
+            "placeholder": _job_block(job) if job is not None else None,
+            "label": check.line,
+            "not_listed": OWN_SYLLABUS,
+        }
+    ops = _overlay(store, subject, version.id).patch if subject else []
+    out = {**block, "status": "ready", "units": _views(store, version, units, ops, subject_node.id)}
+    if check is not None:
+        out["label"] = check.line
+        out["check"] = {
+            "state": check.state,
+            "line": check.line,
+            "verified_at": check.verified_at,
+            "checks_passed": list(check.checks_passed),
+            "new_version_id": check.new_version_id,
+        }
+        if check.state == "provisional":
+            out["not_listed"] = OWN_SYLLABUS
+    return out
+
+
+def _first_selection(
+    store: CurriculumStore,
+    framework: Framework,
+    version: Version,
+    level_node: Node | None,
+    subject_node: Node | None,
+) -> Any:
+    """The re-check's verdict for this subject, or None when there is nothing to check: a version
+    already verified, a personal framework, or the check switched off (``recheck.enabled``)."""
+    from wobo_gateway.curriculum import recheck
+
+    if (
+        level_node is None
+        or subject_node is None
+        or framework.personal
+        or version.status is Status.VERIFIED
+        or not recheck.enabled()
+    ):
+        return None
+    try:
+        return recheck.on_selection(store, framework, version, level_node, subject_node)
+    except StoreUnavailable:
+        raise
+    except Exception as exc:  # noqa: BLE001 — a check that cannot start must not hide the chapters
+        logger.warning(
+            "first selection check did not start", extra={"fields": {"error": type(exc).__name__}}
+        )
+        return None
 
 
 def _discovery(
@@ -674,6 +734,13 @@ def _overlay_apply(payload: dict[str, Any], subject: str, store: CurriculumStore
     stored = store.put_overlay(
         Overlay(subject_id=subject, version_id=version.id, patch=merged, last_report=[])
     )
+    # The observer counts the edit, anonymously, on the canonical node it names
+    # (docs/CURRICULUM-OBSERVER.md §3). The overlay is the learner's under the memory law; the
+    # count is ours. It rides AFTER the write and never raises: an observer that cannot count
+    # must not cost a learner their edit.
+    from wobo_gateway.curriculum import observer as syllabus_observer
+
+    syllabus_observer.note_overlay(subject, version.id, incoming, nodes=nodes)
     # An edit is a commitment to an edition. Without this the learner's chapter list silently
     # reverted to the board's the moment a new version was published — their overlay still on
     # disk under the old version id, unreachable, and `curriculum.upgrade` answering "you are on

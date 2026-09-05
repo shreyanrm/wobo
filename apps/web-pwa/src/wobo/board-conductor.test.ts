@@ -208,3 +208,26 @@ describe('a dropped connection', () => {
     expect(calls).toHaveLength(1);
   });
 });
+
+describe('the board opens only when there is something new to build (the owner, 2026-09-05)', () => {
+  it('never opens an empty board because the brain named the plane', async () => {
+    // A plan with nothing in it that still says "plane": the failure was an empty board sliding
+    // over the thing the learner was reading, with nothing on it.
+    serve(closes({ data: { type: 'done', presentation: 'plane', objects: 0 } }));
+    const outcome = await run();
+
+    expect(outcome.objects).toBe(0);
+    expect(plane.get().open).toBe(false);
+    expect(outcome.presentation).toBe('screen');
+  });
+
+  it('keeps a mark about the screen on the screen and leaves the board shut', async () => {
+    const chip = { ...RING, anchor: { target: 'tri-hyp' } };
+    serve(closes(ink(chip), { data: { type: 'done', presentation: 'screen', objects: 1 } }));
+    const outcome = await run();
+
+    expect(outcome.presentation).toBe('screen');
+    expect(plane.get().open).toBe(false);
+    expect(screenStore.snapshot().map((s) => s.object.id)).toEqual(['ring']);
+  });
+});

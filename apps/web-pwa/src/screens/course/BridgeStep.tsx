@@ -26,6 +26,7 @@
  *   and the card does not pretend they are a lesson.
  */
 
+import { useRegisterTarget } from '@wobo/wobo';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import type { BridgeLesson } from '../../wobo/bridge';
@@ -39,6 +40,21 @@ export interface BridgeStepProps {
   setBar: (bar: BarState) => void;
   /** The learner is ready: the lesson itself begins. */
   onDone: () => void;
+}
+
+/** One step of the ground, registered so a question about it is answered with a ring on it. */
+function GroundStep({ index, step }: { index: number; step: { title?: string; idea?: string } }) {
+  const ref = useRegisterTarget<HTMLLIElement>(`course-ground-${index + 1}`, {
+    kind: 'step',
+    label: `step ${index + 1} of the ground: ${step.title || step.idea || ''}`,
+  });
+  return (
+    <li ref={ref} style={{ ...lead, margin: 0 }}>
+      {step.title && <b>{step.title.toLowerCase()}</b>}
+      {step.title && step.idea ? '. ' : null}
+      {step.idea}
+    </li>
+  );
 }
 
 export function BridgeStep({ lesson, hue, setBar, onDone }: BridgeStepProps) {
@@ -70,12 +86,8 @@ export function BridgeStep({ lesson, hue, setBar, onDone }: BridgeStepProps) {
             paddingLeft: 20,
           }}
         >
-          {card.steps.map((step) => (
-            <li key={`${step.title}|${step.idea}`} style={{ ...lead, margin: 0 }}>
-              {step.title && <b>{step.title.toLowerCase()}</b>}
-              {step.title && step.idea ? '. ' : null}
-              {step.idea}
-            </li>
+          {card.steps.map((step, i) => (
+            <GroundStep key={`${step.title}|${step.idea}`} index={i} step={step} />
           ))}
         </ol>
 

@@ -1,24 +1,24 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "Can you tell me whether this image is real or virtual?",
-    "t": 12219,
+    "prompt": "Which side of the lens is the image on?",
+    "t": 11711,
     "targets": [],
     "type": "ask"
   },
   "case_id": "physics.icse.10.lens",
-  "cost_usd": 0.003654,
-  "elapsed_ms": 5223.843874991871,
+  "cost_usd": 0.003426,
+  "elapsed_ms": 4086.582041985821,
   "error": "",
   "events": [
     {
       "data": {
         "dur": 1454,
         "t": 0,
-        "text": "Ray diagram coming up.",
+        "text": "Here\u2019s the ray diagram.",
         "type": "say"
       },
-      "id": "tioEhFXQz99W:0",
+      "id": "IYbyQQX2ni_j:0",
       "type": "say"
     },
     {
@@ -37,7 +37,7 @@
             "weight": 1
           },
           "t": {
-            "dur": 1100,
+            "dur": 1054,
             "start": 120
           },
           "to": {
@@ -50,7 +50,7 @@
         "t": 120,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:1",
+      "id": "IYbyQQX2ni_j:1",
       "type": "ink"
     },
     {
@@ -71,24 +71,24 @@
             "weight": 2
           },
           "t": {
-            "dur": 1100,
-            "start": 1220
+            "dur": 1054,
+            "start": 1174
           }
         },
-        "t": 1220,
+        "t": 1174,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:2",
+      "id": "IYbyQQX2ni_j:2",
       "type": "ink"
     },
     {
       "data": {
-        "dur": 10545,
+        "dur": 6545,
         "t": 1674,
-        "text": "The object is beyond twice the focal length, so the image will form on the other side of the lens, between the focal point and twice the focal length.",
+        "text": "The image forms where the refracted rays meet, because a converging lens bends parallel rays through its focus.",
         "type": "say"
       },
-      "id": "tioEhFXQz99W:3",
+      "id": "IYbyQQX2ni_j:3",
       "type": "say"
     },
     {
@@ -113,14 +113,14 @@
             "weight": 2
           },
           "t": {
-            "dur": 1100,
-            "start": 2320
+            "dur": 1054,
+            "start": 2227
           }
         },
-        "t": 2320,
+        "t": 2227,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:4",
+      "id": "IYbyQQX2ni_j:4",
       "type": "ink"
     },
     {
@@ -137,15 +137,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 1100,
-            "start": 3420
+            "dur": 1054,
+            "start": 3281
           },
           "text": "object"
         },
-        "t": 3420,
+        "t": 3281,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:5",
+      "id": "IYbyQQX2ni_j:5",
       "type": "ink"
     },
     {
@@ -170,14 +170,14 @@
             "weight": 2
           },
           "t": {
-            "dur": 1100,
-            "start": 4520
+            "dur": 1054,
+            "start": 4335
           }
         },
-        "t": 4520,
+        "t": 4335,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:6",
+      "id": "IYbyQQX2ni_j:6",
       "type": "ink"
     },
     {
@@ -194,15 +194,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 1100,
-            "start": 5620
+            "dur": 1054,
+            "start": 5389
           },
           "text": "image"
         },
-        "t": 5620,
+        "t": 5389,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:7",
+      "id": "IYbyQQX2ni_j:7",
       "type": "ink"
     },
     {
@@ -221,14 +221,14 @@
             "weight": 1
           },
           "t": {
-            "dur": 1100,
-            "start": 6719
+            "dur": 1054,
+            "start": 6442
           }
         },
-        "t": 6719,
+        "t": 6442,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:8",
+      "id": "IYbyQQX2ni_j:8",
       "type": "ink"
     },
     {
@@ -247,15 +247,25 @@
             "weight": 1
           },
           "t": {
-            "dur": 1100,
-            "start": 7819
+            "dur": 1054,
+            "start": 7496
           }
         },
-        "t": 7819,
+        "t": 7496,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:9",
+      "id": "IYbyQQX2ni_j:9",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 3272,
+        "t": 8439,
+        "text": "Which side of the lens is the image on?",
+        "type": "say"
+      },
+      "id": "IYbyQQX2ni_j:10",
+      "type": "say"
     },
     {
       "data": {
@@ -273,8 +283,8 @@
             "weight": 1
           },
           "t": {
-            "dur": 1100,
-            "start": 8919
+            "dur": 1054,
+            "start": 8550
           },
           "to": {
             "board": [
@@ -283,10 +293,10 @@
             ]
           }
         },
-        "t": 8919,
+        "t": 8550,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:10",
+      "id": "IYbyQQX2ni_j:11",
       "type": "ink"
     },
     {
@@ -305,17 +315,17 @@
             "weight": 2
           },
           "t": {
-            "dur": 1100,
-            "start": 10019
+            "dur": 1054,
+            "start": 9604
           },
           "unit": "cm",
           "value": 15.0,
           "verified": true
         },
-        "t": 10019,
+        "t": 9604,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:11",
+      "id": "IYbyQQX2ni_j:12",
       "type": "ink"
     },
     {
@@ -334,39 +344,39 @@
             "weight": 1
           },
           "t": {
-            "dur": 1100,
-            "start": 11119
+            "dur": 1054,
+            "start": 10657
           },
           "value": -0.5,
           "verified": true
         },
-        "t": 11119,
+        "t": 10657,
         "type": "ink"
       },
-      "id": "tioEhFXQz99W:12",
+      "id": "IYbyQQX2ni_j:13",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "Can you tell me whether this image is real or virtual?",
-        "t": 12219,
+        "prompt": "Which side of the lens is the image on?",
+        "t": 11711,
         "targets": [],
         "type": "ask"
       },
-      "id": "tioEhFXQz99W:13",
+      "id": "IYbyQQX2ni_j:14",
       "type": "ask"
     },
     {
       "data": {
         "objects": 11,
-        "presentation": "plane",
-        "t": 12219,
+        "presentation": "full",
+        "t": 11711,
         "type": "done",
         "verified": [
           "cas.solution_satisfies"
         ]
       },
-      "id": "tioEhFXQz99W:14",
+      "id": "IYbyQQX2ni_j:15",
       "type": "done"
     }
   ],
@@ -387,7 +397,7 @@
         "weight": 1
       },
       "t": {
-        "dur": 1100,
+        "dur": 1054,
         "start": 120
       },
       "to": {
@@ -413,8 +423,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1100,
-        "start": 1220
+        "dur": 1054,
+        "start": 1174
       }
     },
     {
@@ -437,8 +447,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1100,
-        "start": 2320
+        "dur": 1054,
+        "start": 2227
       }
     },
     {
@@ -453,8 +463,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1100,
-        "start": 3420
+        "dur": 1054,
+        "start": 3281
       },
       "text": "object"
     },
@@ -478,8 +488,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1100,
-        "start": 4520
+        "dur": 1054,
+        "start": 4335
       }
     },
     {
@@ -494,8 +504,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1100,
-        "start": 5620
+        "dur": 1054,
+        "start": 5389
       },
       "text": "image"
     },
@@ -513,8 +523,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1100,
-        "start": 6719
+        "dur": 1054,
+        "start": 6442
       }
     },
     {
@@ -531,8 +541,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1100,
-        "start": 7819
+        "dur": 1054,
+        "start": 7496
       }
     },
     {
@@ -549,8 +559,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 1100,
-        "start": 8919
+        "dur": 1054,
+        "start": 8550
       },
       "to": {
         "board": [
@@ -573,8 +583,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1100,
-        "start": 10019
+        "dur": 1054,
+        "start": 9604
       },
       "unit": "cm",
       "value": 15.0,
@@ -594,16 +604,16 @@
         "weight": 1
       },
       "t": {
-        "dur": 1100,
-        "start": 11119
+        "dur": 1054,
+        "start": 10657
       },
       "value": -0.5,
       "verified": true
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Ray diagram coming up. The object is beyond twice the focal length, so the image will form on the other side of the lens, between the focal point and twice the focal length.",
+  "say": "Here\u2019s the ray diagram. The image forms where the refracted rays meet, because a converging lens bends parallel rays through its focus. Which side of the lens is the image on?",
   "status": 200,
   "verified": [
     "cas.solution_satisfies"

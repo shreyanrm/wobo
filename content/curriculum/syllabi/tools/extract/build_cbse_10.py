@@ -272,41 +272,69 @@ write(
 # ================================================================ science
 DS = doc("cbse_10_science", "Science, Class X, Secondary Curriculum Part 1, 2026-27", PUB)
 S = "cbse-10-science"
-FORMATIVE = (
-    "Stated in the document as included in the syllabus but assessed only formatively, "
-    "not in the year-end examination."
+# What the document says about how a topic is assessed, in its own words and with its page.
+# Read off the rendered pages on 2026-09-05, not off the text layer: pdftotext -layout indents the
+# whole of page 6 by one space, and the first cut took that indent for the formative box and so
+# marked the human eye and the prism (Unit III, examined) and Acids, Bases and Salts (Unit I,
+# examined, with three practicals under it) as formative only. The boxes the document draws hold
+# exactly three topics, and its Note for Teachers on page 6 names what is not examined.
+BOX = (
+    "Printed on page {box} inside the box headed 'The following topics are included in the "
+    "syllabus but will be assessed only formatively to reinforce understanding without adding "
+    "to summative assessments'. {note}"
 )
+NOTE_NAMED = (
+    "The Note for Teachers on page 6 lists it among the topics that 'will not be assessed in "
+    "the year-end examination'."
+)
+NOTE_MOTOR = (
+    "The Note for Teachers on page 6 names its third unassessed topic as 'Electric Effects of "
+    "Electric Current', a name the syllabus prose does not use; the box on page 6 is the only "
+    "Unit IV material stated as formative."
+)
+HEREDITY = (
+    "The syllabus prose on page 5 prints this topic outside the formative-only box, and the box "
+    "under it names Evolution alone; the Note for Teachers on page 6 lists 'Heredity and "
+    "Evolution' among the topics that 'will not be assessed in the year-end examination'. The "
+    "document does not resolve the two, and this file records both rather than choosing."
+)
+# (unit name, marks, theme, [(topic, contents, page, assessment)]). Pages are the physical pages
+# pdftotext and pypdf count: the course structure is page 4, the prose runs pages 4 to 6.
 SU = [
     (
         "Chemical Substances - Nature and Behaviour",
         25,
         "Materials",
-        6,
         [
             (
                 "Chemical Reactions and Equations",
                 "Chemical reactions, Chemical equation, Balanced chemical equation, types of chemical reactions: combination, decomposition, displacement, double displacement, precipitation, endothermic exothermic reactions, oxidation and reduction.",
-                False,
+                4,
+                None,
             ),
             (
                 "Periodic Classification of Elements",
                 "Döbereiner's Triads, Newlands' Law of Octaves, Mendeléev's Periodic Table, Modern Periodic Table and the Modern, Metallic and Non-metallic Properties.",
-                True,
+                4,
+                BOX.format(box=4, note=NOTE_NAMED),
             ),
             (
                 "Acids, Bases and Salts",
                 "Acids and Bases - definitions in terms of furnishing of H+ and OH- ions, identification using indicators, chemical properties, examples and uses, neutralization, concept of pH scale (Definition relating to logarithm not required), importance of pH in everyday life; preparation and uses of Sodium Hydroxide, Bleaching Powder, Baking soda, Washing soda and Plaster of Paris.",
-                True,
+                4,
+                None,
             ),
             (
                 "Metals and Non-metals",
                 "Properties of metals and non-metals; Reactivity series; Formation and properties of ionic compounds; Basic metallurgical processes; Corrosion and its prevention.",
-                False,
+                5,
+                None,
             ),
             (
                 "Carbon and its Compounds",
                 "Covalent bonds - formation and properties of covalent compounds, Versatile nature of carbon, Hydrocarbons - saturated and unsaturated Homologous series. Nomenclature of alkanes, alkenes, alkyne and carbon compounds containing functional groups (halogens, alcohol, ketones, aldehydes). Chemical properties of carbon compounds (combustion, oxidation, addition and substitution reaction). Ethanol and Ethanoic acid (only properties and uses), soaps and detergents.",
-                False,
+                5,
+                None,
             ),
         ],
     ),
@@ -314,32 +342,36 @@ SU = [
         "World of Living",
         25,
         "The World of the Living",
-        6,
         [
             (
                 "Life processes",
                 "'Living Being'. Basic concept of nutrition, respiration, transport and excretion in plants and animals.",
-                False,
+                5,
+                None,
             ),
             (
                 "Control and co-ordination in animals and plants",
                 "Tropic movements in plants; Introduction of plant hormones; Control and co-ordination in animals: Nervous system; Voluntary, involuntary and reflex action; Chemical co-ordination: animal hormones.",
-                False,
+                5,
+                None,
             ),
             (
                 "Reproduction",
                 "Reproduction in animals and plants (asexual and sexual) reproductive health - need and methods of family planning. Safe sex vs HIV/AIDS. Child bearing and women's health.",
-                False,
+                5,
+                None,
             ),
             (
                 "Heredity",
                 "Heredity; Mendel's contribution - Laws for inheritance of traits: Sex determination; brief introduction.",
-                False,
+                5,
+                HEREDITY,
             ),
             (
                 "Evolution",
                 "Acquired and Inherited Traits, Speciation, Evolution and Classification, Tracing Evolutionary Relationships, Fossils, Evolution by Stages, Human Evolution.",
-                True,
+                5,
+                BOX.format(box=5, note=NOTE_NAMED),
             ),
         ],
     ),
@@ -347,28 +379,31 @@ SU = [
         "Natural Phenomena",
         12,
         "Natural Phenomena",
-        7,
         [
             (
                 "Reflection of light by curved surfaces",
                 "Images formed by spherical mirrors, centre of curvature, principal axis, principal focus, focal length, mirror formula (Derivation not required), magnification.",
-                False,
+                5,
+                None,
             ),
-            ("Refraction", "Laws of refraction, refractive index.", False),
+            ("Refraction", "Laws of refraction, refractive index.", 5, None),
             (
                 "Refraction of light by spherical lens",
                 "Image formed by spherical lenses; Lens formula (Derivation not required); Magnification. Power of a lens.",
-                False,
+                5,
+                None,
             ),
             (
                 "Functioning of a lens in human eye",
                 "Defects of vision and their corrections, applications of spherical mirrors and lenses.",
-                True,
+                6,
+                None,
             ),
             (
                 "Refraction of light through a prism",
                 "Dispersion of light, scattering of light, applications in daily life (excluding colour of the sun at sunrise and sunset).",
-                True,
+                6,
+                None,
             ),
         ],
     ),
@@ -376,49 +411,55 @@ SU = [
         "Effects of Current",
         13,
         "How Things Work",
-        7,
         [
             (
                 "Electric current",
                 "Electric current, potential difference and electric current. Ohm's law; Resistance, Resistivity, Factors on which the resistance of a conductor depends. Series combination of resistors, parallel combination of resistors and its applications in daily life. Heating effect of electric current and its applications in daily life. Electric power, Interrelation between P, V, I and R.",
-                False,
+                6,
+                None,
             ),
             (
                 "Magnetic effects of current",
                 "Magnetic field, field lines, field due to a current carrying conductor, field due to current carrying coil or solenoid; Force on current carrying conductor, Fleming's Left Hand Rule, Direct current. Alternating current: frequency of AC. Advantage of AC over DC. Domestic electric circuits.",
-                False,
+                6,
+                None,
             ),
-            ("Motor, Electromagnetic Induction, Electric Generator", "", True),
+            (
+                "Motor, Electromagnetic Induction, Electric Generator",
+                "",
+                6,
+                BOX.format(box=6, note=NOTE_MOTOR),
+            ),
         ],
     ),
     (
         "Natural Resources",
         5,
         "Natural Resources",
-        8,
         [
             (
                 "Our environment",
                 "Eco-system, Environmental problems, Ozone depletion, waste production and their solutions. Biodegradable and non-biodegradable substances.",
-                False,
+                6,
+                None,
             )
         ],
     ),
 ]
 units = []
-for i, (name, marks, theme, page, items) in enumerate(SU, 1):
+for i, (name, marks, theme, items) in enumerate(SU, 1):
     tops = []
-    for tname, contents, formative in items:
+    for tname, contents, page, assessment in items:
         kw = {}
         if contents:
             kw["contents"] = contents
-        if formative:
-            kw["assessment"] = FORMATIVE
+        if assessment:
+            kw["assessment"] = assessment
         tops.append(topic(tname, source_ref=ref(S, page=page, section=f"Unit {i}: {name}"), **kw))
     units.append(
         unit(
             name,
-            ref(S, page=6, section=f"Course structure Class X, unit {i}"),
+            ref(S, page=4, section=f"Course structure Class X, unit {i}"),
             topics=tops,
             marks=marks,
             theme=theme,
@@ -434,11 +475,19 @@ write(
         status="verified",
         documents=[DS],
         units=units,
-        note="Units, themes and marks are the course structure on page 6; topics and their contents "
-        "are the syllabus prose on pages 6 to 8, verbatim. The document states curricular goals "
-        "and competencies for the whole subject (pages 2 to 5) rather than per topic, so no "
-        "per-topic objectives are recorded. Topics marked with `assessment` are stated to be "
-        "assessed formatively only.",
+        note="Units, themes and marks are the course structure on page 4; topics and their contents "
+        "are the syllabus prose on pages 4 to 6, verbatim, cited to the page each topic starts "
+        "on. The document states curricular goals and competencies for the whole subject "
+        "(pages 2 to 5) rather than per topic, so no per-topic objectives are recorded. "
+        "`assessment` on a topic records, in the document's own words and with its page, "
+        "what the document says about how that topic is assessed: three topics sit inside "
+        "the boxes the document marks as assessed formatively only (Periodic Classification "
+        "of Elements, Evolution, and Motor, Electromagnetic Induction, Electric Generator), "
+        "and Heredity carries the document's own unresolved contradiction between its prose "
+        "and its Note for Teachers. Everything else, Acids, Bases and Salts and the whole of "
+        "Unit III included, is examined: the Note for Teachers on page 6 names exactly what "
+        "is not, and the practicals list on pages 7 and 8 sets pH and acid-base experiments "
+        "under Unit I. Pages are counted as pdftotext and pypdf count them.",
     ),
 )
 

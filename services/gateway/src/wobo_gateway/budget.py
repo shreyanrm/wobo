@@ -58,6 +58,11 @@ CAPABILITY_CLASS: dict[str, str] = {
     # taps that follow it — confirm, publish, offer — only move an object they already own, so
     # they stay on the cheap counter above.
     "curriculum.own.read": GENERATION,
+    # The doubt solver (doubt.py). Reading a photograph is a vision call on the generate tier,
+    # which is a generation whoever asked for it; the screen before it is a tiny-tier verdict,
+    # and the answer that follows rides the board turn on "wobo.turn" and is metered there.
+    "doubt.": TURN,
+    "doubt.read": GENERATION,
     "grade.attempt": TURN,
     "generate.opener": TURN,
     "verify.math": TURN,

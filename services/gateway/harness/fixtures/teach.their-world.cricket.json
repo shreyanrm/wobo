@@ -2,13 +2,19 @@
   "actions": [
     {
       "mood": "thinking",
-      "type": "setMood"
+      "type": "setMood",
+      "withSentence": 0
+    },
+    {
+      "mood": "waiting",
+      "type": "setMood",
+      "withSentence": 3
     }
   ],
   "ask": null,
   "case_id": "teach.their-world.cricket",
-  "cost_usd": 0.002459,
-  "elapsed_ms": 4032.292084011715,
+  "cost_usd": 0.003393,
+  "elapsed_ms": 4388.692250009626,
   "error": "",
   "events": [
     {
@@ -16,13 +22,19 @@
         "actions": [
           {
             "mood": "thinking",
-            "type": "setMood"
+            "type": "setMood",
+            "withSentence": 0
+          },
+          {
+            "mood": "waiting",
+            "type": "setMood",
+            "withSentence": 3
           }
         ],
-        "grounded": false,
-        "handed_answer": false,
-        "path": "inline",
-        "say": "Equivalent fractions are different-looking fractions worth the same amount, like 1/2 and 2/4: if you multiply both top and bottom by the same number, the fraction keeps its value."
+        "say": "Think of one over. Bowl 3 balls of it and you've bowled 3/6 of the over, which is the same as 1/2, because 3/6 = 1/2 when you divide the top and bottom by 3. That's all an equivalent fraction is: the same share of the over, written with different numbers. Your turn: after 4 balls of the over, which fraction is that, and which simpler fraction equals it?",
+        "verified": [
+          "say.arithmetic:3/6 = 1/2"
+        ]
       },
       "id": "",
       "type": "output"
@@ -30,10 +42,13 @@
   ],
   "mode": "prose",
   "model_calls": 1,
+  "note": "spoken line corrected by hand on 2026-09-05 after the teaching review; the board is the product's own pipelines' work and every sum in the line is signed by its CAS",
   "objects": [],
   "presentation": "",
   "refused": [],
-  "say": "Equivalent fractions are different-looking fractions worth the same amount, like 1/2 and 2/4: if you multiply both top and bottom by the same number, the fraction keeps its value.",
+  "say": "Think of one over. Bowl 3 balls of it and you've bowled 3/6 of the over, which is the same as 1/2, because 3/6 = 1/2 when you divide the top and bottom by 3. That's all an equivalent fraction is: the same share of the over, written with different numbers. Your turn: after 4 balls of the over, which fraction is that, and which simpler fraction equals it?",
   "status": 200,
-  "verified": []
+  "verified": [
+    "say.arithmetic:3/6 = 1/2"
+  ]
 }

@@ -319,25 +319,67 @@ def _validate(objects: list[dict[str, Any]], plan: Plan, allowed_checks: set[str
     return kept
 
 
+def on_the_screen(objects: list[dict[str, Any]], surface: Surface) -> set[str]:
+    """The ids of the objects that are ABOUT something on the learner's screen.
+
+    A mark anchored to a registry target or to the region they circled is on the screen by
+    definition; a mark hung off one of those (``{"object": "m1"}``) is on the screen with it. A
+    mark hung off something on a previous board (``surface.drawn``) belongs to that board. The
+    client's ``staysOnScreen`` (presentation.ts) reads the same anchors the same way, so the two
+    halves of Wobo never disagree about where a mark lives.
+    """
+    screen: set[str] = set()
+    pending = list(objects)
+    # A mark may hang off one declared after it; keep resolving until nothing new settles.
+    while pending:
+        rest: list[dict[str, Any]] = []
+        for obj in pending:
+            anchor = obj.get("anchor")
+            if not isinstance(anchor, dict):
+                rest.append(obj)
+                continue
+            if "target" in anchor or "focus" in anchor:
+                screen.add(str(obj.get("id")))
+            elif "object" in anchor and str(anchor["object"]) in screen:
+                screen.add(str(obj.get("id")))
+            else:
+                rest.append(obj)
+        if len(rest) == len(pending):
+            break
+        pending = rest
+    return screen
+
+
 def choose_presentation(
     objects: list[dict[str, Any]], surface: Surface, requested: str | None
 ) -> str:
-    """BOARD.md §5. Wobo's rule, and the learner's word beats it.
+    """BOARD.md §5. THE INK DECIDES THE SURFACE, and only the learner's word beats it.
 
-    A pointer or one line stays on the screen; a derivation or a diagram from scratch gets the
-    plane; a lesson gets the full board.
+    ``requested`` is the learner's word ("board", "here"), carried in the board context by the
+    conductor. It is never the model's: the model used to write ``"presentation": "plane"`` out of
+    habit and the planner took it, so every drawn answer opened the board, including a ring round
+    a chip that was already on the screen (the owner, 2026-09-05). The model's own field is now a
+    hint the planner ignores; what it DREW is what decides.
+
+    - Inside a lesson the board is the screen: ``full``.
+    - Nothing drawn: ``screen``. There is nothing to open a board for, and an empty plane sliding
+      over the thing the learner was reading is the board at its worst.
+    - Every object a mark about something already on the screen (a target, the circled region,
+      or a mark hung off one of those): ``screen`` — annotate it in place, however many marks.
+      A mark about the page cannot leave the page; on a board it would point at nothing.
+    - Anything built from scratch, or hung off a previous board: ``plane``.
     """
     if requested in schema.PRESENTATIONS:
         return str(requested)
     if surface.lesson:
         return "full"
-    on_screen = all(
-        isinstance(o.get("anchor"), dict)
-        and ("target" in o["anchor"] or "focus" in o["anchor"] or "object" in o["anchor"])
-        and str(o.get("kind")) in schema.MARK_KINDS
-        for o in objects
-    )
-    return "screen" if objects and on_screen and len(objects) <= 3 else "plane"
+    if not objects:
+        return "screen"
+    # The anchor decides, never the kind: a written word or a label hung on a chip is on the
+    # screen with the chip, exactly as the client's `staysOnScreen` reads it. Requiring a mark
+    # kind here sent a ring-plus-label round the hypotenuse to the plane (the harness, 2026-09-05).
+    screen = on_the_screen(objects, surface)
+    return "screen" if all(str(o.get("id")) in screen for o in objects) else "plane"
 
 
 def _schedule(objects: list[dict[str, Any]]) -> None:
@@ -391,9 +433,9 @@ def plan_board(
     _schedule(objects)
 
     plan.objects = objects
-    plan.presentation = choose_presentation(
-        objects, surface, board_context.get("presentation") or model_plan.get("presentation")
-    )
+    # The learner's word only. `model_plan["presentation"]` is deliberately not read here: see
+    # `choose_presentation` for why the model does not get to open the board.
+    plan.presentation = choose_presentation(objects, surface, board_context.get("presentation"))
     interrupted = board_context.get("interrupted_at")
     if isinstance(interrupted, str) and interrupted.strip():
         plan.resumes_from = interrupted.strip()

@@ -18,6 +18,7 @@ const EVERY_ROUTE: Route[] = [
   { name: 'sandbox', topicId: 'm2-1' },
   { name: 'progress' },
   { name: 'you' },
+  { name: 'doubt' },
   { name: 'about' },
   { name: 'help' },
   { name: 'helpArticle', group: 'wobo-basics', slug: 'what-is-wobo' },

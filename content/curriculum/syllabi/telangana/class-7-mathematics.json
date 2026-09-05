@@ -30,6 +30,7 @@
   "level_order": 7,
   "subject": "Mathematics",
   "status": "provisional",
+  "status_reason": "not checked: the file holds no units (blocker: browser_required)",
   "read_off_source": false,
   "discovery_state": "blocked",
   "blocker": "browser_required",
@@ -41,7 +42,19 @@
     ],
     "checks_failed": [],
     "verified_at": null,
-    "verified_by": null
+    "verified_by": null,
+    "verification": {
+      "checked_at": "2026-09-05T10:28:15Z",
+      "decision": "blocked",
+      "checks": [],
+      "names": {},
+      "sources": {},
+      "coverage": {},
+      "second_reader": null,
+      "reasons": [
+        "not checked: the file holds no units (blocker: browser_required)"
+      ]
+    }
   },
   "documents": [
     {

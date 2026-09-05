@@ -117,11 +117,36 @@ def build_from_blocks(subject, level, order, blocks, marks, note, structure_page
 
 # ---------------------------------------------------------------- physics
 PHY_NOTE = (
-    "Units and chapters are the course structure table; each chapter carries the "
-    "detailed contents the document states for it. The document assigns marks to groups "
-    "of units rather than to every unit, so marks are recorded only where the table puts "
-    "a figure on that unit's own row. " + SPLITNOTE
+    "Units and chapters are the course structure table; each chapter carries the detailed "
+    "contents the document states for it. The table prints one marks figure per bracketed group "
+    "of units, never per unit: `marks_group` on every unit names the units that share the "
+    "figure and the figure itself, read off the table's drawn cell borders on the cited page, "
+    "and no unit carries a figure of its own. The groups sum to the table's total of 70. "
+    + SPLITNOTE
 )
+# The marks groups, read off the rendered course-structure pages (2 and 12) on 2026-09-05. The
+# text layer cannot see them: the figure is printed once, vertically centred on a bracket that the
+# table draws as a merged cell, so `coursestruct.parse` lands it on whichever unit's row it falls
+# beside (Kinematics 23, Thermodynamics 20 ...) and leaves the group's other units at null. That
+# is what the first cut recorded, and a learner read "Gravitation, no marks". The groups below
+# are the brackets as drawn; each sums to the document's 70.
+PHY_MARKS_GROUPS = {
+    "Class 11": [
+        (("I", "II", "III"), 23),
+        (("IV", "V", "VI"), 17),
+        (("VII", "VIII", "IX"), 20),
+        (("X",), 10),
+    ],
+    "Class 12": [
+        (("I", "II"), 16),
+        (("III", "IV"), 17),
+        (("V", "VI", "VII"), 18),
+        (("VIII",), 12),
+        (("IX",), 7),
+    ],
+}
+for _level, _groups in PHY_MARKS_GROUPS.items():
+    assert sum(marks for _, marks in _groups) == 70, _level
 
 
 def norm(x):
@@ -168,8 +193,11 @@ for level, order, ta, tb, da, db in [
         kw = {}
         if d and d["text"]:
             kw["contents"] = d["text"]
-        if u["marks"]:
-            kw["marks"] = u["marks"]
+        # Never the figure the text layer landed on this row: the group it belongs to.
+        group_units, group_marks = next(
+            (g, m) for g, m in PHY_MARKS_GROUPS[level] if u["roman"] in g
+        )
+        kw["marks_group"] = {"units": list(group_units), "marks": group_marks}
         units.append(
             unit(
                 u["title"],

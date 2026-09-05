@@ -1,24 +1,24 @@
 {
   "actions": [],
   "ask": {
-    "prompt": "Want to work out the maximum-height formula together next?",
-    "t": 8582,
+    "prompt": "If the ball were thrown at 30 degrees instead, would it go higher or lower, and why?",
+    "t": 20439,
     "targets": [],
     "type": "ask"
   },
   "case_id": "physics.cbse.11.projectile",
-  "cost_usd": 0.003366,
-  "elapsed_ms": 4861.590332991909,
+  "cost_usd": 0.003116,
+  "elapsed_ms": 4078.76900001429,
   "error": "",
   "events": [
     {
       "data": {
-        "dur": 1090,
+        "dur": 1454,
         "t": 0,
-        "text": "Here\u2019s its flight.",
+        "text": "Let's map the flight.",
         "type": "say"
       },
-      "id": "sBTLvdM8hX_L:0",
+      "id": "",
       "type": "say"
     },
     {
@@ -43,7 +43,7 @@
             "weight": 2
           },
           "t": {
-            "dur": 1058,
+            "dur": 2540,
             "start": 120
           },
           "ticks": true
@@ -51,8 +51,18 @@
         "t": 120,
         "type": "ink"
       },
-      "id": "sBTLvdM8hX_L:1",
+      "id": "",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 10545,
+        "t": 1674,
+        "text": "It gets to about 10.2 m high, because only the up part of the speed, about 14.1 m/s, fights gravity, and it climbs until gravity has used that up.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
     },
     {
       "data": {
@@ -556,25 +566,15 @@
             "weight": 2
           },
           "t": {
-            "dur": 1058,
-            "start": 1178
+            "dur": 2540,
+            "start": 2660
           }
         },
-        "t": 1178,
+        "t": 2660,
         "type": "ink"
       },
-      "id": "sBTLvdM8hX_L:2",
+      "id": "",
       "type": "ink"
-    },
-    {
-      "data": {
-        "dur": 7272,
-        "t": 1310,
-        "text": "The peak comes from the vertical part of the launch speed, and the trajectory shows the maximum height for you.",
-        "type": "say"
-      },
-      "id": "sBTLvdM8hX_L:3",
-      "type": "say"
     },
     {
       "data": {
@@ -592,14 +592,14 @@
             "weight": 3
           },
           "t": {
-            "dur": 1058,
-            "start": 2236
+            "dur": 2540,
+            "start": 5200
           }
         },
-        "t": 2236,
+        "t": 5200,
         "type": "ink"
       },
-      "id": "sBTLvdM8hX_L:4",
+      "id": "",
       "type": "ink"
     },
     {
@@ -621,14 +621,14 @@
             "weight": 2
           },
           "t": {
-            "dur": 1058,
-            "start": 3293
+            "dur": 2540,
+            "start": 7740
           }
         },
-        "t": 3293,
+        "t": 7740,
         "type": "ink"
       },
-      "id": "sBTLvdM8hX_L:5",
+      "id": "",
       "type": "ink"
     },
     {
@@ -641,24 +641,35 @@
           "check": "board.units_agree",
           "id": "p0_5num",
           "kind": "number",
+          "label": "across-speed",
           "precision": 2,
           "style": {
             "ink": "accent",
             "weight": 2
           },
           "t": {
-            "dur": 1058,
-            "start": 4351
+            "dur": 2540,
+            "start": 10280
           },
           "unit": "m/s",
           "value": 14.142136,
           "verified": true
         },
-        "t": 4351,
+        "t": 10280,
         "type": "ink"
       },
-      "id": "sBTLvdM8hX_L:6",
+      "id": "",
       "type": "ink"
+    },
+    {
+      "data": {
+        "dur": 8000,
+        "t": 12439,
+        "text": "The across-speed, also 14.1 m/s, never changes, which is why the path is a smooth arc and not a straight line up.",
+        "type": "say"
+      },
+      "id": "",
+      "type": "say"
     },
     {
       "data": {
@@ -674,15 +685,15 @@
             "weight": 1
           },
           "t": {
-            "dur": 2310,
-            "start": 5409
+            "dur": 2540,
+            "start": 12819
           },
           "text": "up-speed is zero here, across-speed is not"
         },
-        "t": 5409,
+        "t": 12819,
         "type": "ink"
       },
-      "id": "sBTLvdM8hX_L:7",
+      "id": "",
       "type": "ink"
     },
     {
@@ -695,23 +706,24 @@
           "check": "board.numbers_agree:apex height",
           "id": "p0_7num",
           "kind": "number",
+          "label": "how high",
           "precision": 2,
           "style": {
             "ink": "wobo",
             "weight": 1
           },
           "t": {
-            "dur": 1058,
-            "start": 6466
+            "dur": 2540,
+            "start": 15359
           },
           "unit": "m",
           "value": 10.197162,
           "verified": true
         },
-        "t": 6466,
+        "t": 15359,
         "type": "ink"
       },
-      "id": "sBTLvdM8hX_L:8",
+      "id": "",
       "type": "ink"
     },
     {
@@ -730,34 +742,34 @@
             "weight": 1
           },
           "t": {
-            "dur": 1058,
-            "start": 7524
+            "dur": 2540,
+            "start": 17899
           },
           "unit": "m",
           "value": 40.788649,
           "verified": true
         },
-        "t": 7524,
+        "t": 17899,
         "type": "ink"
       },
-      "id": "sBTLvdM8hX_L:9",
+      "id": "",
       "type": "ink"
     },
     {
       "data": {
-        "prompt": "Want to work out the maximum-height formula together next?",
-        "t": 8582,
+        "prompt": "If the ball were thrown at 30 degrees instead, would it go higher or lower, and why?",
+        "t": 20439,
         "targets": [],
         "type": "ask"
       },
-      "id": "sBTLvdM8hX_L:10",
+      "id": "",
       "type": "ask"
     },
     {
       "data": {
         "objects": 8,
-        "presentation": "plane",
-        "t": 8582,
+        "presentation": "full",
+        "t": 20439,
         "type": "done",
         "verified": [
           "board.units_agree",
@@ -766,12 +778,13 @@
           "board.numbers_agree:range"
         ]
       },
-      "id": "sBTLvdM8hX_L:11",
+      "id": "",
       "type": "done"
     }
   ],
   "mode": "board",
   "model_calls": 1,
+  "note": "spoken line corrected by hand on 2026-09-05 after the teaching review; the board is the product's own pipelines' work and every sum in the line is signed by its CAS",
   "objects": [
     {
       "anchor": {
@@ -793,7 +806,7 @@
         "weight": 2
       },
       "t": {
-        "dur": 1058,
+        "dur": 2540,
         "start": 120
       },
       "ticks": true
@@ -1298,8 +1311,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1058,
-        "start": 1178
+        "dur": 2540,
+        "start": 2660
       }
     },
     {
@@ -1316,8 +1329,8 @@
         "weight": 3
       },
       "t": {
-        "dur": 1058,
-        "start": 2236
+        "dur": 2540,
+        "start": 5200
       }
     },
     {
@@ -1337,8 +1350,8 @@
         "weight": 2
       },
       "t": {
-        "dur": 1058,
-        "start": 3293
+        "dur": 2540,
+        "start": 7740
       }
     },
     {
@@ -1349,14 +1362,15 @@
       "check": "board.units_agree",
       "id": "p0_5num",
       "kind": "number",
+      "label": "across-speed",
       "precision": 2,
       "style": {
         "ink": "accent",
         "weight": 2
       },
       "t": {
-        "dur": 1058,
-        "start": 4351
+        "dur": 2540,
+        "start": 10280
       },
       "unit": "m/s",
       "value": 14.142136,
@@ -1374,8 +1388,8 @@
         "weight": 1
       },
       "t": {
-        "dur": 2310,
-        "start": 5409
+        "dur": 2540,
+        "start": 12819
       },
       "text": "up-speed is zero here, across-speed is not"
     },
@@ -1387,14 +1401,15 @@
       "check": "board.numbers_agree:apex height",
       "id": "p0_7num",
       "kind": "number",
+      "label": "how high",
       "precision": 2,
       "style": {
         "ink": "wobo",
         "weight": 1
       },
       "t": {
-        "dur": 1058,
-        "start": 6466
+        "dur": 2540,
+        "start": 15359
       },
       "unit": "m",
       "value": 10.197162,
@@ -1414,17 +1429,17 @@
         "weight": 1
       },
       "t": {
-        "dur": 1058,
-        "start": 7524
+        "dur": 2540,
+        "start": 17899
       },
       "unit": "m",
       "value": 40.788649,
       "verified": true
     }
   ],
-  "presentation": "plane",
+  "presentation": "full",
   "refused": [],
-  "say": "Here\u2019s its flight. The peak comes from the vertical part of the launch speed, and the trajectory shows the maximum height for you.",
+  "say": "Let's map the flight. It gets to about 10.2 m high, because only the up part of the speed, about 14.1 m/s, fights gravity, and it climbs until gravity has used that up. The across-speed, also 14.1 m/s, never changes, which is why the path is a smooth arc and not a straight line up.",
   "status": 200,
   "verified": [
     "board.units_agree",

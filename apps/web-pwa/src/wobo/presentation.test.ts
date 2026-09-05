@@ -194,6 +194,18 @@ describe('which turns Wobo answers by drawing', () => {
     expect(boardShapeOf('i am tired', { hasFocus: true }).board).toBe(false);
     expect(boardShapeOf('thanks, that helped', { hasFocus: true }).board).toBe(false);
   });
+  it('answers a question about something on the screen in place, through the planner', () => {
+    // On /course with the advance button registered, "which button starts the course?" went to
+    // the plain conversation and came back as words. With the words naming a target it is a
+    // board turn whose ink lands on that target and whose surface stays the screen.
+    expect(boardShapeOf('which button starts the course?', { namesTarget: true }).board).toBe(true);
+    expect(boardShapeOf('circle the hypotenuse', { namesTarget: true }).board).toBe(true);
+    expect(boardShapeOf('which button starts the course?', { namesTarget: false }).board).toBe(
+      false,
+    );
+    // Naming a target in passing, with nothing asked about it, is still a conversation.
+    expect(boardShapeOf('the button is blue', { namesTarget: true }).board).toBe(false);
+  });
   it('never treats a wipe or a dismissal as a request to draw', () => {
     expect(boardShapeOf('close the board').board).toBe(false);
     expect(boardShapeOf('wipe the board').board).toBe(false);

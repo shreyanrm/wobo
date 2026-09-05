@@ -192,6 +192,9 @@ BREAKER_COOLDOWN_S = float(os.getenv("SAFETY_MODEL_BREAKER_COOLDOWN_S") or 60.0)
 #: The verdict source that means "screened because the checker is down", not "screened because of
 #: what you said". Read by ``safety._gated_output`` to choose the copy.
 SOURCE_OUTAGE = "outage"
+#: The verdict source that means "one check did not answer": the message was held for a retry,
+#: not judged. Read by ``safety._held_say`` to choose the plain line over any script.
+SOURCE_FAIL_SAFE = "fail_safe"
 
 _breaker_lock = threading.Lock()
 _consecutive_failures = 0
@@ -252,33 +255,39 @@ def _record_success() -> None:
 
 
 def fail_safe(outcome: RuleOutcome, *, outage: bool = False) -> SafetyVerdict:
-    """The verdict when the moderation call did not answer: screen it, never let it through.
+    """The verdict when the moderation call did not answer.
 
-    At the family the offline layer already named, so a child whose message read like harm gets
-    the warm crisis line rather than a cold redirect. A concern-adjacent message with no family —
-    there is no such thing, since the family is what makes it a candidate — would be a redirect.
+    THE CRISIS SCRIPT IS REACHED ONLY BY A POSITIVE CRISIS VERDICT FROM A WITNESS THAT ANSWERED.
+    This used to return ``crisis``/``high`` for any concern-adjacent message whose family was a
+    harm family, on the strength of nothing but a provider not answering. On 2026-09-05 "draw a
+    plant cell and label the parts" came back as the Childline script with nothing drawn: the
+    rule layer had said ok, the outbound model screen was asked anyway, one model refused its
+    temperature and the next was out of credit, and the fail path did the rest. A transient
+    classifier outage must never produce the crisis script.
 
-    ``outage`` says the breaker is open: the message is still held, but it is held because the
-    checker is down rather than because of anything the child said, and the copy says so. A
-    verdict the RULES already reached is returned unchanged either way.
+    So, in order:
+
+    * a verdict the RULES already reached is returned unchanged (a disclosure is a crisis whether
+      or not a provider is up; that is the whole reason the offline layer exists);
+    * the rule layer said ok and named NO family: the rule layer's verdict stands, and the child
+      gets their lesson;
+    * the rule layer said ok but marked the message concern-adjacent: HELD, at the moderation
+      category, with the source saying one check did not answer, so the surface says "I couldn't
+      check that one just now" and never a helpline.
+
+    ``outage`` says the breaker is open: the same hold, with the source saying the checker is
+    known to be down rather than that one call failed.
     """
     if outcome.flagged:
-        return outcome.verdict(source=SOURCE_OUTAGE if outage else "fail_safe")
-    if outage:
-        # Held, not accused. No helpline script, no stopped lesson dressed as concern.
-        return SafetyVerdict(
-            category=CATEGORY_MODERATION,
-            severity="low",
-            matched=(),
-            source=SOURCE_OUTAGE,
-            family=outcome.family,
-        )
-    crisis = outcome.family in HARM_FAMILIES
+        return outcome.verdict(source=SOURCE_OUTAGE if outage else SOURCE_FAIL_SAFE)
+    if outcome.family is None:
+        return outcome.verdict()
+    # Held, not accused. No helpline script, no stopped lesson dressed as concern.
     return SafetyVerdict(
-        category=CATEGORY_CRISIS if crisis else CATEGORY_MODERATION,
-        severity="high" if crisis else "medium",
+        category=CATEGORY_MODERATION,
+        severity="low",
         matched=(),
-        source="fail_safe",
+        source=SOURCE_OUTAGE if outage else SOURCE_FAIL_SAFE,
         family=outcome.family,
     )
 
@@ -341,7 +350,8 @@ class ModelClassifier:
             ],
             fallbacks=fallbacks or None,
             max_tokens=max_tokens_for(CAPABILITY, 120),
-            temperature=0.0,
+            # No temperature. It asked for 0.0 and a model in the chain answered 400 to it; a
+            # strict-JSON classification does not need the knob, and the knob cost a lesson.
             timeout=timeout_s(),
         )
         return _parse(response.choices[0].message.content or "")
@@ -399,6 +409,7 @@ __all__ = [
     "ModelClassifier",
     "BREAKER_COOLDOWN_S",
     "BREAKER_THRESHOLD",
+    "SOURCE_FAIL_SAFE",
     "SOURCE_OUTAGE",
     "assert_configured",
     "breaker_open",

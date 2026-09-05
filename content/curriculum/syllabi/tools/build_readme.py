@@ -56,6 +56,9 @@ def main():
     topics = sum(len(u.get("topics") or []) for _, d in files for u in (d.get("units") or []))
     read_off = sum(1 for _, d in files if d.get("read_off_source"))
     blocked = sum(1 for _, d in files if d.get("discovery_state") == "blocked")
+    verified = sum(1 for _, d in files if d.get("status") == "verified")
+    provisional = len(files) - verified
+    reasoned = sum(1 for _, d in files if d.get("status") != "verified" and d.get("status_reason"))
 
     L = []
     w = L.append
@@ -69,10 +72,17 @@ def main():
         "missing unit list is a fact about the world, not a licence to invent one.\n"
     )
     w(
-        f"{len(files)} files. **Nothing here is `verified`.** Every file is `provisional`; "
-        f"{read_off} of them carry `read_off_source: true`, meaning the units below were read "
-        f'off the board\'s own document, and {blocked} carry `discovery_state: "blocked"` with '
-        f"a blocker code and no units at all. {units} units and {topics} topics in total.\n"
+        f"{len(files)} files. {verified} `verified`, {provisional} `provisional`. "
+        f"{read_off} of them carry `read_off_source: true`, meaning the units below were read off the "
+        f'board\'s own document, and {blocked} carry `discovery_state: "blocked"` with a blocker '
+        f"code and no units at all. {units} units and {topics} topics in total. "
+        + (
+            "Every provisional file"
+            if provisional == reasoned
+            else f"{reasoned} of the {provisional} provisional files"
+        )
+        + " carries a `status_reason` saying exactly why it is not verified; the row-by-row "
+        "account is `docs/curriculum/VERIFICATION.md`.\n"
     )
     w("## The shape of a file\n")
     w("""```
@@ -86,13 +96,14 @@ applies_to?        the academic year a version predating it is still in force fo
 exam_year?         CISCE publishes per examination year; this is the year this level sits
 level, level_order the class, and its number for sorting
 subject, course_code?, stage?
-status             provisional everywhere in this directory (see below)
+status             verified | provisional (see below)
+status_reason?     on a provisional file: what the verification pass could not find or decide
 read_off_source    true when the units were read off the board's own document
 discovery_state?   "blocked" on a file with no units, with a blocker code beside it
 blocker?           browser_required | no_official_document | document_not_machine_readable
 provenance         extractor, verifier, checks_passed[], checks_failed[], verified_at,
-                   verified_by - the checks are run in code at build time and recorded
-                   as they came out, pass or fail
+                   verified_by, verification - the build's checks and the verification
+                   pass's checks, recorded as they came out, pass or fail
 documents[]        every source document, with url, fetched_at, document_sha256 (of the
                    bytes fetched), extracted_text_sha256 (of the text the build read)
                    and the extraction method
@@ -121,16 +132,20 @@ note               anything a reader needs to know to trust or distrust the file
         "of that document, and the heading it sits under. `document_id` always resolves to an\n"
         "entry in the same file's `documents[]`.\n"
     )
-    w("## Status, and why nothing here says verified\n")
+    w("## Status\n")
     w(
-        "`docs/CURRICULUM.md` section 4.4 stores discovery output as `provisional`, section 4.5\n"
-        "earns `verified` only after the verify tier has re-read the source independently and\n"
-        "either the owner or two learners have promoted it, and section 5 renders `verified` to\n"
-        'the learner as "Official CBSE 2026-27, verified". None of that has happened to any file\n'
-        "here. So every file is `provisional`, and the separate boolean `read_off_source` carries\n"
-        "the weaker, true claim: a build read these units off the board's own document at the page\n"
-        "each `source_ref` names. `verified` is reserved for whatever writes the review-queue\n"
-        "promotion, and `provenance.verified_at` and `provenance.verified_by` are null until then.\n"
+        "`docs/CURRICULUM.md` section 4.4 stores discovery output as `provisional` and section 4.5\n"
+        "earns `verified` only after the source has been re-read independently. The build that\n"
+        "wrote these files did the first half: `read_off_source: true` is the weaker, true claim\n"
+        "that a build read the units off the board's own document at the page each `source_ref`\n"
+        "names. The verification pass (`wobo_gateway.curriculum.discovery.audit`) does the second\n"
+        "half: it fetches every cited document again, checks the bytes against the recorded hash,\n"
+        "looks for every unit and topic name on the page it cites, checks the count against the\n"
+        "document's own numbering, and asks the verify tier only where code cannot decide. A file\n"
+        "that holds becomes `verified`, with `provenance.verifier`, `verified_at`, `verified_by`\n"
+        "and every check in `provenance.verification`. One that does not stays `provisional` and\n"
+        "carries a `status_reason` naming exactly what could not be found or decided. Nothing is\n"
+        "edited to make it pass. `docs/curriculum/VERIFICATION.md` is the row-by-row account.\n"
     )
     w(
         "`provisional` covers three different situations, told apart by `discovery_state` and\n"
@@ -166,8 +181,8 @@ note               anything a reader needs to know to trust or distrust the file
         if not rows:
             continue
         w(f"### {HEADING[fid]}\n")
-        w("| File | Level | Subject | State | Units | Topics | Source |")
-        w("|---|---|---|---|---|---|---|")
+        w("| File | Level | Subject | Status | State | Units | Topics | Source |")
+        w("|---|---|---|---|---|---|---|---|")
         for rel, d in rows:
             us = d.get("units")
             if us is None:
@@ -180,7 +195,10 @@ note               anything a reader needs to know to trust or distrust the file
                 if all(u.get("topics") is None for u in us):
                     nt = "withdrawn"
             srcs = "; ".join(doc["title"] for doc in d.get("documents") or []) or "no document"
-            w(f"| `{rel}` | {d['level']} | {d['subject']} | {state} | {nu} | {nt} | {srcs} |")
+            w(
+                f"| `{rel}` | {d['level']} | {d['subject']} | {d.get('status')} | {state} "
+                f"| {nu} | {nt} | {srcs} |"
+            )
         w("")
     w("## Source documents\n")
     w("Every document any file above points at, with the hash of the bytes fetched.\n")
