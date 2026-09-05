@@ -81,22 +81,38 @@ export const HERO_CYCLE_MS = 3800;
 export const HERO = {
   eyebrow: { lead: 'Every subject · every board · ', accent: 'free every day' },
   /**
-   * THE HEADLINE IS A CLAIM, NOT A QUESTION, and that is a correction rather than a preference.
+   * THE HEADLINE IS THE OWNER'S, AND IT IS A DECISION RATHER THAN A DRAFT (2026-09-05).
    *
-   * It read `Hey Wobo,` / `why do plants need sunlight?` — a syllabus question set as the largest
-   * element on the page, with a text input 380px under it. The box beneath it answers questions
-   * about WOBO from a local lookup and says so; type the headline's own question into it and the
-   * reply is "I answer from the help centre here." The loudest thing on the homepage staged a
-   * capability the control under it refuses, which is the one thing the copy law forbids, and on a
-   * phone the drawn answer that would have justified it sat 229px BELOW the fold — so a phone
-   * visitor met a question, a box that rejects it, and no answer at all.
+   * His words: "I want to use the line fall in love with learning while studying cause they
+   * actually will; I dont care about 4 others saying the same thing or 3/10 people scrolling past;
+   * who believe will believe."
    *
-   * The claim is docs/SELL.md §2's category line, which is a statement about the product rather
-   * than about the market: it cannot be disproved by somebody finding an older competitor, and it
-   * points at the thing that is actually built. The staged question moved onto the device card
-   * (`staged` below), where its four answers are, so the question and the answer are one object.
+   * I argued against it and he overruled me, so here is the case FOR it, written down, because the
+   * next person to read this file should not re-litigate a settled call:
+   *   - The studying / learning distinction is real and almost nobody in this market names it.
+   *     Studying is the obligation; learning is what happens when it finally lands. Saying you can
+   *     have the second while doing the first is a promise this product actually keeps, because
+   *     mastery gating and the re-teach ladder are the machinery that turns one into the other.
+   *   - A conversion line is not obliged to be unusual. It is obliged to be TRUE and to be the
+   *     thing the reader wants. Both hold here.
+   *
+   * What the three lines do between them, so none of them has to do everything:
+   *   eyebrow  the qualifiers  — every subject, every board, free every day
+   *   title    the promise     — why a reader would want it
+   *   lede     the substance   — what it actually does, in four forms
+   *
+   * The category claim ("the world's first AI companion that shows you") is deliberately NOT here.
+   * The owner put it mid-page on TEACHES, where the six things that substantiate it sit on the
+   * same screen.
+   *
+   * The staged question stays OFF the headline whatever the headline says. It read
+   * `Hey Wobo,` / `why do plants need sunlight?` as the largest element on the page, with a box
+   * under it that answers questions about WOBO and refuses that one, and on a phone the drawn
+   * answer sat 229px below the fold. The question now lives on the device card where its four
+   * answers are, so the question and the answer are one object. That is a correction, not a
+   * preference, and it is the one thing here that is not the owner's to trade away.
    */
-  title: { lead: 'The first tutor that ', mark: 'shows its working.' },
+  title: { lead: 'Fall in love with learning ', mark: 'while studying.' },
   /** The question the card answers, printed on the card. */
   staged: { wake: 'Hey Wobo,', question: 'why do plants need sunlight?' },
   lede: 'Ask it anything your syllabus sets and the answer arrives in front of you, line by line: drawn on a board, filmed, handed back for you to try, or said out loud when that is what the idea needs.',
@@ -196,7 +212,20 @@ export interface Beat {
 }
 
 export const TEACHES = {
-  eyebrow: 'Not a chatbot with a logo',
+  /**
+   * THE WORLD'S FIRST CLAIM LIVES HERE, and the position is the owner's (2026-09-05): the hero
+   * carries the feeling, and this carries the category. It is the right home for a second reason.
+   * A superlative in the first five seconds is a stranger being told; a superlative here is a
+   * reader being shown, because the six things underneath it are the substantiation and they are
+   * on the same screen.
+   *
+   * The wording is deliberate and is held by docs/CLAIMS.md §1. It is a claim about a COMBINATION
+   * we can each demonstrate in the code, not about the market: visually explains as it works,
+   * follows the learner in real time, and generates the explanation for that learner rather than
+   * serving a pre-made one. Never "the first AI tutor" (untrue), never "the only" (no more
+   * evidence, more exposure), and never a comparison to any named product, teacher or school.
+   */
+  eyebrow: "The world's first AI companion that shows you",
   /**
    * The banner of the whole argument (docs/SELL.md §2), and the reason it is phrased as a tribute
    * rather than a comparison: naming what a great teacher does honours the craft, where naming a

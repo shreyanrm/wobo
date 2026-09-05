@@ -113,9 +113,29 @@ need in the moment it is needed.
 
 The sellable form of the owner's phrase, without a superlative anyone can argue with:
 
-> **The first tutor that shows its working.**
+> **The world's first AI companion that shows you.**
 > Ask it anything from your syllabus and the answer is drawn in front of you, line by line.
 > A doubt cleared whenever it turns up. A subject learnt a bit at a time, so the exam is revision.
+
+**SETTLED BY THE OWNER, 2026-09-05.** He took both calls I had argued against, and both stand:
+
+- **The homepage headline is "Fall in love with learning while studying."** His reasoning: *"cause
+  they actually will; I dont care about 4 others saying the same thing or 3/10 people scrolling
+  past; who believe will believe."* The line rests on a distinction almost nobody in this market
+  names, and one this product genuinely keeps: studying is the obligation, learning is what happens
+  when it lands, and mastery gating plus the re-teach ladder are the machinery between them.
+- **The category claim is "the world's first AI companion that shows you", and it sits mid-page**
+  rather than in the hero, on the section that answers "is this just a chatbot". That position is
+  the owner's and it is also the better one: a superlative in the first five seconds is a stranger
+  being told, while a superlative here is a reader being shown, because the six things that
+  substantiate it are on the same screen.
+
+I had advised against both on the grounds that the phrases are widely used. That was an argument
+about novelty, and novelty is not the test. The test is whether a line is TRUE and whether it is
+what the reader wants, and both pass. Every claim in the first line is substantiated element by
+element in **docs/CLAIMS.md**, which exists so that a regulator, a competitor or a new writer can be
+answered from the record rather than from an argument. Do not reopen either decision; extend
+CLAIMS.md instead.
 
 **A note on "world's first", for the owner.** I can write it, and I will if you want it. My advice is
 that it is the weakest sentence available to us, for three reasons: it is the one claim on the page a
