@@ -156,6 +156,44 @@ Plain words, one picture, a rule, a question back. Warm without trying to be lik
 - Read every line back as a fifteen year old who finds mascots embarrassing AND as a parent
   reading over their shoulder. If either would wince, it is wrong.
 
+## 10b. The spoken voice (owner, 2026-09-05)
+
+**The owner:** *"our voice should have emotion while speaking, not too expressive but just enough to
+make it feel like a friend you could talk to."*
+
+The written register (10a) says which words. This says how they are said aloud, and it is a
+different mechanism: the text-to-speech model takes a style instruction, and today that instruction
+is a flat "warm, natural voice" for every line, whatever the line is.
+
+**The target is a friend who happens to be good at this.** Someone whose voice lifts a little when
+you get it, softens when you miss, gets curious when they ask you something, and is calm and plain
+the rest of the time. Not a presenter, not a hype voice, not a robot reading.
+
+**Two ways to miss.** Too flat is a screen reader: every sentence at the same pitch and pace, so
+"you got it" and "not quite" sound identical. Too expressive is a children's television presenter:
+every sentence a performance, which is exhausting after a minute and which a fifteen year old finds
+embarrassing.
+
+**The rule: the emotion follows the beat, and it is small.** The voice knows what kind of line it is
+reading and leans that way, by a degree, never by a mile:
+
+| The beat | The lean |
+|---|---|
+| a learner just got it | a little brighter, a little quicker; pleased, not thrilled |
+| a learner missed | softer and slower; steady, never disappointed, never a sigh |
+| Wobo asks a question | curious, open, a slight lift at the end |
+| explaining a step | calm, even, unhurried; the default |
+| the crisis line | the softest of all, warm, no urgency in the voice |
+
+**What does not change.** One voice everywhere; only the accent moves, as the code already says.
+Nothing is ever read as an exclamation. No laugh, no gasp, no sound effect. The same line read twice
+sounds the same twice.
+
+**How it is tested.** The beat travels with the line (the tutor already knows whether it is a win, a
+miss, a question or a step), the style instruction changes with it, and a listening pass by a person
+holds the five beats apart and holds "too expressive" out. A voice nobody has listened to is not
+done.
+
 ## 11. Quick comparisons
 
 The left column quotes copy we do not ship, so it is the one place in this copy system where an exclamation mark appears on purpose. Nothing in that column may be copied into a product, an email or a page.
