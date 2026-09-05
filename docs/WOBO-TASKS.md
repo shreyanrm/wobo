@@ -1157,3 +1157,23 @@ have no chapters yet; discovery fills them when a learner asks and the worker is
   `railway up` from services/gateway lands today's gateway.
 - **Order of deploys:** gateway first (the new web talks to routes the old gateway lacks), then promote the web.
 - Vercel production deployment was 1 day old (2026-09-04 11:53 IST) at the time of writing.
+
+### 10.24 Railway, 2026-09-05 evening (owner supplied a project token)
+
+- The token is a PROJECT token (project wobo, environment production); the CLI's name for it is
+  `RAILWAY_TOKEN`, stored in `.env.local` with `RAILWAY_PROJECT_ID`. Service: `wobo`, domains
+  `api.heywobo.com` and `wobo.up.railway.app`. Build: root `railway.json` -> `services/gateway/Dockerfile`,
+  context = repo root, `.railwayignore` trims the upload. Deploy from a CLEAN EXPORT of HEAD
+  (`git archive HEAD | tar -x` into the scratchpad, then `railway up --service wobo --detach` there), never
+  from the working tree while waves are editing it.
+- The live gateway before today's deploy was from 2026-09-04 05:25Z. Today's HEAD (`55c3a0f`) deployed
+  at ~19:00 IST; health polled for the new snapshot (`version` field).
+- **Missing on the service, by name:** `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_JWT_SECRET`. Sign-in
+  needs neither (the door verifies through the project's JWKS, one ES256 key published). But EVERY durable
+  store (subscriptions, reports, ledger, mind, parent, doubts, curriculum, observer, consent, hospitality)
+  needs the service-role key and degrades to its honest "unconfigured" state without it, as yesterday's
+  build did too. Nothing server-side has ever persisted in production. **Owner supplies the service-role
+  key** (Supabase dashboard, Project Settings, API, service_role) and I set it on Railway through the API
+  and use it once for the seed publish.
+- Present on the service: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`, `RESEND_API_KEY`,
+  `SUPABASE_URL`, `ENV=prod`, `LLM_MODE=live`, `APP_URL`, `GATEWAY_URL`, mail settings.
