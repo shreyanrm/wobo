@@ -708,24 +708,18 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now
-- [ ] **Wave 9** `wf_c9c922ce-559` — law v5 across the app and the public pages. Five workers landed;
-      the gate adversary is still reading the diff. 44 files uncommitted
-- [ ] **Wave 10** `wf_e8a6b7e4-1f5` — the teaching engine. Three owners in parallel: mastery gates
-      progression and survives a reload, prerequisites are populated and diagnosed, a repeated miss
-      re-teaches on a different axis by itself. Then two adversaries and a fixer
-- [ ] **Wave 11, queued** — port `app-climb.html` into the app: the map, the two vibes, the debt loop
-      and the bridge, reading the state Wave 10 makes real. Blocked only on Wave 9 releasing the app
-      screens
-- [ ] **Wave 13** `wf_9d78a813-810` — cancel, never refund (owner, 2026-09-04: "we dont do refunds,
-      they can cancel if they want to, and make sure that feature is also implemented"). Three owners:
-      the subscription record plus a migration at 0014 and the cancel / resume / read endpoints with
-      the meter falling to free by itself; Settings and Your plan and a two-tap cancel with no
-      retention maze; and the copy and the legal documents, where every discretionary refund promise
-      goes and only the statutory ones remain
-- [ ] **Wave 12, queued** — the Donate page in React beside Gift, plus its route, its footer entry and
-      its sitemap line. Blocked on the four policy lines and on Wave 9 releasing `screens/site/`
-
+### 10.11 Running now (refreshed 2026-09-05 14:40)
+- [ ] **Wave 22** `wf_900f6a92-eb1` — the voice and the screen (§10.17): draw on the screen, not
+      always the board; scroll held while drawing; a screenshot only for an external video; the
+      spoken voice carries the beat. Three builders, adversaries, fixer
+- [ ] **Wave 24** `wf_7fd3e47f-082` — the doubt solver: photo a page, Wobo annotates on the photo
+      and explains while drawing, stroke by sentence. Migration 0021 in flight
+- [ ] **Wave 25** `wf_5b2d02c9-074` — syllabi to production, discovery worker scheduled, 121
+      seeded syllabi verified against source, beat-driven TTS, and the syllabus observer (§10.18).
+      Stopped at 14:16 and resumed with the fourth builder and a poisoning attack
+- [x] ~~**Wave 23** `wf_5184126e-aaf` — onboarding~~ — landed `0dad66f`, §10.19
+- Waves 9 to 13 landed 2026-09-04 (see their sections); waves 14 (`wf_7adb6510-1f2`, testing) is
+  held until the owner calls the testing pass (§10.15)
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
       "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
