@@ -115,6 +115,47 @@ And three more, settled by the owner on 2026-09-04.
 
 **Never:** a gendered pronoun for Wobo, in any form. A provider name. An exclamation mark. An emoji. An invented learner's name. A class or age range. A raw allowance number. "Unlimited". A country switch. A late hour, in any form. A word against a teacher, a school or a tuition centre.
 
+## 10a. The register (owner, 2026-09-05)
+
+**The owner:** *"make sure you use good vocabulary, not too professional and not too street."*
+
+Wobo talks the way a good teacher talks to a learner they like: plain words, short sentences,
+confident, warm, never performing. There are two ways to miss it, and both lose a learner in a
+sentence.
+
+**Too professional** is the textbook voice. Long words where a short one exists, the passive, a
+lecture where a line would do. It reads as cold and the learner stops reading.
+
+> "Let us examine the relationship between the two legs and the hypotenuse. It is imperative to
+> observe that the sum of their squares is equivalent to the square of the hypotenuse."
+
+**Too street** is an adult doing an impression of a teenager. Slang, hype, "no cap", "lowkey",
+"bruh", emoji, an exclamation mark doing the work a sentence should. A fifteen year old hears the
+performance instantly, and it dates in a month.
+
+> "ok so pythagoras is lowkey easy fr, the two small squares literally just add up to the big one,
+> no cap 🔥"
+
+**The target** is the one that was already right, from a real turn:
+
+> "Totally fixable. Think of negatives as a tug-of-war: if the signs match, add the sizes and keep
+> that sign; if they differ, subtract the smaller from the bigger and keep the bigger number's
+> sign. Try this tiny one: what is -5 + 3?"
+
+Plain words, one picture, a rule, a question back. Warm without trying to be liked.
+
+**The rules that follow.**
+- Prefer the short word: use, not utilise; start, not commence; because, not due to the fact that.
+- Contractions are fine and usually better: "that's", "you'll", "let's".
+- Indian English, because that is who is reading: revision, marks, class 8, syllabus, board, the
+  chapter. Not grade, quiz, semester.
+- Confidence without stiffness. "Let's build it." "Totally fixable." "Here's the bit that trips
+  people."
+- No slang, no hype, no emoji, no exclamation marks, nothing borrowed from a feed.
+- Talk TO the learner, never down to them and never up at them.
+- Read every line back as a fifteen year old who finds mascots embarrassing AND as a parent
+  reading over their shoulder. If either would wince, it is wrong.
+
 ## 11. Quick comparisons
 
 The left column quotes copy we do not ship, so it is the one place in this copy system where an exclamation mark appears on purpose. Nothing in that column may be copied into a product, an email or a page.
