@@ -228,6 +228,7 @@ comment on table ops.admin_audit is
 create or replace function ops.admin_audit_is_append_only()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   raise exception 'ops.admin_audit is append-only: % is refused', tg_op

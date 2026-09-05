@@ -155,7 +155,8 @@ create index if not exists reports_urgent_idx on ops.reports (created_at desc)
 create index if not exists reports_learner_idx on ops.reports (learner_id, created_at desc);
 
 create or replace function ops.reports_set_updated_at() returns trigger
-language plpgsql as $$
+language plpgsql set search_path = ''
+as $$
 begin
   new.updated_at = now();
   return new;

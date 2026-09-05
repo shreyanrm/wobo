@@ -629,13 +629,25 @@ revoke update, delete on parent.access_audit from service_role;
 -- `learner`; every table in it is still closed to `anon` and `authenticated` by the grants above,
 -- so exposing it costs nothing and is what lets the gateway's service-role calls select it with
 -- the Accept-Profile header.
+-- READ THE ROLE, NOT THE SESSION. The first version of this block read
+-- current_setting('pgrst.db_schemas'), which is the SESSION's value and is unset in the fresh
+-- session a migration runs in. It therefore fell back to 'public, learner', appended 'parent', and
+-- ALTER ROLE overwrote the list 0018 had set, dropping `ops` and `curriculum` from PostgREST in
+-- production: the ledger, the reports queue, the admin register and the curriculum plane were all
+-- unreachable through the REST API until it was put back by hand. The list a role actually carries
+-- lives in pg_roles.rolconfig, and that is what an append must read.
 do $$
 declare
   current_schemas text;
 begin
-  select coalesce(current_setting('pgrst.db_schemas', true), '') into current_schemas;
+  select substring(cfg from '^pgrst\.db_schemas=(.*)$')
+    into current_schemas
+    from pg_roles r, unnest(r.rolconfig) as cfg
+   where r.rolname = 'authenticator'
+     and cfg like 'pgrst.db_schemas=%'
+   limit 1;
   if current_schemas is null or current_schemas = '' then
-    current_schemas := 'public, learner';
+    current_schemas := 'public, graphql_public, learner, curriculum, ops';
   end if;
   if position('parent' in current_schemas) = 0 then
     execute format('alter role authenticator set pgrst.db_schemas = %L',
