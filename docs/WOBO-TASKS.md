@@ -708,13 +708,8 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now (refreshed 2026-09-05 16:05)
-- [ ] **Wave 25** `wf_5b2d02c9-074` (task `wh8jt10i1`) — syllabi to production (publish emits SQL the
-      orchestrator applies), discovery worker scheduled, 121 seeded syllabi verified against source,
-      and the observer's adversary + fixer. Beat-driven TTS and the observer builder already landed
-- [x] ~~**Wave 22** `wf_900f6a92-eb1` — the voice and the screen~~ — landed `a5be4f5`, §10.17
-- [x] ~~**Wave 24** `wf_7fd3e47f-082` — the doubt solver~~ — landed `a5be4f5`, §10.20
-- [x] ~~**Wave 23** `wf_5184126e-aaf` — onboarding~~ — landed `0dad66f`, §10.19
+### 10.11 Running now (refreshed 2026-09-05 17:10)
+- Nothing running. Waves 22, 23, 24 and 25 all landed today (`0dad66f`, `a5be4f5`); see 10.17 to 10.21.
 - Wave 14 (`wf_7adb6510-1f2`, testing) is held until the owner calls the testing pass (§10.15)
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
@@ -1091,3 +1086,40 @@ Adversaries raised 18 (leaks first), the fixer closed 18, each run red first.
 
 **Open.** Migration `0021_doubts.sql` (learner.doubts + private doubt-photos bucket) is written,
 NOT applied; until it is, the reading answers 503 not_kept in production. Apply after a read.
+
+### 10.21 The syllabi reach production, and the honest count (owner, 2026-09-05)
+
+**Ask.** Quality of board selection, accuracy per grade, learner editing; verify from the web on
+first selection; the observer (10.18).
+
+**Landed `a5be4f5` (wave 25).** The commit message says "publish and verify in flight"; that
+was wrong, the wave had finished before the snapshot and the message was written from an older
+notification. Everything below is in that commit.
+
+- **The honest count.** The seed holds 121 syllabus files but only 50 carry chapters; 71 are
+  stored negative results (a blocker code and a note, no units) and mint nothing. The 50 fall
+  into 4 versions: CBSE 2026-27 (23 subjects, classes 6 to 12), ICSE 2026-27 (12), ISC 2026-27
+  (8), NIOS 2023 (7). 268 frameworks, 1493 nodes (a loader bug emitted 37 duplicate level ids;
+  fixed at the source and asserted unique).
+- **Verified against the source, row by row** (`docs/curriculum/VERIFICATION.md`): all 41 source
+  documents re-fetched and hashed identical. 15 verified (9 by code alone, 6 with a second
+  reader), 15 provisional failed, 20 provisional incomplete, 71 with nothing to check. Cost
+  USD 0.36. Errors found in our reading and fixed at the source, never in place: class 11
+  maths was missing Three-dimensional Geometry; class 10 science had three formative-box topics
+  wrong (the PDF's text layer misled the first cut; pages rendered as images and re-read);
+  physics marks brackets read off the drawn cells; a NIOS "Module- ll" misprint recorded.
+- **Publish** is one idempotent command with `--emit-sql`; the SQL (2.08 MB, 19 inserts, every one
+  on-conflict-do-nothing) is applied by the orchestrator, never by a worker.
+- **The discovery worker** is scheduled behind `WOBO_DISCOVERY_WORKER=1` (default off), one
+  conditional claim per job so two replicas cannot both run one, charged as generations to a
+  system subject under the spend ceiling. About USD 0.20 per discovery, at most USD 1.60 a day
+  (`docs/OPERATIONS.md` §9.2). The owner turns it on.
+- **First selection verifies from the web.** The first learner on a provisional (board, class,
+  subject) triggers a re-check off the request thread with an honest "checking" line; the second
+  learner reads the stored verdict. Proven live: CBSE class 10 maths fetched, hash identical, all
+  9 structural checks passed in 1.2 s; class 8 maths timed out at NCERT and took the honest
+  unreachable path.
+- **The beat** (10a/10b): adversary raised 8, fixer closed 8; a crisis line can never be re-beaten.
+
+**Open.** The production discovery worker is off until the owner sets the env var. 71 syllabi
+have no chapters yet; discovery fills them when a learner asks and the worker is on.
