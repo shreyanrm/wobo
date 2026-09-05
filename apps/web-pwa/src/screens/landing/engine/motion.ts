@@ -75,6 +75,12 @@ function killer(tweens: gsap.core.Animation[], triggers: ScrollTrigger[]): Dispo
   return () => {
     for (const tween of tweens) {
       tween.scrollTrigger?.kill();
+      // REVERT, not just kill. A killed tween leaves its target wherever it had got to, so a
+      // reveal killed before it ran left the element at opacity 0 for the next mount to inherit
+      // as its resting state. Reverting puts the element back the way the markup had it.
+      if (typeof (tween as { revert?: () => void }).revert === 'function') {
+        (tween as { revert: () => void }).revert();
+      }
       tween.kill();
     }
     for (const trigger of triggers) trigger.kill();
@@ -86,27 +92,47 @@ function killer(tweens: gsap.core.Animation[], triggers: ScrollTrigger[]): Dispo
 /**
  * Everything marked `.reveal` lifts into place as it crosses the trigger line.
  *
- * `gsap.from` rather than a `set` plus a `to`: the element's resting state is the one in the
- * markup, so a page whose engine never loads is a page that reads correctly rather than a blank
- * one. `will-change` is set for the duration and cleared after, and the transform is cleared with
- * it so nothing is left holding a matrix.
+ * `fromTo` WITH AN EXPLICIT DESTINATION, and that is a bug fix rather than a style choice.
+ *
+ * This was `gsap.from`, whose destination is whatever the element's CURRENT value happens to be
+ * when the tween is built. That is fine exactly once. It is not fine if a previous tween was
+ * killed while it held the start value, or if the effect mounts a second time, because then the
+ * element is sitting at `opacity: 0` when the new tween reads it, the new tween's destination
+ * becomes 0, and it animates faithfully from nothing to nothing. Every one of the page's 61
+ * reveals was invisible on load, headline included, with `will-change: auto` in the inline style
+ * proving the tween had run to completion and completed at zero.
+ *
+ * `fromTo` names both ends, so it cannot inherit a broken destination however it is remounted, and
+ * the disposer now reverts rather than only killing, so nothing is left holding a start value for
+ * the next mount to read.
+ *
+ * The original reason for `from` still holds and is preserved: nothing in CSS hides a `.reveal`, so
+ * a page whose engine never loads reads correctly rather than blank. Only a tween that actually
+ * runs ever sets opacity to 0, and it sets it back.
  */
 export function mountReveals(root: ParentNode): Disposer {
   const tweens = all<HTMLElement>(root, '.reveal').map((el) =>
-    gsap.from(el, {
-      y: 24,
-      opacity: 0,
-      duration: 0.75,
-      ease: 'power3.out',
-      scrollTrigger: { trigger: el, start: REVEAL_START, once: true },
-      onStart() {
-        el.style.willChange = 'transform, opacity';
+    gsap.fromTo(
+      el,
+      { y: 24, opacity: 0 },
+      {
+        y: 0,
+        opacity: 1,
+        duration: 0.75,
+        ease: 'power3.out',
+        immediateRender: false,
+        scrollTrigger: { trigger: el, start: REVEAL_START, once: true },
+        onStart() {
+          el.style.willChange = 'transform, opacity';
+        },
+        onComplete() {
+          el.style.willChange = 'auto';
+          // Hand the element back to the stylesheet rather than leaving it pinned to the values
+          // this tween happened to end on.
+          gsap.set(el, { clearProps: 'transform,opacity,willChange' });
+        },
       },
-      onComplete() {
-        el.style.willChange = 'auto';
-        el.style.transform = '';
-      },
-    }),
+    ),
   );
   return killer(tweens, []);
 }

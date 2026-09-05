@@ -61,8 +61,29 @@ describe('law v5 §8 — cause 1: one owner per animated property', () => {
   });
 
   it('clears the reveal’s transform once it has landed, so nothing is left holding a matrix', () => {
-    expect(CODE).toContain("el.style.transform = ''");
+    // Was an assertion on the literal `el.style.transform = ''`. clearProps does the same job and
+    // more (it hands opacity back to the stylesheet too), so the test asserts the INTENT now.
+    expect(CODE).toContain("clearProps: 'transform,opacity,willChange'");
     expect(CODE).toContain("el.style.willChange = 'auto'");
+  });
+
+  /**
+   * THE BUG THIS GUARDS. `gsap.from` takes its DESTINATION from whatever the element's current
+   * value happens to be when the tween is built. Build a reveal once, kill it while it is holding
+   * its start value, build it again, and the second tween's destination is the start value: it
+   * animates from nothing to nothing. Every one of the page's reveals was invisible on load,
+   * headline included, and no scroll brought them back.
+   *
+   * Two rules keep it fixed, and both are asserted because either alone would let it return:
+   * name both ends, and revert on dispose rather than only killing.
+   */
+  it('names both ends of a reveal, so a remount cannot inherit a broken destination', () => {
+    expect(CODE).toContain('gsap.fromTo(');
+    expect(CODE).not.toMatch(/gsap\.from\(\s*el/);
+  });
+
+  it('reverts a tween on dispose, so nothing is left holding a start value', () => {
+    expect(CODE).toContain('.revert()');
   });
 });
 
