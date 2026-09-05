@@ -308,6 +308,12 @@ grant all on ops.model_calls to service_role;
 grant all on ops.usage_daily to service_role;
 
 revoke all on schema ops from anon, authenticated;
+-- 0015 grants USAGE on this schema to `authenticated` on purpose: `admin_audit_read` lets an admin
+-- read their own trail through `ops.is_admin()`, and a policy cannot be reached without usage on
+-- the schema holding it. The blanket revoke above would take that back and silently break the
+-- audit read, so it is restored here. Table privileges stay revoked; usage on a schema grants
+-- nothing by itself.
+grant usage on schema ops to authenticated;
 revoke all on ops.model_calls from anon, authenticated;
 revoke all on ops.usage_daily from anon, authenticated;
 
