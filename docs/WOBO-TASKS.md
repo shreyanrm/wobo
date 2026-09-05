@@ -1014,3 +1014,24 @@ Verified against the code, and the design already matches, with one refinement:
       not make (a YouTube embed, a learner's clip). Pause, capture the frame, hold scroll, annotate,
       release. That is the owner's design and it is the only place a screenshot is permitted
 - [ ] Scroll hold during an active stroke on any surface: Wave 22, running
+
+### 10.18 The syllabus observer (owner, 2026-09-05)
+
+**Ask.** *"Verify from the web the first time a user selects a board. Build an observer of flag
+reports and edits so you can correct the syllabi based on the similarity of edits, referring the web
+and the LLM knowledge to conclude the ideal syllabus. The syllabus may or may not change every year."*
+
+**Design.** `docs/CURRICULUM-OBSERVER.md`. Three witnesses, ranked: the board document, learner
+consensus, the model. Consensus can only trigger a re-read; it never writes a chapter the document
+does not contain (except into labelled `community` status). Corrections are always a new version
+with `supersedes`, never in place. Thresholds are relative (35%/50%) with a minimum in learners
+(12), a learner counts once per (node, op) and only after real use, so a hundred edits from one
+account are one vote and twenty fresh accounts are none. Consensus does not cross a year boundary.
+Console desk with a require-review switch, default on.
+
+**Build.** Wave 25, fourth builder (`observer.py`, counts migration, hooks on overlay write and
+`not_my_syllabus` flag, `about` allow-list carries `version_id` + `node_id`). The syllabus
+adversary poisons it: one account × 100 edits, 20 fresh accounts, 30 real accounts removing a
+real chapter — the document must win; then a genuinely dropped chapter must mint a new version.
+
+**State.** Building. Run `wf_5b2d02c9-074`, task `wozfy0307`.
