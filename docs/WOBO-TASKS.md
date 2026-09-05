@@ -708,8 +708,16 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now (refreshed 2026-09-05 17:10)
-- Nothing running. Waves 22, 23, 24 and 25 all landed today (`0dad66f`, `a5be4f5`); see 10.17 to 10.21.
+### 10.11 Running now (refreshed 2026-09-05 18:30)
+- [ ] **Wave 26** `wf_b452b4f7-c2d` (task `wcvbw618c`) — one learner, one Wobo on the device: every per-learner
+      key scoped by account with migration and a source-scanning test; the memory law's client half
+      (write-through cache, offline queue, forget reaches the server first). Adversary: two learners, one phone
+- [ ] **Wave 27** `wf_b63b663c-815` (task `wihbee045`) — Razorpay subscriptions: plans to the paisa from
+      PRICING.md, checkout, signed webhooks processed once, cancel at cycle end, keys from env only, payments-off
+      honest. Adversary: steal a plan. Owner supplies RAZORPAY_KEY_ID / KEY_SECRET / WEBHOOK_SECRET later
+- [ ] **Wave 28** `wf_a10b2cad-80a` (task `wdhyh0hr3`) — fallbacks everywhere: OpenAI terra/luna/sol first,
+      Anthropic second, Gemini last and for audio; every seam through one funnel; fast skip on no credit;
+      per-tier price table from the official pages. Adversary: kill each provider
 - Wave 14 (`wf_7adb6510-1f2`, testing) is held until the owner calls the testing pass (§10.15)
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
@@ -1135,3 +1143,17 @@ have no chapters yet; discovery fills them when a learner asks and the worker is
   or pastes the key into `.env.local` and says so, and I run it. Verify with the query in the
   header of `harness/reports/publish-seed.sql`.
 - Until then every board still yields no syllabus in production.
+
+### 10.23 Production wiring, 2026-09-05 evening (owner logged in to Vercel)
+
+- **Why the live site was a demo shell:** all six `VITE_*` variables existed on Vercel with EMPTY values
+  (`vercel env add` fed from a pipe stores a blank in CLI 54). Set through the REST API with the CLI's own
+  token, production and preview, verified by pull: Supabase URL and anon key, `VITE_SUPABASE_PROXY=1` (the
+  CSP only allows our own origin, so the database goes through the `/db` rewrite), gateway URL, app URL,
+  `VITE_LLM_MODE=live`, `VITE_PERSIST_MODE=live`, `VITE_DEV_AUTH=false`. Empty duplicate rows deleted.
+- **The live gateway is old:** `/healthz` answers the two-field body from before health.py; today's code
+  returns a full snapshot. Railway needs a deploy. The `RAILWAY_API_TOKEN` in `.env.local` is rejected as an
+  account token, as a project token, and by the GraphQL API: **the owner runs `railway login`**, then
+  `railway up` from services/gateway lands today's gateway.
+- **Order of deploys:** gateway first (the new web talks to routes the old gateway lacks), then promote the web.
+- Vercel production deployment was 1 day old (2026-09-04 11:53 IST) at the time of writing.
