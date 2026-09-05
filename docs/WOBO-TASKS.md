@@ -1156,7 +1156,10 @@ have no chapters yet; discovery fills them when a learner asks and the worker is
   account token, as a project token, and by the GraphQL API: **the owner runs `railway login`**, then
   `railway up` from services/gateway lands today's gateway.
 - **Order of deploys:** gateway first (the new web talks to routes the old gateway lacks), then promote the web.
-- Vercel production deployment was 1 day old (2026-09-04 11:53 IST) at the time of writing.
+- **Promoted 2026-09-05 ~19:30 IST:** today's HEAD deployed to production from the clean export (`vercel deploy --prod` in
+  the export dir with `.vercel/project.json` copied in). Verified: entry chunk changed, gateway host in 5 chunks, anon key
+  inlined, today's hero and the doubt routes present, `/db` rewrite reaches Supabase (401 without apikey = reached),
+  gateway preflight allows `https://heywobo.com`. The gateway went live ~75 s after `railway up` (§10.24).
 
 ### 10.24 Railway, 2026-09-05 evening (owner supplied a project token)
 
