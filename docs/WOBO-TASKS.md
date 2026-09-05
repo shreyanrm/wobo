@@ -821,3 +821,44 @@ back of the mind while building.
 - [ ] Content protection: per-viewer watermarking, short-lived signed URLs, rate-limit hardening.
       NOTE FOR THE OWNER: screen recording cannot be prevented on the web, so the plan is the four
       things that do work rather than a lock that does not lock
+
+## Wave 20 onward — THE PRODUCT ONLY (owner, 2026-09-05)
+
+**The owner's ruling:** *"lets leave the public landing pages, lets get back to it later; lets focus
+on the product first and once that is ready and flawless we will have enough knowledge to context to
+build the perfect landing pages"*
+
+This is a sequencing decision and it is a good one. The site has spent weeks describing a product
+that does not fully work, which is why so many of its sentences had to be deleted for claiming
+things the code did not do. Build the product, then describe what is actually there. Every landing
+and public-page task below is PAUSED, not cancelled.
+
+### Paused until the product is ready
+- The conversion rework beyond what has already landed
+- Any further copy, hero or positioning work
+- The public pages' remaining handoffs and friction items
+- The anonymous tutor demo — CANCELLED by the owner, not paused: *"no demo without account cause it
+  is free anyways"*. The free tier is the demo.
+- Consent — DEFERRED by the owner to the end, not dropped. Still the largest single item in the
+  privacy register and still required before a real launch.
+
+### The product, in the owner's priority order
+- [ ] **Everything Wobo says, draws and explains is right.** His words: *"make sure everything wobo
+      says and draws and explains is working perfectly and on point"*. The product's central claim
+      has NO test at all today: all 5,400 tests are about the plumbing around the teaching, and
+      nothing checks the teaching itself
+- [ ] **Never lose a child's work.** Five swallowed save failures under a loader whose last word is
+      "Your place is saved", and no client timeout on any gateway call (proved to hang past 45s)
+- [ ] **A child can report anything, anywhere.** The queue, the endpoint and the admin desk exist;
+      the control the learner taps does not, while the help centre promises one on every lesson,
+      question, board and diagram
+- [ ] **Start over actually starts over.** Erasure reaches 6 of 22 durable stores; the answers, the
+      handwriting, the sessions, the uploaded syllabus and the account itself all survive it
+- [ ] **The board describes what it draws.** Five of eight objects on a real Pythagoras board are
+      announced as nothing, on a product whose premise is that it draws the explanation
+- [ ] **Payments: Razorpay** (owner's choice, 2026-09-05). Nothing is wired today and checkout is
+      promise text
+- [ ] **Operations**, authorised by the owner: *"do whatever is needed"*. Monitoring, alerting,
+      backups and a rehearsed restore, dependency and secret scanning in CI, branch protection
+- [ ] **The migrations reach production.** Six have never been applied, so subscriptions, the ledger,
+      the reports queue, the admin register and mastery evidence have no table behind them
