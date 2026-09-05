@@ -708,18 +708,14 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now (refreshed 2026-09-05 14:40)
-- [ ] **Wave 22** `wf_900f6a92-eb1` — the voice and the screen (§10.17): draw on the screen, not
-      always the board; scroll held while drawing; a screenshot only for an external video; the
-      spoken voice carries the beat. Three builders, adversaries, fixer
-- [ ] **Wave 24** `wf_7fd3e47f-082` — the doubt solver: photo a page, Wobo annotates on the photo
-      and explains while drawing, stroke by sentence. Migration 0021 in flight
-- [ ] **Wave 25** `wf_5b2d02c9-074` — syllabi to production, discovery worker scheduled, 121
-      seeded syllabi verified against source, beat-driven TTS, and the syllabus observer (§10.18).
-      Stopped at 14:16 and resumed with the fourth builder and a poisoning attack
+### 10.11 Running now (refreshed 2026-09-05 16:05)
+- [ ] **Wave 25** `wf_5b2d02c9-074` (task `wh8jt10i1`) — syllabi to production (publish emits SQL the
+      orchestrator applies), discovery worker scheduled, 121 seeded syllabi verified against source,
+      and the observer's adversary + fixer. Beat-driven TTS and the observer builder already landed
+- [x] ~~**Wave 22** `wf_900f6a92-eb1` — the voice and the screen~~ — landed `a5be4f5`, §10.17
+- [x] ~~**Wave 24** `wf_7fd3e47f-082` — the doubt solver~~ — landed `a5be4f5`, §10.20
 - [x] ~~**Wave 23** `wf_5184126e-aaf` — onboarding~~ — landed `0dad66f`, §10.19
-- Waves 9 to 13 landed 2026-09-04 (see their sections); waves 14 (`wf_7adb6510-1f2`, testing) is
-  held until the owner calls the testing pass (§10.15)
+- Wave 14 (`wf_7adb6510-1f2`, testing) is held until the owner calls the testing pass (§10.15)
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
       "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
@@ -988,6 +984,15 @@ false reached a learner". All of the following are fixed, each with a test that 
       cross-check than the routing doctrine asks for. The report says so on every run
 
 ### 10.17 How Wobo sees the screen (owner, 2026-09-05)
+
+**Landed `a5be4f5` (wave 22).** The ink decides the surface, and only the learner's word beats
+it: a mark anchored to something on the screen stays there and follows its target; the board
+opens only for something built from scratch, never empty. The planner no longer reads the
+model's 'presentation' field (it said 'plane' out of habit; that was the whole bug). Scroll is
+held only while a page-anchored stroke is mid-flight, 1.5 s cap, Escape releases, a moving
+finger keeps its scroll. The harness scores 'in place' (4/4 on three recorded cases). Same wave:
+the register law in both prompts, their-world 0 to 4, teaches 1.92 to 3.47 under stricter checks,
+the crisis script unreachable from a classifier outage. 25 findings raised, 27 closed.
 The owner's ruling, reasoning from first principles: an overlay with a scroll hold is right, and
 the one case that needs a screenshot is a VIDEO, because a frame has no structure to point at,
 so there you pause, capture, lock and annotate, and nowhere else.
@@ -1064,3 +1069,25 @@ the headline says "I'll draw it". Fix: one `draw: true` on `AskOptions`, honoure
 `boardShapeOf` is computed, passed by step three for the first question. Wave 22 owns
 `presentation.ts` and `AppRuntime`; do it the moment it lands, then re-run
 `tests/onboarding.spec.ts` against a live key to prove the aha draws.
+
+### 10.20 The doubt solver (owner, 2026-09-05)
+
+**Ask.** Photo a book page; Wobo annotates on the photo itself and explains while drawing,
+stroke by sentence.
+
+**Landed `a5be4f5` (wave 24).** Two steps over the one existing tutor: POST /v1/doubt reads the
+photo and returns the reading first, for the learner to correct any line; POST
+/v1/doubt/{id}/answer streams the board frames over the photo as a registered surface, so the
+planner, verifier, spoken-number law, both safety screens, meter, spend ceiling and ledger all
+apply. Every model mark anchors to a line of the page or is counted off it; every stroke is
+beaten to a sentence. Photos are bounded (6 MB decoded, 8000 px side, 40 MP), EXIF-oriented,
+re-encoded with no metadata (EXIF, COM, XMP, ICC all gone), screened before read or keep, and
+the screen fails closed. Faces, personal details and non-pages refused kindly. Storage
+account-keyed; forget-me reaches the table and the bucket. Client: a sign-in door before any
+shutter, camera, reading, corrections in place, ink on the photo, chips ranked for the doubt,
+a caption revealed on the beat, Hindi pages tokenised. Two taps to the first line of
+explanation. Cost of one doubt from the price table: about $0.026 typical, $0.038 ceiling.
+Adversaries raised 18 (leaks first), the fixer closed 18, each run red first.
+
+**Open.** Migration `0021_doubts.sql` (learner.doubts + private doubt-photos bucket) is written,
+NOT applied; until it is, the reading answers 503 not_kept in production. Apply after a read.
