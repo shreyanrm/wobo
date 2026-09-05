@@ -656,6 +656,8 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         modeDraws: mode ? MODE_BY_ID[mode].draws : false,
         // A question about a thing on this screen is answered on it, in place.
         namesTarget: looking !== null,
+        // The screen said it would draw (onboarding step three); keep the promise.
+        draw: options.draw === true,
       });
       if (shape.word?.dismiss) {
         plane.dismiss();

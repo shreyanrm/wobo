@@ -39,6 +39,13 @@ export interface AskOptions {
    * law, wobo/doubt-surface.ts `checkBeats`), which only the board wire can do.
    */
   doubt?: DoubtPacket;
+  /**
+   * THE SCREEN PROMISED A DRAWING. Onboarding step three puts "I'll draw it" above three plain
+   * questions; asked as words alone they were answered as words. A screen that made the
+   * promise asks for the hand outright (wobo/presentation.ts boardShapeOf). Never set from a
+   * guess about the text: only where the screen itself said it would draw.
+   */
+  draw?: boolean;
 }
 
 export interface WoboChat {

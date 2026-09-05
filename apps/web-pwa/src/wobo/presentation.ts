@@ -261,7 +261,7 @@ export interface BoardShape {
  */
 export function boardShapeOf(
   text: string,
-  opts: { hasFocus?: boolean; modeDraws?: boolean; namesTarget?: boolean } = {},
+  opts: { hasFocus?: boolean; modeDraws?: boolean; namesTarget?: boolean; draw?: boolean } = {},
 ): BoardShape {
   const word = presentationWord(text);
   if (word?.dismiss || word?.wipe) return { board: false, ...(word ? { word } : {}) };
@@ -274,8 +274,14 @@ export function boardShapeOf(
   // registered target. "which button starts the course?" used to go to the plain conversation,
   // and the learner got words about a button they were looking at (the 2026-09-05 review).
   const aboutTheScreen = Boolean(opts.namesTarget) && (ASKS_ABOUT_IT.test(text) || MARKS.test(text));
+  // THE SCREEN PROMISED A DRAWING. Onboarding step three says "I'll draw it" over three sample
+  // questions that are plain prose ("Why is the sky blue?"): no draw word, no mode, no target.
+  // Read as words alone they went to the conversation and came back as handwriting under a
+  // headline that promised ink (wave 23, 2026-09-05). A screen that made the promise asks for
+  // the hand outright; the learner's own word about the surface, above, still wins.
+  const promised = Boolean(opts.draw);
   return {
-    board: asked || byMode || aboutFocus || aboutTheScreen,
+    board: asked || byMode || aboutFocus || aboutTheScreen || promised,
     ...(override ? { override } : {}),
     ...(word ? { word } : {}),
   };

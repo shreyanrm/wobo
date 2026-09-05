@@ -229,3 +229,16 @@ describe('what cannot leave the screen', () => {
     expect(staysOnScreen(axis())).toBe(false);
   });
 });
+
+describe('a screen that promised a drawing (onboarding step three, 2026-09-05)', () => {
+  it('draw: true sends a plain question to the hand', () => {
+    // "Why is the sky blue?" is prose: no draw word, no mode, no target. Under a headline that
+    // says "I'll draw it", the screen keeps the promise by asking for the hand outright.
+    expect(boardShapeOf('Why is the sky blue?').board).toBe(false);
+    expect(boardShapeOf('Why is the sky blue?', { draw: true }).board).toBe(true);
+  });
+  it("the learner's word about the surface still wins", () => {
+    expect(boardShapeOf('close the board', { draw: true }).board).toBe(false);
+    expect(boardShapeOf('close the board', { draw: true }).word?.dismiss).toBe(true);
+  });
+});

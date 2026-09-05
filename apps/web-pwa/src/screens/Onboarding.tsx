@@ -358,7 +358,7 @@ export function Onboarding() {
     setAskNote(null);
     setQuestion(line);
     setAskedAt(chat.turns.length);
-    void chat.ask(line);
+    void chat.ask(line, { draw: true });
   };
 
   const finish = () => {
