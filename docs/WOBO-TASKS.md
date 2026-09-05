@@ -1180,3 +1180,16 @@ have no chapters yet; discovery fills them when a learner asks and the worker is
   and use it once for the seed publish.
 - Present on the service: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_AI_API_KEY`, `RESEND_API_KEY`,
   `SUPABASE_URL`, `ENV=prod`, `LLM_MODE=live`, `APP_URL`, `GATEWAY_URL`, mail settings.
+
+### 10.25 The syllabi are in production; the service key is on the gateway (2026-09-05, ~20:40 IST)
+
+- Owner supplied the Supabase service-role key (stored in `.env.local`, never printed; set on the Railway
+  service through the CLI with `--skip-deploys`, then `railway redeploy`). The API's `variableUpsert` refuses a
+  project token (403); the CLI's own path works.
+- **Seed published** from the clean lab export with `python -m wobo_gateway.curriculum.publish`: run 1 wrote
+  268 frameworks / 4 versions / 1493 nodes / 1493 provenance; run 2 found `already.versions = 4` and moved nothing.
+  Verified in production by query: 268 / 4 / 1493 / 1493, 0 orphan nodes, 0 nodes without provenance; versions
+  cbse 2026-27 verified, icse 2026-27 provisional, isc 2026-27 provisional, nios 2023 verified. 71 seed files
+  carry no chapters (stored negative results) and minted nothing; discovery fills them when the worker is on.
+- From this redeploy on, every server-side store in production is configured: subscriptions, reports, ledger,
+  mind, parent, doubts, curriculum, observer, consent, hospitality.

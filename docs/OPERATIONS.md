@@ -265,6 +265,15 @@ So that nobody reads this page and believes more exists than does.
   below). Apply with `list_migrations` open, from the file, verbatim, and move it into the table
   above in the same commit.
 
+  **A third migration is NOT applied: `0023_razorpay_billing`** (2026-09-05, the payments wave,
+  §12 below). It adds four columns to `learner.subscriptions` (`period`, the provider's ids,
+  `provider_status`) and two tables to `ops` (`billing_events`, the once-only ledger; `billing_config`,
+  the plan ids). Additive and idempotent. Until it is applied AND the three `RAZORPAY_*` variables are
+  set, the gateway is honest without it: `POST /v1/billing/checkout` answers 503 `payments_off`, the
+  webhook is refused, the cancel of a row with no provider id behaves exactly as before, and
+  `/healthz` says `payments: off`. Apply after 0014 and 0015, from the file, verbatim, before the
+  keys go in.
+
   **A second migration is NOT applied, for the same reason: `0022_curriculum_observer`**
   (2026-09-05, the syllabus observer, `docs/CURRICULUM-OBSERVER.md`). It adds four tables and two
   views to `curriculum` (`observer_use`, `observer_votes`, `observer_actions`, `observer_settings`,
@@ -403,6 +412,9 @@ as unreachable and is retried after six hours.
 | The money ceiling and the lanes | `services/gateway/src/wobo_gateway/spend.py` |
 | The alarm and the webhook sink | `services/gateway/src/wobo_gateway/alerts.py` |
 | What `/healthz` knows | `services/gateway/src/wobo_gateway/health.py` |
+| The routing table, the catalogue of ids and prices, the env overrides | `services/gateway/src/wobo_gateway/routing.py` |
+| The chain walk: one call per model, the credit skip, the shared deadline | `services/gateway/src/wobo_gateway/model_call.py` |
+| Per-provider state: last success, last failure, out of credit, who carries each tier | `services/gateway/src/wobo_gateway/health.py` |
 | Where the ceiling is enforced | `services/gateway/src/wobo_gateway/app.py` (`Gateway.invoke`, `stream_board_turn`) |
 | Where a call's cost is priced | `services/gateway/src/wobo_gateway/telemetry.py` (`record_cost`) |
 | The per-learner daily allowance | `services/gateway/src/wobo_gateway/budget.py` |
@@ -413,5 +425,209 @@ as unreachable and is retried after six hours.
 | Deploy steps and rollback | `DEPLOY.md` |
 
 Tests: `services/gateway/tests/test_spend.py`, `test_alerts.py`, `test_health.py`,
+`test_router_fallbacks.py`, `test_model_call.py`,
 `test_curriculum_publish.py`, `test_discovery_worker.py`, `test_curriculum_recheck.py`.
 Run them with `cd services/gateway && uv run pytest -q`.
+
+---
+
+## 11. The router: who answers, what it costs, and what happens when a provider is out
+
+Written 2026-09-05, the day every Claude call was refused with "credit balance is too low" and the
+fallback carried the product. The owner's word that day: "use the openai and gemini keys if
+anthropic isn't working, we should have fallbacks everywhere"; "use openai's terra luna sol; they
+are pretty good for generations, and gemini is good for audio and cheaper".
+
+### 11.1 The table
+
+Every text tier goes to OpenAI first, Anthropic second (the cross-provider second opinion, back in
+play the day the credit is topped up) and Gemini Flash last. Voice and imagery stay on Gemini with
+an OpenAI rung behind them. `services/gateway/src/wobo_gateway/routing.py`, `DEFAULT_TABLE`.
+
+| Tier | What rides on it | First | Second | Last |
+|---|---|---|---|---|
+| `tiny` | openers, digests, recall, the public Ask box, the curriculum registry | `openai/gpt-5.6-luna` | `anthropic/claude-haiku-4-5` | `gemini/gemini-2.5-flash` |
+| `turn` | Wobo's turns, tutor turns, parent turns, grading one attempt | `openai/gpt-5.6-terra` | `anthropic/claude-sonnet-5` | `gemini/gemini-2.5-flash` |
+| `generate` | board plans, lessons, diagrams, storyboards, courses | `openai/gpt-5.6-terra` | `anthropic/claude-opus-5` | `gemini/gemini-2.5-flash` |
+| `reason` | the hard list: `verify.math`, a grading escalation, a rebuild after a judge rejection | `openai/gpt-5.6-sol` | `anthropic/claude-opus-5` | `gemini/gemini-2.5-flash` |
+| `verify` | the judge of anything generated | `openai/gpt-5.6-sol` | `anthropic/claude-opus-5` | `gemini/gemini-2.5-flash` |
+| `voice` | Wobo speaking | `gemini/gemini-2.5-flash-preview-tts` | `openai/gpt-4o-mini-tts` | the device's own voice |
+| `image` | raster imagery SVG cannot express | `gemini/gemini-2.5-flash-image` | `openai/gpt-image-2` | |
+
+One thing to know about the judge. With Anthropic second on every tier, the verify tier's primary
+is Sol, which is the same account as the Terra that generated. The second opinion is still the
+other mind whenever Anthropic is answering: the chain crosses, and a judge that cannot be reached
+on one account is reached on the next. When only one account is answering, the judge is the same
+account's flagship judging its middle model, which is a weaker check than two vendors and a
+stronger one than none. That is the honest shape of "fallbacks everywhere".
+
+### 11.2 The prices, from the vendors' own pages
+
+Read on 2026-09-05. USD per million tokens, standard short-context rates. The router carries the
+same numbers in `routing.CATALOGUE`, and `test_router_fallbacks.py` holds litellm's price table
+(the one the usage ledger prices every call from) to them, so if a vendor moves a price the test
+is what breaks first.
+
+| Model | Input | Cached input | Output | Page |
+|---|---|---|---|---|
+| `openai/gpt-5.6-sol` | 4.00 | 0.40 | 20.00 | [OpenAI pricing](https://developers.openai.com/api/docs/pricing) |
+| `openai/gpt-5.6-terra` | 2.00 | 0.20 | 12.00 | same |
+| `openai/gpt-5.6-luna` | 0.20 | 0.02 | 1.20 | same |
+| `anthropic/claude-opus-5` | 5.00 | 0.50 (cache hit) | 25.00 | [Anthropic pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
+| `anthropic/claude-sonnet-5` | 2.00 | 0.20 (cache hit) | 10.00 | same; the introductory price was made standard |
+| `anthropic/claude-haiku-4-5` | 1.00 | 0.10 (cache hit) | 5.00 | same |
+| `gemini/gemini-2.5-flash` | 0.30 | | 2.50 | [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) |
+| `gemini/gemini-2.5-flash-preview-tts` | 0.50 (text) | | 10.00 (audio) | same |
+| `gemini/gemini-2.5-flash-image` | 0.30 | | 0.039 per image | same |
+
+The OpenAI ids and which is which (Sol "flagship model for complex professional work", Terra
+"balances intelligence and cost", Luna "optimized for cost-sensitive workloads") are from the
+[OpenAI models page](https://developers.openai.com/api/docs/models), which also names
+`gpt-4o-mini-tts` and `gpt-image-2`. OpenAI's long-context rates are double the short-context
+input rate and higher on output; no call in this gateway reaches long context.
+
+### 11.3 What one turn costs
+
+From litellm's price table, the one the ledger prices every row from, on the shapes the policies
+allow (`registry.py` sets the output ceilings; the input figures are the assumption, stated):
+
+| Call | Shape | On the first rung | On the second | On the last | Ceiling |
+|---|---|---|---|---|---|
+| a turn (`wobo.turn`) | 1,500 in, 400 out | Terra **0.0078** | Sonnet 5 0.0070 | Flash 0.0014 | 0.05 |
+| a tiny call (`safety.classify`, an opener) | 600 in, 60 out | Luna **0.0002** | Haiku 4.5 0.0009 | Flash 0.0003 | 0.002 |
+| a lesson or board plan (`engine.compose`) | 4,000 in, 3,000 out | Terra **0.044** | Opus 5 0.095 | Flash 0.0087 | 0.08 |
+| a verify or reason call | 3,000 in, 800 out | Sol **0.028** | Opus 5 0.035 | Flash 0.0029 | 0.10 |
+
+So a turn on the owner's table costs under one paisa's worth of a dollar: about 0.0078 USD, or
+roughly 0.65 rupees at 83 to the dollar. Forty turns, the free plan's day, is about 0.31 USD.
+
+**"All the models have been cost optimized so the pricing is the lower models without
+compromising major quality, right?"** Yes, with one caveat stated plainly. Tiny is on Luna, the
+cheapest text model on any of the three pages. Turn and generate are on Terra, the middle model,
+and only the hard list and the judge pay for Sol. Generation goes to the cheapest model that
+passes and climbs one rung per judge rejection (`routing.escalate`, logged with its reason), and
+the spend ceiling walks the same ladder down (§2). The caveat: per output token Terra costs 12.00
+where Sonnet 5 costs 10.00, so a turn on Terra is about ten percent dearer than the same turn on
+Sonnet 5. OpenAI first on the turn tier is a choice for availability on a day Anthropic was out,
+not the cheapest possible order. If that ten percent matters more than the order, one variable
+moves it (§11.4). Gemini Flash is the cheapest text model of all at about 0.0014 a turn, and it is
+last on purpose: it is the floor, not the voice of the product.
+
+One more honest line: Opus 5 behind `generate` at 0.095 a lesson is OVER the generate tier's 0.08
+ceiling. That is what the second rung costs when the first is out; `record_cost` logs it as
+`gateway.cost over ceiling` rather than hiding it, and it is the price of a lesson still arriving.
+
+### 11.4 Overriding a tier without a deploy
+
+Set a Railway variable and let the service restart. The table above is the default; the variable
+wins. An id the router does not know refuses the boot with a line that names the variable and lists
+the ids it does know, so a typo is a failed deploy and not a quiet outage on every turn.
+
+```bash
+railway variables --set WOBO_TIER_TURN=openai/gpt-5.6-luna                         # move a primary
+railway variables --set WOBO_TIER_GENERATE_CHAIN=gemini/gemini-2.5-flash,anthropic/claude-opus-5   # replace a chain
+```
+
+`WOBO_TIER_<TIER>` sets the primary (`TINY`, `TURN`, `GENERATE`, `REASON`, `VERIFY`, `VOICE`,
+`IMAGE`); `WOBO_TIER_<TIER>_CHAIN` replaces the fallbacks, comma-separated, in order. A moved
+primary drops out of the default chain rather than appearing twice; a chain that repeats a model
+is refused; a chain kept on one account logs a warning, because a fallback on the same account is
+not a fallback. The escalation ladder and the spend ceiling's degrade follow the override.
+
+### 11.5 When a provider runs out of credit
+
+Every model call in the gateway goes through `model_call.complete`, which walks the chain itself,
+one model per call, and reads each refusal (litellm's own fallback runner swallowed them; §11 of
+`model_call.py` says what that cost). The refusals it recognises as an empty balance or a spent
+quota, from the vendors' own error pages: Anthropic's 400 "credit balance is too low", 402
+`billing_error` and the 429 at a tier's spend cap; OpenAI's 429 with `insufficient_quota` and the
+`credit_balance_exhausted` / `spend_limit_exceeded` / `usage_limit_exceeded` codes; Gemini's 429
+`RESOURCE_EXHAUSTED`.
+
+On one of those the provider is **marked out** for `WOBO_PROVIDER_COOLOFF_S` (default 300) and
+the chain moves on. Every later call on any tier skips that provider without a network round trip,
+which is the difference between well under a second and a timeout per turn while an account is
+empty. When the cool-off passes, one call is let through to see; a second refusal marks it out
+again, a success clears it. When every provider in a chain is out, the call fails at once with
+`ProvidersOut` rather than making three round trips nobody can answer.
+
+What you will see, on the telemetry stream (`railway logs | grep gateway.provider`):
+
+| Line | Level | Meaning | What to do |
+|---|---|---|---|
+| `gateway.provider.out_of_credit` | warning | `provider` refused for money or quota; `until` is when it is re-probed | open that provider's console and top up or raise the cap. The product is still answering on the next rung |
+| `gateway.provider.skipped` | info | a rung was passed over because its provider is marked out | nothing; this is the skip working |
+| `gateway.fallback` | info | `to_model` answered for `from_model`; `error` is the exception type | one is weather. A steady stream with the same `from_model` is that provider down |
+
+And on `GET /v1/admin/health` (behind the register and the second factor; the public `/healthz`
+carries only a count under `providers.out_of_credit`):
+
+```json
+"providers": {"status": "degraded",
+  "reason": "1 provider(s) out of credit or quota; the chain is carrying",
+  "by_provider": {"anthropic": {"last_success": null, "last_failure": 1788000000.0,
+                                "last_error": "BadRequestError", "out_of_credit": true,
+                                "out_until": 1788000300.0, "reason": "BadRequestError"},
+                  "openai": {"last_success": 1788000001.0, "last_failure": null, "out_of_credit": false}},
+  "carrying": {"tiny": "openai/gpt-5.6-luna", "turn": "openai/gpt-5.6-terra", ...}}
+```
+
+`carrying` is the model answering each tier right now, with the marks applied. One provider out is
+`degraded` (the chain is carrying, and you should top up). Every provider on a text tier out is
+`unhealthy`, 503, because a request arriving now would not be served.
+
+**Two limits, stated.** The marks live in one process, like every other counter here (§1): a
+restart forgets them, and the first call after a restart pays one round trip to learn the balance
+is still empty. And `validate_env` in `app.py` still refuses to boot live without
+`ANTHROPIC_API_KEY`; with OpenAI first, the key the product cannot run without is
+`OPENAI_API_KEY`, and that check belongs to the app, not the router.
+
+---
+
+## 12. Payments: the provider, the keys, and what "off" means
+
+Written 2026-09-05, when the subscriptions integration landed with NO key on any machine. Nothing
+below has been exercised against the provider's live or test account; it has been exercised against
+a fake and against the signature vector the provider's own SDK ships with.
+
+**Three variables, all or nothing.** `RAZORPAY_KEY_ID` (public, goes to the browser),
+`RAZORPAY_KEY_SECRET` and `RAZORPAY_WEBHOOK_SECRET` (never leave the host). With any one missing,
+payments are OFF: `POST /v1/billing/checkout` answers 503 `payments_off` in Wobo's voice, the webhook
+answers 503 and processes nothing, `/healthz` reports `payments: off` (degraded in prod, ok
+elsewhere), and a cancel on a row the provider is charging is refused with the mailbox rather than
+written. No key is ever logged; `validate_env` and the plans command report them by presence.
+
+**Switching it on, in order.**
+1. Apply `0023_razorpay_billing` (§8).
+2. Set the three variables on the gateway host.
+3. In the provider dashboard, create a webhook pointed at `GATEWAY_URL/v1/billing/razorpay/webhook`
+   with the same secret, subscribed to every `subscription.*` event.
+4. Run `uv run python -m wobo_gateway.billing.plans` once, on a machine with the keys and the
+   project's service role. It creates the four plans (Pro and Max, monthly and yearly, amounts from
+   `docs/PRICING.md` to the paisa) and records their ids in `ops.billing_config`. Running it again
+   creates nothing; changing a price in PRICING.md and running it creates the new plan beside the
+   old and points the config at the new. `--dry-run` prints the catalogue and touches nothing.
+5. Watch `GET /v1/admin/billing` (console.read) for the first checkout and the first webhook.
+
+**What moves the plan, and what does not.** A checkout writes nothing to `learner.subscriptions`.
+The row is written when the provider sends `subscription.activated` or `subscription.charged`, with
+the period end taken from the provider's `current_end`. `authenticated` (the mandate) flips nothing.
+`pending` and `halted` (a card failed, retries exhausted) set `provider_status` only: the plan stays
+to the day already paid for, and the learner's plan screen says the payment did not go through.
+Nothing here refunds, and there is no refund event mapping on purpose.
+
+**Cancel.** The learner's cancel tells the provider `cancel_at_cycle_end: true` FIRST and writes
+`cancelled` only when the provider took it. The provider cannot restart a cancelled subscription
+and offers no revert for a cancel scheduled at cycle end, so the resume route answers 409
+`cannot_resume` for a provider-backed row and the plan screen does not offer the button.
+
+**Once only.** Every webhook is checked for its signature over the raw body before a byte is
+parsed, then its `X-Razorpay-Event-Id` is looked up in `ops.billing_events`; a replay answers 200
+`already_processed` and moves nothing. If the ledger cannot be reached the webhook answers 503 so
+the provider retries later, rather than applying an event it could not record.
+
+**Not yet done, honestly.** The web checkout (`screens/plans/Checkout.tsx`) does not call the route
+yet, and the console's subscriptions desk (`apps/web-pwa/src/admin/desks.ts`) does not read
+`GET /v1/admin/billing` yet; both are wired on the gateway side only. `total_count` on a new
+subscription is 60 months or 5 years, chosen, not read from a documented maximum.
+
