@@ -10,7 +10,7 @@
  * always used rather than promising a message that will not come.
  */
 
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useRef, useState } from 'react';
 import { useSdk } from '../../store/sdk';
 import { inviteParent, looksLikeEmail, ownTimezone, type ParentLinkStatus } from './parentLink';
 import { PARENT_KEY } from './profile';
@@ -34,11 +34,23 @@ export function ParentInvite({ learnerName, onDone, onLater, autoFocus }: Parent
   const [value, setValue] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const field = useRef<HTMLInputElement>(null);
+  const noteId = 'parent-address-note';
+
+  /** One calm line, and the caret back in the field it is about. Never a silent return. */
+  const refuse = (line: string) => {
+    setNote(line);
+    field.current?.focus();
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (busy) return;
     const raw = value.trim();
-    if (!raw || busy) return;
+    if (!raw) {
+      refuse("I need a parent's email or phone number to send the invite to.");
+      return;
+    }
     setNote(null);
     if (looksLikeEmail(raw)) {
       setBusy(true);
@@ -54,7 +66,7 @@ export function ParentInvite({ learnerName, onDone, onLater, autoFocus }: Parent
     }
     const digits = raw.replace(/\D/g, '');
     if (digits.length < 8) {
-      setNote('That number looks short — check it once more');
+      refuse('That number looks short. Check it once more.');
       return;
     }
     try {
@@ -70,7 +82,7 @@ export function ParentInvite({ learnerName, onDone, onLater, autoFocus }: Parent
       relationship: 'parent',
       channel: 'whatsapp',
     });
-    onDone({ status: 'linked', parent_email: null, line: `linked · ${raw} — ${PHONE_LINK_LINE}` });
+    onDone({ status: 'linked', parent_email: null, line: `linked · ${raw} · ${PHONE_LINK_LINE}` });
   };
 
   return (
@@ -79,7 +91,9 @@ export function ParentInvite({ learnerName, onDone, onLater, autoFocus }: Parent
         <label htmlFor="parent-address">Parent's email or phone</label>
         <input
           id="parent-address"
+          ref={field}
           value={value}
+          {...(note ? { 'aria-invalid': true as const, 'aria-describedby': noteId } : {})}
           onChange={(e) => setValue(e.target.value)}
           placeholder="They get an invite, nothing else"
           autoComplete="off"
@@ -88,7 +102,11 @@ export function ParentInvite({ learnerName, onDone, onLater, autoFocus }: Parent
           autoFocus={autoFocus}
         />
       </div>
-      {note ? <p className="ob-fine">{note}</p> : null}
+      {note ? (
+        <p className="ob-refuse" id={noteId} role="alert">
+          {note}
+        </p>
+      ) : null}
       <button type="submit" className="ob-btn ob-pig" disabled={busy}>
         Send the invite
       </button>

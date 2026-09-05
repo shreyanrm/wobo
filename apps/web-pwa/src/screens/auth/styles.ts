@@ -43,9 +43,22 @@ export const AUTH_CSS = `
 .au-top .au-wrap{display:flex;align-items:center;gap:var(--s3)}
 .au-mark{display:block;flex:0 0 auto}
 .au-mark svg{height:22px;width:96px;color:var(--ink);display:block}
-.au-steps{display:flex;gap:6px;margin:0 auto}
-.au-steps i{width:22px;height:5px;border-radius:3px;background:var(--paper-3);display:block}
-.au-steps i.au-on{width:34px;background:var(--pig)}
+/* THE RUN. A list, not a picture: the current beat is marked, and a finished beat a learner may go
+   back to is a button. Each pip sits in its own 44px box and the boxes touch: no gap between them
+   and no negative margin, because a 44px target pulled in with a -11px margin next to a 6px gap
+   put adjacent targets 28px apart, overlapping by 16px, and a tap between two pips landed on
+   whichever painted on top. The pip is 28x5 (40 when current), so the rhythm reads as 16px of air
+   between marks and the box a finger actually hits is the box the eye sees. */
+.au-steps{margin:0 auto}
+.au-steps ol{display:flex;align-items:center;gap:0;margin:0;padding:0;list-style:none}
+.au-steps li{display:flex}
+.au-steps li>span,.au-steps li>button{display:flex;align-items:center;justify-content:center;min-height:44px;min-width:44px;padding:0 8px;margin:0}
+.au-steps li>button{border:0;background:transparent;cursor:pointer;border-radius:12px}
+.au-steps li>button:focus-visible{outline:3px solid var(--marigold);outline-offset:-4px}
+.au-steps i{width:28px;height:5px;border-radius:3px;background:var(--paper-3);display:block}
+.au-steps i.au-on{width:40px;background:var(--pig)}
+.au-steps i.au-done{background:var(--mint)}
+.au-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);border:0}
 .au-other{font:500 14px/1 var(--sans);color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;min-height:44px;margin-left:auto}
 .au-other b{color:var(--ink);white-space:nowrap}
 .au-other.au-doorbtn{background:var(--paper-2);padding:12px 18px;border-radius:12px;color:var(--ink);font-weight:600}
@@ -151,8 +164,9 @@ export const AUTH_CSS = `
   /* The lead-in is a courtesy, not information: below 640 the bar keeps the name, the run, and the
      one word that is the link. */
   .au-lead{display:none}
-  .au-steps i{width:16px}
-  .au-steps i.au-on{width:26px}
+  .au-steps li>span,.au-steps li>button{padding:0 12px}
+  .au-steps i{width:20px}
+  .au-steps i.au-on{width:30px}
   .au-bubble{font-size:19px}
 }
 @media (prefers-reduced-motion:reduce){.au *{animation:none!important;transition:none!important}}

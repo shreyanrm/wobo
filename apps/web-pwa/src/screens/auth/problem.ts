@@ -52,3 +52,30 @@ export function whereField(_problem: FieldProblem): Where {
 export function marks(problem: Problem | null, where: Where): boolean {
   return problem !== null && problem.where === where;
 }
+
+/**
+ * THE CONTROL A REFUSAL SENDS FOCUS TO, by its id on the page.
+ *
+ * A sentence with nobody's attention on it is a sentence a learner can miss. Pressing the button
+ * with an empty field used to say nothing at all; now it says one line and puts the caret in the
+ * field the line is about, so the next keystroke is the fix. A failure that belongs to the whole
+ * form has nowhere to send focus, and sends it nowhere.
+ */
+export function controlOf(where: Where): string | null {
+  switch (where) {
+    case 'who':
+      return 'au-who';
+    case 'password':
+      return 'au-password';
+    case 'birth':
+      return 'au-birth';
+    case 'parent-email':
+      return 'au-parent-email';
+    case 'consent':
+      return 'au-agree';
+    case 'code':
+      return 'au-code';
+    case 'form':
+      return null;
+  }
+}

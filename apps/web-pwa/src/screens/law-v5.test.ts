@@ -38,6 +38,10 @@ const SHEETS: Record<string, string> = {
   // section" — held only because someone had checked it by hand.
   'progress/progress.css': readFileSync(join(HERE, 'progress', 'progress.css'), 'utf8'),
   'onboarding/onboarding.css': readFileSync(join(HERE, 'onboarding', 'onboarding.css'), 'utf8'),
+  // The doubt solver: the photo, the reading, the memory list. Its one pigment behind anything is
+  // the highlighter over the part of the page being read, and that is a color-mix of marigold,
+  // not a wash token: a wash is opaque and would cover the very text it is meant to light.
+  'doubt/doubt.css': readFileSync(join(HERE, 'doubt', 'doubt.css'), 'utf8'),
 };
 
 const SCREENS = [
@@ -72,6 +76,8 @@ const SANCTIONED_WASHES: Record<string, string> = {
   '.pr-set button.pr-on': 'the item being answered — a selected row',
   '.ob-ta .ob-opt.ob-on': 'the board under the keyboard — a selected row',
   '.ob-note': "Wobo's handwritten Sunday note — the highlighter, as site-parents.html keeps it",
+  '.ob-refuse':
+    "the thing that needs care: one line about what is in the way of a step, the doors' own rose slab (auth/styles.ts .au-error) worn by the run",
   '.wy-mock .wy-row .wy-ok': 'a lesson mastered — a pill with a tick in it',
   '.wy-mock .wy-note': "Wobo's handwritten Sunday note — the same one, in the parent's view",
 };

@@ -61,7 +61,9 @@ import {
 } from './copy';
 import { type ProviderName, waysIn } from './doors';
 import { fieldProblem, fieldShape, type Glyph } from './field';
-import { marks, type Problem, type Where, whereBlocked, whereField } from './problem';
+import { controlOf, marks, type Problem, type Where, whereBlocked, whereField } from './problem';
+import { Steps } from './Steps';
+import { rememberSignInSource } from './source';
 import { ensureAuthStyles } from './styles';
 
 // The chunk arriving IS the door being opened, so the sheet goes in at import time. An effect would
@@ -73,11 +75,17 @@ type Mode = 'sign-in' | 'sign-up';
 type Stage = 'form' | 'link-sent' | 'code' | 'parent-sent';
 
 /**
- * The beats of the run, for the bar's stepper. The door is the first of them, which is what the
- * stepper is there to say: this is the start of something, not a wall in front of it.
+ * THE DOOR AS STEP ONE OF THE RUN. Onboarding renders this same component for its first step; it
+ * used to carry a copy of the sign-in instead, and the copy went stale while this one was rebuilt.
+ * The two things the run needs to own are where a provider round-trip lands and what happens the
+ * moment somebody is signed in. Everything else about the door is the door.
  */
-const RUN_STEPS = [1, 2, 3, 4, 5] as const;
-const RUN_LABEL = 'Step one of five';
+export interface DoorRun {
+  /** Where a provider sends the browser back to. The run's own address, so it resumes itself. */
+  redirectTo: string;
+  /** A code or a password just signed somebody in, without leaving the page. */
+  onSignedIn: () => void;
+}
 
 /**
  * The glyph at the head of the ruled line. Two shapes, one element: the envelope becomes a phone as
@@ -182,7 +190,7 @@ function ProviderButton({
   );
 }
 
-export function Auth({ mode }: { mode: Mode }) {
+export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
   const router = useRouter();
   const sdk = useSdk();
   const words = mode === 'sign-in' ? SIGN_IN : SIGN_UP;
@@ -217,14 +225,13 @@ export function Auth({ mode }: { mode: Mode }) {
   const [fields, setFields] = useState<SignUpFields>({ birth: '', parentEmail: '', agreed: false });
 
   const whoField = useRef<HTMLDivElement>(null);
-  const whoInput = useRef<HTMLInputElement>(null);
 
   // The tab's name while a door is open, put back on the way out. (The site shell does this for
   // every other public page; these two wear their own chrome and so carry their own.)
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const previous = document.title;
-    document.title = `${words.tab} — Wobo`;
+    document.title = `${words.tab} · Wobo`;
     return () => {
       document.title = previous;
     };
@@ -258,7 +265,20 @@ export function Auth({ mode }: { mode: Mode }) {
   const errorId = 'au-error';
   const hintId = 'au-who-hint';
   const error = problem?.message ?? null;
-  const fail = (message: string, where: Where) => setProblem({ message, where });
+  /**
+   * Say the sentence and put the caret in the control it is about, so the next keystroke is the
+   * fix. Never a silent return: pressing the button with nothing typed used to do nothing at all.
+   */
+  const fail = (message: string, where: Where) => {
+    setProblem({ message, where });
+    const id = controlOf(where);
+    if (id && typeof document !== 'undefined') document.getElementById(id)?.focus();
+  };
+  /** Signed in without leaving the page: the run takes over, or the app does. */
+  const arrived = () => {
+    if (run) run.onSignedIn();
+    else router.replace({ name: mode === 'sign-up' ? 'onboarding' : 'home' });
+  };
   /** `data-invalid` on the control this problem is about, and on no other. */
   const wrong = (where: Where) =>
     marks(problem, where) ? { 'data-invalid': 'true' as const } : {};
@@ -288,7 +308,7 @@ export function Auth({ mode }: { mode: Mode }) {
   /** The email half needs a password only where the client's email seam IS the password one. */
   const wantsPassword = shape.sends === 'link' && ways.emailSeam === 'password';
 
-  const run = async (job: () => Promise<unknown>, then?: () => void) => {
+  const attempt = async (job: () => Promise<unknown>, then?: () => void) => {
     setBusy(true);
     setProblem(null);
     try {
@@ -335,8 +355,10 @@ export function Auth({ mode }: { mode: Mode }) {
   const openProvider = (name: ProviderName) => {
     const seam = seamOf(name);
     if (!seam || gated()) return;
-    const redirectTo = typeof window === 'undefined' ? undefined : `${window.location.origin}/`;
-    void run(() => callSeam(seams, seam, redirectTo));
+    const redirectTo =
+      run?.redirectTo ?? (typeof window === 'undefined' ? undefined : `${window.location.origin}/`);
+    rememberSignInSource(name);
+    void attempt(() => callSeam(seams, seam, redirectTo));
   };
 
   const verifyCode = () => {
@@ -345,9 +367,12 @@ export function Auth({ mode }: { mode: Mode }) {
       fail(ERRORS.unknown, 'form');
       return;
     }
-    void run(
+    void attempt(
       () => callSeam(seams, verify, who.trim(), code.trim()),
-      () => router.replace({ name: mode === 'sign-up' ? 'onboarding' : 'home' }),
+      () => {
+        rememberSignInSource('phone');
+        arrived();
+      },
     );
   };
 
@@ -356,7 +381,6 @@ export function Auth({ mode }: { mode: Mode }) {
     const wrongField = fieldProblem(ways.identifier, who);
     if (wrongField) {
       fail(ERRORS[wrongField], whereField(wrongField));
-      whoInput.current?.focus();
       return;
     }
     const value = who.trim();
@@ -366,7 +390,7 @@ export function Auth({ mode }: { mode: Mode }) {
         fail(ERRORS.unknown, 'form');
         return;
       }
-      void run(
+      void attempt(
         () => callSeam(seams, seam, value),
         () => {
           setCode('');
@@ -385,9 +409,12 @@ export function Auth({ mode }: { mode: Mode }) {
         fail(ERRORS.password, 'password');
         return;
       }
-      void run(
+      void attempt(
         () => callSeam(seams, seam, value, password),
-        () => router.replace({ name: mode === 'sign-up' ? 'onboarding' : 'home' }),
+        () => {
+          rememberSignInSource('password');
+          arrived();
+        },
       );
       return;
     }
@@ -396,7 +423,7 @@ export function Auth({ mode }: { mode: Mode }) {
       fail(ERRORS.unknown, 'form');
       return;
     }
-    void run(
+    void attempt(
       () => callSeam(seams, seam, value),
       () => setStage('link-sent'),
     );
@@ -404,6 +431,16 @@ export function Auth({ mode }: { mode: Mode }) {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    // In the order the controls stand on the page: the ruled line first, then the gate. Checked the
+    // other way round, an empty page asked for a date of birth while the empty field above it sat
+    // unmentioned, and a learner fixing one thing at a time was walked down the page backwards.
+    if (!childHolds && ways.identifier !== 'none') {
+      const wrongField = fieldProblem(ways.identifier, who);
+      if (wrongField) {
+        fail(ERRORS[wrongField], whereField(wrongField));
+        return;
+      }
+    }
     if (gated()) return;
     // Under 13 the account is the parent's, so the next step is a message to the parent's own
     // address — a tick on a child's screen is never parental consent (parental-consent.md §2).
@@ -413,7 +450,7 @@ export function Auth({ mode }: { mode: Mode }) {
         fail(ERRORS.unknown, 'form');
         return;
       }
-      void run(
+      void attempt(
         () => callSeam(seams, seam, fields.parentEmail.trim()),
         () => setStage('parent-sent'),
       );
@@ -460,13 +497,7 @@ export function Auth({ mode }: { mode: Mode }) {
           <SiteLink to={{ name: 'landing' }} className="au-mark" aria-label="Wobo, the front page">
             <Wordmark />
           </SiteLink>
-          {mode === 'sign-up' ? (
-            <div className="au-steps" role="img" aria-label={RUN_LABEL}>
-              {RUN_STEPS.map((step) => (
-                <i key={step} className={step === 1 ? 'au-on' : undefined} />
-              ))}
-            </div>
-          ) : null}
+          {mode === 'sign-up' ? <Steps current={1} /> : null}
           <SiteLink
             to={{ name: other }}
             className={mode === 'sign-up' ? 'au-other' : 'au-other au-doorbtn'}
@@ -519,7 +550,6 @@ export function Auth({ mode }: { mode: Mode }) {
                             <FieldGlyph glyph={shape.glyph} />
                             <input
                               id="au-who"
-                              ref={whoInput}
                               type="text"
                               value={who}
                               inputMode={shape.inputMode}
@@ -745,8 +775,7 @@ export function Auth({ mode }: { mode: Mode }) {
 
           {/* Entitled to read what you are agreeing to, from where you stand. See DOOR_LEGAL. */}
           <p className="au-legal">
-            {DOOR_LEGAL.lead}{' '}
-            <a href={CONSENT.termsHref}>{DOOR_LEGAL.terms}</a> {DOOR_LEGAL.and}{' '}
+            {DOOR_LEGAL.lead} <a href={CONSENT.termsHref}>{DOOR_LEGAL.terms}</a> {DOOR_LEGAL.and}{' '}
             <a href={CONSENT.privacyHref}>{DOOR_LEGAL.privacy}</a>.
           </p>
         </div>

@@ -122,6 +122,38 @@ test('marks the control that is wrong, and not the one that is right', async ({ 
   await expect(page.locator('.au-field[data-invalid="true"]')).toHaveCount(0);
 });
 
+/**
+ * AN EMPTY SUBMIT SAYS SOMETHING. Onboarding's own copy of this door returned silently from an
+ * empty field: six taps, six identical screens. The door says one line, marks the field, and puts
+ * the caret in it. And it is the FIRST control on the page that is named, in page order: the empty
+ * ruled line above an empty date of birth is the one the learner is asked about.
+ */
+test('an empty submit says one line and puts the caret in the field', async ({ page }) => {
+  for (const door of ['/sign-in', '/sign-up']) {
+    await page.goto(door, { waitUntil: 'networkidle' });
+    await page.locator('.au-btn.au-go').click();
+    const note = page.locator('.au-error');
+    await expect(note).toBeVisible();
+    await expect(note).toHaveAttribute('role', 'alert');
+    await expect(note).toContainText(/does not look finished|I need an email address/);
+    const who = page.locator('#au-who');
+    await expect(who).toBeFocused();
+    await expect(who).toHaveAttribute('aria-invalid', 'true');
+    await expect(who).toHaveAttribute('aria-describedby', 'au-who-hint au-error');
+  }
+});
+
+test('names the door: the provider is Google, and it is the first thing after the rule', async ({
+  page,
+}) => {
+  await page.goto('/sign-up', { waitUntil: 'networkidle' });
+  await expect(page.locator('.au-prov').first()).toHaveText(/^Continue with Google/);
+  // the stepper on the door is a real control, not a picture, and says where the run is
+  const nav = page.getByRole('navigation', { name: /Setting up, step 1 of 5/ });
+  await expect(nav).toBeVisible();
+  await expect(nav.locator('[aria-current="step"]')).toHaveCount(1);
+});
+
 test('marks the ruled line when the ruled line is what is wrong', async ({ page }) => {
   await page.goto('/sign-up', { waitUntil: 'networkidle' });
   await page.locator('#au-birth').fill('2005-04-11');

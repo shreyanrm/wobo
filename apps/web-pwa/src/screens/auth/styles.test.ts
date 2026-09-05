@@ -325,6 +325,19 @@ describe('the laws every surface in this product obeys', () => {
     }
   });
 
+  it('gives every pip of the run a 44px box that does not overlap its neighbour', () => {
+    // `min-width:44px;padding:0 11px;margin:0 -11px` beside a 6px gap put adjacent targets 28px
+    // apart: each was 44 wide and overlapped the next by 16, and a tap between two pips went to
+    // whichever painted on top. The boxes touch now and none of them is pulled into another.
+    for (const rule of ['.au-steps li>span', '.au-steps li>button']) {
+      const box = sheet.get(rule) ?? [];
+      expect([rule, box.includes('min-width:44px')]).toEqual([rule, true]);
+      expect([rule, box.includes('min-height:44px')]).toEqual([rule, true]);
+      expect([rule, box.some((decl) => /^margin:.*-\d/.test(decl))]).toEqual([rule, false]);
+    }
+    expect(sheet.get('.au-steps ol')).toContain('gap:0');
+  });
+
   it('keeps every touch target at 44px or more', () => {
     expect(sheet.get('.au-btn')).toContain('min-height:56px');
     expect(sheet.get('.au-quiet')).toContain('min-height:48px');

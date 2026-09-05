@@ -14,7 +14,7 @@
 import { describe, expect, it } from 'bun:test';
 import type { BlockReason } from './age';
 import type { FieldProblem } from './field';
-import { marks, type Problem, type Where, whereBlocked, whereField } from './problem';
+import { controlOf, marks, type Problem, type Where, whereBlocked, whereField } from './problem';
 
 describe('every refusal names the control it is about', () => {
   it('sends both kinds of birth-date refusal to the birth field', () => {
@@ -87,5 +87,14 @@ describe('the screen cannot go back to one error for the whole page', () => {
     expect(source).not.toMatch(/error \? \{ 'data-invalid'/);
     expect(source).not.toMatch(/error \? \{ 'aria-invalid'/);
     expect(source).not.toMatch(/aria-describedby=\{error \?/);
+  });
+});
+
+describe('a refusal sends focus to the control it is about', () => {
+  it('names an id on the page for every control, and none for the whole form', () => {
+    const wheres: Where[] = ['who', 'password', 'birth', 'parent-email', 'consent', 'code'];
+    for (const where of wheres) expect(controlOf(where)).toMatch(/^au-/);
+    expect(new Set(wheres.map(controlOf)).size).toBe(wheres.length);
+    expect(controlOf('form')).toBeNull();
   });
 });

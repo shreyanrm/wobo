@@ -39,16 +39,10 @@ const sheet = rules(SHEET);
 const PORT: Record<string, string> = {
   '.ob-btn': '.btn',
   '.ob-btn.ob-pig': '.btn.pig',
-  '.ob-btn.ob-quiet': '.btn.quiet',
   '.ob-btn.ob-link': '.btn.link',
   '.ob-btn:focus-visible,.ob-field input:focus-visible': '.btn:focus-visible,input:focus-visible',
   '.ob-top': '.top',
   '.ob-top .ob-wm svg': '.top .wm svg',
-  '.ob-top .ob-dots': '.top .dots',
-  '.ob-top .ob-dots i': '.top .dots i',
-  '.ob-top .ob-dots i.ob-on': '.top .dots i.on',
-  '.ob-top .ob-dots i.ob-done': '.top .dots i.done',
-  '.ob-top .ob-skip': '.top .skip',
   '.ob-body': '.body',
   '.ob-card': '.card',
   '.ob-card .ob-wobo': '.card .wobo',
@@ -61,8 +55,6 @@ const PORT: Record<string, string> = {
   '.ob-field input': '.field input',
   '.ob-field input::placeholder': '.field input::placeholder',
   '.ob-fine': '.fine',
-  '.ob-or': '.or',
-  '.ob-or::before,.ob-or::after': '.or::before,.or::after',
   '.ob-ta': '.ta',
   '.ob-ta .ob-list': '.ta .list',
   '.ob-ta .ob-opt': '.ta .opt',
@@ -98,9 +90,23 @@ const PORT: Record<string, string> = {
   '.ob-confetti i': '.confetti i',
 };
 
-/** Named departures: the screen is the page (no artboard corners), resets, the written reply. */
+/**
+ * Named departures: the screen is the page (no artboard corners), resets, the written reply, and
+ * the bar. The bar's two controls (back, and the quiet way past a step) are pressable, so they
+ * read in ink-2 rather than the prototype's ink-3, which is 3.6:1 on white and under the floor
+ * for a control; the run across the top is the door's own stepper (auth/Steps.tsx), so the
+ * prototype's dots are not ported at all and below 640 the bar wraps to give the run a row.
+ */
 const OWN = new Set([
   '.ob-screen',
+  '.ob-top .ob-skip',
+  '.ob-top .ob-ways',
+  '.ob-screen>.ob-top',
+  '.ob-card h1:focus',
+  '.ob-btn:disabled',
+  '.ob-refuse',
+  '.ob-top .au-steps',
+  '.ob-top .au-steps ol',
   'button.ob-skip',
   'button.ob-opt,button.ob-own',
   '.ob-chips button',
@@ -118,6 +124,15 @@ const OWN = new Set([
  * pressable box to 44px and moves nothing else. The only declarations added to a ported rule.
  */
 const FLOOR = new Set(['min-height:44px', 'display:inline-flex', 'align-items:center']);
+
+const HERE = import.meta.dir;
+/** A source with its comments stripped: what it says to a learner, not what it says about itself. */
+function spoken(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
+const ONBOARDING = spoken(readFileSync(join(HERE, '..', 'Onboarding.tsx'), 'utf8'));
+const AUTH = spoken(readFileSync(join(HERE, '..', 'auth', 'Auth.tsx'), 'utf8'));
+const PARENT_INVITE = spoken(readFileSync(join(HERE, '..', 'you', 'ParentInvite.tsx'), 'utf8'));
 
 describe('onboarding.css is onboarding-v2, rule for rule', () => {
   it('ports every rule declaration for declaration', () => {
@@ -143,5 +158,118 @@ describe('onboarding.css is onboarding-v2, rule for rule', () => {
   });
   it('draws no hairline and no border on a surface', () => {
     expect(SHEET).not.toMatch(/0\.5px|1px solid|hairline/);
+  });
+});
+
+/**
+ * ONE SIGN-IN, NOT TWO.
+ *
+ * The first thing a new learner saw was this screen's own copy of the sign-in: seventy-odd `ob-`
+ * classes, its own field, its own error strings, a button that said "Continue with a sign-in
+ * provider". The doors in auth/ were rebuilt; the copy was not; the owner screenshotted the copy.
+ * Step one is `<Auth mode="sign-up">` now, and this holds that there is no second door here.
+ */
+describe('step one is the door, and there is no second door', () => {
+  it('renders the doors component for step one', () => {
+    expect(ONBOARDING).toMatch(/import \{ Auth \} from '\.\/auth\/Auth';/);
+    expect(ONBOARDING).toMatch(/<Auth\s+mode="sign-up"/);
+  });
+
+  it('carries no email, phone, code or provider form of its own', () => {
+    for (const trace of [
+      'inputMode="email"',
+      'inputMode="tel"',
+      'autoComplete="username"',
+      'one-time-code',
+      'requestPhoneOtp',
+      'verifyPhoneOtp',
+      'signInWithGoogle',
+      'normalizePhone',
+      'sign-in provider',
+      'Send me a code',
+      'ob-address',
+      'ob-code',
+    ]) {
+      expect([trace, ONBOARDING.includes(trace)]).toEqual([trace, false]);
+    }
+    // the sheet lost the sign-in's rules with the sign-in
+    for (const selector of ['.ob-or', '.ob-btn.ob-quiet', '.ob-dots']) {
+      expect([selector, SHEET.includes(selector)]).toEqual([selector, false]);
+    }
+  });
+
+  it('draws the run with the same stepper the door draws it with', () => {
+    expect(ONBOARDING).toContain("from './auth/Steps'");
+    expect(AUTH).toContain("from './Steps'");
+    // and neither keeps a private stepper as a picture
+    for (const [name, source] of [
+      ['Onboarding.tsx', ONBOARDING],
+      ['Auth.tsx', AUTH],
+    ] as const) {
+      expect([name, /role="img"[^>]*aria-label=\{?[`'"]step/i.test(source)]).toEqual([name, false]);
+    }
+  });
+
+  it('remembers where the run is, and clears it on finish', () => {
+    expect(ONBOARDING).toContain('restoreStep(readSavedStep(');
+    expect(ONBOARDING).toContain('saveStep(stepStore(), next)');
+    expect((ONBOARDING.match(/clearStep\(stepStore\(\)\)/g) ?? []).length).toBeGreaterThanOrEqual(
+      2,
+    );
+  });
+
+  it('does not count an anonymous session as somebody signed in', () => {
+    expect(ONBOARDING).toContain('!account.isAnonymous()');
+  });
+
+  it('uses the first name it asked for from then on', () => {
+    // the aha's bar, the sample Sunday note, and the last headline all carry it
+    expect((ONBOARDING.match(/firstName/g) ?? []).length).toBeGreaterThanOrEqual(6);
+  });
+
+  it('never refuses in silence: no primary button is disabled on an empty form', () => {
+    // step two's "That's me" was `disabled={!ready2}`, drawn in full pig blue over three empty
+    // fields with no rule to say so; a tap on the brightest thing on the page did nothing
+    expect(ONBOARDING).not.toContain('disabled={!ready2}');
+    expect(ONBOARDING).not.toMatch(/if \(!line \|\| chat\.busy\) return;/);
+    // each refusal is one line, announced, and pointed at the control it is about
+    expect(ONBOARDING).toContain('nameField.current?.focus()');
+    expect(ONBOARDING).toContain('boardField.current?.focus()');
+    expect(ONBOARDING).toContain('askField.current?.focus()');
+    expect((ONBOARDING.match(/className="ob-refuse"[^>]*role="alert"/g) ?? []).length).toBe(2);
+    // and the sheet draws a button that cannot be pressed as one
+    expect(sheet.get('.ob-btn:disabled')).toContain('opacity:.62');
+  });
+
+  it("asks for the board before the class, because the classes are the board's", () => {
+    const board = ONBOARDING.indexOf('id="ob-board"');
+    const klass = ONBOARDING.indexOf('<legend>Class</legend>');
+    expect(board).toBeGreaterThan(0);
+    expect(klass).toBeGreaterThan(board);
+  });
+
+  it('offers one quiet way past a step, never two', () => {
+    // step four's way past is the form's own "I'll do this later"; the bar said "Not now" above it
+    expect(ONBOARDING).not.toContain("'Not now'");
+    expect(PARENT_INVITE).toContain("I'll do this later");
+    // step three: the bar's word until a question is asked, the button under the answer after
+    expect(ONBOARDING).toMatch(/askedAt === null \? \{ 3: 'Skip for now' \} : \{\}/);
+    expect(ONBOARDING).toMatch(/\{askedAt !== null \? \(\s*<button/);
+  });
+
+  it('never tells a learner who just walked the door to sign in, and draws no bar it cannot read', () => {
+    expect(ONBOARDING).not.toContain('Sign in and this');
+    expect(ONBOARDING).toContain('ALLOWANCE_UNREAD_LINE');
+    expect(ONBOARDING).toMatch(/\{share !== null \? \(\s*<div className="ob-bar"/);
+  });
+
+  it('names the provider, and writes no em dash anywhere a learner reads', () => {
+    for (const [name, source] of [
+      ['Onboarding.tsx', ONBOARDING],
+      ['ParentInvite.tsx', PARENT_INVITE],
+      ['onboarding.css', SHEET],
+    ] as const) {
+      expect([name, source.includes('\u2014')]).toEqual([name, false]);
+    }
   });
 });

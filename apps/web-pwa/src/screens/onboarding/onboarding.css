@@ -2,26 +2,37 @@
 /* biome-ignore-all lint/style/noDescendingSpecificity: the rules keep the prototype's order, and order is what decides where two of them match */
 /*
  * Onboarding's rules, ported declaration for declaration from design/prototypes/onboarding-v2.html
- * and prefixed `ob-`. The only departures are the artboard's own chrome — the screen is the page
- * here, so it has no 28px corners and no 860px floor — and element resets where a <button> stands
- * for the prototype's <span>. onboarding.test.ts holds each rule to its source.
+ * and prefixed `ob-`. The departures are named in onboarding.test.ts: the artboard's own chrome
+ * (the screen is the page here, so it has no 28px corners and no 860px floor), element resets
+ * where a <button> stands for the prototype's <span>, and the bar's two controls. The sign-in's
+ * rules are gone with the sign-in: step one is the door in auth/, wearing the door's own sheet,
+ * and the run across the top is the door's stepper on every step (auth/Steps.tsx).
  */
 .ob-btn{font:500 15px/1 var(--sans);padding:15px 22px;border-radius:12px;border:0;background:var(--ink);color:var(--paper);display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;cursor:pointer;width:100%}
 .ob-btn.ob-pig{background:var(--pig);color:#fff}
-.ob-btn.ob-quiet{background:var(--paper-2);color:var(--ink)}
 .ob-btn.ob-link{background:transparent;color:var(--ink-2);min-height:40px;font-weight:400}
+/* A button that cannot be pressed right now looks it. There was no such rule, so step two's
+   "That's me" stood in full pig blue over three empty fields. The primary buttons are never
+   disabled on an empty form any more (an empty submit says one line instead); this is for the
+   one that waits on the brain, the aha's Ask while a reply is being drawn. */
+.ob-btn:disabled{cursor:progress;opacity:.62}
+/* One calm line about the thing in the way, the doors' own rose slab (auth/styles.ts .au-error),
+   so a refusal reads the same on every step of the run. Ink on the wash, never ink-3. */
+.ob-refuse{width:100%;background:var(--rose-w);border-radius:12px;padding:10px 14px;font-size:14px;line-height:1.45;color:var(--ink);text-align:left}
 .ob-btn:focus-visible,.ob-field input:focus-visible{outline:3px solid var(--marigold);outline-offset:2px}
 
 /* the step screen */
 .ob-screen{background:var(--paper);min-height:100dvh;display:grid;grid-template-rows:auto 1fr;position:relative;overflow:hidden}
 .ob-top{display:flex;align-items:center;justify-content:space-between;padding:22px 28px}
 .ob-top .ob-wm svg{height:20px;color:var(--ink)}
-.ob-top .ob-dots{display:flex;gap:8px}
-.ob-top .ob-dots i{width:10px;height:10px;border-radius:50%;background:var(--paper-3)}
-.ob-top .ob-dots i.ob-on{background:var(--pig);width:26px;border-radius:5px}
-.ob-top .ob-dots i.ob-done{background:var(--mint)}
-.ob-top .ob-skip{font:500 14px/1 var(--sans);color:var(--ink-3)}
-button.ob-skip{border:0;background:transparent;padding:0;cursor:pointer}
+/* Back and the quiet way past a step. Pressable, so they read in ink-2 rather than the
+   prototype's ink-3, which is 3.6:1 on white and under the floor for a control. */
+.ob-top .ob-skip{font:500 14px/1 var(--sans);color:var(--ink-2)}
+.ob-top .ob-ways{display:flex;align-items:center;gap:18px}
+button.ob-skip{border:0;background:transparent;padding:0;cursor:pointer;min-height:44px;min-width:44px}
+/* A new step puts attention on its heading (for a screen reader, and so the page is at its top),
+   which is not a thing to draw a ring around: the ring is for the keyboard, and this is not it. */
+.ob-card h1:focus{outline:0}
 .ob-body{display:grid;place-items:center;padding:0 24px 60px}
 .ob-card{width:min(560px,100%);display:grid;gap:22px;justify-items:center;text-align:center}
 .ob-card .ob-wobo{width:120px;filter:drop-shadow(0 16px 24px rgba(20,20,43,.16))}
@@ -36,8 +47,6 @@ fieldset.ob-field{border:0;padding:0;margin:0;min-inline-size:0}
 .ob-field input{font:400 17px/1.4 var(--sans);padding:14px 16px;border-radius:12px;border:0;background:var(--paper-2);color:var(--ink);width:100%}
 .ob-field input::placeholder{color:var(--ink-3)}
 .ob-fine{font-size:13px;color:var(--ink-3);max-width:44ch}
-.ob-or{display:flex;align-items:center;gap:12px;font:500 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);width:100%}
-.ob-or::before,.ob-or::after{content:"";flex:1;height:3px;border-radius:2px;background:var(--paper-2)}
 
 /* type-ahead */
 .ob-ta{position:relative;text-align:left}
@@ -88,11 +97,18 @@ button.ob-opt,button.ob-own{border:0;background:transparent;font:inherit;color:i
 .ob-confetti{position:absolute;inset:0;pointer-events:none}
 .ob-confetti i{position:absolute;width:12px;height:12px;border-radius:3px;opacity:.9;transform:rotate(15deg)}
 @media (max-width:600px){.ob-body{padding:0 16px 40px}.ob-card .ob-wobo{width:96px}}
+/* Below 640 the bar is two rows: the name and the two controls, then the run on a line of its
+   own, centred. Three things across 390px overlapped the wordmark. */
+@media (max-width:640px){
+  .ob-screen>.ob-top{flex-wrap:wrap;padding:14px 20px 0}
+  .ob-top .au-steps{flex:1 0 100%;order:3;margin:0}
+  .ob-top .au-steps ol{justify-content:center}
+}
 /* the touch floor (DESIGN.md §2): on a phone every pressable box is 44px tall; its type does not move */
 @media (max-width:900px){
-  button.ob-skip{min-height:44px}
   .ob-btn.ob-link{min-height:44px}
   .ob-chips button,.ob-chipsq button{display:inline-flex;align-items:center;min-height:44px}
   button.ob-opt,button.ob-own{min-height:44px}
   .ob-aha .ob-ask .ob-btn{min-height:44px}
+  .ob-aha .ob-ask input{min-height:44px}
 }

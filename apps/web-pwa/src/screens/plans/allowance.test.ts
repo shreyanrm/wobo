@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'bun:test';
 import type { Me } from '@wobo/sdk';
-import { allowanceLine, readAllowance } from './allowance';
+import { allowanceLine, allowanceShare, readAllowance } from './allowance';
 
 const me = (
   turns: { used: number | null; limit: number | null; remaining: number | null },
@@ -78,6 +78,21 @@ describe('allowanceLine', () => {
     expect(allowanceLine(readAllowance(null), at)).toBe(
       'Sign in and this shows how much of today is left, and when it comes back.',
     );
+  });
+
+  it('lets a signed-in surface say the unknown in its own words, and never says "sign in" there', () => {
+    // onboarding's last step is reached only through the door; "Sign in and this shows..." was
+    // the sentence under its bar
+    const own = 'This fills in as we go.';
+    expect(allowanceLine(readAllowance(null), at, own)).toBe(own);
+    expect(
+      allowanceLine(readAllowance(me({ used: 3, limit: null, remaining: null }, null)), at, own),
+    ).toBe(own);
+    // a known reading ignores it
+    const known = readAllowance(me({ used: 2, limit: 20, remaining: 18 }, null));
+    expect(allowanceLine(known, at, own)).not.toBe(own);
+    // and nothing could be drawn for the unknown, so a bar must not be
+    expect(allowanceShare(readAllowance(null))).toBeNull();
   });
 
   /** Law v5 (DESIGN.md §0): no raw allowance reaches a reader, on any reading. */

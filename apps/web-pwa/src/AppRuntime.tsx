@@ -879,7 +879,8 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     if (!source || !sdk.identity.isAuthenticated()) return;
     localStorage.removeItem(SIGNIN_SOURCE_KEY);
     sdk.events.record('identity.subject.created.v1', {
-      source: source === 'google' ? 'linked' : 'phone_otp',
+      // a provider sign-in is a linked identity, whichever provider it was
+      source: source === 'google' || source === 'apple' ? 'linked' : 'phone_otp',
       age_branch: 'unknown',
       consent_tier_initial: 'un_elevated',
     });

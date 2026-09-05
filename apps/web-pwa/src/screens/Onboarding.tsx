@@ -1,23 +1,32 @@
 'use client';
 
 /**
- * Onboarding — five steps, design/prototypes/onboarding-v2.html as drawn: sign in, who's learning,
+ * Onboarding: five steps, design/prototypes/onboarding-v2.html as drawn. The door, who's learning,
  * the first question (the aha), a parent, ready. Wobo's head over a speech bubble, one form, one
- * pig button, the dots at the top and a quiet way past any step that can be skipped.
+ * pig button, the run across the top and a quiet way past any step that can be skipped.
  *
- * What is underneath is the app's own machinery, unchanged: the additive account layer (a code to
- * an email or a phone, or a sign-in provider), the curriculum registry for boards and classes, the
- * own-syllabus door, the one conversation for the aha, the gateway's parent link, and the same
- * finish the frame theatre had — the account award, the onboarded mark, the live-mode rebuild.
+ * STEP ONE IS THE DOOR, THE SAME COMPONENT. This screen used to carry its own copy of the sign-in:
+ * seventy-odd classes, its own field, its own error strings, a button that said "Continue with a
+ * sign-in provider". The doors in `auth/Auth.tsx` were rebuilt and the copy was not, so the first
+ * thing a new learner ever saw was the one screen the owner had already rejected. There is no copy
+ * now. `<Auth mode="sign-up">` renders here with a `run` that tells it where a provider round-trip
+ * lands and what to do the moment somebody is signed in, and `onboarding.test.ts` fails the day
+ * this file grows an email or phone field of its own again.
  *
- * Sign-in is bypassed by configuration only: a build with no account layer (no keys → local dev,
- * tests) opens on step two, exactly as the old flow skipped its auth beat. There is no skip for a
- * learner.
+ * What is underneath is the app's own machinery, unchanged: the additive account layer, the
+ * curriculum registry for boards and classes, the own-syllabus door, the one conversation for the
+ * aha, the gateway's parent link, and the same finish the frame theatre had.
+ *
+ * Three courtesies the run keeps, all decided in `auth/run.ts` and tested there: a reload lands
+ * where the learner was (never past what they have answered, never past the door); back works on
+ * every step after the second, from a button and from the stepper's own finished pips; and the
+ * door is bypassed by configuration only. A build with no account layer (no keys: local dev,
+ * tests) opens on step two. There is no skip for a learner.
  */
 
 import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { type FormEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ONBOARDED_KEY, SIGNIN_SOURCE_KEY } from '../App';
+import { ONBOARDED_KEY } from '../App';
 import { adoptFramework, adoptOwnSyllabus } from '../curriculum/adopt';
 import { useBoardSearch, useRegistryRevision } from '../curriculum/hooks';
 import { OwnSyllabus } from '../curriculum/OwnSyllabus';
@@ -32,31 +41,52 @@ import { sfx } from '../ui/sound';
 import { boardTurn } from '../wobo/board-turn';
 import { useWoboChat } from '../wobo/chat';
 import { speakLine } from '../wobo/speech';
-import { callSeam, liveSeams, seamFor } from './auth/client';
-import { ERRORS, SENT } from './auth/copy';
-import { type Allowance, allowanceLine, allowanceShare, readAllowance } from './plans/allowance';
+import { Auth } from './auth/Auth';
+import { SIGN_UP } from './auth/copy';
+import {
+  backOf,
+  clearStep,
+  profileComplete,
+  type RunStep,
+  readSavedStep,
+  restoreStep,
+  type StepStore,
+  saveStep,
+} from './auth/run';
+import { Steps } from './auth/Steps';
+import {
+  type Allowance,
+  allowanceLine,
+  allowanceShare,
+  readAllowance,
+  resetTime,
+} from './plans/allowance';
 import { classLine } from './You';
 import { boardOf, type ChosenBoard, levelsFor } from './you/GradeBoardPicker';
 import { ParentInvite } from './you/ParentInvite';
-import { looksLikeEmail } from './you/parentLink';
 import { boardName, frameworkLabel, loadProfile, resolveBoardId, saveProfile } from './you/profile';
 import './onboarding/onboarding.css';
 
-/** Survives the provider round-trip in this tab: on return, resume signed in. */
-const ONB_RETURN_KEY = 'wobo-onb-return';
+type Step = RunStep;
 
-type Step = 1 | 2 | 3 | 4 | 5;
-const STEPS: readonly Step[] = [1, 2, 3, 4, 5];
-
-/** The bubble's line on each step, verbatim. */
+/** The bubble's line on each step, verbatim. The door speaks its own (`SIGN_UP.hand`). */
 const BUBBLE: Partial<Record<Step, string>> = {
-  1: "Hi. I'm Wobo. Let's make this yours.",
+  1: SIGN_UP.hand,
   2: "Tell me once. I'll find your exact chapter every week after.",
   4: 'On Sundays I write three lines home. Want someone to get them?',
 };
 
-/** The class ladder onboarding-v2 draws before a board is chosen — shown, never pressable, until one is. */
+/** The class ladder onboarding-v2 draws before a board is chosen: shown, never pressable, until one is. */
 const LADDER = ['4', '5', '6', '7', '8', '9', '10', '11', '12'] as const;
+
+/** The reading before the brain has answered, or where there is no brain to ask. */
+const UNREAD: Allowance = { known: false, remaining: null, limit: null, resetsAt: null };
+/**
+ * What the last step says about an allowance nothing could be read for. The plans page tells its
+ * reader to sign in; this learner just did, so it says what the widget is and that it fills in.
+ */
+export const ALLOWANCE_UNREAD_LINE =
+  'This fills in as we go: how much of today is left, and when it comes back.';
 
 /** The three sample questions, verbatim. */
 const SAMPLES = [
@@ -65,11 +95,27 @@ const SAMPLES = [
   'Explain fractions with a chocolate bar',
 ] as const;
 
-function normalizePhone(raw: string): string {
-  const digits = raw.replace(/[^\d+]/g, '');
-  if (digits.startsWith('+')) return digits;
-  if (digits.length === 10) return `+91${digits}`;
-  return `+${digits}`;
+/** The run's memory on this device, or nothing where there is no storage to hold it. */
+function stepStore(): StepStore | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Somebody is signed in. An anonymous session is not somebody: it is the brain's way of budgeting a
+ * stranger, and the door still has to be walked. `isAuthenticated()` alone said yes to it.
+ */
+function signedIn(account: { isAuthenticated(): boolean; isAnonymous(): boolean } | undefined) {
+  return !!account && account.isAuthenticated() && !account.isAnonymous();
+}
+
+/** The board the profile remembers, as the picker would have chosen it. */
+function rememberedBoard(): ChosenBoard | null {
+  const id = loadProfile().boardId.trim();
+  return id ? { id, name: boardName(id), framework: null, unlisted: false } : null;
 }
 
 /** The typed prefix, marked in the name it matched. */
@@ -83,16 +129,6 @@ function Marked({ name, query }: { name: string; query: string }) {
       <mark>{name.slice(i, i + q.length)}</mark>
       {name.slice(i + q.length)}
     </b>
-  );
-}
-
-function Dots({ step }: { step: Step }) {
-  return (
-    <span className="ob-dots" role="img" aria-label={`step ${step} of 5`}>
-      {STEPS.map((s) => (
-        <i key={s} className={s === step ? 'ob-on' : s < step ? 'ob-done' : undefined} />
-      ))}
-    </span>
   );
 }
 
@@ -115,45 +151,57 @@ export function Onboarding() {
 
   const account = sdk.account;
   const canAuth = !!account;
-  const [authed, setAuthed] = useState(() => !!account?.isAuthenticated());
-  const [step, setStep] = useState<Step>(() => {
-    // DEV ONLY: `?step=3` opens a later step for the design gate's screenshots. Production builds
-    // ignore it — a learner always starts where the flow starts.
-    if (import.meta.env.DEV && typeof location !== 'undefined') {
-      const asked = Number(new URLSearchParams(location.search).get('step'));
-      if (asked >= 1 && asked <= 5) return asked as Step;
-    }
-    return canAuth && !account?.isAuthenticated() ? 1 : 2;
-  });
-
-  // --- sign in ---------------------------------------------------------------------------------
-  const seams = useMemo(
-    () =>
-      liveSeams({
-        account: account as unknown as Record<string, unknown> | undefined,
-        identityAuth: sdk.identity.auth as unknown as Record<string, unknown>,
-        devAuth: sdk.config.devAuth,
-      }),
-    [account, sdk],
+  const [authed, setAuthed] = useState(() => signedIn(account));
+  const [step, setStepState] = useState<Step>(() =>
+    restoreStep(readSavedStep(stepStore()), {
+      canAuth,
+      signedIn: signedIn(account),
+      profileComplete: profileComplete(loadProfile()),
+    }),
   );
-  const [address, setAddress] = useState('');
-  const [code, setCode] = useState('');
-  const [stage, setStage] = useState<'address' | 'code' | 'sent'>('address');
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
+  /** Move the run, and remember where it is so a reload lands here. */
+  const go = (next: Step) => {
+    setStepState(next);
+    saveStep(stepStore(), next);
+  };
 
   // --- who's learning --------------------------------------------------------------------------
   const [name, setName] = useState(() => loadProfile().name);
   const [grade, setGrade] = useState<string | null>(() => loadProfile().grade || null);
-  const [board, setBoard] = useState<ChosenBoard | null>(null);
+  const [board, setBoard] = useState<ChosenBoard | null>(rememberedBoard);
   const [own, setOwn] = useState(false);
   const search = useBoardSearch();
-  const [typed, setTyped] = useState('');
+  const [typed, setTyped] = useState(() => rememberedBoard()?.name ?? '');
   const results = search.state.result?.results ?? [];
-  const levels = useMemo(() => schoolLevels(levelsFor(board)), [board]);
+  // A board the registry answered for brings its own classes. A board remembered from the profile
+  // knows only the class that was picked with it, which is shown pressed rather than lost.
+  const levels = useMemo(() => {
+    const known = schoolLevels(levelsFor(board));
+    if (known.length > 0) return known;
+    return board && grade ? [grade] : [];
+  }, [board, grade]);
+
+  /**
+   * What is in the way of "That's me", said in one line and pointed at the control it is about.
+   * An empty submit used to be `disabled={!ready2}`, which is the silent kind of refusal: a
+   * fourteen-year-old taps the brightest thing on the page and nothing happens. The button is
+   * always live now, and pressing it early names the first thing missing, in page order, and puts
+   * focus there so the next thing they do is the fix.
+   */
+  const [refusal, setRefusal] = useState<{
+    where: 'name' | 'board' | 'class';
+    line: string;
+  } | null>(null);
+  const nameField = useRef<HTMLInputElement>(null);
+  const boardField = useRef<HTMLInputElement>(null);
+  const classChips = useRef<HTMLDivElement>(null);
+  const REFUSAL_ID = 'ob-refusal';
 
   // --- the aha ---------------------------------------------------------------------------------
   const [question, setQuestion] = useState('');
+  /** The aha's own refusal: Ask with nothing typed says so and puts the caret in the field. */
+  const [askNote, setAskNote] = useState<string | null>(null);
+  const askField = useRef<HTMLInputElement>(null);
   const [askedAt, setAskedAt] = useState<number | null>(null);
   const reply = useMemo(() => {
     if (askedAt === null) return null;
@@ -182,7 +230,7 @@ export function Onboarding() {
       cancelled = true;
     };
   }, [sdk, step]);
-  /** How much of today is still standing — kept only as a shape, for the bar to draw. */
+  /** How much of today is still standing, kept only as a shape, for the bar to draw. */
   const share = allowance ? allowanceShare(allowance) : null;
 
   const firstName = name.trim().split(/\s+/)[0] ?? '';
@@ -190,7 +238,7 @@ export function Onboarding() {
 
   const stageRef = useRegisterTarget<HTMLDivElement>('onboarding-stage', {
     kind: 'flow',
-    label: 'setting up — the step Wobo is on and what Wobo is waiting for',
+    label: 'setting up: the step Wobo is on and what Wobo is waiting for',
     getSceneState: () => ({
       step,
       signedIn: authed,
@@ -213,14 +261,24 @@ export function Onboarding() {
     });
   }, [bus, step, firstName, grade, board, authed]);
 
-  // Wobo says the bubble's line on each step — the same voice the old flow had, muted where muted.
+  // Wobo says the bubble's line on each step: the same voice the old flow had, muted where muted.
   useEffect(() => {
     const line = BUBBLE[step];
     if (line) void speakLine(line);
   }, [step]);
 
-  // A provider return, resolved: an already-onboarded account skips every question and lands home;
-  // a new account resumes at step two with the given name prefilled.
+  // A new step starts at the top of the page, with attention on its heading rather than wherever
+  // the last button happened to be.
+  const heading = useRef<HTMLHeadingElement>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the step changing IS the trigger
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.scrollTo({ top: 0 });
+    heading.current?.focus();
+  }, [step]);
+
+  // Somebody just signed in, at the door or back from a provider. An already-onboarded account
+  // skips every question and lands home; a new account goes on to step two with the given name.
   const resumeAfterAuth = async () => {
     setAuthed(true);
     const remote = (await account?.fetchProfile().catch(() => null)) ?? null;
@@ -236,16 +294,17 @@ export function Onboarding() {
         boardId,
       });
       // A restore only carries the framework's ID. Adopting it as its own NAME is how a crumb
-      // ends up reading "Class 8 · cbse" three screens away, so the label is settled here — at
-      // the one place that knows a name is missing — rather than normalised by every screen.
+      // ends up reading "Class 8 · cbse" three screens away, so the label is settled here, at
+      // the one place that knows a name is missing, rather than normalised by every screen.
       void adoptFramework({ frameworkId: boardId, name: frameworkLabel(boardId), level });
       localStorage.setItem(ONBOARDED_KEY, '1');
+      clearStep(stepStore());
       router.replace({ name: 'home' });
       return;
     }
     const given = account?.profile()?.name?.trim().split(/\s+/)[0];
     if (given && !name.trim()) setName(given);
-    setStep(2);
+    go(2);
   };
 
   const booted = useRef(false);
@@ -253,85 +312,50 @@ export function Onboarding() {
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
-    if (sessionStorage.getItem(ONB_RETURN_KEY) && account?.isAuthenticated()) {
-      sessionStorage.removeItem(ONB_RETURN_KEY);
-      void resumeAfterAuth();
-    }
+    // Arrived signed in with nothing of the run saved: a provider round-trip landing back here, or
+    // an account walking in. Mid-run, the saved step already says where they are.
+    if (signedIn(account) && readSavedStep(stepStore()) === null) void resumeAfterAuth();
   }, [sdk]);
 
-  const sendCode = async (e: FormEvent) => {
-    e.preventDefault();
-    const raw = address.trim();
-    if (!raw || busy) return;
-    setNote(null);
-    setBusy(true);
-    try {
-      if (looksLikeEmail(raw)) {
-        const seam = seamFor('magicLink', seams);
-        if (!seam) {
-          setNote(ERRORS.unknown);
-          return;
-        }
-        await callSeam(seams, seam, raw);
-        setStage('sent');
-      } else {
-        const phone = normalizePhone(raw);
-        if (phone.replace(/\D/g, '').length < 10) {
-          setNote('That number looks short — check it once more');
-          return;
-        }
-        await sdk.identity.auth.requestPhoneOtp(phone);
-        setStage('code');
-      }
-    } catch {
-      setNote(ERRORS.unknown);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const verifyCode = async (candidate: string) => {
-    if (busy) return;
-    setBusy(true);
-    setNote(null);
-    try {
-      await sdk.identity.auth.verifyPhoneOtp(normalizePhone(address.trim()), candidate);
-      localStorage.setItem(SIGNIN_SOURCE_KEY, 'phone');
-      sfx.tap();
-      await resumeAfterAuth();
-    } catch {
-      setNote(ERRORS.code);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const withProvider = async () => {
-    sessionStorage.setItem(ONB_RETURN_KEY, '1');
-    localStorage.setItem(SIGNIN_SOURCE_KEY, 'google');
-    try {
-      await account?.signInWithGoogle(window.location.origin);
-    } catch {
-      sessionStorage.removeItem(ONB_RETURN_KEY);
-      setNote(ERRORS.unknown);
-    }
-  };
-
   // --- who's learning → the aha --------------------------------------------------------------------
-  const ready2 = name.trim().length > 0 && !!grade && !!board;
   const thatsMe = (e: FormEvent) => {
     e.preventDefault();
-    if (!ready2 || !board || !grade) return;
+    // the first thing missing, in the order the page asks: a name, then a board, then its class
+    if (!name.trim()) {
+      setRefusal({ where: 'name', line: 'What should I call you? A first name is enough.' });
+      nameField.current?.focus();
+      return;
+    }
+    if (!board) {
+      setRefusal({
+        where: 'board',
+        line: 'Which board are you with? Type it and pick it from the list.',
+      });
+      boardField.current?.focus();
+      return;
+    }
+    if (!grade) {
+      setRefusal({ where: 'class', line: 'Which class are you in? Tap one.' });
+      classChips.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
+      return;
+    }
+    setRefusal(null);
     sfx.tap();
     saveProfile({ ...loadProfile(), name: name.trim(), grade, boardId: board.id });
     void adoptFramework({ frameworkId: board.id, name: board.name, level: grade });
     void account?.syncProfile({ display_name: name.trim(), grade, board: board.id });
-    setStep(3);
+    go(3);
   };
 
   const ask = (text: string) => {
     const line = text.trim();
-    if (!line || chat.busy) return;
+    if (chat.busy) return;
+    if (!line) {
+      setAskNote('Type a question, or tap one of the three below.');
+      askField.current?.focus();
+      return;
+    }
+    setAskNote(null);
     setQuestion(line);
     setAskedAt(chat.turns.length);
     void chat.ask(line);
@@ -351,6 +375,7 @@ export function Onboarding() {
     }
     bus.publishLifetime(lifetimeSnapshot());
     localStorage.setItem(ONBOARDED_KEY, '1');
+    clearStep(stepStore());
     // live mode rebuilds on the real session so providers re-key to auth.uid()
     if (!sdk.config.devAuth) {
       window.location.assign('/');
@@ -366,17 +391,35 @@ export function Onboarding() {
     if (grade && !levelsFor(b).includes(grade)) setGrade(null);
   };
 
-  const skipLabel: Partial<Record<Step, string>> = {
-    1: 'Already have an account? Sign in',
-    3: 'Skip for now',
-    4: 'Not now',
-  };
+  // ONE quiet way past a step, never two. Step three's bar says "Skip for now" until a question
+  // has been asked; from then on the way forward is the button under the answer, and the bar's
+  // word goes. Step four's way past is the form's own "I'll do this later" (ParentInvite), so the
+  // bar carries nothing there: it used to say "Not now" above a form that said the same thing in
+  // other words.
+  const skipLabel: Partial<Record<Step, string>> = askedAt === null ? { 3: 'Skip for now' } : {};
   const skip = () => {
     sfx.tap();
-    if (step === 1) router.navigate({ name: 'sign-in' });
-    else if (step === 3) setStep(4);
-    else if (step === 4) setStep(5);
+    if (step === 3) go(4);
   };
+  const back = backOf(step);
+  const goBack = (to: Step) => {
+    sfx.tap();
+    go(to);
+  };
+
+  // THE DOOR. The same component `/sign-up` is, with the run telling it where to come back to and
+  // what happens once somebody is in. Nothing here is drawn twice.
+  if (step === 1) {
+    const origin = typeof window === 'undefined' ? '' : window.location.origin;
+    return (
+      <div ref={stageRef}>
+        <Auth
+          mode="sign-up"
+          run={{ redirectTo: `${origin}/onboarding`, onSignedIn: () => void resumeAfterAuth() }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="ob-screen" ref={stageRef}>
@@ -415,175 +458,67 @@ export function Onboarding() {
         <span className="ob-wm" style={{ width: 90 }}>
           <Wordmark />
         </span>
-        <Dots step={step} />
-        {skipLabel[step] ? (
-          <button type="button" className="ob-skip" onClick={skip}>
-            {skipLabel[step]}
-          </button>
-        ) : (
-          <span className="ob-skip" />
-        )}
+        <Steps current={step} onBack={goBack} />
+        <span className="ob-ways">
+          {back !== null ? (
+            <button type="button" className="ob-skip" onClick={() => goBack(back)}>
+              Back
+            </button>
+          ) : null}
+          {skipLabel[step] ? (
+            <button type="button" className="ob-skip" onClick={skip}>
+              {skipLabel[step]}
+            </button>
+          ) : null}
+        </span>
       </div>
 
       <div className="ob-body">
-        {step === 1 && (
-          <div className="ob-card">
-            <WoboHead size={120} shadow className="ob-wobo" mood="listening" />
-            <div className="ob-bub">Hi. I'm Wobo. Let's make this yours.</div>
-            <h1>Sign in so everything stays with you, on any device.</h1>
-            <p className="ob-sub">That's the only reason I'm asking. No newsletter, no card.</p>
-            {stage === 'sent' ? (
-              <div className="ob-form">
-                <p className="ob-sub">
-                  <b>{SENT.title}</b>
-                  <br />
-                  {SENT.body}
-                </p>
-                <button
-                  type="button"
-                  className="ob-btn ob-link"
-                  onClick={() => setStage('address')}
-                >
-                  {SENT.again}
-                </button>
-              </div>
-            ) : stage === 'code' ? (
-              <form
-                className="ob-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void verifyCode(code);
-                }}
-              >
-                <div className="ob-field">
-                  <label htmlFor="ob-code">The code Wobo sent</label>
-                  <input
-                    id="ob-code"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    maxLength={6}
-                    value={code}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '');
-                      setCode(digits);
-                      if (digits.length === 6) void verifyCode(digits);
-                    }}
-                    placeholder="6-digit code"
-                    // biome-ignore lint/a11y/noAutofocus: the code is this stage's single intention
-                    autoFocus
-                  />
-                </div>
-                {note ? <p className="ob-fine">{note}</p> : null}
-                <button type="submit" className="ob-btn ob-pig" disabled={busy || code.length < 6}>
-                  Check the code
-                </button>
-              </form>
-            ) : (
-              <form className="ob-form" onSubmit={(e) => void sendCode(e)}>
-                <div className="ob-field">
-                  <label htmlFor="ob-address">Email or phone</label>
-                  <input
-                    id="ob-address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="you@example.com or +91 …"
-                    autoComplete="username"
-                    inputMode="email"
-                  />
-                </div>
-                {note ? <p className="ob-fine">{note}</p> : null}
-                <button type="submit" className="ob-btn ob-pig" disabled={busy}>
-                  Send me a code
-                </button>
-                <div className="ob-or">or</div>
-                <button
-                  type="button"
-                  className="ob-btn ob-quiet"
-                  onClick={() => void withProvider()}
-                >
-                  Continue with a sign-in provider
-                </button>
-                <p className="ob-fine">
-                  Under 13, or under 18 in India?{' '}
-                  <a
-                    href="/sign-up"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      router.navigate({ name: 'sign-up' });
-                    }}
-                  >
-                    A parent signs in first.
-                  </a>{' '}
-                  I'll explain why in one line when you get there.
-                </p>
-              </form>
-            )}
-          </div>
-        )}
-
         {step === 2 && (
           <div className="ob-card">
             <WoboHead size={120} shadow className="ob-wobo" mood="listening" />
             <div className="ob-bub">
               Tell me once. I'll find your exact chapter every week after.
             </div>
-            <h1>Who's learning, and where?</h1>
-            <form className="ob-form" onSubmit={thatsMe}>
+            <h1 ref={heading} tabIndex={-1}>
+              Who's learning, and where?
+            </h1>
+            <form className="ob-form" onSubmit={thatsMe} noValidate>
               <div className="ob-field">
                 <label htmlFor="ob-name">First name</label>
                 <input
                   id="ob-name"
+                  ref={nameField}
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  {...(refusal?.where === 'name'
+                    ? { 'aria-invalid': true as const, 'aria-describedby': REFUSAL_ID }
+                    : {})}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    if (refusal?.where === 'name') setRefusal(null);
+                  }}
                   placeholder="What should I call you?"
                   autoComplete="given-name"
                 />
               </div>
-              <fieldset className="ob-field">
-                <legend>Class</legend>
-                {levels.length > 0 ? (
-                  <div className="ob-chips">
-                    {levels.map((level) => (
-                      <button
-                        key={level}
-                        type="button"
-                        aria-pressed={grade === level}
-                        onClick={() => setGrade(level)}
-                      >
-                        <span className={grade === level ? 'ob-on' : undefined}>
-                          {gradeOf(level) ?? level}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <>
-                    {/* the board's own classes replace this ladder the moment a board is chosen;
-                        until then it is the prototype's row, drawn but not pressable */}
-                    <div className="ob-chips" aria-hidden="true">
-                      {LADDER.map((level) => (
-                        <button key={level} type="button" disabled tabIndex={-1}>
-                          <span>{level}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <p className="ob-fine">
-                      {board?.unlisted
-                        ? `I do not have ${board.name}'s classes yet. Pick your board first and I will bring them.`
-                        : 'Pick your board and I will bring its classes.'}
-                    </p>
-                  </>
-                )}
-              </fieldset>
+              {/* THE BOARD BEFORE THE CLASS. The classes are the board's own, so they cannot be
+                  answered first: with the class row above the board, a learner tapped "8", nothing
+                  happened, and only the fine print two lines down said why. The fields are in the
+                  order they can be answered. */}
               <div className="ob-field ob-ta">
                 <label htmlFor="ob-board">Board</label>
                 <input
                   id="ob-board"
+                  ref={boardField}
                   value={typed}
+                  {...(refusal?.where === 'board'
+                    ? { 'aria-invalid': true as const, 'aria-describedby': REFUSAL_ID }
+                    : {})}
                   onChange={(e) => {
                     setTyped(e.target.value);
                     setBoard(null);
                     search.setQuery(e.target.value);
+                    if (refusal?.where === 'board') setRefusal(null);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -594,7 +529,6 @@ export function Onboarding() {
                   autoComplete="off"
                   spellCheck={false}
                   placeholder="CBSE, ICSE, your state board…"
-                  aria-label="Board"
                   aria-autocomplete="list"
                 />
                 {!board && typed.trim() && (
@@ -639,7 +573,54 @@ export function Onboarding() {
                   />
                 </div>
               )}
-              <button type="submit" className="ob-btn ob-pig" disabled={!ready2}>
+              <fieldset
+                className="ob-field"
+                {...(refusal?.where === 'class' ? { 'aria-describedby': REFUSAL_ID } : {})}
+              >
+                <legend>Class</legend>
+                {levels.length > 0 ? (
+                  <div className="ob-chips" ref={classChips}>
+                    {levels.map((level) => (
+                      <button
+                        key={level}
+                        type="button"
+                        aria-pressed={grade === level}
+                        onClick={() => {
+                          setGrade(level);
+                          if (refusal?.where === 'class') setRefusal(null);
+                        }}
+                      >
+                        <span className={grade === level ? 'ob-on' : undefined}>
+                          {gradeOf(level) ?? level}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <>
+                    {/* the board's own classes replace this ladder the moment a board is chosen;
+                        until then it is the prototype's row, drawn but not pressable */}
+                    <div className="ob-chips" aria-hidden="true">
+                      {LADDER.map((level) => (
+                        <button key={level} type="button" disabled tabIndex={-1}>
+                          <span>{level}</span>
+                        </button>
+                      ))}
+                    </div>
+                    <p className="ob-fine">
+                      {board?.unlisted
+                        ? `I do not have ${board.name}'s classes yet. Pick your board first and I will bring them.`
+                        : 'Pick your board above and I will bring its classes.'}
+                    </p>
+                  </>
+                )}
+              </fieldset>
+              {refusal ? (
+                <p className="ob-refuse" id={REFUSAL_ID} role="alert">
+                  {refusal.line}
+                </p>
+              ) : null}
+              <button type="submit" className="ob-btn ob-pig">
                 That's me
               </button>
             </form>
@@ -648,7 +629,7 @@ export function Onboarding() {
 
         {step === 3 && (
           <div className="ob-card">
-            <h1>
+            <h1 ref={heading} tabIndex={-1}>
               Ask me anything from {grade ? classLine(grade) : 'your class'}
               {boardLabel ? `, ${boardLabel}` : ''}. I'll draw it.
             </h1>
@@ -684,8 +665,15 @@ export function Onboarding() {
                 }}
               >
                 <input
+                  ref={askField}
                   value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
+                  {...(askNote
+                    ? { 'aria-invalid': true as const, 'aria-describedby': 'ob-ask-note' }
+                    : {})}
+                  onChange={(e) => {
+                    setQuestion(e.target.value);
+                    if (askNote) setAskNote(null);
+                  }}
                   placeholder="why does a² + b² = c²?"
                   aria-label="Ask Wobo"
                   autoComplete="off"
@@ -695,6 +683,11 @@ export function Onboarding() {
                   Ask
                 </button>
               </form>
+              {askNote ? (
+                <p className="ob-refuse" id="ob-ask-note" role="alert">
+                  {askNote}
+                </p>
+              ) : null}
               <div className="ob-chipsq">
                 {SAMPLES.map((q) => (
                   <button key={q} type="button" className="ob-chipq" onClick={() => ask(q)}>
@@ -703,16 +696,20 @@ export function Onboarding() {
                 ))}
               </div>
             </div>
-            <button
-              type="button"
-              className="ob-btn"
-              onClick={() => {
-                sfx.tap();
-                setStep(4);
-              }}
-            >
-              That was it. Keep going
-            </button>
+            {/* the way forward, once there is something to go forward from; before that the bar's
+                "Skip for now" is the one way past, so this never reads as nonsense on first paint */}
+            {askedAt !== null ? (
+              <button
+                type="button"
+                className="ob-btn"
+                onClick={() => {
+                  sfx.tap();
+                  go(4);
+                }}
+              >
+                That was it. Keep going
+              </button>
+            ) : null}
           </div>
         )}
 
@@ -722,7 +719,9 @@ export function Onboarding() {
             <div className="ob-bub">
               On Sundays I write three lines home. Want someone to get them?
             </div>
-            <h1>Link a parent, if you'd like.</h1>
+            <h1 ref={heading} tabIndex={-1}>
+              Link a parent, if you'd like.
+            </h1>
             <p className="ob-sub">
               They'll see your lessons, your progress and the Sunday note. Your questions word for
               word stay yours unless you choose to share them.
@@ -738,11 +737,11 @@ export function Onboarding() {
                 onDone={() => {
                   award('invite_parent', { onceKey: 'invite_parent' });
                   sfx.tap();
-                  setStep(5);
+                  go(5);
                 }}
                 onLater={() => {
                   sfx.tap();
-                  setStep(5);
+                  go(5);
                 }}
               />
             </div>
@@ -752,7 +751,7 @@ export function Onboarding() {
         {step === 5 && (
           <div className="ob-card">
             <WoboHead size={120} shadow className="ob-wobo" mood="celebrate" />
-            <h1>
+            <h1 ref={heading} tabIndex={-1}>
               That's it{firstName ? `, ${firstName}` : ''}.{' '}
               {[
                 grade && classLine(grade),
@@ -764,17 +763,22 @@ export function Onboarding() {
               .
             </h1>
             <p className="ob-sub">
-              Enough questions for a normal day, every day, for free. Hold space to talk to me,
-              or just type. I'll be here whenever you want me.
+              Enough questions for a normal day, every day, for free. Hold space to talk to me, or
+              just type. I'll be here whenever you want me.
             </p>
             <div className="ob-allow">
               <b>Today's allowance</b>
-              <div className="ob-bar" aria-hidden="true">
-                <i style={share === null ? undefined : { width: `${Math.round(share * 100)}%` }} />
-              </div>
+              {/* The bar draws the same fraction the sentence describes, so the two agree: where
+                  nothing could be read there is no fraction, and a bar at its CSS default of 100%
+                  under a sentence saying nothing is known was the two disagreeing. */}
+              {share !== null ? (
+                <div className="ob-bar" aria-hidden="true">
+                  <i style={{ width: `${Math.round(share * 100)}%` }} />
+                </div>
+              ) : null}
               {/* The copy law (DESIGN.md §0): what is left is said in words, never "25 of 40".
-                  The bar draws the same fraction the sentence describes, so the two agree. */}
-              <span>{allowance ? allowanceLine(allowance) : 'Enough for a normal evening.'}</span>
+                  And never "sign in" here: a learner on this step has just walked the door. */}
+              <span>{allowanceLine(allowance ?? UNREAD, resetTime, ALLOWANCE_UNREAD_LINE)}</span>
             </div>
             {/* The prototype's "Start this evening" is the LANDING's call, and the copy law (DESIGN.md
                 §0) keeps a promotional call off a surface only a signed-in learner can reach. Here

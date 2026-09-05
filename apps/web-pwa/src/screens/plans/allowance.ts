@@ -59,17 +59,22 @@ export function allowanceShare(allowance: Allowance): number | null {
   return Math.max(0, Math.min(1, allowance.remaining / allowance.limit));
 }
 
+/** What the plans page says when nothing could be read: a visitor there has not signed in. */
+export const UNKNOWN_ALLOWANCE_LINE =
+  'Sign in and this shows how much of today is left, and when it comes back.';
+
 /**
  * What the widget says. One sentence, sentence case, no exclamation, and never a figure we did not
- * read — an unknown allowance says it is unknown.
+ * read: an unknown allowance says it is unknown. The plans page's unknown line tells a visitor to
+ * sign in; a surface only a signed-in learner reaches (onboarding's last step) passes its own,
+ * because "sign in" is a wrong instruction to somebody who just did.
  */
 export function allowanceLine(
   allowance: Allowance,
   format: (at: Date) => string = resetTime,
+  unknown: string = UNKNOWN_ALLOWANCE_LINE,
 ): string {
-  if (!allowance.known || allowance.remaining === null) {
-    return 'Sign in and this shows how much of today is left, and when it comes back.';
-  }
+  if (!allowance.known || allowance.remaining === null) return unknown;
   const back = allowance.resetsAt
     ? ` It comes back at ${format(allowance.resetsAt)}.`
     : ' It comes back when the day rolls over.';
