@@ -1058,12 +1058,9 @@ Every step measured at 1440/834/390, light and dark: no sideways scroll, nothing
 control under 44px on a phone. Adversary raised 9, fixer closed 9, each held by a test proven to
 fail without the change. Shots in `shots/onboarding-2026-09-05/`.
 
-**Open, queued behind wave 22.** The sample chips on step three ("Why is the sky blue?") land as
-handwritten text, not ink, because `boardShapeOf` routes plain prose away from the board while
-the headline says "I'll draw it". Fix: one `draw: true` on `AskOptions`, honoured where
-`boardShapeOf` is computed, passed by step three for the first question. Wave 22 owns
-`presentation.ts` and `AppRuntime`; do it the moment it lands, then re-run
-`tests/onboarding.spec.ts` against a live key to prove the aha draws.
+**Closed.** The draw flag landed (commit after `471c9bc`): step three asks for the hand outright
+and the learner's word about the surface still wins. Not proven live on this machine (no model
+key); the wave's e2e `tests/onboarding.spec.ts` is the proof to re-run with a key.
 
 ### 10.20 The doubt solver (owner, 2026-09-05)
 
@@ -1123,3 +1120,18 @@ notification. Everything below is in that commit.
 
 **Open.** The production discovery worker is off until the owner sets the env var. 71 syllabi
 have no chapters yet; discovery fills them when a learner asks and the worker is on.
+
+### 10.22 Production, 2026-09-05 evening: what is applied and the one thing the owner runs
+
+- Migrations 0021 (doubts table + private photo bucket) and 0022 (observer tables, views, the
+  review-queue kind) applied to production after a read, both verified absent first.
+- The syllabus seed is NOT yet in production: `curriculum.frameworks/versions/nodes/provenance`
+  are 0/0/0/0. The SQL is generated and byte-identical to the checked-in file, but it is 2 MB
+  across 19 statements and the only production SQL path available here takes text inline, which
+  would mean transcribing 2 MB of ids by hand into rows 0008 makes immutable. Not done, on
+  purpose. `SUPABASE_SERVICE_ROLE_KEY` in `.env.local` is empty; no CLI is logged in.
+- **THE OWNER RUNS ONE COMMAND** (from `services/gateway`, idempotent, expect 268/4/1493/1493):
+  `SUPABASE_SERVICE_ROLE_KEY=<key> uv run python -m wobo_gateway.curriculum.publish`
+  or pastes the key into `.env.local` and says so, and I run it. Verify with the query in the
+  header of `harness/reports/publish-seed.sql`.
+- Until then every board still yields no syllabus in production.
