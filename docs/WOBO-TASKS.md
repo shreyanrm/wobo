@@ -710,8 +710,8 @@ needed it was asked and the answer is recorded beside the task.
 
 ### 10.11 Running now (refreshed 2026-09-07, after `692affc`)
 - Waves 26, 27, 28 landed and committed in `692affc`; gateway and web redeploying from it.
-- [ ] **Wave 30** `wf_126f92fa-1bf` — the content judged (lab refreshed to `692affc`); resuming now
-- [ ] **Wave 29** — the whole application after the new developments; launches once the deploys land
+- [ ] **Wave 30** `wf_126f92fa-1bf` (task `w86y24vzl`) — the content judged, lab at `692affc`
+- [ ] **Wave 29** `wf_049640be-455` (task `wi2qtv12c`) — the whole application after the new developments
 - Wave 14 (`wf_7adb6510-1f2`) is superseded by wave 29
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
@@ -1274,3 +1274,13 @@ second child's note was skipped. In production the clocks coincide, which means 
 ONE Sunday note: the test was right and had been passing by accident. Fixed in `692affc`: the send helper
 takes the pass's clock for the record stamp, and the Sunday pass reads the gap once per address before it
 sends, so siblings both go and mail sent before the pass still holds them. Two tests pin it.
+
+### 10.29 Production at 2026-09-07 ~12:30 IST
+
+- Gateway: `692affc` live on Railway (~90 s after `railway up`), health 200 degraded, the one degraded check
+  being payments off (no Razorpay keys), by design. Providers 3/3 configured, none out; OpenAI first now.
+- Web: `692affc` live at heywobo.com; entry chunk changed; the Razorpay checkout script and cdn allowed in
+  the CSP; "Payments are not switched on yet" in the bundle; the mind queue keys in the bundle.
+- Database: 0021, 0022, 0023 applied; seed 268/4/1493/1493.
+- Waiting on the owner: Razorpay key id, key secret, webhook secret (test mode first). Setting them on Railway
+  turns checkout on with no deploy; the plans command then creates the four plans once.
