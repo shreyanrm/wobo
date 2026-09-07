@@ -71,6 +71,9 @@ from wobo_gateway.auth import (
 )
 from wobo_gateway.billing import LIMITED_PATHS as BILLING_LIMITED_PATHS
 from wobo_gateway.billing import register_billing
+from wobo_gateway.billing.payments import LIMITED_PATHS as PAYMENTS_LIMITED_PATHS
+from wobo_gateway.billing.payments import OPEN_PATHS as PAYMENTS_OPEN_PATHS
+from wobo_gateway.billing.payments import register_billing_desk, register_payments
 from wobo_gateway.cache import CacheBackend, CacheEntry, InMemoryCache, cache_key
 from wobo_gateway.console_api import register_console
 from wobo_gateway.desks_api import register_desks
@@ -79,6 +82,7 @@ from wobo_gateway.email import register_email
 from wobo_gateway.hospitality.api import register_mail_preferences
 from wobo_gateway.hospitality.jobs import welcome_after_first_meeting
 from wobo_gateway.mind import register_mind
+from wobo_gateway.model_call import ProviderUnavailable, is_provider_failure
 from wobo_gateway.parent_api import LIMITED_PATHS as PARENT_API_LIMITED_PATHS
 from wobo_gateway.parent_api import register_parent_api
 from wobo_gateway.parents import LIMITED_PATHS as PARENT_LIMITED_PATHS
@@ -464,6 +468,13 @@ class Gateway:
                 model=spec.provider_model,
                 error=type(exc).__name__,
             )
+            if is_provider_failure(exc):
+                # Every rung refused, or every provider was already marked out. That is not a
+                # bug in this service, so it is not answered as one: the routes turn this into
+                # Wobo's own line (a 503 in the ceiling's ``{code, message}`` shape, or the line
+                # over the board stream) instead of FastAPI's bare 500. The provider's error
+                # stays underneath as the cause, for the log and the alert above.
+                raise ProviderUnavailable(capability, reason=type(exc).__name__) from exc
             raise
         health.record_provider(True)
         latency_ms = (time.perf_counter() - start) * 1000
@@ -517,7 +528,11 @@ def build_gateway() -> Gateway:
 # and its own per-client allowance is the door.
 # The parent's accept and decline pages are open for the same reason as the stop link: a signed,
 # single-use token from the invite mail is their only authority (parents.py).
-_OPEN_PATHS = frozenset({"/healthz", "/v1/mail/stop", *ASK_OPEN_PATHS, *PARENT_OPEN_PATHS})
+# The payment provider's webhook is open because the provider holds no learner token; its door
+# is the HMAC over the raw body (billing/payments.py), checked before a byte of it is parsed.
+_OPEN_PATHS = frozenset(
+    {"/healthz", "/v1/mail/stop", *ASK_OPEN_PATHS, *PARENT_OPEN_PATHS, *PAYMENTS_OPEN_PATHS}
+)
 # Authenticated when we can, never refused here: the route itself is the door (internal key).
 # The two cron doors (hospitality/jobs.py: the Sunday note, the festival wishes) share that key
 # and that posture.
@@ -936,6 +951,13 @@ def stream_board_turn(
             plan.ask = screened.get("ask") if isinstance(screened.get("ask"), dict) else None
             card = None
             actions = []
+    except ProviderUnavailable as exc:
+        # Nobody could answer. The turn is given back and the child hears Wobo say so, over the
+        # same stream a spend refusal arrives on; it used to be a bare 500 and the client's
+        # generic broken page.
+        budget.refund(meter, name)
+        snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
+        return _one_shot_turn(exc.message, owner, budget.headers(snap, budget.classify(name)))
     except TooMuchAtOnce as exc:
         budget.refund(meter, name)
         return JSONResponse(
@@ -1115,6 +1137,10 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             # The plan: two of the three write to the database, and all three are free — a
             # learner is never charged a turn for reading or ending what they pay for.
             or path in BILLING_LIMITED_PATHS
+            # The checkout creates an object at the payment provider on every call, and anyone
+            # holding a token can reach it (billing/payments.py). The webhook is deliberately not
+            # here: the provider retries on a non-2xx, and its signature is the gate.
+            or path in PAYMENTS_LIMITED_PATHS
             # The four intakes behind the console's desks — a flag, a bug, a support message, a
             # refund request. Each writes a row to ops.reports and every one of them is reachable
             # by anyone holding a token, so all four are bounded per caller (reports.py).
@@ -1271,6 +1297,16 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             status_code=429,
             content=exc.body(),
             headers={"Retry-After": "3600", "X-Wobo-Budget-Reset": exc.reset_at.isoformat()},
+        )
+
+    @app.exception_handler(ProviderUnavailable)
+    async def _on_providers_out(_: Request, exc: ProviderUnavailable) -> JSONResponse:
+        """No provider answered, on a route that did not catch it itself (the capability route
+        and the board stream do, so they can give the meter back). Wobo's line, a 503, and a
+        Retry-After: an outage upstream is not a fault in this service and is not answered as
+        one. The cause is already in the log and the alert from ``Gateway.invoke``."""
+        return JSONResponse(
+            status_code=503, content=exc.body(), headers={"Retry-After": "60"}
         )
 
     @app.get("/healthz")
@@ -1585,6 +1621,17 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                 result = gw.invoke(
                     name, request, profile.tier, subject=principal.subject, priority=priority
                 )
+        except ProviderUnavailable as exc:
+            # Nobody could answer: the turn is given back, and the answer is Wobo's line in the
+            # same ``{code, message}`` shape as the spend ceiling's refusal, which the client
+            # already renders as Wobo's words. Until 2026-09-07 this was FastAPI's bare 500.
+            budget.refund(meter, name)
+            snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
+            return JSONResponse(
+                status_code=503,
+                content=exc.body(),
+                headers={"Retry-After": "60", **budget.headers(snap, budget.classify(name))},
+            )
         except Exception:
             budget.refund(meter, name)
             raise
@@ -1614,6 +1661,9 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     # literal paths under /v1/parent, and they must be matched before anything else claims them.
     register_parent_api(app)
     register_billing(app)
+    # Checkout and the provider's webhook (billing/payments.py). AFTER register_billing so the
+    # plan routes this pair writes for already exist.
+    register_payments(app)
     register_admin(app)
     # The console's own read surface. AFTER register_admin, because it hangs off the same
     # guarded router factory and the door must exist before anything is mounted behind it.
@@ -1622,6 +1672,9 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     # register_admin for the same reason register_console is: the desks hang off the same
     # guarded router factory, and the door must exist before anything is mounted behind it.
     register_desks(app)
+    # The subscriptions desk's ledger read (billing/payments.py), behind the same guarded router
+    # factory as the other desks and for the same reason placed after register_admin.
+    register_billing_desk(app)
     register_reports(app)
     register_public_ask(app, gw)
     # Wobo's eyes (doubt.py): the photo door, its answer over the existing board turn, and the

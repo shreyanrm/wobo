@@ -86,7 +86,8 @@ export const PLANS_PAGE = {
     head: ['Every day', 'Free', 'Pro', 'Max'],
     yes: 'yes',
     same: 'same',
-    no: '—',
+    /** A word, not an em dash (voice.md 10a): the law binds every cell a learner reads. */
+    no: 'no',
   },
   /**
    * A PREVIEW OF THE CHECKOUT SCREEN, drawn on the plans page. It is not the checkout, and it must
@@ -136,15 +137,25 @@ export const PLANS_PAGE = {
       monthly: 'You keep {plan} until the month you paid for ends.',
     } as Readonly<Record<Period, string>>,
     /**
-     * THE DOOR THAT IS NOT OPEN. The control was a live, saturated pig button reading "Pay with
-     * the payment provider", sitting under a stated sum, that navigated to a page whose headline
-     * is "Paying is not open yet." A button that cannot work carries `soon` and says why; it
-     * does not promise a payment and deliver an apology.
+     * THE AMOUNT BEING AGREED TO. docs/PRICING.md gives the total to the checkout and keeps it off
+     * the plans page, and this card is both: a preview while the deploy cannot take money, and
+     * the checkout itself the moment it can. So the row below is drawn ONLY when payments are on
+     * (`checkout-flow.ts` asks the gateway), and on the monthly period it names the month, never
+     * a year. `tests/plans-period.spec.ts` holds the off state to "no total anywhere".
      */
-    pay: 'Pay with the payment provider',
-    soon: 'soon',
-    paySoon:
-      'The payment page is not open yet, so nothing here can take money. Nothing is charged and no card is asked for.',
+    today: 'Today',
+    totalFor: {
+      yearly: 'for the year',
+      monthly: 'for the month',
+    } as Readonly<Record<Period, string>>,
+    /**
+     * THE DOOR. Payments on, it carries the tier's own words ("Choose Pro") and starts the
+     * checkout; off, it reads "Payments are not switched on yet" and does nothing, in
+     * `checkout-flow.ts`'s words. The label is the tier's `cta`, so the card and the checkout
+     * cannot name the plan differently. What the door says while it works:
+     */
+    opening: 'Opening the payment page',
+    confirming: 'Confirming with the bank',
     payMore: 'What checkout will ask for',
     fine: "Card or UPI, on the provider's own page. We never see or store the details.",
   },
@@ -204,7 +215,10 @@ export function faqItems(period: Period = DEFAULT_PERIOD): FaqItem[] {
     },
     {
       question: 'How do I cancel?',
-      answer: `You → Your plan → Cancel. Two taps, no call, no offer to stay, no reason to give. You keep the plan until the ${kept} you paid for ends, nothing renews after that, and everything you learnt stays. Change your mind before that date and one tap puts the plan back.`,
+      // Once cancelled, a subscription cannot be restarted at the provider, and the gateway says
+      // so (billing/__init__.py, 409 cannot_resume). So no "one tap puts it back" here: the one
+      // place a reader decides something irreversible is the one place the page may not soften it.
+      answer: `You → Your plan → Cancel. Two taps, no call, no offer to stay, no reason to give. You keep the plan until the ${kept} you paid for ends, nothing renews after that, and everything you learnt stays. Once it is cancelled it cannot be switched back on, so you start a fresh plan after that date if you want one.`,
     },
     {
       question: 'Do you give money back?',
@@ -252,4 +266,37 @@ export const CHECKOUT_PAGE = {
   ],
   /** The label every surface links the money document by. Cancelling leads, because it is the answer. */
   cancelling: 'Cancelling, renewals and refunds, in full',
+  /**
+   * THE SAME PAGE WHEN PAYMENTS ARE ON. The checkout is the card at the bottom of the plans page
+   * (`Plans.tsx`, `checkout-flow.ts`), so a reader who reaches `/plans/checkout` from the gift or
+   * the donate page must be sent there, not told that paying is not open. `checkoutPageWords`
+   * picks between the two; a deploy that cannot say which is treated as off.
+   */
+  open: {
+    title: 'The checkout is on the plans page.',
+    lead: 'Pick a plan on the plans page and the amount, the two consent boxes and the payment control sit together on one card. Nothing is charged until you choose.',
+    cta: 'Go to the checkout',
+  },
 } as const;
+
+export interface CheckoutPageWords {
+  title: string;
+  lead: string;
+  cta: { label: string; href?: string; to?: { name: 'onboarding' } };
+}
+
+/** What `/plans/checkout` says, given whether the gateway can take money. Unknown reads as off. */
+export function checkoutPageWords(paymentsOn: boolean | null): CheckoutPageWords {
+  if (paymentsOn === true) {
+    return {
+      title: CHECKOUT_PAGE.open.title,
+      lead: CHECKOUT_PAGE.open.lead,
+      cta: { label: CHECKOUT_PAGE.open.cta, href: '/plans#checkout' },
+    };
+  }
+  return {
+    title: CHECKOUT_PAGE.title,
+    lead: CHECKOUT_PAGE.lead,
+    cta: { label: CHECKOUT_PAGE.cta, to: { name: 'onboarding' } },
+  };
+}

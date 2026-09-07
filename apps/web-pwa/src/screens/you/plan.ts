@@ -235,9 +235,12 @@ export function panelLines(model: PlanModel, now: Date): readonly string[] {
     );
   }
   if (view === 'cancelled') {
+    // "Pro until 4 October 2026, then free." The whole of what happens, in one line: the date the
+    // paid period ends and what the day is after it. No refund is promised here or anywhere on
+    // this screen (DESIGN.md §0, cancel never refund; `no-refund.test.ts` greps).
     const until = when
-      ? `${planName(sub)} until ${when}.`
-      : `${planName(sub)} until the end of the period you have paid for.`;
+      ? `${planName(sub)} until ${when}, then free.`
+      : `${planName(sub)} until the end of the period you have paid for, then free.`;
     return [until, 'Nothing will be charged again.', WORK_STAYS];
   }
   if (view === 'unreadable') return [UNREADABLE];

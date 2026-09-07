@@ -23,9 +23,11 @@
  * and in a sentence naming the day the next charge would be taken; the doc's own words are "It
  * must not appear on the plans page", and the sentence broke a second law as well —
  * `services/gateway/src/wobo_gateway/billing.py` rule 2, in capitals: "NOTHING IN THIS REPO RENEWS
- * A SUBSCRIPTION, and no user-facing line may say one does." There is no payment provider, no
- * webhook and no sweep, so a stated future date was a mechanism we cannot show. Both are gone, and
- * the preview says only what this page is allowed to say: the per-month amount and the words.
+ * A SUBSCRIPTION, and no user-facing line may say one does." At the time there was no payment
+ * provider, no webhook and no sweep, so a stated future date was a mechanism we could not show.
+ * Both are gone, and the preview says only what this page is allowed to say: the per-month amount
+ * and the words. The provider and its webhook have since landed on the gateway
+ * (`services/gateway/src/wobo_gateway/billing/`); what they change here is the door, below.
  *
  * There is NO country switch here, and there never will be. Law v5's copy law (DESIGN.md §0):
  * where someone is reading from is not a question worth asking. `readMarket()` answers it from the
@@ -33,13 +35,25 @@
  * switch would only have existed because we could not be bothered to work it out; and the deal is
  * the same in every market regardless (§14 — by country, never by person).
  *
- * What this page deliberately does not do is take a payment, AND IT SAYS SO ON THE CONTROL. "Choose
- * Pro" and "Choose Max" bring the checkout preview into view with that plan on it; the payment
- * control in that preview keeps its shape and carries a `soon` marker, because a button that cannot
- * work carries `soon` rather than an apology on the far side of a click. It used to be a live,
- * saturated pig button labelled "Pay with the payment provider" that took the reader to a page
- * headed "Paying is not open yet." A payment control that looked real but was not, on a product
- * used by children, would be the worst thing on the site.
+ * THE CHECKOUT IS THE CARD AT THE BOTTOM, and it tells the truth about whether it can take money.
+ * "Choose Pro" and "Choose Max" on the cards bring it into view with that plan on it. Its own door
+ * asks the gateway once, on mount, whether payments are switched on (`checkout-flow.ts`):
+ *
+ *  · OFF (no key on the gateway, or no gateway): the door reads "Payments are not switched on
+ *    yet" and does nothing. Never a dead button, never a fake success. This is the state the
+ *    hermetic suite sees, and the state the site shipped in until the provider's key landed.
+ *  · ON: the door carries the tier's own words, the card states the amount taken today (the
+ *    total belongs at checkout and nowhere else, docs/PRICING.md), and pressing it starts a
+ *    checkout on the gateway, loads the provider's script ONLY THEN, and opens the modal with
+ *    the subscription id, the key id, the learner's name and Wobo's colour. Paying does not flip
+ *    the plan: the screen says "Confirming with the bank" and polls the plan endpoint until the
+ *    webhook has written the row (MEMORY-LAW: the database is the record), for at most a minute,
+ *    then says the honest thing either way. A closed modal changes nothing and says so in one
+ *    line; a failed payment says the bank's reason in plain words and blames nobody.
+ *
+ * It used to be a live, saturated pig button labelled "Pay with the payment provider" that took
+ * the reader to a page headed "Paying is not open yet." A payment control that looked real but was
+ * not, on a product used by children, would be the worst thing on the site.
  *
  * The allowance drawing reads the learner's real budget through `sdk.me()`; where there is no
  * answer it says it cannot see one rather than showing a number nobody verified.
@@ -47,7 +61,7 @@
 
 import { useReducedMotion } from '@wobo/motion';
 import type { Me } from '@wobo/sdk';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useSdk } from '../../store/sdk';
 import { Label, Sticker, WoboHead } from '../../ui/primitives';
 import { legalPath } from '../legal/catalog';
@@ -55,11 +69,27 @@ import { ClosePanel } from '../site/ClosePanel';
 import { SiteLink } from '../site/nav';
 import { Reveal } from '../site/Reveal';
 import { SiteShell } from '../site/SiteShell';
+import { readSubscription } from '../you/billing';
+import { dayLabel } from '../you/plan';
+import { loadProfile } from '../you/profile';
 import { allowanceLine, allowanceShare, readAllowance } from './allowance';
+import {
+  awaitConfirmation,
+  CHECKOUT_LINES,
+  checkoutOptions,
+  checkoutReducer,
+  initialCheckout,
+  loadCheckoutJs,
+  type PaymentsConfig,
+  readPaymentsConfig,
+  showsCheckoutPreviewLink,
+  startCheckout,
+} from './checkout-flow';
 import { ALLOWANCE_WORDS, BENEFITS, type Benefit, faqItems, PLANS_PAGE } from './copy';
 import {
   BEST_FOR,
   billedLine,
+  chargeLabel,
   DEFAULT_PERIOD,
   fineLine,
   PERIOD_LABELS,
@@ -205,6 +235,7 @@ const CARD_CLASS: Record<PlanTier['id'], string> = {
 };
 
 export function Plans() {
+  const sdk = useSdk();
   const reduced = useReducedMotion();
   // Read once per mount, from the browser and nothing else: the reader is never asked where they
   // are, and there is no control that could change this.
@@ -226,6 +257,109 @@ export function Plans() {
   const choose = (tier: PlanTier) => {
     setPreviewId(tier.id);
     checkoutRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+  };
+
+  // --- the checkout ------------------------------------------------------------------------------
+  // Whether the deploy can take money. `null` until the gateway has answered; off when it says
+  // so, when it has no such route, or when there is no gateway at all. The browser never decides.
+  const [pay, setPay] = useState<PaymentsConfig | null>(null);
+  useEffect(() => {
+    let live = true;
+    void readPaymentsConfig().then((config) => {
+      if (live) setPay(config);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+  const [flow, dispatch] = useReducer(checkoutReducer, undefined, initialCheckout);
+  // The page may be left while the bank is still confirming; nothing then lands on a dead screen.
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const busy = flow.step === 'opening' || flow.step === 'open' || flow.step === 'confirming';
+
+  const buy = async () => {
+    if (!pay?.on || busy) return;
+    if (!terms || !renewal) {
+      dispatch({ type: 'stopped', message: CHECKOUT_LINES.untick });
+      return;
+    }
+    // A public page, so the reader may be signed out; the plan needs an account to land on.
+    if (sdk.account && sdk.account.subjectId() === null) {
+      dispatch({ type: 'stopped', message: CHECKOUT_LINES.signIn });
+      return;
+    }
+    const plan = preview.id;
+    if (plan === 'free') return;
+    const tier = preview;
+    const chosen = period;
+    dispatch({ type: 'choose' });
+    // 1. The gateway creates the subscription with its own secret and hands back the id.
+    const started = await startCheckout(plan, chosen);
+    if (!mounted.current) return;
+    if (!started.ok) {
+      if (started.off) setPay({ on: false });
+      dispatch({ type: 'stopped', message: started.message });
+      return;
+    }
+    // 2. ONLY NOW the provider's script, never on page load.
+    let Checkout: Awaited<ReturnType<typeof loadCheckoutJs>>;
+    try {
+      Checkout = await loadCheckoutJs();
+    } catch {
+      if (mounted.current) dispatch({ type: 'stopped', message: CHECKOUT_LINES.loadFailed });
+      return;
+    }
+    if (!mounted.current) return;
+    // A session with no public key id is one the modal cannot open. The gateway always sends it;
+    // if it ever does not, this stops here rather than opening a modal that fails on its own.
+    if (!started.session.keyId) {
+      dispatch({ type: 'stopped', message: null });
+      return;
+    }
+    // 3. The modal, with the id, the key, the learner's name and Wobo's colour.
+    const modal = new Checkout(
+      checkoutOptions({
+        keyId: started.session.keyId,
+        subscriptionId: started.session.subscriptionId,
+        tierName: tier.name,
+        period: chosen,
+        learnerName: loadProfile().name,
+        onPaid: () => {
+          // 4. THE HANDLER DOES NOT FLIP THE PLAN. The webhook writes the row; we wait for it.
+          dispatch({ type: 'paid' });
+          void awaitConfirmation({ read: () => readSubscription(), planId: tier.id }).then(
+            (sub) => {
+              if (!mounted.current) return;
+              if (sub) {
+                dispatch({
+                  type: 'confirmed',
+                  planName: tier.name,
+                  until: dayLabel(sub.periodEnd),
+                });
+              } else dispatch({ type: 'slow' });
+            },
+          );
+        },
+        onDismiss: () => dispatch({ type: 'dismissed' }),
+      }),
+    );
+    modal.on('payment.failed', (failure) => dispatch({ type: 'failed', failure }));
+    dispatch({ type: 'opened' });
+    modal.open();
+  };
+
+  /** The door's own words: the tier's, or what it is doing, or that it cannot. */
+  const doorLabel = (): string => {
+    if (!pay?.on) return CHECKOUT_LINES.off;
+    if (flow.step === 'confirming') return c.confirming;
+    if (flow.step === 'opening' || flow.step === 'open') return c.opening;
+    return preview.cta;
   };
 
   return (
@@ -350,6 +484,17 @@ export function Plans() {
                 <span>{c.starts}</span>
                 <b>{c.startsValue}</b>
               </div>
+              {/* THE AMOUNT BEING AGREED TO, and only when this card can take it: while payments
+                  are off this is a preview on the plans page, and docs/PRICING.md keeps the total
+                  off the plans page. The monthly period names the month, never a year. */}
+              {pay?.on ? (
+                <div className="pl-total">
+                  <span>{c.today}</span>
+                  <b>
+                    {chargeLabel(preview, market, period)} {c.totalFor[period]}
+                  </b>
+                </div>
+              ) : null}
               <label htmlFor="consent-terms">
                 <input
                   id="consent-terms"
@@ -374,27 +519,51 @@ export function Plans() {
                   {c.renewalNote[period].replace('{plan}', preview.name)}
                 </div>
               </label>
-              {/* A DOOR THAT CANNOT WORK CARRIES `soon`, NOT AN APOLOGY. This was a live,
-                  saturated pig button reading "Pay with the payment provider" that navigated to a
-                  page headed "Paying is not open yet." It keeps its shape, says it is not open
-                  and why, and the reader who wants the detail is given the page rather than sent
-                  there by a control that promised to take their money. */}
-              <button
-                type="button"
-                className="st-btn st-quiet pl-pay"
-                aria-disabled="true"
-                aria-describedby="pl-pay-soon"
-              >
-                {c.pay}
-                <span className="pl-soon">{c.soon}</span>
-              </button>
-              <p className="st-fine" id="pl-pay-soon">
-                {c.paySoon}
+              {/* THE DOOR. Off, it says payments are not switched on yet and does nothing: never
+                  a dead button, never a fake success. On, it is the ink door that starts the
+                  checkout (the pig stays with the recommended card: one pointer per view), and
+                  while it works its label says what it is doing. `aria-disabled` rather than
+                  `disabled` on the off state, so a screen reader still reaches the words. */}
+              {pay?.on ? (
+                <button
+                  type="button"
+                  className="st-btn pl-pay"
+                  // aria-disabled, not disabled, while it works: the site sheet dims a disabled
+                  // button to 42%, which would put "Opening the payment page" under AA. `buy`
+                  // ignores the press while busy, and the label says what is happening.
+                  aria-disabled={busy ? 'true' : undefined}
+                  aria-describedby="pl-pay-note"
+                  onClick={() => void buy()}
+                >
+                  {doorLabel()}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="st-btn st-quiet pl-pay"
+                  aria-disabled="true"
+                  aria-describedby="pl-pay-note"
+                >
+                  {doorLabel()}
+                </button>
+              )}
+              <p className="st-fine" id="pl-pay-note">
+                {pay?.on ? c.fine : CHECKOUT_LINES.offNote}
               </p>
-              <SiteLink to={{ name: 'plans', checkout: true }} className="st-btn st-quiet">
-                {c.payMore}
-              </SiteLink>
-              <div className="st-fine">{c.fine}</div>
+              {/* What just happened, in one line the screen reader is told about. Confirmed,
+                  slow, dismissed and failed all arrive here, and none of them by colour. */}
+              {flow.line ? (
+                <p className="pl-status" role="status" aria-live="polite" data-step={flow.step}>
+                  {flow.line}
+                </p>
+              ) : null}
+              {/* The preview's own link, and only while this card is a preview: with payments on
+                  the card IS the checkout, and `/plans/checkout` sends a reader back here. */}
+              {showsCheckoutPreviewLink(pay) ? (
+                <SiteLink to={{ name: 'plans', checkout: true }} className="st-btn st-quiet">
+                  {c.payMore}
+                </SiteLink>
+              ) : null}
             </div>
           </Reveal>
         </div>

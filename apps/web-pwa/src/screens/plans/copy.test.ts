@@ -16,7 +16,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GIFT_FOR, GIFT_PAGE } from '../gift/copy';
 import { CTA, RETIRED_CTA } from '../site/cta';
-import { BENEFITS, CHECKOUT_PAGE, faqItems, PLANS_PAGE } from './copy';
+import { BENEFITS, CHECKOUT_PAGE, checkoutPageWords, faqItems, PLANS_PAGE } from './copy';
 import {
   BEST_FOR,
   formatMoney,
@@ -356,7 +356,28 @@ describe('cancel, never refund', () => {
     expect(answer('How do I cancel?', 'yearly')).toContain('until the year you paid for ends');
     expect(cancel).toContain('nothing renews');
     expect(cancel).toContain('everything you learnt stays');
-    expect(cancel).toContain('puts the plan back');
+    // The gateway refuses every provider-backed resume (billing/__init__.py: 409 cannot_resume),
+    // so no answer here may promise a tap that puts the plan back.
+    expect(cancel).not.toMatch(/puts? the plan back|bring it back|one tap.*back/i);
+    expect(cancel).toMatch(/cannot be switched back on/);
+  });
+
+  it('draws a cross or says no in the table, never an em dash', () => {
+    expect(PLANS_PAGE.table.no).not.toContain('\u2014');
+    expect(PLANS_PAGE.table.no.trim().length).toBeGreaterThan(0);
+  });
+
+  it('tells a reader who came to pay where the checkout is, in both states', () => {
+    // Off: paying is not open. On: the checkout is the card on the plans page, and this page
+    // says so rather than denying a door that is open.
+    expect(checkoutPageWords(false).title).toBe(CHECKOUT_PAGE.title);
+    expect(checkoutPageWords(false).lead).toContain('nothing can be charged');
+    const on = checkoutPageWords(true);
+    expect(on.title).not.toMatch(/not open/i);
+    expect(on.lead).not.toMatch(/not open|nothing can be charged/i);
+    expect(on.lead).toMatch(/plans page/i);
+    expect(on.cta.href).toBe('/plans#checkout');
+    expect(checkoutPageWords(null)).toEqual(checkoutPageWords(false));
   });
 
   it('offers nothing on the way out', () => {

@@ -36,7 +36,9 @@ def test_the_migration_exists_and_its_number_is_its_own() -> None:
     assert MIGRATION.is_file()
     numbers = [p.name[:4] for p in MIGRATIONS.glob("*.sql")]
     assert numbers.count("0022") == 1, "another migration has taken 0022"
-    assert max(numbers) == "0022", "a later migration exists: renumber this one"
+    # 0023 (the payment provider's ids and the billing ledger) now follows this one; the sequence
+    # itself is held by test_migration_sequence.py, so this only asks that 0022 is still reached.
+    assert max(numbers) >= "0022"
 
 
 def test_it_applies_after_the_curriculum_schema_and_the_review_kinds() -> None:

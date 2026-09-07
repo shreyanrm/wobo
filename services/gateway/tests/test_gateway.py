@@ -77,12 +77,14 @@ def test_tracks_are_never_conflated() -> None:
 
 
 # --- the owner's tiers (WOBO-PLAN §9) -------------------------------------------------
+# Owner, 2026-09-05: OpenAI first on every text tier (terra, luna, sol), Anthropic second as the
+# cross-provider second opinion, Gemini last. Said on the day Anthropic was out of credit.
 TIER_TABLE = {
     Tier.TINY: ("openai/gpt-5.6-luna", "anthropic/claude-haiku-4-5"),
-    Tier.TURN: ("anthropic/claude-sonnet-5", "openai/gpt-5.6-terra"),
+    Tier.TURN: ("openai/gpt-5.6-terra", "anthropic/claude-sonnet-5"),
     Tier.GENERATE: ("openai/gpt-5.6-terra", "anthropic/claude-opus-5"),
     Tier.REASON: ("openai/gpt-5.6-sol", "anthropic/claude-opus-5"),
-    Tier.VERIFY: ("anthropic/claude-opus-5", "openai/gpt-5.6-terra"),
+    Tier.VERIFY: ("openai/gpt-5.6-sol", "anthropic/claude-opus-5"),
 }
 
 
@@ -125,10 +127,14 @@ def test_the_retired_models_are_gone_from_the_router() -> None:
 
 
 def test_every_capability_declares_a_tier_and_routes_on_it() -> None:
+    from wobo_gateway.routing import DEFAULT_TABLE
+
     for name in capabilities():
         pol = policy(name)
-        assert pol.tier in TIER_TABLE, name  # voice and image have no capability of their own
-        assert resolve(pol.primary, pol.track).provider_model == TIER_TABLE[pol.tier][0]
+        # The text tiers above, or one of the shaped chains (vision, safety) the router declares.
+        # Voice and image have no capability of their own.
+        assert pol.tier in TIER_TABLE or pol.tier in DEFAULT_TABLE, name
+        assert resolve(pol.primary, pol.track).provider_model == tier_model(pol.tier).provider_model
         assert pol.max_tokens > 0 and pol.cost_ceiling > 0 and pol.max_latency_ms > 0
 
 
@@ -222,9 +228,9 @@ def test_grade_attempt_live_returns_correct_and_feedback(monkeypatch) -> None:
     monkeypatch.setitem(sys.modules, "litellm", fake)
 
     out = _grade_attempt(
-        provider_model="anthropic/claude-sonnet-5",
+        provider_model="openai/gpt-5.6-terra",
         payload={"prompt": "2x = 4", "answer": "2"},
-        fallbacks=("openai/gpt-5.6-terra",),
+        fallbacks=("anthropic/claude-sonnet-5",),
     )
     assert out.output == {"correct": True, "feedback": "clean work"}
     assert out.tokens == 42
@@ -250,7 +256,7 @@ def test_gateway_reports_the_model_that_actually_answered_on_fallback() -> None:
     # the policy primary is the turn tier; the fallback rung actually answered
     assert (
         resolve(policy("grade.attempt").primary, policy("grade.attempt").track).provider_model
-        == "anthropic/claude-sonnet-5"
+        == "openai/gpt-5.6-terra"
     )
     assert resp.model == "openai/gpt-5.6-terra"
     assert sink.events[-1].model == "openai/gpt-5.6-terra"

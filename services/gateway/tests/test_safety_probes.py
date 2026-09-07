@@ -297,10 +297,15 @@ def test_the_moderation_call_is_routed_not_pinned(stub: Any) -> None:
     assert len(s.calls) == 1
     call = s.calls[0]
     assert call["model"] == resolve(pol.primary, pol.track).provider_model
-    assert call["fallbacks"] == [resolve_any(n).provider_model for n in pol.fallback]
-    assert call["fallbacks"], "a chain with no fallback is one provider away from no screen"
+    # The classifier walks its rungs itself, one model per call, inside one deadline; the chain it
+    # walks is the policy's, resolved through the router and nowhere else.
+    primary, chain = safety_model._chain()
+    assert primary == call["model"]
+    assert chain == [resolve_any(n).provider_model for n in pol.fallback]
+    assert chain, "a chain with no fallback is one provider away from no screen"
     assert call["max_tokens"] == pol.max_tokens
-    assert call["timeout"] == safety_model.timeout_s()
+    # Each rung gets what is left of the policy's deadline, never more than the whole of it.
+    assert 0 < call["timeout"] <= safety_model.timeout_s()
 
 
 def test_the_model_is_asked_only_about_messages_that_could_matter(stub: Any) -> None:

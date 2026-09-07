@@ -28,7 +28,8 @@ import {
 } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { ONBOARDED_KEY, SIGNIN_SOURCE_KEY } from './App';
+import { ONBOARDED_KEY } from './App';
+import { takeSignInSource } from './screens/auth/source';
 import { answerBody, doubtAnswerPath } from './screens/doubt/api';
 import { doubtCaption } from './screens/doubt/caption';
 import { StateLayer } from './screens/states/StateHost';
@@ -50,7 +51,7 @@ import {
   rememberFact,
 } from './store/mind';
 import { ProgressProvider, useProgress } from './store/progress';
-import { applyScope } from './store/scope';
+import { applyScope, scoped } from './store/scope';
 import { SdkProvider } from './store/sdk';
 import { AppHeader } from './ui/AppHeader';
 import { ensureDefaultAvatar } from './ui/avatars';
@@ -91,10 +92,10 @@ import {
   showMe,
 } from './wobo/hands';
 import { holdToTalkEnd, holdToTalkStart } from './wobo/hold';
+import { lookingAt } from './wobo/looking';
 import { MODE_BY_ID, modeFromText, modePrompt } from './wobo/modes';
 import { resolveTurnExtras, type TurnExtras } from './wobo/paths';
 import { useLifeSignals } from './wobo/presence';
-import { lookingAt } from './wobo/looking';
 import { boardShapeOf, isLessonRoute } from './wobo/presentation';
 import { refusalLine } from './wobo/refusals';
 import { WoboStage } from './wobo/Stage';
@@ -604,14 +605,11 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       });
     // The first turn a learner ever takes with Wobo. Wobo introduced themself during setup, so the
     // gateway greets by name here and never re-introduces (owner law: one introduction, ever).
-    const firstMeeting = !localStorage.getItem(MET_TURN_KEY);
-    if (firstMeeting) {
-      try {
-        localStorage.setItem(MET_TURN_KEY, '1');
-      } catch {
-        // private mode — worst case Wobo is warm twice, never a second introduction
-      }
-    }
+    // Keyed to THIS learner (store/scope.ts): a sibling on the same phone gets their own
+    // introduction, and this one's is not repeated. A refused write means Wobo is warm twice at
+    // worst, never a second introduction.
+    const firstMeeting = !scoped.getItem(MET_TURN_KEY);
+    if (firstMeeting) scoped.setItem(MET_TURN_KEY, '1');
     bus.publishSession({ sessionId: 'dev-session', recentEvents, firstMeeting });
     // The machine room (WOBO-CAPABILITIES.md family J — the total-context law): the system's live
     // internal truth for this turn — the mastery-band snapshot, the FSRS due queue, XP/level/streak,
@@ -815,7 +813,9 @@ function AppInner({ sdk }: { sdk: Sdk }) {
               extras: { path: 'action', action: forgetAllOffer(crypto.randomUUID()) },
             });
           } else {
-            const removed = forgetMatching(a.target ?? '');
+            // Answered against the record, so a fact told on another device is found too; the
+            // device's copy only answers when the record cannot be asked (store/mind.ts).
+            const removed = await forgetMatching(a.target ?? '');
             bus.publishLifetime(lifetimeSnapshot());
             say({
               role: 'wobo',
@@ -934,9 +934,9 @@ function AppInner({ sdk }: { sdk: Sdk }) {
   // The first authenticated boot after the sign-in beat: record the subject's creation, fully
   // attributed to the real auth.uid() through the live outbox.
   useEffect(() => {
-    const source = localStorage.getItem(SIGNIN_SOURCE_KEY);
-    if (!source || !sdk.identity.isAuthenticated()) return;
-    localStorage.removeItem(SIGNIN_SOURCE_KEY);
+    if (!sdk.identity.isAuthenticated()) return;
+    const source = takeSignInSource();
+    if (!source) return;
     sdk.events.record('identity.subject.created.v1', {
       // a provider sign-in is a linked identity, whichever provider it was
       source: source === 'google' || source === 'apple' ? 'linked' : 'phone_otp',
@@ -955,12 +955,16 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     // Don't push local→remote until this device has completed onboarding — otherwise a fresh-device
     // sign-in would overwrite the account's saved world with the seed fallback before the returning
     // learner's flow restores it. Onboarding writes the authoritative row on completion.
-    if (!localStorage.getItem(ONBOARDED_KEY)) return;
+    if (!scoped.getItem(ONBOARDED_KEY)) return;
     const p = loadProfile();
     void sdk.account?.syncProfile({
       display_name: p.name,
       grade: p.grade,
       board: boardName(p.boardId),
+      // The account says setup is done. Onboarding's restore reads exactly this slot, and nothing
+      // wrote it before, so a learner signing back in (sign-out now empties the device) was sent
+      // through setup again instead of home.
+      archetype_slot: 'onboarded',
     });
   }, [sdk]);
 
@@ -976,7 +980,23 @@ function AppInner({ sdk }: { sdk: Sdk }) {
   useEffect(() => {
     if (bootAddress.current) return;
     bootAddress.current = true;
-    if (locked && route.name === 'home') router.replace({ name: 'onboarding' });
+    if (locked && route.name === 'home') {
+      router.replace({ name: 'onboarding' });
+      return;
+    }
+    // The mirror case: signed in for real, on a device that holds nothing of theirs (sign-out
+    // empties it, docs/ONE-LEARNER-ONE-WOBO.md; or this is a new phone). Setup is the one screen
+    // that reads the account back (`resumeAfterAuth`), and an account that has finished setup goes
+    // straight home from there, so the boot goes through it rather than showing an empty home.
+    const account = sdk.account;
+    if (
+      route.name === 'home' &&
+      account?.isAuthenticated() &&
+      !account.isAnonymous() &&
+      !scoped.getItem(ONBOARDED_KEY)
+    ) {
+      router.replace({ name: 'onboarding' });
+    }
   }, []);
 
   // Onboarding, the frame-building theatre, and design concepts render standalone — no app chrome

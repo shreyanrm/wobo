@@ -22,11 +22,13 @@
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { CHECKOUT_LINES } from './checkout-flow';
 import { ALLOWANCE_WORDS, BENEFITS, faqItems, PLANS_PAGE } from './copy';
 import {
   BEST_FOR,
   BILLED,
   billedLine,
+  chargeLabel,
   DEFAULT_PERIOD,
   fineLine,
   formatMoney,
@@ -341,9 +343,14 @@ function pageStrings(market: Market, period: Period): string[] {
     c.renewalNote[period].replace('{plan}', PREVIEW.name),
     c.billed,
     billedLine(PREVIEW, period) ?? '',
-    c.pay,
-    c.soon,
-    c.paySoon,
+    // the off state, which is the state this page mirrors: the total row is not drawn and the
+    // door reads the words (`checkout-flow.ts`); the on state is tests-plan/checkout.spec.ts
+    c.today,
+    c.totalFor[period],
+    c.opening,
+    c.confirming,
+    CHECKOUT_LINES.off,
+    CHECKOUT_LINES.offNote,
     c.payMore,
     c.fine,
     ...Object.values(PLANS_PAGE.gift),
@@ -411,10 +418,15 @@ describe('every price and every promise reads from one choice', () => {
  * on which nothing in this repo can take anything.
  */
 describe('the annual total is not on the plans page', () => {
-  it('never works the total out, anywhere in the page', () => {
+  it('works the total out in one place, behind the payments-on guard, and nowhere else', () => {
     expect(PAGE_SOURCE).not.toContain('yearlyTotalLabel');
     expect(PAGE_SOURCE).not.toContain('yearlyTotalOf');
     expect(PAGE_SOURCE).not.toContain('dueToday');
+    // The one row that states the amount taken today is drawn only when the gateway says the
+    // deploy can take it: then this card IS the checkout, and docs/PRICING.md gives the checkout
+    // the total. Off, it is a preview on the plans page, and the page shows no total at all.
+    expect(PAGE_SOURCE.match(/chargeLabel\(/g)?.length).toBe(1);
+    expect(PAGE_SOURCE).toMatch(/pay\?\.on \? \(\s*<div className="pl-total">/);
   });
 
   it('never names a future charge, because nothing here can take one', () => {
@@ -445,11 +457,15 @@ describe('the annual total is not on the plans page', () => {
     expect(pageStrings('IN', 'monthly')).toContain(BILLED.monthly);
   });
 
-  it('still knows how to work a total out, for the checkout that has not been built', () => {
-    // The functions stay: docs/PRICING.md's Still-to-build item 2 puts the total on
-    // `screens/plans/Checkout.tsx`, which today is the honest "paying is not open yet" page
-    // and has no amount to state. What is asserted here is that the numbers are ready when it is.
+  it('knows the total the checkout states, and the amount taken on each period', () => {
+    // `chargeLabel` is what the checkout card draws while payments are on: the whole year on the
+    // yearly period, the month on the monthly one, and never a figure the table does not hold.
     expect(yearlyTotalLabel(PREVIEW, 'IN')).toBe('₹19,992');
+    expect(chargeLabel(PREVIEW, 'IN', 'yearly')).toBe('₹19,992');
+    expect(chargeLabel(PREVIEW, 'IN', 'monthly')).toBe('₹1,999');
+    expect(chargeLabel(PREVIEW, 'INTL', 'yearly')).toBe('$200');
+    expect(chargeLabel(PREVIEW, 'INTL', 'monthly')).toBe('$20');
+    expect(chargeLabel(PLAN_TIERS[0] as PlanTier, 'IN', 'yearly')).toBeNull();
     expect(renewalLabel(renewsOn(new Date(2026, 8, 4), 'yearly'), 'yearly')).toBe(
       '4 September 2027',
     );

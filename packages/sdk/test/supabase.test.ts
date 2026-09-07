@@ -280,9 +280,22 @@ describe('the erasure register accounts for every store', () => {
       'parent_links',
       'outbox',
       'content_cache',
+      'wobo_mind',
     ]) {
       expect(stores).toContain(`learner.${table}`);
     }
+  });
+
+  it('reaches the mind, the most personal table there is, and names the parent plane', () => {
+    // docs/MIND-SYNC-CONTRACT.md §7: `wobo_mind_own_erase` is FOR DELETE to the owner (0020:176),
+    // so the client's own erase, the one that runs when the gateway is unreachable, must issue it.
+    expect(ERASABLE_TABLES).toContain('wobo_mind');
+    for (const table of ['accounts', 'child_links', 'selections', 'mind_facts', 'threads']) {
+      const entry = ERASURE_REGISTER.find((e) => e.store === `parent.${table}`);
+      expect(entry?.reach).toBe('gateway');
+    }
+    expect(ERASURE_REGISTER.find((e) => e.store === 'parent.offers')?.reach).toBe('exempt');
+    expect(ERASURE_REGISTER.find((e) => e.store === 'parent.access_audit')?.reach).toBe('exempt');
   });
 
   it('names every curriculum table', () => {

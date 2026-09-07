@@ -672,7 +672,7 @@ def test_the_live_second_reader_goes_through_model_call_not_litellm_directly(mon
     text, model = audit.live_completion(ledger)("system", "user")
     assert text == '{"agrees": true, "problems": []}'
     assert model == "openai/gpt-5.6-terra"
-    assert seen["model"] == "anthropic/claude-opus-5" and seen["fallbacks"]
+    assert seen["model"] == "openai/gpt-5.6-sol" and seen["fallbacks"]  # the verify tier
     assert seen["messages"][0] == {"role": "system", "content": "system"}
     assert [call["prompt_tokens"] for call in ledger.calls] == [1200]
     assert ledger.calls[0]["model"] == "openai/gpt-5.6-terra"

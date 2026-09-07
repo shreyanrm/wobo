@@ -69,5 +69,6 @@ card cannot change height when the switch is used.
 - [ ] The table above, into `screens/plans/prices.ts`, with the period switch on the real page
 - [ ] **The annual total onto the checkout screen** (`screens/plans/Checkout.tsx`), stated as the
       exact amount and the date it will be taken. It must not appear on the plans page
-- [ ] A subscription record that stores the period, so the cancel screen can say "till the year you
-      paid for ends" rather than guessing
+- [x] A subscription record that stores the period, so the cancel screen can say "till the year you
+      paid for ends" rather than guessing (migration 0023, `period` on `learner.subscriptions`;
+      the gateway's `GET /v1/me/subscription` returns it)

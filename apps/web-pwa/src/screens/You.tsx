@@ -44,6 +44,7 @@ import { setThemePref, type ThemePref, useThemePref } from '../ui/theme';
 import { DoubtMemory } from './doubt/DoubtMemory';
 import { GradeBoardPicker } from './you/GradeBoardPicker';
 import { weeklyNote } from './you/ledger';
+import { MindMemory } from './you/MindMemory';
 import { chosenNames, type MailPrefsView, readMailPrefs, writeCalendars } from './you/mailPrefs';
 import { ParentInvite, PHONE_LINK_LINE } from './you/ParentInvite';
 import { PlanPanel } from './you/PlanPanel';
@@ -62,6 +63,7 @@ import {
 } from './you/profile';
 import { barHeight, type Span, strengths, weekSentence } from './you/week';
 import './you/you.css';
+import { scoped, wipeDevice } from '../store/scope';
 
 const SPANS = [
   { id: 'week', label: 'Week' },
@@ -129,7 +131,7 @@ function StrengthIcon({ id }: { id: 'resilience' | 'initiative' | 'consistency' 
 /** The phone link the device kept, if any. */
 function localPhoneLink(): string | null {
   try {
-    const raw = localStorage.getItem(PARENT_KEY);
+    const raw = scoped.getItem(PARENT_KEY);
     return raw ? ((JSON.parse(raw) as { phone?: string }).phone ?? null) : null;
   } catch {
     return null;
@@ -200,11 +202,7 @@ export function You() {
   const linked = link !== null && (link.status === 'invited' || link.status === 'linked');
   const endLink = () => {
     void endParentLink().then((got) => setLink(got && got.status !== 'none' ? got : null));
-    try {
-      localStorage.removeItem(PARENT_KEY);
-    } catch {
-      // fine
-    }
+    scoped.removeItem(PARENT_KEY);
   };
 
   // --- settings ------------------------------------------------------------------------------------
@@ -251,12 +249,7 @@ export function You() {
     if (erasing) return;
     setErasing(true);
     const clearDevice = () => {
-      const keys: string[] = [];
-      for (let i = 0; i < localStorage.length; i += 1) {
-        const k = localStorage.key(i);
-        if (k?.startsWith('wobo-')) keys.push(k);
-      }
-      for (const k of keys) localStorage.removeItem(k);
+      wipeDevice();
       window.location.reload();
     };
     void eraseFromBrain()
@@ -649,6 +642,14 @@ export function You() {
                 </div>
               </div>
             ) : null}
+            {/* What Wobo remembers: the memory law's visible half (docs/MEMORY-LAW.md). The
+                list is the account's record, each row's remove reaches the server before the
+                device lets go, and what a parent offered sits in the same list, marked. */}
+            <ToggleRow
+              title="What Wobo remembers"
+              hint="What you told Wobo, and what it noticed. Remove any of it."
+            />
+            <MindMemory />
             {/* The photos a learner took of their doubts: the memory law's visible half for
                 bytes (screens/doubt). Each row's remove reaches the server before the device. */}
             <ToggleRow

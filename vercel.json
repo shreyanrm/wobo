@@ -20,7 +20,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://api.heywobo.com https://*.googleusercontent.com; media-src 'self' data: blob: https://api.heywobo.com; worker-src 'self'; manifest-src 'self'; connect-src 'self' https://api.heywobo.com wss://api.heywobo.com https://heywobo.com https://cdn.jsdelivr.net; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+          "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://checkout.razorpay.com https://cdn.razorpay.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https://api.heywobo.com https://*.googleusercontent.com https://*.razorpay.com; media-src 'self' data: blob: https://api.heywobo.com; worker-src 'self'; manifest-src 'self'; connect-src 'self' https://api.heywobo.com wss://api.heywobo.com https://heywobo.com https://cdn.jsdelivr.net https://api.razorpay.com https://lumberjack.razorpay.com https://lumberjack-cx.razorpay.com https://lumberjack-metrics.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
         },
         {
           "key": "X-Content-Type-Options",
@@ -36,7 +36,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "camera=(), geolocation=(), microphone=(self), payment=()"
+          "value": "camera=(), geolocation=(), microphone=(self), payment=(self \"https://api.razorpay.com\")"
         },
         {
           "key": "Strict-Transport-Security",

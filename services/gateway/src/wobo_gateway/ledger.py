@@ -90,6 +90,10 @@ TURN = "turn"
 GENERATION = "generation"
 VIDEO_SECOND = "video_second"
 SPOKEN_SECOND = "spoken_second"
+#: One second of the live microphone, in either direction (``voice.LiveMeter``): what the child
+#: said and what Wobo said back both cost audio tokens, and the owner's question about that seam
+#: is "how many minutes", not "how many calls".
+LIVE_SECOND = "live_second"
 IMAGE = "image"
 #: One photographed doubt, read and answered (doubt.py). Its own unit because the owner asked what
 #: one costs, and a vision call is dearer than a text turn: folding it into ``turn`` would hide the
@@ -101,6 +105,10 @@ DOUBT = "doubt"
 #: money so a total is read as "this much, plus N we cannot price".
 FROM_LITELLM = "litellm"
 FROM_CONFIGURED = "configured"
+#: A price copied from the vendor's own page into ``routing.CATALOGUE`` or the seam that calls
+#: the model (the live microphone's audio-token rates in ``voice.py``): neither litellm's table
+#: nor an operator's entry, and said so.
+FROM_CATALOGUE = "catalogue"
 UNPRICED = "unpriced"
 NO_PROVIDER_CHARGE = "no_provider_charge"
 
@@ -121,6 +129,7 @@ _UNIT_BY_PREFIX: dict[str, str] = {
     "curriculum.own.read": GENERATION,
     "voice.tts": SPOKEN_SECOND,
     "voice.narration": SPOKEN_SECOND,
+    "voice.relay": LIVE_SECOND,
     "doubt.": DOUBT,
 }
 _PREFIXES: tuple[tuple[str, str], ...] = tuple(
@@ -924,6 +933,7 @@ def stop() -> None:
 __all__ = [
     "DELIVERY",
     "FIELDS",
+    "FROM_CATALOGUE",
     "FROM_CONFIGURED",
     "FROM_LITELLM",
     "GENERATION",
@@ -931,6 +941,7 @@ __all__ = [
     "MODEL_CALL",
     "NO_PROVIDER_CHARGE",
     "RETENTION_DAYS",
+    "LIVE_SECOND",
     "SPOKEN_SECOND",
     "TURN",
     "UNPRICED",

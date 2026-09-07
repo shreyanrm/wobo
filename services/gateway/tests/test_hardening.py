@@ -154,10 +154,13 @@ def test_engine_calls_carry_the_generation_timeout(fake_litellm: _FakeLitellm) -
 
 
 def test_the_validation_judge_carries_a_timeout(fake_litellm: _FakeLitellm) -> None:
+    from wobo_gateway.model_call import primary_share
     from wobo_gateway.plexus import validate
 
     validate._judge("test/model", "compose", "fractions", {"cards": []})
-    assert fake_litellm.calls[0]["timeout"] == GENERATION_TIMEOUT_S
+    # The judge carries the verify tier's chain behind it (test_model_seams), and since
+    # 2026-09-07 a rung with a live rung behind it gets a share of the deadline, not all of it.
+    assert fake_litellm.calls[0]["timeout"] == GENERATION_TIMEOUT_S * primary_share()
 
 
 def test_a_caller_may_shorten_a_deadline_but_never_raise_it() -> None:

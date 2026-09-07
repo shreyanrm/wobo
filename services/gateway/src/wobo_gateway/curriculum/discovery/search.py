@@ -296,23 +296,36 @@ _TOOL_SPECS: dict[str, dict[str, Any]] = {
 }
 
 
-def _tier_for(flavour: str) -> Any:
-    """The router's tier for this flavour — never a model id written here."""
-    from wobo_gateway.routing import Tier
+def _model_for(flavour: str) -> str:
+    """The router's model for this flavour: the first id of that provider on the generate tier's
+    chain, then the verify tier's. Never a model id written here, and never the wrong vendor's
+    model under this vendor's search tool, whichever way the owner orders the tiers."""
+    from wobo_gateway.routing import Tier, provider_of, tier_chain
 
-    return Tier.GENERATE if flavour == "openai" else Tier.VERIFY
+    for tier in (Tier.GENERATE, Tier.VERIFY, Tier.REASON, Tier.TURN):
+        for model in tier_chain(tier):
+            if provider_of(model) == flavour:
+                return model
+    raise SearchUnavailable(f"the router has no {flavour} model for curriculum search")
 
 
-def _litellm_tool_search(
+#: The key each flavour searches on. Read to decide whether a flavour CAN be tried, never printed.
+_KEY_FOR: dict[str, str] = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY"}
+
+
+def _tool_search(
     *, model: str, tools: list[dict[str, Any]], query: str, timeout_s: float
 ) -> str:
-    """One completion with the provider's own search tool bound. Returns the raw reply text."""
-    import litellm  # lazy: mock mode and tests never import litellm
+    """One completion with the provider's own search tool bound. Returns the raw reply text.
 
+    Through ``model_call``, never ``litellm.completion`` directly. There is no litellm fallback
+    list here on purpose: each provider's search tool has its own shape, so the chain across
+    providers is run by :meth:`NativeToolSearchProvider.search`, one flavour at a time.
+    """
+    from wobo_gateway.model_call import complete
     from wobo_gateway.telemetry import record_cost
 
-    litellm.drop_params = True
-    response = litellm.completion(
+    response = complete(
         model=model,
         messages=[
             {"role": "system", "content": _SEARCH_SYSTEM},
@@ -353,9 +366,7 @@ class NativeToolSearchProvider:
     @property
     def model(self) -> str:
         if self._model is None:
-            from wobo_gateway.routing import tier_model
-
-            self._model = tier_model(_tier_for(self.name)).provider_model
+            self._model = _model_for(self.name)
         return self._model
 
     def _tools(self) -> list[dict[str, Any]]:
@@ -364,14 +375,45 @@ class NativeToolSearchProvider:
             spec["max_uses"] = self.max_uses
         return [spec]
 
+    def _others(self, env: Mapping[str, str] | None = None) -> list[NativeToolSearchProvider]:
+        """The other flavours this deploy holds a key for, in table order: the chain behind us."""
+        env = env if env is not None else os.environ
+        return [
+            NativeToolSearchProvider(
+                flavour, max_uses=self.max_uses, timeout_s=self.timeout_s
+            )
+            for flavour in _TOOL_SPECS
+            if flavour != self.name and env.get(_KEY_FOR[flavour])
+        ]
+
     def search(self, query: str, *, limit: int = 5) -> list[SearchResult]:
         if self._complete is not None:
             text = self._complete(query)
-        else:
-            text = _litellm_tool_search(
-                model=self.model, tools=self._tools(), query=query, timeout_s=self.timeout_s
-            )
-        return parse_results(text, provider=self.name)[:limit]
+            return parse_results(text, provider=self.name)[:limit]
+        # The cross-provider chain, run here because litellm cannot: OpenAI's search tool and
+        # Anthropic's are different objects, so a fallback needs the other provider's tool bound,
+        # not just the other provider's model. The first flavour that answers wins; when every
+        # one is down the LAST error is raised, honestly, and the job refuses in Wobo's voice.
+        failure: Exception | None = None
+        for flavour in (self, *self._others()):
+            try:
+                text = _tool_search(
+                    model=flavour.model,
+                    tools=flavour._tools(),
+                    query=query,
+                    timeout_s=flavour.timeout_s,
+                )
+            except Exception as exc:  # noqa: BLE001 — the next provider gets its turn
+                logger.warning(
+                    "curriculum search: %s did not answer (%s); trying the next provider",
+                    flavour.name,
+                    type(exc).__name__,
+                )
+                failure = exc
+                continue
+            return parse_results(text, provider=flavour.name)[:limit]
+        assert failure is not None  # the loop always runs at least once
+        raise failure
 
 
 def parse_results(text: str, *, provider: str = "") -> list[SearchResult]:

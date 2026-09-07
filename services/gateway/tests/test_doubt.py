@@ -724,8 +724,9 @@ def test_the_live_eyes_send_the_image_as_data_through_the_registry_chain(monkeyp
     monkeypatch.setattr("wobo_gateway.model_call.complete", complete)
     monkeypatch.setattr("wobo_gateway.telemetry.record_cost", lambda **kw: costed.append(kw))
     reading = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="help")
-    assert sent[0]["model"] == "openai/gpt-5.6-terra"
-    assert sent[0]["fallbacks"] == ["anthropic/claude-opus-5", "gemini/gemini-2.5-flash"]
+    # The vision tier: Gemini Flash reads first, Terra behind it (routing.Tier.VISION).
+    assert sent[0]["model"] == "gemini/gemini-2.5-flash"
+    assert sent[0]["fallbacks"] == ["openai/gpt-5.6-terra"]
     parts = sent[0]["messages"][1]["content"]
     assert parts[1]["image_url"]["url"].startswith("data:image/jpeg;base64,")
     assert "<student_note>" in parts[0]["text"]

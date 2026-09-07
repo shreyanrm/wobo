@@ -80,8 +80,46 @@ describe('per-learner storage scope', () => {
     inheritScope('anon-1', 'real-1');
 
     expect(readArchive()[0]?.text).toBe('the lesson before sign-up');
-    expect(rememberedScope()).toEqual({ subject: 'real-1', anonymous: false });
+    expect(rememberedScope()).toEqual({
+      subject: 'real-1',
+      anonymous: false,
+      upgradedFrom: 'anon-1',
+    });
     expect(storage.getItem(`${ARCHIVE}::anon-1`)).toBeNull();
+  });
+
+  /**
+   * THE SDK'S HALF OF THE UPGRADE. `inheritScope` moved the app's `::anon` keys under the new
+   * account and left the SDK's `:anon` keys (XP, the whole conversation, the mastery evidence)
+   * sitting under the anonymous id: the learner read xp 0 after signing in, and the transcript
+   * they had before the door stayed on the device under an id nobody would ever sweep. Seen in a
+   * browser, 2026-09-07.
+   */
+  it('signing in for real carries the SDK’s own buckets across too, and leaves none under the anonymous id', () => {
+    applyScope('anon-1', true);
+    storage.setItem('wobo-progress-v1:anon-1', '{"xp":40}');
+    storage.setItem('wobo-conversation-v1:anon-1', '[{"text":"my dog is Bruno"}]');
+    storage.setItem('wobo-mastery-v1:anon-1', '{"nodes":{}}');
+
+    inheritScope('anon-1', 'real-1');
+
+    expect(storage.getItem('wobo-progress-v1:real-1')).toBe('{"xp":40}');
+    expect(storage.getItem('wobo-conversation-v1:real-1')).toBe('[{"text":"my dog is Bruno"}]');
+    expect(storage.getItem('wobo-mastery-v1:real-1')).toBe('{"nodes":{}}');
+    expect([...storage.map.keys()].filter((k) => k.includes('anon-1'))).toEqual([]);
+  });
+
+  it('a sign-out sweeps whatever is still under the anonymous id the learner upgraded from', () => {
+    applyScope('anon-1', true);
+    inheritScope('anon-1', 'real-1');
+    // A write that landed under the old id after the move (a debounce firing late, an old tab).
+    storage.setItem('wobo-conversation-v1:anon-1', '[{"text":"a stray"}]');
+    storage.setItem('wobo-archive-v1::anon-1', '[]');
+
+    forgetScope('real-1');
+
+    expect([...storage.map.keys()].filter((k) => k.includes('anon-1'))).toEqual([]);
+    expect([...storage.map.keys()].filter((k) => k.includes('real-1'))).toEqual([]);
   });
 
   it('signing out takes that learner’s keys off the device', () => {

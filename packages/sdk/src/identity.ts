@@ -424,7 +424,9 @@ export class SupabaseAuthIdentity implements IdentityProvider {
       this.refreshTimer = null;
     }
     try {
-      this.storage.setItem(AUTH_SESSION_KEY, '');
+      // The key leaves rather than staying as an empty string on every after-sign-out listing.
+      if (this.storage.removeItem) this.storage.removeItem(AUTH_SESSION_KEY);
+      else this.storage.setItem(AUTH_SESSION_KEY, '');
     } catch {
       // fine
     }

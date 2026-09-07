@@ -453,6 +453,26 @@ an OpenAI rung behind them. `services/gateway/src/wobo_gateway/routing.py`, `DEF
 | `verify` | the judge of anything generated | `openai/gpt-5.6-sol` | `anthropic/claude-opus-5` | `gemini/gemini-2.5-flash` |
 | `voice` | Wobo speaking | `gemini/gemini-2.5-flash-preview-tts` | `openai/gpt-4o-mini-tts` | the device's own voice |
 | `image` | raster imagery SVG cannot express | `gemini/gemini-2.5-flash-image` | `openai/gpt-image-2` | |
+| `vision` | reading a photographed page (`doubt.read`) | `gemini/gemini-2.5-flash` | `openai/gpt-5.6-terra` | |
+| `safety` | the child-safety classifier | `openai/gpt-5.6-luna` | `gemini/gemini-2.5-flash` | the rule layer |
+
+Every text call, the vision read and the safety screen go through one funnel,
+`model_call.complete`; a test (`tests/test_model_seams.py`) fails the build on any direct litellm
+call outside it. The voice and image rows are raw HTTPS seams (`plexus/media.py`,
+`plexus/image.py`) that read their OpenAI rung from this table.
+
+The Google key is `GOOGLE_AI_API_KEY` everywhere in this product. litellm's Gemini provider reads
+`GEMINI_API_KEY`, so the funnel hands the product's key to each `gemini/` rung per call; setting
+only the product's name is enough for every row above.
+
+One model is on the product's key and on no chain: the live microphone
+(`gemini/gemini-2.5-flash-native-audio-latest`, `voice.VOICE_MODEL`, both websockets). Gemini
+Live has no OpenAI rung; when it cannot open, the client's own fallback is the device's voice. It
+is in `routing.CATALOGUE` and priced in §11.2, and since 2026-09-07 every socket writes one ledger
+row and one spend line for the seconds that actually crossed it (`voice.LiveMeter`, unit
+`live_second` for the relay, `spoken_second` for the read-aloud socket). Before that the ceiling
+was asked once when the session token was minted and never charged for the minutes that
+followed, on the dearest per-minute seam in the product.
 
 One thing to know about the judge. With Anthropic second on every tier, the verify tier's primary
 is Sol, which is the same account as the Terra that generated. The second opinion is still the
@@ -463,7 +483,8 @@ stronger one than none. That is the honest shape of "fallbacks everywhere".
 
 ### 11.2 The prices, from the vendors' own pages
 
-Read on 2026-09-05. USD per million tokens, standard short-context rates. The router carries the
+Read on 2026-09-05 and read again on 2026-09-07; no number had moved. USD per million tokens,
+standard short-context rates. The router carries the
 same numbers in `routing.CATALOGUE`, and `test_router_fallbacks.py` holds litellm's price table
 (the one the usage ledger prices every call from) to them, so if a vendor moves a price the test
 is what breaks first.
@@ -479,12 +500,39 @@ is what breaks first.
 | `gemini/gemini-2.5-flash` | 0.30 | | 2.50 | [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing) |
 | `gemini/gemini-2.5-flash-preview-tts` | 0.50 (text) | | 10.00 (audio) | same |
 | `gemini/gemini-2.5-flash-image` | 0.30 | | 0.039 per image | same |
+| `openai/gpt-4o-mini-tts` | 0.60 (text) | | 12.00 (audio) | OpenAI pricing; see the note below |
+| `openai/gpt-image-2` | 5.00 (text), 8.00 (image) | | 30.00 (image) | same; per token, not per image |
+| `gemini/gemini-3.8-flash` | 0.75 | | 3.75 | Gemini pricing; an override id, on no default chain; doubles on 2027-01-01 (below) |
+| `gemini/gemini-3.5-flash-lite` | 0.30 | | 2.50 | same; an override id |
+| `gemini/gemini-2.5-flash-native-audio-latest` | 0.50 (text), 3.00 (audio) | | 2.00 (text), 12.00 (audio) | same; the live microphone, per token; audio is 32 tokens a second (the tokens page) |
 
 The OpenAI ids and which is which (Sol "flagship model for complex professional work", Terra
 "balances intelligence and cost", Luna "optimized for cost-sensitive workloads") are from the
 [OpenAI models page](https://developers.openai.com/api/docs/models), which also names
 `gpt-4o-mini-tts` and `gpt-image-2`. OpenAI's long-context rates are double the short-context
 input rate and higher on output; no call in this gateway reaches long context.
+
+Two notes from the 2026-09-07 read. First, the voice and image rungs: the OpenAI page prices
+them per token, and litellm's table carries a different figure for `gpt-4o-mini-tts` (2.50 in,
+10.00 out). Neither number reaches the bill, because the seams that call those models price the
+UNIT the learner received (a spoken second, an image) from the price an operator has entered
+(`plexus/media.py`, `ledger.configured_price`), and with none entered the row is honestly
+unpriced. Second, the Gemini page now lists `gemini-3.8-flash` at 0.75 / 3.75, which is dearer
+than 2.5 Flash; 2.5 Flash is still a current, priced model on the page and stays the last rung.
+The newer ids are in `routing.CATALOGUE` so a `WOBO_TIER_*_CHAIN` variable may name them (§11.4).
+
+**Three dates the pages carry, read 2026-09-07, none of them past yet.**
+
+| What | When | Where it bites |
+|---|---|---|
+| `claude-haiku-4-5-20251001` tentative retirement "not sooner than October 15, 2026" | five weeks from the read | the tiny tier's second rung (`anthropic/claude-haiku-4-5`). When it goes, `WOBO_TIER_TINY_CHAIN` names the replacement; `claude-sonnet-4-6` is "not sooner than February 17, 2027" and Sonnet 5 "not sooner than June 30, 2027" (Anthropic deprecations page) |
+| Gemini 3.8 Flash goes from 0.75 / 3.75 to 1.50 / 7.50 | 1 January 2027 | only an override that names it; no default chain does |
+| litellm's own table carries deprecation dates Google's pages do not show: `gemini/gemini-2.5-flash-image` 2026-10-02, bare `gemini-2.5-flash` 2026-10-20 | this autumn | the image primary and the last rung of every text chain. Google's models page (2026-09-07) lists both as current and shows no date; treat litellm's as the earlier warning and re-read the page in October. The newest image ids on Google's page are `gemini-3.1-flash-image` (0.067 per 1K image), `gemini-3.1-flash-lite-image` and `gemini-3-pro-image` |
+
+And one on the same page: the Gemini models page lists the live microphone's id as
+`gemini-2.5-flash-native-audio-preview-12-2025`; `-latest`, the id the product calls, is Google's
+alias for it. The alias is kept because it is the id the relay was proved live with on Railway
+(the 2026-09-07 voice deploy); the row in the catalogue says so.
 
 ### 11.3 What one turn costs
 
@@ -517,6 +565,11 @@ One more honest line: Opus 5 behind `generate` at 0.095 a lesson is OVER the gen
 ceiling. That is what the second rung costs when the first is out; `record_cost` logs it as
 `gateway.cost over ceiling` rather than hiding it, and it is the price of a lesson still arriving.
 
+The per-model figures are the model that ANSWERED. Since 2026-09-07 the `gateway.cost` line, the
+`gateway.spend` line and the day's spend fields all carry `model` = who served, with
+`model_requested` beside it on the cost line; before that only the ledger row did, and a
+fallback's cost on the telemetry stream was attributed to the provider that refused.
+
 ### 11.4 Overriding a tier without a deploy
 
 Set a Railway variable and let the service restart. The table above is the default; the variable
@@ -529,12 +582,18 @@ railway variables --set WOBO_TIER_GENERATE_CHAIN=gemini/gemini-2.5-flash,anthrop
 ```
 
 `WOBO_TIER_<TIER>` sets the primary (`TINY`, `TURN`, `GENERATE`, `REASON`, `VERIFY`, `VOICE`,
-`IMAGE`); `WOBO_TIER_<TIER>_CHAIN` replaces the fallbacks, comma-separated, in order. A moved
+`IMAGE`, `VISION`, `SAFETY`, the nine rows of §11.1); `WOBO_TIER_<TIER>_CHAIN` replaces the
+fallbacks, comma-separated, in order. A moved
 primary drops out of the default chain rather than appearing twice; a chain that repeats a model
 is refused; a chain kept on one account logs a warning, because a fallback on the same account is
 not a fallback. The escalation ladder and the spend ceiling's degrade follow the override.
 
-### 11.5 When a provider runs out of credit
+Five more variables, none needed on an ordinary day: `WOBO_CHAIN_PRIMARY_SHARE` (default 0.5, the
+share of what is left of a deadline a rung gets when a live rung stands behind it, §11.5),
+`WOBO_PROVIDER_WEATHER_STREAK` (3), `WOBO_PROVIDER_HANG_STREAK` (2),
+`WOBO_PROVIDER_WEATHER_COOLOFF_S` (60) and `WOBO_PROVIDER_COOLOFF_S` (300).
+
+### 11.5 When a provider runs out of credit, hangs, or falls over
 
 Every model call in the gateway goes through `model_call.complete`, which walks the chain itself,
 one model per call, and reads each refusal (litellm's own fallback runner swallowed them; §11 of
@@ -551,11 +610,44 @@ empty. When the cool-off passes, one call is let through to see; a second refusa
 again, a success clears it. When every provider in a chain is out, the call fails at once with
 `ProvidersOut` rather than making three round trips nobody can answer.
 
+**Weather, since 2026-09-07.** A 5xx, a rejected key (the Google key on the build machine was
+401 that day), a dead route or a timeout is an ordinary failure: the chain moves on and the
+failure is written down. One is weather and marks nobody. Three in a row on one provider, or two
+timeouts in a row, mark it out for `WOBO_PROVIDER_WEATHER_COOLOFF_S` (default 60) exactly as a
+credit refusal does for 300; one probe is let through when the minute passes, a fourth failure
+marks it again at once, and the first success clears the mark and the streak. Before this, a 503
+storm cost every turn on every tier the dead primary's round trip for the whole outage.
+
+**The deadline is shared, and the primary gets half.** A rung with a live rung behind it gets
+`WOBO_CHAIN_PRIMARY_SHARE` (default 0.5) of what is left of the caller's `timeout`; the last rung
+gets the rest; a lone model keeps the whole deadline. So a turn's 60 s is 30 for OpenAI, 15 for
+Anthropic, 15 for Gemini, a generation's 180 s is 90 / 45 / 45, and the child-safety screen's
+1.5 s is 0.75 / 0.75. Before this the primary had the whole deadline and a timeout stopped the
+walk, so a hanging OpenAI was a total outage of every text tier and the safety screen with two
+healthy providers idle. A rung that answers 400 to a sampling knob (Claude 4.7 and later, per
+Anthropic's deprecations page) is never sent one: the funnel keeps its own list and drops the
+knob up front, one round trip instead of two.
+
+**The voice and image seams keep the same marks.** `plexus/media.py` and `plexus/image.py` ask
+`health` before each vendor and feed it after, through `model_call.note_failure`: a Google quota
+429 on a spoken line is a mark the Gemini rung of every text chain honours, and the other way
+round. The Gemini voice gets a 20 s deadline of its own when OpenAI stands behind it
+(`media._PRIMARY_TIMEOUT_S`), so a hang costs seconds before the other voice speaks.
+
+**When nobody can answer, the child hears Wobo.** A total provider outage on
+`POST /v1/capability/<name>` is a 503 `{"code": "providers_out", "message": ...}` in Wobo's own
+line (`model_call.OUTAGE_LINE`), with `Retry-After: 60`; on the board stream it is the same line
+over the ordinary stream, the way a spend refusal arrives; the turn is given back to the
+learner's meter either way. `POST /v1/voice/tts` gives the call back too when neither voice
+spoke. Before 2026-09-07 the first was FastAPI's bare `500 Internal Server Error` (the client's
+generic broken page) and the second kept the charge.
+
 What you will see, on the telemetry stream (`railway logs | grep gateway.provider`):
 
 | Line | Level | Meaning | What to do |
 |---|---|---|---|
 | `gateway.provider.out_of_credit` | warning | `provider` refused for money or quota; `until` is when it is re-probed | open that provider's console and top up or raise the cap. The product is still answering on the next rung |
+| `gateway.provider.out` | warning | `provider` was marked out for weather (`kind`): a streak of 5xx, 401, connection faults or hangs; `until` is when it is re-probed | open that provider's status page. Nothing to do on your side unless `reason` is `AuthenticationError`, which is a revoked or wrong key |
 | `gateway.provider.skipped` | info | a rung was passed over because its provider is marked out | nothing; this is the skip working |
 | `gateway.fallback` | info | `to_model` answered for `from_model`; `error` is the exception type | one is weather. A steady stream with the same `from_model` is that provider down |
 
@@ -566,15 +658,18 @@ carries only a count under `providers.out_of_credit`):
 "providers": {"status": "degraded",
   "reason": "1 provider(s) out of credit or quota; the chain is carrying",
   "by_provider": {"anthropic": {"last_success": null, "last_failure": 1788000000.0,
-                                "last_error": "BadRequestError", "out_of_credit": true,
-                                "out_until": 1788000300.0, "reason": "BadRequestError"},
-                  "openai": {"last_success": 1788000001.0, "last_failure": null, "out_of_credit": false}},
+                                "last_error": "BadRequestError", "out": true, "out_kind": "credit",
+                                "out_of_credit": true, "out_until": 1788000300.0,
+                                "reason": "BadRequestError"},
+                  "openai": {"last_success": 1788000001.0, "last_failure": null, "out": false,
+                             "out_kind": null, "out_of_credit": false}},
   "carrying": {"tiny": "openai/gpt-5.6-luna", "turn": "openai/gpt-5.6-terra", ...}}
 ```
 
 `carrying` is the model answering each tier right now, with the marks applied. One provider out is
-`degraded` (the chain is carrying, and you should top up). Every provider on a text tier out is
-`unhealthy`, 503, because a request arriving now would not be served.
+`degraded` (the chain is carrying; `out_kind` says whether to top up or to wait). Every provider
+on a text tier out is `unhealthy`, 503, because a request arriving now would not be served. The
+public `/healthz` carries two counts, `out` and `out_of_credit`, and no name.
 
 **Two limits, stated.** The marks live in one process, like every other counter here (§1): a
 restart forgets them, and the first call after a restart pays one round trip to learn the balance

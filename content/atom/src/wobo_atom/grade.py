@@ -13,6 +13,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 import sympy as sp
+from wobo_gateway.routing import Tier, tier_chain
 from wobo_verifier.cas import (
     CasError,
     parse_equation,
@@ -20,7 +21,12 @@ from wobo_verifier.cas import (
     step_preserves_solutions,
 )
 
-GRADER_MODEL = "anthropic/claude-sonnet-4-6"
+#: Grading one attempt is a TURN on the router's table (docs/OPERATIONS.md 11.1), so the grader
+#: asks for the turn tier's primary and carries its chain behind it. It used to name the older
+#: Sonnet 4.6 directly: fifty percent dearer than Sonnet 5 on the Anthropic pricing page, no
+#: fallback, no health mark, no ledger row.
+GRADER_MODEL = tier_chain(Tier.TURN)[0]
+GRADER_CAPABILITY = "atom.grade"
 
 GRADER_SYSTEM = """You are Wobo, a warm, precise maths tutor looking at a learner's working on a \
 linear equation in one variable. A deterministic verifier has ALREADY decided whether the answer is \
@@ -122,9 +128,17 @@ def grounded_grade(
     *,
     model: str = GRADER_MODEL,
 ) -> Grade:
-    """Combine the verifier's authoritative correctness with the model's grounded diagnosis + hint."""
-    import litellm
+    """Combine the verifier's authoritative correctness with the model's grounded diagnosis + hint.
 
+    The call goes through the gateway's one funnel, ``wobo_gateway.model_call.complete``: the
+    turn tier's chain behind the model asked for, a knob a rung refuses dropped for that rung,
+    a credit refusal marked so the next call skips it, and the row in the usage ledger naming who
+    actually answered (``telemetry.record_cost``).
+    """
+    from wobo_gateway.model_call import complete
+    from wobo_gateway.telemetry import record_cost
+
+    fallbacks = [m for m in tier_chain(Tier.TURN) if m != model]
     lines = "\n".join(f"{i}: {form}" for i, form in enumerate(working))
     user = (
         f"Equation: {equation}\n"
@@ -133,15 +147,18 @@ def grounded_grade(
         f"first_bad_step={findings.first_bad_step} ({findings.detail}).\n"
         "Grade this working now."
     )
-    response = litellm.completion(
+    response = complete(
         model=model,
+        fallbacks=fallbacks or None,
         messages=[
             {"role": "system", "content": GRADER_SYSTEM},
             {"role": "user", "content": user},
         ],
         max_tokens=300,
         temperature=0,
+        timeout=60.0,
     )
+    record_cost(capability=GRADER_CAPABILITY, model=model, response=response)
     text = response.choices[0].message.content or ""
     data = _extract_json(text)
     hint = str(data.get("hint", ""))

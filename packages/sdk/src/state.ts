@@ -204,10 +204,12 @@ function threadCacheKey(thread: string): string {
 }
 
 /**
- * The unscoped buckets written before this device had a signed-in subject. The FIRST subject to
- * claim the device inherits them; everyone after starts clean (store/scope.ts holds the same law
- * for the app-side stores) — a sibling signing in on the family tablet must never be handed the
- * other learner's progress or conversation.
+ * The unscoped buckets written before this device had a signed-in subject: the door-time SDK is
+ * keyed to nobody, so everything a learner does until their session lands goes under the plain
+ * key. Whoever the device is keyed to NEXT owns them (they are the one whose session just landed),
+ * so they move under that subject and the plain key leaves. Everyone after starts clean
+ * (store/scope.ts holds the same law for the app-side stores): a sibling signing in on the family
+ * tablet must never be handed the other learner's progress or conversation.
  */
 const ADOPTABLE_KEYS: readonly string[] = [
   STATE_CACHE_KEY,
@@ -215,8 +217,35 @@ const ADOPTABLE_KEYS: readonly string[] = [
   'wobo-vidya-conversation-v1',
 ];
 
-/** Records WHICH subject adopted the legacy bucket, so adoption happens exactly once per device. */
-export const ADOPTED_MARKER_KEY = 'wobo-state-adopted-v1';
+/**
+ * The once-per-device marker adoption used to be gated on. It held the FIRST subject's id under a
+ * plain key for the life of the device (a previous learner's identifier, readable after they had
+ * signed out), and the gate it kept broke the second anonymous learner on a phone: their plain
+ * bucket was never theirs to adopt, so their own reload lost their work. Retired; removed on sight.
+ */
+const RETIRED_ADOPTED_MARKER = 'wobo-state-adopted-v1';
+
+/**
+ * MOVE the plain buckets under `scope`. A scoped value that already exists is the newer truth and
+ * is never clobbered, but the plain key goes either way: a copy left one learner's XP, streak and
+ * whole conversation sitting under the plain key, which is exactly what the next person's
+ * door-time provider reads as their own. Never throws: a storage that refuses leaves the learner
+ * with a fresh bucket, never a broken boot. Shared with the mastery cache (`mastery.ts`).
+ */
+export function adoptPlainKeys(storage: KVStorage, scope: string, bases: readonly string[]): void {
+  if (!scope) return;
+  try {
+    dropKey(storage, RETIRED_ADOPTED_MARKER);
+    for (const base of bases) {
+      const plain = storage.getItem(base);
+      if (plain === null || plain === '') continue;
+      if (storage.getItem(`${base}:${scope}`) === null) storage.setItem(`${base}:${scope}`, plain);
+      dropKey(storage, base);
+    }
+  } catch {
+    // storage unavailable: a fresh bucket is the correct outcome
+  }
+}
 
 /**
  * Pre-rebrand thread ids. The tutor was called Vidya, so Wobo's thread — its localStorage key, its
@@ -246,6 +275,19 @@ export interface StateProvider {
   loadThreadCache(thread: string): ThreadSnapshot | null;
   hydrateThread(thread: string): Promise<ThreadSnapshot | null>;
   saveThread(thread: string, turns: ThreadTurn[]): void;
+  /**
+   * The session landed, or the learner changed, AFTER this provider was built: key the cache to
+   * `scope` from now on, and move what was written under the plain key under it. The same
+   * subject again means "re-read": the app moves an anonymous learner's bucket under their new
+   * account (`store/scope.ts` inheritScope) and then asks for exactly this.
+   */
+  rekey(scope: string): void;
+  /**
+   * Send what the debounce still owes, now. Resolves when it landed, rejects when it did not, so
+   * a sign-out can refuse to wipe a device that is holding work the account never received.
+   * A local provider owes nothing and resolves at once.
+   */
+  flush(): Promise<void>;
 }
 
 /** localStorage-only persistence — mock/local mode, fully working keyless. */
@@ -255,41 +297,18 @@ export class LocalStateProvider implements StateProvider {
     // Scopes the cache to one account so two learners on the same browser never share a bucket.
     // Empty = legacy single-user local build (keeps the historical key so existing devices carry
     // over). Live mode passes the per-user subjectId, so a different account reads an empty bucket.
-    protected readonly scope = '',
+    protected scope = '',
   ) {
-    if (this.scope) this.adoptLegacyBucket();
+    adoptPlainKeys(this.storage, this.scope, ADOPTABLE_KEYS);
   }
 
-  /**
-   * One-time, per-subject: MOVE the pre-scope bucket under this subject's keys. Gated on a marker
-   * that names the claiming subject, so it runs once for the learner who was already using this
-   * device and never again — a second account reads its own (empty) bucket.
-   *
-   * It moves rather than copies, and that is the isolation half. A copy left the learner's XP,
-   * streak, mind snapshot and entire conversation sitting under the plain key. Every later boot is
-   * unscoped for the moment before the session resolves, and an unscoped provider reads the plain
-   * key — so the next person to open this browser was handed the previous learner's work as their
-   * own. The source always leaves. A scoped value that already exists is the newer truth and is
-   * never clobbered, but the plain key goes either way.
-   */
-  private adoptLegacyBucket(): void {
-    try {
-      // One-time, full stop: the marker is written before anything moves, so a learner who later
-      // clears their own bucket is never handed the stale legacy copy back on the next boot.
-      if (this.storage.getItem(ADOPTED_MARKER_KEY) !== null) return;
-      this.storage.setItem(ADOPTED_MARKER_KEY, this.scope);
-      for (const base of ADOPTABLE_KEYS) {
-        const legacy = this.storage.getItem(base);
-        if (legacy === null) continue;
-        // Never clobber a scoped value that is already there; the plain key still leaves.
-        if (this.storage.getItem(this.scoped(base)) === null) {
-          this.storage.setItem(this.scoped(base), legacy);
-        }
-        dropKey(this.storage, base);
-      }
-    } catch {
-      // storage unavailable — a fresh bucket is the correct outcome, never a broken boot
-    }
+  rekey(scope: string): void {
+    this.scope = scope;
+    adoptPlainKeys(this.storage, this.scope, ADOPTABLE_KEYS);
+  }
+
+  async flush(): Promise<void> {
+    // nothing is owed anywhere but this device
   }
 
   protected stateKey(): string {
@@ -505,6 +524,68 @@ export class SupabaseStateProvider extends LocalStateProvider {
     this.health?.succeeded('conversation');
   }
 
+  /**
+   * The row is keyed to `subjectId` for the life of this provider; only a re-read under the same
+   * subject is meaningful here. A different subject means the app rebuilds the SDK (it does, on
+   * every sign-in: `screens/auth/run.ts`), so it is ignored rather than half-honoured.
+   */
+  override rekey(scope: string): void {
+    if (scope === this.subjectId) super.rekey(scope);
+  }
+
+  /**
+   * Send what the debounces still owe, now. A push that fails re-arms its debounce, so the work
+   * is sent again later (and by the next flush) rather than sitting in the cache with nothing
+   * scheduled to carry it.
+   */
+  override async flush(): Promise<void> {
+    const jobs: Promise<void>[] = [];
+    if (this.pushTimer) {
+      clearTimeout(this.pushTimer);
+      this.pushTimer = null;
+      jobs.push(
+        this.upsertState(this.loadCache()).catch((err: unknown) => {
+          this.armPush();
+          throw err;
+        }),
+      );
+    }
+    for (const [thread, timer] of this.threadTimers) {
+      clearTimeout(timer);
+      jobs.push(
+        this.pushThread(thread).catch((err: unknown) => {
+          this.armThreadPush(thread);
+          throw err;
+        }),
+      );
+    }
+    this.threadTimers.clear();
+    await Promise.all(jobs);
+  }
+
+  private armPush(): void {
+    if (this.pushTimer) clearTimeout(this.pushTimer);
+    this.pushTimer = setTimeout(() => {
+      this.pushTimer = null;
+      void this.upsertState(this.loadCache()).catch(() => {}); // offline — cache holds; next push
+    }, this.debounceMs);
+  }
+
+  private armThreadPush(thread: string): void {
+    const prior = this.threadTimers.get(thread);
+    if (prior) clearTimeout(prior);
+    this.threadTimers.set(
+      thread,
+      setTimeout(() => {
+        this.threadTimers.delete(thread);
+        // Still never thrown at the learner: the conversation is already on this device and the
+        // next push carries it. The difference is that the failure is now counted rather than
+        // dropped, so nothing goes on claiming the transcript is safely away when it is not.
+        void this.pushThread(thread).catch(() => {});
+      }, this.debounceMs),
+    );
+  }
+
   override async hydrate(): Promise<LearnerState> {
     const local = this.loadCache();
     try {
@@ -523,11 +604,7 @@ export class SupabaseStateProvider extends LocalStateProvider {
 
   override save(state: LearnerState): void {
     super.save(state);
-    if (this.pushTimer) clearTimeout(this.pushTimer);
-    this.pushTimer = setTimeout(() => {
-      this.pushTimer = null;
-      void this.upsertState(this.loadCache()).catch(() => {}); // offline — cache holds; next push
-    }, this.debounceMs);
+    this.armPush();
   }
 
   /** The thread row, falling back to its pre-rebrand id so an existing account keeps its history. */
@@ -567,17 +644,6 @@ export class SupabaseStateProvider extends LocalStateProvider {
 
   override saveThread(thread: string, turns: ThreadTurn[]): void {
     super.saveThread(thread, turns);
-    const prior = this.threadTimers.get(thread);
-    if (prior) clearTimeout(prior);
-    this.threadTimers.set(
-      thread,
-      setTimeout(() => {
-        this.threadTimers.delete(thread);
-        // Still never thrown at the learner: the conversation is already on this device and the
-        // next push carries it. The difference is that the failure is now counted rather than
-        // dropped, so nothing goes on claiming the transcript is safely away when it is not.
-        void this.pushThread(thread).catch(() => {});
-      }, this.debounceMs),
-    );
+    this.armThreadPush(thread);
   }
 }

@@ -11,8 +11,9 @@ import { plane, useRegisterTarget } from '@wobo/wobo';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { chaptersBySubject, displaySubjects } from '../curriculum/registry';
-import { forgetScope } from '../store/scope';
+import { forgetScope, scoped } from '../store/scope';
 import { useSdk } from '../store/sdk';
+import { settleBeforeSignOut } from '../store/sign-out';
 import { FROST, fluidType, Kbd, SectionLabel, surface } from '../ui/kit';
 import { getThemePref, setThemePref } from '../ui/theme';
 import { saveBoardToNotes } from '../wobo/board-notes';
@@ -45,13 +46,15 @@ const SECTION_LABEL: Record<Section | 'recent', string> = {
 /** Doors that anchor the empty state — the small visible set (DESIGN.md §6). */
 const PRIMARY_DOORS = ['home', 'learn', 'practice', 'progress', 'you', 'chat'];
 
-// ---- recents (localStorage, cap 6) ------------------------------------------------------------
+// ---- recents (the learner's, cap 6) -----------------------------------------------------------
+// A door id is `topic-<id>` or `chap-<id>`: the last chapter somebody opened. Keyed to the learner
+// (store/scope.ts SCOPED_KEYS), so a sibling's palette does not open on it.
 const RECENT_KEY = 'wobo-cmdk-recent-v1';
 const RECENT_CAP = 6;
 
 function loadRecents(): string[] {
   try {
-    const a = JSON.parse(localStorage.getItem(RECENT_KEY) ?? '[]');
+    const a = JSON.parse(scoped.getItem(RECENT_KEY) ?? '[]');
     return Array.isArray(a) ? (a as string[]).slice(0, RECENT_CAP) : [];
   } catch {
     return [];
@@ -61,7 +64,7 @@ function loadRecents(): string[] {
 function pushRecent(id: string): void {
   try {
     const next = [id, ...loadRecents().filter((x) => x !== id)].slice(0, RECENT_CAP);
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    scoped.setItem(RECENT_KEY, JSON.stringify(next));
   } catch {
     // storage unavailable — recents live for this session only
   }
@@ -124,6 +127,8 @@ export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState(0);
+  // One plain line the palette has to say (a sign-out it refused), or null.
+  const [notice, setNotice] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
   // The palette is a surface like any other: Wobo can point at it, tell a learner it exists, and
@@ -310,10 +315,18 @@ export function CommandPalette() {
         section: 'actions',
         search: 'sign out log out account',
         run: () => {
-          // Same law as the You screen: signing out takes this learner's device keys with it.
-          const subject = account.subjectId();
-          if (subject) forgetScope(subject);
-          void account.signOut().finally(() => window.location.assign('/'));
+          // What this device owes the account lands FIRST; the sweep is refused while anything is
+          // still owed (store/sign-out.ts). Then signing out takes this learner's keys with it.
+          void settleBeforeSignOut(sdk).then((verdict) => {
+            if (verdict.line) {
+              setNotice(verdict.line);
+              setOpen(true);
+              return;
+            }
+            const subject = account.subjectId();
+            if (subject) forgetScope(subject);
+            void account.signOut().finally(() => window.location.assign('/'));
+          });
         },
       });
     else if (account)
@@ -381,6 +394,7 @@ export function CommandPalette() {
         setOpen((o) => !o);
         setQuery('');
         setIndex(0);
+        setNotice(null);
       } else if (e.key === 'Escape') {
         setOpen(false);
       }
@@ -392,6 +406,7 @@ export function CommandPalette() {
       setOpen(true);
       setQuery('');
       setIndex(0);
+      setNotice(null);
     };
     window.addEventListener('keydown', onKey);
     window.addEventListener(OPEN_PALETTE_EVENT, onOpen);
@@ -626,6 +641,19 @@ export function CommandPalette() {
                   {g.items.map((item) => row(item, navCursor++))}
                 </div>
               ))}
+
+              {notice && (
+                <div
+                  role="status"
+                  style={{
+                    padding: '12px 14px 4px',
+                    fontSize: fluidType.small,
+                    color: surface.ink,
+                  }}
+                >
+                  {notice}
+                </div>
+              )}
 
               {noMatches && (
                 <div

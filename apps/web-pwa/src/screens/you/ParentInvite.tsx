@@ -11,6 +11,7 @@
  */
 
 import { type FormEvent, useRef, useState } from 'react';
+import { scoped } from '../../store/scope';
 import { useSdk } from '../../store/sdk';
 import { inviteParent, looksLikeEmail, ownTimezone, type ParentLinkStatus } from './parentLink';
 import { PARENT_KEY } from './profile';
@@ -69,14 +70,8 @@ export function ParentInvite({ learnerName, onDone, onLater, autoFocus }: Parent
       refuse('That number looks short. Check it once more.');
       return;
     }
-    try {
-      localStorage.setItem(
-        PARENT_KEY,
-        JSON.stringify({ phone: raw, linkedAt: new Date().toISOString() }),
-      );
-    } catch {
-      // storage unavailable — the link lives for this session
-    }
+    // The learner's own link (store/scope.ts); a refused write means it lives for this session.
+    scoped.setItem(PARENT_KEY, JSON.stringify({ phone: raw, linkedAt: new Date().toISOString() }));
     sdk.events.record('parent.linked.v1', {
       parent_ref: crypto.randomUUID(),
       relationship: 'parent',

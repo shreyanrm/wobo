@@ -98,7 +98,7 @@ test('two taps reach the confirmation and a refused cancel leaves the plan activ
   // retry: one tap, and it lands
   await dialog.getByRole('button', { name: 'Cancel the plan' }).click();
   await expect(dialog).toBeHidden();
-  await expect(panel.getByText(/Pro until 4 October 2099\./)).toBeVisible();
+  await expect(panel.getByText(/Pro until 4 October 2099, then free\./)).toBeVisible();
   await expect(panel.getByText(/Nothing will be charged again\./)).toBeVisible();
   await expect(panel.getByText(/Everything you have learnt stays/)).toBeVisible();
   await expect(panel.getByText('cancelled', { exact: true })).toBeVisible();

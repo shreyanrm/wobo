@@ -2,7 +2,6 @@ import { describe, expect, it } from 'bun:test';
 import { DEV_DEFAULTS } from '../src/config';
 import { InMemoryEventProvider, SupabaseOutboxEventProvider } from '../src/events';
 import {
-  ADOPTED_MARKER_KEY,
   emptyLearnerState,
   type KVStorage,
   type LearnerState,
@@ -433,7 +432,6 @@ describe('LocalStateProvider account scoping', () => {
     const first = new LocalStateProvider(storage, SUB_A);
     expect(first.loadCache().xp).toBe(900);
     expect(first.loadThreadCache('wobo')?.turns).toHaveLength(1);
-    expect(storage.map.get(ADOPTED_MARKER_KEY)).toBe(SUB_A);
 
     // The sibling who signs in next on the same browser gets nothing of theirs.
     const second = new LocalStateProvider(storage, SUB_B);
@@ -485,7 +483,150 @@ describe('LocalStateProvider account scoping', () => {
     const storage = new FakeStorage();
     new LocalStateProvider(storage).save(state({ xp: 5 }));
     expect(storage.map.has(STATE_CACHE_KEY)).toBe(true);
-    expect(storage.map.has(ADOPTED_MARKER_KEY)).toBe(false);
+  });
+});
+
+// --- The fixer, 2026-09-07: adoption is per bucket, not once per device; a session that lands
+// after the provider was built re-keys it; a sign-out can ask for what is still owed to land ---
+
+describe('the plain bucket belongs to whoever writes it next', () => {
+  const SUB_A = '00000000-0000-7000-8000-00000000000a';
+  const SUB_B = '00000000-0000-7000-8000-00000000000b';
+  const RETIRED_MARKER = 'wobo-state-adopted-v1';
+
+  /**
+   * THE SECOND STRANGER. Adoption used to be gated on a once-per-device marker naming the first
+   * subject, so the second anonymous learner on the phone wrote the plain bucket for a whole
+   * session and lost it on their own reload: their id was not the one on the marker. The plain
+   * bucket is always the work of whoever's session has not resolved yet, and it moves under the
+   * next subject the device is keyed to, every time.
+   */
+  it('a second learner on the device adopts the plain bucket their own door-time SDK wrote', () => {
+    const storage = new FakeStorage();
+    storage.setItem(STATE_CACHE_KEY, JSON.stringify(state({ xp: 900 })));
+    expect(new LocalStateProvider(storage, SUB_A).loadCache().xp).toBe(900);
+    // A stranger, before their session lands: the plain key again.
+    new LocalStateProvider(storage).save(state({ xp: 15 }));
+    storage.setItem(
+      'wobo-conversation-v1',
+      JSON.stringify([{ id: 'b', role: 'user', text: 'mine' }]),
+    );
+    const second = new LocalStateProvider(storage, SUB_B);
+    expect(second.loadCache().xp).toBe(15);
+    expect(second.loadThreadCache('wobo')?.turns[0]?.text).toBe('mine');
+    expect(storage.map.has(STATE_CACHE_KEY)).toBe(false);
+    expect(new LocalStateProvider(storage, SUB_A).loadCache().xp).toBe(900);
+  });
+
+  it('takes the retired once-per-device marker off the device: it named a previous learner', () => {
+    const storage = new FakeStorage();
+    storage.setItem(RETIRED_MARKER, SUB_A);
+    new LocalStateProvider(storage, SUB_B);
+    expect(storage.map.has(RETIRED_MARKER)).toBe(false);
+  });
+
+  /**
+   * THE FIRST SESSION. A first visitor's SDK is built before their anonymous session is minted,
+   * so until a reload every XP change and every turn landed under the plain key, and nothing
+   * moved it. The session tells the provider who it is now, and what was written plain moves.
+   */
+  it('rekey: a session that lands after the build moves the plain bucket under the new subject', () => {
+    const storage = new FakeStorage();
+    const provider = new LocalStateProvider(storage);
+    provider.save(state({ xp: 40 }));
+    provider.saveThread('wobo', [{ id: 't', role: 'user', text: 'my dog is Bruno' }]);
+    provider.rekey(SUB_A);
+    expect(provider.loadCache().xp).toBe(40);
+    expect(provider.loadThreadCache('wobo')?.turns[0]?.text).toBe('my dog is Bruno');
+    expect(storage.map.has(STATE_CACHE_KEY)).toBe(false);
+    expect(storage.map.has('wobo-conversation-v1')).toBe(false);
+    provider.save(state({ xp: 55 }));
+    expect(JSON.parse(storage.map.get(`${STATE_CACHE_KEY}:${SUB_A}`) ?? '{}').xp).toBe(55);
+    expect(storage.map.has(STATE_CACHE_KEY)).toBe(false);
+  });
+
+  it('rekey to the same subject re-reads what was moved under it meanwhile', () => {
+    const storage = new FakeStorage();
+    const provider = new LocalStateProvider(storage, SUB_A);
+    expect(provider.loadCache().xp).toBe(0);
+    storage.setItem(`${STATE_CACHE_KEY}:${SUB_A}`, JSON.stringify(state({ xp: 40 })));
+    provider.rekey(SUB_A);
+    expect(provider.loadCache().xp).toBe(40);
+  });
+});
+
+describe('flush: what the debounce still owes lands now, or the caller hears that it did not', () => {
+  const SUBJECT = '00000000-0000-7000-8000-000000000001';
+
+  it('pushes the pending state and thread at once and resolves', async () => {
+    const storage = new FakeStorage();
+    const upserts: string[] = [];
+    const provider = new SupabaseStateProvider(
+      {
+        selectOne: async () => null,
+        upsert: async (table: string) => {
+          upserts.push(table);
+        },
+      },
+      SUBJECT,
+      storage,
+      60_000, // a debounce nothing in this test waits for
+    );
+    provider.save(state({ xp: 777 }));
+    provider.saveThread('wobo', [{ id: 't', role: 'user', text: 'offline line' }]);
+    expect(upserts).toEqual([]);
+    await provider.flush();
+    expect(upserts.sort()).toEqual(['learner_state', 'learner_threads']);
+  });
+
+  it('rejects when the store cannot be reached, so a sign-out can refuse', async () => {
+    const provider = new SupabaseStateProvider(
+      {
+        selectOne: async () => null,
+        upsert: async () => {
+          throw new Error('offline');
+        },
+      },
+      SUBJECT,
+      new FakeStorage(),
+      60_000,
+    );
+    provider.save(state({ xp: 777 }));
+    await expect(provider.flush()).rejects.toThrow('offline');
+  });
+
+  it('re-arms the debounce when the push fails, so the next flush sends the work again', async () => {
+    let down = true;
+    const upserts: string[] = [];
+    const provider = new SupabaseStateProvider(
+      {
+        selectOne: async () => null,
+        upsert: async (table: string) => {
+          if (down) throw new Error('offline');
+          upserts.push(table);
+        },
+      },
+      SUBJECT,
+      new FakeStorage(),
+      60_000,
+    );
+    provider.save(state({ xp: 777 }));
+    provider.saveThread('wobo', [{ id: 't', role: 'user', text: 'offline line' }]);
+    await expect(provider.flush()).rejects.toThrow('offline');
+    down = false;
+    await provider.flush();
+    expect(upserts.sort()).toEqual(['learner_state', 'learner_threads']);
+  });
+
+  it('is a resolved no-op with nothing pending, and on the local provider', async () => {
+    await expect(new LocalStateProvider(new FakeStorage()).flush()).resolves.toBeUndefined();
+    const provider = new SupabaseStateProvider(
+      { selectOne: async () => null, upsert: async () => {} },
+      SUBJECT,
+      new FakeStorage(),
+      60_000,
+    );
+    await expect(provider.flush()).resolves.toBeUndefined();
   });
 });
 

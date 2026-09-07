@@ -21,6 +21,7 @@
  * layout settling differently each time and nothing random. Unit-tested in `sky.test.ts`.
  */
 
+import { scopedSession } from '../../store/scope';
 import type { ProgressTopic, TopicState } from './evidence';
 
 /**
@@ -266,13 +267,14 @@ const SEEN_KEY = 'wobo-sky-seen-v1';
  * Which stars have already had their moment this session.
  *
  * A star earned since the last visit catches light once, and then never again on a reload: the set
- * lives in sessionStorage, so it survives a navigation inside the app and resets with the tab.
- * Storage being unavailable simply means the light plays again next time, which is the harmless
- * side of the failure.
+ * lives in sessionStorage, so it survives a navigation inside the app and resets with the tab. It
+ * is keyed to the learner (store/scope.ts `scopedSession`): the stars are theirs, and so is
+ * having seen them. Storage being unavailable simply means the light plays again next time, which
+ * is the harmless side of the failure.
  */
 export function readSeen(): ReadonlySet<string> {
   try {
-    const raw = sessionStorage.getItem(SEEN_KEY);
+    const raw = scopedSession.getItem(SEEN_KEY);
     return new Set(raw ? (JSON.parse(raw) as string[]) : []);
   } catch {
     return new Set();
@@ -280,11 +282,8 @@ export function readSeen(): ReadonlySet<string> {
 }
 
 export function writeSeen(ids: Iterable<string>): void {
-  try {
-    sessionStorage.setItem(SEEN_KEY, JSON.stringify([...ids]));
-  } catch {
-    // storage unavailable — the replay simply fires again next visit
-  }
+  // A refused write means the replay simply fires again next visit.
+  scopedSession.setItem(SEEN_KEY, JSON.stringify([...ids]));
 }
 
 /** The stars that became the learner's since this session last looked. */

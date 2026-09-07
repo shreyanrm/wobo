@@ -51,10 +51,12 @@ read-aloud socket's URL beside the token, and like the accent it is only ever an
 from __future__ import annotations
 
 import asyncio
+import base64
 import contextlib
 import json
 import logging
 import os
+import re
 import secrets
 import threading
 import time
@@ -84,6 +86,172 @@ _READ_VERBATIM = (
 # The -latest alias survives Google's preview retirements — the pinned 2025 preview id died
 # and took the mic with it (relay closed instantly on upstream rejection).
 VOICE_MODEL = "gemini-2.5-flash-native-audio-latest"
+#: The id the ledger and the spend line carry, provider first (``routing.CATALOGUE`` has the row).
+VOICE_ID = f"gemini/{VOICE_MODEL}"
+
+# --- what a minute of the live microphone costs ------------------------------------------------
+#
+# Gemini pricing page, "Gemini 2.5 Flash Native Audio (Live API)", read 2026-09-07: input 0.50
+# USD per million tokens of text and 3.00 of audio; output 2.00 of text and 12.00 of audio. The
+# tokens page: audio is 32 tokens per second. Until that day neither socket wrote a ledger row or
+# charged the day's spend ceiling: the ceiling was asked once when the session token was minted
+# and never charged for the minutes that followed, on the dearest per-minute seam in the product.
+_LIVE_TEXT_IN_USD_PER_M = 0.50
+_LIVE_AUDIO_IN_USD_PER_M = 3.00
+_LIVE_AUDIO_OUT_USD_PER_M = 12.00
+_AUDIO_TOKENS_PER_SECOND = 32
+#: The rough tokenisation of the one text a socket sends (a read-aloud line): four characters a
+#: token, the rule of thumb the vendors publish. Cents on a day, stated as an estimate.
+_CHARS_PER_TEXT_TOKEN = 4
+_PCM_BYTES_PER_SAMPLE = 2  # the Live API guide: raw little-endian 16-bit PCM, both directions
+#: The Live API guide's native rates, used only when a frame's mimeType names none.
+_DEFAULT_IN_RATE, _DEFAULT_OUT_RATE = 16000, 24000
+_RATE = re.compile(r"rate=(\d+)")
+
+
+def _pcm_seconds(blob: dict[str, Any], default_rate: int) -> float:
+    """Seconds of audio in one inline blob, from its bytes and the rate its mimeType names."""
+    mime = str(blob.get("mimeType") or blob.get("mime_type") or "")
+    if not mime.startswith("audio/"):
+        return 0.0
+    data = blob.get("data")
+    if not isinstance(data, str) or not data:
+        return 0.0
+    try:
+        raw = base64.b64decode(data, validate=False)
+    except (ValueError, TypeError):
+        return 0.0
+    match = _RATE.search(mime)
+    rate = int(match.group(1)) if match else default_rate
+    return len(raw) / (_PCM_BYTES_PER_SAMPLE * rate) if rate > 0 else 0.0
+
+
+class LiveMeter:
+    """What crossed one socket to Gemini Live, and the row that says so.
+
+    Counted off the frames themselves as they are relayed: the PCM the browser sends up
+    (``realtimeInput.audio`` or the older ``realtimeInput.mediaChunks``), the text a read-aloud
+    socket sends, and the PCM in every ``serverContent.modelTurn`` part that comes down. Priced
+    from the vendor's own figures above (``cost_source`` says ``catalogue``, not litellm and not
+    an operator), written once at :meth:`close` as one ledger row and one ``spend.record``, and
+    never raises: an accounting line is worth less than the child's voice. The frames' own
+    ``usageMetadata`` is not relied on, because the reference does not say whether its counts are
+    per message or running totals, and a figure derived from the bytes can be checked.
+    """
+
+    def __init__(self, capability: str) -> None:
+        self.capability = capability
+        self.audio_in_s = 0.0
+        self.audio_out_s = 0.0
+        self.text_in_chars = 0
+        self._closed = False
+
+    # -- what the browser sent ---------------------------------------------------------------
+    def up(self, raw: str) -> None:
+        frame = _frame(raw)
+        if frame is None:
+            return
+        realtime = frame.get("realtimeInput")
+        if isinstance(realtime, dict):
+            blobs = []
+            if isinstance(realtime.get("audio"), dict):
+                blobs.append(realtime["audio"])
+            chunks = realtime.get("mediaChunks")
+            if isinstance(chunks, list):
+                blobs.extend(c for c in chunks if isinstance(c, dict))
+            for blob in blobs:
+                self.audio_in_s += _pcm_seconds(blob, _DEFAULT_IN_RATE)
+        content = frame.get("clientContent")
+        if isinstance(content, dict):
+            for turn in content.get("turns") or []:
+                if not isinstance(turn, dict):
+                    continue
+                for part in turn.get("parts") or []:
+                    if isinstance(part, dict) and isinstance(part.get("text"), str):
+                        self.text_in_chars += len(part["text"])
+
+    def text(self, line: str) -> None:
+        """A line the gateway itself sends up (the read-aloud socket)."""
+        self.text_in_chars += len(line)
+
+    # -- what Gemini sent back ---------------------------------------------------------------
+    def down(self, raw: str) -> None:
+        frame = _frame(raw)
+        if frame is None:
+            return
+        server = frame.get("serverContent")
+        if not isinstance(server, dict):
+            return
+        turn = server.get("modelTurn")
+        if not isinstance(turn, dict):
+            return
+        for part in turn.get("parts") or []:
+            if not isinstance(part, dict):
+                continue
+            inline = part.get("inlineData") or part.get("inline_data")
+            if isinstance(inline, dict):
+                self.audio_out_s += _pcm_seconds(inline, _DEFAULT_OUT_RATE)
+
+    # -- the figures ---------------------------------------------------------------------------
+    @property
+    def tokens_in(self) -> int:
+        audio = round(self.audio_in_s * _AUDIO_TOKENS_PER_SECOND)
+        text = -(-self.text_in_chars // _CHARS_PER_TEXT_TOKEN)
+        return audio + text
+
+    @property
+    def tokens_out(self) -> int:
+        return round(self.audio_out_s * _AUDIO_TOKENS_PER_SECOND)
+
+    @property
+    def cost_usd(self) -> float:
+        audio_in = self.audio_in_s * _AUDIO_TOKENS_PER_SECOND * _LIVE_AUDIO_IN_USD_PER_M
+        text_in = -(-self.text_in_chars // _CHARS_PER_TEXT_TOKEN) * _LIVE_TEXT_IN_USD_PER_M
+        audio_out = self.audio_out_s * _AUDIO_TOKENS_PER_SECOND * _LIVE_AUDIO_OUT_USD_PER_M
+        return (audio_in + text_in + audio_out) / 1e6
+
+    def close(self) -> None:
+        """Write the row, once. A socket that carried nothing writes nothing."""
+        if self._closed:
+            return
+        self._closed = True
+        if self.tokens_in == 0 and self.tokens_out == 0:
+            return
+        try:
+            from wobo_gateway import ledger, spend
+
+            unit_kind = ledger.unit_for(self.capability)
+            seconds = (
+                self.audio_out_s
+                if unit_kind == ledger.SPOKEN_SECOND
+                else self.audio_in_s + self.audio_out_s
+            )
+            cost = self.cost_usd
+            ledger.record(
+                capability=self.capability,
+                model_requested=VOICE_ID,
+                model_served=VOICE_ID,
+                tokens_in=self.tokens_in,
+                tokens_out=self.tokens_out,
+                cost_usd=cost,
+                cost_source=ledger.FROM_CATALOGUE,
+                unit_kind=unit_kind,
+                unit_count=seconds,
+            )
+            if cost:
+                spend.record(cost, capability=self.capability, model=VOICE_ID)
+        except Exception as exc:  # noqa: BLE001 — accounting must never break a voice
+            logger.debug("voice: minutes not recorded (%s: %s)", type(exc).__name__, exc)
+
+
+def _frame(raw: str) -> dict[str, Any] | None:
+    try:
+        frame = json.loads(raw)
+    except (ValueError, TypeError):
+        return None
+    return frame if isinstance(frame, dict) else None
+
+
 _GEMINI_LIVE_URL = (
     "wss://generativelanguage.googleapis.com/ws/"
     "google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
@@ -550,6 +718,18 @@ def _charge_voice(request: Request, capability: str) -> None:
     budget.charge(request.state.meter_key, capability, plan, anonymous=principal.anonymous)
 
 
+def _refund_voice(request: Request, capability: str) -> Any:
+    """Give one voice call back to the learner's day (nothing was spoken) and say where the
+    meter stands now, for the headers the client reads."""
+    from wobo_gateway import billing, budget, consent
+
+    principal = request.state.principal
+    profile = consent.get_profile(principal.subject, anonymous=principal.anonymous)
+    plan = billing.metered_plan(principal, profile)
+    budget.refund(request.state.meter_key, capability)
+    return budget.snapshot(request.state.meter_key, plan, anonymous=principal.anonymous)
+
+
 def register_voice(app: FastAPI) -> None:
     @app.get("/v1/voice/session")
     def session(request: Request) -> dict[str, str]:
@@ -572,20 +752,32 @@ def register_voice(app: FastAPI) -> None:
         one accent, every path — so it is resolved from the same verified record the session route
         reads, and reported back beside the audio the way ``/v1/voice/session`` reports it.
         """
-        if not (os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")):
+        from wobo_gateway import budget
+        from wobo_gateway.plexus.media import speakers_configured, synthesize_narration
+
+        # 503 only when NO voice has a key: Gemini speaks first and OpenAI's text-to-speech
+        # stands behind it (media.py), so one missing key is not "voice unavailable".
+        if not speakers_configured():
             raise HTTPException(status_code=503, detail="voice unavailable")
         _charge_voice(request, "voice.tts")
-        from wobo_gateway.plexus.media import synthesize_narration
 
         accent = learner_accent(
             request.state.principal.claims, request.headers.get("accept-language")
         )
         audio = synthesize_narration(body.text, instruction=spoken_instruction(accent, body.beat))
         if audio is None:
-            raise HTTPException(status_code=502, detail="tts failed")
+            # Both voices failed: the client reads the same words with the device's own voice,
+            # and the call is GIVEN BACK. A learner never pays for a call we did not serve; until
+            # 2026-09-07 this route kept the charge for a line the device read for free.
+            snap = _refund_voice(request, "voice.tts")
+            raise HTTPException(
+                status_code=502,
+                detail="tts failed",
+                headers=budget.headers(snap, budget.classify("voice.tts")),
+            )
         # The accent and the beat are reported beside the audio: the honest statement of what
-        # the learner is about to hear.
-        return {**audio, "accent": accent, "beat": body.beat}
+        # the learner is about to hear. Never which vendor spoke: that is the ledger's to know.
+        return {"mime": audio["mime"], "b64": audio["b64"], "accent": accent, "beat": body.beat}
 
     @app.websocket("/v1/voice/relay")
     async def relay(client: WebSocket) -> None:
@@ -607,39 +799,48 @@ def register_voice(app: FastAPI) -> None:
                 await client.close(code=1008, reason="voice unavailable")
                 return
             await client.accept()
-            async with (
-                aiohttp.ClientSession() as http,
-                http.ws_connect(f"{_GEMINI_LIVE_URL}?key={key}") as gemini,
-            ):
-                await gemini.send_str(json.dumps(_setup_message(grant.accent)))
+            # Every frame in either direction is counted, and the minutes are written down when
+            # the socket ends, whichever way it ends.
+            meter = LiveMeter("voice.relay")
+            try:
+                async with (
+                    aiohttp.ClientSession() as http,
+                    http.ws_connect(f"{_GEMINI_LIVE_URL}?key={key}") as gemini,
+                ):
+                    await gemini.send_str(json.dumps(_setup_message(grant.accent)))
 
-                async def pump_up() -> None:
-                    while True:  # ends via WebSocketDisconnect when the client hangs up
-                        raw = await client.receive_text()
-                        # Validate before forwarding: the socket is a microphone, not an open
-                        # console on our key. A refused frame is dropped silently — a real
-                        # client never sends one, and telling a prober which frame we rejected
-                        # is free reconnaissance.
-                        if relay_frame_allowed(raw):
-                            await gemini.send_str(raw)
+                    async def pump_up() -> None:
+                        while True:  # ends via WebSocketDisconnect when the client hangs up
+                            raw = await client.receive_text()
+                            # Validate before forwarding: the socket is a microphone, not an
+                            # open console on our key. A refused frame is dropped silently — a
+                            # real client never sends one, and telling a prober which frame we
+                            # rejected is free reconnaissance.
+                            if relay_frame_allowed(raw):
+                                meter.up(raw)
+                                await gemini.send_str(raw)
 
-                async def pump_down() -> None:
-                    async for msg in gemini:
-                        if msg.type == aiohttp.WSMsgType.TEXT:
-                            await client.send_text(msg.data)
-                        elif msg.type == aiohttp.WSMsgType.BINARY:
-                            # Gemini Live frames JSON as binary; the browser wants text.
-                            await client.send_text(msg.data.decode())
-                        else:
-                            break
+                    async def pump_down() -> None:
+                        async for msg in gemini:
+                            if msg.type == aiohttp.WSMsgType.TEXT:
+                                frame = msg.data
+                            elif msg.type == aiohttp.WSMsgType.BINARY:
+                                # Gemini Live frames JSON as binary; the browser wants text.
+                                frame = msg.data.decode()
+                            else:
+                                break
+                            meter.down(frame)
+                            await client.send_text(frame)
 
-                up = asyncio.create_task(pump_up())
-                down = asyncio.create_task(pump_down())
-                try:
-                    await asyncio.wait({up, down}, return_when=asyncio.FIRST_COMPLETED)
-                finally:
-                    up.cancel()
-                    down.cancel()
+                    up = asyncio.create_task(pump_up())
+                    down = asyncio.create_task(pump_down())
+                    try:
+                        await asyncio.wait({up, down}, return_when=asyncio.FIRST_COMPLETED)
+                    finally:
+                        up.cancel()
+                        down.cancel()
+            finally:
+                meter.close()
         # suppress RuntimeError: already closed by the disconnect that ended the pumps
         with contextlib.suppress(RuntimeError):
             await client.close()
@@ -690,7 +891,10 @@ async def _stream_one_line(
     accent: str = AMERICAN_ENGLISH,
     beat: Beat = DEFAULT_BEAT,
 ) -> None:
-    """Open Gemini Live for one read-aloud turn and pipe its frames to the browser."""
+    """Open Gemini Live for one read-aloud turn and pipe its frames to the browser. Metered the
+    same way as the relay: the line up, every audio part down, one row at the end."""
+    meter = LiveMeter("voice.tts")
+    meter.text(text)
     try:
         async with (
             aiohttp.ClientSession() as http,
@@ -715,8 +919,11 @@ async def _stream_one_line(
                     frame = msg.data.decode()
                 else:
                     break
+                meter.down(frame)
                 await client.send_text(frame)
                 if '"turnComplete"' in frame or '"turn_complete"' in frame:
                     break
     except (aiohttp.ClientError, WebSocketDisconnect, RuntimeError, OSError):
         pass  # upstream/socket failure — client falls back to buffered TTS on a chunkless close
+    finally:
+        meter.close()

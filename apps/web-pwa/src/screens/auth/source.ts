@@ -33,6 +33,27 @@ export function signInSourceOf(method: MethodName): SignInSource {
   }
 }
 
+/**
+ * The word the last door wrote, read ONCE by the first authenticated boot after it and then
+ * cleared. Device-level on purpose (store/scope.ts DEVICE_KEYS): it is written before there is a
+ * subject to key it to, and it means nothing after the boot that reads it.
+ */
+export function takeSignInSource(
+  store: {
+    getItem(key: string): string | null;
+    removeItem(key: string): void;
+  } | null = typeof localStorage === 'undefined' ? null : localStorage,
+): string | null {
+  if (!store) return null;
+  try {
+    const source = store.getItem(SIGNIN_SOURCE_KEY);
+    if (source) store.removeItem(SIGNIN_SOURCE_KEY);
+    return source || null;
+  } catch {
+    return null;
+  }
+}
+
 export function rememberSignInSource(
   method: MethodName,
   store: { setItem(key: string, value: string): void } | null = typeof localStorage === 'undefined'

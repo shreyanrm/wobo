@@ -19,6 +19,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { currentFidelity, isOffline } from '../shell/resilience';
 import { type ChatTurn, useWoboChat } from './chat';
+import { speakWithDevice, stopDeviceVoice } from './device-voice';
 import { base64ToFloat32 } from './voice';
 
 // Family N: a stalled 2G link must never leave the narration gate hanging on a fetch that never
@@ -91,6 +92,7 @@ if (typeof window !== 'undefined') {
 
 export function stopSpeaking(): void {
   speechGen++; // abort any in-flight sentence sequence
+  stopDeviceVoice(); // the device voice, when it was the one reading
   // Cut off any streamed chunks scheduled ahead on the shared context.
   for (const node of streamSources) {
     try {
@@ -510,6 +512,7 @@ export async function speakLine(
         return;
       }
       if (cur) await playSamples(cur.samples, cur.rate, gen);
+      else await lastResort(parts[i] as string, gen);
       if (gen !== speechGen) {
         finish();
         return;
@@ -537,6 +540,20 @@ function waitMs(ms: number): Promise<void> {
 }
 
 /**
+ * The gateway had no voice for this sentence (both of its voices failed, or the network did):
+ * the device reads the same words. When the device cannot either, the sentence is held on the
+ * reading clock as before, so the ink stays paced. Never while muted, never offline-only text.
+ */
+async function lastResort(sentence: string, gen: number): Promise<void> {
+  if (gen !== speechGen || isMuted() || !GATEWAY_URL || isOffline()) {
+    await waitMs(estimateReadMs(sentence));
+    return;
+  }
+  const spoke = await speakWithDevice(sentence);
+  if (!spoke && gen === speechGen) await waitMs(estimateReadMs(sentence));
+}
+
+/**
  * Speak a line sentence by sentence, calling back on each sentence's start (with its measured audio
  * length when voiced) and end. The first sentence plays while the next synthesizes. Muted/keyless/
  * low-fi still run the callbacks on the reading clock so the ink stays paced.
@@ -559,6 +576,7 @@ async function speakSentences(
     const voicedMs = cur ? (cur.samples.length / cur.rate) * 1000 : undefined;
     hooks?.onStart?.(i, voicedMs);
     if (cur && !isMuted()) await playSamples(cur.samples, cur.rate, gen);
+    else if (canVoice && i < voiceCount) await lastResort(segs[i] as string, gen);
     else await waitMs(estimateReadMs(segs[i] as string));
     if (gen !== speechGen) return;
     hooks?.onEnd?.(i);
@@ -713,6 +731,7 @@ export function startUtterance(clock?: () => UtteranceClock | null | undefined):
         pending =
           canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string, next.beat) : null;
         if (cur && !isMuted()) await playSamples(cur.samples, cur.rate, gen);
+        else if (canVoice && i < voiceCount) await lastResort(segs[i] as string, gen);
         else await waitMs(estimateReadMs(segs[i] as string));
         if (gen !== speechGen) return;
       }

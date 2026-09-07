@@ -16,7 +16,6 @@ import { loadWorld } from '../../curriculum/world';
 import type { Topic } from '../../data/model';
 import type { Route } from '../../shell/router';
 import type { ProgressStore } from '../../store/progress';
-import { scoped } from '../../store/scope';
 import { XP_AWARDS } from '../../store/progress';
 import { hueForTopic } from '../../ui/hues';
 
@@ -51,32 +50,6 @@ export interface ThreadStop {
 
 /** The bonus quest's colour — marigold, the earned moment (DESIGN.md §0), never a raw hex. */
 const MOLTEN = 'var(--marigold)';
-const DAILY_KEY = 'wobo-daily-quest-v1';
-const todayStr = (): string => new Date().toISOString().slice(0, 10);
-
-/** Whether today's bonus quest chest has already been claimed. */
-function claimedToday(): boolean {
-  try {
-    return scoped.getItem(DAILY_KEY) === todayStr();
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Claim today's bonus quest. Returns true only on the first claim of the day, so the caller
- * awards the reward XP exactly once. The date-keyed flag is the real per-day de-dup.
- */
-export function claimDailyQuest(): boolean {
-  try {
-    if (scoped.getItem(DAILY_KEY) === todayStr()) return false;
-    scoped.setItem(DAILY_KEY, todayStr());
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /** The one stop a learner with no syllabus in front of them sees. */
 function emptyStop(hasWorld: boolean): ThreadStop {
   return hasWorld
@@ -243,14 +216,16 @@ export function deriveStops(p: Pick<ProgressStore, 'completed' | 'topicProgress'
   const seed = Math.floor(Date.now() / 86_400_000);
   const pick = eligible[seed % eligible.length] as keyof typeof quests;
   const q = quests[pick];
-  const claimed = claimedToday();
+  // Nothing claims the bonus yet: the claim used to be a device-only flag nobody set, which on a
+  // learner's return would have let today's award be taken twice. When a claim exists it belongs
+  // in the account (docs/MEMORY-LAW.md), not under a device key.
   stops.push({
     id: 'bonus',
     kind: 'bonus',
     title: q.title,
-    meta: claimed ? 'daily quest · bonus claimed' : q.meta,
+    meta: q.meta,
     bounty: q.bounty,
-    done: claimed,
+    done: false,
     hue: MOLTEN,
     route: q.route,
   });

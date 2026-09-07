@@ -2085,6 +2085,7 @@ source = { editable = "content/atom" }
 dependencies = [
     { name = "litellm" },
     { name = "pydantic" },
+    { name = "wobo-gateway" },
     { name = "wobo-verifier" },
 ]
 
@@ -2092,6 +2093,7 @@ dependencies = [
 requires-dist = [
     { name = "litellm", specifier = ">=1.50" },
     { name = "pydantic", specifier = ">=2.7" },
+    { name = "wobo-gateway", editable = "services/gateway" },
     { name = "wobo-verifier", editable = "services/verifier" },
 ]
 

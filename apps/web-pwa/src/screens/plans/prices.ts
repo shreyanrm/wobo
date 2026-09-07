@@ -309,6 +309,21 @@ export function yearlyTotalLabel(tier: PlanTier, market: Market): string | null 
   return money ? formatMoney(money) : null;
 }
 
+/**
+ * WHAT IS TAKEN TODAY for this tier on this period: the whole year on the yearly period, the
+ * month on the monthly one. It is the number the checkout states and the plans cards never do
+ * (docs/PRICING.md). Null on the free tier, which takes nothing.
+ */
+export function chargeOf(tier: PlanTier, market: Market, period: Period): Money | null {
+  return period === 'yearly' ? yearlyTotalOf(tier, market) : priceOf(tier, market, 'monthly');
+}
+
+/** `chargeOf`, written. */
+export function chargeLabel(tier: PlanTier, market: Market, period: Period): string | null {
+  const money = chargeOf(tier, market, period);
+  return money ? formatMoney(money) : null;
+}
+
 /** The line under the per-month figure, or null on the free tier, which has no period. */
 export function billedLine(tier: PlanTier, period: Period): string | null {
   return tier.price ? BILLED[period] : null;

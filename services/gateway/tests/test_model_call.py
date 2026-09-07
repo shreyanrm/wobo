@@ -3,7 +3,13 @@
 A provider that refuses a sampling knob answers 400. On the PRIMARY that 400 sends the call
 down the fallback chain, where the next model refuses the same field, and the learner is told
 nothing at all. Proved in production on 2026-09-04. These tests hold the forgiveness narrow:
-the refused knob is dropped and the call retried once; every other error is raised as it came.
+the refused knob is dropped and the call retried once, for THAT model; every other error is
+raised as it came.
+
+Since 2026-09-05 ``model_call`` walks the chain itself, one model per litellm call, so a rung's
+refusal is seen rather than hidden behind the last rung's error. The tests that used to encode
+the workarounds for litellm's opacity (a blind retry on any error from a chain) were rewritten
+to the behaviour that replaced them; ``test_router_fallbacks.py`` holds the credit-skip half.
 """
 
 from __future__ import annotations
@@ -27,6 +33,8 @@ class _Fake:
     def completion(self, **kwargs: Any) -> Any:
         self.calls.append(kwargs)
         step = self.script.pop(0)
+        if callable(step) and not isinstance(step, Exception):
+            step = step()  # a step that takes time before it answers or fails
         if isinstance(step, Exception):
             raise step
         return step
@@ -80,16 +88,17 @@ def test_a_failure_that_is_not_a_bad_request_is_raised_as_it_came(fake) -> None:
     assert len(f.calls) == 1, "a real failure is never retried here"
 
 
-def test_a_bad_request_gets_one_try_without_the_optional_knobs(fake) -> None:
-    """The production shape again: litellm raises the LAST fallback's error, so the refusal that
-    actually broke the chain is invisible. One cheap attempt without the knobs tells them apart."""
+def test_a_400_that_names_nothing_gets_one_try_without_the_optional_knobs(fake) -> None:
+    """litellm wraps some provider refusals in a message that does not repeat the field. One cheap
+    attempt without the knobs, on the SAME model, tells a fussy model from a broken request."""
 
     class BadRequestError(Exception):
         pass
 
-    f = fake([BadRequestError("AnthropicException - credit balance is too low"), "answered"])
+    f = fake([BadRequestError("OpenAIException - invalid request"), "answered"])
     assert model_call.complete(model="m", fallbacks=["n"], temperature=0.2) == "answered"
     assert len(f.calls) == 2 and "temperature" not in f.calls[1]
+    assert f.calls[1]["model"] == "m", "the retry is on the model that objected, not the next rung"
 
 
 def test_when_the_second_try_fails_too_the_first_error_is_what_we_report(fake) -> None:
@@ -98,10 +107,22 @@ def test_when_the_second_try_fails_too_the_first_error_is_what_we_report(fake) -
     class BadRequestError(Exception):
         pass
 
-    f = fake([BadRequestError("credit balance is too low"), BadRequestError("still no credit")])
-    with pytest.raises(Exception, match="credit balance is too low"):
+    f = fake([BadRequestError("invalid request shape"), BadRequestError("still invalid")])
+    with pytest.raises(Exception, match="invalid request shape"):
         model_call.complete(model="m", temperature=0.2)
     assert len(f.calls) == 2
+
+
+def test_a_credit_refusal_is_never_retried_on_the_same_model(fake) -> None:
+    """An empty balance is not a fussy knob. Asking again costs a round trip and answers nothing."""
+
+    class BadRequestError(Exception):
+        pass
+
+    f = fake([BadRequestError("AnthropicException - Your credit balance is too low")])
+    with pytest.raises(BadRequestError):
+        model_call.complete(model="m", temperature=0.2)
+    assert len(f.calls) == 1
 
 
 def test_a_400_that_merely_mentions_temperature_in_passing_is_not_swallowed(fake) -> None:
@@ -120,10 +141,13 @@ def test_a_second_refusal_is_not_retried_again(fake) -> None:
         model_call.complete(model="m", temperature=0.2)
     assert len(f.calls) == 2
 
-def test_a_knob_the_chain_refuses_is_dropped_before_the_call(fake, monkeypatch) -> None:
-    """The production shape: the PRIMARY takes temperature, a FALLBACK does not, and litellm
-    reuses one set of kwargs for both. Checked up front, the call never fails at all."""
-    f = fake(["answered"])
+
+def test_a_knob_is_pruned_for_the_model_that_refuses_it_and_kept_for_the_rest(
+    fake, monkeypatch
+) -> None:
+    """The PRIMARY takes temperature, a FALLBACK does not. Each rung gets its own kwargs now, so
+    the primary keeps its sampling and only the fussy rung goes without, checked up front."""
+    f = fake([Exception("503 ServiceUnavailableError"), "answered"])
     import litellm as installed  # the fake the fixture just put in sys.modules
 
     monkeypatch.setattr(
@@ -136,9 +160,9 @@ def test_a_knob_the_chain_refuses_is_dropped_before_the_call(fake, monkeypatch) 
         model="openai/willing", fallbacks=["openai/fussy"], temperature=0.2, max_tokens=220
     )
     assert out == "answered"
-    assert len(f.calls) == 1, "no failure, so no retry"
-    assert "temperature" not in f.calls[0]
-    assert f.calls[0]["max_tokens"] == 220
+    assert len(f.calls) == 2
+    assert f.calls[0]["temperature"] == 0.2, "the willing primary keeps its knob"
+    assert "temperature" not in f.calls[1] and f.calls[1]["max_tokens"] == 220
 
 
 def test_a_chain_that_all_accepts_the_knob_keeps_it(fake, monkeypatch) -> None:
@@ -152,78 +176,81 @@ def test_a_chain_that_all_accepts_the_knob_keeps_it(fake, monkeypatch) -> None:
     assert f.calls[0]["temperature"] == 0.2
 
 
-def test_a_chain_whose_last_error_hides_a_middle_refusal_still_retries(fake) -> None:
+def test_a_middle_rungs_refusal_is_seen_not_hidden(fake) -> None:
     """The third-provider case, found live on 2026-09-05.
 
-    The chain is three models deep now (``routing``: "A THIRD provider on every text chain"). The
-    middle one refuses ``temperature``; the LAST one fails for an unrelated reason — a bad key, an
-    empty balance — and litellm raises only that one. So the error we are handed is an
-    ``APIConnectionError`` about a provider that never had an opinion about the knob, and the
-    heuristics above see nothing to act on.
+    The chain is three models deep. The middle one refuses ``temperature``; under litellm's own
+    fallback runner that refusal was swallowed and only the LAST rung's error (a Gemini
+    authentication line) ever reached us, so nothing could act on it. Every live board plan in the
+    gateway failed that way, ``board_plan_for`` swallowed the failure exactly as designed, and the
+    learner got the KEYLESS keyword board with one of four canned sentences over it.
 
-    What it cost: every live board plan in the gateway failed, ``board_plan_for`` swallowed the
-    failure exactly as it is designed to, and the learner got the KEYLESS keyword board with one of
-    four canned sentences over it. A board nobody planned, served as though somebody had.
-
-    The rule this test fixes in place: when the call carried an optional knob AND there was a
-    fallback chain, the error we were handed provably does not speak for the models it did not come
-    from, so one attempt without the knobs is owed before the failure is reported.
+    Walking the chain ourselves, the middle rung's refusal is the error in hand: that rung is
+    retried once without the knob, and the last rung is never needed.
     """
-    hidden = Exception(
-        "litellm.APIConnectionError: litellm.AuthenticationError: GeminiException - "
-        '{"error": {"code": 401, "message": "Request had invalid authentication credentials."}}'
-    )
-    f = fake([hidden, "answered without it"])
+    refusal = Exception("Unsupported value: 'temperature' does not support 0.2 with this model")
+    f = fake([Exception("500 InternalServerError: terra is having a day"), refusal, "answered"])
     out = model_call.complete(
         model="openai/terra",
         fallbacks=["anthropic/opus", "gemini/flash"],
         temperature=0.2,
         max_tokens=900,
     )
-    assert out == "answered without it"
-    assert len(f.calls) == 2
-    assert "temperature" not in f.calls[1]
-    assert f.calls[1]["max_tokens"] == 900
+    assert out == "answered"
+    assert [c["model"] for c in f.calls] == ["openai/terra", "anthropic/opus", "anthropic/opus"]
+    assert "temperature" not in f.calls[2] and f.calls[2]["max_tokens"] == 900
 
 
-def test_a_timeout_in_a_chain_is_still_a_timeout(fake) -> None:
-    """The clock is not a hidden knob refusal, and a second pass down the chain doubles it.
+def test_a_timeout_on_the_primary_moves_the_chain_on_inside_the_one_deadline(fake) -> None:
+    """The clock is not a hidden knob refusal: the timed-out rung is never retried. But it is
+    not the end of the chain either (it was, until 2026-09-07: "a chain does not buy a second
+    clock" stopped the walk, and a hanging primary was a total outage with two healthy providers
+    idle). The primary gets half of the deadline, the next rung gets what is left, and the whole
+    walk stays inside the ``timeout`` the caller set; the client's own deadline
+    (``packages/sdk/src/gateway.ts``) is 65s for a 60s turn."""
+    f = fake([TimeoutError("Request timed out after 30s"), "answered by the next rung"])
+    out = model_call.complete(
+        model="openai/terra",
+        fallbacks=["anthropic/opus", "gemini/flash"],
+        temperature=0.7,
+        timeout=60.0,
+    )
+    assert out == "answered by the next rung"
+    assert [c["model"] for c in f.calls] == ["openai/terra", "anthropic/opus"]
+    assert f.calls[0]["timeout"] == pytest.approx(30.0), "half, with two rungs behind it"
+    assert 0 < f.calls[1]["timeout"] <= 30.0, "the rest, never a fresh clock"
 
-    ``timeout=timeout_for(...)`` bounds each call at 60s for a turn; the client's own deadline
-    (``packages/sdk/src/gateway.ts``) is 65s. Retrying a timed-out chain made the worst case 120s,
-    so the learner was shown "that one is taking longer than it should" while the gateway was
-    still working, and the owner paid for the second call anyway.
-    """
-    f = fake([TimeoutError("Request timed out after 60s")])
-    with pytest.raises(TimeoutError):
-        model_call.complete(
-            model="openai/terra", fallbacks=["anthropic/opus", "gemini/flash"], temperature=0.7
-        )
-    assert len(f.calls) == 1, "a chain does not buy a timeout a second pass"
 
+def test_the_next_rung_only_gets_time_left_inside_the_deadline(fake) -> None:
+    """A fallback that outlives the caller's ceiling is worse than no fallback at all."""
 
-def test_the_blind_retry_only_uses_time_left_inside_the_deadline(fake) -> None:
-    """A retry that outlives the caller's ceiling is worse than no retry at all."""
+    import time
 
-    class Hidden(Exception):
+    class Down(Exception):
         pass
 
-    f = fake([Hidden("APIConnectionError: authentication"), "answered without it"])
-    with pytest.raises(Hidden):
+    def slow() -> Exception:
+        """The primary spends most of the deadline before it falls over."""
+        time.sleep(0.85)
+        return Down("APIConnectionError: authentication")
+
+    f = fake([slow, "answered by the next rung"])
+    with pytest.raises(Down):
         model_call.complete(
             model="openai/terra", fallbacks=["anthropic/opus"], temperature=0.2, timeout=1.0
         )
-    assert len(f.calls) == 1, "there was no room left in the deadline for a second attempt"
+    assert len(f.calls) == 1, "there was no room left in the deadline for a second rung"
 
-    f = fake([Hidden("APIConnectionError: authentication"), "answered without it"])
+    f = fake([Down("APIConnectionError: authentication"), "answered by the next rung"])
     assert (
         model_call.complete(
             model="openai/terra", fallbacks=["anthropic/opus"], temperature=0.2, timeout=60.0
         )
-        == "answered without it"
+        == "answered by the next rung"
     )
-    assert len(f.calls) == 2 and "temperature" not in f.calls[1]
-    assert f.calls[1]["timeout"] < 60.0, "the retry inherits what is left, not a fresh 60 seconds"
+    assert len(f.calls) == 2 and f.calls[1]["model"] == "anthropic/opus"
+    assert f.calls[1]["temperature"] == 0.2, "a rung that takes the knob keeps it"
+    assert f.calls[1]["timeout"] < 60.0, "the next rung inherits what is left, not a fresh 60s"
 
 
 def test_a_single_model_that_simply_fell_over_is_still_raised_as_it_came(fake) -> None:

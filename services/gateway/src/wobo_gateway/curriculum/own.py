@@ -259,12 +259,12 @@ class LiveVisionReader:
         return tier_model(Tier.GENERATE).provider_model
 
     def read(self, *, image: bytes, media_type: str) -> str:
-        import litellm
+        from wobo_gateway.model_call import complete
+        from wobo_gateway.telemetry import record_cost
 
-        litellm.drop_params = True
         model, chain = _tier_call_ids(Tier.GENERATE)
         data_url = f"data:{media_type};base64,{base64.b64encode(image).decode('ascii')}"
-        response = litellm.completion(
+        response = complete(
             model=model,
             messages=[
                 {
@@ -279,6 +279,7 @@ class LiveVisionReader:
             max_tokens=4000,
             timeout=self.timeout_s,
         )
+        record_cost(capability="curriculum.own.read", model=model, response=response)
         return response.choices[0].message.content or ""
 
 
@@ -495,11 +496,11 @@ class LiveStructureModel:
         return tier_model(Tier.GENERATE).provider_model
 
     def structure(self, *, text: str, hint: dict[str, Any]) -> dict[str, Any]:
-        import litellm
+        from wobo_gateway.model_call import complete
+        from wobo_gateway.telemetry import record_cost
 
-        litellm.drop_params = True
         model, chain = _tier_call_ids(Tier.GENERATE)
-        response = litellm.completion(
+        response = complete(
             model=model,
             messages=[
                 {"role": "system", "content": _STRUCTURE_SYSTEM},
@@ -514,6 +515,7 @@ class LiveStructureModel:
             max_tokens=8000,
             timeout=self.timeout_s,
         )
+        record_cost(capability="curriculum.own.read", model=model, response=response)
         return _extract_json(response.choices[0].message.content or "")
 
 

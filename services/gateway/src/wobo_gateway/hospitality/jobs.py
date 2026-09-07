@@ -453,6 +453,7 @@ def run_sunday(
     """One pass over every linked family. Safe to run every hour: only the families whose clock
     says Sunday evening are due, and a family already noted this week is skipped by the log."""
     moment = (now or datetime.now(UTC)).astimezone(UTC)
+    gap_at_start: dict[str, datetime | None] = {}
     source = families if families is not None else PostgrestFamilies()
     weeks = week_source if week_source is not None else PostgrestWeek()
     calendar = get_calendar()
@@ -485,7 +486,12 @@ def run_sunday(
         if mail_log().seen(key):
             report["duplicate"] += 1
             continue
-        if gap_until(family.parent_email, moment) is not None:
+        # One reading of the inbox gap per address for the whole pass, taken BEFORE this pass
+        # sends anything: two children with one parent address both get their note tonight,
+        # and the twenty-four-hour rule still holds against everything sent before the pass.
+        if family.parent_email not in gap_at_start:
+            gap_at_start[family.parent_email] = gap_until(family.parent_email, moment)
+        if gap_at_start[family.parent_email] is not None:
             _skip(report, "gap")
             continue
         end = local.date()
@@ -506,7 +512,12 @@ def run_sunday(
             report["would_send"] += 1
             continue
         result = send(
-            "sunday_note", family.parent_email, data, learner_id=family.learner_id, period=period
+            "sunday_note",
+            family.parent_email,
+            data,
+            learner_id=family.learner_id,
+            period=period,
+            at=moment,
         )
         _count_result(report, result)
     logger.info("hospitality: sunday pass", extra={"fields": report})
@@ -795,7 +806,7 @@ def run_wishes(
         if dry_run:
             report["would_send"] += 1
             continue
-        result = send("wish", to, data, learner_id=family.learner_id, period=period)
+        result = send("wish", to, data, learner_id=family.learner_id, period=period, at=moment)
         _count_result(report, result)
         logger.info(
             "hospitality: wish",

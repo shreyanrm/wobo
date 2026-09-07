@@ -83,6 +83,14 @@ export interface Sdk {
    * profile row. Undefined when no Supabase keys are configured (pure local build).
    */
   account?: AccountLayer;
+  /**
+   * The app moved a learner's buckets under a new subject (an anonymous learner signed in for real:
+   * `store/scope.ts` inheritScope moves the SDK's `:<anon>` keys under the account) and the caches
+   * built a moment earlier have to read them: this re-keys the state, thread and mastery caches
+   * and feeds the mastery evidence back into the KGtoPG binding. The anonymous sign-in calls the
+   * same thing on its own the moment its session lands.
+   */
+  rekey(subject: string): void;
 }
 
 /** The cached profile row for a subject — what a returning sign-in reconstructs their world from. */
@@ -249,7 +257,13 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
     if (!supabaseAuth || supabaseAuth.isAuthenticated()) return;
     establishing ??= supabaseAuth.auth
       .signInAnonymously()
-      .then(() => undefined)
+      .then(() => {
+        // THE CACHES FOLLOW. Built before the session existed, they were keyed to nobody and
+        // writing the plain keys; from here on they are this learner's, and what was written
+        // plain moves under them (state.ts adoptPlainKeys).
+        const subject = supabaseAuth.subjectId;
+        if (subject) rekeyCaches(subject);
+      })
       .catch(() => undefined) // refused or offline — the device stays local, never broken
       .finally(() => {
         establishing = null;
@@ -354,7 +368,17 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
     save: (snapshot: MasterySnapshot) => mastery.save(snapshot),
     subscribe: (listener: () => void) => mastery.subscribe(listener),
     hydrate: async () => kgtopg.hydrateEvidence(subjectId, await mastery.hydrate()),
+    flush: () => mastery.flush(),
+    rekey: (scope: string) => {
+      mastery.rekey(scope);
+      kgtopg.hydrateEvidence(subjectId, mastery.loadCache());
+    },
   };
+
+  function rekeyCaches(subject: string): void {
+    state.rekey(subject);
+    masteryLayer.rekey(subject);
+  }
 
   return {
     config,
@@ -371,5 +395,6 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
     me,
     sync,
     account,
+    rekey: rekeyCaches,
   };
 }

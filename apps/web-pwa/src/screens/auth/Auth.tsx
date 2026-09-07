@@ -62,6 +62,7 @@ import {
 import { type ProviderName, waysIn } from './doors';
 import { fieldProblem, fieldShape, type Glyph } from './field';
 import { controlOf, marks, type Problem, type Where, whereBlocked, whereField } from './problem';
+import { landingAfterDoor } from './run';
 import { Steps } from './Steps';
 import { rememberSignInSource } from './source';
 import { ensureAuthStyles } from './styles';
@@ -274,10 +275,24 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
     const id = controlOf(where);
     if (id && typeof document !== 'undefined') document.getElementById(id)?.focus();
   };
-  /** Signed in without leaving the page: the run takes over, or the app does. */
+  /**
+   * Signed in. Under live auth the page is left, so the SDK is rebuilt on the session that just
+   * landed and nothing this learner does is keyed to nobody (`run.ts` landingAfterDoor says why);
+   * under the dev mock the run takes over, or the app does, without leaving the page.
+   */
   const arrived = () => {
-    if (run) run.onSignedIn();
-    else router.replace({ name: mode === 'sign-up' ? 'onboarding' : 'home' });
+    const landing = landingAfterDoor({
+      devAuth: sdk.config.devAuth,
+      mode,
+      run: run ?? null,
+      origin: typeof window === 'undefined' ? '' : window.location.origin,
+    });
+    if ('leave' in landing) {
+      window.location.assign(landing.leave);
+      return;
+    }
+    if (landing.stay === 'run') run?.onSignedIn();
+    else router.replace({ name: landing.stay });
   };
   /** `data-invalid` on the control this problem is about, and on no other. */
   const wrong = (where: Where) =>

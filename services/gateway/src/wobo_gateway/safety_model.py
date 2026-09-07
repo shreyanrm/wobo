@@ -37,7 +37,6 @@ from wobo_gateway.safety_signals import (
     CATEGORY_CRISIS,
     CATEGORY_MODERATION,
     CATEGORY_OK,
-    HARM_FAMILIES,
     RuleOutcome,
     SafetyVerdict,
     normalize,
@@ -336,8 +335,21 @@ class ModelClassifier:
             self._cache.popitem(last=False)
 
     def _call(self, text: str) -> tuple[str, str] | None:
+        """One verdict from the chain: openai, then gemini, inside ONE deadline.
+
+        The chain is ``model_call``'s to walk, like every other call in the service: one model
+        per call, the next rung given what is left of the policy's deadline (its floor scales to
+        a short deadline, so the Gemini rung is reachable inside 1.5 s), the credit marking and
+        the health record the same as everywhere else. A child's question never waits longer for
+        a second opinion than it would have for the first. When every rung fails the primary's
+        error is raised (or ``ProvidersOut`` when none could be asked) and the rule layer answers
+        (:func:`fail_safe`). The ledger row names who actually answered: openai, or gemini behind
+        it. The message itself never reaches the ledger; a row is tokens and a model id, never a
+        transcript.
+        """
         from wobo_gateway.model_call import complete
         from wobo_gateway.providers import max_tokens_for
+        from wobo_gateway.telemetry import record_cost
 
         primary, fallbacks = _chain()
         response = complete(
@@ -354,6 +366,7 @@ class ModelClassifier:
             # strict-JSON classification does not need the knob, and the knob cost a lesson.
             timeout=timeout_s(),
         )
+        record_cost(capability=CAPABILITY, model=primary, response=response)
         return _parse(response.choices[0].message.content or "")
 
     def adjudicate(self, text: str, outcome: RuleOutcome) -> SafetyVerdict:

@@ -1,8 +1,23 @@
-"""Gemini TTS narration — the live sidecar for ``engine.video``.
+"""Spoken lines: Gemini text-to-speech first, OpenAI text-to-speech behind it.
 
-Returns ``None`` whenever ``GEMINI_API_KEY`` is absent or the call fails: the caller
-serves ``narrationAudio: null`` and the learner never sees an error. stdlib urllib
-only — this path never runs keyless, so tests and CI never touch the network.
+Gemini's native audio speaks first, with the beat instruction as it is. When Google does not
+answer (an HTTP error, a dead network, a refusal, a silent 200 twice) the same line goes to
+OpenAI's text-to-speech with the same instruction in that API's own ``instructions`` field, and
+the usage ledger row names whichever model actually spoke. When neither speaks the answer is
+``None``: the read-aloud route answers 502 and the client reads the same words with the device's
+own voice (``apps/web-pwa/src/wobo/device-voice.ts``); the video engine serves
+``narrationAudio: null``. A learner never sees an error either way.
+
+**The same marks as the text funnel, since 2026-09-07.** Each voice is asked only when
+``health.provider_available`` says its provider is not marked out, and what it answers is fed
+back through ``model_call.note_failure``: a quota refusal marks the provider out at once, a
+streak of ordinary failures or two timeouts marks it for a minute, a success clears it. Until
+then a Google 429 was asked again on every spoken line and a Google hang was waited on for the
+whole HTTP timeout on every line. The Gemini rung also gets a short deadline of its own
+(:data:`_PRIMARY_TIMEOUT_S`) whenever OpenAI stands behind it, so a hang costs seconds, not a
+minute, before the fallback speaks.
+
+stdlib urllib only — neither path runs keyless, so tests and CI never touch the network.
 """
 
 from __future__ import annotations
@@ -16,21 +31,220 @@ import re
 import struct
 from typing import Any
 
+from wobo_gateway.routing import Tier, provider_of, tier_chain
+
 logger = logging.getLogger("wobo.gateway")
+
+
+def _openai_rung(tier: Tier, *, default: str) -> str:
+    """The OpenAI id on a media tier's chain: the fallback the router says this seam reaches for."""
+    for model in tier_chain(tier):
+        if provider_of(model) == "openai":
+            return model
+    return default
+
 
 TTS_MODEL = "gemini-2.5-flash-preview-tts"
 _TTS_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{TTS_MODEL}:generateContent"
 _HTTP_TIMEOUT_S = 60.0
+#: The Gemini rung's deadline when OpenAI stands behind it. A line is at most 600 characters and
+#: Gemini's text-to-speech answers it in a few seconds; twenty without an answer is a hang, and
+#: the learner is better served by the other voice than by forty more seconds of waiting.
+_PRIMARY_TIMEOUT_S = 20.0
 _VOICE = "Kore"
+
+#: The voice behind Gemini's, read from the router's ``voice`` row (``routing.DEFAULT_TABLE``,
+#: overridable by ``WOBO_TIER_VOICE_CHAIN``). ``gpt-4o-mini-tts`` is the one OpenAI
+#: text-to-speech model that takes an ``instructions`` field (``tts-1`` and ``tts-1-hd`` do not,
+#: per the createSpeech reference), which is what lets the beat instruction ride whole. WAV out,
+#: so the client's decoder and the ledger's second-counter see the container Gemini's PCM is
+#: wrapped in.
+OPENAI_TTS_ID = _openai_rung(Tier.VOICE, default="openai/gpt-4o-mini-tts")
+OPENAI_TTS_MODEL = OPENAI_TTS_ID.split("/", 1)[1]
+_OPENAI_TTS_URL = "https://api.openai.com/v1/audio/speech"
+_OPENAI_VOICE = "sage"
+#: OpenAI's ``input`` ceiling is 4096 characters; the routes cap a line at 600 long before this.
+_OPENAI_INPUT_MAX = 4096
+
+#: The Gemini id the ledger carries, provider first, so the ``provider`` column is honest.
+GEMINI_TTS_ID = f"gemini/{TTS_MODEL}"
 #: How many times one line is asked for when the answer is 200 with no audio in it. Two: the
 #: second ask has answered every time it was tried, and a third would only delay the fallback.
 _SILENT_200_TRIES = 2
 
 
+def _google_key() -> tuple[str | None, str]:
+    """(the Google key, which variable it came from). Read to use, never printed."""
+    if os.getenv("GEMINI_API_KEY"):
+        return os.getenv("GEMINI_API_KEY"), "GEMINI_API_KEY"
+    return os.getenv("GOOGLE_AI_API_KEY"), "GOOGLE_AI_API_KEY"
+
+
+def speakers_configured() -> bool:
+    """Is there any voice to speak with? One key of either vendor is enough."""
+    return bool(_google_key()[0] or os.getenv("OPENAI_API_KEY"))
+
+
 def synthesize_narration(
     text: str, *, instruction: str | None = None, capability: str = "voice.tts"
 ) -> dict[str, str] | None:
-    """Narration audio for a motion piece. ``{"mime", "b64"}`` or ``None``.
+    """One spoken line: Gemini first, OpenAI behind it. ``{"mime", "b64"}`` or ``None``.
+
+    ``instruction`` is how the line is to be spoken (the accent and the beat, never what is
+    said); it reaches both voices whole. ``capability`` is which seam asked, for the usage
+    ledger only: the default names the read-aloud route and the video engine passes
+    ``voice.narration``, so a learner asking to be read to and a narrated explainer's audio can be
+    told apart in the bill. These are paid raw HTTPS calls that never pass through
+    ``telemetry.record_cost``, so the row is written here, and it says which one answered
+    (``model_served``) against the one asked first (``model_requested``): a day when every line
+    came from the fallback reads as exactly that.
+    """
+    if not text.strip():
+        return None
+    google, key_name = _google_key()
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not google and not openai_key:
+        logger.warning(
+            "tts: no key present (checked GEMINI_API_KEY, GOOGLE_AI_API_KEY, OPENAI_API_KEY)"
+        )
+        return None
+    from wobo_gateway import health, telemetry
+
+    requested = GEMINI_TTS_ID if google else OPENAI_TTS_ID
+    audio: dict[str, str] | None = None
+    if google:
+        if health.provider_available(GEMINI_TTS_ID):
+            audio = _gemini_speak(
+                text,
+                instruction,
+                google,
+                key_name,
+                timeout_s=_PRIMARY_TIMEOUT_S if openai_key else _HTTP_TIMEOUT_S,
+            )
+            if audio is not None:
+                _record_spoken(capability, audio, served=GEMINI_TTS_ID, requested=requested)
+                return audio
+        else:
+            telemetry.note_skipped(provider="gemini", model=GEMINI_TTS_ID)
+    if openai_key:
+        if health.provider_available(OPENAI_TTS_ID):
+            audio = _openai_speak(text, instruction, openai_key)
+            if audio is not None:
+                _record_spoken(capability, audio, served=OPENAI_TTS_ID, requested=requested)
+                return audio
+        else:
+            telemetry.note_skipped(provider="openai", model=OPENAI_TTS_ID)
+    return None
+
+
+def _openai_speak(text: str, instruction: str | None, key: str) -> dict[str, str] | None:
+    """The same line through OpenAI's text-to-speech, the beat instruction in its own field.
+
+    ``POST /v1/audio/speech`` (the createSpeech reference, read 2026-09-05 and again 2026-09-07,
+    when it listed ``gpt-4o-mini-tts`` and a dated snapshot of it beside the two
+    ``tts-1`` models): ``model``,
+    ``input``, ``voice``, an optional ``instructions`` string that ``gpt-4o-mini-tts`` honours,
+    and ``response_format`` from mp3, opus, aac, flac, wav, pcm. The body of the answer is the
+    audio itself, not JSON. The line goes in ``input`` alone: the instruction has its own field
+    here, so the marker sentence Gemini needs (:func:`spoken_prompt`) is not sent.
+    """
+    import urllib.error
+    import urllib.request
+
+    body: dict[str, object] = {
+        "model": OPENAI_TTS_MODEL,
+        "input": text[:_OPENAI_INPUT_MAX],
+        "voice": _OPENAI_VOICE,
+        "response_format": "wav",
+    }
+    how = (instruction or "").strip()
+    if how:
+        body["instructions"] = how
+    req = urllib.request.Request(
+        _OPENAI_TTS_URL,
+        data=json.dumps(body).encode(),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        method="POST",
+    )
+    from wobo_gateway import health
+    from wobo_gateway.model_call import note_failure
+
+    try:
+        with urllib.request.urlopen(req, timeout=_HTTP_TIMEOUT_S) as resp:
+            raw = resp.read()
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        with contextlib.suppress(OSError):
+            detail = exc.read().decode(errors="replace")[:300]
+        logger.warning("tts: OpenAI HTTP %s — %s", exc.code, detail)
+        note_failure(OPENAI_TTS_ID, exc, detail=detail)
+        return None
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+        logger.warning("tts: OpenAI request failed — %s: %s", type(exc).__name__, exc)
+        note_failure(OPENAI_TTS_ID, exc)
+        return None
+    if not raw or not raw.startswith(b"RIFF"):
+        logger.warning("tts: OpenAI answered with no WAV audio")
+        return None
+    health.record_model(OPENAI_TTS_ID, ok=True)
+    return _rewrap_wav(raw)
+
+
+def _rewrap_wav(raw: bytes) -> dict[str, str] | None:
+    """A WAV with an honest header. OpenAI streams its WAV, so the RIFF and data sizes in the
+    header are placeholders (0xFFFFFFFF) rather than the real lengths; the standard library's
+    reader takes them at their word and measures a two-second line at twenty-four hours, which
+    the ledger would bill and the video renderer would wait for (proved live, 2026-09-05). So the
+    samples are lifted out and wrapped again with the sizes that are true, in the same container
+    Gemini's PCM gets. ``None`` when the bytes are not a WAV with a fmt and a data chunk."""
+    try:
+        if raw[8:12] != b"WAVE":
+            return None
+        pos = 12
+        channels, rate, bits = 1, 24000, 16
+        data: bytes | None = None
+        while pos + 8 <= len(raw):
+            chunk, size = raw[pos : pos + 4], struct.unpack("<I", raw[pos + 4 : pos + 8])[0]
+            body = raw[pos + 8 :]
+            if chunk == b"fmt " and size >= 16:
+                _fmt, channels, rate, _byte_rate, _align, bits = struct.unpack("<HHIIHH", body[:16])
+            elif chunk == b"data":
+                data = body if size == 0xFFFFFFFF or size > len(body) else body[:size]
+                break
+            pos += 8 + size + (size & 1)
+        if data is None or not rate:
+            return None
+    except (struct.error, IndexError):
+        return None
+    align = max(1, channels * bits // 8)
+    header = struct.pack(
+        "<4sI4s4sIHHIIHH4sI",
+        b"RIFF",
+        36 + len(data),
+        b"WAVE",
+        b"fmt ",
+        16,
+        1,
+        channels,
+        rate,
+        rate * align,
+        align,
+        bits,
+        b"data",
+        len(data),
+    )
+    return {"mime": "audio/wav", "b64": base64.b64encode(header + data).decode("ascii")}
+
+
+def _gemini_speak(
+    text: str,
+    instruction: str | None,
+    key: str,
+    key_name: str,
+    *,
+    timeout_s: float = _HTTP_TIMEOUT_S,
+) -> dict[str, str] | None:
+    """The line through Gemini's text-to-speech. ``{"mime", "b64"}`` or ``None``.
 
     ``instruction`` is an optional instruction carried with the line — how it is to be spoken,
     never what is said. The read-aloud path uses it for the learner's accent and for the beat
@@ -51,21 +265,13 @@ def synthesize_narration(
     begin (:func:`spoken_prompt`). The listening pass transcribes what came back and the
     transcript is the line and only the line.
 
-    ``capability`` is which seam asked. It exists only for the usage ledger: this call is a paid
-    request to Google that does NOT pass through ``telemetry.record_cost`` (it is a raw HTTPS POST,
-    not a litellm completion), so until now it has been the one class of model call in the product
-    that cost money and left no accounting trace at all. The default names the read-aloud route;
-    the video engine passes ``voice.narration`` so a learner asking to be read to and a narrated
-    explainer's audio can be told apart in the bill.
+    Nothing is recorded here: the caller writes the ledger row once it knows who spoke.
     """
     import urllib.error
     import urllib.request
 
-    key_name = "GEMINI_API_KEY" if os.getenv("GEMINI_API_KEY") else "GOOGLE_AI_API_KEY"
-    key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
-    if not key or not text.strip():
-        logger.warning("tts: no key present (checked GEMINI_API_KEY, GOOGLE_AI_API_KEY)")
-        return None
+    from wobo_gateway import health
+    from wobo_gateway.model_call import note_failure
 
     body: dict[str, object] = {
         # The instruction, when there is one, is in the prompt ahead of the line: this model
@@ -90,7 +296,7 @@ def synthesize_narration(
             method="POST",
         )
         try:
-            with urllib.request.urlopen(req, timeout=_HTTP_TIMEOUT_S) as resp:
+            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
                 payload = json.loads(resp.read().decode())
         except (
             urllib.error.HTTPError
@@ -99,10 +305,12 @@ def synthesize_narration(
             with contextlib.suppress(OSError):
                 detail = exc.read().decode(errors="replace")[:300]
             logger.warning("tts: Google HTTP %s via %s — %s", exc.code, key_name, detail)
+            note_failure(GEMINI_TTS_ID, exc, detail=detail)
             return None
         except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
             # a fast failure here (before a real round-trip) means the container cannot reach Google
             logger.warning("tts: request failed via %s — %s: %s", key_name, type(exc).__name__, exc)
+            note_failure(GEMINI_TTS_ID, exc)
             return None
 
         for cand in payload.get("candidates") or []:
@@ -112,9 +320,8 @@ def synthesize_narration(
                     mime = (
                         inline.get("mimeType") or inline.get("mime_type") or "audio/pcm;rate=24000"
                     )
-                    audio = _as_playable(str(mime), str(inline["data"]))
-                    _record_spoken(capability, audio)
-                    return audio
+                    health.record_model(GEMINI_TTS_ID, ok=True)
+                    return _as_playable(str(mime), str(inline["data"]))
         refused = refusal_in(payload)
         if refused:
             # A 200 with no audio is also what a refusal looks like, and a refusal asked again
@@ -175,8 +382,17 @@ def spoken_prompt(text: str, instruction: str | None = None) -> str:
     return f"{how}\n\n{_READ_ONLY_THIS}\n\n{text}"
 
 
-def _record_spoken(capability: str, audio: dict[str, str]) -> None:
+def _record_spoken(
+    capability: str,
+    audio: dict[str, str],
+    *,
+    served: str = GEMINI_TTS_ID,
+    requested: str | None = None,
+) -> None:
     """Put one spoken line in the usage ledger, measured in SECONDS of audio.
+
+    ``served`` is the model that actually spoke and ``requested`` the one asked first; when they
+    differ the row is marked as a fallback, the same way a text call's row is.
 
     Seconds, not calls: "how much of the free allowance did the spoken answers use" is one of the
     owner's questions, and a call count cannot answer it — one line is three seconds and another
@@ -201,8 +417,8 @@ def _record_spoken(capability: str, audio: dict[str, str]) -> None:
         cost = None if price is None else price * seconds
         ledger.record(
             capability=capability,
-            model_requested=TTS_MODEL,
-            model_served=TTS_MODEL,
+            model_requested=requested or served,
+            model_served=served,
             cost_usd=cost,
             cost_source=ledger.UNPRICED if price is None else ledger.FROM_CONFIGURED,
             unit_kind=ledger.SPOKEN_SECOND,
@@ -218,7 +434,7 @@ def _record_spoken(capability: str, audio: dict[str, str]) -> None:
         if cost:
             from wobo_gateway import spend
 
-            spend.record(cost, capability=capability, model=TTS_MODEL)
+            spend.record(cost, capability=capability, model=served)
     except Exception as exc:  # noqa: BLE001 — accounting must never break a spoken line
         logger.debug("tts: not recorded in the ledger (%s: %s)", type(exc).__name__, exc)
 

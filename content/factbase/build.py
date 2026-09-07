@@ -2,13 +2,13 @@
 
 Seeds the NCERT-aligned fact base from what we OWN — the verified board catalogs
 (chapter/topic names, orderings, board mappings) — and runs the candidate pipeline:
-Opus generates atomic candidate facts per CBSE-10 bio/social topic, then GPT-5.5 verifies
+the generate tier proposes atomic candidate facts per CBSE-10 bio/social topic, then the verify tier checks
 each one. Only cross-model AGREEMENTS promote to ``confidence:"verified"``; disagreements are
 written to the review queue for a human (never silently kept, never silently dropped).
 
 Run:
   python content/factbase/build.py            # rebuild facts.v1.jsonl from catalogs — offline, deterministic
-  python content/factbase/build.py --live      # + Opus->GPT-5.5 candidate pipeline for CBSE-10 bio/social topics
+  python content/factbase/build.py --live      # + the generate->verify candidate pipeline for CBSE-10 bio/social topics
 
 Claude Code builds the machine; the ``--live`` model pipeline is run offline by an operator
 (it needs API keys), never at request time.
@@ -23,6 +23,8 @@ import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+from wobo_gateway.routing import Tier, tier_chain
 
 VERSION = "v1"
 KINDS = frozenset({"definition", "process-step", "date", "place", "structure", "relation"})
@@ -39,8 +41,16 @@ REVIEW_PATH = FACTBASE_DIR / f"review-queue.{VERSION}.jsonl"
 FACTBASE_SUBJECTS = ("science", "social")
 SEED_GRADES = ("Class 9", "Class 10")
 
-CANDIDATE_MODEL = "anthropic/claude-opus-4-8"  # content primary (owner verdict 2026-07-07)
-VERIFIER_MODEL = "openai/gpt-5.5"  # cross-family second opinion
+# The router's tiers, not names of our own: candidates are a GENERATION and the second opinion
+# is the VERIFY tier (docs/OPERATIONS.md 11.1). The script used to pin two ids of its own (an
+# Opus and a GPT the owner retired from the router on 2026-09-02) and called litellm directly
+# with no chain, no health mark and no ledger row.
+CANDIDATE_MODEL = tier_chain(Tier.GENERATE)[0]
+VERIFIER_MODEL = tier_chain(Tier.VERIFY)[0]
+_TIER_OF: dict[str, tuple[Tier, str]] = {
+    CANDIDATE_MODEL: (Tier.GENERATE, "factbase.candidate"),
+    VERIFIER_MODEL: (Tier.VERIFY, "factbase.verify"),
+}
 
 
 def slug(text: str) -> str:
@@ -199,17 +209,29 @@ def _extract_json(text: str) -> Any:
     return None
 
 
-def _live_model_call(model: str, system: str, user: str) -> str:
-    import litellm  # lazy: the deterministic build + tests never import litellm
+def _live_model_call(model: str, system: str, user: str) -> tuple[str, str]:
+    """One call through the gateway's funnel: ``(text, the model that actually answered)``.
 
-    litellm.drop_params = True
-    resp = litellm.completion(
+    ``wobo_gateway.model_call.complete`` walks the tier's chain behind ``model``, drops a knob a
+    rung refuses, marks a credit refusal so the next call skips it, and the usage ledger row
+    names who served (``telemetry.record_cost``). Lazy: the deterministic build and its tests
+    never import litellm."""
+    from wobo_gateway.model_call import complete
+    from wobo_gateway.telemetry import record_cost
+
+    tier, capability = _TIER_OF.get(model, (None, "factbase.model"))
+    fallbacks = [m for m in (tier_chain(tier) if tier is not None else ()) if m != model]
+    resp = complete(
         model=model,
+        fallbacks=fallbacks or None,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
         max_tokens=1500,
         temperature=0.0,
+        timeout=180.0,
     )
-    return resp.choices[0].message.content or ""
+    record_cost(capability=capability, model=model, response=resp)
+    served = str(getattr(resp, "served_model", "") or model)
+    return resp.choices[0].message.content or "", served
 
 
 _CANDIDATE_SYSTEM = (
@@ -235,11 +257,15 @@ def generate_candidates(
     topic: str,
     *,
     model: str = CANDIDATE_MODEL,
-    model_call: Callable[[str, str, str], str] = _live_model_call,
+    model_call: Callable[[str, str, str], tuple[str, str]] = _live_model_call,
 ) -> list[dict[str, Any]]:
-    """Opus proposes candidate facts (provenance model-generated-unverified). Malformed rows dropped.
-    Keyed by the topic slug — the same conceptId the runtime resolves for that topic."""
-    text = model_call(model, _CANDIDATE_SYSTEM, f"Subject: {subject}\nGrade: {grade}\nTopic: {topic}")
+    """The generate tier proposes candidate facts (provenance model-generated-unverified), and
+    the provenance names the model that ACTUALLY answered, which is the fallback on a day the
+    primary is out. Malformed rows dropped. Keyed by the topic slug — the same conceptId the
+    runtime resolves for that topic."""
+    text, served = model_call(
+        model, _CANDIDATE_SYSTEM, f"Subject: {subject}\nGrade: {grade}\nTopic: {topic}"
+    )
     raw = _extract_json(text)
     cid = slug(topic)
     out: list[dict[str, Any]] = []
@@ -253,7 +279,7 @@ def generate_candidates(
         check = row.get("check") if isinstance(row.get("check"), dict) else None
         out.append(make_fact(
             conceptId=cid, claim=claim, kind=kind, subject=subject,
-            source={"type": "model-generated-unverified", "model": model},
+            source={"type": "model-generated-unverified", "model": served},
             confidence="unverified", check=check,
         ))
     return out
@@ -263,34 +289,38 @@ def verify_candidate(
     fact: dict[str, Any],
     *,
     model: str = VERIFIER_MODEL,
-    model_call: Callable[[str, str, str], str] = _live_model_call,
-) -> tuple[bool, str]:
-    """GPT-5.5's independent verdict on one candidate claim."""
-    text = model_call(model, _VERIFIER_SYSTEM, f"Claim: {fact['claim']}")
+    model_call: Callable[[str, str, str], tuple[str, str]] = _live_model_call,
+) -> tuple[bool, str, str]:
+    """The verify tier's independent verdict on one candidate claim: ``(agree, reason, the model
+    that answered)``."""
+    text, served = model_call(model, _VERIFIER_SYSTEM, f"Claim: {fact['claim']}")
     v = _extract_json(text)
     if not isinstance(v, dict):
-        return False, "verifier returned no parseable verdict"
-    return v.get("verdict") == "agree", str(v.get("reason") or "")
+        return False, "verifier returned no parseable verdict", served
+    return v.get("verdict") == "agree", str(v.get("reason") or ""), served
 
 
 def verify_candidates(
     candidates: list[dict[str, Any]],
     *,
-    verify: Callable[[dict[str, Any]], tuple[bool, str]] = verify_candidate,
+    verify: Callable[[dict[str, Any]], tuple[Any, ...]] = verify_candidate,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Promote cross-model AGREEMENTS to verified; route disagreements to the review queue.
-    Returns (promoted, review) — a disagreement is never kept in the base and never dropped."""
+    Returns (promoted, review) — a disagreement is never kept in the base and never dropped.
+    ``verify`` answers ``(agree, reason)`` or ``(agree, reason, verifier)``; without the third
+    the verify tier's primary is written down."""
     promoted: list[dict[str, Any]] = []
     review: list[dict[str, Any]] = []
     for c in candidates:
-        agree, reason = verify(c)
+        agree, reason, *rest = verify(c)
+        verifier = str(rest[0]) if rest else VERIFIER_MODEL
         if agree:
             promoted.append({
                 **c,
                 "confidence": "verified",
                 "source": {
                     "type": "model-verified",
-                    "models": [c["source"].get("model", CANDIDATE_MODEL), VERIFIER_MODEL],
+                    "models": [c["source"].get("model", CANDIDATE_MODEL), verifier],
                     "verifierReason": reason,
                 },
             })

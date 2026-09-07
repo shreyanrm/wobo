@@ -96,6 +96,16 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
     # module exists to close.
     monkeypatch.setenv("SUBSCRIPTIONS_STORE", "memory")
     billing.set_store(None)
+    # Payments: no provider keys unless a test sets test-shaped ones, no client but a test's fake,
+    # a fresh in-memory ledger, and no "last webhook" carried over. A developer's own shell keys
+    # must never reach the suite, because the suite must never reach the provider.
+    from wobo_gateway.billing import razorpay, records
+
+    for key in ("RAZORPAY_KEY_ID", "RAZORPAY_KEY_SECRET", "RAZORPAY_WEBHOOK_SECRET"):
+        monkeypatch.delenv(key, raising=False)
+    razorpay.set_client(None)
+    razorpay.reset()
+    records.set_store(None)
     # Wobo's mind: a fresh in-process store per test, and never a project one. It is the most
     # personal row we hold, so the suite must not be able to reach a real one even by accident,
     # and one test's remembered facts must never be another test's.

@@ -35,6 +35,15 @@ const PORT = Number(process.env.WOBO_E2E_PORT ?? 5199);
 const AUTH_PORT = PORT + 1;
 const AUTH_ORIGIN = `http://localhost:${AUTH_PORT}`;
 
+/**
+ * ONE LEARNER, ONE WOBO needs a third: live auth AND live persistence, so the account is the record
+ * (`docs/MEMORY-LAW.md`) and `isolation.spec.ts` can sign two learners in and out of one phone. The
+ * keys again name a closed loopback port; the spec answers every GoTrue and PostgREST request
+ * itself, in the page, so nothing leaves the machine.
+ */
+const ISOLATION_PORT = PORT + 3;
+const ISOLATION_ORIGIN = `http://localhost:${ISOLATION_PORT}`;
+
 export default defineConfig({
   testDir: './tests',
   // The cross-browser matrix lives beside the journey specs but is a separate suite with its own
@@ -63,12 +72,17 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: ['auth-doors.spec.ts'],
+      testIgnore: ['auth-doors.spec.ts', 'isolation.spec.ts'],
     },
     {
       name: 'auth',
       testMatch: ['auth-doors.spec.ts'],
       use: { ...devices['Desktop Chrome'], baseURL: AUTH_ORIGIN },
+    },
+    {
+      name: 'isolation',
+      testMatch: ['isolation.spec.ts'],
+      use: { ...devices['Desktop Chrome'], baseURL: ISOLATION_ORIGIN },
     },
   ],
   webServer: [
@@ -107,6 +121,23 @@ export default defineConfig({
         `bunx vite --port ${AUTH_PORT} --strictPort`,
       ].join(' '),
       url: `${AUTH_ORIGIN}/`,
+      reuseExistingServer: !process.env.CI,
+      timeout: 60_000,
+    },
+    {
+      // Two learners, one phone: live auth, live persistence, and a database that is answered by
+      // the spec. The same closed loopback port as the doors; the anon key is a shape.
+      command: [
+        'VITE_LLM_MODE=mock',
+        'VITE_GATEWAY_URL=',
+        'VITE_DEV_AUTH=false',
+        'VITE_PERSIST_MODE=live',
+        `VITE_SUPABASE_URL=http://127.0.0.1:${PORT + 2}`,
+        'VITE_SUPABASE_ANON_KEY=e2e-not-a-real-key',
+        'VITE_SUPABASE_DEV_JWT=',
+        `bunx vite --port ${ISOLATION_PORT} --strictPort`,
+      ].join(' '),
+      url: `${ISOLATION_ORIGIN}/`,
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

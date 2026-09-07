@@ -66,6 +66,7 @@ import { boardOf, type ChosenBoard, levelsFor } from './you/GradeBoardPicker';
 import { ParentInvite } from './you/ParentInvite';
 import { boardName, frameworkLabel, loadProfile, resolveBoardId, saveProfile } from './you/profile';
 import './onboarding/onboarding.css';
+import { scoped } from '../store/scope';
 
 type Step = RunStep;
 
@@ -97,11 +98,9 @@ const SAMPLES = [
 
 /** The run's memory on this device, or nothing where there is no storage to hold it. */
 function stepStore(): StepStore | null {
-  try {
-    return typeof localStorage === 'undefined' ? null : localStorage;
-  } catch {
-    return null;
-  }
+  // The learner's own (store/scope.ts): a run left in the middle is theirs to come back to, not
+  // the next child's to be dropped into.
+  return scoped;
 }
 
 /**
@@ -297,7 +296,7 @@ export function Onboarding() {
       // ends up reading "Class 8 · cbse" three screens away, so the label is settled here, at
       // the one place that knows a name is missing, rather than normalised by every screen.
       void adoptFramework({ frameworkId: boardId, name: frameworkLabel(boardId), level });
-      localStorage.setItem(ONBOARDED_KEY, '1');
+      scoped.setItem(ONBOARDED_KEY, '1');
       clearStep(stepStore());
       router.replace({ name: 'home' });
       return;
@@ -343,7 +342,12 @@ export function Onboarding() {
     sfx.tap();
     saveProfile({ ...loadProfile(), name: name.trim(), grade, boardId: board.id });
     void adoptFramework({ frameworkId: board.id, name: board.name, level: grade });
-    void account?.syncProfile({ display_name: name.trim(), grade, board: board.id });
+    void account?.syncProfile({
+      display_name: name.trim(),
+      grade,
+      board: board.id,
+      archetype_slot: 'onboarded', // what `resumeAfterAuth` reads to send a returning learner home
+    });
     go(3);
   };
 
@@ -374,7 +378,7 @@ export function Onboarding() {
       // event stream best-effort
     }
     bus.publishLifetime(lifetimeSnapshot());
-    localStorage.setItem(ONBOARDED_KEY, '1');
+    scoped.setItem(ONBOARDED_KEY, '1');
     clearStep(stepStore());
     // live mode rebuilds on the real session so providers re-key to auth.uid()
     if (!sdk.config.devAuth) {

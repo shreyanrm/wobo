@@ -511,5 +511,7 @@ def test_the_turn_never_names_a_model_of_its_own() -> None:
     finally:
         del sys.modules["litellm"]
 
+    # The id reaches the provider unswapped. (model_call walks the chain itself now, one model
+    # per litellm call, so litellm sees the primary alone on a call that succeeds.)
     assert captured["model"] == "wobo/tutor-slm"
-    assert captured["fallbacks"] == ["anthropic/claude-opus-5"]
+    assert "fallbacks" not in captured

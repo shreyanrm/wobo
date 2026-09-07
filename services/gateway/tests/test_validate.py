@@ -254,7 +254,7 @@ def test_spawn_validation_judges_on_verify_and_rebuilds_on_reason(monkeypatch) -
     record = {"artifact": {}, "provenance": {"model": "openai/gpt-5.6-terra"}}
     engines._spawn_validation(record, "c", "compose", "core", {}, ())
     assert captured["escalation_model"] == "openai/gpt-5.6-sol"  # one rung up: the reason tier
-    assert captured["judge_model"] == "anthropic/claude-opus-5"  # the verify tier judges
+    assert captured["judge_model"] == "openai/gpt-5.6-sol"  # the verify tier judges
 
 
 # --- owner law: every version is kept FOREVER (audit trail + manual-edit substrate) ------

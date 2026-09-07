@@ -75,12 +75,14 @@ def _judge(
 
     ``facts`` (verified NCERT ground truth for the concept) and ``contradictions``
     (deterministic fact-base conflicts) are appended for bio/social subjects so the judge
-    scores correctness against the fact base — SUBJECTS.md §2."""
-    import litellm  # lazy: mock mode and tests never import litellm
+    scores correctness against the fact base — SUBJECTS.md §2.
 
+    The judge carries the verify tier's cross-provider chain behind ``judge_model`` (minus the
+    judge itself): until this wave it called ONE model with nothing behind it, so a verify-tier
+    outage promoted every artifact unscored."""
+    from wobo_gateway.model_call import complete as model_complete
     from wobo_gateway.wobo import _extract_json
 
-    litellm.drop_params = True
     user = (
         f"Modality: {modality}\nConcept: {concept}\n\nArtifact JSON:\n"
         # cap the payload so a huge video/compose spec cannot blow the judge's context
@@ -98,12 +100,13 @@ def _judge(
             "correctness error:\n" + "\n".join(f"- {c}" for c in contradictions)
         )
     try:
-        response = litellm.completion(
+        response = model_complete(
             model=judge_model,
             messages=[
                 {"role": "system", "content": _JUDGE_SYSTEM},
                 {"role": "user", "content": user},
             ],
+            fallbacks=_judge_chain(judge_model) or None,
             max_tokens=800,
             temperature=0.0,
             # The judge runs on a background thread after the serve. Without a deadline a hung
@@ -124,6 +127,13 @@ def _judge(
         "weak": verdict["weak"] if isinstance(verdict.get("weak"), list) else [],
         "notes": str(verdict.get("notes") or ""),
     }
+
+
+def _judge_chain(judge_model: str) -> list[str]:
+    """The verify tier's whole chain, from the router, with the judge itself left out."""
+    from wobo_gateway.routing import Tier, tier_chain
+
+    return [m for m in tier_chain(Tier.VERIFY) if m != judge_model]
 
 
 def _passes(verdict: dict[str, Any] | None) -> bool:
@@ -577,10 +587,10 @@ def validate_and_promote(
 if __name__ == "__main__":  # runnable self-check — no framework, no network
     _rec = {
         "artifact": {"cards": ["base"]},
-        # base is now OPUS (the content primary, owner verdict 2026-07-07)
+        # the base was judged on the verify tier's second rung; the rebuild lands on its primary
         "provenance": {
             "engine": "engine.compose",
-            "model": "anthropic/claude-opus-4-8",
+            "model": "anthropic/claude-opus-5",
             "prompt_version": "v",
         },  # noqa: E501
     }
@@ -590,7 +600,7 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
         1
     ]  # type: ignore[assignment] # noqa: E501
 
-    # fail-then-escalate: the Opus base scores low, the GPT-5.5 rebuild scores high → best-of
+    # fail-then-escalate: the Opus base scores low, the Sol rebuild scores high → best-of
     # promotes the GPT-5.5 rebuild, and the superseded Opus base survives in the version ledger. Run
     # as `python -m ...validate`: this module IS __main__, so rebinding the global `_judge` here is
     # what validate_and_promote (also in __main__) resolves. _generate_live and lint_artifact are
@@ -605,19 +615,19 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
     import wobo_gateway.plexus.lint as _lint
 
     _lint.lint_artifact = lambda modality, artifact: _lint.LintResult(True, [])  # type: ignore[assignment]
-    _eng._generate_live = lambda *a: ({"cards": ["alt"]}, "openai/gpt-5.5", 1, False)  # type: ignore[assignment]
+    _eng._generate_live = lambda *a: ({"cards": ["alt"]}, "openai/gpt-5.6-sol", 1, False)  # type: ignore[assignment]
     out = validate_and_promote(
         concept="c",
         modality="compose",
         difficulty="core",
         scope={},
         record=_rec,
-        judge_model="anthropic/claude-opus-4-8",
-        escalation_model="openai/gpt-5.5",
+        judge_model="anthropic/claude-opus-5",
+        escalation_model="openai/gpt-5.6-sol",
     )
     assert out["status"] == "canonical", out
     assert out["artifact"] == {"cards": ["alt"]}, out
-    assert out["provenance"]["model"] == "openai/gpt-5.5", out
+    assert out["provenance"]["model"] == "openai/gpt-5.6-sol", out
     assert out["provenance"]["validation"]["score"] == 90.0, out
     # every version kept forever: the canonical winner AND the superseded Opus base both persist
     _statuses = {r["status"]: r["artifact"] for r in _saved}

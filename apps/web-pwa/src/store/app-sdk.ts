@@ -71,6 +71,9 @@ export function appSdk(): Sdk {
   const previous = rememberedScope();
   if (subject && previous && previous.subject !== subject && previous.anonymous) {
     inheritScope(previous.subject, subject, anonymous);
+    // The SDK's caches were built a moment ago on an account that had nothing under it; the
+    // anonymous buckets have just moved there, so they read again (XP, the transcript, mastery).
+    s.rekey(subject);
   } else {
     applyScope(subject, anonymous);
   }

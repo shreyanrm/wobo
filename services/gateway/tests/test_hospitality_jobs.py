@@ -1106,3 +1106,46 @@ def test_the_wishes_door_runs_the_pass(
         "/v1/internal/mail/wishes", json={"now": "2026-01-26T09:00:00"}, headers=INTERNAL
     )
     assert r.json() == {"ok": False, "error": "bad_now"}
+
+
+def test_the_log_is_stamped_with_the_jobs_own_clock_not_the_wall_clock(_dials: Any) -> None:
+    """The mail log and the inbox gap must read the same clock. On 2026-09-05 the two-learner
+    test passed only because the wall clock happened to sit more than a day before the fixed
+    Sunday moment; two days later it sat after it and the second child's note was skipped as a
+    gap. The record is stamped with the moment the pass ran on, whatever the wall says."""
+    report = run_sunday(
+        KOLKATA_SUNDAY_EVENING,
+        families=InMemoryFamilies([KOLKATA]),
+        week_source=FixedWeek(FULL_WEEK),
+        digest=wobo_digest,
+    )
+    assert report["sent"] == 1
+    (record,) = sends()
+    assert record.sent_at == KOLKATA_SUNDAY_EVENING.isoformat()
+
+
+def test_two_children_one_address_both_notes_go_whatever_the_wall_clock_says(_dials: Any) -> None:
+    """The gap is read once per address before the pass sends: the first child's note never
+    blocks the second's, and mail sent BEFORE the pass still holds both."""
+    learner = Family("L-learner", "Learner", "parent@example.test", timezone="Asia/Kolkata")
+    other = Family("L-other", "Learner Two", "parent@example.test", timezone="Asia/Kolkata")
+    kwargs: dict[str, Any] = {
+        "families": InMemoryFamilies([learner, other]),
+        "week_source": FixedWeek(FULL_WEEK),
+        "digest": wobo_digest,
+    }
+    assert run_sunday(KOLKATA_SUNDAY_EVENING, **kwargs)["sent"] == 2
+    # a wish that went to the same address two hours before the pass holds both notes next week
+    mail_log().record(
+        MailRecord(
+            key="wish:y",
+            learner_id="L-learner",
+            kind="wish",
+            to_hash=email_mod.to_hash("parent@example.test"),
+            period="x:2026-09-13",
+            sent_at=(KOLKATA_SUNDAY_EVENING + timedelta(days=7, hours=-2)).isoformat(),
+            provider_id="console",
+        )
+    )
+    held = run_sunday(KOLKATA_SUNDAY_EVENING + timedelta(days=7), **kwargs)
+    assert held["skipped"] == {"gap": 2} and held["sent"] == 0

@@ -150,16 +150,18 @@ export class SyncHealth {
   }
 
   /**
-   * Push everything that is behind, right now. Only the stores past the threshold are retried, so
-   * the button does exactly what its sentence says and nothing extra.
+   * Push everything that is behind, right now. By default only the stores past the threshold are
+   * retried, so the button does exactly what its sentence says and nothing extra. A sign-out asks
+   * for `floor` 1: anything that failed even once is work the account never received, and "try
+   * again" has to actually carry it (`store/sign-out.ts`).
    *
    * Never rejects: a retry that fails is another failure, counted like any other, and the learner
    * sees the same calm line rather than an error. At most one runs at a time.
    */
-  async retry(): Promise<void> {
+  async retry(floor: number = this.threshold): Promise<void> {
     if (this.retrying) return;
     const behind = [...this.stores.entries()].filter(
-      ([, state]) => state.consecutive >= this.threshold && state.retry,
+      ([, state]) => state.consecutive >= Math.max(1, floor) && state.retry,
     );
     if (behind.length === 0) return;
     this.retrying = true;

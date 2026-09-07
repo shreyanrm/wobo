@@ -8,12 +8,15 @@ import {
 } from '../src/index';
 
 class MapKV implements KVStorage {
-  private readonly map = new Map<string, string>();
+  readonly map = new Map<string, string>();
   getItem(key: string): string | null {
     return this.map.get(key) ?? null;
   }
   setItem(key: string, value: string): void {
     this.map.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.map.delete(key);
   }
 }
 
@@ -105,6 +108,8 @@ describe('SupabaseAuthIdentity', () => {
     await id.auth.signOut();
     expect(id.isAuthenticated()).toBe(false);
     expect(new SupabaseAuthIdentity(cfg(storage)).isAuthenticated()).toBe(false);
+    // The key leaves rather than staying as an empty string on every after-sign-out listing.
+    expect(storage.map.has(AUTH_SESSION_KEY)).toBe(false);
   });
 });
 

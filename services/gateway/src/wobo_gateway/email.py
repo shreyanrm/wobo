@@ -306,6 +306,7 @@ def send_email(
     learner_id: str | None = None,
     period: str | None = None,
     headers: dict[str, str] | None = None,
+    at: datetime | None = None,
 ) -> dict[str, Any]:
     """Render ``kind`` and send or log it. Returns a structured result; never raises.
 
@@ -349,7 +350,11 @@ def send_email(
                     kind=kind,
                     to_hash=to_hash(to),
                     period=period or "",
-                    sent_at=_now_iso(),
+                    # Stamped with the clock the JOB runs on when it hands one in, so a pass that
+                    # is replayed or tested at a fixed moment and the inbox gap it reads agree.
+                    # The wall clock and a handed-in moment mixed once and a parent of two got one
+                    # Sunday note (2026-09-07).
+                    sent_at=(at.astimezone(UTC) if at else datetime.now(UTC)).isoformat(),
                     provider_id=provider_id,
                 )
             )

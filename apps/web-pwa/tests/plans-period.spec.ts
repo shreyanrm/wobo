@@ -148,24 +148,33 @@ test('states no annual total anywhere, and names no future charge', async ({ pag
   expect(words).toContain('billed annually');
 });
 
-test('offers no payment it cannot take: the door carries soon, not an apology', async ({
+test('offers no payment it cannot take: the door says payments are not switched on yet', async ({
   page,
 }) => {
+  // This suite runs with no gateway, which is the payments-off state: the door reads the words,
+  // does nothing, and loads nothing from the provider. tests-plan/checkout.spec.ts is the on state.
+  const provider: string[] = [];
+  page.on('request', (r) => {
+    if (r.url().includes('razorpay')) provider.push(r.url());
+  });
   await page.goto('/plans', { waitUntil: 'networkidle' });
   const door = page.locator('.pl-checkout .pl-pay');
   await expect(door).toBeVisible();
+  await expect(door).toHaveText('Payments are not switched on yet');
   await expect(door).toHaveAttribute('aria-disabled', 'true');
-  await expect(door.locator('.pl-soon')).toHaveText('soon');
   const describedBy = await door.getAttribute('aria-describedby');
   expect(describedBy).toBeTruthy();
-  await expect(page.locator(`#${describedBy}`)).toContainText('not open yet');
+  await expect(page.locator(`#${describedBy}`)).toContainText('not switched on yet');
   // it is not the loud one: the saturated control on this page is a plan's own door, not this
   await expect(door).not.toHaveClass(/st-pig/);
-  // and pressing it goes nowhere, so nothing promises a payment and delivers an explanation
+  // and pressing it goes nowhere and says nothing, so nothing promises a payment
   const before = page.url();
   await door.click({ force: true });
   await page.waitForTimeout(300);
   expect(page.url()).toBe(before);
+  await expect(page.locator('.pl-checkout .pl-status')).toHaveCount(0);
+  // the provider's script never loaded: nobody watched a reader who was only comparing prices
+  expect(provider).toEqual([]);
 });
 
 test('says one learner, on every plan and both periods', async ({ page }) => {

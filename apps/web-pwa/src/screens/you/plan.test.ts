@@ -246,7 +246,7 @@ describe('the panel in three states', () => {
     const model = settled(CANCELLING);
     expect(panelView(model, NOW)).toBe('cancelled');
     expect(panelLines(model, NOW)).toEqual([
-      'Pro until 4 October 2026.',
+      'Pro until 4 October 2026, then free.',
       'Nothing will be charged again.',
       WORK_STAYS,
     ]);
@@ -422,7 +422,7 @@ describe('dates', () => {
     const noDate = settled(
       subscription({ status: 'cancelling', can_cancel: false, can_resume: true, period_end: null }),
     );
-    expect(panelLines(noDate, NOW)[0]).toBe('Pro until the end of the period you have paid for.');
+    expect(panelLines(noDate, NOW)[0]).toBe('Pro until the end of the period you have paid for, then free.');
     expect(confirmationLines(subscription({ period_end: null }))[0]).toContain(
       'until the end of the period you have paid for',
     );

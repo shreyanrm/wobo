@@ -126,6 +126,12 @@ export const ERASURE_REGISTER: readonly ErasureEntry[] = [
     why: 'What was scheduled to be sent to them and when (register J6). `notifications_own` is FOR ALL (0002:159).',
   },
 
+  {
+    store: 'learner.wobo_mind',
+    reach: 'client',
+    why: "What Wobo remembers about them: the facts they told it, what they are into, and what it noticed (docs/MEMORY-LAW.md, 0020). `wobo_mind_own_erase` is FOR DELETE to the owner (0020:176), so this client's own erase reaches it; the gateway's erase also leaves the `erased_at` marker, a date and nothing about the learner, which is what stops a stale device re-creating the row.",
+  },
+
   // --- learner schema: reached by the brain, not by this client ---------------------------------
   {
     store: 'learner.mail_preferences',
@@ -149,6 +155,45 @@ export const ERASURE_REGISTER: readonly ErasureEntry[] = [
     store: 'learner.content_cache',
     reach: 'exempt',
     why: 'Shared verified content keyed by node, no subject column, nothing about a person (register I27).',
+  },
+
+  // --- parent schema: service-role only, by design (0019) ---------------------------------------
+  // The whole schema is closed to `authenticated`, so nothing here is reachable from a browser;
+  // `POST /v1/me/erase` reaches the five that hold anything about a child (docs/MIND-SYNC-CONTRACT.md §7).
+  {
+    store: 'parent.accounts',
+    reach: 'gateway',
+    why: 'The parent account itself, keyed by a digest of their address (0019). Service-role only; the gateway erase reaches it.',
+  },
+  {
+    store: 'parent.child_links',
+    reach: 'gateway',
+    why: 'Which parent is linked to which child. Service-role only; the gateway erase reaches it.',
+  },
+  {
+    store: 'parent.selections',
+    reach: 'gateway',
+    why: 'Which child a parent was last looking at. Service-role only; the gateway erase reaches it.',
+  },
+  {
+    store: 'parent.mind_facts',
+    reach: 'gateway',
+    why: "The parent's own mind of their child: what they told Wobo (docs/TWO-MINDS.md). Service-role only; the gateway erase reaches it.",
+  },
+  {
+    store: 'parent.threads',
+    reach: 'gateway',
+    why: "The parent's own conversation with Wobo about their child. Service-role only; the gateway erase reaches it.",
+  },
+  {
+    store: 'parent.offers',
+    reach: 'exempt',
+    why: 'A removed offer deliberately keeps its `fact_key` and nothing else, which is what stops a parent re-adding what a child removed (docs/TWO-MINDS.md). Keeping it is the promise, not a gap.',
+  },
+  {
+    store: 'parent.access_audit',
+    reach: 'exempt',
+    why: 'Append-only by trigger and by grant: the trail of what a parent read about a child, which is the record that protects the child.',
   },
 
   // --- curriculum schema: select-only to a learner ----------------------------------------------

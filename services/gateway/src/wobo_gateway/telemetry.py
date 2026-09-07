@@ -1,4 +1,4 @@
-"""Gateway telemetry: latency, tokens, cache hits, track, capability.
+"""Gateway telemetry: latency, tokens, cache hits, track, capability, and the provider chain.
 
 This is separate from the learner event store and does not emit contract events. It is
 structured logging plus an in-memory metrics sink for dev and tests.
@@ -8,9 +8,16 @@ is why three different records are fed from here rather than from nine call site
 
 * the structured ``gateway.cost`` log line, with the capability's ceiling beside the figure;
 * :mod:`wobo_gateway.spend`, the platform's per-process daily USD ceiling, which is a GATE;
-* :mod:`wobo_gateway.ledger`, the DURABLE per-call record in Postgres, which is a RECORD — it
+* :mod:`wobo_gateway.ledger`, the DURABLE per-call record in Postgres, which is a RECORD: it
   survives a restart, it is correct with a second replica, and it is where every question about
   the past is answered from. The sink above still forgets everything when the process does.
+
+**The chain lines.** :mod:`wobo_gateway.model_call` walks every fallback chain itself, one model
+per call, and says what it did on this same stream so the cost of a fallback sits beside the
+cost of the call: ``gateway.fallback`` when a rung answered for the one before it,
+``gateway.provider.out_of_credit`` when a provider's balance or quota refused, and
+``gateway.provider.skipped`` when a rung was passed over because its provider is marked out.
+``docs/OPERATIONS.md`` §11 says what to do about each.
 """
 
 from __future__ import annotations
@@ -32,7 +39,7 @@ class TelemetryEvent:
     tokens: int
     cache_hit: bool
     # The two onsets a board turn is judged on (BOARD.md §10): when the learner hears Wobo's first
-    # syllable and when they see the first stroke. Optional because a model call is not a turn —
+    # syllable and when they see the first stroke. Optional because a model call is not a turn;
     # only the board's own measurement (board.stream.record_onsets) fills them in, and None means
     # "not measured here", never "zero milliseconds".
     first_syllable_ms: float | None = None
@@ -62,6 +69,54 @@ def emit(sink: MetricsSink, event: TelemetryEvent) -> None:
     # under another key is dropped on the floor, so telemetry emits under "fields" like every other
     # structured log in the gateway.
     logger.info("gateway.telemetry", extra={"fields": asdict(event)})
+
+
+# --- the chain lines ------------------------------------------------------------------------------
+FALLBACK = "gateway.fallback"
+PROVIDER_OUT_OF_CREDIT = "gateway.provider.out_of_credit"
+PROVIDER_OUT = "gateway.provider.out"
+PROVIDER_SKIPPED = "gateway.provider.skipped"
+
+
+def note_weather_out(*, provider: str, model: str, until: float, reason: str) -> None:
+    """A provider was marked out for a streak of ordinary failures (a 5xx storm, a rejected key,
+    a dead route, hangs). Logged at WARNING, like the credit mark: the owner reads it to know
+    which status page to open, and it clears itself when the provider answers again."""
+    logger.warning(
+        PROVIDER_OUT,
+        extra={
+            "fields": {
+                "provider": provider,
+                "model": model,
+                "until": until,
+                "reason": reason,
+                "kind": "weather",
+            }
+        },
+    )
+
+
+def note_fallback(*, from_model: str, to_model: str, error: str) -> None:
+    """A rung answered for the one before it. ``error`` is an exception TYPE name, never text a
+    learner wrote and never a key."""
+    logger.info(
+        FALLBACK,
+        extra={"fields": {"from_model": from_model, "to_model": to_model, "error": error}},
+    )
+
+
+def note_out_of_credit(*, provider: str, model: str, until: float, reason: str) -> None:
+    """A provider's balance or quota refused. Logged at WARNING: this is the line the owner reads
+    to know which console to open."""
+    logger.warning(
+        PROVIDER_OUT_OF_CREDIT,
+        extra={"fields": {"provider": provider, "model": model, "until": until, "reason": reason}},
+    )
+
+
+def note_skipped(*, provider: str, model: str) -> None:
+    """A rung was passed over without a call because its provider is marked out."""
+    logger.info(PROVIDER_SKIPPED, extra={"fields": {"provider": provider, "model": model}})
 
 
 def _token_counts(response: Any) -> tuple[int | None, int | None]:
@@ -111,8 +166,8 @@ def record_cost(
 
     Returns the cost in USD, or ``None`` when it cannot be computed (a provider that reports no
     usage, or a model litellm has no price for). Never raises: cost accounting must not be able
-    to fail a learner's turn. A call over its ceiling logs a warning — that line is the signal
-    the cost dashboard and the budget dials are tuned from.
+    to fail a learner's turn. A call over its ceiling logs a warning; that line is the signal the
+    cost dashboard and the budget dials are tuned from.
 
     Every cost also lands in :mod:`wobo_gateway.spend`, the platform's daily USD accumulator, and
     in :mod:`wobo_gateway.ledger`, the DURABLE record. This function is the one funnel every live
@@ -122,7 +177,7 @@ def record_cost(
     :func:`wobo_gateway.spend.verdict` on the way in.
 
     **An unpriced call is still recorded.** This function used to return the moment litellm could
-    not price a response, which meant a model with no price table left no trace at all — the worst
+    not price a response, which meant a model with no price table left no trace at all: the worst
     possible outcome, because the calls we cannot cost are exactly the ones an operator most needs
     to know about. The ledger row is now written either way, carrying ``cost_usd = NULL`` and
     ``cost_source = 'unpriced'``, and the console shows those beside the money rather than folding
@@ -130,8 +185,8 @@ def record_cost(
     cannot be charged for a number nobody has.
 
     ``model_served`` is who ACTUALLY answered when a fallback took over; ``model`` stays what the
-    policy asked for. The rest of the optional arguments are what only the caller can know — the
-    track, the latency, the cache, and the UNIT the learner received — and every one of them
+    policy asked for. The rest of the optional arguments are what only the caller can know (the
+    track, the latency, the cache, and the UNIT the learner received) and every one of them
     defaults to the value that means "not measured here", never to a zero that would read as a
     measurement.
     """
@@ -143,19 +198,36 @@ def record_cost(
         except (KeyError, ImportError):
             cost_ceiling = None
 
+    # Who ACTUALLY answered. litellm reports the model on the response, and when a fallback took
+    # over that is a different name from the one the policy asked for, which is the difference
+    # between a chart of our bill and a chart of our intentions. An explicit argument still wins;
+    # a response that says nothing falls back to the requested model. ``served_model`` is the
+    # FULL id the chain walker in ``model_call`` called (provider and all); litellm's own
+    # ``response.model`` is the bare name, which cannot say which vendor's bill a fallback landed
+    # on. Resolved ONCE, up here, because until 2026-09-07 only the ledger row used it: the
+    # ``gateway.cost`` line and the day's spend carried the requested model, so the per-model
+    # figures on the telemetry stream attributed a fallback's cost to the provider that refused.
+    served = (
+        model_served
+        or str(getattr(response, "served_model", "") or "")
+        or str(getattr(response, "model", "") or "")
+        or model
+    )
+
     cost: float | None
     try:
         import litellm
 
         cost = float(litellm.completion_cost(completion_response=response))
-    except Exception:  # no price table, no usage, provider quirk — accounting is best-effort
+    except Exception:  # no price table, no usage, provider quirk: accounting is best-effort
         logger.debug("cost unavailable", extra={"fields": {"capability": capability}})
         cost = None
 
     if cost is not None:
         fields = {
             "capability": capability,
-            "model": model,
+            "model": served,
+            "model_requested": model,
             "cost_usd": round(cost, 6),
             "cost_ceiling": cost_ceiling,
         }
@@ -166,19 +238,14 @@ def record_cost(
         try:
             from wobo_gateway import spend
 
-            spend.record(cost, capability=capability, model=model)
-        except Exception:  # noqa: BLE001 — the ledger must never be able to fail a learner's turn
+            spend.record(cost, capability=capability, model=served)
+        except Exception:  # noqa: BLE001 - the ledger must never be able to fail a learner's turn
             logger.debug("spend not recorded", extra={"fields": {"capability": capability}})
 
     try:
         from wobo_gateway import ledger
 
         tokens_in, tokens_out = _token_counts(response)
-        # Who ACTUALLY answered. litellm reports the model on the response, and when a fallback
-        # took over that is a different name from the one the policy asked for — which is the
-        # difference between a chart of our bill and a chart of our intentions. An explicit
-        # argument still wins; a response that says nothing falls back to the requested model.
-        served = model_served or str(getattr(response, "model", "") or "") or model
         ledger.record(
             capability=capability,
             model_requested=model,
@@ -196,7 +263,7 @@ def record_cost(
             unit_kind=unit_kind,
             unit_count=unit_count,
         )
-    except Exception:  # noqa: BLE001 — same rule: a child's answer outranks an accounting line
+    except Exception:  # noqa: BLE001 - same rule: a child's answer outranks an accounting line
         logger.debug("ledger row not recorded", extra={"fields": {"capability": capability}})
 
     return cost

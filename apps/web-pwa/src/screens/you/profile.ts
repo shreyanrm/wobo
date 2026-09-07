@@ -222,19 +222,15 @@ export function lastSevenDays(marks: string[]): { day: string; active: boolean }
   });
 }
 
-/** Quiet on/off settings — default on. */
+/**
+ * Quiet on/off settings — default on. The learner's: read aloud (`VOICE_KEY`) rides every turn as
+ * THEIR accessibility need (`store/mind.ts` lifetimeSnapshot), so a sibling on the same phone does
+ * not inherit it. Mute is the phone's and lives elsewhere (`wobo/speech.tsx`).
+ */
 export function getFlag(key: string): boolean {
-  try {
-    return localStorage.getItem(key) !== '0';
-  } catch {
-    return true;
-  }
+  return scoped.getItem(key) !== '0';
 }
 
 export function setFlag(key: string, on: boolean): void {
-  try {
-    localStorage.setItem(key, on ? '1' : '0');
-  } catch {
-    // fine
-  }
+  scoped.setItem(key, on ? '1' : '0');
 }

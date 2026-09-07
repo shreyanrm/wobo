@@ -1,16 +1,23 @@
-"""engine.image — Nano Banana (Gemini) for complex imagery SVG cannot express.
+"""engine.image — Gemini imagery first, OpenAI imagery behind it, for what SVG cannot express.
 
 A Plexus content engine. Most diagrams are SVG (glanceable, annotatable by Wobo); this
 engine is reserved for the complex biological / structural imagery SVG cannot express —
 a plant cell, the human body. It composes an educational-diagram prompt from a concept,
 moderates it, generates a labeled diagram on a white background via ``gemini-2.5-flash-image``
-(the "Nano Banana" image model) using ``GEMINI_API_KEY``, and caches the base64 PNG with
-provenance under ``content/cache/images/``.
+(the "Nano Banana" image model) using ``GEMINI_API_KEY``, falls to OpenAI's
+``gpt-image-2`` on ``OPENAI_API_KEY`` when Google does not answer, and caches the base64
+PNG with provenance (which painter drew it) under ``content/cache/images/``. The usage ledger
+row names the model that served.
 
 The artifact is verified before serving (a valid non-empty image passed the moderation gate);
-a refusal or any error is invisible — the engine returns ``{"status": "unavailable"}`` and the
-app falls back to its seed illustration. Keyless behaves identically, so dev and CI never touch
-the network.
+a refusal or any error on both painters is invisible — the engine returns
+``{"status": "unavailable"}`` and the app falls back to its seed illustration. Keyless behaves
+identically, so dev and CI never touch the network.
+
+Since 2026-09-07 each painter is asked only when ``health.provider_available`` says its provider
+is not marked out, and what it answers is fed back through ``model_call.note_failure``, the same
+marks the text funnel and the voice seam keep: a quota refusal on Google's painter is a mark the
+Gemini rung of every text chain honours, and the other way round.
 
 Cache key = (concept x modality x difficulty); provenance = {engine, model, prompt_version}.
 The first learner pays for generation; every learner after reuses the cached artifact — tier 1
@@ -20,6 +27,7 @@ of the cost economy (CONTEXT.md 6).
 from __future__ import annotations
 
 import base64
+import contextlib
 import hashlib
 import json
 import logging
@@ -27,10 +35,34 @@ import os
 from pathlib import Path
 from typing import Any
 
+from wobo_gateway.routing import Tier, provider_of, tier_chain
+
+
+def _openai_rung(tier: Tier, *, default: str) -> str:
+    """The OpenAI id on a media tier's chain: the fallback the router says this seam reaches for."""
+    for model in tier_chain(tier):
+        if provider_of(model) == "openai":
+            return model
+    return default
+
+
 ENGINE_NAME = "engine.image"
 MODEL = "gemini-2.5-flash-image"
 PROMPT_VERSION = "v1"
 MODALITY = "image"
+
+#: The painter behind Gemini's, read from the router's ``image`` row (``routing.DEFAULT_TABLE``,
+#: overridable by ``WOBO_TIER_IMAGE_CHAIN``). The image-generation guide (read 2026-09-05, again
+#: 2026-09-07) lists
+#: gpt-image-2, gpt-image-1.5, gpt-image-1 and gpt-image-1-mini; the Images API answers base64 by
+#: default (``data[].b64_json``), PNG.
+OPENAI_IMAGE_ID = _openai_rung(Tier.IMAGE, default="openai/gpt-image-2")
+OPENAI_IMAGE_MODEL = OPENAI_IMAGE_ID.split("/", 1)[1]
+_OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations"
+_OPENAI_SIZE = "1024x1024"
+
+#: The Gemini id the ledger and the provenance carry, provider first.
+GEMINI_IMAGE_ID = f"gemini/{MODEL}"
 
 # Composed onto the concept — the house style for every generated diagram.
 _PROMPT_STYLE = "clean educational diagram, white background, labeled"
@@ -113,6 +145,9 @@ def _gemini_image(prompt: str, key: str) -> tuple[str, str] | None:
     import urllib.error
     import urllib.request
 
+    from wobo_gateway import health
+    from wobo_gateway.model_call import note_failure
+
     req = urllib.request.Request(
         f"{_GENERATE_URL}?key={key}",
         data=json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode(),
@@ -122,7 +157,16 @@ def _gemini_image(prompt: str, key: str) -> tuple[str, str] | None:
     try:
         with urllib.request.urlopen(req, timeout=_HTTP_TIMEOUT_S) as resp:
             body = json.loads(resp.read().decode())
-    except (urllib.error.URLError, TimeoutError, ValueError, OSError):
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        with contextlib.suppress(OSError):
+            detail = exc.read().decode(errors="replace")[:300]
+        logger.warning("image: Google HTTP %s", exc.code)
+        note_failure(GEMINI_IMAGE_ID, exc, detail=detail)
+        return None
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+        logger.warning("image: Google request failed — %s", type(exc).__name__)
+        note_failure(GEMINI_IMAGE_ID, exc)
         return None
 
     for cand in body.get("candidates") or []:
@@ -132,8 +176,83 @@ def _gemini_image(prompt: str, key: str) -> tuple[str, str] | None:
                 data = inline["data"]
                 if _valid_b64_png(data):
                     mime = inline.get("mimeType") or inline.get("mime_type") or "image/png"
+                    health.record_model(GEMINI_IMAGE_ID, ok=True)
                     return data, str(mime)
     return None
+
+
+def _openai_image(prompt: str, key: str) -> tuple[str, str] | None:
+    """Call OpenAI's Images API; return (base64_png, mime) or None on refusal / error.
+
+    ``POST /v1/images/generations`` with ``model``, ``prompt``, ``n`` and ``size``; the answer is
+    JSON with ``data[].b64_json`` (base64 is the default for the GPT Image models, and the default
+    output format is PNG). Same shape out as the Gemini painter, so the caller cannot tell them
+    apart except by the provenance it writes.
+    """
+    import urllib.error
+    import urllib.request
+
+    req = urllib.request.Request(
+        _OPENAI_IMAGES_URL,
+        data=json.dumps(
+            {"model": OPENAI_IMAGE_MODEL, "prompt": prompt, "n": 1, "size": _OPENAI_SIZE}
+        ).encode(),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"},
+        method="POST",
+    )
+    from wobo_gateway import health
+    from wobo_gateway.model_call import note_failure
+
+    try:
+        with urllib.request.urlopen(req, timeout=_HTTP_TIMEOUT_S) as resp:
+            body = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        detail = ""
+        with contextlib.suppress(OSError):
+            detail = exc.read().decode(errors="replace")[:300]
+        logger.warning("image: OpenAI HTTP %s", exc.code)
+        note_failure(OPENAI_IMAGE_ID, exc, detail=detail)
+        return None
+    except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
+        logger.warning("image: OpenAI request failed — %s", type(exc).__name__)
+        note_failure(OPENAI_IMAGE_ID, exc)
+        return None
+
+    for item in body.get("data") or []:
+        data = item.get("b64_json") if isinstance(item, dict) else None
+        if data and _valid_b64_png(str(data)):
+            health.record_model(OPENAI_IMAGE_ID, ok=True)
+            return str(data), "image/png"
+    return None
+
+
+def _record_image(served: str, requested: str) -> None:
+    """One drawn diagram in the usage ledger, naming the painter that actually drew it.
+
+    A raw HTTPS call never passes through ``telemetry.record_cost``, so the row is written here.
+    No vendor price table covers these models, so the cost is the operator's entry
+    (``LEDGER_PRICE_IMAGE_USD``) or honestly unpriced. Never raises: a diagram outranks a line
+    of accounting.
+    """
+    try:
+        from wobo_gateway import ledger
+
+        price = ledger.configured_price(ledger.IMAGE)
+        ledger.record(
+            capability=ENGINE_NAME,
+            model_requested=requested,
+            model_served=served,
+            cost_usd=price,
+            cost_source=ledger.UNPRICED if price is None else ledger.FROM_CONFIGURED,
+            unit_kind=ledger.IMAGE,
+            unit_count=1.0,
+        )
+        if price:
+            from wobo_gateway import spend
+
+            spend.record(price, capability=ENGINE_NAME, model=served)
+    except Exception as exc:  # noqa: BLE001 — accounting must never break a diagram
+        logger.debug("image: not recorded in the ledger (%s: %s)", type(exc).__name__, exc)
 
 
 def _valid_b64_png(data: str) -> bool:
@@ -182,13 +301,36 @@ def generate_image(concept: str, *, difficulty: str = "core") -> dict[str, Any]:
     if not _moderation_ok(concept, prompt):
         return dict(_UNAVAILABLE)
 
-    key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
-    if not key:
+    google = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY")
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if not google and not openai_key:
         return dict(_UNAVAILABLE)
 
-    result = _gemini_image(prompt, key)
-    if result is None:  # refusal or error — invisible, seed fallback
+    # Gemini first, OpenAI behind it, each only while its provider is not marked out. Whichever
+    # answers is named in the provenance and in the ledger; a refusal or an error on both is
+    # invisible and the app keeps its seed illustration.
+    from wobo_gateway import health, telemetry
+
+    requested = GEMINI_IMAGE_ID if google else OPENAI_IMAGE_ID
+    served = ""
+    result = None
+    if google:
+        if health.provider_available(GEMINI_IMAGE_ID):
+            result = _gemini_image(prompt, google)
+        else:
+            telemetry.note_skipped(provider="gemini", model=GEMINI_IMAGE_ID)
+    if result is not None:
+        served = GEMINI_IMAGE_ID
+    elif openai_key:
+        if health.provider_available(OPENAI_IMAGE_ID):
+            result = _openai_image(prompt, openai_key)
+        else:
+            telemetry.note_skipped(provider="openai", model=OPENAI_IMAGE_ID)
+        if result is not None:
+            served = OPENAI_IMAGE_ID
+    if result is None:
         return dict(_UNAVAILABLE)
+    _record_image(served, requested)
 
     b64, mime = result
     entry = {
@@ -196,7 +338,7 @@ def generate_image(concept: str, *, difficulty: str = "core") -> dict[str, Any]:
         "mime": mime,
         "provenance": {
             "engine": ENGINE_NAME,
-            "model": MODEL,
+            "model": served,
             "prompt_version": PROMPT_VERSION,
             "concept": concept,
             "difficulty": difficulty,

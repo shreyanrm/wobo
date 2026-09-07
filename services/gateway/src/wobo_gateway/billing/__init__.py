@@ -10,9 +10,11 @@ This module is the record and the three routes behind that sentence:
   IDEMPOTENT: cancelling twice is not an
   error and does not move the end date. Nothing is taken away early, and nothing the learner
   learnt is touched.
-* ``POST /v1/me/subscription/resume`` — undo it, while the period is still running. One tap.
-  Offering that is not a dark pattern; making someone walk through it to cancel would be, so it is
-  never on the cancel path.
+* ``POST /v1/me/subscription/resume`` — undo it, while the period is still running, for a row
+  with no provider behind it (an operator's, or the suite's). A provider-backed cancel is final,
+  because the provider cannot restart a cancelled subscription, and every line a learner reads
+  before cancelling says so. Offering a resume is not a dark pattern; making someone walk through
+  it to cancel would be, so it is never on the cancel path.
 
 All three answer with the SAME body, so the screen is left holding one truth rather than a guess
 it has to reconcile. The shape is the one the app already reads
@@ -28,14 +30,15 @@ Four rules this module keeps, because each is a promise the product has already 
    derived from ``current_period_end`` every time it is read, so the allowance falls back to free
    the moment the period ends. No cron, no sweep, nothing to forget to run.
 
-   NOTHING IN THIS REPO RENEWS A SUBSCRIPTION, and no user-facing line may say one does. There is
-   no payment provider, no webhook and no scheduled sweep; ``current_period_end`` has exactly one
-   writer, :meth:`SubscriptionStore.insert`. So a plan runs to its period end and then meters as
-   free whether or not the learner cancelled, and every line the learner reads says exactly that.
-   What cancelling does today is record the decision, keep the plan to the paid-for date, and stop
-   anything from being sold to that row later; the day a provider lands, this is the row it reads
-   before it charges. The copy law (DESIGN.md §0) forbids describing a mechanism we cannot show,
-   and "renews by itself" was one.
+   ``current_period_end`` has exactly two writers: :meth:`SubscriptionStore.insert` (an operator,
+   or the suite) and the provider's own ``subscription.activated`` / ``subscription.charged``
+   webhook (:mod:`wobo_gateway.billing.payments`), which moves it forward to the provider's
+   ``current_end`` when money has actually been taken. So a plan the provider keeps charging keeps
+   running, a plan the learner cancelled runs to the paid-for date and meters as free after it,
+   and nothing between those two is scheduled here. No learner-facing line says "renews": the
+   product only ever sells through the provider once the keys are present, and until they are
+   (``RAZORPAY_*``, :func:`wobo_gateway.billing.razorpay.configured`) that word would describe a
+   mechanism the copy law (DESIGN.md §0) forbids us to claim.
 3. **A store subscription is cancelled in the store.** A plan bought inside a phone's app store is
    refused here, with its ``source`` on the body, so the app shows the real instruction instead of
    a generic failure.
@@ -48,8 +51,11 @@ a learner id from a path, a query or a body, so there is nothing to point at som
 
 Two stores behind one seam, exactly as :mod:`wobo_gateway.parents`: in memory for the suite and a
 local run, PostgREST with the service-role key (never a client's) for the project. Nothing here
-charges a card — there is no purchase route yet, so a row is written today by the operator or by
-the suite, and the day checkout lands it writes through :meth:`SubscriptionStore.insert`.
+charges a card: the purchase is ``POST /v1/billing/checkout`` (``billing/payments.py``), which
+creates the provider subscription and writes NOTHING here, and the row is written by the
+provider's signed webhook once money has moved. When a row carries a provider id, the cancel
+below tells the provider to stop at the end of the cycle BEFORE it writes ``cancelled``, and the
+resume says honestly that the provider cannot bring a cancelled subscription back.
 """
 
 from __future__ import annotations
@@ -71,6 +77,7 @@ from typing import Any, Protocol
 from fastapi import FastAPI, HTTPException, Request
 
 from wobo_gateway.auth import Principal
+from wobo_gateway.billing import razorpay
 from wobo_gateway.consent import Profile
 
 logger = logging.getLogger("wobo.gateway.billing")
@@ -86,6 +93,8 @@ SUPPORT = "support@heywobo.com"
 PLANS: tuple[str, ...] = ("plus", "pro", "max")
 STATUSES: tuple[str, ...] = ("active", "cancelled")
 ORIGINS: tuple[str, ...] = ("web", "ios", "android")
+#: Migration 0023: which of the two prices in docs/PRICING.md the row was bought at.
+PERIODS: tuple[str, ...] = ("monthly", "yearly")
 #: Bought inside a phone's app store: ours to read, the store's to cancel.
 STORE_ORIGINS: frozenset[str] = frozenset({"ios", "android"})
 #: The row says which platform; the app says which store. One map, so the two never drift.
@@ -115,11 +124,21 @@ class Subscription:
     current_period_end: datetime
     started_at: datetime
     cancelled_at: datetime | None = None
+    period: str = "monthly"
+    #: Migration 0023: the provider subscription charging this row, and what it last said.
+    razorpay_subscription_id: str | None = None
+    razorpay_plan_id: str | None = None
+    provider_status: str | None = None
 
     @property
     def store_managed(self) -> bool:
         """Bought in a phone's app store, so cancelled there and not by us."""
         return self.origin in STORE_ORIGINS
+
+    @property
+    def provider_managed(self) -> bool:
+        """A provider is charging this row, so a cancel must reach the provider first."""
+        return bool(self.razorpay_subscription_id)
 
     @property
     def source(self) -> str:
@@ -165,6 +184,12 @@ def from_row(row: dict[str, Any]) -> Subscription | None:
     plan = str(row.get("plan") or "").strip().lower()
     status = str(row.get("status") or "active").strip().lower()
     origin = str(row.get("origin") or "web").strip().lower()
+    period = str(row.get("period") or "monthly").strip().lower()
+
+    def _text(name: str) -> str | None:
+        value = row.get(name)
+        return str(value).strip() or None if value is not None else None
+
     return Subscription(
         id=str(row.get("id") or ""),
         learner_id=str(row.get("learner_id") or ""),
@@ -179,6 +204,11 @@ def from_row(row: dict[str, Any]) -> Subscription | None:
         current_period_end=ends,
         started_at=_when(row.get("started_at")) or ends,
         cancelled_at=_when(row.get("cancelled_at")),
+        # An unknown period is read as the shorter one: never a longer term than was paid for.
+        period=period if period in PERIODS else "monthly",
+        razorpay_subscription_id=_text("razorpay_subscription_id"),
+        razorpay_plan_id=_text("razorpay_plan_id"),
+        provider_status=_text("provider_status"),
     )
 
 
@@ -192,12 +222,25 @@ def to_row(sub: Subscription) -> dict[str, Any]:
         "current_period_end": _iso(sub.current_period_end),
         "started_at": _iso(sub.started_at),
         "cancelled_at": _iso(sub.cancelled_at),
+        "period": sub.period,
+        "razorpay_subscription_id": sub.razorpay_subscription_id,
+        "razorpay_plan_id": sub.razorpay_plan_id,
+        "provider_status": sub.provider_status,
     }
 
 
 # --- the store seam -----------------------------------------------------------------------------
 class StoreUnavailable(Exception):
     """The subscription could not be reached. Callers say so; they never invent a plan."""
+
+
+class ProviderRefused(Exception):
+    """The payment provider did not take a cancel and did not say the subscription is already
+    over. The row is untouched; the route answers 503 with :data:`_PROVIDER_REFUSED`."""
+
+    def __init__(self, code: str) -> None:
+        self.code = code
+        super().__init__(f"the provider did not take the cancel: {code}")
 
 
 class SubscriptionStore(Protocol):
@@ -305,9 +348,7 @@ class PostgrestSubscriptionStore:
     from ``authenticated`` — so every change has to come through here, behind the door.
     """
 
-    def __init__(
-        self, base_url: str, service_key: str, *, request: Request_ | None = None
-    ) -> None:
+    def __init__(self, base_url: str, service_key: str, *, request: Request_ | None = None) -> None:
         if not base_url or not service_key:
             raise ValueError("PostgrestSubscriptionStore needs a project URL and a service key")
         self.base = base_url.rstrip("/")
@@ -546,6 +587,27 @@ _UNCHANGED = (
     "I could not change your plan just now. Nothing has changed. Try that again in a moment."
 )
 _UNREADABLE = "I could not read your plan just now. Nothing has changed. Try again in a moment."
+#: Razorpay: "Once cancelled, a Subscription cannot be restarted" (the states page), and its only
+#: revert endpoint is for scheduled plan updates. So the resume is honest rather than hopeful.
+_NO_RESUME = (
+    "Once a plan is cancelled it cannot be switched back on. It runs to the end of the period "
+    "you have paid for, and you can start a fresh one after that. Everything you have learnt "
+    "stays."
+)
+#: The provider would not, or could not, take the cancel, and did not say the subscription is
+#: already over. Nothing is written, because a row that says cancelled over a card the provider
+#: may still charge is the one lie this module must never tell.
+_PROVIDER_REFUSED = (
+    "I could not get the payment side to end this plan just now. Nothing has changed. Try again "
+    f"in a moment, or write to {SUPPORT} and we will end it for you."
+)
+#: A row the provider is charging cannot be ended here without the provider. Writing "cancelled"
+#: while the card keeps being charged is the one lie this module must never tell.
+_CANCEL_NEEDS_PAYMENTS = (
+    "I cannot end this plan just now, because the payment side is not switched on, and I will "
+    "not say it is cancelled when it is not. Nothing has changed. Write to "
+    f"{SUPPORT} and we will end it for you."
+)
 
 
 def read(store: SubscriptionStore, learner_id: str) -> Subscription | None:
@@ -569,6 +631,7 @@ def cancel(
     *,
     profile_plan: str = "free",
     now: datetime | None = None,
+    provider: razorpay.Provider | None = None,
 ) -> Subscription:
     """Stop the renewal. Nothing is taken away early and nothing is moved.
 
@@ -576,6 +639,12 @@ def cancel(
     a learner who taps twice, or whose network retried for them, has cancelled once. Raises
     :class:`Refused` for a plan that is not ours to cancel and :class:`StoreUnavailable` when the
     write did not land, and then the caller says the plan is unchanged, because it is.
+
+    A row a provider is charging is cancelled AT THE PROVIDER FIRST, with ``cancel_at_cycle_end``
+    so the paid-for cycle runs out and nothing more is taken (Razorpay's cancel-subscription
+    page). Only when the provider has taken that is ``cancelled`` written here. No provider
+    (``payments_off``) means no cancel and an honest 503 with the mailbox, never a row that says
+    cancelled over a card that is still being charged.
     """
     moment = (now or datetime.now(UTC)).astimezone(UTC)
     sub = read(store, learner_id)
@@ -585,6 +654,22 @@ def cancel(
         raise Refused(409, "store_managed", _STORE_MANAGED, extra={"source": sub.source})
     if sub.status == "cancelled":
         return sub  # already done: same row, same end date, no error
+    if sub.provider_managed:
+        if provider is None:
+            raise Refused(503, "payments_off", _CANCEL_NEEDS_PAYMENTS, extra={"support": SUPPORT})
+        try:
+            provider.cancel_subscription(
+                sub.razorpay_subscription_id or "", {"cancel_at_cycle_end": True}
+            )
+        except razorpay.RazorpayError as exc:
+            if not razorpay.takes_nothing_more(exc):
+                raise ProviderRefused(exc.code) from exc
+            # Already cancelled or expired at the provider, or in its final paid cycle: the card
+            # is safe whatever we do, so the row may say so and the learner is not trapped.
+            logger.info(
+                "provider says there is nothing left to cancel; the row is closed here",
+                extra={"fields": {"status": exc.status, "code": exc.code}},
+            )
     updated = store.update(learner_id, {"status": "cancelled", "cancelled_at": _iso(moment)})
     if updated is None:
         raise StoreUnavailable("the cancel did not land")
@@ -619,6 +704,11 @@ def resume(
         raise Refused(409, "period_ended", _ENDED)
     if sub.status == "active":
         return sub
+    if sub.provider_managed:
+        # The provider cannot restart a cancelled subscription and offers no revert for a cancel
+        # scheduled at cycle end, so writing ``active`` here would promise a charge that will
+        # never come. Said plainly instead.
+        raise Refused(409, "cannot_resume", _NO_RESUME)
     updated = store.update(learner_id, {"status": "active", "cancelled_at": None})
     if updated is None:
         raise StoreUnavailable("the resume did not land")
@@ -652,14 +742,27 @@ _LINES: dict[str, str] = {
     ),
     "store": "Your plan came from your phone's app store, so it is cancelled there, not here.",
     "unmanaged": _UNMANAGED,
+    # The provider's ``pending`` (a charge failed and is being retried) and ``halted`` (retries
+    # exhausted). Both are states: the plan stays to the day already paid for, and nothing is
+    # refunded because nothing extra was taken.
+    "payment_pending": (
+        "Your last payment did not go through the first time. Nothing extra has been charged, "
+        "and it will be tried again. Your plan stays until the period you have already paid for "
+        "ends."
+    ),
+    "payment_failed": (
+        "Your last payment did not go through, and nothing has been charged. Your plan stays "
+        "until the period you have already paid for ends. Check the card or account you paid "
+        "with, or start the plan again from the plans page after that."
+    ),
 }
 
 #: The one plain confirmation the cancel asks for. No retention offer, no discount, no survey: it
 #: states exactly what is about to happen, and nothing else.
 CONFIRM = (
     "Your plan stays exactly as it is until the day you have already paid for ends. Nothing is "
-    "charged after that, and everything you have learnt stays. You can bring it back any time "
-    "before then."
+    "charged after that, and everything you have learnt stays. Once it is cancelled it cannot be "
+    "switched back on, so this is the one tap that counts."
 )
 
 
@@ -677,6 +780,8 @@ def plan_view(
             # here can end it, and the line says where it can be.
             "status": "active" if paid else "free",
             "source": "web",
+            "period": None,
+            "payment_state": None,
             "cancel_at_period_end": False,
             "period_end": None,
             "cancelled_at": None,
@@ -691,11 +796,18 @@ def plan_view(
         status = "cancelling"
     else:
         status = "active"
+    # What the provider last said about the card, in the two words that matter to a learner.
+    payment_state = sub.provider_status if sub.provider_status in ("pending", "halted") else "ok"
+    line = _LINES["store"] if sub.store_managed and running else _LINES[status]
+    if status == "active" and payment_state != "ok" and not sub.store_managed:
+        line = _LINES["payment_pending" if payment_state == "pending" else "payment_failed"]
     view: dict[str, Any] = {
         "plan": sub.plan,
         "effective_plan": effective_plan(sub, now=moment),
         "status": status,
         "source": sub.source,
+        "period": sub.period,
+        "payment_state": payment_state,
         # The flag every processor speaks, said twice on purpose: a reader that keys on the status
         # and a reader that keys on the flag land on the same answer. There is deliberately no
         # ``renews`` key: nothing in this product renews a subscription, and a body that said one
@@ -706,8 +818,10 @@ def plan_view(
         # A store subscription is never cancelled or resumed here, and the line says where it is —
         # the app adds that store's own steps from ``source``.
         "can_cancel": status == "active" and not sub.store_managed,
-        "can_resume": status == "cancelling" and not sub.store_managed,
-        "line": _LINES["store"] if sub.store_managed and running else _LINES[status],
+        # A provider cannot restart a cancelled subscription, so a provider-backed cancel is
+        # final and the button is not offered; the resume route says the same in words.
+        "can_resume": status == "cancelling" and not sub.store_managed and not sub.provider_managed,
+        "line": line,
     }
     if view["can_cancel"]:
         view["confirm"] = CONFIRM
@@ -727,9 +841,7 @@ def _sign_in_required() -> HTTPException:
 
 def _unavailable(message: str) -> HTTPException:
     """The honest failure: nothing landed, so the plan is exactly as it was."""
-    return HTTPException(
-        status_code=503, detail={"code": "store_unavailable", "message": message}
-    )
+    return HTTPException(status_code=503, detail={"code": "store_unavailable", "message": message})
 
 
 def _refused(exc: Refused) -> HTTPException:
@@ -740,6 +852,34 @@ def _profile_plan(subject: str) -> str:
     from wobo_gateway import consent
 
     return consent.get_profile(subject).plan
+
+
+def _record_cancel(sub: Subscription) -> None:
+    """One ledger line per cancel that reached the provider, so the desk shows it beside the
+    provider's own ``subscription.cancelled`` when that arrives. Never fails the cancel: the row
+    is already written, and a missing ledger line is logged rather than hidden."""
+    if not sub.provider_managed or sub.cancelled_at is None:
+        return
+    from wobo_gateway.billing import records
+
+    try:
+        records.get_store().record(
+            records.BillingEvent(
+                event_id=f"cancel:{sub.razorpay_subscription_id}:{int(sub.cancelled_at.timestamp())}",
+                kind="cancel",
+                event="cancel_at_cycle_end",
+                learner_id=sub.learner_id,
+                subscription_id=sub.razorpay_subscription_id,
+                plan=sub.plan,
+                period=sub.period,
+                status="cancelled",
+            )
+        )
+    except records.RecordsUnavailable:
+        logger.error(
+            "cancel reached the provider but was not recorded",
+            extra={"fields": {"sub": sub.razorpay_subscription_id}},
+        )
 
 
 def register_billing(app: FastAPI) -> None:
@@ -768,11 +908,22 @@ def register_billing(app: FastAPI) -> None:
             raise _sign_in_required()
         plan = _profile_plan(principal.subject)
         try:
-            sub = cancel(get_store(), principal.subject, profile_plan=plan)
+            sub = cancel(
+                get_store(),
+                principal.subject,
+                profile_plan=plan,
+                provider=razorpay.get_client(),
+            )
         except Refused as exc:
             raise _refused(exc) from exc
+        except ProviderRefused as exc:
+            raise HTTPException(
+                status_code=503,
+                detail={"code": "provider_unavailable", "message": _PROVIDER_REFUSED},
+            ) from exc
         except StoreUnavailable as exc:
             raise _unavailable(_UNCHANGED) from exc
+        _record_cancel(sub)
         return {**plan_view(sub, profile_plan=plan), "cancelled": True}
 
     @app.post("/v1/me/subscription/resume")
@@ -796,6 +947,7 @@ __all__ = [
     "LIMITED_PATHS",
     "InMemorySubscriptionStore",
     "PostgrestSubscriptionStore",
+    "ProviderRefused",
     "Refused",
     "StoreUnavailable",
     "Subscription",

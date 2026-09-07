@@ -8,6 +8,7 @@ import {
   backOf,
   canReturnTo,
   clearStep,
+  landingAfterDoor,
   profileComplete,
   RUN_STEP_KEY,
   RUN_STEPS,
@@ -144,5 +145,42 @@ describe('what is written down', () => {
       expect([step, /door|beat|aha|run\b/i.test(STEP_NAMES[step])]).toEqual([step, false]);
     }
     expect(STEP_NAMES[1]).toBe('your account');
+  });
+});
+
+describe('what the door does the moment somebody is signed in', () => {
+  const origin = 'https://wobo.example';
+  it('under live auth, leaves the page: a new document is how the stores get keyed to the session', () => {
+    // A provider round trip lands on the run's own address; a code typed at the door lands there too.
+    expect(
+      landingAfterDoor({
+        devAuth: false,
+        mode: 'sign-up',
+        run: { redirectTo: `${origin}/onboarding` },
+        origin,
+      }),
+    ).toEqual({ leave: `${origin}/onboarding` });
+    expect(landingAfterDoor({ devAuth: false, mode: 'sign-in', run: null, origin })).toEqual({
+      leave: `${origin}/onboarding`,
+    });
+    expect(landingAfterDoor({ devAuth: false, mode: 'sign-up', run: null, origin })).toEqual({
+      leave: `${origin}/onboarding`,
+    });
+  });
+  it('under the dev mock, stays on the page: there is no session to re-key to', () => {
+    expect(
+      landingAfterDoor({
+        devAuth: true,
+        mode: 'sign-up',
+        run: { redirectTo: `${origin}/onboarding` },
+        origin,
+      }),
+    ).toEqual({ stay: 'run' });
+    expect(landingAfterDoor({ devAuth: true, mode: 'sign-in', run: null, origin })).toEqual({
+      stay: 'home',
+    });
+    expect(landingAfterDoor({ devAuth: true, mode: 'sign-up', run: null, origin })).toEqual({
+      stay: 'onboarding',
+    });
   });
 });

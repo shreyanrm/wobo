@@ -87,12 +87,14 @@ export const DESKS: readonly Desk[] = [
       because:
         'learner.subscriptions exists (migration 0014) but nothing aggregates it for an operator, ' +
         'and its row-level security scopes every row to its own learner, so no call this console ' +
-        'can make returns a count.',
+        'can make returns a count. The billing ledger (ops.billing_events, migration 0023) is ' +
+        'served at GET /v1/admin/billing by wobo_gateway.billing.payments, newest first with ' +
+        'payments on/off and the last webhook seen, but this console does not read it yet.',
       wouldFill:
-        'A rollup behind the console door grouping by plan, by status and by period end, with ' +
-        'cancellations and their dates. Read the word "billing" carefully when it lands: no ' +
-        'payment provider is wired to this product, so that desk will be showing the subscription ' +
-        'RECORD and not money received.',
+        'A panel that reads GET /v1/admin/billing (every checkout, provider webhook and cancel as ' +
+        'a row, with a keyed handle per learner) beside a rollup of learner.subscriptions by ' +
+        'plan, by status and by period end. Read the word "billing" carefully: the ledger says an ' +
+        'event happened and what the gateway did with it; the provider is the record of money.',
     },
   },
   {

@@ -153,8 +153,14 @@ const TEXT: { name: string; selector: string; ground: string }[] = [
   },
   // the sentence under the cards is on the page's own ground
   { name: 'the line that closes the cards', selector: '.pl-close-line', ground: 'paper' },
-  // the soon marker on the payment door
-  { name: 'the soon marker', selector: '.pl-checkout .pl-soon', ground: 'marigold-w' },
+  // the payment door while it cannot go (payments off) or is working (aria-disabled), on paper-3
+  {
+    name: 'the door while it cannot go',
+    selector: '.pl-checkout .pl-pay[aria-disabled="true"]',
+    ground: 'paper-3',
+  },
+  // what just happened at checkout, on the card's own paper
+  { name: 'the checkout status line', selector: '.pl-checkout .pl-status', ground: 'paper' },
 ];
 
 const AA_NORMAL = 4.5;

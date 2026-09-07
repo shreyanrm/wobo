@@ -1219,3 +1219,50 @@ every gemini/ text rung had been dead on every deploy; the funnel now hands the 
 10, fixer 10.
 
 **Questions for the owner from both waves** are collected in 10.27 once wave 26 lands.
+
+### 10.27 Questions for the owner from waves 26, 27 and 28 (2026-09-07)
+
+Each has a default I applied so nothing waits; say the word to change any.
+
+**Accounts and the device (wave 26)**
+1. Should an anonymous learner's XP, progress and mastery follow them into the account at the door? Default now:
+   yes on the device (the anonymous bucket is adopted by the first account that signs in on that device) and the
+   conversation server-side; the anonymous uid's server rows are not merged.
+2. Sign-out while writes are still owed (offline queue, unpushed XP): refuse with one honest sentence, or allow
+   "sign out anyway" and lose them? Default now: refuse until online. A shared-phone learner who must leave
+   while offline cannot; that needs your call.
+3. Where should the referral code live so an invite survives a second phone: the account or the gateway? Default
+   now: minted per device scope (survives sign-out on the same phone, not a new phone).
+4. On a 390-wide phone the only sign-out is the command palette. Do you want a visible sign-out on You? (I would.)
+5. "Read aloud" is stored as the phone's setting and sent to the model as the learner's need. Which is it?
+6. The memory-law backlog, stated plainly: course stars, the spaced-repetition schedule, the activity ledger,
+   celebrated trophies and the parent phone link are isolated per learner on the device but have no account
+   record yet, so they do not follow a learner to a second phone, and a streak ceremony can replay on return.
+   This is the next memory wave; say if it should come before the content fixes.
+
+**Payments (wave 27)**
+7. When a newer activation lands for a learner who already has a different live subscription, cancel the older
+   one at the provider automatically? Default now: yes, at cycle end, the longer-running one stays.
+8. The site promises "one tap puts the plan back" after a cancel. Razorpay cannot restart a cancelled
+   subscription, so a true resume means not telling Razorpay until the last paid day (a scheduled job). Default
+   now: resume is refused in words for provider-backed rows; the promise on the site needs softening or the job.
+9. The slow-confirmation line no longer promises an email (nobody sends one). Keep it that way, or wire the mail?
+10. Razorpay's checkout injects a risk-detection script from cdn.razorpay.com that our CSP blocks. Allow it
+    (approval rates may depend on it) or keep the strict policy? Default now: blocked; one test-mode checkout on a
+    phone will tell us.
+11. Permissions-Policy denies the Payment Request API to the checkout frame; on Android that may hide GPay/UPI
+    intents. Needs one manual test-mode checkout on an Android phone before launch.
+12. Retire the old /plans/checkout page ("Paying is not open yet") now that the plans page takes money?
+
+**Models (wave 28)**
+13. Claude Haiku 4.5 retires not sooner than 15 October 2026. When it goes, the tiny tier's second rung: Sonnet 5
+    (2/10) or Gemini 3.5 Flash Lite (0.30/2.50)? Default now: unchanged until then.
+14. A total provider outage answers a bare 500 today. Give it a line in Wobo's voice, and a placeholder board?
+    (I would: yes.)
+15. Should the live microphone relay write a ledger row per session in seconds of audio and charge the daily
+    ceiling, as TTS does? Default now: it does, priced from the PCM bytes; the per-minute price is an operator
+    setting.
+16. content/atom grade.py (Sonnet 4.6) and content/factbase/build.py (Opus 4.8, gpt-5.5) still name retired ids
+    on the same keys. Move them onto the funnel and the table? (I would.)
+17. Does Railway restart the container on a 503 from /healthz? The all-out state is 503 by design; a restart
+    forgets the provider marks. If it does, the all-out state should answer 200 degraded instead.

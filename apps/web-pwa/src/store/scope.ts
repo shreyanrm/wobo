@@ -50,7 +50,6 @@ export const SCOPED_KEYS = [
   'wobo-fsrs-v1', // the spaced-repetition model of this learner's memory
   'wobo-forged-v1', // the workbooks they built
   'wobo-downloads-v1', // what they asked to be generated
-  'wobo-daily-quest-v1', // whether today's bonus was already claimed
   'wobo-activity-v1', // the days they showed up
   'wobo-activity-counts-v1', // how much they did on each of them
   'wobo-trophies-celebrated-v1', // which ceremonies they have already had
@@ -60,6 +59,36 @@ export const SCOPED_KEYS = [
   // page can carry a face or a name; it is the learner's own and leaves with them.
   'wobo-doubts-v1',
   'wobo-doubts-erase-v1',
+  /*
+   * THE ONES THAT DESCRIBED THE DEVICE BY MISTAKE (docs/ONE-LEARNER-ONE-WOBO.md, 2026-09-05).
+   *
+   * Each of these was read straight from localStorage under a plain name, so on a family tablet
+   * the second child inherited it: they were never introduced to Wobo because "the device" had
+   * already met them, they carried their sibling's parent link and referral, and a bare `/`
+   * opened the app instead of the front door because "the device" had finished setup.
+   */
+  'wobo-onboarded-v1', // whether THIS learner finished setup; the boot sentinel App.tsx reads
+  'wobo-onb-step-v1', // where their setup run is up to, if they left in the middle of it
+  'wobo-first-turn-v1', // whether Wobo has introduced themself to THIS learner (one introduction, ever)
+  'wobo-parent-link-v1', // the parent they linked by phone
+  'wobo-referral-code-v1', // the code that rides in their invite links
+  'wobo-curriculum-world-v1', // which board and class they follow (curriculum/world.ts)
+  'wobo-brain-erase-v1', // an erase the brain still has to be told about (store/mind.ts)
+  // The mind's offline queue and what this device knows about the record (store/mind-queue.ts).
+  // The queue is the learner's own unsaved words and counts: it moves with an anonymous learner
+  // who signs in, so nothing they told Wobo on the train is lost, and it leaves on sign-out.
+  'wobo-mind-queue-v1',
+  'wobo-mind-sync-v1',
+  /*
+   * TWO THAT WERE ON THE DEVICE LIST BY MISTAKE (the fixer, 2026-09-07).
+   *
+   * The palette's recent doors are door ids, and a door id is `topic-<id>` or `chap-<id>`: the
+   * previous learner's last-opened chapter showed under RECENT in the next learner's palette.
+   * Read aloud rides every turn as the LEARNER's accessibility need (`store/mind.ts`
+   * lifetimeSnapshot), so it is theirs, not the phone's; mute stays the phone's.
+   */
+  'wobo-cmdk-recent-v1',
+  'wobo-voice',
 ] as const;
 
 /**
@@ -67,7 +96,134 @@ export const SCOPED_KEYS = [
  * their start instead of by their whole name. A scoped write already lands under `::<subject>`;
  * this is only how an already-installed device's unscoped copy is carried across.
  */
-export const SCOPED_PREFIXES = ['wobo-forge-pool-v1:'] as const;
+export const SCOPED_PREFIXES = [
+  'wobo-forge-pool-v1:',
+  // The offline copy of the syllabus they are pinned to (curriculum/cache.ts): one row per unit
+  // list, per chapter list, per overlay, plus the index of them.
+  'wobo-curriculum-v1:',
+] as const;
+
+/**
+ * Per-learner keys that live in sessionStorage rather than localStorage: they reset with the tab
+ * on purpose, and they are still one learner's, so they are keyed and swept the same way.
+ */
+export const SCOPED_SESSION_KEYS = [
+  'wobo-sky-seen-v1', // which stars have already caught light for this learner this session
+] as const;
+
+/**
+ * The SDK keys its own caches with a `:<subject>` suffix (`packages/sdk/src/state.ts`,
+ * `mastery.ts`): the learner's XP, streak and level, every thread of the conversation, and the
+ * mastery evidence. It is the second scoping mechanism in the product, and it stays for now
+ * because `@wobo/sdk` cannot import this module (`store/app-sdk.ts` says why). What this module
+ * guarantees is that sign-out sweeps them too: `forgetScope` matches on the suffix, and
+ * `::<subject>` ends in `:<subject>`, so one sweep covers both shapes. Named here so the source
+ * scan (`isolation.test.ts`) can tell a classified key from a stray one; an entry ending in `-` is
+ * a prefix (`wobo-thread-<id>-v1`).
+ */
+export const SDK_SCOPED = [
+  'wobo-progress-v1',
+  'wobo-conversation-v1',
+  'wobo-vidya-conversation-v1',
+  'wobo-thread-',
+  'wobo-mastery-v1',
+] as const;
+
+/** One key the phone itself owns, the file that touches it, and the reason it is not a learner's. */
+export interface DeviceKey {
+  key: string;
+  /** Repo-relative. The only files allowed to reach raw storage, besides this one. */
+  file: string;
+  why: string;
+}
+
+/**
+ * THE DEVICE LIST. Everything a browser is allowed to hold under a plain, account-blind name.
+ *
+ * Per-learner by default, device-level by exception: a key is on this list because somebody wrote
+ * down why two children on one phone SHOULD share it. Anything else is scoped or it is a bug, and
+ * `isolation.test.ts` fails the build the moment a raw `localStorage` / `sessionStorage` /
+ * IndexedDB use appears in a file that is not named here. The SDK's own per-learner caches are
+ * listed under `SDK_SCOPED` above, not here: their files appear below only for the device-level
+ * keys they hold.
+ */
+export const DEVICE_KEYS: readonly DeviceKey[] = [
+  {
+    key: 'wobo-theme-v1',
+    file: 'apps/web-pwa/src/ui/theme.ts',
+    why: 'light or dark is the screen’s, and it is painted before anyone is signed in',
+  },
+  {
+    key: 'wobo-motion-v1',
+    file: 'apps/web-pwa/src/ui/motion.ts',
+    why: 'reduce motion is an accessibility setting of the phone, painted before the first frame',
+  },
+  {
+    key: 'wobo-voice-muted-v1',
+    file: 'apps/web-pwa/src/wobo/speech.tsx',
+    why: 'mute is the phone’s speaker, not the learner’s ear; it is set by whoever is in the room',
+  },
+  {
+    key: 'wobo-voice-muted-v1',
+    file: 'apps/web-pwa/src/ui/sound.ts',
+    why: 'the same mute, read fresh before every interface sound',
+  },
+  {
+    key: 'wobo-voice-muted-v1',
+    file: 'packages/wobo/src/board/pen.ts',
+    why: 'the same mute, read by the pen (packages/wobo cannot import the app)',
+  },
+  {
+    key: 'wobo-flew',
+    file: 'apps/web-pwa/src/wobo/Flight.tsx',
+    why: 'sessionStorage: Wobo’s grand arrival plays once per tab, whoever is watching',
+  },
+  {
+    key: 'wobo-signin-source-v1',
+    file: 'apps/web-pwa/src/screens/auth/source.ts',
+    why: 'written at the door before there is a subject, read once on the next boot, then gone',
+  },
+  {
+    key: 'wobo-auth-session-v1',
+    file: 'packages/sdk/src/identity.ts',
+    why: 'the session itself: it is the key everything else is scoped BY',
+  },
+  {
+    key: 'wobo.dev.subject',
+    file: 'apps/web-pwa/src/store/device.ts',
+    why: 'the keyless dev identity of this browser: a random id so strangers never share one',
+  },
+  {
+    key: 'wobo-key-rename-v1',
+    file: 'apps/web-pwa/src/store/legacy-keys.ts',
+    why: 'the rename migration marker; it runs before any session exists',
+  },
+  {
+    key: 'wobo-scope-v1',
+    file: 'apps/web-pwa/src/store/scope.ts',
+    why: 'which learner this device was last keyed to, so a boot reads the right keys before the session resolves',
+  },
+  {
+    key: 'wobo-inspect',
+    file: 'packages/wobo/src/registry.ts',
+    why: 'a developer’s flag that turns the inspector on; never written by the product',
+  },
+];
+
+/**
+ * Files that reach raw storage for a reason that is not a device key: the SDK's own per-learner
+ * caches (SDK_SCOPED), which take the browser's storage as a default and suffix it themselves.
+ */
+export const RAW_STORAGE_FILES: readonly { file: string; why: string }[] = [
+  {
+    file: 'packages/sdk/src/state.ts',
+    why: 'the state and thread caches: localStorage by default, keyed `wobo-progress-v1:<subject>` and `wobo-conversation-v1:<subject>` by the SDK',
+  },
+  {
+    file: 'packages/sdk/src/mastery.ts',
+    why: 'the mastery cache: localStorage by default, keyed `wobo-mastery-v1:<subject>` by the SDK',
+  },
+];
 
 /** Where the last scope is remembered, so an upgrade (anonymous → account) can carry data across. */
 const SCOPE_KEY = 'wobo-scope-v1';
@@ -76,6 +232,12 @@ const SCOPE_KEY = 'wobo-scope-v1';
 export interface RememberedScope {
   subject: string;
   anonymous: boolean;
+  /**
+   * The anonymous id this learner upgraded from, when they did. Their pre-account work moved under
+   * the account (`inheritScope`), but a write can still land under the old id afterwards (a
+   * debounce firing late, a second tab), and that id is theirs too: sign-out sweeps it as well.
+   */
+  upgradedFrom?: string;
 }
 
 let scope: string | null = null;
@@ -149,38 +311,136 @@ function noteWrite(landed: boolean): void {
   for (const l of writeListeners) l();
 }
 
+function rawSession(): Storage | null {
+  try {
+    return typeof sessionStorage === 'undefined' ? null : sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The learner's door onto a store. `scoped` is localStorage, `scopedSession` is sessionStorage;
+ * both key everything by the subject who owns it.
+ */
+function scopedStore(store: () => Storage | null, recordRefusals: boolean) {
+  return {
+    getItem(base: string): string | null {
+      try {
+        const s = store();
+        if (!s) return null;
+        const key = scopedKey(base);
+        const value = s.getItem(key);
+        if (value !== null || key === base) return value;
+        /*
+         * THE FIRST SCOPED READ CARRIES THE OLD VALUE ACROSS. `applyScope` moves every key on the
+         * lists above the moment the learner is known, but a key can be read through this door
+         * before it is on a list (a store that joined the scope after the device was already
+         * keyed), and the day that ships nobody must lose a streak: an unscoped value found here
+         * belongs to the learner who was on the device, so it moves under them and the plain
+         * copy leaves. The plain key is never read back as anyone's after that.
+         */
+        const plain = s.getItem(base);
+        if (plain === null) return null;
+        s.setItem(key, plain);
+        s.removeItem(base);
+        return plain;
+      } catch {
+        return null;
+      }
+    },
+    /** Did it land? A refused write is recorded, never silently discarded. */
+    setItem(base: string, value: string): boolean {
+      const s = store();
+      // No storage object at all is a server render or a keyless build, not a device refusing a
+      // learner's work. Only an actual throw from an actual store is trouble worth a sentence.
+      if (!s) return false;
+      try {
+        s.setItem(scopedKey(base), value);
+      } catch {
+        if (recordRefusals) noteWrite(false); // quota or private mode — this session only
+        return false;
+      }
+      if (recordRefusals) noteWrite(true);
+      return true;
+    },
+    removeItem(base: string): void {
+      try {
+        store()?.removeItem(scopedKey(base));
+      } catch {
+        // nothing to do
+      }
+    },
+  };
+}
+
 /** localStorage, keyed to the learner. The only door the per-learner stores use. */
-export const scoped = {
-  getItem(base: string): string | null {
+export const scoped = scopedStore(raw, true);
+
+/** sessionStorage, keyed to the learner: resets with the tab, and is still one learner's. */
+export const scopedSession = scopedStore(rawSession, false);
+
+/**
+ * localStorage under a plain name, for the keys on DEVICE_KEYS and nothing else. A device key is
+ * the phone's own (mute, motion, theme) and is the same whoever is signed in; this door exists so
+ * a per-learner module holding one such key does not have to reach raw storage to do it.
+ */
+export const device = {
+  getItem(key: string): string | null {
     try {
-      return raw()?.getItem(scopedKey(base)) ?? null;
+      return raw()?.getItem(key) ?? null;
     } catch {
       return null;
     }
   },
-  /** Did it land? A refused write is recorded, never silently discarded. */
-  setItem(base: string, value: string): boolean {
-    const store = raw();
-    // No storage object at all is a server render or a keyless build, not a device refusing a
-    // learner's work. Only an actual throw from an actual store is trouble worth a sentence.
-    if (!store) return false;
+  setItem(key: string, value: string): void {
     try {
-      store.setItem(scopedKey(base), value);
+      raw()?.setItem(key, value);
     } catch {
-      noteWrite(false); // quota or private mode — the value lives for this session only
-      return false;
+      // the choice holds for this session
     }
-    noteWrite(true);
-    return true;
   },
-  removeItem(base: string): void {
+  removeItem(key: string): void {
     try {
-      raw()?.removeItem(scopedKey(base));
+      raw()?.removeItem(key);
     } catch {
       // nothing to do
     }
   },
 };
+
+/** Every key a store holds, or none if it refuses to be walked. */
+function keysOf(store: Storage | null): string[] {
+  const out: string[] = [];
+  try {
+    for (let i = 0; i < (store?.length ?? 0); i += 1) {
+      const key = store?.key(i);
+      if (key) out.push(key);
+    }
+  } catch {
+    // storage refused enumeration
+  }
+  return out;
+}
+
+/**
+ * Erase and start over: every wobo key this device holds, whoever's it is and the phone's own
+ * settings included, from both stores. The You screen calls it last, after the brain and the
+ * account, and reloads.
+ */
+export function wipeDevice(): void {
+  for (const store of [raw(), rawSession()]) {
+    for (const key of keysOf(store)) {
+      if (key.startsWith('wobo-') || key.startsWith('wobo.')) {
+        try {
+          store?.removeItem(key);
+        } catch {
+          // best effort
+        }
+      }
+    }
+  }
+}
 
 /**
  * Move a key under the new scope. The source ALWAYS leaves, and that is the whole point.
@@ -192,8 +452,7 @@ export const scoped = {
  * A destination that already exists is the newer truth (`legacy-keys.ts` settles the same tie the
  * same way), so the source is dropped rather than merged. Either way it does not stay on the device.
  */
-function move(from: string, to: string): void {
-  const store = raw();
+function move(from: string, to: string, store: Storage | null = raw()): void {
   if (!store || from === to) return;
   try {
     const value = store.getItem(from);
@@ -229,15 +488,27 @@ function moveByPrefix(prefix: string, subject: string): void {
  * (an offline-first device, or a build that predates accounts) — the data moves under their key, so
  * the learner who was already here keeps their world and the next one starts empty.
  */
-export function applyScope(subjectId: string | null, anonymous = false): void {
+export function applyScope(
+  subjectId: string | null,
+  anonymous = false,
+  upgradedFrom?: string,
+): void {
   scope = subjectId?.trim() ? subjectId.trim() : null;
   if (scope) {
     for (const key of SCOPED_KEYS) move(key, `${key}::${scope}`);
     for (const prefix of SCOPED_PREFIXES) moveByPrefix(prefix, scope);
+    for (const key of SCOPED_SESSION_KEYS) move(key, `${key}::${scope}`, rawSession());
   }
   try {
-    if (scope) raw()?.setItem(SCOPE_KEY, JSON.stringify({ subject: scope, anonymous }));
-    else raw()?.removeItem(SCOPE_KEY);
+    if (scope) {
+      // The same subject again keeps the id it upgraded from; a new one starts clean.
+      const from =
+        upgradedFrom ??
+        (rememberedScope()?.subject === scope ? rememberedScope()?.upgradedFrom : undefined);
+      const record: RememberedScope = { subject: scope, anonymous };
+      if (from && from !== scope) record.upgradedFrom = from;
+      raw()?.setItem(SCOPE_KEY, JSON.stringify(record));
+    } else raw()?.removeItem(SCOPE_KEY);
   } catch {
     // remembering the scope is a convenience; an upgrade just inherits nothing
   }
@@ -246,44 +517,70 @@ export function applyScope(subjectId: string | null, anonymous = false): void {
   for (const l of scopeListeners) l();
 }
 
+/**
+ * Boot: key the device to the learner it was last keyed to, before anything reads storage.
+ *
+ * `App.tsx` decides whether a bare `/` is the front door or the app from one sentinel, and it
+ * decides it before the identity layer is loaded (a marketing page must not pay for the auth
+ * stack). That sentinel is the learner's now, not the device's, so the boot has to know whose
+ * keys to read: the subject remembered by the last `applyScope`. The session, once it resolves,
+ * applies the real scope (`store/app-sdk.ts`), which is the same subject on every boot but a
+ * sign-in, and `forgetScope` removed the memory on sign-out, so the boot after a sign-out is
+ * unscoped and the bare `/` is the front door again for whoever comes next.
+ */
+export function bootScope(): void {
+  const previous = rememberedScope();
+  if (previous) applyScope(previous.subject, previous.anonymous);
+}
+
 /** The subject this device was last scoped to (across a sign-in redirect), or null. */
 export function rememberedScope(): RememberedScope | null {
   try {
     const v = raw()?.getItem(SCOPE_KEY);
     if (!v?.trim()) return null;
     const parsed = JSON.parse(v) as Partial<RememberedScope>;
-    return parsed.subject?.trim()
-      ? { subject: parsed.subject, anonymous: parsed.anonymous === true }
-      : null;
+    if (!parsed.subject?.trim()) return null;
+    const out: RememberedScope = { subject: parsed.subject, anonymous: parsed.anonymous === true };
+    if (typeof parsed.upgradedFrom === 'string' && parsed.upgradedFrom.trim()) {
+      out.upgradedFrom = parsed.upgradedFrom.trim();
+    }
+    return out;
   } catch {
     return null;
   }
 }
 
 /**
+ * Every key under `subject`, in either scoping shape, in one store. The app's stores suffix
+ * `::<subject>` and the SDK's caches suffix `:<subject>` (`packages/sdk/src/state.ts`,
+ * `mastery.ts`); `::<subject>` ends with `:<subject>`, so one suffix finds both, and an exact
+ * suffix on a subject id can only ever be that learner's own key.
+ */
+function keysUnder(store: Storage | null, subject: string): string[] {
+  const suffix = `:${subject}`;
+  return keysOf(store).filter((key) => key.endsWith(suffix));
+}
+
+/**
  * The same person, a bigger identity: an anonymous learner signed in for real. Carry their work
  * across to the new subject before the app reads anything, so signing in never costs them the
  * conversation they just had.
+ *
+ * EVERY key under the old id moves, the SDK's own caches included. Moving only this module's lists
+ * left the SDK's `:<anon>` buckets (XP, the whole transcript, the mastery evidence) sitting under
+ * the anonymous id: the learner read xp 0 after signing in, and nothing ever swept what they had
+ * said before the door. The SDK re-reads its caches after this (`store/app-sdk.ts` calls
+ * `sdk.rekey`), and the old id is remembered so sign-out sweeps a late write under it too.
  */
 export function inheritScope(from: string, to: string, anonymous = false): void {
   if (from !== to) {
-    for (const key of SCOPED_KEYS) move(`${key}::${from}`, `${key}::${to}`);
-    const store = raw();
-    const suffix = `::${from}`;
-    const carried: string[] = [];
-    try {
-      for (let i = 0; i < (store?.length ?? 0); i += 1) {
-        const key = store?.key(i);
-        if (key?.endsWith(suffix) && SCOPED_PREFIXES.some((p) => key.startsWith(p))) {
-          carried.push(key);
-        }
+    for (const store of [raw(), rawSession()]) {
+      for (const key of keysUnder(store, from)) {
+        move(key, `${key.slice(0, -from.length)}${to}`, store);
       }
-    } catch {
-      // storage refused enumeration — the named list above is still moved
     }
-    for (const key of carried) move(key, `${key.slice(0, -suffix.length)}::${to}`);
   }
-  applyScope(to, anonymous);
+  applyScope(to, anonymous, from !== to ? from : undefined);
 }
 
 /**
@@ -296,38 +593,40 @@ export function forgetScope(subjectId: string): void {
   const subject = subjectId.trim();
   if (!subject) return;
   /*
-   * Every key this device holds for THIS learner, found by their id rather than by a list.
-   *
-   * There are two scoping shapes in the product: the app's stores suffix `::<subject>` (this
-   * module), and the SDK's own caches suffix `:<subject>` (progress, the whole transcript, the
-   * mastery evidence — `packages/sdk/src/state.ts` and `mastery.ts`). Walking only this module's
-   * SCOPED_KEYS list left the SDK half on the device, which on a family tablet is the learner's
-   * XP, streak, mind snapshot and every word they said to Wobo, still sitting there after they
-   * signed out.
-   *
-   * Matching on the suffix rather than importing the SDK's key names is deliberate twice over. It
-   * cannot drift when a new cache is added, and it keeps this module dependency-free: it is
-   * imported by `ui/viewPref.ts`, which runs before the first paint, so an import of `@wobo/sdk`
-   * here would put the whole client (identity, the database adapter, the event backbone) into the
-   * entry chunk that a visitor reading the landing page downloads. `store/app-sdk.ts` says why
-   * that must not happen.
-   *
-   * `::<subject>` ends with `:<subject>`, so one suffix covers both shapes, and an exact suffix on
-   * a subject id can only ever be that learner's own key.
+   * Every key this device holds for THIS learner, found by their id rather than by a list
+   * (`keysUnder`: it cannot drift when a new cache is added, and it keeps this module free of an
+   * `@wobo/sdk` import, which `store/app-sdk.ts` says must not reach the entry chunk). And the
+   * anonymous id they upgraded from, when there is one: that was them too.
    */
-  const suffix = `:${subject}`;
-  const doomed: string[] = [];
-  try {
-    for (let i = 0; i < store.length; i += 1) {
-      const key = store.key(i);
-      if (key?.endsWith(suffix)) doomed.push(key);
-    }
-  } catch {
-    // storage refused enumeration — the named list below is still attempted
+  const remembered = rememberedScope();
+  const theirs = [subject];
+  if (remembered?.subject === subject && remembered.upgradedFrom)
+    theirs.push(remembered.upgradedFrom);
+  const doomed: string[] = theirs.flatMap((id) => keysUnder(store, id));
+  /*
+   * And the SDK's PLAIN keys, whoever wrote them. The SDK is built before a session exists, so its
+   * door-time providers are keyed to nobody and write `wobo-progress-v1` bare (`state.ts`, scope
+   * ''); the door now leaves the page the moment a session lands (`screens/auth/run.ts`), so that
+   * window is closed, but anything that did land there is this learner's or nobody's, and either
+   * way it must not be what the next learner's door-time SDK reads as their own.
+   */
+  const plain = SDK_SCOPED.filter((key) => !key.endsWith('-'));
+  const plainPrefixes = SDK_SCOPED.filter((key) => key.endsWith('-'));
+  for (const key of keysOf(store)) {
+    if (plainPrefixes.some((p) => key.startsWith(p) && !key.includes(':'))) doomed.push(key);
   }
-  for (const key of [...doomed, ...SCOPED_KEYS.map((base) => `${base}::${subject}`)]) {
+  for (const key of [...doomed, ...plain, ...SCOPED_KEYS.map((base) => `${base}::${subject}`)]) {
     try {
       store.removeItem(key);
+    } catch {
+      // best effort
+    }
+  }
+  // The tab's own store too: the stars that caught light for them are theirs.
+  const tab = rawSession();
+  for (const key of theirs.flatMap((id) => keysUnder(tab, id))) {
+    try {
+      tab?.removeItem(key);
     } catch {
       // best effort
     }

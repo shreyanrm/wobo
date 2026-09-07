@@ -215,7 +215,13 @@ def test_past_its_line_a_call_is_answered_on_a_cheaper_model_rather_than_refused
     cheaper = spend.cheaper_tier(policy("generate.course").tier)
     assert cheaper is not None
     assert recorder.models[-1] == tier_model(cheaper).provider_model
-    assert recorder.models[-1] != recorder.models[0]
+    # Under the owner's table (2026-09-05) generate and turn share Terra, so the rung down is a
+    # tier change (a smaller output ceiling, a smaller cost ceiling) and never a dearer model.
+    from wobo_gateway.routing import CATALOGUE
+
+    before, after = CATALOGUE[recorder.models[0]], CATALOGUE[recorder.models[-1]]
+    assert after.per_million_out <= before.per_million_out
+    assert policy("generate.course").max_tokens > 0  # the ceiling that shrinks with the tier
     # and the fallback chain came down with it, rather than failing over to the expensive one
     assert tier_primary(cheaper) != policy("generate.course").primary
 

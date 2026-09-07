@@ -143,9 +143,16 @@ def test_one_device_a_year_ahead_cannot_freeze_the_latency_sample_for_good() -> 
         None,
         Write(mind=Mind(latencies_ms=(5000,)), client_updated_at="2031-01-01T00:00:00+00:00"),
     ).mind
+    # The honest device writes a minute AFTER the skewed one BY THE SERVER'S CLOCK, not on a fixed
+    # date: the skewed stamp is replaced by the server's own moment, so a fixed date that was
+    # "later" when this test was written became "earlier" the day the calendar passed it (it
+    # failed on its own on 2026-09-07). A minute ahead is inside the skew grace, so it is believed.
+    from datetime import UTC, datetime, timedelta
+
+    a_minute_on = (datetime.now(UTC) + timedelta(minutes=1)).isoformat()
     honest = apply_write(
         skewed,
-        Write(mind=Mind(latencies_ms=(1200, 1300)), client_updated_at="2026-09-06T10:00:00+00:00"),
+        Write(mind=Mind(latencies_ms=(1200, 1300)), client_updated_at=a_minute_on),
     ).mind
     assert honest.latencies_ms == (1200, 1300)
 
@@ -841,6 +848,55 @@ def test_an_erased_account_reaches_the_prompt_with_nothing(client: TestClient, a
     payload = {"context": {"lifetime": {"facts": ["the cache still holds this"]}}}
     mind_mod.ground_lifetime(payload, subject="learner-alpha", anonymous=False)
     assert payload["context"]["lifetime"]["facts"] == []
+
+
+class _Capturing(MockProvider):
+    """The mock brain, remembering the packet it was handed for the turn."""
+
+    def __init__(self) -> None:
+        self.packets: list[dict[str, Any]] = []
+
+    def complete(self, **kwargs: Any) -> Any:  # type: ignore[override]
+        self.packets.append(kwargs["payload"])
+        return super().complete(**kwargs)
+
+
+def test_one_remembered_fact_changes_the_turn_and_one_forgotten_fact_leaves_it(auth) -> None:
+    """Through the real route, not the helper: the packet the provider is handed for a turn
+    carries what the record holds, so a fact remembered on any device reaches the next turn and
+    a fact the learner cleared leaves it, whatever the device still sent."""
+    provider = _Capturing()
+    app = TestClient(create_app(Gateway(provider, InMemoryCache(), MetricsSink())))
+    headers = auth("learner-remembering")
+
+    def turn() -> dict[str, Any]:
+        res = app.post(
+            "/v1/capability/wobo.turn",
+            headers=headers,
+            json={
+                "payload": {
+                    "context": {
+                        "turn": {"lastUserInput": "hello"},
+                        # the device's cache, stale on purpose: never what reaches the prompt
+                        "lifetime": {"facts": ["a fact only this device holds"]},
+                    }
+                }
+            },
+        )
+        assert res.status_code == 200, res.text
+        return provider.packets[-1]["context"]["lifetime"]
+
+    # No record yet: the device's copy stands (contract §6), because stripping it would make
+    # Wobo worse at teaching for no gain in truth. This is the one turn the cache may shape.
+    assert turn()["facts"] == ["a fact only this device holds"]
+    app.put(PATH, headers=headers, json={"remember": {"facts": ["exam on friday"]}})
+    assert turn()["facts"] == ["exam on friday"]
+    app.put(PATH, headers=headers, json={"forget": {"facts": ["exam on friday"]}})
+    assert turn()["facts"] == []
+    # and once a record exists, the device's stale claim never reaches the prompt again
+    later = provider.packets[1:]
+    assert len(later) == 2
+    assert all("a fact only this device holds" not in p["context"]["lifetime"]["facts"] for p in later)
 
 
 def test_a_sync_storm_cannot_spend_the_allowance_the_lesson_needs(

@@ -115,3 +115,34 @@ export function clearStep(store: StepStore | null): void {
 export function profileComplete(p: { name: string; grade: string; boardId: string }): boolean {
   return p.name.trim().length > 0 && p.grade.trim().length > 0 && p.boardId.trim().length > 0;
 }
+
+/** What the door knows the moment a code or a password has signed somebody in. */
+export interface DoorArrival {
+  /** The dev mock is signed in by configuration; live auth has a real session that just landed. */
+  devAuth: boolean;
+  mode: 'sign-in' | 'sign-up';
+  /** The run this door is the first step of, when it is one: where its provider round trip lands. */
+  run: { redirectTo: string } | null;
+  origin: string;
+}
+
+/**
+ * Where the door goes once somebody is signed in: off the page, or on to the next screen.
+ *
+ * Under live auth it LEAVES THE PAGE, and that is the isolation half of the door. The SDK was built
+ * before there was a session, so every store keyed to the subject (progress, the conversation, the
+ * mastery evidence, the outbox) is still keyed to nobody: it writes the plain key, which is the key
+ * the next learner's door-time SDK reads as their own, and none of it reaches the account. A new
+ * document rebuilds the SDK on the session that just landed (`store/app-sdk.ts`), exactly as a
+ * provider round trip already does; it lands on the run's own address, where `resumeAfterAuth`
+ * reads the account back and sends a learner who has finished setup straight home.
+ *
+ * The dev mock has no session to re-key to, so it stays on the page as it always did.
+ */
+export function landingAfterDoor(
+  arrival: DoorArrival,
+): { leave: string } | { stay: 'run' | 'home' | 'onboarding' } {
+  if (!arrival.devAuth) return { leave: arrival.run?.redirectTo ?? `${arrival.origin}/onboarding` };
+  if (arrival.run) return { stay: 'run' };
+  return { stay: arrival.mode === 'sign-up' ? 'onboarding' : 'home' };
+}

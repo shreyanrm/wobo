@@ -19,6 +19,7 @@ import { ONBOARDED_KEY } from '../../shell/public-routes';
 import { useConnectivity } from '../../shell/resilience';
 import { type Route, useRouter } from '../../shell/router';
 import { useProgress } from '../../store/progress';
+import { scoped } from '../../store/scope';
 import { readNotes } from '../../wobo/board-notes';
 import { lessonView } from '../../wobo/lesson-view';
 import { todayPlan } from '../home/today';
@@ -192,9 +193,6 @@ const LANDING: Route = { name: 'landing' };
 
 /** Has anyone finished setup on this device? The one sentinel `App.tsx` boots from. */
 function hasStarted(): boolean {
-  try {
-    return typeof localStorage !== 'undefined' && localStorage.getItem(ONBOARDED_KEY) !== null;
-  } catch {
-    return false; // storage blocked: treat the visitor as new, which is the safe guess
-  }
+  // Storage blocked reads as a miss, and a miss is a new visitor, which is the safe guess.
+  return scoped.getItem(ONBOARDED_KEY) !== null;
 }

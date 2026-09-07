@@ -18,6 +18,7 @@ import { lazy, Suspense, useEffect, useRef, useState, useTransition } from 'reac
 import { PublicSite } from './PublicSite';
 import { isPublicRoute, ONBOARDED_KEY } from './shell/public-routes';
 import { type Route, RouterProvider, useRouter } from './shell/router';
+import { scoped } from './store/scope';
 
 // Re-exported so the screens that write these sentinels keep importing them from the root they
 // have always imported them from. It is defined next to the routing law it belongs to.
@@ -43,7 +44,9 @@ function bootIntent(): Route {
   if (typeof location !== 'undefined' && location.hash === '#engines') {
     return { name: 'concept', which: 'engines' };
   }
-  const started = typeof localStorage !== 'undefined' && localStorage.getItem(ONBOARDED_KEY);
+  // The learner's sentinel, read under the scope `bootScope()` set in main.tsx: after a sign-out
+  // the device is unscoped and a bare `/` is the front door for whoever comes next.
+  const started = scoped.getItem(ONBOARDED_KEY);
   return started ? { name: 'home' } : { name: 'landing' };
 }
 

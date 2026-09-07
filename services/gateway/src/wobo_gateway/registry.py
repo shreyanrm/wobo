@@ -81,6 +81,8 @@ _TIER_BUDGETS: dict[Tier, tuple[int, float, int]] = {
     Tier.GENERATE: (12000, 0.08, 4000),
     Tier.REASON: (20000, 0.20, 4000),
     Tier.VERIFY: (20000, 0.20, 2000),
+    Tier.VISION: (20000, 0.05, 1500),
+    Tier.SAFETY: (1500, 0.002, 120),
 }
 
 
@@ -148,7 +150,7 @@ _POLICIES: dict[str, RoutingPolicy] = {
         # on every learner-facing turn.
         _policy(
             "safety.classify",
-            Tier.TINY,
+            Tier.SAFETY,
             CacheTier.EXACT,
             max_latency_ms=1500,
             cost_ceiling=0.002,
@@ -255,7 +257,7 @@ _POLICIES: dict[str, RoutingPolicy] = {
         ),
         _policy(
             "doubt.read",
-            Tier.GENERATE,
+            Tier.VISION,
             CacheTier.NONE,
             max_latency_ms=20000,
             cost_ceiling=0.05,

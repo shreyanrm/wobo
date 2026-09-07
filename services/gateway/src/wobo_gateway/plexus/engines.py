@@ -1583,14 +1583,12 @@ def _complete(
     *,
     timeout_s: float | None = None,
 ) -> tuple[str, int]:
-    import litellm  # lazy: mock mode and tests never import litellm
+    # Through ``model_call``, never ``litellm.completion`` directly: it drops the sampling knob a
+    # model in the chain would refuse (Claude 5 takes only its default) and retries once, so one
+    # fussy model in the chain is never read as the whole chain being down.
+    from wobo_gateway.model_call import complete as model_complete
 
-    # Claude 5 family accepts only default sampling; drop unsupported params instead of
-    # erroring (without this, whether an engine call works depends on whether another
-    # capability happened to set the global first — a heisenbug, not a policy).
-    litellm.drop_params = True
-
-    response = litellm.completion(
+    response = model_complete(
         model=provider_model,
         messages=[
             {"role": "system", "content": _SYSTEMS[modality] + _DATA_RULE},

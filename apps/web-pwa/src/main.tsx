@@ -9,6 +9,7 @@ import { createRoot } from 'react-dom/client';
 import { App } from './App';
 import { bootIsPublic } from './shell/public-routes';
 import { migrateLegacyKeys } from './store/legacy-keys';
+import { bootScope } from './store/scope';
 import { initAccess } from './ui/access';
 import { initMotion } from './ui/motion';
 import { initTheme } from './ui/theme';
@@ -20,6 +21,9 @@ import { LEGACY_TOKEN_BRIDGE } from './ui/tokens';
 // FIRST, before any store reads: an already-installed device still has its world under the
 // pre-rename key names. Move it forward, once, or the rename would read as a wipe.
 migrateLegacyKeys();
+// THEN, still before any store reads: key the device to the learner it was last keyed to, so the
+// one sentinel the boot reads (has this learner finished setup?) is read under their name.
+bootScope();
 
 // The older `--wobo-*` token layer, then the bridge that lays it onto palette v4 — the bridge comes
 // second on purpose, so a screen not yet rebuilt reads the new paper without a specificity fight.

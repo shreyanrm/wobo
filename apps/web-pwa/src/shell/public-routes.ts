@@ -10,6 +10,7 @@
  * exists.
  */
 
+import { scoped } from '../store/scope';
 import { pathToRoute, type Route } from './router';
 
 /**
@@ -65,11 +66,8 @@ export function bootIsPublic(): boolean {
   if (window.location.hash === '#engines') return false;
   const path = window.location.pathname;
   if (path === '/' || path === '') {
-    try {
-      return !localStorage.getItem(ONBOARDED_KEY);
-    } catch {
-      return true; // no storage to read: treat the visitor as new, which is the safe guess
-    }
+    // No storage to read is a miss, and a miss is a new visitor, which is the safe guess.
+    return !scoped.getItem(ONBOARDED_KEY);
   }
   const route = pathToRoute(path);
   // An address that is not ours is the 404 — itself a public page.

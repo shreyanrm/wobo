@@ -22,6 +22,9 @@ class Mem implements KVStorage {
   setItem(key: string, value: string): void {
     this.map.set(key, value);
   }
+  removeItem(key: string): void {
+    this.map.delete(key);
+  }
 }
 
 const SUBJECT = '00000000-0000-7000-8000-000000000001';
@@ -159,6 +162,86 @@ describe('the mastery snapshot', () => {
     stop();
     provider.save(snapshot('n1', 'developing', ['e2']));
     expect(beats).toBe(1);
+  });
+});
+
+// --- The fixer, 2026-09-07: the mastery cache adopts and re-keys like the learner state --------
+
+describe('the mastery cache follows the learner the same way the state cache does', () => {
+  const SUB_A = '00000000-0000-7000-8000-00000000000a';
+
+  /**
+   * `wobo-mastery-v1` was never on the state provider's adoptable list, so the evidence a learner
+   * gathered before their first reload stayed a plain stray on the device, for the next person's
+   * door-time SDK to read as their own.
+   */
+  it('adopts the plain bucket under the first subject keyed to it, and the plain key leaves', () => {
+    const storage = new Mem();
+    storage.setItem(
+      MASTERY_CACHE_KEY,
+      JSON.stringify(snapshot(ATOM_NODE_IDS.integers, 'secure', ['e1', 'e2', 'e3'])),
+    );
+    const scopedProvider = new LocalMasteryProvider(storage, SUB_A);
+    expect(scopedProvider.bands()[ATOM_NODE_IDS.integers]).toBe('secure');
+    expect(storage.map.has(MASTERY_CACHE_KEY)).toBe(false);
+    expect(storage.map.has(`${MASTERY_CACHE_KEY}:${SUB_A}`)).toBe(true);
+  });
+
+  it('rekey: a session that lands after the build moves the plain bucket and keeps what is held', () => {
+    const storage = new Mem();
+    const provider = new LocalMasteryProvider(storage);
+    provider.save(snapshot(ATOM_NODE_IDS.integers, 'secure', ['e1', 'e2', 'e3']));
+    provider.rekey(SUB_A);
+    expect(provider.bands()[ATOM_NODE_IDS.integers]).toBe('secure');
+    expect(storage.map.has(MASTERY_CACHE_KEY)).toBe(false);
+    provider.save(snapshot(ATOM_NODE_IDS.variables, 'secure', ['v1', 'v2', 'v3']));
+    const written = JSON.parse(storage.map.get(`${MASTERY_CACHE_KEY}:${SUB_A}`) ?? '{}');
+    expect(Object.keys(written.nodes).sort()).toEqual(
+      [ATOM_NODE_IDS.integers, ATOM_NODE_IDS.variables].sort(),
+    );
+  });
+
+  it('rekey to the same subject folds in what was moved under it meanwhile, and announces', () => {
+    const storage = new Mem();
+    const provider = new LocalMasteryProvider(storage, SUB_A);
+    let told = 0;
+    provider.subscribe(() => {
+      told += 1;
+    });
+    storage.setItem(
+      `${MASTERY_CACHE_KEY}:${SUB_A}`,
+      JSON.stringify(snapshot(ATOM_NODE_IDS.integers, 'secure', ['e1', 'e2', 'e3'])),
+    );
+    provider.rekey(SUB_A);
+    expect(provider.bands()[ATOM_NODE_IDS.integers]).toBe('secure');
+    expect(told).toBe(1);
+  });
+});
+
+describe('flush: the mastery debounce lands now, or re-arms and says so', () => {
+  it('pushes the pending snapshot at once, and after a refused push sends it again on the next flush', async () => {
+    let down = true;
+    let pushes = 0;
+    const provider = new SupabaseMasteryProvider(
+      {
+        select: async () => [],
+        upsert: async () => {
+          if (down) throw new Error('offline');
+          pushes += 1;
+        },
+      },
+      SUBJECT,
+      new Mem(),
+      60_000,
+    );
+    provider.save(snapshot(ATOM_NODE_IDS.integers, 'secure', ['e1', 'e2', 'e3']));
+    await expect(provider.flush()).rejects.toThrow('offline');
+    expect(pushes).toBe(0);
+    down = false;
+    await provider.flush();
+    expect(pushes).toBe(1);
+    await expect(provider.flush()).resolves.toBeUndefined(); // nothing pending: a no-op
+    expect(pushes).toBe(1);
   });
 });
 

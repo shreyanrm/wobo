@@ -86,6 +86,20 @@ describe('a run of failed saves stops being silent', () => {
     expect(health.status().troubled).toBe(false);
   });
 
+  it('retries a store below the threshold when asked to, which is what a sign-out asks', async () => {
+    const health = new SyncHealth();
+    let pushes = 0;
+    health.register('progress', async () => {
+      pushes += 1;
+    });
+    health.failed('progress', new Error('offline'));
+    await health.retry();
+    expect(pushes).toBe(0); // one failure is not trouble; the button would not fire
+    await health.retry(1);
+    expect(pushes).toBe(1);
+    expect(health.consecutiveFailures('progress')).toBe(0);
+  });
+
   it('never retries a store that is working', async () => {
     const health = new SyncHealth();
     let attempts = 0;

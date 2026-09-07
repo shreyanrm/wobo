@@ -3,10 +3,14 @@ name = "wobo-atom"
 version = "0.0.0"
 description = "The atom (linear equations in one variable): verified content seed, grounded grading, and the perception + grading calibration spike."
 requires-python = ">=3.12"
-dependencies = ["wobo-verifier", "litellm>=1.50", "pydantic>=2.7"]
+# The grader rides the gateway's model funnel (``wobo_gateway.model_call``) on the router's own
+# ids, so a refusal falls to the next provider and the call lands in the usage ledger; it used
+# to call litellm directly on a retired id with none of that.
+dependencies = ["wobo-verifier", "wobo-gateway", "litellm>=1.50", "pydantic>=2.7"]
 
 [tool.uv.sources]
 wobo-verifier = { workspace = true }
+wobo-gateway = { workspace = true }
 
 [build-system]
 requires = ["hatchling"]

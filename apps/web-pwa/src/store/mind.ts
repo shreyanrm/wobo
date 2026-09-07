@@ -5,7 +5,12 @@
  * every Wobo call through the bus's lifetime slot: median item latency, the wrong-answer slip
  * log (each one detonated on screen), which surfaces the learner lingers on, and session cadence.
  * Visible and clearable in You — Wobo's memory of you is steerable, never hidden.
- * ponytail: localStorage until the mind syncs through KGtoPG; shapes mirror what that sync needs.
+ *
+ * THE DATABASE IS THE RECORD (docs/MEMORY-LAW.md). What this file keeps in storage is a cache of
+ * the account's row in `learner.wobo_mind`, painted so the screen is instant and kept so a train
+ * still works. Every add, clear and count is written through to the record by `mind-sync.ts`,
+ * queued per learner (`mind-queue.ts`) when the network is away, and replayed in order. The
+ * shapes here ARE the wire shapes: the gateway returns `MindState` exactly.
  */
 
 import { gatewayFetch, type Sdk } from '@wobo/sdk';
@@ -13,11 +18,22 @@ import { type LifetimeContext, useWoboBus } from '@wobo/wobo';
 import { useCallback, useEffect, useRef } from 'react';
 import { boardName, getFlag, loadProfile, VOICE_KEY } from '../screens/you/profile';
 import { useRouter } from '../shell/router';
-import { scoped } from './scope';
+import { clearMindQueue, enqueueBump, enqueueWrite, ledgerDelta } from './mind-queue';
+import {
+  forgetOnRecord,
+  forgetSyncState,
+  inFlightIds,
+  kickMindSync,
+  resetMindSync,
+  type SyncGate,
+  setMindSyncGate,
+  syncMind,
+} from './mind-sync';
+import { onScopeChange, scoped } from './scope';
 import { useSdk } from './sdk';
 
 // Scoped per learner (store/scope.ts) — the dossier is the most personal thing on the device.
-const MIND_KEY = 'wobo-mind-v1';
+export const MIND_KEY = 'wobo-mind-v1';
 const PROACTIVITY_KEY = 'wobo-proactivity-v1';
 
 // --- the mind state ------------------------------------------------------------------------------
@@ -148,7 +164,16 @@ export function loadMind(): MindState {
   try {
     const raw = scoped.getItem(MIND_KEY);
     if (!raw) return { ...EMPTY };
-    const m = JSON.parse(raw) as Partial<MindState>;
+    return mindFrom(JSON.parse(raw));
+  } catch {
+    return { ...EMPTY };
+  }
+}
+
+/** A mind from any shape: the cache, or the record as the gateway returns it. Never throws. */
+export function mindFrom(raw: unknown): MindState {
+  try {
+    const m = (raw && typeof raw === 'object' ? raw : {}) as Partial<MindState>;
     return {
       latenciesMs: Array.isArray(m.latenciesMs) ? m.latenciesMs : [],
       slips: Array.isArray(m.slips) ? m.slips : [],
@@ -197,16 +222,28 @@ export function rememberFact(text: string): void {
   if (next === mind.facts) return; // nothing new — skip the write
   mind.facts = next;
   saveMind(mind);
+  // Written through: `remember` is the only verb that ADDS to the record (contract §2).
+  enqueueWrite({ remember: { facts: [flattenFact(text)], interests: [] } });
+  kickMindSync();
 }
 
 /** Onboarding writes what the learner is into — folded into every Wobo call via the lifetime slot. */
 export function rememberInterests(interests: string[]): void {
   const mind = loadMind();
+  const before = mind.interests;
   mind.interests = interests.map(flattenFact).filter(Boolean).slice(0, 8);
   saveMind(mind);
+  // The record takes verbs, not lists: what was added is remembered, what left is forgotten.
+  const lower = (v: string) => v.toLowerCase();
+  const added = mind.interests.filter((i) => !before.some((b) => lower(b) === lower(i)));
+  const gone = before.filter((b) => !mind.interests.some((i) => lower(i) === lower(b)));
+  if (added.length > 0) enqueueWrite({ remember: { facts: [], interests: added } });
+  if (gone.length > 0) enqueueWrite({ forget: { facts: [], interests: gone } });
+  if (added.length > 0 || gone.length > 0) kickMindSync();
 }
 
-function saveMind(mind: MindState): void {
+/** The cache, written. The record is written by `mind-sync.ts`; this is only the device's copy. */
+export function saveMind(mind: MindState): void {
   try {
     scoped.setItem(MIND_KEY, JSON.stringify(mind));
   } catch {
@@ -235,34 +272,49 @@ export function forgetFacts(
   return { facts: kept, removed };
 }
 
-/** Wobo forgets a fact on the learner's word (the forget action). Storage-truth; returns what left. */
-export function forgetMatching(target: string): string[] {
+/**
+ * Wobo forgets on the learner's word (the forget action). Answered against the RECORD (contract
+ * §3), so a fact told to Wobo on the phone, which this laptop never held, is found and cleared
+ * everywhere. Only when the record cannot be asked does the device's own copy answer, and then
+ * what it removed is queued as a tombstone so no other device can put it back. Returns what left.
+ */
+export async function forgetMatching(target: string): Promise<string[]> {
+  const onRecord = await forgetOnRecord(target);
+  if (onRecord) return [...onRecord.facts, ...onRecord.interests];
   const mind = loadMind();
   const { facts, removed } = forgetFacts(mind.facts, target);
   if (removed.length === 0) return [];
   mind.facts = facts;
   saveMind(mind);
+  enqueueWrite({ forget: { facts: removed, interests: [] } });
+  kickMindSync();
   return removed;
 }
 
-/** Remove one exact remembered fact (the You screen's per-item delete). Storage-truth. */
-export function removeFact(fact: string): void {
+/** The device's copy lets one item go. Only the cache: the record is told by the caller. */
+export function dropLocally(kind: 'fact' | 'interest', text: string): boolean {
   const mind = loadMind();
-  const next = mind.facts.filter((f) => f !== fact);
-  if (next.length !== mind.facts.length) {
-    mind.facts = next;
-    saveMind(mind);
-  }
+  const list = kind === 'fact' ? mind.facts : mind.interests;
+  const next = list.filter((x) => x !== text);
+  if (next.length === list.length) return false;
+  if (kind === 'fact') mind.facts = next;
+  else mind.interests = next;
+  saveMind(mind);
+  return true;
 }
 
-/** Remove one exact interest (the You screen's per-item delete). Storage-truth. */
+/** Remove one exact remembered fact: the device now, the record through the queue. */
+export function removeFact(fact: string): void {
+  if (!dropLocally('fact', fact)) return;
+  enqueueWrite({ forget: { facts: [fact], interests: [] } });
+  kickMindSync();
+}
+
+/** Remove one exact interest: the device now, the record through the queue. */
 export function removeInterest(interest: string): void {
-  const mind = loadMind();
-  const next = mind.interests.filter((i) => i !== interest);
-  if (next.length !== mind.interests.length) {
-    mind.interests = next;
-    saveMind(mind);
-  }
+  if (!dropLocally('interest', interest)) return;
+  enqueueWrite({ forget: { facts: [], interests: [interest] } });
+  kickMindSync();
 }
 
 /**
@@ -280,6 +332,9 @@ export function clearMind(): void {
   } catch {
     // fine
   }
+  // Nothing is owed to a record that is about to be erased, and nothing is known about it.
+  clearMindQueue();
+  forgetSyncState();
   queueBrainErase();
 }
 
@@ -658,10 +713,38 @@ export function proactiveChip(mind: MindState): { label: string; prompt: string 
 
 // --- the observer --------------------------------------------------------------------------------
 
+/** A copy of the counters, so what grew in a fold can be measured and sent as a delta. */
+function ledgerCopy(mind: MindState): MindState {
+  const days: Record<string, DayLedger> = {};
+  for (const [day, led] of Object.entries(mind.days ?? {})) days[day] = { ...led };
+  return { ...mind, days, dwellSec: { ...mind.dwellSec } };
+}
+
+/** What grew on this device since `before`, owed to the record as a bump. */
+function noteGrowth(before: MindState, after: MindState): void {
+  const delta = ledgerDelta(before, after);
+  if (delta) enqueueBump(delta, inFlightIds());
+}
+
+/**
+ * Whether this device may talk to the record. No gateway: the device is the whole record (a
+ * keyless build). No account layer: the dev door names the subject. Otherwise a signed-in,
+ * non-anonymous session, because an anonymous subject is derived from an address and the gateway
+ * refuses to store a mind against it.
+ */
+function accountGate(sdk: Sdk): SyncGate {
+  if (!import.meta.env.VITE_GATEWAY_URL) return 'none';
+  const account = sdk.account;
+  if (!account) return 'ready';
+  return account.isAuthenticated() && !account.isAnonymous() ? 'ready' : 'anonymous';
+}
+
 /**
  * Mounted once inside the app: marks the session, folds the event log into the mind on a slow
  * pulse, tracks dwell per surface, and keeps the bus's lifetime slot current so assembleContext
- * carries the mind into every Wobo call.
+ * carries the mind into every Wobo call. And keeps the RECORD current: every count that grows
+ * here is queued as a delta, the queue is drained on the same pulse, and the record is read on
+ * boot, on every change of learner, and the moment the network comes back.
  */
 export function MindObserver() {
   const sdk = useSdk();
@@ -671,6 +754,24 @@ export function MindObserver() {
   const cursor = useRef(0);
   const seen = useRef<Set<string>>(new Set());
   if (mindRef.current === null) mindRef.current = loadMind();
+
+  // The wire: the account is the source. Read the record when this learner arrives on the device
+  // (boot, sign-in, a sibling taking over the tablet) and when the network returns.
+  useEffect(() => {
+    setMindSyncGate(() => accountGate(sdk));
+    const start = () => {
+      resetMindSync();
+      void syncMind({ pull: true, force: true });
+    };
+    start();
+    const unsubscribe = onScopeChange(start);
+    const online = () => void syncMind({ pull: true, force: true });
+    window.addEventListener('online', online);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('online', online);
+    };
+  }, [sdk]);
 
   // Storage is the source of truth: other writers (rememberInterests at onboarding finish,
   // rememberFact from Wobo's turns, profile edits) write the mind out-of-band, so every mutation
@@ -684,7 +785,11 @@ export function MindObserver() {
   // session cadence + first publish, once per boot: the dossier rides from the very first turn
   useEffect(() => {
     const mind = freshMind();
-    if (markSessionDay(mind)) saveMind(mind);
+    const before = ledgerCopy(mind);
+    if (markSessionDay(mind)) {
+      saveMind(mind);
+      noteGrowth(before, mind);
+    }
     bus.publishLifetime(lifetimeSnapshot());
   }, [bus, freshMind]);
 
@@ -698,13 +803,20 @@ export function MindObserver() {
       if (log.length > cursor.current) {
         const fresh = log.slice(cursor.current);
         cursor.current = log.length;
-        if (foldEvents(mind, fresh, seen.current)) saveMind(mind);
+        const before = ledgerCopy(mind);
+        if (foldEvents(mind, fresh, seen.current)) {
+          saveMind(mind);
+          noteGrowth(before, mind);
+        }
       }
       bus.publishLifetime(lifetimeSnapshot());
       // An erase the learner already asked for that the brain has not confirmed. Retried here so a
       // wipe made offline (or against a gateway that was down) finishes on its own, without the
       // learner having to ask to be forgotten twice.
       void drainBrainErase();
+      // What this device owes the record goes on the same pulse. Cheap when nothing is owed, and
+      // the wire backs off on its own after trouble.
+      void syncMind();
     };
     const t = window.setInterval(fold, 4000);
     return () => {
@@ -719,8 +831,10 @@ export function MindObserver() {
     const started = Date.now();
     return () => {
       const mind = freshMind();
+      const before = ledgerCopy(mind);
       addDwell(mind, name, (Date.now() - started) / 1000);
       saveMind(mind);
+      noteGrowth(before, mind);
     };
   }, [route.name, freshMind]);
 

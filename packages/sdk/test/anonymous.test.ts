@@ -7,12 +7,15 @@ import {
 } from '../src/index';
 
 class MapKV implements KVStorage {
-  private readonly map = new Map<string, string>();
+  readonly map = new Map<string, string>();
   getItem(key: string): string | null {
     return this.map.get(key) ?? null;
   }
   setItem(key: string, value: string): void {
     this.map.set(key, value);
+  }
+  removeItem(key: string): void {
+    this.map.delete(key);
   }
 }
 
@@ -171,5 +174,57 @@ describe('the assembled SDK signs the device in before it ever asks the brain', 
     expect(sdk.account).toBeUndefined();
     await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
     expect(headers[0]).toBe(sdk.config.mockSubjectId);
+  });
+});
+
+/**
+ * THE FIRST SESSION FOLLOWS THE LEARNER. The SDK is built before the anonymous session is minted,
+ * so its state, thread and mastery caches are keyed to nobody and write the PLAIN keys. Until this
+ * they went on doing so until a reload, and the plain bucket was what the next person's door-time
+ * SDK read as their own (seen in a browser, 2026-09-07). The session now tells the caches who they
+ * belong to the moment it lands.
+ */
+describe('the caches re-key the moment the anonymous session lands', () => {
+  it('moves what was written plain under the new subject and writes there from then on', async () => {
+    const storage = new MapKV();
+    (globalThis as { localStorage?: KVStorage }).localStorage = storage;
+    try {
+      globalThis.fetch = ((url: string | URL | Request) => {
+        if (String(url).endsWith('/auth/v1/signup')) {
+          return Promise.resolve(
+            Response.json({
+              access_token: fakeJwt(ANON, { is_anonymous: true }),
+              refresh_token: 'r-anon',
+              expires_in: 3600,
+              user: { id: ANON },
+            }),
+          );
+        }
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }) as typeof fetch;
+      const sdk = createSdk({
+        supabaseUrl: 'https://project.supabase.co',
+        supabaseAnonKey: 'sb_publishable_test',
+        devAuth: false,
+        persistMode: 'local',
+      });
+      // Before the session: the door-time SDK, keyed to nobody.
+      sdk.state.save({ ...sdk.state.loadCache(), xp: 40 });
+      sdk.state.saveThread('wobo', [{ id: 't1', role: 'user', text: 'my dog is Bruno' }]);
+      expect(storage.map.has('wobo-progress-v1')).toBe(true);
+
+      expect(await sdk.account?.ensureSession()).toBe(ANON);
+
+      expect(storage.map.has('wobo-progress-v1')).toBe(false);
+      expect(storage.map.has('wobo-conversation-v1')).toBe(false);
+      expect(JSON.parse(storage.map.get(`wobo-progress-v1:${ANON}`) ?? '{}').xp).toBe(40);
+      expect(sdk.state.loadCache().xp).toBe(40);
+      expect(sdk.state.loadThreadCache('wobo')?.turns[0]?.text).toBe('my dog is Bruno');
+      sdk.state.save({ ...sdk.state.loadCache(), xp: 55 });
+      expect(storage.map.has('wobo-progress-v1')).toBe(false);
+      expect(JSON.parse(storage.map.get(`wobo-progress-v1:${ANON}`) ?? '{}').xp).toBe(55);
+    } finally {
+      (globalThis as { localStorage?: KVStorage }).localStorage = undefined;
+    }
   });
 });

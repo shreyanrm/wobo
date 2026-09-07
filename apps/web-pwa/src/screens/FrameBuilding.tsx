@@ -24,6 +24,7 @@ import { DiscoveryCard, EmptyWorldCard } from '../curriculum/StatusCard';
 import { useRouter } from '../shell/router';
 import { lifetimeSnapshot } from '../store/mind';
 import { useProgress } from '../store/progress';
+import { scoped } from '../store/scope';
 import { useSdk } from '../store/sdk';
 import { SubjectGlyph } from '../ui/art';
 import { Confetti } from '../ui/ceremony';
@@ -290,7 +291,7 @@ export function FrameBuilding() {
       // event stream best-effort
     }
     bus.publishLifetime(lifetimeSnapshot());
-    localStorage.setItem(ONBOARDED_KEY, '1');
+    scoped.setItem(ONBOARDED_KEY, '1');
     // live mode rebuilds on the real session so providers re-key to auth.uid()
     if (!sdk.config.devAuth) {
       window.location.assign('/');

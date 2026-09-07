@@ -330,9 +330,12 @@ class LiveProposer:
         return tier_model(Tier.GENERATE).provider_model
 
     def choose(self, *, topic: Topic, candidates: list[ConceptEntry]) -> str:
-        import litellm
+        # Through ``model_call``, never ``litellm.completion`` directly: one model in the chain
+        # refusing a knob must not read as the whole chain being down, and the ledger row that
+        # names who answered is written on the way out.
+        from wobo_gateway.model_call import complete
+        from wobo_gateway.telemetry import record_cost
 
-        litellm.drop_params = True
         chain = [resolve_any(name).provider_model for name in tier_fallbacks(Tier.GENERATE)]
         listing = "\n".join(
             f"- {c.concept_id}: {c.canonical_name}"
@@ -340,7 +343,7 @@ class LiveProposer:
             for c in candidates
         )
         objectives = "\n".join(f"- {o}" for o in topic.objectives[:8])
-        response = litellm.completion(
+        response = complete(
             model=self.model_id,
             messages=[
                 {"role": "system", "content": _PROPOSE_SYSTEM},
@@ -357,6 +360,7 @@ class LiveProposer:
             max_tokens=120,
             timeout=self.timeout_s,
         )
+        record_cost(capability="curriculum.concepts", model=self.model_id, response=response)
         text = response.choices[0].message.content or ""
         start, end = text.find("{"), text.rfind("}")
         if start < 0 or end <= start:

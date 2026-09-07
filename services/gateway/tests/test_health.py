@@ -33,7 +33,7 @@ def test_a_working_gateway_answers_ok_and_names_its_checks() -> None:
     status, body = probe()
     assert status == 200
     assert body["status"] == "ok"
-    assert set(body["checks"]) == {"config", "auth", "spend", "providers"}
+    assert set(body["checks"]) == {"config", "auth", "spend", "providers", "payments"}
     assert all(check["status"] == "ok" for check in body["checks"].values())
 
 
@@ -167,9 +167,12 @@ def test_the_probe_never_names_a_provider(monkeypatch: pytest.MonkeyPatch) -> No
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     for key in ("OPENAI_API_KEY", "GOOGLE_AI_API_KEY", "GEMINI_API_KEY"):
         monkeypatch.delenv(key, raising=False)
-    body = str(health.snapshot()).lower()
+    body = str(health.snapshot(public=True)).lower()
     for vendor in ("anthropic", "openai", "google", "gemini", "claude", "gpt"):
         assert vendor not in body
+    # The operator's snapshot (GET /v1/admin/health, behind the register, the second factor and
+    # an audit row) DOES name who is carrying each tier: that is the question an operator asks.
+    assert health.snapshot()["checks"]["providers"]["carrying"]["turn"].startswith("openai/")
 
 
 def test_the_probe_never_prints_a_key(monkeypatch: pytest.MonkeyPatch) -> None:

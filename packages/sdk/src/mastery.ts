@@ -1,6 +1,6 @@
 import type { MasteryBand } from '@wobo/contracts';
 import type { MasterySnapshot } from '@wobo/kgtopg-contract-seed';
-import type { KVStorage } from './state';
+import { adoptPlainKeys, type KVStorage } from './state';
 import type { SupabaseRest } from './supabase';
 import type { SyncHealth } from './sync-health';
 
@@ -127,6 +127,17 @@ export interface MasteryProvider {
   save(snapshot: MasterySnapshot): void;
   /** Notified after every save and hydrate. Returns the unsubscribe. */
   subscribe(listener: () => void): () => void;
+  /**
+   * The session landed, or the learner changed, after this provider was built: key the cache to
+   * `scope`, move what was written plain under it, fold in what is there, and announce. The same
+   * as `StateProvider.rekey`, for the same two moments.
+   */
+  rekey(scope: string): void;
+  /**
+   * Send what the debounce still owes, now; rejects when it could not land, so a sign-out can
+   * refuse. The same as `StateProvider.flush`. A local provider owes nothing and resolves.
+   */
+  flush(): Promise<void>;
 }
 
 /** localStorage-only persistence: mock/local mode and every signed-out learner. */
@@ -137,9 +148,26 @@ export class LocalMasteryProvider implements MasteryProvider {
   constructor(
     protected readonly storage: KVStorage = defaultStorage(),
     /** Scopes the cache to one account, exactly as the learner-state cache is scoped. */
-    protected readonly scope = '',
+    protected scope = '',
   ) {
+    // The pre-session bucket is the work of whoever the device is keyed to next (state.ts says
+    // why). It was never adopted here before, so the evidence gathered before a learner's first
+    // reload stayed a plain stray for the next person's door-time SDK to read.
+    adoptPlainKeys(this.storage, this.scope, [MASTERY_CACHE_KEY]);
     this.held = this.readCache();
+  }
+
+  async flush(): Promise<void> {
+    // nothing is owed anywhere but this device
+  }
+
+  rekey(scope: string): void {
+    this.scope = scope;
+    adoptPlainKeys(this.storage, this.scope, [MASTERY_CACHE_KEY]);
+    // What is held in memory is this learner's (it was written plain a moment ago and has just
+    // moved under them); what is under the key now may be more (an anonymous bucket the app moved
+    // under a new account). The union is the truth, and it goes back so the key holds it too.
+    this.save(this.readCache());
   }
 
   protected cacheKey(): string {
@@ -306,6 +334,23 @@ export class SupabaseMasteryProvider extends LocalMasteryProvider implements Mas
 
   override save(snapshot: MasterySnapshot): void {
     super.save(snapshot);
+    this.armPush();
+  }
+
+  /** Push now; a push that fails re-arms the debounce so the work is carried later (state.ts). */
+  override async flush(): Promise<void> {
+    if (!this.pushTimer) return;
+    clearTimeout(this.pushTimer);
+    this.pushTimer = null;
+    try {
+      await this.push(this.loadCache());
+    } catch (err) {
+      this.armPush();
+      throw err;
+    }
+  }
+
+  private armPush(): void {
     if (this.pushTimer) clearTimeout(this.pushTimer);
     this.pushTimer = setTimeout(() => {
       this.pushTimer = null;
