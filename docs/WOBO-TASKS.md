@@ -708,17 +708,14 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now (refreshed 2026-09-05 18:30)
-- [ ] **Wave 26** `wf_b452b4f7-c2d` (task `wcvbw618c`) — one learner, one Wobo on the device: every per-learner
-      key scoped by account with migration and a source-scanning test; the memory law's client half
-      (write-through cache, offline queue, forget reaches the server first). Adversary: two learners, one phone
-- [ ] **Wave 27** `wf_b63b663c-815` (task `wihbee045`) — Razorpay subscriptions: plans to the paisa from
-      PRICING.md, checkout, signed webhooks processed once, cancel at cycle end, keys from env only, payments-off
-      honest. Adversary: steal a plan. Owner supplies RAZORPAY_KEY_ID / KEY_SECRET / WEBHOOK_SECRET later
-- [ ] **Wave 28** `wf_a10b2cad-80a` (task `wdhyh0hr3`) — fallbacks everywhere: OpenAI terra/luna/sol first,
-      Anthropic second, Gemini last and for audio; every seam through one funnel; fast skip on no credit;
-      per-tier price table from the official pages. Adversary: kill each provider
-- Wave 14 (`wf_7adb6510-1f2`, testing) is held until the owner calls the testing pass (§10.15)
+### 10.11 Running now (refreshed 2026-09-07)
+- [ ] **Wave 26** `wf_b452b4f7-c2d` (task `wz0b3tdoj`) — one learner, one Wobo on the device; the memory law's
+      client half. Resumed after the 2026-09-05 cut
+- [x] ~~**Wave 27** Razorpay~~ — landed on disk (not yet committed; commits with 26 and 28 as one verified index)
+- [x] ~~**Wave 28** fallbacks everywhere~~ — landed on disk (same)
+- [ ] **Wave 30** `wf_126f92fa-1bf` — the content judged; resumes after 26 lands
+- [ ] **Wave 29** — the whole application after the new developments; launches after 30 is scored
+- Wave 14 (`wf_7adb6510-1f2`) is superseded by wave 29
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
       "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
@@ -727,6 +724,12 @@ needed it was asked and the answer is recorded beside the task.
 - [ ] **`profiles_cache.plan` still checks `in ('free','plus')`** while `budget.py` prices free, pro
       and max. The constraint and the code disagree today
 - [x] **The rule is written into the copy law** — no product surface may promise money back
+- [x] **The provider obeys the rule** (2026-09-07): the gateway cancels a Razorpay subscription
+      with `cancel_at_cycle_end` only, so the paid-for cycle runs out and nothing more is taken;
+      there is no refund call, no refund event mapping and no refund column (migration 0023). A
+      failed charge is a state (`provider_status` pending or halted), the plan stays to the day
+      already paid for, and the refund desk stays a support flow. Resume of a provider-backed cancel
+      is refused in words, because Razorpay cannot restart a cancelled subscription
 - [ ] **Every discretionary refund promise comes out**: the gift page's "refundable within fourteen
       days if it is unopened" and its `refund_days` variable, the REFUND WINDOW constant in
       `screens/plans/prices.ts:240`, and the goodwill wording through
@@ -1193,3 +1196,26 @@ have no chapters yet; discovery fills them when a learner asks and the worker is
   carry no chapters (stored negative results) and minted nothing; discovery fills them when the worker is on.
 - From this redeploy on, every server-side store in production is configured: subscriptions, reports, ledger,
   mind, parent, doubts, curriculum, observer, consent, hospitality.
+
+### 10.26 Razorpay (wave 27) and fallbacks everywhere (wave 28), landed 2026-09-07
+
+**Razorpay.** billing/ package: env-only keys, HMAC-SHA256 over the raw body checked before a byte is parsed
+(proved against Razorpay's own SDK vector, byte-identical), each event id once, the plan flips only on activated
+or charged, current_period_end never moves backwards, cancel sends cancel_at_cycle_end, resume of a
+provider-backed cancel is refused in words (Razorpay cannot restart a cancelled subscription), the four plans to
+the paisa from PRICING.md, migration 0023. Checkout: the door POSTs first and only then loads checkout.js; the
+total appears on the checkout card only and only when payments are on; "Confirming with the bank" polls until
+the webhook lands; payments off reads "Payments are not switched on yet"; CSP holds exactly the four Razorpay
+directives. Adversary 10, fixer 10, incl. a double-checkout hole (two taps, two subscriptions) now closed by
+re-offering the same created subscription and a duplicate net in the webhook. Not proved live: no key here.
+
+**Fallbacks.** OpenAI first on every text tier (tiny luna, turn terra, generate terra, reason sol, verify sol),
+Anthropic second, Gemini 2.5 Flash last; voice and image on Gemini with an OpenAI rung; every seam through
+model_call.complete (a source scan holds it); credit exhaustion recognised and skipped in under a second with a
+cool-off; a hanging primary gets half the remaining deadline; a streak of ordinary failures marks a provider
+out for a minute; env overrides per tier; the price table read from the official pages on 2026-09-07 (Terra
+turn about USD 0.0078). LIVE GAP FOUND: the product set GOOGLE_AI_API_KEY but litellm reads GEMINI_API_KEY, so
+every gemini/ text rung had been dead on every deploy; the funnel now hands the product's key over. Adversary
+10, fixer 10.
+
+**Questions for the owner from both waves** are collected in 10.27 once wave 26 lands.
