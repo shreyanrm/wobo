@@ -708,13 +708,10 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now (refreshed 2026-09-07)
-- [ ] **Wave 26** `wf_b452b4f7-c2d` (task `wz0b3tdoj`) — one learner, one Wobo on the device; the memory law's
-      client half. Resumed after the 2026-09-05 cut
-- [x] ~~**Wave 27** Razorpay~~ — landed on disk (not yet committed; commits with 26 and 28 as one verified index)
-- [x] ~~**Wave 28** fallbacks everywhere~~ — landed on disk (same)
-- [ ] **Wave 30** `wf_126f92fa-1bf` — the content judged; resumes after 26 lands
-- [ ] **Wave 29** — the whole application after the new developments; launches after 30 is scored
+### 10.11 Running now (refreshed 2026-09-07, after `692affc`)
+- Waves 26, 27, 28 landed and committed in `692affc`; gateway and web redeploying from it.
+- [ ] **Wave 30** `wf_126f92fa-1bf` — the content judged (lab refreshed to `692affc`); resuming now
+- [ ] **Wave 29** — the whole application after the new developments; launches once the deploys land
 - Wave 14 (`wf_7adb6510-1f2`) is superseded by wave 29
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
@@ -1218,7 +1215,7 @@ turn about USD 0.0078). LIVE GAP FOUND: the product set GOOGLE_AI_API_KEY but li
 every gemini/ text rung had been dead on every deploy; the funnel now hands the product's key over. Adversary
 10, fixer 10.
 
-**Questions for the owner from both waves** are collected in 10.27 once wave 26 lands.
+**Questions for the owner from all three waves** are in 10.27.
 
 ### 10.27 Questions for the owner from waves 26, 27 and 28 (2026-09-07)
 
@@ -1266,3 +1263,14 @@ Each has a default I applied so nothing waits; say the word to change any.
     on the same keys. Move them onto the funnel and the table? (I would.)
 17. Does Railway restart the container on a 503 from /healthz? The all-out state is 503 by design; a restart
     forgets the provider marks. If it does, the all-out state should answer 200 degraded instead.
+
+### 10.28 The Sunday note's clock (found 2026-09-07 while landing the waves)
+
+`test_a_parent_of_two_learners_gets_two_notes` passed on Saturday and failed on Monday with no code change:
+the mail log stamped sends with the wall clock while the pass ran on the clock it was handed, so the inbox
+gap ("no address hears from Wobo twice in twenty-four hours") compared two clocks. On Saturday the fixed
+Sunday moment sat more than a day ahead of the wall and the gap never fired; on Monday it sat behind and the
+second child's note was skipped. In production the clocks coincide, which means a parent of two was getting
+ONE Sunday note: the test was right and had been passing by accident. Fixed in `692affc`: the send helper
+takes the pass's clock for the record stamp, and the Sunday pass reads the gap once per address before it
+sends, so siblings both go and mail sent before the pass still holds them. Two tests pin it.
