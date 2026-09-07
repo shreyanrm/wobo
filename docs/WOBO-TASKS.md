@@ -708,11 +708,11 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now (refreshed 2026-09-07, after `692affc`)
-- Waves 26, 27, 28 landed and committed in `692affc`; gateway and web redeploying from it.
-- [ ] **Wave 30** `wf_126f92fa-1bf` (task `w86y24vzl`) — the content judged, lab at `692affc`
-- [ ] **Wave 29** `wf_049640be-455` (task `wi2qtv12c`) — the whole application after the new developments
-- Wave 14 (`wf_7adb6510-1f2`) is superseded by wave 29
+### 10.11 Running now (refreshed 2026-09-07 evening)
+- [ ] **Wave 29** `wf_049640be-455` (task `wh11qn0wd`) — the whole application, seven regions. The You region
+      already walked and found 13 (see 10.30); the other six walk now, then confirm, fix, regress
+- [ ] **Wave 30** `wf_126f92fa-1bf` (task `wwn2rz8sv`) — the content judged; the generate stage re-runs because
+      the disk filled last time and the social group's numbers were placeholders
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
       "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
@@ -1284,3 +1284,43 @@ sends, so siblings both go and mail sent before the pass still holds them. Two t
 - Database: 0021, 0022, 0023 applied; seed 268/4/1493/1493.
 - Waiting on the owner: Razorpay key id, key secret, webhook secret (test mode first). Setting them on Railway
   turns checkout on with no deploy; the plans command then creates the four plans once.
+
+### 10.30 What the You walk found (wave 29, 2026-09-07): 13, and four of them are about money
+
+Raised by the one region that finished before the limit; not yet confirmed by a skeptic, so each is a claim
+with a repro, not a verdict. The wave is confirming and fixing them now.
+
+**Money and consent, the serious four**
+1. **The renewal is never disclosed.** A parent ticks "I understand I am paying for a year", the card says
+   "Today ₹19,992 for the year", and the panel says "Your plan runs until <date>" — but the provider will
+   auto-charge the next year. Nothing anywhere says it renews. This is the one finding I would not ship past.
+2. **The legal page contradicts the product.** `/legal/refund-and-cancellation`, the page the checkout tells a
+   paying parent to read in full, says "Every plan we sell is monthly" (yearly is the default) and three more
+   things the product does not do.
+3. **The cancel consent names a place that does not exist**, and the same page gives two different routes to it.
+4. **The cancel dialog omits the irreversible fact** the server and the FAQ both say a learner is told first.
+
+**Broken**
+5. **A learner cannot change their class from You**: the class picker is always empty once the world is pinned.
+
+**Wrong**
+6. A refused end-of-parent-link is shown as success: the learner is told the parent is gone while the server
+   still sends the Sunday note. 7. The phone invite promises a WhatsApp weekly note that does not exist and
+   dates the product to a launch that already happened. 8. "Go to the checkout" strips the hash and lands
+   nowhere. 9. The payments-off page promises a tax line and an email receipt the real checkout does not send.
+10. Em dashes in learner-facing lines on You and the trophy room, against the copy law.
+
+**Ugly**
+11. Lowercase sentence starts on the erase screen. 12. A console error on every signed-out visit to /plans
+(422 from the auth substrate). 13. The "from your parent" mark is glued to the fact for a screen reader.
+
+**Could not reach** (recorded, not skipped): production sign-up is phone OTP or Google, so no throwaway account
+could be made by email; the parent account's four actions have gateway routes but no screen yet; the memory
+page's server path needs a real gateway; screenshots failed because the disk was full.
+
+### 10.31 The machine's disk (2026-09-07)
+
+The disk filled at 100% mid-run and that is what stopped both waves' real work: no screenshots for the walk,
+and the content generation died with ENOSPC. I freed 1.3 GB of my own spent scratch (old wave exports, three
+git worktrees, deploy copies), leaving 3.7 GB. **The machine is still 99% full with 184 GB used**, which is the
+owner's to clear; another long run will hit this again.
