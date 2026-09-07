@@ -1324,3 +1324,62 @@ The disk filled at 100% mid-run and that is what stopped both waves' real work: 
 and the content generation died with ENOSPC. I freed 1.3 GB of my own spent scratch (old wave exports, three
 git worktrees, deploy copies), leaving 3.7 GB. **The machine is still 99% full with 184 GB used**, which is the
 owner's to clear; another long run will hit this again.
+
+### 10.32 What the content generation proved (wave 30, 2026-09-07): ten structural facts
+
+Twelve syllabus cells across four subjects, every artifact the system can make, generated twice and with the
+board and the syllabus version changed. USD 5.63 of real model spend. The judges score quality next; these are
+measurements, already proven, and several answer the owner's question directly.
+
+**1. The board, the class, the subject and the chapter never reach the model.** `engines._generate_live` sends
+the prompt only `{concept, difficulty, audience: 'Indian K-12 learner'}`. So content is NOT generated per board
+or per grade: it is generated per concept. Everything the product says about board-specific material is, at the
+generation seam, not true today.
+
+**2. The cache is board-blind and version-blind, deliberately.** `plexus/store.py::artifact_path` keys an
+artifact on (concept x modality x difficulty) only; its own header says board, grade, subject and chapter are
+"a mapping trail" and that contentVersion is "retained here so payloads still carry it, but not forking the
+key". Measured: mathematics, 18 calls with the board changed (CBSE to ICSE, ISC to CBSE) or the version changed
+returned BYTE-IDENTICAL artifacts with zero model calls; physics and chemistry, 9 of 9 the same; biology, 6 of
+15 byte-identical on a board change. **A CBSE class 6 learner and an ICSE class 9 learner asking about the same
+concept are served the same words.** And a syllabus that changes next year serves last year's artifact for ever.
+
+**3. No video is ever rendered.** `plexus/manim_rung.py` is an explicit stub whose own header says "Nothing
+here imports or runs manim". What "video" means today is an SVG storyboard plus per-scene narration audio. No
+MP4 exists, and for most cells no render job was even enqueued.
+
+**4. Physics and chemistry served a PLACEHOLDER video and called it canonical, and billed for it.** In all
+three cells the live storyboard failed structural verification on both tiers, so the gateway fell back to
+plexus's seed plan: three generic scenes, narration "Watch how one thing reaches the next.", no audio. It was
+then promoted to `status="canonical"` and cached. Billed USD 0.30 across 13 rows for three placeholders. A
+learner would be shown this as the real thing.
+
+**5. Flashcards and podcasts mostly do not exist.** They are 2 of 17 optional per-card activities the compose
+model MAY attach; there is no capability to ask for either. Biology: zero across 15 cards. Mathematics: one
+podcast of three cells. The TTS seam works fine, so the gap is upstream.
+
+**6. There is no long-form reading.** The "reading material" is compose's card outline, each card capped at
+about 60 words by `engines._cap_words`.
+
+**7. The image is usually the diagram again.** `engine.diagram` with `raster:true` returned an SVG
+byte-identical to the plain diagram in mathematics and biology (the raster rung never reached). Physics and
+chemistry did get a real 1024x1024 PNG, so the path works but does not always fire.
+
+**8. The composer writes cards the system then refuses to illustrate.** The maths card titled "When x
+disappears" is blocked by the moderation layer on every attempt, in 2.5 to 3.7 s, with zero tokens: the trigger
+is the composer's own card title. A safety false positive against our own content.
+
+**9. What the learner is served is not what is stored.** engine.* serves a provisional artifact, then a
+post-serve gate (factcheck, an LLM judge, a GPT-5.5 rebuild, best-of) writes the canonical one. In biology 11
+of 12 modality records ended up DIFFERENT from what was served. The first learner sees the draft.
+
+**10. Speech is not cached.** Two identical TTS requests re-synthesised in about 18 s each and cost twice; the
+route exposes no cache flag.
+
+**Cache, the good news:** a second identical request hits in 2.6 to 255 ms against colds of 4 s to 105 s, 28 of
+30 in mathematics, 15 of 15 in biology.
+
+**The fix list this implies** (a wave of its own, after the judges score quality): the prompt must carry the
+board, the class and the chapter; the store key must include them and the syllabus version; the video seam must
+either render or stop calling a seed canonical; flashcards, podcast and a real reading want to be capabilities,
+not optional attachments; the moderation layer must not block our own composer's titles.
