@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 from wobo_gateway.plexus import store
 from wobo_gateway.plexus.validate import PASS_THRESHOLD, validate_and_promote
-from wobo_gateway.routing import Tier, Track, resolve, tier_model, track_separation_holds
+from wobo_gateway.routing import Tier, resolve, tier_model
 
 
 @pytest.fixture(autouse=True)
@@ -68,13 +68,17 @@ def test_mock_engine_serves_canonical_status(cache_dir) -> None:
 # --- routing: the escalation target the gate uses is registered, separation intact -------
 
 
-def test_the_gates_escalation_target_is_the_reason_tier() -> None:
-    """plexus.engines resolves the rebuild model by its legacy name; it must land on the tier
-    one rung above generate (WOBO-PLAN §9), which is the reason tier."""
-    spec = resolve("openai.frontier", Track.TRACK_1)
-    assert spec.provider_model == tier_model(Tier.REASON).provider_model == "openai/gpt-5.6-sol"
-    assert spec.track is Track.TRACK_1
-    assert track_separation_holds()
+def test_the_gates_first_escalation_is_one_rung_up_and_the_judge_stays_on_top() -> None:
+    """The owner's rule (2026-09-08): generation starts at the cheapest model and a rejection
+    climbs ONE rung (terra), not straight to the top; the judge itself stays the strongest."""
+    from wobo_gateway import routing
+    from wobo_gateway.routing import Tier
+
+    routing.configure()
+    spec = routing.escalate(Tier.GENERATE, capability="engine.compose", reason="rejected")
+    assert spec is not None and spec.provider_model == "openai/gpt-5.6-terra"
+    assert tier_model(Tier.VERIFY).provider_model == "openai/gpt-5.6-sol"
+    assert routing.track_separation_holds()
 
 
 # --- provisional -> canonical on a passing score ----------------------------------------
@@ -143,8 +147,12 @@ def test_fail_but_base_still_best_is_refused_not_promoted(monkeypatch, cache_dir
     record = _provisional({"cards": ["base"]})
 
     def judge(_jm, _mo, _co, art, **_k):
-        return {"score": 60.0 if art == {"cards": ["base"]} else 30.0, "critical": False,
-                "weak": [], "notes": ""}
+        return {
+            "score": 60.0 if art == {"cards": ["base"]} else 30.0,
+            "critical": False,
+            "weak": [],
+            "notes": "",
+        }
 
     out = _promote(
         monkeypatch,
@@ -239,8 +247,8 @@ def test_seeded_escalation_is_not_chosen(monkeypatch, cache_dir) -> None:
 
 
 # --- the cost rule (owner, 2026-09-02): generate by default, escalate ONE rung on failure ---
-# Terra draws every board plan and lesson; Opus 5 (the verify tier, always the other provider)
-# judges it; a judge rejection rebuilds on Sol (the reason tier) and best-of is promoted.
+# Luna draws every board plan and lesson (the cheapest model that passes, the owner, 2026-09-08);
+# Sol judges it; a judge rejection rebuilds one rung up (Terra) and best-of is promoted.
 
 
 def test_content_engines_route_primary_to_the_generate_tier() -> None:
@@ -249,9 +257,9 @@ def test_content_engines_route_primary_to_the_generate_tier() -> None:
     for cap in ("engine.compose", "engine.simulate", "engine.diagram", "engine.video"):
         pol = policy(cap)
         assert pol.tier is Tier.GENERATE
-        assert resolve(pol.primary, pol.track).provider_model == "openai/gpt-5.6-terra"
+        assert resolve(pol.primary, pol.track).provider_model == "openai/gpt-5.6-luna"
         # a rejection buys exactly one rung, never a jump to the top of the ladder
-        assert escalate_for(cap, "quality gate rejected the draft") == "openai/gpt-5.6-sol"
+        assert escalate_for(cap, "quality gate rejected the draft") == "openai/gpt-5.6-terra"
 
 
 def test_spawn_validation_judges_on_verify_and_rebuilds_on_reason(monkeypatch) -> None:
@@ -289,8 +297,12 @@ def test_superseded_loser_survives_promotion(monkeypatch, cache_dir) -> None:
     record = _provisional({"cards": ["base"]})  # GPT-5.5 primary
 
     def judge(_jm, _mo, _co, art, **_k):
-        return {"score": 88.0 if art == {"cards": ["alt"]} else 40.0, "critical": False,
-                "weak": [], "notes": ""}
+        return {
+            "score": 88.0 if art == {"cards": ["alt"]} else 40.0,
+            "critical": False,
+            "weak": [],
+            "notes": "",
+        }
 
     out = _promote(
         monkeypatch,
@@ -318,8 +330,12 @@ def test_both_candidates_survive_a_refusal(monkeypatch, cache_dir) -> None:
     record = _provisional({"cards": ["base"]})
 
     def judge(_jm, _mo, _co, art, **_k):
-        return {"score": 60.0 if art == {"cards": ["base"]} else 20.0, "critical": False,
-                "weak": [], "notes": ""}
+        return {
+            "score": 60.0 if art == {"cards": ["base"]} else 20.0,
+            "critical": False,
+            "weak": [],
+            "notes": "",
+        }
 
     _promote(
         monkeypatch,
@@ -361,8 +377,11 @@ def _lint_record(modality, artifact):
         "verified": True,
         "seeded": False,
         "status": store.PROVISIONAL,
-        "provenance": {"engine": f"engine.{modality}", "model": _OPUS,  # Opus is the primary
-                       "prompt_version": "plexus-v4"},
+        "provenance": {
+            "engine": f"engine.{modality}",
+            "model": _OPUS,  # Opus is the primary
+            "prompt_version": "plexus-v4",
+        },
         "artifact": artifact,
     }
 
@@ -425,8 +444,16 @@ def test_lint_bad_smil_dur_rejects_video_scene(monkeypatch, cache_dir) -> None:
         '<rect x="1" y="1" width="2" height="2">'
         '<animate attributeName="x" values="1;5" dur="abc"/></rect></svg>'
     )
-    clean_video = {"scenes": [{"id": "s1", "durationMs": 1000, "narration": "n",
-                               "visual": {"kind": "svg", "payload": _CLEAN_SVG}}]}
+    clean_video = {
+        "scenes": [
+            {
+                "id": "s1",
+                "durationMs": 1000,
+                "narration": "n",
+                "visual": {"kind": "svg", "payload": _CLEAN_SVG},
+            }
+        ]
+    }
     artifact = {"scenes": [{"id": "s1", "visual": {"kind": "svg", "payload": bad}}]}
     out, judge_calls, rebuild_calls = _run_lint_gate(
         monkeypatch, modality="video", artifact=artifact, rebuild_artifact=clean_video
@@ -450,9 +477,24 @@ def test_lint_dangling_url_ref_rejects(monkeypatch, cache_dir) -> None:
 def test_lint_non_numeric_coord_rejects_discovery_mark(monkeypatch, cache_dir) -> None:
     """A discovery mark coordinate must be numeric (Discovery.tsx); a stringy 'undefined' is a
     spec-shape defect the deterministic lint catches even without any SVG."""
-    artifact = {"cards": [{"id": "c1", "discovery": {"stages": [
-        {"visual": {"marks": [{"id": "m1", "shape": "circle", "x": "undefined", "y": 10}]}}
-    ]}}]}
+    artifact = {
+        "cards": [
+            {
+                "id": "c1",
+                "discovery": {
+                    "stages": [
+                        {
+                            "visual": {
+                                "marks": [
+                                    {"id": "m1", "shape": "circle", "x": "undefined", "y": 10}
+                                ]
+                            }
+                        }
+                    ]
+                },
+            }
+        ]
+    }
     out, judge_calls, _rc = _run_lint_gate(
         monkeypatch, modality="compose", artifact=artifact, rebuild_artifact={"cards": ["ok"]}
     )
@@ -505,8 +547,12 @@ def test_lint_clean_artifact_takes_the_normal_judge_path(monkeypatch, cache_dir)
         judged.append(True)
         return {"score": 91.0, "critical": False, "weak": [], "notes": "clean"}
 
-    out = _promote(monkeypatch, _provisional({"cards": ["base"]}), judge=judge,
-                   regen=lambda *_a: ({"cards": ["alt"]}, _OPUS, 1, False))
+    out = _promote(
+        monkeypatch,
+        _provisional({"cards": ["base"]}),
+        judge=judge,
+        regen=lambda *_a: ({"cards": ["alt"]}, _OPUS, 1, False),
+    )
     assert judged == [True]  # lint passed → the judge ran exactly once
     assert out["status"] == store.CANONICAL
     assert out["provenance"]["validation"]["score"] == 91.0
@@ -519,8 +565,16 @@ def test_lint_clean_artifact_takes_the_normal_judge_path(monkeypatch, cache_dir)
 # refuses: the honest seed serves, the record stays provisional, and somebody is told.
 
 
-def _refused(monkeypatch, cache_dir, *, judge, regen=None, modality="compose", artifact=None,
-             escalation_model=_OPUS):
+def _refused(
+    monkeypatch,
+    cache_dir,
+    *,
+    judge,
+    regen=None,
+    modality="compose",
+    artifact=None,
+    escalation_model=_OPUS,
+):
     record = _provisional({"cards": ["base"]}) if artifact is None else artifact
     monkeypatch.setattr("wobo_gateway.plexus.validate._judge", judge)
     if regen is not None:
@@ -542,8 +596,12 @@ def test_below_the_bar_refuses_to_the_seed(monkeypatch, cache_dir) -> None:
     out = _refused(
         monkeypatch,
         cache_dir,
-        judge=lambda *_a, **_k: {"score": 42.0, "critical": False, "weak": ["correctness"],
-                                 "notes": "off-syllabus"},
+        judge=lambda *_a, **_k: {
+            "score": 42.0,
+            "critical": False,
+            "weak": ["correctness"],
+            "notes": "off-syllabus",
+        },
         escalation_model="",  # no rebuild available — the base's own score decides
     )
     assert out["status"] == store.PROVISIONAL
@@ -559,8 +617,11 @@ def test_below_the_bar_refuses_to_the_seed(monkeypatch, cache_dir) -> None:
     loaded = store.load("photosynthesis", "compose", "core", {})
     assert store.status(loaded) == store.PROVISIONAL  # nothing canonical was ever written
     assert loaded["seeded"] is True
-    rejected = [v for v in store.load_versions("photosynthesis", "compose", "core", {})
-                if v["status"] == store.REJECTED]
+    rejected = [
+        v
+        for v in store.load_versions("photosynthesis", "compose", "core", {})
+        if v["status"] == store.REJECTED
+    ]
     assert [v["artifact"] for v in rejected] == [{"cards": ["base"]}]  # kept forever, not served
 
 
@@ -570,8 +631,12 @@ def test_a_zero_scored_critical_artifact_never_promotes(monkeypatch, cache_dir) 
     out = _refused(
         monkeypatch,
         cache_dir,
-        judge=lambda *_a, **_k: {"score": 0.0, "critical": True, "weak": ["correctness"],
-                                 "notes": "10 electrons drawn for an 11-electron atom"},
+        judge=lambda *_a, **_k: {
+            "score": 0.0,
+            "critical": True,
+            "weak": ["correctness"],
+            "notes": "10 electrons drawn for an 11-electron atom",
+        },
         regen=lambda *_a: ({"cards": ["alt"]}, _OPUS, 1, False),
     )
     assert out["status"] == store.PROVISIONAL
@@ -588,13 +653,20 @@ def test_a_refusal_alerts(monkeypatch, cache_dir) -> None:
     from wobo_gateway import alerts
 
     raised: list = []
-    monkeypatch.setattr(alerts, "alert", lambda event, message, **f: raised.append(
-        {"event": event, "message": message, **f}))
+    monkeypatch.setattr(
+        alerts,
+        "alert",
+        lambda event, message, **f: raised.append({"event": event, "message": message, **f}),
+    )
     _refused(
         monkeypatch,
         cache_dir,
-        judge=lambda *_a, **_k: {"score": 12.0, "critical": False, "weak": ["interactivity"],
-                                 "notes": ""},
+        judge=lambda *_a, **_k: {
+            "score": 12.0,
+            "critical": False,
+            "weak": ["interactivity"],
+            "notes": "",
+        },
         escalation_model="",
     )
     assert len(raised) == 1
@@ -609,8 +681,11 @@ def test_an_unreachable_judge_alerts_and_promotes_nothing(monkeypatch, cache_dir
     from wobo_gateway import alerts
 
     raised: list = []
-    monkeypatch.setattr(alerts, "alert", lambda event, message, **f: raised.append(
-        {"event": event, "message": message, **f}))
+    monkeypatch.setattr(
+        alerts,
+        "alert",
+        lambda event, message, **f: raised.append({"event": event, "message": message, **f}),
+    )
     out = _refused(monkeypatch, cache_dir, judge=lambda *_a, **_k: None, escalation_model="")
     assert out["status"] == store.PROVISIONAL
     assert len(raised) == 1 and raised[0]["score"] is None
@@ -620,11 +695,25 @@ def test_an_unreachable_judge_alerts_and_promotes_nothing(monkeypatch, cache_dir
 def test_a_refused_film_is_never_queued_for_an_mp4(monkeypatch, cache_dir) -> None:
     """The render worker bakes an MP4 from what the gate promoted. A refused film must not reach
     it — a blank or wrong video is not worth rendering, and an MP4 outlives the record."""
-    clean_video = {"scenes": [{"id": "s1", "durationMs": 1000, "narration": "n",
-                               "visual": {"kind": "svg", "payload": _CLEAN_SVG}}]}
-    record = {**_provisional(clean_video), "modality": "video",
-              "provenance": {"engine": "engine.video", "model": "openai/gpt-5.6-terra",
-                             "prompt_version": "plexus-v4"}}
+    clean_video = {
+        "scenes": [
+            {
+                "id": "s1",
+                "durationMs": 1000,
+                "narration": "n",
+                "visual": {"kind": "svg", "payload": _CLEAN_SVG},
+            }
+        ]
+    }
+    record = {
+        **_provisional(clean_video),
+        "modality": "video",
+        "provenance": {
+            "engine": "engine.video",
+            "model": "openai/gpt-5.6-terra",
+            "prompt_version": "plexus-v4",
+        },
+    }
     out = _refused(
         monkeypatch,
         cache_dir,

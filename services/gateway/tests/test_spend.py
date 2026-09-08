@@ -22,7 +22,7 @@ from wobo_gateway.app import CapabilityRequest, Gateway, create_app
 from wobo_gateway.cache import InMemoryCache
 from wobo_gateway.providers import MockProvider, ProviderResponse
 from wobo_gateway.registry import policy
-from wobo_gateway.routing import Tier, escalation_tier, tier_model, tier_primary
+from wobo_gateway.routing import Tier, escalation_tier, tier_model
 from wobo_gateway.telemetry import MetricsSink, record_cost
 
 DAY_ONE = datetime(2026, 9, 4, 12, 0, tzinfo=UTC)
@@ -176,10 +176,12 @@ def test_the_lane_is_derived_from_the_door() -> None:
 # --- degrading, rather than breaking -------------------------------------------------------------
 def test_cheaper_walks_the_same_ladder_escalate_climbs() -> None:
     """One opinion about model cost in this gateway, read in both directions."""
-    for tier in (Tier.TURN, Tier.GENERATE, Tier.REASON):
+    # since 2026-09-08 generate IS the floor (the owner's cost rule), so it has no rung down
+    for tier in (Tier.TURN, Tier.REASON):
         cheaper = spend.cheaper_tier(tier)
         assert cheaper is not None
         assert escalation_tier(cheaper) is tier
+    assert spend.cheaper_tier(Tier.GENERATE) is None
     assert spend.cheaper_tier(Tier.TINY) is None  # nothing below the floor
 
 
@@ -212,18 +214,17 @@ def test_past_its_line_a_call_is_answered_on_a_cheaper_model_rather_than_refused
         CapabilityRequest(payload={"concept": "decimals"}),
         priority=spend.Priority.MEMBER,
     )
-    cheaper = spend.cheaper_tier(policy("generate.course").tier)
-    assert cheaper is not None
-    assert recorder.models[-1] == tier_model(cheaper).provider_model
-    # Under the owner's table (2026-09-05) generate and turn share Terra, so the rung down is a
-    # tier change (a smaller output ceiling, a smaller cost ceiling) and never a dearer model.
+    # Since 2026-09-08 generate already sits on the cheapest model (the owner's cost rule), so there
+    # is no rung below it: the call is still ANSWERED, on the same model, never refused and never on
+    # a dearer one.
+    assert spend.cheaper_tier(policy("generate.course").tier) is None
+    assert recorder.models[-1] == tier_model(policy("generate.course").tier).provider_model
     from wobo_gateway.routing import CATALOGUE
 
     before, after = CATALOGUE[recorder.models[0]], CATALOGUE[recorder.models[-1]]
     assert after.per_million_out <= before.per_million_out
     assert policy("generate.course").max_tokens > 0  # the ceiling that shrinks with the tier
     # and the fallback chain came down with it, rather than failing over to the expensive one
-    assert tier_primary(cheaper) != policy("generate.course").primary
 
 
 def test_a_refused_call_raises_the_kind_line_and_never_reaches_a_provider(ceiling) -> None:

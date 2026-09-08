@@ -54,7 +54,7 @@ def _default_table():
 OWNERS_WORD = {
     Tier.TINY: "openai/gpt-5.6-luna",
     Tier.TURN: "openai/gpt-5.6-terra",
-    Tier.GENERATE: "openai/gpt-5.6-terra",
+    Tier.GENERATE: "openai/gpt-5.6-luna",
     Tier.REASON: "openai/gpt-5.6-sol",
     Tier.VERIFY: "openai/gpt-5.6-sol",
 }
@@ -295,9 +295,9 @@ def test_a_knob_is_pruned_per_model_not_for_the_whole_chain(litellm, monkeypatch
     monkeypatch.setattr(
         installed,
         "get_supported_openai_params",
-        lambda model: ["max_tokens"]
-        if model.startswith("anthropic/")
-        else ["max_tokens", "temperature"],
+        lambda model: (
+            ["max_tokens"] if model.startswith("anthropic/") else ["max_tokens", "temperature"]
+        ),
         raising=False,
     )
     assert _complete(temperature=0.2, max_tokens=300) == "ok"
@@ -380,14 +380,18 @@ def test_a_skip_and_a_mark_are_written_to_the_telemetry_stream(litellm, caplog) 
 # =================================================================================================
 def test_one_rung_up_per_rejection_still_lands_on_the_owners_table() -> None:
     up = lambda tier, cap: routing.escalate(tier, capability=cap, reason="rejected")  # noqa: E731
-    assert up(Tier.GENERATE, "engine.compose").provider_model == "openai/gpt-5.6-sol"
-    assert up(Tier.TURN, "wobo.turn").provider_model == "openai/gpt-5.6-terra"
+    # generation climbs its own ladder one rung at a time: luna, terra, sol (the owner, 2026-09-08)
+    assert up(Tier.GENERATE, "engine.compose").provider_model == "openai/gpt-5.6-terra"
+    # a live turn cannot be re-judged; its rejection climbs to the reasoning model, past the floor
+    assert up(Tier.TURN, "wobo.turn").provider_model == "openai/gpt-5.6-sol"
     assert routing.escalate(Tier.VERIFY, capability="verify.math", reason="rejected") is None
 
 
 def test_one_rung_down_at_the_ceiling_still_follows_an_override() -> None:
     routing.configure({"WOBO_TIER_TURN": "openai/gpt-5.6-luna"})
-    cheaper = spend.cheaper_tier(Tier.GENERATE)
+    # generate is the floor now (nothing cheaper); the rung down from reason is the turn tier
+    assert spend.cheaper_tier(Tier.GENERATE) is None
+    cheaper = spend.cheaper_tier(Tier.REASON)
     assert cheaper is Tier.TURN
     assert tier_model(cheaper).provider_model == "openai/gpt-5.6-luna"
 
@@ -402,3 +406,43 @@ def test_track_separation_still_holds_under_an_override() -> None:
     routing.configure({"WOBO_TIER_TINY": "gemini/gemini-2.5-flash"})
     assert routing.track_separation_holds()
     assert routing.resolve("tier.tiny", Track.TRACK_1).provider_model == "gemini/gemini-2.5-flash"
+
+
+def test_generation_starts_at_the_cheapest_model_that_passes_and_climbs_one_rung_per_rejection():
+    """The owner's rule (2026-09-08): top quality at the lowest cost, better models only where
+    needed. Generated content is judged and cached, so it can start at the cheapest model and
+    climb only when the judge rejects it. A live turn cannot be re-judged, so it starts one rung
+    up; the judge itself is the strongest, because a weak judge passes weak content."""
+    from wobo_gateway import routing
+    from wobo_gateway.routing import Tier
+
+    routing.configure()
+    assert routing.tier_model(Tier.GENERATE).provider_model == "openai/gpt-5.6-luna"
+    assert routing.tier_model(Tier.TURN).provider_model == "openai/gpt-5.6-terra"
+    assert routing.tier_model(Tier.VERIFY).provider_model == "openai/gpt-5.6-sol"
+    first = routing.escalate(Tier.GENERATE, capability="engine.compose", reason="judge rejected")
+    assert first is not None and first.provider_model == "openai/gpt-5.6-terra"
+    second = routing.escalate(
+        Tier.GENERATE,
+        capability="engine.compose",
+        reason="judge rejected",
+        current=first.provider_model,
+    )
+    assert second is not None and second.provider_model == "openai/gpt-5.6-sol"
+    top = routing.escalate(
+        Tier.GENERATE,
+        capability="engine.compose",
+        reason="judge rejected",
+        current=second.provider_model,
+    )
+    assert top is None
+    # an operator override still starts where the operator said, and climbs from there
+    routing.configure({"WOBO_TIER_GENERATE": "openai/gpt-5.6-terra"})
+    try:
+        assert routing.generation_ladder() == (
+            "openai/gpt-5.6-terra",
+            "openai/gpt-5.6-luna",
+            "openai/gpt-5.6-sol",
+        )
+    finally:
+        routing.configure()

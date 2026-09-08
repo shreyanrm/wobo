@@ -356,9 +356,7 @@ def _valid_activities() -> dict:
             "kind": "plot",
             "title": "where the two sides meet",
             "view": {"x": [-1, 6], "y": [-1, 10]},
-            "handles": [
-                {"id": "x", "label": "x", "along": "x", "min": 0, "max": 5, "initial": 1}
-            ],
+            "handles": [{"id": "x", "label": "x", "along": "x", "min": 0, "max": 5, "initial": 1}],
             "curves": [
                 {"id": "lhs", "expr": "2*x + 1", "color": "hue"},
                 {"id": "rhs", "expr": "x + 4", "color": "ink"},
@@ -741,7 +739,8 @@ def _video_routing():
 
 def test_video_defaults_to_the_generate_tier_and_escalates_one_rung() -> None:
     """The cost rule (owner, 2026-09-02): a storyboard runs on the GENERATE tier (Terra) and
-    escalates only on a rejection — one rung, to the REASON tier (Sol). The error-failover rung
+    escalates only on a rejection — one rung, to terra, the next rung of the generation ladder.
+    The error-failover rung
     underneath is the verify tier (Opus 5), so an outage still yields content from the other
     provider."""
     from wobo_gateway.registry import escalate_for, policy
@@ -749,9 +748,9 @@ def test_video_defaults_to_the_generate_tier_and_escalates_one_rung() -> None:
 
     pol = policy("engine.video")
     assert pol.tier is Tier.GENERATE
-    assert resolve(pol.primary, pol.track).provider_model == "openai/gpt-5.6-terra"
-    assert resolve_any(pol.fallback[0]).provider_model == "anthropic/claude-opus-5"
-    assert escalate_for("engine.video", "structural verification failed") == "openai/gpt-5.6-sol"
+    assert resolve(pol.primary, pol.track).provider_model == "openai/gpt-5.6-luna"
+    assert resolve_any(pol.fallback[0]).provider_model == "anthropic/claude-haiku-4-5"
+    assert escalate_for("engine.video", "structural verification failed") == "openai/gpt-5.6-terra"
 
 
 def _patch_complete(monkeypatch, plans: dict[str, str]) -> list[str]:
@@ -957,9 +956,7 @@ def test_two_schools_on_one_board_generate_once_serve_both(cache_dir) -> None:
     cbse_other_school = {"board": "cbse", "grade": "Class 8", "subject": "maths", "chapter": "c9"}
     first = invoke("engine.compose", concept="linear equations", user="kid-a", **cbse)
     assert first.tokens > 0
-    second = invoke(
-        "engine.compose", concept="linear equations", user="kid-b", **cbse_other_school
-    )
+    second = invoke("engine.compose", concept="linear equations", user="kid-b", **cbse_other_school)
     assert second.tokens == 0
     assert first.output == second.output
     base = store.artifact_path("linear equations", "compose", "core", cbse)
@@ -1065,9 +1062,7 @@ def test_one_generation_per_learner_gate() -> None:
         with pytest.raises(engines.GenerationBusy):
             invoke("engine.compose", subject="busy-user", concept="fractions")
         # a different learner is unaffected — one slot per learner, not one globally
-        assert invoke("engine.compose", subject="free-user", concept="fractions").output[
-            "verified"
-        ]
+        assert invoke("engine.compose", subject="free-user", concept="fractions").output["verified"]
     finally:
         engines._gen_in_flight.discard("busy-user")
     # once the slot clears, the first learner proceeds

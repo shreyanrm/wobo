@@ -408,7 +408,7 @@ an OpenAI rung behind them. `services/gateway/src/wobo_gateway/routing.py`, `DEF
 |---|---|---|---|---|
 | `tiny` | openers, digests, recall, the public Ask box, the curriculum registry | `openai/gpt-5.6-luna` | `anthropic/claude-haiku-4-5` | `gemini/gemini-2.5-flash` |
 | `turn` | Wobo's turns, tutor turns, parent turns, grading one attempt | `openai/gpt-5.6-terra` | `anthropic/claude-sonnet-5` | `gemini/gemini-2.5-flash` |
-| `generate` | board plans, lessons, diagrams, storyboards, courses | `openai/gpt-5.6-terra` | `anthropic/claude-opus-5` | `gemini/gemini-2.5-flash` |
+| `generate` | board plans, lessons, diagrams, storyboards, courses | `openai/gpt-5.6-luna` | `anthropic/claude-haiku-4-5` | `gemini/gemini-2.5-flash` |
 | `reason` | the hard list: `verify.math`, a grading escalation, a rebuild after a judge rejection | `openai/gpt-5.6-sol` | `anthropic/claude-opus-5` | `gemini/gemini-2.5-flash` |
 | `verify` | the judge of anything generated | `openai/gpt-5.6-sol` | `anthropic/claude-opus-5` | `gemini/gemini-2.5-flash` |
 | `voice` | Wobo speaking | `gemini/gemini-2.5-flash-preview-tts` | `openai/gpt-4o-mini-tts` | the device's own voice |
@@ -686,3 +686,12 @@ yet, and the console's subscriptions desk (`apps/web-pwa/src/admin/desks.ts`) do
 `GET /v1/admin/billing` yet; both are wired on the gateway side only. `total_count` on a new
 subscription is 60 months or 5 years, chosen, not read from a documented maximum.
 
+### 11.6 The owner's rule: cheapest that passes, better only where needed (2026-09-08)
+
+Generated content is judged and cached, so it starts at the CHEAPEST model, `luna`, and climbs one
+rung per judge rejection: `luna`, then `terra`, then `sol` (`routing.generation_ladder`,
+`routing.escalate(..., current=)`). A live tutor turn cannot be re-judged, so `turn` starts on
+`terra`. The judge (`verify`) is `sol` from the first call, because a weak judge passes weak
+content: that is the one place the money is spent up front. At luna's prices (0.20 in / 1.20 out
+per million) a lesson that passes first time costs about a hundredth of one that needed sol.
+The next step (docs/CONTENT-INTERACTION.md) caches the concept once and renders each level from it.

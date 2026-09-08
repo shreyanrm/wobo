@@ -179,7 +179,7 @@ _GEMINI_TEXT = "gemini/gemini-2.5-flash"
 DEFAULT_TABLE: dict[Tier, tuple[str, ...]] = {
     Tier.TINY: ("openai/gpt-5.6-luna", "anthropic/claude-haiku-4-5", _GEMINI_TEXT),
     Tier.TURN: ("openai/gpt-5.6-terra", "anthropic/claude-sonnet-5", _GEMINI_TEXT),
-    Tier.GENERATE: ("openai/gpt-5.6-terra", "anthropic/claude-opus-5", _GEMINI_TEXT),
+    Tier.GENERATE: ("openai/gpt-5.6-luna", "anthropic/claude-haiku-4-5", _GEMINI_TEXT),
     Tier.REASON: ("openai/gpt-5.6-sol", "anthropic/claude-opus-5", _GEMINI_TEXT),
     Tier.VERIFY: ("openai/gpt-5.6-sol", "anthropic/claude-opus-5", _GEMINI_TEXT),
     # The live seams pin their own Gemini ids (voice.VOICE_MODEL, plexus.media.TTS_MODEL,
@@ -209,9 +209,11 @@ _TRACK_2: dict[str, str] = {
 
 # The cost rule's ladder: one rung per rejection, cheapest first. ``verify`` is the top; the
 # verifier itself has nothing above it to appeal to. Voice and imagery do not escalate.
+# Since 2026-09-08 the generate tier sits at the FLOOR (luna, the owner's cost rule), so a turn's
+# rejection climbs past it to the reasoning model; generation climbs its own ladder below.
 _ESCALATION: dict[Tier, Tier] = {
     Tier.TINY: Tier.TURN,
-    Tier.TURN: Tier.GENERATE,
+    Tier.TURN: Tier.REASON,
     Tier.GENERATE: Tier.REASON,
     Tier.REASON: Tier.VERIFY,
 }
@@ -370,15 +372,64 @@ def escalation_tier(tier: Tier) -> Tier | None:
     return _ESCALATION.get(tier)
 
 
-def escalate(tier: Tier, *, capability: str, reason: str) -> ModelSpec | None:
-    """The cost rule: a verifier or second-opinion REJECTION escalates one tier.
+# THE OWNER'S RULE (2026-09-08): top quality at the lowest cost; better models only where needed.
+# Generated content is judged and cached, so it STARTS at the cheapest model and climbs one rung
+# per rejection: luna, then terra, then sol. A live turn cannot be re-judged, so it starts one
+# rung up (terra); the judge is sol from the first, because a weak judge passes weak content.
+# Other tiers keep the tier ladder above.
+_GENERATION_LADDER: tuple[str, ...] = (
+    "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-terra",
+    "openai/gpt-5.6-sol",
+)
+
+
+def _spec_for_provider(provider_model: str) -> ModelSpec:
+    """The spec for a provider id on Track 1: the logical name that carries it if one does, else a
+    ladder-only name, so an escalation rung never has to be a tier of its own."""
+    for name, pm in _TRACK_1.items():
+        if pm == provider_model:
+            return ModelSpec(name, provider_model, Track.TRACK_1)
+    return ModelSpec(f"ladder.{provider_model}", provider_model, Track.TRACK_1)
+
+
+def generation_ladder() -> tuple[str, ...]:
+    """The rungs generation climbs, cheapest first, with the tier's configured primary at the
+    bottom so an override still starts where the operator said."""
+    first = tier_model(Tier.GENERATE).provider_model
+    rest = tuple(m for m in _GENERATION_LADDER if m != first)
+    return (first, *rest)
+
+
+def escalate(
+    tier: Tier, *, capability: str, reason: str, current: str | None = None
+) -> ModelSpec | None:
+    """The cost rule: a verifier or second-opinion REJECTION escalates one rung.
+
+    For :attr:`Tier.GENERATE` the rungs are :func:`generation_ladder` (luna, terra, sol): pass
+    ``current`` (the model that was just rejected) to climb from it; with no ``current`` the first
+    climb is from the primary. For every other tier a rung is the next tier up.
 
     Returns the escalated tier's model, or ``None`` when the caller is already at the top of the
     ladder (nothing above the verifier to appeal to); the caller then keeps what it has. Every
     escalation is logged with its reason so the hard list stays honest.
     """
-    nxt = escalation_tier(tier)
     fields = {"capability": capability, "from_tier": tier.value, "reason": reason}
+    if tier is Tier.GENERATE:
+        ladder = generation_ladder()
+        at = ladder.index(current) if current in ladder else 0
+        if at + 1 >= len(ladder):
+            _telemetry.info(
+                "gateway.escalation declined (top of the ladder)", extra={"fields": fields}
+            )
+            return None
+        spec = _spec_for_provider(ladder[at + 1])
+        _telemetry.info(
+            "gateway.escalation",
+            extra={"fields": {**fields, "rung": at + 1, "model": spec.provider_model}},
+        )
+        return spec
+    nxt = escalation_tier(tier)
     if nxt is None:
         _telemetry.info("gateway.escalation declined (top of the ladder)", extra={"fields": fields})
         return None

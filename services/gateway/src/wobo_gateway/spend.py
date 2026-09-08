@@ -122,10 +122,11 @@ _DEFAULT_WARN_FRACTIONS = (0.5, 0.8, 1.0)
 # this is the same ladder read the other way, so "cheaper" means exactly what "escalate" means
 # and there is no second opinion about model cost anywhere in the gateway. ``tiny`` is the floor
 # (there is nothing below it) and voice and imagery do not move: they are single-model seams.
+# By PRICE, not by tier order: since 2026-09-08 generate sits on luna, the floor, so there is nothing
+# cheaper to fall to and a degraded generation is served as it is (both callers treat None so).
 _CHEAPER: dict[Tier, Tier] = {
-    Tier.VERIFY: Tier.GENERATE,
-    Tier.REASON: Tier.GENERATE,
-    Tier.GENERATE: Tier.TURN,
+    Tier.VERIFY: Tier.TURN,
+    Tier.REASON: Tier.TURN,
     Tier.TURN: Tier.TINY,
 }
 

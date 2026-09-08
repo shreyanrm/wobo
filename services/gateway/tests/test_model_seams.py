@@ -105,7 +105,7 @@ def test_the_concept_proposer_answers_from_the_fallback_and_the_ledger_says_so(
 
     sink = fakes.ledger_sink(monkeypatch)
     lite = fakes.chain(
-        monkeypatch, {TERRA: fakes.Down("terra: no credit"), OPUS: '{"concept_id": "c-1"}'}
+        monkeypatch, {LUNA: fakes.Down("luna: no credit"), HAIKU: '{"concept_id": "c-1"}'}
     )
     topic = Topic(
         id="t-1",
@@ -118,10 +118,10 @@ def test_the_concept_proposer_answers_from_the_fallback_and_the_ledger_says_so(
         concept_id="c-1", canonical_name="Fractions", subjects=("maths",), occurrences=3
     )
     assert LiveProposer().choose(topic=topic, candidates=[entry]) == "c-1"
-    assert lite.tried == [TERRA, OPUS]
+    assert lite.tried == [LUNA, HAIKU]
     row = sink.rows[-1]
-    assert row["model_requested"] == TERRA
-    assert row["model_served"] == OPUS
+    assert row["model_requested"] == LUNA
+    assert row["model_served"] == HAIKU
     assert row["fallback_used"] is True
     assert row["provider"] == "anthropic"
 
@@ -133,21 +133,21 @@ def test_the_own_syllabus_readers_answer_from_the_fallback(monkeypatch: pytest.M
     lite = fakes.chain(
         monkeypatch,
         {
-            TERRA: fakes.Down("terra: 503"),
-            OPUS: '{"units": [{"title": "Unit 1", "quote": "Unit 1 Numbers", "page": 1}]}',
+            LUNA: fakes.Down("luna: 503"),
+            HAIKU: '{"units": [{"title": "Unit 1", "quote": "Unit 1 Numbers", "page": 1}]}',
         },
     )
     structured = LiveStructureModel().structure(text="Unit 1 Numbers", hint={"level": "Class 6"})
     assert structured["units"][0]["title"] == "Unit 1"
-    assert lite.served == OPUS
+    assert lite.served == HAIKU
 
-    lite.answers[OPUS] = "Unit 1 Numbers\nUnit 2 Shapes"
+    lite.answers[HAIKU] = "Unit 1 Numbers\nUnit 2 Shapes"
     text = LiveVisionReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg")
     assert text == "Unit 1 Numbers\nUnit 2 Shapes"
-    assert lite.served == OPUS
+    assert lite.served == HAIKU
     rows = [r for r in sink.rows if r["capability"] == "curriculum.own.read"]
     assert len(rows) == 2
-    assert {r["model_served"] for r in rows} == {OPUS}
+    assert {r["model_served"] for r in rows} == {HAIKU}
     assert all(r["fallback_used"] for r in rows)
 
 
@@ -208,17 +208,17 @@ def test_the_discovery_search_crosses_to_the_other_providers_own_search_tool(
             ]
         }
     )
-    lite = fakes.chain(monkeypatch, {TERRA: fakes.Down("openai: 429"), OPUS: reply})
+    lite = fakes.chain(monkeypatch, {LUNA: fakes.Down("openai: 429"), HAIKU: reply})
     results = search.NativeToolSearchProvider("openai").search("cbse class 9 maths")
     assert [r.url for r in results] == [
         "https://cbseacademic.nic.in/web_material/CurriculumMain26/maths.pdf"
     ]
     assert results[0].provider == "anthropic"
-    assert lite.tried == [TERRA, OPUS]
+    assert lite.tried == [LUNA, HAIKU]
     assert lite.calls[0]["tools"] == [{"type": "web_search"}]
     assert lite.calls[1]["tools"][0]["type"] == "web_search_20250305"
     served = [r["model_served"] for r in sink.rows if r["capability"] == "curriculum.discovery"]
-    assert served[-1] == OPUS
+    assert served[-1] == HAIKU
 
 
 def test_the_discovery_search_raises_when_every_provider_is_down(
