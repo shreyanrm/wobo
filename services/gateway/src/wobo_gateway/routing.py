@@ -132,6 +132,7 @@ _GEMINI_PRICING = "https://ai.google.dev/gemini-api/docs/pricing"
 #: An id is here so an override may name it; only :data:`DEFAULT_TABLE` says what is routed.
 CATALOGUE: dict[str, Price] = {
     # OpenAI, the GPT-5.6 family: sol is the flagship, terra the balance, luna the cheap one.
+    "openai/gpt-6-astra": Price(10.00, 50.00, _OPENAI_PRICING, "top of the range, not on any chain by default; cached input 1.00, cache write 12.50; above 272K input tokens 2x in, 1.5x out; text+image in, text out"),
     "openai/gpt-5.6-sol": Price(4.00, 20.00, _OPENAI_PRICING, "flagship; cached input 0.40; PROMOTIONAL through at least 2026-11-21 (vendor page); long-context band 8.00 / 30.00"),
     "openai/gpt-5.6-terra": Price(2.00, 12.00, _OPENAI_PRICING, "balance; cached input 0.20; standard rate; long-context band 4.00 / 18.00"),
     "openai/gpt-5.6-luna": Price(0.20, 1.20, _OPENAI_PRICING, "cost-sensitive; cached input 0.02; standard rate; long-context band 0.40 / 1.80"),

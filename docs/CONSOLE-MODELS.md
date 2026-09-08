@@ -45,8 +45,11 @@ the judge's pass rate per rung, which is the number that says whether the cheap 
 OpenAI's page (read 2026-09-08): Sol 4.00 in / 0.40 cached / 20.00 out per million is **promotional,
 "available at least through November 21, 2026"**; Terra 2.00 / 0.20 / 12.00 and Luna 0.20 / 0.02 / 1.20
 are standard rates. All three carry a long-context band at roughly double the input price (Sol 8.00 /
-30.00, Terra 4.00 / 18.00, Luna 0.40 / 1.80); the page does not print the token boundary, so the
-desk treats any prompt above 200k tokens as long-context until the vendor says otherwise. The desk
+30.00, Terra 4.00 / 18.00, Luna 0.40 / 1.80); the 5.6 page does not print the token boundary, but the
+GPT-6 Astra page does ("more than 272K input tokens"), so the desk uses 272K for the whole family until
+the vendor prints otherwise. GPT-6 Astra (10.00 / 1.00 / 50.00, cache writes 12.50) is in the catalogue
+so the desk can offer it per tier; it is on no chain by default: at a typical Wobo turn it costs
+forty-five times Luna and the daily allowance would buy six of them. The desk
 shows the promotion's end date beside Sol's price and turns the row amber thirty days before it, and
 the catalogue's prices are re-read from the vendor pages on the first of every month with the diff
 logged to the audit.
