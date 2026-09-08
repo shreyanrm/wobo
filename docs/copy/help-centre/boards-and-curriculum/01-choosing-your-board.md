@@ -6,7 +6,7 @@ The list covers national boards, state boards, open schooling, international pro
 
 **If more than one looks right**
 
-The list shows the country and the levels each one covers, which is usually enough to tell two similar names apart. Pick one and open a subject; if the chapter list is not the one on your desk, change it in settings and nothing is lost.
+The list shows the country and the levels each one covers, which is usually enough to tell two similar names apart. Pick one and open a subject; if the chapter list is not the one on your desk, change it on You, the last of the four doors, and nothing is lost.
 
 **Then your class**
 
@@ -18,7 +18,7 @@ Wobo shows the subjects your board sets for that class. Turn off the ones you do
 
 **Changing it later**
 
-Settings, then your board. Changing board or class keeps everything you have learnt; Wobo maps what you already know onto the new syllabus and tells you what carries across.
+Open You, the last of the four doors. Your class and board are named at the top, and you change them there. Changing board or class keeps everything you have learnt; Wobo maps what you already know onto the new syllabus and tells you what carries across.
 
 **Studying two at once**
 

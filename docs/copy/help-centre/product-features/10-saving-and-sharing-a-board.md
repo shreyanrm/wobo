@@ -22,6 +22,6 @@ Ask Wobo and it will write the note for you, in its own words, and hand it to yo
 
 **Clearing them**
 
-There is no delete on a single note yet. Settings, your data, erase and start over clears the whole set along with everything else on the device.
+There is no delete on a single note yet. On You, under Settings, Your data, erase and start over clears the whole set along with everything else on the device.
 
 **Related:** The parent link.

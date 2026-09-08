@@ -12,15 +12,15 @@ Enter the phone number you want to use and Wobo sends a code. Enter the code and
 
 **Adding a second way in**
 
-In settings, add an email address to an account created with a phone number, or the other way round. Verify it once and either will get you in. This is worth doing before you change phones.
+On You, the last of the four doors, add an email address to an account created with a phone number, or the other way round. Verify it once and either will get you in. This is worth doing before you change phones.
 
 **Your name**
 
-Wobo uses the name on your account when speaking to you. Change it in settings and Wobo uses the new one from the next turn.
+Wobo uses the name on your account when speaking to you. Change it on You, the last of the four doors, and Wobo uses the new one from the next turn.
 
 **Changing your phone or email**
 
-Settings, then account. Verify the new one before the old one is removed, so you are never locked out.
+Open You, the last of the four doors. Verify the new one before the old one is removed, so you are never locked out.
 
 **Signing out and signing in elsewhere**
 

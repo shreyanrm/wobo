@@ -22,6 +22,6 @@ Leave whenever you like. Your place is saved, down to the step you were on, and 
 
 **Wobo while you work**
 
-Wobo contracts to the orb in a corner and watches. Get three things wrong the same way, or sit still for a while, and Wobo offers a pointer rather than an answer. If you would rather be left alone, set Wobo to quiet in settings.
+Wobo contracts to the orb in a corner and watches. Get three things wrong the same way, or sit still for a while, and Wobo offers a pointer rather than an answer. If you would rather be left alone, set Wobo to quiet on You, under Settings.
 
 **Related:** Boss battles.

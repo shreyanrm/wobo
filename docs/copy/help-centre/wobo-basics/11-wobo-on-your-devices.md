@@ -15,7 +15,7 @@ Keyboard shortcuts for everything, including hold to talk and the command palett
 Every control is reachable and labelled, every practice question has a keyboard path, and everything Wobo draws has a text description that says what the drawing shows, not just that a drawing exists.
 
 **Reduced motion**
-Turn it on in settings, or let it follow your device. Everything still draws in the same order with the same timing; it simply appears rather than moves.
+Turn it on from You, under Settings, or let it follow your device. Everything still draws in the same order with the same timing; it simply appears rather than moves.
 
 **Offline**
 Lessons you have opened recently are kept on the device, so a dead network does not end a study session. Asking Wobo something new needs a connection. Anything you did offline syncs when you are back.

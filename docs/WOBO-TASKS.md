@@ -708,11 +708,12 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now (refreshed 2026-09-08)
-- Wave 29 landed `f7f22aa`; wave 31 (the gateway content fixes) landed `716e934`. Gateway and web redeploying.
-- [ ] **Wave 32** `wf_c2d87ad5-6a6` (task `wqfk2df8s`) — the site region (10), the learn region (7), board-5/6, the web half of the content
-      scorecard (0 of 3 is a pass, untappable marks, MathScene, scene titles, unreached activities, the seed
-      shown as a lesson), and the films (generation never emits motion; the sanitiser was never the cause)
+### 10.11 Running now (refreshed 2026-09-08 afternoon)
+- [ ] **Wave 32** `wf_c2d87ad5-6a6` — site (10), learn (7), board-5/6, the web half of the content fixes, the films
+- [ ] **Wave 33** `wf_62f56aa1-73a` — the ink judged on four real surfaces, six lenses, a skeptic each
+- Queued, in order, each after the tree is still: **35** never narrate (§10.36), **34** the parent account's
+  screens (§10.37), **36** the daily allowance + the models desk + promo codes (§10.38), then the content
+  re-judge (the same twelve cells, six judges) once the fixes and the concept-cache design have landed.
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
       "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
@@ -1431,3 +1432,40 @@ no animation functions; the films are blank because generation never emits motio
 **A lesson about the tooling, recorded so it is not repeated:** `git apply --3way` stages into the index, and a
 docs commit run in parallel swept the 26 patched files in under its message. Split back apart before the
 verified commit. Never run two index-mutating git commands in the same breath.
+
+### 10.35 The cost rule, applied (owner, 2026-09-08): `d7226be`, `f1c3646`
+
+"Top quality at the lowest cost; better models only where needed." Generation starts on luna and climbs one
+rung per judge rejection (luna, terra, sol); a live turn stays on terra; the judge stays on sol. The tier ladder
+skips the floor for a turn's climb; the ceiling's rung down follows price. Gateway suite 4324. Production gets
+it with the next gateway deploy (after wave 32 lands). The next step is docs/CONTENT-INTERACTION.md: cache the
+concept once, render each level from it, choose the interaction per concept.
+
+### 10.36 Never narrate (owner, 2026-09-08, from a screenshot): the law is in DESIGN.md 0.x and voice.md 10c
+
+On one lesson screen: "Wobo · with Learner"; "coach mode · I nudge, you move"; "Let me draw it instead"; a
+"drawn for you" card saying "this diagram is being redrawn" and "this idea"; the re-teach rung's own line as the
+lesson subtitle in lowercase; a chat opening with "Ask me anything. I can see the page you are on." and the mock
+persona's greeting; "Learner" as a name. Wave 35 sweeps every surface and adds the test that holds the law.
+
+### 10.37 The parent account has no screen (found 2026-09-08)
+
+Eleven gateway routes exist; the client's ParentView is the learner's read-only preview. Wave 34 builds the
+door, the switch, ask-Wobo-about-my-child with the parent mind, pay-for-child, refer, donate.
+
+### 10.38 The daily allowance and the models desk (owner, 2026-09-08): docs/ALLOWANCE.md, docs/CONSOLE-MODELS.md
+
+A quarter of the plan amount, a day at a time, reset at local midnight, never carried forward; money is
+internal only, the learner sees one bar. Superadmin: generosity per plan, the free daily allowance, the INR
+rate, the pace, promo codes; and the models desk: every tier's model and price, spend, who is carrying, changed
+from the console with an audit row. Wave 36.
+
+### 10.39 Small things landed or parked today
+
+- Branch protection on `main`: the three CI checks required, no force pushes, no deletions.
+- `ops.billing_events_are_append_only` had a mutable search path (the advisor's one real warning); pinned.
+  Remaining advisor items: leaked-password protection is an Auth setting the owner switches on; nineteen
+  service-role-only tables carry RLS with no policy by design; three extensions live in `public`.
+- The right-click and download guard is WRITTEN (guard.ts, guard.css, its tests) and parked in the scratchpad:
+  its test needs the happy-dom package and the wiring touches files wave 32 is editing; it lands with wave 35.
+- docs/OPERATIONS.md 8 told the truth again about applied migrations.

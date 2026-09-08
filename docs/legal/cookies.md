@@ -45,7 +45,7 @@ There is nothing optional to agree to, at any age, so we do not ask a child for 
 
 ## 4. How to change your mind
 
-- **In Wobo:** there is no cookie settings panel, because there is nothing optional for it to switch. Settings, your data, "erase and start over" clears everything Wobo has stored on the device.
+- **In Wobo:** there is no cookie settings panel, because there is nothing optional for it to switch. On You, under Settings, Your data, "erase and start over" clears everything Wobo has stored on the device.
 - **In your browser:** you can block or delete cookies in your browser settings. Blocking the strictly necessary ones will sign you out and break offline lessons.
 - **On your phone:** clearing the app's storage removes everything, including downloaded lessons.
 - **Global signals:** Global Privacy Control asks a site to stop selling or sharing personal data and to switch off non-essential storage. We do neither, so there is nothing for the signal to turn off, and we do not currently read it. An earlier draft said we honour it, which was a claim about a mechanism we do not have. [REVIEW: CPRA and other US state laws requiring universal opt-out mechanisms, and whether a site with nothing to opt out of still has to read and respond to the signal.]

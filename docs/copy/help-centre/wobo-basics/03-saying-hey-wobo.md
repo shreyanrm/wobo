@@ -9,9 +9,9 @@ Where the phrase helps is when your hands are busy: a pen in one hand, a page in
 **How listening works**
 
 - **Hold to talk** is the default and always available. Press and hold the orb, or long-press it on a phone, speak, and let go.
-- On a laptop there is a keyboard shortcut for the same thing, shown in settings.
+- On a laptop there is a keyboard shortcut for the same thing, shown on You, under Settings.
 - **Wobo is never always-listening for a learner under 18.** The microphone opens when you hold the button and closes when you let go. There is no wake word running in the background on a child's account.
-- On an adult account you can turn hands-free listening on in settings if you want it. It is off until you do. [Owner: hands-free listening is an open decision. WOBO-PLAN §3 specifies hold-to-talk and a desktop hotkey only. If it is not built, this bullet and the wake phrase go, and the article becomes "hold the orb".]
+- On an adult account you can turn hands-free listening on from You, under Settings, if you want it. It is off until you do. [Owner: hands-free listening is an open decision. WOBO-PLAN §3 specifies hold-to-talk and a desktop hotkey only. If it is not built, this bullet and the wake phrase go, and the article becomes "hold the orb".]
 
 **If Wobo mishears you**
 

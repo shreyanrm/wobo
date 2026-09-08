@@ -12,7 +12,7 @@ Your conversations with Wobo. Your wrong answers, one by one. A live feed of whe
 
 **Setting it up**
 
-Settings, then the parent link. Enter the parent's email address. They get one invite, and nothing else is sent until they open it and confirm from their own device. If they never confirm, the invite expires and nothing goes to them.
+Open You, the last of the four doors, and find the card called Parents. Enter the parent's email address. They get one invite, and nothing else is sent until they open it and confirm from their own device. If they never confirm, the invite expires and nothing goes to them.
 
 **Turning it off**
 

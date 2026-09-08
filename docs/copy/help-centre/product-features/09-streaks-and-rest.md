@@ -20,6 +20,6 @@ At 7, 30, 100 and 365 days, Wobo draws you something. That is the whole reward, 
 
 **Turning it off**
 
-If a streak is the kind of thing that makes you anxious rather than steady, turn it off in settings. Nothing else about Wobo changes and your progress is unaffected.
+If a streak is the kind of thing that makes you anxious rather than steady, turn it off on You, under Settings. Nothing else about Wobo changes and your progress is unaffected.
 
 **Related:** Your progress.

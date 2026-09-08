@@ -63,7 +63,7 @@ Paid plans lift the limits and unlock further features. Prices are shown before 
 
 One thing does move the price, and we would rather say it here than let you find it: buying inside a phone app can cost more than buying on the web, because the store takes a share of what you pay it. The price is the same for everyone on the same purchase route, and we show both prices so you can see the difference before you choose. `refund-and-cancellation.md` section 6 has the detail. What else can vary is whether we give something away, and when.
 
-Subscriptions renew until cancelled. Cancelling takes two taps in settings, keeps the plan until the end of the period you have already paid for, and stops everything after it. We do not give money back as a gesture of goodwill; the refunds that remain are the ones the law gives you, and they are listed in `refund-and-cancellation.md` section 5, which forms part of these terms along with the rest of that document.
+Subscriptions renew until cancelled. Cancelling takes two taps from the You screen, keeps the plan until the end of the period you have already paid for, and stops everything after it. We do not give money back as a gesture of goodwill; the refunds that remain are the ones the law gives you, and they are listed in `refund-and-cancellation.md` section 5, which forms part of these terms along with the rest of that document.
 
 Gifts, free weeks, trial periods and referral rewards are given at our discretion, are not transferable, have no cash value, and can be withdrawn if they are being abused.
 
@@ -101,7 +101,7 @@ We may update these terms. If a change matters to you, we will tell you at least
 
 ## 12. Ending it
 
-You can stop using Wobo whenever you like and cancel a subscription from settings. There is no account deletion in the product and no copy of your data you can take away yourself: write to support@heywobo.com and we do both by hand. `privacy-policy.md` section 8 says exactly what the in-product erase reaches and what it does not.
+You can stop using Wobo whenever you like and cancel a subscription from the You screen. There is no account deletion in the product and no copy of your data you can take away yourself: write to support@heywobo.com and we do both by hand. `privacy-policy.md` section 8 says exactly what the in-product erase reaches and what it does not.
 
 We may suspend or close an account if these terms are broken seriously or repeatedly, if we are required to by law, or if keeping it open would put another learner at risk. Where we close an account that has paid for a term it has not used, we return the unused part unless the closure was for serious misuse, which is the same rule as `refund-and-cancellation.md` section 9. [REVIEW: whether that return may lawfully be withheld on closure for misuse in each consumer jurisdiction, whether suspension without prior notice is enforceable against a consumer, and what notice and appeal route must be offered before closing the account of a minor.]
 

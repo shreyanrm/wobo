@@ -19,7 +19,7 @@ Interrupting is allowed. Tap, type or speak over Wobo and the pen stops mid-stro
 
 **Voice settings**
 
-In settings you can change the accent Wobo speaks with, turn narration off so Wobo writes instead of speaks, and turn sound effects off separately. If you turn narration off, Wobo still draws everything; the words appear beside the ink.
+On You, under Settings, you can change the accent Wobo speaks with, turn narration off so Wobo writes instead of speaks, and turn sound effects off separately. If you turn narration off, Wobo still draws everything; the words appear beside the ink.
 
 **Languages**
 
