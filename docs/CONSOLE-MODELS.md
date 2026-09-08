@@ -39,3 +39,14 @@ the judge's pass rate per rung, which is the number that says whether the cheap 
    stats) and `POST /v1/admin/models` (a change, owner-only, audited). The console screen in
    `apps/web-pwa/src/admin/`.
 4. The ledger already records the model that served each call; the per-tier spend is a rollup of it.
+
+## Prices are dated, not eternal (2026-09-08)
+
+OpenAI's page (read 2026-09-08): Sol 4.00 in / 0.40 cached / 20.00 out per million is **promotional,
+"available at least through November 21, 2026"**; Terra 2.00 / 0.20 / 12.00 and Luna 0.20 / 0.02 / 1.20
+are standard rates. All three carry a long-context band at roughly double the input price (Sol 8.00 /
+30.00, Terra 4.00 / 18.00, Luna 0.40 / 1.80); the page does not print the token boundary, so the
+desk treats any prompt above 200k tokens as long-context until the vendor says otherwise. The desk
+shows the promotion's end date beside Sol's price and turns the row amber thirty days before it, and
+the catalogue's prices are re-read from the vendor pages on the first of every month with the diff
+logged to the audit.
