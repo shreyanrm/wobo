@@ -146,3 +146,21 @@ third thing; the first two come first.
 **Then, the proof:** a seed test before launch and monthly after: the five mails to a Gmail, an
 Outlook and a Yahoo inbox we own, and the tab each lands in recorded on the mail desk. Placement is
 measured, not assumed.
+
+## 7. The second Brilliant mail (owner, 2026-09-08, evening)
+
+Another one, kept as reference outside the repo (design-reference/brilliant-mail-you-got-this.png and
+the mascot GIF): the wordmark, the mascot in a two-second loop (a blob with a raised eyebrow, a
+lightning bolt and two sparks; a second GIF has it holding up a phone camera), then **"You got this!"**,
+one line, "Take a few minutes towards reaching your goal now.", one button, "Learn something new
+today". Nothing else above the fold. What it adds to §1: an **encouragement** kind, sent on a day
+with no other mail when a learner is mid-goal and has not come for two days, and a mascot that does
+something with a prop (the camera GIF is the doubt page in one image). Ours:
+
+| Mail | When | Headline | The line | Button |
+|---|---|---|---|---|
+| The nudge toward the goal | two quiet days mid-chapter, at the usual hour, under the inbox law | "Nearly there." | "Two cards to the end of Fractions. Ten minutes." | the next card |
+
+The orb move for it: a small bounce, then the spark. And one new move for the library: **the orb
+holding up a phone**, for the doubt mail ("Photograph the page.") and the doubt page's own empty state.
+No exclamation mark in ours; the register (voice.md 10a) carries the warmth without it.
