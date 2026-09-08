@@ -1520,3 +1520,12 @@ creative work is identical for free and paid, which is where the quality lives. 
 every expense by payer, plan, tier, capability and day, and every dial must apply within a minute
 without a deploy. Specified in docs/ALLOWANCE.md (two new sections) and docs/CONSOLE-MODELS.md
 ("Expenses you can see, dials that apply"); wave 36 builds it.
+
+### 10.44 Production on 48faf1b (2026-09-08, 15:55 IST)
+
+Wave 32 committed as `48faf1b` after verification as the exact tree (web 2532, wobo 738, sdk 169, four
+typechecks, build, three gates, gateway suite exit 0). Gateway: Railway deployment `49d8d6df` SUCCESS
+from a clean `git archive` export, `/healthz` degraded only for payments off, providers ok, the new
+OpenAI key live. Web: promoted with `vercel deploy --prod --yes` from the same export; heywobo.com
+serves today's description ("A tutor that draws, never judges, and is always there"). Both ends on
+the same commit. Running: wave 35 (never narrate) and the understand workflow for the ink redesign.
