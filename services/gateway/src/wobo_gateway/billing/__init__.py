@@ -35,10 +35,16 @@ Four rules this module keeps, because each is a promise the product has already 
    webhook (:mod:`wobo_gateway.billing.payments`), which moves it forward to the provider's
    ``current_end`` when money has actually been taken. So a plan the provider keeps charging keeps
    running, a plan the learner cancelled runs to the paid-for date and meters as free after it,
-   and nothing between those two is scheduled here. No learner-facing line says "renews": the
-   product only ever sells through the provider once the keys are present, and until they are
-   (``RAZORPAY_*``, :func:`wobo_gateway.billing.razorpay.configured`) that word would describe a
-   mechanism the copy law (DESIGN.md §0) forbids us to claim.
+   and nothing between those two is scheduled here.
+
+   **A provider-backed row DOES renew, and the body says so.** ``billing/plans.py`` creates every
+   subscription with a ``total_count`` (five years, or sixty months), so the provider charges the
+   card again on its own until it is cancelled. That is a fact about somebody's money, and a screen
+   cannot work it out for itself: an operator-granted row and a provider-backed one look identical
+   from the app. So :func:`plan_view` answers ``renews``, true only where a provider is actually
+   charging this row and the plan is running, and the app prints the date beside it
+   (``apps/web-pwa/src/screens/you/plan.ts``). The copy law (DESIGN.md §0) forbids describing a
+   mechanism we cannot show; it forbids denying one we do just as flatly.
 3. **A store subscription is cancelled in the store.** A plan bought inside a phone's app store is
    refused here, with its ``source`` on the body, so the app shows the real instruction instead of
    a generic failure.
@@ -787,6 +793,9 @@ def plan_view(
             "cancelled_at": None,
             "can_cancel": False,
             "can_resume": False,
+            # No row, so no provider is charging anything: whatever this plan is, it is not
+            # renewing itself, and the screen must not say a date it does not have.
+            "renews": False,
             "line": _LINES["unmanaged"] if paid else _LINES["free"],
         }
     running = sub.running(moment)
@@ -821,6 +830,11 @@ def plan_view(
         # A provider cannot restart a cancelled subscription, so a provider-backed cancel is
         # final and the button is not offered; the resume route says the same in words.
         "can_resume": status == "cancelling" and not sub.store_managed and not sub.provider_managed,
+        # THE CARD IS CHARGED AGAIN ON ``period_end`` — true only while a provider is actually
+        # charging this row and the plan has not been told to stop. A store subscription renews in
+        # the store and is that store's sentence to write, not ours; a row nobody is charging (an
+        # operator grant, the suite's own) simply runs out.
+        "renews": status == "active" and sub.provider_managed and not sub.store_managed,
         "line": line,
     }
     if view["can_cancel"]:

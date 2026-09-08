@@ -51,3 +51,22 @@ describe('boards a session keeps', () => {
     expect(boardBook.ids()).toContain(inked);
   });
 });
+
+describe('the pin and the close tell the truth (wave 29, board-2)', () => {
+  it('a pinned board survives a dismissal, and says so', () => {
+    const id = plane.fresh();
+    boardBook.get(id).ink(circle('pinned'));
+    plane.togglePin();
+    expect(plane.dismiss()).toBe(false);
+    expect(plane.get().open).toBe(true);
+    // the learner asked outright: the pin is lifted, the board goes, and the answer is true
+    expect(plane.close()).toBe(true);
+    expect(plane.get().open).toBe(false);
+    expect(plane.get().pinned).toBe(false);
+    boardBook.drop(id);
+  });
+  it('closing a board that is not out answers false', () => {
+    expect(plane.get().open).toBe(false);
+    expect(plane.close()).toBe(false);
+  });
+});

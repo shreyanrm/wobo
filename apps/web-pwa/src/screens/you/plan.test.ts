@@ -48,6 +48,8 @@ import {
   planReducer,
   STORE_LINES,
   stateWord,
+  NO_RESUME,
+  STOP_ANY_TIME,
   UNREADABLE,
   WORK_STAYS,
 } from './plan';
@@ -55,7 +57,8 @@ import {
 const NOW = new Date('2026-09-04T10:00:00Z');
 
 /**
- * The gateway's own body, from `services/gateway/src/wobo_gateway/billing.py` (`plan_view`). The
+ * The gateway's own body, from `services/gateway/src/wobo_gateway/billing/__init__.py`
+ * (`plan_view`) — it was `billing.py` until commit 692affc deleted it. The
  * fixtures below are parsed from bodies of this shape rather than hand-built, so the panel is
  * tested against the contract the brain actually answers with.
  */
@@ -70,6 +73,7 @@ function body(over: Record<string, unknown> = {}): Record<string, unknown> {
     cancelled_at: null,
     can_cancel: true,
     can_resume: false,
+    renews: false,
     line: 'Your plan is running, and it runs to the end of the period you have already paid for. You can end it any time, in two taps.',
     ...over,
   };
@@ -152,15 +156,55 @@ describe('two taps', () => {
     expect([...CONTROL_IDS]).toEqual(['cancel', 'confirm', 'back', 'resume', 'plans', 'retry']);
   });
 
-  it('says the three things it owes before it takes the money back', () => {
+  it('says the four things it owes before it takes the money back', () => {
     const lines = confirmationLines(PRO);
-    expect(lines).toHaveLength(3);
+    expect(lines).toHaveLength(4);
     // the date they keep it until
     expect(lines[0]).toContain('4 October 2026');
     // that nothing is charged after the date they keep it until
     expect(lines[1]).toContain('Nothing is charged after that');
     // that their work stays
     expect(lines[2]).toBe(WORK_STAYS);
+    // and that there is no way back, which is the one fact the tap turns on
+    expect(lines[3]).toBe(NO_RESUME);
+  });
+
+  /**
+   * The confirmation used to stop after three reassuring sentences. The gateway sends the fourth
+   * one with every plan it says can be cancelled, and the plans FAQ prints it to somebody who has
+   * not even paid yet, so the one screen where the decision is made was the only surface that
+   * left it out. These two hold it there, and hold it to the server's own words.
+   */
+  it('says the tap is final, in the gateway\'s own words', () => {
+    const gateway = readFileSync(
+      new URL(
+        '../../../../../services/gateway/src/wobo_gateway/billing/__init__.py',
+        import.meta.url,
+      ).pathname,
+      'utf8',
+    );
+    // The gateway wraps the sentence over two source lines, so it is matched with the wrapping
+    // taken out — the words are the contract, not the column they break at.
+    const oneLine = gateway.replace(/"\s*\n\s*"/g, '');
+    expect(oneLine).toContain(
+      'Once it is cancelled it cannot be switched back on, so this is the one tap that counts.',
+    );
+    expect(NO_RESUME).toBe(
+      'Once it is cancelled it cannot be switched back on, so this is the one tap that counts.',
+    );
+    expect(confirmationLines(PRO)).toContain(NO_RESUME);
+  });
+
+  it('says why there is no way back on the cancelled card, where the button is not', () => {
+    // A provider-backed cancel cannot be undone (the gateway refuses a resume, 409
+    // `cannot_resume`), so `panelControls` draws nothing here. The panel went silent about it:
+    // a cancelled plan, no Resume, and no reason given. Now the absence has a sentence.
+    const gone = settled(subscription({ status: 'cancelling', can_cancel: false, can_resume: false }));
+    expect(panelControls(gone, NOW)).toEqual([]);
+    expect(panelLines(gone, NOW)).toContain(NO_RESUME);
+    // Where a resume IS possible the sentence would be a lie, so it is not said.
+    const resumable = settled(CANCELLING);
+    expect(panelLines(resumable, NOW)).not.toContain(NO_RESUME);
   });
 });
 
@@ -551,9 +595,32 @@ describe('the plan of record no longer prescribes what the owner banned', () => 
   });
 });
 
-describe('nothing tells a learner their plan renews', () => {
-  it('no line the panel can print says it, because nothing in the product does it', () => {
+/**
+ * A RENEWAL IS THE SERVER'S ANSWER, NEVER THE SCREEN'S GUESS.
+ *
+ * This block used to say the opposite: no line the panel prints may carry the word, because
+ * "nothing in this repo renews a subscription — there is no payment provider, no webhook and no
+ * scheduled sweep" (`billing.py` rule 2, in capitals). That file was deleted with commit 692affc.
+ * The package that replaced it has all three, and `billing/plans.py` creates every subscription
+ * with a `total_count` of five years or sixty months, so the card is charged again on its own. A
+ * payer read "Your plan runs until 7 September 2027." and nothing else, anywhere, about the money
+ * that would be taken on that day. The word is now allowed for exactly one reason and no other:
+ * the gateway said `renews` about this row.
+ */
+describe('a plan that renews says so, and one that does not never does', () => {
+  it('names the day and the charge when the body says the provider is charging it', () => {
+    const renewing = settled(subscription({ renews: true }));
+    const lines = panelLines(renewing, NOW);
+    expect(lines.some((line) => /renews on 4 October 2026/i.test(line))).toBe(true);
+    expect(lines.some((line) => /the same amount is taken again/i.test(line))).toBe(true);
+    // and the way out, beside it, in the count the plans page prints
+    expect(lines).toContain(STOP_ANY_TIME);
+  });
+
+  it('says nothing about a renewal on any plan the server did not say renews', () => {
     const printed = [
+      // an operator's grant, a store plan, a free learner, a plan we could not read: nobody is
+      // charging any of these, and a date on them is a date the plan simply runs out on
       ...panelLines(settled(PRO), NOW),
       ...panelLines(settled(CANCELLING), NOW),
       ...panelLines(settled(subscription({ plan: 'free', status: 'free' })), NOW),
@@ -567,8 +634,14 @@ describe('nothing tells a learner their plan renews', () => {
     for (const line of printed) expect([line, /renew/i.test(line)]).toEqual([line, false]);
   });
 
-  it('and the spec and the help article do not either', () => {
-    expect(doc('copy/growth/cancel-flow.md')).toContain('Nothing here says a plan renews');
+  it('and a cancelled plan never renews, whatever the row said before the cancel', () => {
+    const stopped = settled(subscription({ status: 'cancelling', can_cancel: false, renews: false }));
+    for (const line of panelLines(stopped, NOW))
+      expect([line, /renew/i.test(line)]).toEqual([line, false]);
+  });
+
+  it('and the spec says where the word is allowed to come from', () => {
+    expect(doc('copy/growth/cancel-flow.md')).toContain('the gateway says the row renews');
     expect(doc('copy/help-centre/wobo-basics/09-plans-and-billing.md')).not.toContain(
       'annual or family plan',
     );

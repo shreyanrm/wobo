@@ -130,7 +130,15 @@ export const APPROACHES: readonly ReteachApproach[] = [
     modality: 'canvas',
     ready: always,
     line: () => 'let me draw this one instead, so you can see the shape of it rather than read it.',
-    ask: (c) => `draw ${c.topic.toLowerCase()} on the board so I can see it.`,
+    // NO SURFACE WORD IN A RUNG'S SENTENCE. Every rung's ask is sent down the same door a typed
+    // question takes, and `presentationWord` reads "on the board" as the LEARNER's override: the
+    // one thing that beats the ink. Inside a lesson those three words locked the second
+    // explanation onto the floating plane instead of the lesson's own full board, and dragged the
+    // mark about the worksheet the child is stuck on onto it too: a mark pointing at nothing under
+    // a board sitting over the thing it was about, which is the pair BOARD.md §11 calls fatal. The
+    // learner never typed the words and never sees them, so nothing on screen explained the move.
+    // "draw" alone is what makes this a board turn; where it lands is the ink's to decide.
+    ask: (c) => `draw ${c.topic.toLowerCase()} so I can see it.`,
   },
   {
     id: 'their_world',

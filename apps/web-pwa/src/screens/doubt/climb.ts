@@ -19,6 +19,7 @@
 
 import { reviewCard } from '@wobo/sdk';
 import { loadedTopics, topicById } from '../../curriculum/registry';
+import { ensureTopicMatching } from '../../curriculum/warm';
 import type { Topic } from '../../data/model';
 import { noteConceptMiss } from '../../wobo/reteach';
 import { topicNodeUuid } from '../learn/mastery';
@@ -47,6 +48,21 @@ export interface Placed {
 export function joinClimb(doubtId: string, topicId: string, deps: ClimbDeps): Placed {
   const nodeId = topicNodeUuid(topicId);
   deps.reportProgress(topicId, Math.max(deps.progressNow ?? 0, DOUBT_PROGRESS));
+  return comeBackFor(doubtId, nodeId, deps);
+}
+
+/**
+ * The gateway filed this doubt under a syllabus node (`climb.node_id`) that this device has no
+ * topic for — a learner whose world is pinned but whose chapters are not in memory, which is every
+ * cold arrival at the camera. Two of law 4's three still hold and are done here: it comes back in
+ * practice, and it counts as a miss on that concept. The map is the one that cannot: a ring is
+ * drawn against the app's own topic id, and there is no topic to draw it on yet.
+ */
+export function comeBackFor(
+  doubtId: string,
+  nodeId: string,
+  deps: Omit<ClimbDeps, 'reportProgress' | 'progressNow'>,
+): Placed {
   const card = reviewCard(null, false, deps.nowMs);
   deps.record(
     'practice.retrieval.scheduled.v1',
@@ -122,6 +138,40 @@ export function topicForDoubt(
     if (score > 0 && (!best || score > best.score)) best = { topic, score };
   }
   return best?.topic;
+}
+
+/** What the gateway said about where this doubt belongs (`climb`, plus the reader's own topic). */
+export interface DoubtHint {
+  nodeId?: string | undefined;
+  name?: string | undefined;
+}
+
+/**
+ * LAW 4's client half, for a screen that opened cold.
+ *
+ * `topicForDoubt` searches what is IN MEMORY, and the registry is filled lazily by the curriculum
+ * hooks: a learner who came straight to the camera (which is how a doubt arrives) has opened no
+ * chapter, so the gateway's own node hint matched nothing and the doubt joined nothing. This walks
+ * the learner's pinned world the way a cold course link does (curriculum/warm.ts) — the cache
+ * first, the brain second, stopping at the first topic that answers — and looks for the node the
+ * gateway filed the doubt under, then for its name. Nothing is fetched once a topic is found, and
+ * nothing at all is fetched when the gateway named no node.
+ */
+export async function resolveDoubtTopic(
+  hint: DoubtHint,
+  ensure: (match: (topic: Topic) => boolean) => Promise<Topic | undefined> = ensureTopicMatching,
+): Promise<Topic | undefined> {
+  const { nodeId, name } = hint;
+  if (nodeId) {
+    const byNode = await ensure((t) => topicNodeUuid(t.id) === nodeId);
+    if (byNode) return byNode;
+  }
+  const q = name?.trim().toLowerCase();
+  if (!q) return undefined;
+  return ensure((t) => {
+    const n = t.name.toLowerCase();
+    return n.includes(q) || q.includes(n);
+  });
 }
 
 /**

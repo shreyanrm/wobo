@@ -171,9 +171,13 @@ describe('which turns Wobo answers by drawing', () => {
     expect(shape.board).toBe(true);
     expect(shape.override).toBe('plane');
   });
-  it('draws for a drawing mode with something in hand, and not without', () => {
+  it('draws whenever the caller says the mode can draw on this turn', () => {
+    // Whether a mode can draw WITHOUT something in hand is the mode's own to answer (wobo/modes.ts
+    // `modeDraws`): demanding a focus here as well locked out `quiz_me`, the one drawing mode
+    // offered with an empty hand (wave 29, board-7). So `modeDraws: true` is the caller's verdict.
     expect(boardShapeOf('why is this wrong', { hasFocus: true, modeDraws: true }).board).toBe(true);
-    expect(boardShapeOf('why is this wrong', { hasFocus: false, modeDraws: true }).board).toBe(
+    expect(boardShapeOf('why is this wrong', { hasFocus: false, modeDraws: true }).board).toBe(true);
+    expect(boardShapeOf('why is this wrong', { hasFocus: false, modeDraws: false }).board).toBe(
       false,
     );
   });

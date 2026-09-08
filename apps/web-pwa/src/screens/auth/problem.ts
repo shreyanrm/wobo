@@ -18,7 +18,7 @@ import type { BlockReason } from './age';
 import type { FieldProblem } from './field';
 
 /** The controls on these two doors that can be wrong, plus the whole-form case. */
-export type Where = 'who' | 'password' | 'birth' | 'parent-email' | 'consent' | 'code' | 'form';
+export type Where = 'who' | 'password' | 'birth' | 'parent-contact' | 'consent' | 'code' | 'form';
 
 /** A sentence, and the control it is about. */
 export interface Problem {
@@ -36,8 +36,8 @@ export function whereBlocked(reason: Exclude<BlockReason, null>): Where {
     case 'birth':
     case 'birth-invalid':
       return 'birth';
-    case 'parent-email':
-      return 'parent-email';
+    case 'parent-contact':
+      return 'parent-contact';
     case 'agree':
       return 'consent';
   }
@@ -69,8 +69,8 @@ export function controlOf(where: Where): string | null {
       return 'au-password';
     case 'birth':
       return 'au-birth';
-    case 'parent-email':
-      return 'au-parent-email';
+    case 'parent-contact':
+      return 'au-parent';
     case 'consent':
       return 'au-agree';
     case 'code':

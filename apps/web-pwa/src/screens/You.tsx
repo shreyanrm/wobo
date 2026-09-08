@@ -20,9 +20,10 @@ import { OwnSyllabus } from '../curriculum/OwnSyllabus';
 import { DiscoveryCard } from '../curriculum/StatusCard';
 import { UpgradeCard } from '../curriculum/UpgradeCard';
 import { useRouter } from '../shell/router';
-import { eraseFromBrain, lifetimeSnapshot } from '../store/mind';
+import { eraseFromBrain, lifetimeSnapshot, queueBrainErase } from '../store/mind';
 import { useProgress } from '../store/progress';
 import { useSdk } from '../store/sdk';
+import { handOverDevice } from '../store/sign-out';
 import { paintAccess } from '../ui/access';
 import { setMotionPref, useMotionPref } from '../ui/motion';
 import {
@@ -42,13 +43,19 @@ import {
 } from '../ui/primitives';
 import { setThemePref, type ThemePref, useThemePref } from '../ui/theme';
 import { DoubtMemory } from './doubt/DoubtMemory';
-import { GradeBoardPicker } from './you/GradeBoardPicker';
+import { eraseEverything } from './you/eraseAll';
+import { chosenBoard, GradeBoardPicker } from './you/GradeBoardPicker';
 import { weeklyNote } from './you/ledger';
 import { MindMemory } from './you/MindMemory';
 import { chosenNames, type MailPrefsView, readMailPrefs, writeCalendars } from './you/mailPrefs';
-import { ParentInvite, PHONE_LINK_LINE } from './you/ParentInvite';
+import { ParentInvite } from './you/ParentInvite';
 import { PlanPanel } from './you/PlanPanel';
-import { endParentLink, type ParentLinkStatus, readParentLink } from './you/parentLink';
+import {
+  endParentLink,
+  type ParentLinkStatus,
+  phoneLink,
+  readParentLink,
+} from './you/parentLink';
 import {
   boardName,
   frameworkLabel,
@@ -128,6 +135,16 @@ function StrengthIcon({ id }: { id: 'resilience' | 'initiative' | 'consistency' 
   );
 }
 
+/**
+ * The erasure register writes its honesty line in lower case, from the days when this whole panel
+ * did (`packages/sdk/src/supabase.ts`). The panel is sentence case now, like every other control
+ * on the screen, so the sentence it borrows is too. Only the first letter of each sentence moves;
+ * the address inside it does not.
+ */
+export function sentenceCase(line: string): string {
+  return line.replace(/(^|\.\s+)([a-z])/g, (_m, lead: string, ch: string) => lead + ch.toUpperCase());
+}
+
 /** The phone link the device kept, if any. */
 function localPhoneLink(): string | null {
   try {
@@ -185,11 +202,11 @@ export function You() {
   // --- the parent link -----------------------------------------------------------------------------
   const [link, setLink] = useState<ParentLinkStatus | null>(() => {
     const phone = localPhoneLink();
-    return phone
-      ? { status: 'linked', parent_email: null, line: `linked · ${phone} — ${PHONE_LINK_LINE}` }
-      : null;
+    return phone ? phoneLink(phone) : null;
   });
   const [inviting, setInviting] = useState(false);
+  /** What the last attempt to end the link actually did, when it did not do it. */
+  const [linkNote, setLinkNote] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
     void readParentLink().then((got) => {
@@ -200,9 +217,31 @@ export function You() {
     };
   }, []);
   const linked = link !== null && (link.status === 'invited' || link.status === 'linked');
+  /**
+   * End the link, and say what actually happened.
+   *
+   * The device-only phone link (`phoneLink`) is ended here, because the gateway has never heard of
+   * it. Everything else is the SERVER's link, and it is gone only when the server says so: a
+   * refusal, a network that never answered and a build with no gateway all leave the card exactly
+   * as it was, with one line under it, the way the plan panel two cards below already behaves. It
+   * used to read every one of those as success, so a 503 wiped the parent off the screen while the
+   * server kept the link and kept sending them the Sunday note.
+   */
   const endLink = () => {
-    void endParentLink().then((got) => setLink(got && got.status !== 'none' ? got : null));
-    scoped.removeItem(PARENT_KEY);
+    setLinkNote(null);
+    if (link?.local) {
+      scoped.removeItem(PARENT_KEY);
+      setLink(null);
+      return;
+    }
+    void endParentLink().then((got) => {
+      if (!got.ok) {
+        setLinkNote(got.message);
+        return;
+      }
+      setLink(got.status && got.status.status !== 'none' ? got.status : null);
+      scoped.removeItem(PARENT_KEY);
+    });
   };
 
   // --- settings ------------------------------------------------------------------------------------
@@ -236,27 +275,53 @@ export function You() {
   // --- your data -----------------------------------------------------------------------------------
   // What a complete, fully successful erase still leaves standing, in a family's own words and
   // built from the register rather than typed alongside it.
-  const gapLine = erasureGapSentence();
+  const gapLine = sentenceCase(erasureGapSentence());
   const [confirming, setConfirming] = useState(false);
   const [erasing, setErasing] = useState(false);
   const account = sdk.account;
   /**
    * Erase, for real. The brain first (`POST /v1/me/erase` — memory, mail preferences, the parent
    * link), the account's rows next, and the device last, whether or not the network cooperated:
-   * an offline erase still empties this phone, and the rest is retried on the next pulse.
+   * an offline erase still empties this phone, and what did not land is QUEUED, after the wipe,
+   * so the next boot finishes it. The order and the queue live in `you/eraseAll.ts`, where they
+   * are proved; this screen only hands over the four doors.
    */
+  /**
+   * SIGNING OUT, WHERE A THUMB CAN REACH IT (docs/ONE-LEARNER-ONE-WOBO.md).
+   *
+   * Sign-out lived in exactly one place: a row in the ⌘K palette. The palette has a documented
+   * touch entry point and nothing in the app has ever dispatched it, so on a phone or in the
+   * installed PWA there was no way to sign out at all — and handing the family tablet to a sibling
+   * is the whole reason the per-learner scope exists. The action itself is the store's
+   * (`handOverDevice`), so this row and the palette row cannot drift apart.
+   */
+  const [leaving, setLeaving] = useState(false);
+  const [handOverLine, setHandOverLine] = useState<string | null>(null);
+  const signedIn = Boolean(account?.isAuthenticated() && !account.isAnonymous());
+  const signOut = () => {
+    if (leaving || !account) return;
+    setLeaving(true);
+    setHandOverLine(null);
+    void handOverDevice({ sdk, account }).then((line) => {
+      // A line back means the sweep was REFUSED: something of this learner's has not reached the
+      // account yet. Nothing was signed out, so the button goes back to being pressable.
+      if (line) {
+        setHandOverLine(line);
+        setLeaving(false);
+      }
+    });
+  };
+
   const startOver = () => {
     if (erasing) return;
     setErasing(true);
-    const clearDevice = () => {
-      wipeDevice();
-      window.location.reload();
-    };
-    void eraseFromBrain()
-      .catch(() => 'pending' as const)
-      .then(() => account?.eraseRemoteData() ?? Promise.resolve(null))
-      .catch(() => null)
-      .then(clearDevice);
+    void eraseEverything({
+      eraseBrain: eraseFromBrain,
+      eraseAccount: account ? () => account.eraseRemoteData() : null,
+      wipeDevice,
+      queueRetry: queueBrainErase,
+      reload: () => window.location.reload(),
+    });
   };
 
   // --- the plan ------------------------------------------------------------------------------------
@@ -281,15 +346,15 @@ export function You() {
   // --- Wobo reads this page ------------------------------------------------------------------------
   const weekRef = useRegisterTarget<HTMLDivElement>('you-weekly-note', {
     kind: 'card',
-    label: "the week in Wobo's words — days shown up, questions asked, and the drawn chart",
+    label: "the week in Wobo's words: days shown up, questions asked, and the drawn chart",
   });
   const parentsRef = useRegisterTarget<HTMLDivElement>('you-parents', {
     kind: 'card',
-    label: 'the parent link — invite a parent to the Sunday note',
+    label: 'the parent link: invite a parent to the Sunday note',
   });
   const schoolRef = useRegisterTarget<HTMLButtonElement>('you-school', {
     kind: 'control',
-    label: 'change your class and board — the syllabus everything is taught from',
+    label: 'change your class and board: the syllabus everything is taught from',
     getSceneState: () => ({ grade: profile.grade, board, open: changingSchool }),
     getValidActions: () => ['open the class and board picker'],
     applyTutorAction: (patch) => {
@@ -298,7 +363,7 @@ export function You() {
   });
   const pickerRef = useRegisterTarget<HTMLDivElement>('you-school-picker', {
     kind: 'picker',
-    label: 'the class and board picker — which syllabus this learner is on',
+    label: 'the class and board picker: which syllabus this learner is on',
     getSceneState: () => ({ grade: profile.grade, board }),
     getValidActions: () => ['change the class', 'change the board'],
     applyTutorAction: (patch) => {
@@ -308,7 +373,7 @@ export function You() {
   });
   const settingsRef = useRegisterTarget<HTMLDivElement>('you-settings', {
     kind: 'settings',
-    label: "settings — Wobo's voice, reduce motion, appearance, festivals, and your data",
+    label: "settings: Wobo's voice, reduce motion, appearance, festivals, and your data",
     getSceneState: () => ({ voice, reduce, theme, largeText: Boolean(profile.largeText) }),
     getValidActions: () => ['mute or unmute Wobo', 'switch the theme', 'reduce motion'],
     applyTutorAction: (patch) => {
@@ -320,7 +385,7 @@ export function You() {
   const planRef = useRegisterTarget<HTMLDivElement>('you-plan', {
     kind: 'card',
     label:
-      'your plan — which plan, what it renews on, the door to the plans page, and the cancel that keeps it until the period already paid for ends',
+      'your plan: which plan, what it renews on, the door to the plans page, and the cancel that keeps it until the period already paid for ends',
   });
 
   useEffect(() => {
@@ -388,16 +453,13 @@ export function You() {
         <div ref={pickerRef} style={{ display: 'grid', gap: 16, maxWidth: 560 }}>
           <GradeBoardPicker
             grade={profile.grade || null}
-            board={
-              world
-                ? {
-                    id: world.frameworkId,
-                    name: world.frameworkName,
-                    framework: null,
-                    unlisted: false,
-                  }
-                : null
-            }
+            // THE CLASSES COME OFF THE FRAMEWORK, so the framework has to be here. This used to
+            // hand the picker `framework: null`, and `levelsFor` reads `board.framework.levels`,
+            // so the class list was empty for everybody who already had a board and the line under
+            // it told them to pick the board the crumb one line above already named. The view is
+            // the one this screen already holds for the country string.
+            board={chosenBoard(world, framework.view)}
+            loading={framework.loading}
             onGrade={(g) => {
               commitProfile({ grade: g });
               void chooseLevel(g);
@@ -477,7 +539,7 @@ export function You() {
           <div className="wy-strengths">
             {praise.length === 0 ? (
               <p>
-                Wobo is still getting to know you — how you answer, where you linger, when you show
+                Wobo is still getting to know you: how you answer, where you linger, when you show
                 up. It gathers here as you learn.
               </p>
             ) : (
@@ -518,6 +580,13 @@ export function You() {
                 before you send it.
               </p>
             )}
+            {/* What the last attempt actually did. Same shape as the plan panel's own failure
+                line two cards below: the card is unchanged, and one sentence says so. */}
+            {linkNote ? (
+              <p role="status" style={{ color: 'var(--ink)' }}>
+                {linkNote}
+              </p>
+            ) : null}
             {inviting ? (
               <ParentInvite
                 learnerName={firstName}
@@ -605,6 +674,21 @@ export function You() {
                 {prefs.about ? <p>{prefs.about}</p> : null}
               </div>
             ) : null}
+            {signedIn ? (
+              <ToggleRow
+                title="Sign out"
+                hint="Hand this phone to somebody else. Everything of yours stays in your account."
+              >
+                <Button size="sm" tone="quiet" onClick={signOut} disabled={leaving}>
+                  {leaving ? 'Signing out…' : 'Sign out'}
+                </Button>
+              </ToggleRow>
+            ) : null}
+            {handOverLine ? (
+              <p role="alert" style={{ paddingBottom: 14 }}>
+                {handOverLine}
+              </p>
+            ) : null}
             <ToggleRow title="Your data" hint="See what Wobo remembers, or erase it">
               <Button
                 size="sm"
@@ -618,9 +702,9 @@ export function You() {
             {confirming ? (
               <div style={{ display: 'grid', gap: 12, paddingBottom: 14 }}>
                 <p>
-                  this deletes your name, photo, progress, settings, what Wobo remembers about you,
+                  This deletes your name, photo, progress, settings, what Wobo remembers about you,
                   your mail choices and the parent link, from this device and from your account on
-                  our servers. it cannot be undone.
+                  our servers. It cannot be undone.
                 </p>
                 {/*
                   HONESTY (docs/conformance/privacy-and-children.md §J). This sentence is GENERATED
@@ -634,10 +718,10 @@ export function You() {
                 {gapLine ? <p>{gapLine}</p> : null}
                 <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                   <Button size="sm" onClick={startOver} disabled={erasing}>
-                    {erasing ? 'erasing…' : 'erase and start over'}
+                    {erasing ? 'Erasing…' : 'Erase and start over'}
                   </Button>
                   <Button size="sm" tone="quiet" onClick={() => setConfirming(false)}>
-                    keep going
+                    Keep going
                   </Button>
                 </div>
               </div>

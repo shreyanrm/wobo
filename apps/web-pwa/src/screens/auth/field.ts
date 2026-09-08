@@ -49,6 +49,20 @@ export function looksLikeFullPhone(value: string): boolean {
   return digits.length >= 7 && digits.length <= 15;
 }
 
+/**
+ * A NUMBER THAT NAMES ITS COUNTRY. The account service dials E.164 and nothing else, so a number
+ * with no country code in front of it cannot be sent anywhere.
+ *
+ * It was accepted anyway. A fourteen-year-old typing their mobile the way they say it out loud —
+ * `9876543210` — passed `looksLikeFullPhone`, went to the service verbatim, and came back as the
+ * catch-all "I could not finish that", which names nothing and suggests nothing. This module's own
+ * docblock forbids exactly that, so the missing code is now its own refusal with its own sentence,
+ * and the hint under the field asks for it before anybody presses anything.
+ */
+export function hasCountryCode(value: string): boolean {
+  return value.trim().startsWith('+');
+}
+
 export interface FieldShape {
   glyph: Glyph;
   /** Which keyboard opens on a phone. */
@@ -86,13 +100,25 @@ export function fieldShape(kind: IdentifierKind, value: string): FieldShape {
 }
 
 /** Which error a value in this field would raise, or null when it is good enough to send. */
-export type FieldProblem = 'who' | 'email' | 'phone';
+export type FieldProblem = 'who' | 'email' | 'phone' | 'phoneCountry';
 
 export function fieldProblem(kind: IdentifierKind, value: string): FieldProblem | null {
   const v = value.trim();
   const shape = fieldShape(kind, v);
   if (shape.sends === null) return 'who';
   if (!v) return kind === 'phone' ? 'phone' : kind === 'email' ? 'email' : 'who';
-  if (shape.sends === 'code') return looksLikeFullPhone(v) ? null : 'phone';
+  if (shape.sends === 'code') {
+    if (!looksLikeFullPhone(v)) return 'phone';
+    // A number of the right length with no country code in front of it is a DIFFERENT problem
+    // from a number that is too short, and saying so is the only way the learner can fix it.
+    return hasCountryCode(v) ? null : 'phoneCountry';
+  }
   return looksLikeEmail(v) ? null : 'email';
+}
+
+/** The same rule, for a parent's number typed into the under-13 branch's own field. */
+export function phoneProblem(value: string): 'phone' | 'phoneCountry' | null {
+  const v = value.trim();
+  if (!looksLikeFullPhone(v)) return 'phone';
+  return hasCountryCode(v) ? null : 'phoneCountry';
 }

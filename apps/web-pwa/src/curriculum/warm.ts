@@ -13,7 +13,7 @@ import { applyOverlayOps } from '@wobo/sdk';
 import type { Topic } from '../data/model';
 import { cache } from './cache';
 import { curriculum, curriculumReady } from './client';
-import { chaptersBySubject, ingestTopics, ingestUnits, topicById } from './registry';
+import { chaptersBySubject, ingestTopics, ingestUnits, loadedTopics, topicById } from './registry';
 import { loadWorld } from './world';
 
 export function warmFromCache(): void {
@@ -51,6 +51,21 @@ export function warmFromCache(): void {
 export async function ensureTopic(topicId: string): Promise<Topic | undefined> {
   const known = topicById(topicId);
   if (known) return known;
+  return (await ensureTopicMatching((t) => t.id === topicId)) ?? topicById(topicId);
+}
+
+/**
+ * The same walk, for a topic named by something other than its id — the doubt solver arrives with
+ * the gateway's own syllabus node (`climb.node_id`, `topic_node_uuid(topic.id)`) and no id to look
+ * it up by, on a tab where nothing has been opened yet and the registry is therefore empty. Cache
+ * first, the brain second, stopping at the first topic the predicate accepts; nothing is fetched
+ * once one has been found.
+ */
+export async function ensureTopicMatching(
+  match: (topic: Topic) => boolean,
+): Promise<Topic | undefined> {
+  const here = loadedTopics().find(match);
+  if (here) return here;
   const world = loadWorld();
   if (!world?.level) return undefined;
   const { frameworkId, versionId, level } = world;
@@ -75,7 +90,8 @@ export async function ensureTopic(topicId: string): Promise<Topic | undefined> {
     }
     for (const chapter of chaptersBySubject[subject] ?? []) {
       if (chapter.topics.length > 0) {
-        if (chapter.topics.some((t) => t.id === topicId)) return topicById(topicId);
+        const already = chapter.topics.find(match);
+        if (already) return already;
         continue;
       }
       let topics = cache.topics(frameworkId, versionId, chapter.id);
@@ -94,9 +110,9 @@ export async function ensureTopic(topicId: string): Promise<Topic | undefined> {
             : topics,
         );
       }
-      const hit = topicById(topicId);
+      const hit = loadedTopics().find(match);
       if (hit) return hit;
     }
   }
-  return topicById(topicId);
+  return loadedTopics().find(match);
 }

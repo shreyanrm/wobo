@@ -4,7 +4,14 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { fieldProblem, fieldShape, looksLikeFullPhone, looksLikePhone } from './field';
+import {
+  fieldProblem,
+  fieldShape,
+  hasCountryCode,
+  looksLikeFullPhone,
+  looksLikePhone,
+  phoneProblem,
+} from './field';
 
 describe('the glyph follows what is being typed', () => {
   it('is an envelope until the value reads like a number', () => {
@@ -73,5 +80,41 @@ describe('what the field will not send', () => {
   it('catches the half-typed value that would fail at the service instead', () => {
     expect(fieldProblem('both', '+91 98')).toBe('phone');
     expect(fieldProblem('both', 'me@')).toBe('email');
+  });
+});
+
+/**
+ * THE COUNTRY CODE, ASKED FOR RATHER THAN ASSUMED.
+ *
+ * `9876543210` is how a fourteen-year-old writes their mobile, and it is not a number the account
+ * service can dial. The field took it, the client posted it verbatim, and the only sentence the
+ * learner could meet was the catch-all "I could not finish that", which names nothing and suggests
+ * nothing — the exact failure this module's own docblock forbids.
+ */
+describe('a number the service could actually dial', () => {
+  it('refuses a number with no country code, and says which problem it is', () => {
+    expect(fieldProblem('phone', '9876543210')).toBe('phoneCountry');
+    expect(fieldProblem('both', '9876543210')).toBe('phoneCountry');
+    // and it is NOT the same refusal as a number that is simply too short
+    expect(fieldProblem('phone', '98765')).toBe('phone');
+  });
+
+  it('takes the same number once it names its country', () => {
+    expect(fieldProblem('phone', '+91 98765 43210')).toBeNull();
+    expect(fieldProblem('both', '+919876543210')).toBeNull();
+    expect(hasCountryCode('+91 98765 43210')).toBe(true);
+    expect(hasCountryCode(' 9876543210 ')).toBe(false);
+  });
+
+  it('holds a parent’s number to the same rule', () => {
+    expect(phoneProblem('9876543210')).toBe('phoneCountry');
+    expect(phoneProblem('98765')).toBe('phone');
+    expect(phoneProblem('+91 98765 43210')).toBeNull();
+  });
+
+  it('still lets the glyph follow a half-typed number, which is a different question', () => {
+    // hasCountryCode decides what may be SENT; looksLikePhone decides what is DRAWN.
+    expect(looksLikePhone('9876543210')).toBe(true);
+    expect(looksLikeFullPhone('9876543210')).toBe(true);
   });
 });

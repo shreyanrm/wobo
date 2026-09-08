@@ -1,9 +1,14 @@
 """The free tier, metered in the brain — the only place a limit is allowed to live.
 
 Wobo is free by default. "Free" is a number, and the client must never hold it: the client
-asks, the brain counts. Two counters per subject per UTC day — turns (the conversational
-surface) and generations (the heavy composition surface) — with dials from the environment
-so the owner can move them without a deploy of the client.
+asks, the brain counts. Three counters per subject per UTC day — turns (the conversational
+surface), generations (the heavy composition surface) and voice (spoken lines, which are a
+paid API and are billed per SENTENCE by the client) — with dials from the environment so the
+owner can move them without a deploy of the client.
+
+Voice has its own counter because it is not a question. The client synthesises one call per
+sentence, so charging voice to the turn counter meant hearing a five-sentence answer cost five
+more questions than asking it did.
 
 Classification is one dict, longest prefix wins, and anything unrecognised counts as a turn
 rather than counting as nothing: a capability added tomorrow is metered the day it ships.
@@ -22,6 +27,14 @@ from datetime import UTC, datetime, timedelta
 
 TURN = "turn"
 GENERATION = "generation"
+#: Hearing Wobo is not asking Wobo. Voice is a paid API and has to be capped, but it must never
+#: be capped out of the SAME purse a learner's questions come from: the client synthesises one
+#: call PER SENTENCE, so a five-sentence answer read aloud used to cost five of the day's
+#: questions on top of the question that earned it. On the anonymous dial (6 a day) one spoken
+#: crisis reply spent five of the six, which also let the read-aloud back door charge for a
+#: disclosure the turn itself had just refunded (``app.py``: NOTHING IS CHARGED FOR A DISCLOSURE).
+#: So speaking draws on its own counter, sized in LINES rather than questions.
+VOICE = "voice"
 
 # One dict, longest matching prefix wins. Generations are the expensive half: a whole lesson,
 # a video, a podcast. Turns are the cheap, frequent half.
@@ -32,8 +45,10 @@ CAPABILITY_CLASS: dict[str, str] = {
     "podcast": GENERATION,
     "generate.course": GENERATION,
     "generate.digest": GENERATION,
-    "voice.tts": TURN,
-    "voice.session": TURN,
+    # Every voice seam — the one-shot line, the token the two sockets are opened with, the
+    # narration a video rides on. One prefix, so a voice route added tomorrow cannot land back
+    # on the question counter by being forgotten here.
+    "voice.": VOICE,
     "wobo.turn": TURN,
     # A board turn is a turn. It streams instead of returning one body, and it plans on the
     # generate tier rather than the turn tier, but the learner asked one question and gets
@@ -77,23 +92,32 @@ _PREFIXES: tuple[tuple[str, str], ...] = tuple(
 # gets every capability, and a subscription covers exactly one learner. The only thing a plan
 # changes is how many times a day they can ask.
 _FREE_TURNS, _FREE_GENERATIONS = 40, 8
+#: Eight spoken lines per question in the free day — comfortably more than an answer is ever
+#: split into, so a learner who never mutes Wobo is never the one who notices this number, and
+#: a runaway client still cannot spend the key without bound.
+_FREE_VOICE = _FREE_TURNS * 8
 _MULTIPLIER: dict[str, int] = {"free": 1, "pro": 5, "max": 20}
 
 _DIALS: dict[tuple[str, str], tuple[str, int]] = {
     # (plan, class) -> (env var, default)
     ("free", TURN): ("FREE_DAILY_TURNS", _FREE_TURNS),
     ("free", GENERATION): ("FREE_DAILY_GENERATIONS", _FREE_GENERATIONS),
+    ("free", VOICE): ("FREE_DAILY_VOICE_LINES", _FREE_VOICE),
     ("anon", TURN): ("ANON_DAILY_TURNS", 6),
     ("anon", GENERATION): ("ANON_DAILY_GENERATIONS", 1),
+    ("anon", VOICE): ("ANON_DAILY_VOICE_LINES", 6 * 8),
     # The priced plans are the free allowance multiplied, and nothing else.
     ("pro", TURN): ("PRO_DAILY_TURNS", _FREE_TURNS * _MULTIPLIER["pro"]),
     ("pro", GENERATION): ("PRO_DAILY_GENERATIONS", _FREE_GENERATIONS * _MULTIPLIER["pro"]),
+    ("pro", VOICE): ("PRO_DAILY_VOICE_LINES", _FREE_VOICE * _MULTIPLIER["pro"]),
     ("max", TURN): ("MAX_DAILY_TURNS", _FREE_TURNS * _MULTIPLIER["max"]),
     ("max", GENERATION): ("MAX_DAILY_GENERATIONS", _FREE_GENERATIONS * _MULTIPLIER["max"]),
+    ("max", VOICE): ("MAX_DAILY_VOICE_LINES", _FREE_VOICE * _MULTIPLIER["max"]),
     # ``plus`` is the name the first paid tier shipped under; it resolves to pro so an
     # existing subscriber's plan string keeps working.
     ("plus", TURN): ("PLUS_DAILY_TURNS", _FREE_TURNS * _MULTIPLIER["pro"]),
     ("plus", GENERATION): ("PLUS_DAILY_GENERATIONS", _FREE_GENERATIONS * _MULTIPLIER["pro"]),
+    ("plus", VOICE): ("PLUS_DAILY_VOICE_LINES", _FREE_VOICE * _MULTIPLIER["pro"]),
 }
 
 _STORE_MAX = 20_000
@@ -105,17 +129,25 @@ _used: dict[tuple[str, str], dict[str, int]] = {}
 _lock = threading.Lock()
 
 
+#: What each spent counter sounds like. The voice line says the lesson carries on, because it
+#: does: a learner out of spoken lines still has their questions, and the client reads the words
+#: with the device's own voice (``speech.tsx``: a refusal is silence, never a stopped answer).
+_EXHAUSTED: dict[str, str] = {
+    TURN: "We have talked a lot today. I will be right here again tomorrow.",
+    GENERATION: (
+        "That is all the lessons I can build for you today. I will be ready again tomorrow."
+    ),
+    VOICE: "I have done a lot of reading out loud today. I can still write it all down for you.",
+}
+
+
 class BudgetExhausted(Exception):
     """Today's free allowance is spent. Wobo-voiced; no price is ever named here."""
 
     def __init__(self, kind: str, reset_at: datetime) -> None:
         self.kind = kind
         self.reset_at = reset_at
-        self.message = (
-            "That is all the lessons I can build for you today. I will be ready again tomorrow."
-            if kind == GENERATION
-            else "We have talked a lot today. I will be right here again tomorrow."
-        )
+        self.message = _EXHAUSTED.get(kind, _EXHAUSTED[TURN])
         super().__init__(self.message)
 
     def body(self) -> dict[str, str]:
@@ -127,14 +159,21 @@ class Snapshot:
     turns_remaining: int
     generations_remaining: int
     reset_at: datetime
+    #: Spoken lines left today. Its own counter, so hearing an answer never costs asking one.
+    voice_remaining: int = 0
 
     def remaining(self, kind: str) -> int:
-        return self.generations_remaining if kind == GENERATION else self.turns_remaining
+        if kind == GENERATION:
+            return self.generations_remaining
+        if kind == VOICE:
+            return self.voice_remaining
+        return self.turns_remaining
 
     def as_dict(self) -> dict[str, object]:
         return {
             "turns_remaining": self.turns_remaining,
             "generations_remaining": self.generations_remaining,
+            "voice_remaining": self.voice_remaining,
             "reset_at": self.reset_at.isoformat(),
         }
 
@@ -181,7 +220,11 @@ def limits_for(plan: str = "free", *, anonymous: bool = False) -> dict[str, int]
     free rather than to a guess (:func:`resolve_plan`, which says which set was used).
     """
     key = resolve_plan(plan, anonymous=anonymous)
-    return {TURN: _dial(key, TURN), GENERATION: _dial(key, GENERATION)}
+    return {
+        TURN: _dial(key, TURN),
+        GENERATION: _dial(key, GENERATION),
+        VOICE: _dial(key, VOICE),
+    }
 
 
 def reset_at(now: datetime | None = None) -> datetime:
@@ -200,7 +243,7 @@ def _bucket(subject: str, *, now: datetime | None = None) -> dict[str, int]:
                 del _used[stale]
             if len(_used) >= _STORE_MAX:
                 _used.clear()
-        bucket = {TURN: 0, GENERATION: 0}
+        bucket = dict.fromkeys((TURN, GENERATION, VOICE), 0)
         _used[key] = bucket
     return bucket
 
@@ -210,6 +253,7 @@ def _snapshot_locked(bucket: dict[str, int], limits: dict[str, int]) -> Snapshot
         turns_remaining=max(0, limits[TURN] - bucket[TURN]),
         generations_remaining=max(0, limits[GENERATION] - bucket[GENERATION]),
         reset_at=reset_at(),
+        voice_remaining=max(0, limits[VOICE] - bucket.get(VOICE, 0)),
     )
 
 
@@ -232,9 +276,9 @@ def charge(
     limits = limits_for(plan, anonymous=anonymous)
     with _lock:  # read, compare and increment are one operation or they are not a limit
         bucket = _bucket(subject)
-        if bucket[kind] >= limits[kind]:
+        if bucket.get(kind, 0) >= limits[kind]:
             raise BudgetExhausted(kind, reset_at())
-        bucket[kind] += 1
+        bucket[kind] = bucket.get(kind, 0) + 1
         return _snapshot_locked(bucket, limits)
 
 
@@ -243,7 +287,7 @@ def refund(subject: str, capability: str) -> None:
     kind = classify(capability)
     with _lock:
         bucket = _bucket(subject)
-        bucket[kind] = max(0, bucket[kind] - 1)
+        bucket[kind] = max(0, bucket.get(kind, 0) - 1)
 
 
 def headers(snap: Snapshot, kind: str) -> dict[str, str]:

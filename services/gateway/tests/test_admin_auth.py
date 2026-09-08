@@ -13,6 +13,7 @@ touch the record of what they looked at.
 
 from __future__ import annotations
 
+import pathlib
 import time
 from typing import Any
 
@@ -202,6 +203,44 @@ def test_ending_a_session_kills_the_token(
     headers = _console(OWNER_SUBJECT, token)
     assert client.delete(f"{ADMIN_PREFIX}/session", headers=headers).status_code == 200
     assert client.get(f"{ADMIN_PREFIX}/whoami", headers=headers).status_code == 401
+
+
+def _paths(routes: Any) -> set[str]:
+    """Every path this app can serve, descending through the routers that were included."""
+    found: set[str] = set()
+    for route in routes:
+        path = getattr(route, "path", None)
+        if isinstance(path, str):
+            found.add(path)
+            continue
+        nested = getattr(route, "effective_candidates", None) or getattr(route, "routes", None)
+        if nested:
+            found |= _paths(nested() if callable(nested) else nested)
+    return found
+
+
+def test_every_path_the_console_names_is_a_route_this_gateway_serves(client: TestClient) -> None:
+    """The console cannot tell a route that is missing from a console that is not deployed.
+
+    ``api.statusToReason`` maps 404 to 'not_deployed' on purpose — ``ops`` and ``admin_auth`` both
+    answer a not-for-you with Starlette's own Not Found, because the existence of a console is
+    itself information. That is right, and it is also why a MISTYPED path went unnoticed for as
+    long as it did: ``POST /v1/admin/session/end`` had never been registered, so sign-out 404'd,
+    the failure was discarded, and the session token stayed live until its TTL.
+
+    So the two halves are compared here, from the console's own contract file.
+    """
+    import re
+
+    contract = pathlib.Path(__file__).resolve().parents[3] / (
+        "apps/web-pwa/src/admin/contract.ts"
+    )
+    if not contract.exists():  # the gateway is deployable on its own
+        pytest.skip("the web app is not in this checkout")
+    named = set(re.findall(r"^\s*\w+: '(/v1/admin[^']*)',", contract.read_text(), re.M))
+    assert named, "the console's ENDPOINT map did not parse"
+    served = _paths(client.app.routes)
+    assert named <= served, f"the console names paths this gateway does not serve: {named - served}"
 
 
 # --- levels -------------------------------------------------------------------------------------

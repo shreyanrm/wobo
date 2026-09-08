@@ -83,3 +83,33 @@ describe('a build with no way in at all', () => {
     expect(ways('verifyPhoneOtp').anyOpen).toBe(false);
   });
 });
+
+/**
+ * THE UNDER-13 BRANCH, IN THE BUILD THAT ACTUALLY SHIPS.
+ *
+ * Below 13 the account is a parent's, so the door the parent signs in through is a message to
+ * their own device. The branch called the magic-link seam and nothing else, and no build has ever
+ * had one: the SDK exposes requestPhoneOtp, verifyPhoneOtp and signInWithGoogle. So in every
+ * shipped build the branch removed the field and both provider buttons, drew zero controls in the
+ * action column, and ended on "Writing to a parent is not switched on yet". A child under 13 could
+ * not make an account and could not get back either. `parental-consent.md` §2 names a message to
+ * the parent's "email address or phone number": both, in one sentence.
+ */
+describe('how a parent can be reached, on the branch that needs one', () => {
+  it('has a way in the build that ships, where a code is all there is', () => {
+    expect(ways('requestPhoneOtp').parentWay).toBe('code');
+    expect(ways('requestPhoneOtp', 'signInWithGoogle').parentWay).toBe('code');
+  });
+
+  it('prefers a link, where a parent can read a page on their own device', () => {
+    expect(ways('requestPhoneOtp', 'signInWithMagicLink').parentWay).toBe('link');
+    expect(ways('signInWithMagicLink').parentWay).toBe('link');
+  });
+
+  it('says so honestly when a parent cannot be reached at all', () => {
+    // Google alone signs a grown-up in; it cannot carry a message to somebody else's device.
+    expect(ways('signInWithGoogle').parentWay).toBeNull();
+    // and a password is the learner's own way in, not a way to reach anybody
+    expect(ways('signInWithPassword').parentWay).toBeNull();
+  });
+});

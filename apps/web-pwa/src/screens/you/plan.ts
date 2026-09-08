@@ -99,6 +99,21 @@ export const UNREADABLE =
 export const WORK_STAYS =
   'Everything you have learnt stays: your history, your mastery, your climb.';
 
+/**
+ * THE ONE TAP THAT COUNTS. The gateway sends this sentence with every plan it says can be
+ * cancelled (`billing/__init__.py`, `CONFIRM`) because a provider cannot restart a cancelled
+ * subscription: the resume route answers 409 `cannot_resume`, and the plans FAQ says the same
+ * thing to a reader who has not paid yet. The panel is where the decision is actually made, so
+ * it says it too — in the confirmation before the tap, and on the cancelled card afterwards,
+ * where it is the reason there is no Resume to press. `plan.test.ts` holds these words against
+ * the gateway's own, so they cannot drift apart.
+ */
+export const NO_RESUME =
+  'Once it is cancelled it cannot be switched back on, so this is the one tap that counts.';
+
+/** Said beside a renewal, and only beside one: the way out, in the count the plans page prints. */
+export const STOP_ANY_TIME = 'Cancel any time, in two taps, and nothing more is taken.';
+
 /** Where a plan bought in a store is cancelled, and why it is cancelled there. No blame. */
 export const STORE_LINES: Readonly<Record<Exclude<PlanSource, 'web'>, string>> = {
   app_store:
@@ -223,14 +238,22 @@ export function panelLines(model: PlanModel, now: Date): readonly string[] {
   const sub = model.sub;
   const when = dayLabel(sub?.periodEnd ?? null);
   if (view === 'active') {
-    // NOT "renews on". Nothing in this product renews a subscription — there is no payment
-    // provider, no webhook and no sweep, and the period end has one writer — so the plan runs to
-    // this date and the meter falls back to free after it whether or not anyone cancelled. The
-    // copy law (DESIGN.md §0) forbids describing a mechanism we cannot show, and that was one.
-    const runs = when
-      ? `Your plan runs until ${when}.`
-      : 'Your plan runs to the end of the period you have paid for.';
-    return [allowanceLine(sub), runs, elsewhereLine(sub)].filter(
+    // WHAT HAPPENS ON THAT DATE, in the words for the plan this actually is. A provider-backed
+    // subscription is charged again — `billing/plans.py` creates it with a `total_count` of five
+    // years or sixty months, so the card is taken until somebody cancels — and this line was the
+    // only thing a payer read about the date. It said "Your plan runs until 7 September 2027." and
+    // stopped there. A plan nobody is charging (an operator's grant) genuinely does just run out,
+    // and says so. Which of the two it is comes off the body (`renews`) and is never worked out
+    // here, because the state is the promise.
+    const runs = sub?.renews
+      ? when
+        ? `Your plan renews on ${when}, and the same amount is taken again.`
+        : 'Your plan renews at the end of the period you have paid for, and the same amount is taken again.'
+      : when
+        ? `Your plan runs until ${when}.`
+        : 'Your plan runs to the end of the period you have paid for.';
+    const stop = sub?.renews && cancellableHere(sub) ? STOP_ANY_TIME : null;
+    return [allowanceLine(sub), runs, stop, elsewhereLine(sub)].filter(
       (line): line is string => line !== null,
     );
   }
@@ -241,7 +264,15 @@ export function panelLines(model: PlanModel, now: Date): readonly string[] {
     const until = when
       ? `${planName(sub)} until ${when}, then free.`
       : `${planName(sub)} until the end of the period you have paid for, then free.`;
-    return [until, 'Nothing will be charged again.', WORK_STAYS];
+    // WHY THERE IS NO BUTTON HERE. `panelControls` offers a Resume only where the server says one
+    // is possible, and a provider-backed cancel cannot be undone (the gateway refuses it, 409
+    // `cannot_resume`), so the panel used to go quiet: a cancelled plan, no control, and no reason
+    // given for its absence. The sentence the confirmation already made is repeated where the
+    // absence is felt.
+    const back = sub?.canResume ? null : NO_RESUME;
+    return [until, 'Nothing will be charged again.', back, WORK_STAYS].filter(
+      (line): line is string => line !== null,
+    );
   }
   if (view === 'unreadable') return [UNREADABLE];
   if (view === 'loading') return [];
@@ -258,9 +289,16 @@ export function stateWord(model: PlanModel, now: Date): string | null {
 }
 
 /**
- * The confirmation, in the learner's own terms: the date they keep it until, that nothing renews,
- * that their work stays. Three sentences and no fourth — there is no offer, no survey and no
- * reason picker in this list, and the test holds it to that.
+ * The confirmation, in the learner's own terms: the date they keep it until, that nothing is
+ * charged after it, that their work stays, and that there is no way back. Four sentences and no
+ * fifth — there is no offer, no survey and no reason picker in this list, and the test holds it to
+ * that.
+ *
+ * THE FOURTH ONE IS THE POINT. The gateway sends it in the plan body's `confirm` field and the
+ * plans FAQ already prints it, so the one screen where the decision is actually made was the only
+ * surface that left it out: a learner tapped "Cancel the plan" having been told three reassuring
+ * things and nothing about the tap being final. `plan.test.ts` holds this sentence against the
+ * gateway's own words, so the two cannot drift.
  */
 export function confirmationLines(sub: Subscription | null): readonly string[] {
   const when = dayLabel(sub?.periodEnd ?? null);
@@ -271,6 +309,7 @@ export function confirmationLines(sub: Subscription | null): readonly string[] {
     keep,
     'Nothing is charged after that, and your day goes back to the free allowance on its own.',
     WORK_STAYS,
+    NO_RESUME,
   ];
 }
 

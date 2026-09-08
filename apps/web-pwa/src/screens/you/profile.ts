@@ -22,6 +22,12 @@ export interface StoredProfile {
   birthdate?: string;
   /** Derived from birthdate (drives the age-branch); may be stored on older saved profiles. */
   age?: number;
+  /**
+   * When the learner agreed to the terms and the privacy policy on the sign-up door, as an ISO
+   * instant. The door asked for the tick and kept nothing, so nothing downstream could tell an
+   * account that had agreed from one that had never been asked (`screens/auth/record.ts`).
+   */
+  termsAcceptedAt?: string;
   /** What they're into — folded into Wobo's analogies/examples. */
   interests?: string[];
   /** Durable accessibility profile — rides the dossier so Wobo honors it every turn. */
@@ -76,6 +82,10 @@ export function loadProfile(): StoredProfile {
         birthdate: typeof p.birthdate === 'string' && p.birthdate.trim() ? p.birthdate : undefined,
         // Birthdate is the source of truth; fall back to a stored age on older profiles.
         age: ageFromBirthdate(p.birthdate) ?? (typeof p.age === 'number' ? p.age : undefined),
+        termsAcceptedAt:
+          typeof p.termsAcceptedAt === 'string' && p.termsAcceptedAt.trim()
+            ? p.termsAcceptedAt
+            : undefined,
         interests: Array.isArray(p.interests) ? p.interests : undefined,
         largeText: p.largeText === true,
         highContrast: p.highContrast === true,

@@ -93,6 +93,18 @@ describe('the memory page', () => {
     expect(render({ offered: [] })).not.toContain(MIND_MEMORY_COPY.parentNote);
   });
 
+  it('leaves a real gap between the fact and the mark, so the two are not one word', () => {
+    // The mark was pushed across by `margin-left: 8px` and nothing else, so the row was one run in
+    // the accessibility tree: a screen reader read "she has dyslexiafrom your parent", gluing the
+    // provenance to the fact it is there to qualify. The Remove button's own label always had a
+    // separator; the row itself did not.
+    const html = render();
+    expect(html).not.toContain(`dyslexia<em class="wm-tag">${MIND_MEMORY_COPY.parentTag}`);
+    expect(html).toMatch(
+      new RegExp(`dyslexia[^<]*\\s<em class="wm-tag">${MIND_MEMORY_COPY.parentTag}`),
+    );
+  });
+
   it('says what is waiting to save, as the wire reports it, and nothing else when nothing is', () => {
     const owed = render({
       status: { ...synced, waiting: 2, line: MIND_SYNC_COPY.trouble(2), last: 'trouble' },

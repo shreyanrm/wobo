@@ -160,12 +160,33 @@ class PlaneController {
     return this.summon(origin ? { boardId: id, origin } : { boardId: id });
   }
 
-  dismiss(): void {
-    if (this.state.pinned) return;
+  /**
+   * Put the board away, unless the learner pinned it. Returns whether it actually went.
+   *
+   * The return value is the point: callers used to say "Put away." straight after this call, and a
+   * pinned board made that sentence false. A pin is there to survive the ACCIDENTAL dismissal (a
+   * stray Escape, a turn that moves on), so this one keeps honouring it and `close` below is the
+   * door for a learner who asked outright.
+   */
+  dismiss(): boolean {
+    if (this.state.pinned) return false;
     const closing = this.state.boardId;
     this.set({ open: false, minimized: false });
     // Closed with nothing on it: forget it rather than keeping an empty store per dismissal.
     boardBook.dropIfEmpty(closing);
+    return true;
+  }
+
+  /**
+   * The learner asked for the board to go: the word "close the board", or the close button under
+   * their own finger. Nothing about that is accidental, so the pin is lifted rather than obeyed —
+   * a control that announces itself and then does nothing is worse than no control at all.
+   * Returns whether a board was open to close.
+   */
+  close(): boolean {
+    if (!this.state.open) return false;
+    if (this.state.pinned) this.set({ pinned: false });
+    return this.dismiss();
   }
 
   /** Away, but with its ink — the thumbnail by the orb. */
@@ -432,7 +453,7 @@ export function WoboPlane(props: WoboPlaneProps) {
               state.pinned ? 'pinned' : 'pin',
             )}
             {chromeButton('minimise the board', () => plane.minimize(), 'hide')}
-            {chromeButton('close the board', () => plane.dismiss(), 'close')}
+            {chromeButton('close the board', () => plane.close(), 'close')}
           </header>
           <div className="wobo-chrome-canvas">
             <BoardSurface

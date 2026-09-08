@@ -41,11 +41,10 @@ import { useSdk } from '../../store/sdk';
 import { WoboHead, Wordmark } from '../../ui/primitives';
 import { SiteLink } from '../site/nav';
 import { failureFromAuthReturn, reportFailure } from '../states/select';
-import { ageOn, blockedBy, consentBranch, type SignUpFields } from './age';
+import { ageOn, blockedBy, consentBranch, looksLikeEmail, type SignUpFields } from './age';
 import { callSeam, liveSeams, type MethodName, methodStates } from './client';
 import {
   ACTIONS,
-  CHILD_DOOR,
   CONSENT,
   DOOR_LEGAL,
   ERRORS,
@@ -58,11 +57,13 @@ import {
   SIGN_IN,
   SIGN_UP,
   SOON,
+  TEEN,
 } from './copy';
 import { type ProviderName, waysIn } from './doors';
-import { fieldProblem, fieldShape, type Glyph } from './field';
+import { fieldProblem, fieldShape, type Glyph, phoneProblem } from './field';
 import { controlOf, marks, type Problem, type Where, whereBlocked, whereField } from './problem';
-import { landingAfterDoor } from './run';
+import { rememberSignUp } from './record';
+import { landingAfterDoor, providerReturn } from './run';
 import { Steps } from './Steps';
 import { rememberSignInSource } from './source';
 import { ensureAuthStyles } from './styles';
@@ -74,6 +75,14 @@ ensureAuthStyles();
 type Mode = 'sign-in' | 'sign-up';
 /** What the screen is showing: the form, or what happened after it was sent. */
 type Stage = 'form' | 'link-sent' | 'code' | 'parent-sent';
+
+/** What a code was sent to, and whose device it landed on. The code step needs both. */
+interface CodeSent {
+  /** The number the code went to, verbatim, because verifying quotes it back. */
+  to: string;
+  /** True when it went to a PARENT's own phone, on the under-13 branch. */
+  parent: boolean;
+}
 
 /**
  * THE DOOR AS STEP ONE OF THE RUN. Onboarding renders this same component for its first step; it
@@ -223,7 +232,12 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [looking, setLooking] = useState(false);
-  const [fields, setFields] = useState<SignUpFields>({ birth: '', parentEmail: '', agreed: false });
+  const [sent, setSent] = useState<CodeSent | null>(null);
+  const [fields, setFields] = useState<SignUpFields>({
+    birth: '',
+    parentContact: '',
+    agreed: false,
+  });
 
   const whoField = useRef<HTMLDivElement>(null);
 
@@ -259,8 +273,14 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
   const age = fields.birth ? ageOn(fields.birth) : null;
   const branch = age === null ? null : consentBranch(age);
   // Under 13 the account is a parent's, so none of the learner's own doors are theirs to open: the
-  // only way on is the message to the parent's own address, which takes the whole column.
+  // only way on is the message to the parent's own contact, which takes the whole column.
   const childHolds = mode === 'sign-up' && branch?.parentRequired === true;
+
+  /** How this build can reach a parent, and so whether the under-13 branch exists (`doors.ts`). */
+  const parentWay = ways.parentWay;
+  /** Whether what has been typed into the parent's field is something this build can send to. */
+  const parentContactOk = (value: string): boolean =>
+    parentWay === 'code' ? phoneProblem(value) === null : looksLikeEmail(value);
 
   const shape = fieldShape(ways.identifier, who);
   const errorId = 'au-error';
@@ -333,11 +353,18 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
       // Never a provider's sentence and never a status code — one of Wobo's lines, or the honest
       // catch-all when we genuinely cannot tell what happened. It belongs to the FORM and to no
       // field: nothing the learner typed was wrong, so nothing they typed is marked wrong.
+      //
+      // The one failure that IS about what they typed: a number with no account behind it, on the
+      // door that does not make accounts. The client raises it by name (`NoSuchAccountError`), so
+      // the learner is told what to do next instead of meeting the catch-all.
+      const named = (err as { name?: string } | null)?.name;
       fail(
-        typeof navigator !== 'undefined' && navigator.onLine === false
-          ? ERRORS.offline
-          : ERRORS.unknown,
-        'form',
+        named === 'NoSuchAccountError'
+          ? ERRORS.noAccount
+          : typeof navigator !== 'undefined' && navigator.onLine === false
+            ? ERRORS.offline
+            : ERRORS.unknown,
+        named === 'NoSuchAccountError' ? 'who' : 'form',
       );
       console.error('sign-in failed', err);
     } finally {
@@ -352,15 +379,17 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
    */
   const gated = (): boolean => {
     if (mode !== 'sign-up') return false;
-    const blocked = blockedBy(fields);
+    const blocked = blockedBy(fields, new Date(), parentContactOk);
     if (!blocked) return false;
     fail(
       blocked === 'birth'
         ? ERRORS.birth
         : blocked === 'birth-invalid'
           ? ERRORS.birthInvalid
-          : blocked === 'parent-email'
-            ? ERRORS.parentEmail
+          : blocked === 'parent-contact'
+            ? parentWay === 'code'
+              ? ERRORS.parentPhone
+              : ERRORS.parentEmail
             : ERRORS.agree,
       whereBlocked(blocked),
     );
@@ -370,26 +399,49 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
   const openProvider = (name: ProviderName) => {
     const seam = seamOf(name);
     if (!seam || gated()) return;
+    // The SAME address a code or a password lands on (`run.ts` providerReturn). It used to be the
+    // bare origin, which is a PUBLIC route: a learner came back from the provider signed in and
+    // looking at the marketing page, with the app runtime never mounted.
     const redirectTo =
-      run?.redirectTo ?? (typeof window === 'undefined' ? undefined : `${window.location.origin}/`);
+      typeof window === 'undefined'
+        ? run?.redirectTo
+        : providerReturn({ run: run ?? null, origin: window.location.origin });
+    if (mode === 'sign-up') rememberSignUp(fields);
     rememberSignInSource(name);
     void attempt(() => callSeam(seams, seam, redirectTo));
   };
 
   const verifyCode = () => {
     const verify = typeof seams.verifyPhoneOtp === 'function' ? 'verifyPhoneOtp' : null;
-    if (!verify) {
+    // The number the code was actually sent to, quoted back verbatim. On the under-13 branch that
+    // is the PARENT's number and not what is in the ruled field, so it is remembered at send time
+    // rather than read back off a field the branch does not draw.
+    const number = sent?.to ?? who.trim();
+    if (!verify || !number) {
       fail(ERRORS.unknown, 'form');
       return;
     }
     void attempt(
-      () => callSeam(seams, verify, who.trim(), code.trim()),
+      () => callSeam(seams, verify, number, code.trim()),
       () => {
         rememberSignInSource('phone');
         arrived();
       },
     );
   };
+
+  /** Ask for a code, and remember where it went so the step after this one can verify it. */
+  const askForCode = (seam: string, number: string, parent: boolean) =>
+    attempt(
+      // An account is made only on the door that asked for a date of birth and took an agreement
+      // to the terms. `identity.ts` defaults this to false for exactly that reason.
+      () => callSeam(seams, seam, number, { createUser: mode === 'sign-up' }),
+      () => {
+        setSent({ to: number, parent });
+        setCode('');
+        setStage('code');
+      },
+    );
 
   /** Send whatever the one field is holding, down whichever seam it belongs to. */
   const sendIdentifier = () => {
@@ -405,13 +457,7 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
         fail(ERRORS.unknown, 'form');
         return;
       }
-      void attempt(
-        () => callSeam(seams, seam, value),
-        () => {
-          setCode('');
-          setStage('code');
-        },
-      );
+      void askForCode(seam, value, false);
       return;
     }
     if (wantsPassword) {
@@ -457,18 +503,19 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
       }
     }
     if (gated()) return;
+    if (mode === 'sign-up') rememberSignUp(fields);
     // Under 13 the account is the parent's, so the next step is a message to the parent's own
-    // address — a tick on a child's screen is never parental consent (parental-consent.md §2).
+    // address or number — a tick on a child's screen is never parental consent
+    // (parental-consent.md §2), and both shapes of message are named there.
     if (childHolds) {
-      const seam = seamOf('magicLink');
-      if (!seam) {
+      const value = fields.parentContact.trim();
+      const seam = parentWay === 'link' ? seamOf('magicLink') : seamOf('phone');
+      if (!parentWay || !seam) {
         fail(ERRORS.unknown, 'form');
         return;
       }
-      void attempt(
-        () => callSeam(seams, seam, fields.parentEmail.trim()),
-        () => setStage('parent-sent'),
-      );
+      if (parentWay === 'code') void askForCode(seam, value, true);
+      else void attempt(() => callSeam(seams, seam, value), () => setStage('parent-sent'));
       return;
     }
     sendIdentifier();
@@ -489,7 +536,9 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
     stage === 'link-sent'
       ? { title: SENT.title, lede: SENT.body }
       : stage === 'code'
-        ? { title: SENT.codeTitle, lede: SENT.codeBody }
+        ? sent?.parent
+          ? { title: PARENT.codeTitle, lede: PARENT.codeBody }
+          : { title: SENT.codeTitle, lede: SENT.codeBody }
         : stage === 'parent-sent'
           ? { title: PARENT.sentTitle, lede: PARENT.sent }
           : { title: words.title, lede: words.lede };
@@ -627,33 +676,62 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
                             {FIELDS.birthWhy}
                           </p>
 
-                          {branch && branch.band !== 'adult' ? (
+                          {/* UNDER 13: the parent's own contact, in whatever shape this build can
+                              really send to, because the account being made is theirs. */}
+                          {childHolds ? (
                             <div className="au-parent">
                               <h2>{PARENT.title}</h2>
-                              <p>{branch.notice}</p>
+                              <p>{branch?.notice}</p>
+                              {parentWay ? (
+                                <p>{parentWay === 'code' ? PARENT.sendCode : PARENT.sendLink}</p>
+                              ) : null}
                               <p>{PARENT.body}</p>
                               <p>{PARENT.learning}</p>
-                              {childHolds ? <p>{CHILD_DOOR}</p> : null}
-                              <label className="au-lab" htmlFor="au-parent-email">
-                                {FIELDS.parentEmail}
-                              </label>
-                              <div className="au-field" {...wrong('parent-email')}>
-                                <FieldGlyph glyph="envelope" />
-                                <input
-                                  id="au-parent-email"
-                                  type="email"
-                                  inputMode="email"
-                                  autoComplete="email"
-                                  value={fields.parentEmail}
-                                  {...invalid('parent-email')}
-                                  {...(marks(problem, 'parent-email')
-                                    ? { 'aria-describedby': errorId }
-                                    : {})}
-                                  onChange={(e) =>
-                                    setFields((f) => ({ ...f, parentEmail: e.target.value }))
-                                  }
-                                />
-                              </div>
+                              {parentWay ? (
+                                <>
+                                  <label className="au-lab" htmlFor="au-parent">
+                                    {parentWay === 'code' ? FIELDS.parentPhone : FIELDS.parentEmail}
+                                  </label>
+                                  <div className="au-field" {...wrong('parent-contact')}>
+                                    <FieldGlyph glyph={parentWay === 'code' ? 'phone' : 'envelope'} />
+                                    <input
+                                      id="au-parent"
+                                      type={parentWay === 'code' ? 'tel' : 'email'}
+                                      inputMode={parentWay === 'code' ? 'tel' : 'email'}
+                                      autoComplete={parentWay === 'code' ? 'tel' : 'email'}
+                                      placeholder={
+                                        parentWay === 'code'
+                                          ? FIELDS.placeholderPhone
+                                          : FIELDS.placeholderEmail
+                                      }
+                                      value={fields.parentContact}
+                                      {...invalid('parent-contact')}
+                                      aria-describedby={describedBy('parent-contact', 'au-parent-hint')}
+                                      onChange={(e) =>
+                                        setFields((f) => ({ ...f, parentContact: e.target.value }))
+                                      }
+                                    />
+                                  </div>
+                                  <p className="au-fine" id="au-parent-hint">
+                                    {parentWay === 'code'
+                                      ? FIELDS.parentHintCode
+                                      : FIELDS.parentHintLink}
+                                  </p>
+                                </>
+                              ) : null}
+                            </div>
+                          ) : branch && branch.band === 'teen' ? (
+                            /* 13 to 17: the account is theirs. THE DOOR ASKS FOR NO PARENT HERE.
+                               It used to, under "I send one message to that address" — and the
+                               address went nowhere, because its only call site was the branch
+                               above. The run's own parent step and the Parents card on You reach
+                               the gateway's invite door for real; this says what is true and
+                               leaves the asking to them. */
+                            <div className="au-parent">
+                              <h2>{TEEN.title}</h2>
+                              <p>{branch.notice}</p>
+                              <p>{TEEN.body}</p>
+                              <p>{PARENT.learning}</p>
                             </div>
                           ) : null}
 
@@ -683,8 +761,27 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
                       {errorNote}
 
                       {/* the one saturated thing on the page */}
-                      {childHolds && !seamOf('magicLink') ? (
-                        <p className="au-fine">{PARENT.cannotSend}</p>
+                      {childHolds && !parentWay ? (
+                        <>
+                          <p className="au-fine">{PARENT.cannotSend}</p>
+                          {/* NEVER A DEAD END. With no way to reach a parent there is nothing to
+                              press, and the column used to hold literally zero controls: a child
+                              who mistyped a year was stuck on a page with no way forward and no
+                              way back. This puts the caret back in the date they can change. */}
+                          <button
+                            type="button"
+                            className="au-btn au-quiet"
+                            onClick={() => {
+                              setProblem(null);
+                              setFields((f) => ({ ...f, birth: '' }));
+                              if (typeof document !== 'undefined') {
+                                document.getElementById('au-birth')?.focus();
+                              }
+                            }}
+                          >
+                            {ACTIONS.changeBirth}
+                          </button>
+                        </>
                       ) : ways.identifier !== 'none' || childHolds ? (
                         <button
                           type="submit"

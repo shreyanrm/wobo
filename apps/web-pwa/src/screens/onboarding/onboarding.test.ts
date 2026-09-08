@@ -283,3 +283,63 @@ describe("the aha keeps its promise (2026-09-05)", () => {
     expect(raw).not.toContain('chat.ask(line);');
   });
 });
+
+/**
+ * THE TOUCH FLOOR APPLIES AT EVERY WIDTH.
+ *
+ * DESIGN.md says "touch targets are 44 px or more" and says nothing about a viewport. The floor
+ * was written inside `@media (max-width:900px)`, so at 1440 the class chips and the sample
+ * questions measured 24.8px tall, the aha's Ask button 38px and the ask input 23px: the <button>
+ * standing in for the prototype's <span> is inline, and an inline box takes no vertical padding.
+ * A 1440 laptop is a touchscreen as often as not, and a mouse held by an unsteady hand needs the
+ * same 44px a thumb does.
+ */
+describe('the touch floor is not conditional on a small screen', () => {
+  /** The sheet with every @media block removed: what applies at every width. */
+  function unconditional(source: string): string {
+    // Comments first: one of them quotes the media query this block used to live in.
+    const css = source.replace(/\/\*[\s\S]*?\*\//g, '');
+    let out = '';
+    let i = 0;
+    for (;;) {
+      const at = css.indexOf('@media', i);
+      if (at === -1) return out + css.slice(i);
+      out += css.slice(i, at);
+      let depth = 0;
+      let j = css.indexOf('{', at);
+      if (j === -1) return out;
+      for (; j < css.length; j++) {
+        if (css[j] === '{') depth += 1;
+        else if (css[j] === '}') {
+          depth -= 1;
+          if (depth === 0) {
+            j += 1;
+            break;
+          }
+        }
+      }
+      i = j;
+    }
+  }
+
+  const base = rules(unconditional(SHEET));
+
+  it('gives every pressable box 44px at 1440 as well as at 390', () => {
+    for (const selector of [
+      '.ob-btn.ob-link',
+      '.ob-chips button,.ob-chipsq button',
+      'button.ob-opt,button.ob-own',
+      '.ob-aha .ob-ask .ob-btn',
+      '.ob-aha .ob-ask input',
+    ]) {
+      expect([selector, base.get(selector)?.includes('min-height:44px')]).toEqual([selector, true]);
+    }
+  });
+
+  it('makes the chip button a box that can take the height at all', () => {
+    // min-height on an inline box does nothing; this is why the chips measured 24.8px.
+    const chips = base.get('.ob-chips button,.ob-chipsq button') ?? [];
+    expect(chips).toContain('display:inline-flex');
+    expect(chips).toContain('align-items:center');
+  });
+});

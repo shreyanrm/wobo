@@ -57,6 +57,17 @@ class DoubtCaption {
     this.emit();
   }
 
+  /**
+   * Did Wobo say anything at all on this turn? The doubt screen asks before it calls a doubt
+   * explained: a turn that was refused, cut off or never reached the brain arrives here with no
+   * say frames, and a screen that files THAT as explained has told a child their doubt is answered
+   * when nothing was answered (law 1's other end). One `say` is the whole test, because a plan
+   * with ink and no words draws nothing (DOUBT.md §5).
+   */
+  spoke(): boolean {
+    return this.frames.some((f) => f.text.trim().length > 0);
+  }
+
   /** What may be printed right now. */
   visible(now: number = performance.now()): string {
     if (this.zero === null) return '';

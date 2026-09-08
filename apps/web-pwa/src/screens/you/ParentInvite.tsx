@@ -5,19 +5,22 @@
  * Parents card on the You screen (design/prototypes/onboarding-v2.html, step 4).
  *
  * An email address goes to the gateway's invite door and nothing else ever goes to that address
- * until the parent says yes. A phone number keeps the device-only link the app always had — the
- * Sunday note does not reach a phone yet, and the line under the card says so in the words it
- * always used rather than promising a message that will not come.
+ * until the parent says yes. A phone number keeps the device-only link the app always had, and the
+ * line under the card (`parentLink.ts`, `phoneLink`) says plainly that the Sunday note goes by
+ * email, rather than promising a WhatsApp message no code sends on a launch day already past.
  */
 
 import { type FormEvent, useRef, useState } from 'react';
 import { scoped } from '../../store/scope';
 import { useSdk } from '../../store/sdk';
-import { inviteParent, looksLikeEmail, ownTimezone, type ParentLinkStatus } from './parentLink';
+import {
+  inviteParent,
+  looksLikeEmail,
+  ownTimezone,
+  type ParentLinkStatus,
+  phoneLink,
+} from './parentLink';
 import { PARENT_KEY } from './profile';
-
-/** The device-only phone link, as it always was. */
-export const PHONE_LINK_LINE = "they'll receive the weekly note on WhatsApp when we go live";
 
 export interface ParentInviteProps {
   /** The learner's first name, for the invite. */
@@ -77,7 +80,7 @@ export function ParentInvite({ learnerName, onDone, onLater, autoFocus }: Parent
       relationship: 'parent',
       channel: 'whatsapp',
     });
-    onDone({ status: 'linked', parent_email: null, line: `linked · ${raw} · ${PHONE_LINK_LINE}` });
+    onDone(phoneLink(raw));
   };
 
   return (

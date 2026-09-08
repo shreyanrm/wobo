@@ -142,7 +142,24 @@ export interface DoorArrival {
 export function landingAfterDoor(
   arrival: DoorArrival,
 ): { leave: string } | { stay: 'run' | 'home' | 'onboarding' } {
-  if (!arrival.devAuth) return { leave: arrival.run?.redirectTo ?? `${arrival.origin}/onboarding` };
+  if (!arrival.devAuth) return { leave: providerReturn(arrival) };
   if (arrival.run) return { stay: 'run' };
   return { stay: arrival.mode === 'sign-up' ? 'onboarding' : 'home' };
+}
+
+/**
+ * WHERE A PROVIDER ROUND TRIP COMES BACK TO. The same address a code or a password lands on, and
+ * that is the whole point of it being one function.
+ *
+ * The doors used to hand the provider `${origin}/` while `landingAfterDoor` used
+ * `${origin}/onboarding`, so a learner who pressed "Continue with Google" came back signed in and
+ * looking at the MARKETING PAGE: a bare `/` is a public route, `App.tsx` picks it from the
+ * onboarded sentinel alone, and a phone that has none — a new device, or the same device after a
+ * sign-out, which empties it — has no way to know a session just landed. The app runtime never
+ * mounted, so the correction inside it never ran, and pressing "Sign in" again repeated the loop.
+ * `/onboarding` is a route the runtime owns: it reads the account back and sends a learner who has
+ * already finished setup straight home.
+ */
+export function providerReturn(arrival: Pick<DoorArrival, 'run' | 'origin'>): string {
+  return arrival.run?.redirectTo ?? `${arrival.origin}/onboarding`;
 }

@@ -23,7 +23,9 @@ const PORT = Number(process.env.WOBO_DOUBT_PORT ?? 5311);
 
 export default defineConfig({
   testDir: '.',
-  testMatch: 'doubt.spec.ts',
+  // The doubt solver's specs: the whole flow (doubt.spec.ts) and the fixer's cases
+  // (doubt-fixes.spec.ts), both against the browser-answered gateway this config exists for.
+  testMatch: /doubt(-[a-z]+)?\.spec\.ts$/,
   workers: 1,
   forbidOnly: !!process.env.CI,
   retries: 0,

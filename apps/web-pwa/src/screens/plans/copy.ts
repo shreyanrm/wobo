@@ -90,25 +90,31 @@ export const PLANS_PAGE = {
     no: 'no',
   },
   /**
-   * A PREVIEW OF THE CHECKOUT SCREEN, drawn on the plans page. It is not the checkout, and it must
-   * not behave like one.
+   * A PREVIEW OF THE CHECKOUT SCREEN while payments are off, and the CHECKOUT ITSELF the moment
+   * they are on. What it may say changes with that, and only with that.
    *
-   * Two rulings shape what it may say. docs/PRICING.md (owner, 2026-09-04): the plans page shows
-   * the per-month amount and the words, and NEVER the annual total — "The annual total ... must
-   * not appear on the plans page". It briefly did, twice, in `Today ₹19,992` and in a sentence
-   * naming the day the next one would be taken. And `services/gateway/src/wobo_gateway/billing.py`
-   * rule 2, in capitals: "NOTHING IN THIS REPO RENEWS A SUBSCRIPTION, and no user-facing line may
-   * say one does." So there is no total here, no date of a charge nobody can take, and the second
-   * box consents to the length being bought rather than to a renewal that does not exist.
+   * docs/PRICING.md (owner, 2026-09-04): the plans page shows the per-month amount and the words
+   * and NEVER the annual total — "The annual total ... must not appear on the plans page" — while
+   * the checkout shows "the exact amount and the date of the charge". So the total and the renewal
+   * are drawn behind the payments-on guard, where this card IS the checkout, and nowhere else.
+   *
+   * THE SECOND BOX SAYS IT RENEWS, because it does. It used to say the opposite, on the authority
+   * of `services/gateway/src/wobo_gateway/billing.py` rule 2 — "NOTHING IN THIS REPO RENEWS A
+   * SUBSCRIPTION ... There is no payment provider, no webhook and no scheduled sweep." That file
+   * was deleted with commit 692affc and replaced by `services/gateway/src/wobo_gateway/billing/`,
+   * which has all three: `billing/plans.py` creates every subscription with a `total_count` of 5
+   * years or 60 months, so the provider takes the money again on its own. The copy law forbids
+   * describing a mechanism we cannot show; it forbids just as flatly denying one we do. A payer is
+   * told, in the box they tick, that it renews, and told the amount and the day beside it.
    */
   checkout: {
     eyebrow: 'At checkout',
     title: 'Two boxes, both in plain words.',
     lead: {
       yearly:
-        'We ask for exactly two things before taking money: that the person paying is an adult who agrees to the terms, and that they know what a year costs and how to stop it. Nothing pre-ticked.',
+        'We ask for exactly two things before taking money: that the person paying is an adult who agrees to the terms, and that they know what a year costs, that it comes round again, and how to stop it. Nothing pre-ticked.',
       monthly:
-        'We ask for exactly two things before taking money: that the person paying is an adult who agrees to the terms, and that they know what a month costs and how to stop it. Nothing pre-ticked.',
+        'We ask for exactly two things before taking money: that the person paying is an adult who agrees to the terms, and that they know what a month costs, that it comes round again, and how to stop it. Nothing pre-ticked.',
     } as Readonly<Record<Period, string>>,
     say: 'Same price for everyone in your country.',
     sayEm: 'Always.',
@@ -122,20 +128,30 @@ export const PLANS_PAGE = {
     terms: "I'm 18 or over and I agree to the terms.",
     termsNote: 'The terms, in plain words first, are one tap away.',
     /**
-     * The second box. It used to say "I understand this renews yearly", which billing.py forbids
-     * in capitals: nothing here renews, there is no provider, no webhook and no sweep, and the
-     * copy law (DESIGN.md §0) forbids describing a mechanism we cannot show. It consents to the
-     * length being bought and to knowing the way out, both of which are true.
+     * The second box: the recurring charge, acknowledged on its own. This is the box the
+     * automatic-renewal rules are about, and `docs/legal/refund-and-cancellation.md` §2 promises
+     * exactly it — "a separate, unticked box acknowledging the recurring charge, naming the
+     * amount, the frequency and the cancellation route". The amount sits in the row above it,
+     * which is drawn on the same guard.
      */
     renewal: {
-      yearly: 'I understand I am paying for a year, and I can cancel in Settings, in two taps.',
-      monthly: 'I understand I am paying for a month, and I can cancel in Settings, in two taps.',
+      yearly:
+        'I understand this renews every year at the same price until I cancel, and I can cancel in Settings, in two taps.',
+      monthly:
+        'I understand this renews every month at the same price until I cancel, and I can cancel in Settings, in two taps.',
     } as Readonly<Record<Period, string>>,
     /** `{plan}` is the tier's name. */
     renewalNote: {
-      yearly: 'You keep {plan} until the year you paid for ends.',
-      monthly: 'You keep {plan} until the month you paid for ends.',
+      yearly:
+        'You keep {plan} until the year you paid for ends, and it is taken again for the next year unless you cancel before then.',
+      monthly:
+        'You keep {plan} until the month you paid for ends, and it is taken again for the next month unless you cancel before then.',
     } as Readonly<Record<Period, string>>,
+    /**
+     * THE RENEWAL, IN FIGURES. Beside the amount taken today, and on the same payments-on guard,
+     * because it is the annual total again and docs/PRICING.md keeps that off the plans page.
+     */
+    renews: 'Renews',
     /**
      * THE AMOUNT BEING AGREED TO. docs/PRICING.md gives the total to the checkout and keeps it off
      * the plans page, and this card is both: a preview while the deploy cannot take money, and
@@ -184,6 +200,11 @@ export const PLANS_PAGE = {
   },
 } as const;
 
+/** "₹19,992 on 7 September 2027" — the amount that comes round, and the day it comes round on. */
+export function renewalValue(amount: string, day: string): string {
+  return `${amount} on ${day}`;
+}
+
 export interface FaqItem {
   question: string;
   answer: string;
@@ -212,6 +233,13 @@ export function faqItems(period: Period = DEFAULT_PERIOD): FaqItem[] {
       question: 'Is the Sunday note only on paid plans?',
       answer:
         'No. The note, the parent link, the practice, the drawn board and every subject are on Free. Paid plans change the allowance, voice, and a few extras. They never change the tutor.',
+    },
+    {
+      // The question a payer actually has, and the one no surface answered while every one of them
+      // denied the renewal outright. `billing/plans.py` creates the subscription with a
+      // `total_count`, so the provider takes it again on its own until it is cancelled.
+      question: 'Does it renew by itself?',
+      answer: `Yes. It renews at the end of every ${kept} at the same price, and the checkout shows the amount and the day it will be taken before you pay. Cancelling stops the next one, and you keep the plan until the ${kept} you have paid for ends.`,
     },
     {
       question: 'How do I cancel?',
@@ -253,16 +281,26 @@ export const CHECKOUT_PAGE = {
     true. What is actually not built is PAYING, so that is what the page says.
   */
   title: 'Paying is not open yet.',
-  lead: 'The prices are set and printed on the plans page, but the payment page is not open yet, so nothing can be charged. When it opens, this is where the amount, the tax, the day it is taken and the two consent boxes will sit, together, above the payment control.',
+  lead: 'The prices are set and printed on the plans page, but the payment page is not open yet, so nothing can be charged. When it opens, this is where the amount, the day it is taken, the day it comes round again and the two consent boxes will sit, together, above the payment control.',
   /** What a visitor can actually do today, in the site's one phrase. */
   cta: CTA.label,
   back: 'Back to plans',
+  /*
+    WHAT THE CHECKOUT ACTUALLY DOES, and nothing else. This list used to promise a tax line and a
+    receipt by email, and the checkout has neither: the card at the bottom of the plans page draws
+    the plan, the price, the period, what is taken today and what comes round again, and nothing on
+    the gateway sends a mail when the webhook lands (`checkout-flow.ts` says so in its own comment).
+    A page that lists what a reader will be shown is a promise, and a promise nothing keeps is the
+    same lie as a claim. Tax is stated where the law makes us state it separately, which is a thing
+    the money document says (`docs/legal/refund-and-cancellation.md` §7) and this list must not
+    promise on a screen that does not show one.
+  */
   promises: [
     'One price for everyone in a country, on the same purchase route.',
-    'The amount, the tax and the day it is taken, shown together, before the payment control.',
-    'On a yearly plan, the whole sum for the year and the day it is taken, before it is taken.',
+    'The amount and the day it is taken, shown together, before the payment control.',
+    'On a yearly plan, the whole sum for the year, before it is taken.',
+    'The day it comes round again, and what will be taken then.',
     'Two separate consent boxes, both unticked, and neither pre-ticked for you.',
-    'A receipt by email with the same information again.',
   ],
   /** The label every surface links the money document by. Cancelling leads, because it is the answer. */
   cancelling: 'Cancelling, renewals and refunds, in full',

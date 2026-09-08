@@ -10,6 +10,7 @@ import {
   clearStep,
   landingAfterDoor,
   profileComplete,
+  providerReturn,
   RUN_STEP_KEY,
   RUN_STEPS,
   readSavedStep,
@@ -167,6 +168,26 @@ describe('what the door does the moment somebody is signed in', () => {
       leave: `${origin}/onboarding`,
     });
   });
+  /**
+   * THE PROVIDER COMES BACK WHERE THE CODE DOES. The doors handed the provider `${origin}/`, which
+   * is a PUBLIC route: `App.tsx` picks the first screen from the onboarded sentinel alone, so a
+   * phone with none — a new device, or the same device after a sign-out, which empties it — drew
+   * the marketing page to somebody who had just signed in, with the app runtime never mounted.
+   */
+  it('sends a provider round trip to a route the runtime owns, never the bare origin', () => {
+    expect(providerReturn({ run: null, origin })).toBe(`${origin}/onboarding`);
+    expect(providerReturn({ run: null, origin })).not.toBe(`${origin}/`);
+    // and the run's own address wins, so a door inside onboarding resumes itself
+    expect(providerReturn({ run: { redirectTo: `${origin}/onboarding` }, origin })).toBe(
+      `${origin}/onboarding`,
+    );
+  });
+
+  it('is the same address a code or a password lands on', () => {
+    const landing = landingAfterDoor({ devAuth: false, mode: 'sign-in', run: null, origin });
+    expect(landing).toEqual({ leave: providerReturn({ run: null, origin }) });
+  });
+
   it('under the dev mock, stays on the page: there is no session to re-key to', () => {
     expect(
       landingAfterDoor({

@@ -233,9 +233,16 @@ def test_an_anonymous_learner_may_not_build_a_lesson(auth) -> None:
 # --- voice is a paid API, so voice is metered --------------------------------------------
 
 
-@pytest.mark.parametrize("capability", ["voice.tts", "voice.session"])
-def test_voice_is_classified_as_a_turn(capability: str) -> None:
-    assert budget.classify(capability) == budget.TURN
+@pytest.mark.parametrize(
+    "capability", ["voice.tts", "voice.session", "voice.relay", "voice.narration"]
+)
+def test_voice_draws_on_the_voice_counter_and_never_on_the_questions(capability: str) -> None:
+    """Hearing an answer is not asking one.
+
+    The client synthesises ONE CALL PER SENTENCE (``speech.tsx`` ``startUtterance`` → POST
+    /v1/voice/tts), so while voice was classified as a TURN a five-sentence answer read aloud
+    cost five of the day's questions on top of the question that earned it."""
+    assert budget.classify(capability) == budget.VOICE
 
 
 def test_a_spent_learner_cannot_mint_a_relay_token(
@@ -245,7 +252,7 @@ def test_a_spent_learner_cannot_mint_a_relay_token(
     spent learner still minted relay tokens and still reached the paid TTS API."""
     from fastapi.testclient import TestClient
 
-    monkeypatch.setenv("FREE_DAILY_TURNS", "0")
+    monkeypatch.setenv("FREE_DAILY_VOICE_LINES", "0")
     monkeypatch.setenv("GEMINI_API_KEY", "not-a-real-key")
     client = TestClient(create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink())))
     assert client.get("/v1/voice/session", headers=auth()).status_code == 429
@@ -254,17 +261,95 @@ def test_a_spent_learner_cannot_mint_a_relay_token(
     assert spoken.json()["code"] == "budget_exhausted"
 
 
-def test_minting_a_token_spends_a_turn(monkeypatch: pytest.MonkeyPatch, auth) -> None:
+def test_minting_a_token_spends_a_spoken_line_and_not_a_question(
+    monkeypatch: pytest.MonkeyPatch, auth
+) -> None:
     from fastapi.testclient import TestClient
 
     monkeypatch.setenv("FREE_DAILY_TURNS", "3")
     monkeypatch.setenv("GEMINI_API_KEY", "not-a-real-key")
     client = TestClient(create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink())))
     headers = auth("voice-learner")
-    before = client.get("/v1/me", headers=headers).json()["budget"]["turns_remaining"]
+    before = client.get("/v1/me", headers=headers).json()["budget"]
     assert client.get("/v1/voice/session", headers=headers).status_code == 200
-    after = client.get("/v1/me", headers=headers).json()["budget"]["turns_remaining"]
-    assert after == before - 1
+    after = client.get("/v1/me", headers=headers).json()["budget"]
+    assert after["voice_remaining"] == before["voice_remaining"] - 1
+    assert after["turns_remaining"] == before["turns_remaining"]
+
+
+def test_a_spoken_answer_costs_the_learner_no_questions_at_all(
+    monkeypatch: pytest.MonkeyPatch, auth
+) -> None:
+    """The whole of finding gateway-1, end to end, on the anonymous dial.
+
+    An anonymous learner has six questions a day. The app reads an answer out one SENTENCE at a
+    time, so a five-sentence reply was five POSTs to /v1/voice/tts — and every one of them used
+    to take a question. A crisis answer, which ``app.py`` refunds on purpose because NOTHING IS
+    CHARGED FOR A DISCLOSURE, was charged five times over on the way back out through the
+    speaker.
+    """
+    from fastapi.testclient import TestClient
+
+    from wobo_gateway.plexus import media
+
+    monkeypatch.setenv("ANON_DAILY_TURNS", "6")
+    monkeypatch.setenv("OPENAI_API_KEY", "not-a-real-key")
+    monkeypatch.setattr(media, "speakers_configured", lambda: True)
+    monkeypatch.setattr(
+        media, "synthesize_narration", lambda *a, **k: {"mime": "audio/pcm;rate=24000", "b64": ""}
+    )
+    client = TestClient(create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink())))
+    headers = auth("anon-voice", anonymous=True)
+    before = client.get("/v1/me", headers=headers).json()["budget"]
+    for sentence in ("one.", "two.", "three.", "four.", "five."):
+        spoken = client.post("/v1/voice/tts", json={"text": sentence}, headers=headers)
+        assert spoken.status_code == 200, spoken.text
+    after = client.get("/v1/me", headers=headers).json()["budget"]
+    assert after["turns_remaining"] == before["turns_remaining"] == 6
+    assert after["voice_remaining"] == before["voice_remaining"] - 5
+
+
+def test_a_learner_out_of_spoken_lines_can_still_ask(monkeypatch: pytest.MonkeyPatch, auth) -> None:
+    """The voice counter caps the paid API without ever closing the tutor: the words are on
+    screen already, and the client reads a refusal as silence."""
+    from fastapi.testclient import TestClient
+
+    from wobo_gateway.plexus import media
+
+    monkeypatch.setenv("FREE_DAILY_VOICE_LINES", "0")
+    monkeypatch.setenv("OPENAI_API_KEY", "not-a-real-key")
+    monkeypatch.setattr(media, "speakers_configured", lambda: True)
+    client = TestClient(create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink())))
+    headers = auth("quiet-learner")
+    spoken = client.post("/v1/voice/tts", json={"text": "hello"}, headers=headers)
+    assert spoken.status_code == 429
+    assert spoken.json()["code"] == "budget_exhausted"
+    assert client.get("/v1/me", headers=headers).json()["budget"]["turns_remaining"] == 40
+    asked = client.post(
+        "/v1/capability/wobo.turn", json=BODY, headers={**headers, "accept": "application/json"}
+    )
+    assert asked.status_code == 200, asked.text
+
+
+def test_an_unavailable_voice_session_is_refused_for_free(
+    monkeypatch: pytest.MonkeyPatch, auth
+) -> None:
+    """GET /v1/voice/session charged BEFORE it looked for a key, so a learner paid a call for a
+    200 that said "unavailable" — and the client mints one token per line, so one silent answer
+    cost five. A learner never pays for a call we did not serve."""
+    from fastapi.testclient import TestClient
+
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("GOOGLE_AI_API_KEY", raising=False)
+    client = TestClient(create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink())))
+    headers = auth("keyless-learner")
+    before = client.get("/v1/me", headers=headers).json()["budget"]
+    for _ in range(5):
+        answer = client.get("/v1/voice/session", headers=headers)
+        assert answer.status_code == 200
+        assert answer.json() == {"mode": "unavailable"}
+    after = client.get("/v1/me", headers=headers).json()["budget"]
+    assert after == before
 
 
 # --- check-and-increment is one operation ------------------------------------------------

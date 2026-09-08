@@ -267,7 +267,12 @@ export function boardShapeOf(
   if (word?.dismiss || word?.wipe) return { board: false, ...(word ? { word } : {}) };
   const override = word?.presentation;
   const asked = Boolean(override) || DRAWS.test(text);
-  const byMode = Boolean(opts.modeDraws && opts.hasFocus);
+  // A mode whose answer IS a drawing. Whether this mode can draw on this turn is the caller's to
+  // know, not this function's: `modeDraws` in wobo/modes.ts already asks the mode itself, because a
+  // mode that needs something in hand cannot draw without it and one that needs nothing can draw
+  // with nothing. Demanding a focus here locked out `quiz_me` — the only drawing mode offered with
+  // an empty hand — so its card promised the board on every press and never once opened it.
+  const byMode = Boolean(opts.modeDraws);
   const aboutFocus = Boolean(opts.hasFocus) && ASKS_ABOUT_IT.test(text);
   // A question about something ALREADY ON THE SCREEN is answered in place, with a ring on it
   // (docs/BOARD.md §5). That is a planner turn too: it streams, and the ink lands on the

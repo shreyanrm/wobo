@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import { availableModes, MODE_BY_ID, MODES, modeFromText, modePrompt } from './modes';
+import {
+  availableModes,
+  MODE_BY_ID,
+  MODES,
+  modeDraws,
+  modeFromText,
+  modePrompt,
+  type WoboModeId,
+} from './modes';
 
 describe("Wobo's modes", () => {
   it('are the nine a learner asks a tutor for, each reachable by id', () => {
@@ -76,5 +84,30 @@ describe('which modes are worth offering', () => {
   it('does not offer teach-back where there is nothing to teach', () => {
     const ids = availableModes({ hasFocus: true, onLesson: false }).map((m) => m.id);
     expect(ids).not.toContain('teach_back');
+  });
+});
+
+describe('can this mode draw on this turn (wave 29, board-7)', () => {
+  const needsHand = (Object.keys(MODE_BY_ID) as WoboModeId[]).filter(
+    (id) => MODE_BY_ID[id].draws && MODE_BY_ID[id].needsFocus,
+  );
+  const emptyHand = (Object.keys(MODE_BY_ID) as WoboModeId[]).filter(
+    (id) => MODE_BY_ID[id].draws && !MODE_BY_ID[id].needsFocus,
+  );
+  it('quiz_me is the drawing mode offered with an empty hand, and it draws without one', () => {
+    expect(emptyHand).toContain('quiz_me');
+    expect(modeDraws('quiz_me', false)).toBe(true);
+    expect(modeDraws('quiz_me', true)).toBe(true);
+  });
+  it('a mode that needs something in hand draws only with it', () => {
+    expect(needsHand.length).toBeGreaterThan(0);
+    for (const id of needsHand) {
+      expect(modeDraws(id, false)).toBe(false);
+      expect(modeDraws(id, true)).toBe(true);
+    }
+  });
+  it('no mode is no drawing', () => {
+    expect(modeDraws(null, true)).toBe(false);
+    expect(modeDraws(undefined, true)).toBe(false);
   });
 });

@@ -287,8 +287,10 @@ def test_cancel_keeps_the_plan_to_the_end_of_the_period_and_stops_the_renewal(
     assert body["cancelled"] is True
     assert body["status"] == "cancelling"
     assert body["cancel_at_period_end"] is True
-    # No body from this module ever claims a renewal: nothing in the repo renews a subscription.
-    assert "renews" not in body
+    # A cancelled row is charged no more, whatever it was before: `renews` is the fact, and it is
+    # false the moment the cancel lands. (This assertion used to be `"renews" not in body`, from
+    # the days before `billing/plans.py` created subscriptions the provider charges on its own.)
+    assert body["renews"] is False
     assert body["plan"] == "pro"
     # Nothing taken away early: the meter is still the paid one until the period ends.
     assert body["effective_plan"] == "pro"
@@ -397,7 +399,8 @@ def test_a_cancel_is_reversible_in_one_tap_while_the_period_runs(
     body = res.json()
     assert body["resumed"] is True
     assert body["status"] == "active"
-    assert "renews" not in body
+    # Resumed, and no provider behind this row: it runs to the day paid for and is charged no more.
+    assert body["renews"] is False
     assert body["cancel_at_period_end"] is False
     assert body["period_end"] == ends.isoformat()
     row = store.get(TEST_SUBJECT)
@@ -450,6 +453,62 @@ def test_the_view_offers_a_cancel_only_where_a_cancel_would_work(
     assert ended["status"] == "ended"
     assert ended["can_cancel"] is False and ended["can_resume"] is False
     assert "confirm" not in ended
+
+
+def test_the_view_says_whether_the_card_is_charged_again(
+    store: InMemorySubscriptionStore,
+) -> None:
+    """``billing/plans.py`` creates every subscription with a ``total_count`` — five years, or
+    sixty months — so a provider-backed row IS charged again on ``period_end``, on its own, until
+    somebody cancels. Not one surface a payer read said so: the checkout consent box said "I am
+    paying for a year" and the plan card said "Your plan runs until 7 September 2027." and stopped.
+
+    A screen cannot work this out: an operator's grant and a bought subscription are the same shape
+    from the app. So the body answers it, and only where it is true."""
+    running = datetime.now(UTC) + DAY
+
+    bought = store.insert(
+        Subscription(
+            id="sub-bought",
+            learner_id="l-bought",
+            plan="pro",
+            status="active",
+            origin="web",
+            current_period_end=running,
+            started_at=datetime.now(UTC) - DAY,
+            razorpay_subscription_id="sub_XYZ",
+        )
+    )
+    assert billing.plan_view(bought)["renews"] is True
+
+    # cancelled at the provider: it runs to the day paid for and is charged no more
+    stopped = store.update("l-bought", {"status": "cancelled"})
+    assert stopped is not None
+    view = billing.plan_view(stopped)
+    assert view["status"] == "cancelling" and view["renews"] is False
+
+    # an operator's grant, with no provider behind it, simply runs out
+    granted = seed(store, learner="l-granted", ends=running)
+    assert billing.plan_view(granted)["renews"] is False
+
+    # a plan bought in a store renews in that store, and that store's words say so, not ours
+    from_store = store.insert(
+        Subscription(
+            id="sub-store",
+            learner_id="l-store",
+            plan="pro",
+            status="active",
+            origin="ios",
+            current_period_end=running,
+            started_at=datetime.now(UTC) - DAY,
+            razorpay_subscription_id="sub_ABC",
+        )
+    )
+    assert billing.plan_view(from_store)["renews"] is False
+
+    # and a learner with no row at all is never told anything renews
+    assert billing.plan_view(None)["renews"] is False
+    assert billing.plan_view(None, profile_plan="plus")["renews"] is False
 
 
 def test_a_paid_plan_with_no_record_is_admitted_rather_than_pretended(

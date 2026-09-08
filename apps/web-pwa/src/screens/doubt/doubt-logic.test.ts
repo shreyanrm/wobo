@@ -475,3 +475,121 @@ describe('the printed caption follows the beat (law 5, sound off)', () => {
     expect(doubtCaption.visible(1)).toBe('One. Two.');
   });
 });
+
+// --- the fixer's pass, 2026-09-07 ------------------------------------------------------------------
+
+const { comeBackFor, resolveDoubtTopic } = await import('./climb');
+
+describe('a doubt is only explained if Wobo actually explained it', () => {
+  it('the caption store is the witness: a turn with no say frames said nothing', () => {
+    // a refusal at the answer door: the turn began and ended with nothing in it
+    doubtCaption.begin();
+    expect(doubtCaption.spoke()).toBe(false);
+    doubtCaption.end();
+    expect(doubtCaption.spoke()).toBe(false);
+    // an empty frame is not an explanation either
+    doubtCaption.begin();
+    doubtCaption.say('   ', 0, 100, 0);
+    expect(doubtCaption.spoke()).toBe(false);
+    doubtCaption.say('Look at the five first.', 0, 2400, 0);
+    expect(doubtCaption.spoke()).toBe(true);
+    // and the next turn starts from silence, so one answered doubt cannot vouch for the next
+    doubtCaption.begin();
+    expect(doubtCaption.spoke()).toBe(false);
+  });
+
+  it('an answer that never came goes back to the reading, photo and corrections intact', () => {
+    let s = reduce(reduce(initialFlow, { type: 'captured', capture: CAPTURE }), {
+      type: 'read',
+      result: parseDoubtRead(RAW) as DoubtReadResult,
+    });
+    s = reduce(s, { type: 'editLine', id: 'r1', text: '3x + 5 = 26' });
+    s = reduce(s, { type: 'words', text: 'I do not get the 5' });
+    const asked = reduce(s, { type: 'explain' });
+    expect(asked.phase).toBe('explaining');
+
+    const failed = reduce(asked, { type: 'unexplained', say: 'I could not finish that.' });
+    expect(failed.phase).toBe('confirm');
+    expect(failed.error).toBe('I could not finish that.');
+    // nothing of the learner's work is thrown away, and Explain is one tap away again
+    expect(failed.capture).toBe(CAPTURE);
+    expect(failed.lines.map((l) => l.text)).toEqual([
+      '3x + 5 = 26',
+      'Solve for x.',
+      'a line the reader could not place',
+    ]);
+    expect(failed.words).toBe('I do not get the 5');
+    expect(explainAllowed(failed)).toBe(true);
+    // what does NOT happen is 'placing' — the one phase that files a doubt as explained
+    expect(failed.phase).not.toBe('placing');
+    // with no connection the turn is refused on the confirm step itself, never sent to the chat
+    const offline = reduce(s, { type: 'unexplained', say: 'I need to be connected.' });
+    expect(offline.phase).toBe('confirm');
+    expect(offline.error).toBe('I need to be connected.');
+    // and the next Explain starts with a clean screen
+    expect(reduce(offline, { type: 'explain' }).error).toBeNull();
+    // a stray refusal cannot rewrite a doubt that was explained
+    const placed = reduce(reduce(asked, { type: 'explained' }), {
+      type: 'unexplained',
+      say: 'too late',
+    });
+    expect(placed.phase).toBe('placing');
+    expect(placed.error).toBeNull();
+  });
+});
+
+describe("law 4 when the registry is cold — the gateway's node is not thrown away", () => {
+  const T = (id: string, name: string) => ({
+    id,
+    name,
+    chapterId: 'c1',
+    blurb: '',
+    prereqTopicIds: [],
+    kind: 'syllabus' as const,
+    xp: 10,
+  });
+  const world = [T('m1-1', 'Linear equations in one variable'), T('s2-1', 'Photosynthesis')];
+  /** A walk of the learner's world, the way curriculum/warm.ts walks it beyond what is loaded. */
+  const walk = async (match: (t: { id: string; name: string }) => boolean) => world.find(match);
+
+  beforeEach(() => {
+    storage.clear();
+    resetReteach();
+  });
+
+  it("resolves the doubt by the gateway's node id, then by its name, and asks for nothing else", async () => {
+    expect((await resolveDoubtTopic({ nodeId: topicNodeUuid('m1-1') }, walk as never))?.id).toBe(
+      'm1-1',
+    );
+    expect((await resolveDoubtTopic({ name: 'Photosynthesis' }, walk as never))?.id).toBe('s2-1');
+    expect(await resolveDoubtTopic({ name: 'Trigonometry' }, walk as never)).toBeUndefined();
+    // nothing to go on is not a reason to walk the world
+    let asked = 0;
+    const counted = async (m: (t: { id: string; name: string }) => boolean) => {
+      asked += 1;
+      return world.find(m);
+    };
+    expect(await resolveDoubtTopic({}, counted as never)).toBeUndefined();
+    expect(asked).toBe(0);
+  });
+
+  it('files it under the node when this device has no topic for it: back in practice, counted as a miss, nothing claimed on the map', () => {
+    const events: { type: string; payload: Record<string, unknown>; node?: string }[] = [];
+    const nodeId = '00000000-0000-7000-8000-0000000000c1';
+    const placed = comeBackFor('11111111-2222-4333-8444-555555555555', nodeId, {
+      nowMs: Date.parse('2026-09-05T09:00:00Z'),
+      record: (type, payload, ctx) => events.push({ type, payload, node: ctx?.ontologyNodeId }),
+    });
+    expect(placed.nodeId).toBe(nodeId);
+    expect(events).toHaveLength(1);
+    expect(events[0]?.type).toBe('practice.retrieval.scheduled.v1');
+    expect(events[0]?.payload).toMatchObject({
+      node_id: nodeId,
+      item_id: '11111111-2222-4333-8444-555555555555',
+      scheduler: 'fsrs',
+    });
+    expect(conceptMisses(nodeId)).toBe(1);
+    // and no map claim: `comeBackFor` has no way to report progress, because there is no topic id
+    expect('reportProgress' in placed).toBe(false);
+  });
+});

@@ -57,6 +57,7 @@ const ACTIVE: Subscription = {
   planId: 'pro',
   planName: null,
   periodEnd: '2027-10-04T00:00:00Z',
+  renews: true,
   source: 'web',
   canCancel: true,
   canResume: false,

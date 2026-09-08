@@ -29,6 +29,7 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useWorld } from '../../curriculum/hooks';
 import { loadedTopics } from '../../curriculum/registry';
+import { warmFromCache } from '../../curriculum/warm';
 import { AppFrame } from '../../shell/AppFrame';
 import { useRouter } from '../../shell/router';
 import { GATEWAY_URL } from '../../store/app-sdk';
@@ -48,7 +49,14 @@ import {
 } from './api';
 import { doubtCaption } from './caption';
 import { acceptsFile, CaptureRefused, captureFromFile } from './capture';
-import { joinClimb, suggestTopics, topicForDoubt } from './climb';
+import {
+  comeBackFor,
+  type DoubtHint,
+  joinClimb,
+  resolveDoubtTopic,
+  suggestTopics,
+  topicForDoubt,
+} from './climb';
 import { CameraIcon, DOUBT_ENTRY_LABEL, DOUBT_SIGN_IN_LINE } from './DoubtEntry';
 import { saveDoubt, takeCapture } from './doubt-store';
 import {
@@ -68,12 +76,28 @@ export const DOUBT_TITLE = 'Take a photo of the doubt';
 /** What a keyless build says instead of pretending to read. */
 export const OFFLINE_LINE =
   'I need to be connected to read a photo. Type the question in the chat and I am still here.';
+/** What a learner with no connection is told INSTEAD of an explanation that is not coming. */
+export const OFFLINE_EXPLAIN_LINE =
+  'I need to be connected to explain a photo. Your reading is still here, so tap Explain again once you are back on.';
+/** And what they are told when the answer was refused, cut off, or arrived with nothing in it. */
+export const UNEXPLAINED_LINE =
+  'I could not finish that explanation. Nothing is lost: tap Explain and I will have another go.';
 /** How long a stroke is held for when the pen did not say. */
 const DEFAULT_STROKE_MS = 900;
+/** Past this the reading is saying so, rather than leaving a learner watching a still photo. */
+const SLOW_READ_MS = 9000;
 
+/** Where a doubt was filed: the learner's own topic, or the node the gateway filed it under. */
 interface Placed {
-  topicId: string;
+  topicId?: string;
   topicName: string;
+}
+
+/** What `keep` is asked to file: a topic on this device, the gateway's node, or neither. */
+interface Filing {
+  topic?: { id: string; name: string };
+  nodeId?: string | undefined;
+  name?: string | undefined;
 }
 
 export function DoubtScreen() {
@@ -81,11 +105,15 @@ export function DoubtScreen() {
   const sdk = useSdk();
   const world = useWorld();
   const progress = useProgress();
-  const { ask, turns, busy } = useWoboChat();
+  const { ask, turns, busy, offline } = useWoboChat();
   const [state, dispatch] = useReducer(reduce, initialFlow);
   const [rotation, setRotation] = useState<Rotation>(0);
   const [placed, setPlaced] = useState<Placed | null>(null);
   const [asking, setAsking] = useState(false);
+  /** True while the world is being walked for the topic this doubt belongs to (law 4). */
+  const [filing, setFiling] = useState(false);
+  /** The reading is taking long enough to say so. */
+  const [slowRead, setSlowRead] = useState(false);
   const [held, setHeld] = useState(false);
   const [over, setOver] = useState(false);
   /** The printed caption, revealed on the beat (caption.ts), never the whole paragraph at once. */
@@ -93,15 +121,19 @@ export function DoubtScreen() {
   /** Where Wobo's words for THIS doubt begin in the one conversation. */
   const [saidFrom, setSaidFrom] = useState<number | null>(null);
   const itemId = useRef<string>(crypto.randomUUID());
+  /** Which reading is the live one: an abandoned photo's answer must not land on the new one. */
+  const readRun = useRef(0);
   const lineInputs = useRef(new Map<string, HTMLInputElement>());
   const frameworkId = world?.frameworkId ?? null;
 
   // --- reading -----------------------------------------------------------------------------------
   const begin = useCallback(
     async (capture: Capture) => {
+      const run = ++readRun.current;
       itemId.current = crypto.randomUUID();
       setRotation(0);
       setPlaced(null);
+      setFiling(false);
       setSaidFrom(null);
       dispatch({ type: 'captured', capture });
       if (!GATEWAY_URL) {
@@ -110,8 +142,10 @@ export function DoubtScreen() {
       }
       try {
         const result = await readDoubt(gatewayPost(GATEWAY_URL), capture, { frameworkId });
+        if (run !== readRun.current) return;
         dispatch({ type: 'read', result });
       } catch (err) {
+        if (run !== readRun.current) return;
         dispatch({
           type: 'unreadable',
           say:
@@ -145,18 +179,60 @@ export function DoubtScreen() {
     }
   };
 
+  /**
+   * Back to the camera, with whatever reading is in flight abandoned rather than left to land.
+   * The stage offers it in every phase but the live turn, the READING included: a slow or stuck
+   * read used to leave a learner with two rotate buttons and no way out at all until the SDK's
+   * own 65 second deadline gave up for them.
+   */
+  const retake = useCallback(() => {
+    readRun.current += 1;
+    setFiling(false);
+    dispatch({ type: 'retake' });
+  }, []);
+
+  // The reading has no budget in any doc, but a learner watching a still photo has one: past
+  // SLOW_READ_MS the screen says so, and the stage's "Another photo" is the way out either way.
+  useEffect(() => {
+    if (state.phase !== 'reading') {
+      setSlowRead(false);
+      return;
+    }
+    const id = window.setTimeout(() => setSlowRead(true), SLOW_READ_MS);
+    return () => window.clearTimeout(id);
+  }, [state.phase]);
+
   // --- explaining --------------------------------------------------------------------------------
+  /**
+   * A DOUBT IS ONLY EXPLAINED IF WOBO ACTUALLY EXPLAINED IT.
+   *
+   * `ask` never rethrows — the runtime catches every refusal, says its line in the transcript and
+   * returns — so a `finally` that dispatched 'explained' told a learner their doubt was answered
+   * when the gateway had refused it, when the turn said nothing, and when there was no connection
+   * at all (where the words go to the chat as a queued message, detached from the photo). The
+   * caption store is the honest witness: it holds the say frames of THIS turn, and a turn that
+   * said nothing said nothing.
+   */
   const explain = async () => {
     const packet = doubtPacket(state);
     if (!packet || asking) return;
+    if (offline) {
+      dispatch({ type: 'unexplained', say: OFFLINE_EXPLAIN_LINE });
+      return;
+    }
     dispatch({ type: 'explain' });
     setAsking(true);
     setSaidFrom(turns.length);
+    doubtCaption.begin();
     try {
       await ask(explainPrompt(state), { doubt: packet });
     } finally {
       setAsking(false);
-      dispatch({ type: 'explained' });
+      dispatch(
+        doubtCaption.spoke()
+          ? { type: 'explained' }
+          : { type: 'unexplained', say: UNEXPLAINED_LINE },
+      );
     }
   };
 
@@ -219,19 +295,28 @@ export function DoubtScreen() {
 
   // --- placing -----------------------------------------------------------------------------------
   const keep = useCallback(
-    (topic: { id: string; name: string } | null) => {
+    (filed: Filing) => {
       if (!state.result || !state.capture) return;
       const { result } = state;
+      const topic = filed.topic;
+      const record = (type: 'practice.retrieval.scheduled.v1', payload: object, context?: object) =>
+        sdk.events.record(type, payload as never, context as never);
       if (topic) {
         joinClimb(itemId.current, topic.id, {
           nowMs: Date.now(),
-          record: (type, payload, context) => sdk.events.record(type, payload as never, context),
+          record,
           reportProgress: progress.reportProgress,
           progressNow: progress.topicProgress[topic.id],
         });
         setPlaced({ topicId: topic.id, topicName: topic.name });
+      } else if (filed.nodeId) {
+        // The gateway knows where this belongs and this device does not (yet). It still comes back
+        // in practice and still counts as a miss on the concept; only the ring on the map waits.
+        comeBackFor(itemId.current, filed.nodeId, { nowMs: Date.now(), record });
+        if (filed.name) setPlaced({ topicName: filed.name });
       }
       const lines = liveLines(state);
+      const name = topic?.name ?? (filed.nodeId ? filed.name : undefined);
       saveDoubt({
         id: result.id,
         createdAt: result.createdAt || new Date().toISOString(),
@@ -240,22 +325,51 @@ export function DoubtScreen() {
         width: result.reading.width || state.capture.width,
         height: result.reading.height || state.capture.height,
         explained: true,
-        ...(topic ? { topicId: topic.id, topicName: topic.name } : {}),
+        ...(topic ? { topicId: topic.id } : {}),
+        ...(name ? { topicName: name } : {}),
       });
     },
     [sdk, progress.reportProgress, progress.topicProgress, state],
   );
 
-  // The moment the explanation ends: place it where it belongs, or ask where that is.
+  /**
+   * The moment the explanation ends: place it where it belongs, or ask where that is.
+   *
+   * `topicForDoubt` can only search what is IN MEMORY, and the registry fills lazily as a learner
+   * opens chapters — on a cold arrival at the camera, which is how a doubt arrives, it held
+   * nothing, so the gateway's own node hint was thrown away and a learner with a board pinned was
+   * told to go and choose one. So: the pinned version's cache is brought in first without a
+   * request, and when that still does not answer, the world is walked for the node the gateway
+   * filed this doubt under (climb.ts `resolveDoubtTopic`) before anything is said to the learner.
+   */
   const placedOnce = useRef(false);
   useEffect(() => {
     if (state.phase !== 'placing' || placedOnce.current) return;
     placedOnce.current = true;
-    const topic = topicForDoubt(readingText(liveLines(state)), {
+    const hint: DoubtHint = {
       nodeId: state.result?.climb.nodeId,
       name: state.result?.climb.nodeName ?? state.result?.reading.topic,
+    };
+    warmFromCache();
+    const here = topicForDoubt(readingText(liveLines(state)), hint);
+    if (here) {
+      keep({ topic: { id: here.id, name: here.name } });
+      return;
+    }
+    if (!hint.nodeId && !hint.name) {
+      keep({});
+      return;
+    }
+    let live = true;
+    setFiling(true);
+    void resolveDoubtTopic(hint).then((topic) => {
+      if (!live) return;
+      setFiling(false);
+      keep(topic ? { topic: { id: topic.id, name: topic.name } } : hint);
     });
-    keep(topic ? { id: topic.id, name: topic.name } : null);
+    return () => {
+      live = false;
+    };
   }, [state, keep]);
   useEffect(() => {
     if (state.phase === 'capture') placedOnce.current = false;
@@ -271,13 +385,17 @@ export function DoubtScreen() {
           .join(' ')
           .trim();
   const canExplain = explainAllowed(state) && !busy && !asking;
-  const reading = readingText(liveLines(state), state.result?.reading.question);
+  // THE READER'S `question` IS NEVER ON SCREEN (DOUBT.md §5). It is not shown and cannot be
+  // corrected, so it can still carry the misread digit the learner has just fixed; falling back to
+  // it when every line was emptied put the 8 they deleted back on the page, in Wobo's own "I read
+  // this as ..." voice. With no lines left there is nothing read, and `readingLine` says so.
+  const reading = readingText(liveLines(state));
   const regions = liveRegions(state);
   const door = doorFor(sdk.account);
   // The topics this doubt could belong to, best first (climb.ts), never the first eight in load
   // order: a learner with two hundred topics whose match failed used to see eight unrelated chips.
   const choices =
-    state.phase === 'placing' && !placed
+    state.phase === 'placing' && !placed && !filing
       ? suggestTopics(reading, state.result?.reading.topic, loadedTopics(), progress.topicProgress)
       : [];
 
@@ -377,9 +495,7 @@ export function DoubtScreen() {
                 if (id && state.phase === 'confirm') lineInputs.current.get(id)?.focus();
               }}
               held={held}
-              {...(state.phase === 'confirm' || state.phase === 'placing'
-                ? { onRetake: () => dispatch({ type: 'retake' }) }
-                : {})}
+              {...(state.phase !== 'explaining' ? { onRetake: retake } : {})}
             />
 
             <section className="db-read" aria-label="What Wobo read">
@@ -387,7 +503,9 @@ export function DoubtScreen() {
                 <>
                   <Tag>Reading</Tag>
                   <p className="db-busy" role="status">
-                    Reading the page, one moment.
+                    {slowRead
+                      ? 'Still reading this one. A straighter or brighter photo is often quicker, and Another photo is right there.'
+                      : 'Reading the page, one moment.'}
                   </p>
                 </>
               ) : null}
@@ -459,6 +577,11 @@ export function DoubtScreen() {
                       Explain
                     </Button>
                   </div>
+                  {state.error ? (
+                    <p className="db-error" role="alert">
+                      {state.error}
+                    </p>
+                  ) : null}
                 </>
               ) : null}
 
@@ -476,25 +599,36 @@ export function DoubtScreen() {
                 <div className="db-place">
                   {placed ? (
                     <p>
-                      Filed under <b>{placed.topicName}</b>. It is on your map now, and it will come
-                      round again in practice so it sticks.
+                      Filed under <b>{placed.topicName}</b>.{' '}
+                      {placed.topicId
+                        ? 'It is on your map now, and it will come round again in practice so it sticks.'
+                        : 'It will come round again in practice so it sticks.'}
                     </p>
+                  ) : filing ? (
+                    <p role="status">Finding where this belongs on your map.</p>
                   ) : choices.length > 0 ? (
                     <>
                       <p>Where does this belong? Pick a topic and it joins your map.</p>
                       <div className="db-parts">
                         {choices.map((t) => (
-                          <Chip key={t.id} onClick={() => keep({ id: t.id, name: t.name })}>
+                          <Chip
+                            key={t.id}
+                            onClick={() => keep({ topic: { id: t.id, name: t.name } })}
+                          >
                             {t.name}
                           </Chip>
                         ))}
                       </div>
                     </>
                   ) : (
-                    <p>Kept with your doubts. Choose a board in You and it can join your map.</p>
+                    <p>
+                      {world
+                        ? 'Kept with your doubts. Open the subject it belongs to and I can put it on your map.'
+                        : 'Kept with your doubts. Choose a board in You and it can join your map.'}
+                    </p>
                   )}
                   <div className="db-row">
-                    <Button tone="pig" onClick={() => dispatch({ type: 'retake' })}>
+                    <Button tone="pig" onClick={retake}>
                       Another doubt
                     </Button>
                     <Button tone="quiet" onClick={() => router.navigate({ name: 'you' })}>

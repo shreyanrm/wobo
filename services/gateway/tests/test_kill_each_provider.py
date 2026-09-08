@@ -896,7 +896,10 @@ def test_kill_all_three_a_failed_spoken_line_is_given_back_to_the_learner(
     assert resp.status_code == 502 and "tts failed" in resp.text
     after = budget.snapshot(meter, "free")
     assert after == before, "the meter holds no charge for a line nobody spoke"
-    assert resp.headers["X-Wobo-Budget-Remaining"] == str(before.turns_remaining)
+    # The VOICE counter, which is the one a spoken line draws on: hearing an answer is not asking
+    # one, and the client synthesises a call per sentence (``budget.VOICE``).
+    assert resp.headers["X-Wobo-Budget-Remaining"] == str(before.voice_remaining)
+    assert after.turns_remaining == before.turns_remaining
 
 
 # =================================================================================================

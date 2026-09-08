@@ -81,11 +81,16 @@ DEFAULT_PAGE = 50
 FEEDS: dict[str, dict[str, str]] = {
     "flag": {
         "what": "A learner telling us something Wobo produced is wrong, confusing or upsetting.",
-        "feeds": "POST /v1/flags, from the flag control in the learner app.",
+        "feeds": (
+            "POST /v1/flags, from the quiet flag control on every screen inside Wobo (the rail on "
+            "a computer, above the doors on a phone, the corner of a full board)."
+        ),
         "missing": (
-            "The control itself is not in the app yet. Until it ships, this desk fills only from "
-            "direct calls, and docs/legal/community-and-flags.md still says the mailbox is the "
-            "route."
+            "A report carries the reason, the learner's words if they typed any, and pointers at "
+            "what was on screen. There is no picture of the screen, no way to mark one up, and no "
+            "message back to the learner when one is settled: none of those three is built. "
+            "Nothing here is answered, and no turnaround time is published, because nobody is "
+            "answerable for meeting one yet."
         ),
     },
     "bug": {

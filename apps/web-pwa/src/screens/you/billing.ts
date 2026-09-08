@@ -13,9 +13,11 @@
  *
  * All three answer with the SAME body, so every call leaves the screen holding one truth rather
  * than a guess it has to reconcile. The routes live in `services/gateway/src/wobo_gateway/
- * billing.py`, which states the division plainly: the screen may use the server's lines or its
- * own, but it must never work out the STATE, because the state is the promise. So `state`,
- * `can_cancel` and `can_resume` are read off the body here and never derived.
+ * billing/` (it was a single `billing.py` until commit 692affc; every citation to that file is a
+ * citation to a file that is not there), and it states the division plainly: the screen may use the
+ * server's lines or its own, but it must never work out the STATE, because the state is the
+ * promise. So `state`, `can_cancel`, `can_resume` and `renews` are read off the body here and never
+ * derived.
  *
  * Two rules shape the file:
  *
@@ -59,13 +61,19 @@ export interface Subscription {
   /** The tier's name in the server's words, when it gave one. The screen falls back to the tier. */
   planName: string | null;
   /**
-   * ISO instant the paid period runs out — the day the plan STOPS, whether or not it was
-   * cancelled. Nothing in this product renews a subscription (there is no payment provider, no
-   * webhook and no sweep; the gateway's billing.py says so at the top), so no surface built on
-   * this field may print the word. Null when the server did not give one, which the screen says
-   * in words rather than inventing a date.
+   * ISO instant the paid period runs out — the day the plan stops if nothing renews it, and the
+   * day the card is charged again if something does. Which of the two it is, is `renews` below and
+   * never a guess made here. Null when the server did not give one, which the screen says in words
+   * rather than inventing a date.
    */
   periodEnd: string | null;
+  /**
+   * WHETHER THE CARD IS CHARGED AGAIN on `periodEnd`. The server's answer, never ours: an
+   * operator-granted plan and a provider-backed subscription are the same shape from here, and
+   * only the gateway knows which is which (`billing/__init__.py`, `plan_view`). False when it did
+   * not answer, because a renewal is a claim about somebody's money and silence is not one.
+   */
+  renews: boolean;
   source: PlanSource;
   /**
    * Whether THIS door can end THIS plan, and whether it can bring it back. The server's answer,
@@ -148,6 +156,7 @@ export function parseSubscription(body: unknown): Subscription | null {
     planId,
     planName: text(b.plan_name) ?? text(b.planName),
     periodEnd: text(b.period_end) ?? text(b.periodEnd) ?? text(b.current_period_end),
+    renews: b.renews === true,
     source,
     canCancel: flag(b.can_cancel ?? b.canCancel, state === 'active' && source === 'web'),
     canResume: flag(b.can_resume ?? b.canResume, state === 'cancelling' && source === 'web'),

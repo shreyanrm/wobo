@@ -11,9 +11,9 @@ import { plane, useRegisterTarget } from '@wobo/wobo';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { chaptersBySubject, displaySubjects } from '../curriculum/registry';
-import { forgetScope, scoped } from '../store/scope';
+import { scoped } from '../store/scope';
 import { useSdk } from '../store/sdk';
-import { settleBeforeSignOut } from '../store/sign-out';
+import { handOverDevice } from '../store/sign-out';
 import { FROST, fluidType, Kbd, SectionLabel, surface } from '../ui/kit';
 import { getThemePref, setThemePref } from '../ui/theme';
 import { saveBoardToNotes } from '../wobo/board-notes';
@@ -317,15 +317,12 @@ export function CommandPalette() {
         run: () => {
           // What this device owes the account lands FIRST; the sweep is refused while anything is
           // still owed (store/sign-out.ts). Then signing out takes this learner's keys with it.
-          void settleBeforeSignOut(sdk).then((verdict) => {
-            if (verdict.line) {
-              setNotice(verdict.line);
-              setOpen(true);
-              return;
-            }
-            const subject = account.subjectId();
-            if (subject) forgetScope(subject);
-            void account.signOut().finally(() => window.location.assign('/'));
+          // The whole hand-over lives in the store now, because the You screen offers it too —
+          // this palette row was the only sign-out in the app, and a phone cannot press ⌘K.
+          void handOverDevice({ sdk, account }).then((line) => {
+            if (!line) return;
+            setNotice(line);
+            setOpen(true);
           });
         },
       });
@@ -336,7 +333,10 @@ export function CommandPalette() {
         hint: 'Account',
         section: 'actions',
         search: 'sign in log in google account',
-        run: () => void account.signInWithGoogle(window.location.origin),
+        // `/onboarding` and never the bare origin: `/` is a PUBLIC route, so a learner came back
+        // from the provider signed in and looking at the marketing page (screens/auth/run.ts
+        // providerReturn says why in full).
+        run: () => void account.signInWithGoogle(`${window.location.origin}/onboarding`),
       });
 
     return items;

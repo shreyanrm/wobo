@@ -149,7 +149,7 @@ describe('the words', () => {
 
   it('never praises the empty week, and never claims a question that was not asked', () => {
     expect(weekSentence(summarise(input()))[0]?.text).toBe(
-      'Rest is part of learning — quiet days are allowed',
+      'Rest is part of learning. Quiet days are allowed.',
     );
     const quiet = summarise(input({ marks: ['2026-09-03'] }));
     expect(

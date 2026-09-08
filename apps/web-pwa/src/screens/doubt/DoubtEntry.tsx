@@ -17,9 +17,18 @@
  * session with 403; until 2026-09-05 the camera opened for one anyway, the bytes were uploaded,
  * and only then was the child refused. Now an anonymous session meets the same control as a
  * button that takes them to sign in, before any shutter (`doorFor`, flow.ts).
+ *
+ * PORTALED TO <body>, for the same reason the tab rail is (ui/primitives/AppShell.tsx). Every
+ * screen renders inside the route transition's wrapper, which keeps `will-change: transform` — and
+ * a transformed ancestor is the containing block for a `position: fixed` descendant, so the disc
+ * was pinned to the bottom of the PAGE and scrolled away with the document. Measured on
+ * 2026-09-07 at 390x844: the control sat at y 1335 with the viewport 844 tall, half a screen below
+ * the fold, on the home, practice and progress screens. Rendered into <body> it is fixed to the
+ * viewport again, which is the whole promise of "one tap from wherever a learner is".
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from '../../shell/router';
 import { useSdk } from '../../store/sdk';
 import { CaptureRefused, captureFromFile } from './capture';
@@ -93,8 +102,12 @@ export function DoubtEntry() {
     timer.current = window.setTimeout(() => setNote(null), 3200);
   };
 
+  /** Into <body>, so nothing on the page can become the containing block for a fixed control. */
+  const toBody = (node: ReactNode) =>
+    typeof document === 'undefined' ? node : createPortal(node, document.body);
+
   if (door === 'sign-in') {
-    return (
+    return toBody(
       <button
         type="button"
         className="db-entry"
@@ -105,11 +118,11 @@ export function DoubtEntry() {
         onClick={() => router.navigate({ name: 'sign-in' })}
       >
         <CameraIcon />
-      </button>
+      </button>,
     );
   }
 
-  return (
+  return toBody(
     <>
       <label className="db-entry" title={DOUBT_ENTRY_LABEL} data-testid="doubt-entry">
         <CameraIcon />
@@ -128,6 +141,6 @@ export function DoubtEntry() {
       ) : (
         <span className="db-entry-note" role="status" hidden />
       )}
-    </>
+    </>,
   );
 }

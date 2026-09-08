@@ -104,11 +104,17 @@ button.ob-opt,button.ob-own{border:0;background:transparent;font:inherit;color:i
   .ob-top .au-steps{flex:1 0 100%;order:3;margin:0}
   .ob-top .au-steps ol{justify-content:center}
 }
-/* the touch floor (DESIGN.md §2): on a phone every pressable box is 44px tall; its type does not move */
-@media (max-width:900px){
-  .ob-btn.ob-link{min-height:44px}
-  .ob-chips button,.ob-chipsq button{display:inline-flex;align-items:center;min-height:44px}
-  button.ob-opt,button.ob-own{min-height:44px}
-  .ob-aha .ob-ask .ob-btn{min-height:44px}
-  .ob-aha .ob-ask input{min-height:44px}
-}
+/* THE TOUCH FLOOR (DESIGN.md, Space: "touch targets are 44 px or more"). Every pressable box is
+   44px tall and its type does not move.
+
+   This block used to sit inside `@media (max-width:900px)`, which read the rule as "on a phone".
+   DESIGN.md does not say that, and a 1440 laptop is a touchscreen as often as not: at 1440 step
+   two's class chips and step three's sample questions measured 24.8px tall, the aha's Ask button
+   38px and its input 23px, because the <button> wrapping the prototype's <span> is inline and an
+   inline box takes no vertical padding. The floor is unconditional now, which is also the only
+   version of it a mouse user with an unsteady hand can use. */
+.ob-btn.ob-link{min-height:44px}
+.ob-chips button,.ob-chipsq button{display:inline-flex;align-items:center;min-height:44px}
+button.ob-opt,button.ob-own{min-height:44px}
+.ob-aha .ob-ask .ob-btn{min-height:44px}
+.ob-aha .ob-ask input{min-height:44px}

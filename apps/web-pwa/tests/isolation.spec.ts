@@ -35,12 +35,15 @@ const DB_ORIGIN = `http://127.0.0.1:${DB_PORT}`;
 // Real subjects are auth.uid() values, and the event contract holds the app to that: an actor
 // that is not a UUID is refused at record time. The two below are fixed so a key can be read.
 const ASHA = {
-  phone: '98765 43210',
+  // E.164, because the door refuses a number with no country code in front of it: it cannot be
+  // dialled, and a field that accepts what the app cannot send fails on submit
+  // (`screens/auth/field.ts` hasCountryCode).
+  phone: '+91 98765 43210',
   subject: 'a5aa0001-0000-4000-8000-00000000a5aa',
   name: 'Asha',
 };
 const RIYA = {
-  phone: '91234 56789',
+  phone: '+91 91234 56789',
   subject: '41a40002-0000-4000-8000-0000000041a4',
   name: 'Riya',
 };

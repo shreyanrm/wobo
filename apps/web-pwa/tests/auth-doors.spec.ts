@@ -102,7 +102,9 @@ test('the ruled line takes the pigment on focus, drawn across from the left', as
  */
 test('marks the control that is wrong, and not the one that is right', async ({ page }) => {
   await page.goto('/sign-up', { waitUntil: 'networkidle' });
-  await page.locator('#au-who').fill('9876543210');
+  // E.164: a number with no country code is refused by the field itself now, and the point of
+  // this test is a number that is RIGHT beside a tick that is missing.
+  await page.locator('#au-who').fill('+919876543210');
   await page.locator('#au-birth').fill('2005-04-11');
   await expect(page.locator('#au-agree')).not.toBeChecked();
   await page.locator('.au-btn.au-go').click();

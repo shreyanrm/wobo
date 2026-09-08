@@ -23,6 +23,7 @@ import {
   surfaceRegistry,
 } from '@wobo/wobo';
 import { type BoardContext, type BoardDone, streamBoardTurn } from './board-stream';
+import { lessonView } from './lesson-view';
 import { isLessonRoute, type Presentation, PresentationChoice } from './presentation';
 import { startUtterance, stopSpeaking, type Utterance } from './speech';
 
@@ -132,12 +133,28 @@ class BoardConductor {
     return this.store;
   }
 
-  /** The board Wobo is on, for "save to notes" and "share". */
+  /**
+   * THE BOARD IN FRONT OF THE LEARNER — what "wipe the board" wipes, what "save to notes" saves,
+   * and what the next turn's packet reports as drawn.
+   *
+   * It is deliberately NOT read off `state.presentation`. That field is re-set by `open()` on every
+   * turn, so between turns it describes the LAST turn's surface; the plane, once summoned, stays
+   * open until something closes it. A board turn followed by a screen-anchored one therefore left
+   * this pointing at `screenStore` while the plane sat there full of ink, and "wipe the board"
+   * rubbed out a screen mark and told the learner the board was clean (2026-09-05).
+   *
+   * So it asks the surfaces themselves, in the order they sit in front of the learner: the board
+   * this turn is inking on, then the lesson's own full board while a lesson is on screen, then the
+   * plane while it is open, and the screen when there is no board at all.
+   */
   boardStore(): BoardStore {
-    if (this.state.presentation === 'full') return lessonStore;
-    if (this.state.presentation === 'plane' && this.state.boardId) {
-      return boardBook.get(this.state.boardId);
-    }
+    // Mid-turn the surface was chosen object by object, and that choice is the truest answer.
+    if (this.state.active && this.store !== screenStore) return this.store;
+    // A lesson screen is mounted (Course.tsx hands its canvas to `lessonView`): inside a lesson the
+    // board is the lesson's own, whatever else a previous chat turn left open behind it.
+    if (lessonView.get().host !== null) return lessonStore;
+    const { open, boardId } = plane.get();
+    if (open) return boardBook.get(boardId);
     return screenStore;
   }
 
@@ -367,9 +384,16 @@ class BoardConductor {
     });
   }
 
-  /** Everything Wobo has drawn, cleared — "wipe the board". */
-  wipe(): void {
-    this.boardStore().reset();
+  /**
+   * Everything Wobo has drawn on the board in front of the learner, cleared — "wipe the board".
+   * Returns how many objects went, so the line said afterwards can be true of the screen rather
+   * than announcing a clean board over one that was already empty.
+   */
+  wipe(): number {
+    const store = this.boardStore();
+    const went = store.snapshot().length;
+    store.reset();
+    return went;
   }
 
   /** The last event id, for a resume after a network loss. */
@@ -379,6 +403,27 @@ class BoardConductor {
 }
 
 export const boardTurn = new BoardConductor();
+
+/**
+ * "Close the board." Puts away whichever board is actually in front of the learner, and says
+ * whether one went.
+ *
+ * `plane.dismiss()` alone was wrong on two axes. It returns early on a pinned board, so the learner
+ * was told "Put away." over a board that had not moved; and inside a lesson the ink is on
+ * `lessonStore`, which the plane controller cannot reach at all, so the same sentence was said over
+ * a full board still covering the screen. An explicit close is never accidental — that is what the
+ * pin guards against — so it unpins on the way out.
+ */
+export function dismissBoard(): boolean {
+  const lesson = lessonView.get();
+  if (lesson.host !== null && lessonStore.snapshot().length > 0) {
+    if (lesson.dismissed) return false;
+    lessonView.dismiss();
+    return true;
+  }
+  if (!plane.get().open) return false;
+  return plane.close();
+}
 
 /**
  * The learner cut Wobo off. `AbortController.abort()` rejects the in-flight fetch with an

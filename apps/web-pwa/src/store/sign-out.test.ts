@@ -39,7 +39,7 @@ const { SyncHealth } = await import('@wobo/sdk');
 const { applyScope } = await import('./scope');
 const { resetMindSync, setMindSyncGate } = await import('./mind-sync');
 const { rememberFact } = await import('./mind');
-const { settleBeforeSignOut, SIGN_OUT_COPY } = await import('./sign-out');
+const { handOverDevice, settleBeforeSignOut, SIGN_OUT_COPY } = await import('./sign-out');
 
 const net = { down: false };
 const realFetch = globalThis.fetch;
@@ -195,5 +195,96 @@ describe('the lines', () => {
     }
     expect(SIGN_OUT_COPY.owed(1)).toContain('One thing');
     expect(SIGN_OUT_COPY.owed(3)).toContain('3 things');
+  });
+});
+
+/**
+ * THE HAND-OVER, WHERE A THUMB CAN REACH IT (docs/ONE-LEARNER-ONE-WOBO.md).
+ *
+ * Signing out existed only as a row in the ⌘K palette. The palette's touch entry point has never
+ * had a caller, so on a phone and in the installed PWA there was no way to sign out at all — and
+ * a family tablet handed to a sibling is the entire reason the per-learner scope exists. The whole
+ * action lives in this module now, so the palette row and the row on the You screen cannot drift,
+ * and so the thing itself can be held by a test instead of by two copies of an inline callback.
+ */
+describe('handing the device to the next learner', () => {
+  const account = (subject: string | null) => {
+    const calls = { signedOut: 0 };
+    return {
+      calls,
+      account: {
+        subjectId: () => subject,
+        signOut: async () => {
+          calls.signedOut += 1;
+        },
+      },
+    };
+  };
+
+  it('sweeps this learner off the device and lands on the front door', async () => {
+    applyScope('learner-a');
+    storage.setItem('wobo-learner-profile:learner-a', '{"name":"Asha"}');
+    storage.setItem('wobo-onboarded-v1:learner-a', 'onboarded');
+    const { sdk } = fakeSdk();
+    const who = account('learner-a');
+    const went: string[] = [];
+
+    const line = await handOverDevice({ sdk, account: who.account, leave: (u) => went.push(u) });
+
+    expect(line).toBeNull();
+    expect(who.calls.signedOut).toBe(1);
+    expect(went).toEqual(['/']);
+    expect(storage.getItem('wobo-learner-profile:learner-a')).toBeNull();
+    expect(storage.getItem('wobo-onboarded-v1:learner-a')).toBeNull();
+  });
+
+  it('refuses while the account is still owed something, and sweeps nothing', async () => {
+    applyScope('learner-a');
+    storage.setItem('wobo-learner-profile:learner-a', '{"name":"Asha"}');
+    net.down = true;
+    const { sdk } = fakeSdk({ flushFails: ['progress'] });
+    rememberFact('a fact the gateway never saw');
+    const who = account('learner-a');
+    const went: string[] = [];
+
+    const line = await handOverDevice({ sdk, account: who.account, leave: (u) => went.push(u) });
+
+    expect(line).toBe(SIGN_OUT_COPY.owed(2));
+    expect(who.calls.signedOut).toBe(0);
+    expect(went).toEqual([]);
+    expect(storage.getItem('wobo-learner-profile:learner-a')).not.toBeNull();
+  });
+
+  it('still leaves when the server cannot be told', async () => {
+    applyScope('learner-a');
+    const { sdk } = fakeSdk();
+    const went: string[] = [];
+    const line = await handOverDevice({
+      sdk,
+      account: {
+        subjectId: () => 'learner-a',
+        signOut: async () => {
+          throw new Error('unreachable');
+        },
+      },
+      leave: (u) => went.push(u),
+    });
+    expect(line).toBeNull();
+    expect(went).toEqual(['/']);
+  });
+});
+
+describe('a phone can reach it', () => {
+  it('offers the hand-over on the You screen, not only behind a keyboard shortcut', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const HERE = import.meta.dir;
+    const you = readFileSync(join(HERE, '..', 'screens', 'You.tsx'), 'utf8');
+    const palette = readFileSync(join(HERE, '..', 'shell', 'CommandPalette.tsx'), 'utf8');
+    expect(you).toContain('handOverDevice');
+    expect(you).toContain('title="Sign out"');
+    // and the one action, not a second copy of it beside the first
+    expect(palette).toContain('handOverDevice');
+    expect(palette).not.toContain('forgetScope');
   });
 });

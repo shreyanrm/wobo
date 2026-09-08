@@ -502,10 +502,29 @@ def test_every_desk_says_what_actually_feeds_it(
     for kind, lines in feeds.items():
         assert {"what", "feeds", "missing"} <= set(lines), kind
         assert len(lines["what"]) > 20 and len(lines["missing"]) > 20
-    # The two truths this repo has to keep saying out loud until they stop being true.
+    # The truths this repo has to keep saying out loud until they stop being true.
     assert "mailto" in FEEDS["support"]["missing"]
-    assert "not in the app yet" in FEEDS["flag"]["missing"]
     assert "goodwill" in FEEDS["refund"]["missing"]
+    assert "No control in the app calls it yet" in FEEDS["bug"]["missing"]
+
+
+def test_the_flag_desk_no_longer_says_the_control_has_not_shipped(
+    client: TestClient, _desk_env: InMemoryAdminStore
+) -> None:
+    """It shipped on 5 September 2026 and this desk went on saying it had not.
+
+    ``ui/FlagControl.tsx`` is mounted in ``shell/AppFrame.tsx`` and ``wobo/Stage.tsx`` and posts
+    to /v1/flags, and ``docs/legal/community-and-flags.md`` no longer sends anybody to the
+    mailbox instead. An operator reading this desk was being told the queue could not be filling
+    when it can, which is the one thing an empty-state sentence must never do.
+    """
+    headers = _desk(client, _desk_env, VIEWER_SUBJECT, VIEWER)
+    flag = client.get(f"{ADMIN_PREFIX}/desks", headers=headers).json()["feeds"]["flag"]
+    for stale in ("not in the app yet", "until it ships", "the mailbox is the route"):
+        assert stale not in flag["missing"].lower(), stale
+    assert "/v1/flags" in flag["feeds"]
+    # And what IS still missing is named, so the desk stays an honest empty state.
+    assert "picture of the screen" in flag["missing"]
 
 
 def test_the_unconfigured_store_refuses_rather_than_returning_an_empty_queue() -> None:

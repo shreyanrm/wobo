@@ -18,9 +18,19 @@ export interface LessonViewState {
   view: LessonView;
   /** The plane card's canvas, where the inline board lands. Null when no lesson is on screen. */
   host: HTMLElement | null;
+  /**
+   * The learner put this board away (Escape, or "close the board"). Wobo's next turn brings it
+   * back, because dismissing is for this board and not for lessons.
+   *
+   * It lives here rather than in `LessonBoard`'s own `useState` so that anything can reach it. As
+   * a local state it could only be set by the Escape key inside the component, which meant "close
+   * the board" said in a lesson called `plane.dismiss()` — a controller that cannot touch the
+   * lesson's board — and Wobo said "Put away." over a board still covering the screen.
+   */
+  dismissed: boolean;
 }
 
-const RESTING: LessonViewState = { view: 'plane', host: null };
+const RESTING: LessonViewState = { view: 'plane', host: null, dismissed: false };
 
 class LessonViewStore {
   private state: LessonViewState = RESTING;
@@ -45,6 +55,16 @@ class LessonViewStore {
   /** The lesson screen mounted (or unmounted) its canvas. */
   host(el: HTMLElement | null): void {
     if (this.state.host !== el) this.set({ host: el });
+  }
+
+  /** Put the lesson's board away. It stays away until Wobo draws again. */
+  dismiss(): void {
+    if (!this.state.dismissed) this.set({ dismissed: true });
+  }
+
+  /** Wobo is drawing again: the board comes back with the ink on it. */
+  show(): void {
+    if (this.state.dismissed) this.set({ dismissed: false });
   }
 
   /** Leaving the lesson: back to the plane, no canvas. */

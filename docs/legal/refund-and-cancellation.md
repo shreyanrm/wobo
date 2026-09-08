@@ -1,6 +1,6 @@
 # Cancelling, renewals and refunds
 
-Draft of 4 September 2026. Version 0.2. Written by the Wobo team, not yet reviewed by a lawyer. See `README.md` in this folder for the review checklist. This document forms part of the terms of service. Prices in the product are placeholders until the owner sets real ones, and every figure below is an example.
+Draft of 7 September 2026. Version 0.3. Written by the Wobo team, not yet reviewed by a lawyer. See `README.md` in this folder for the review checklist. This document forms part of the terms of service. The prices themselves are in `docs/PRICING.md`, which is the canonical table, and in `apps/web-pwa/src/screens/plans/prices.ts`, which is the only place the product reads them from; no figure is written down here.
 
 > **In plain words**
 >
@@ -8,7 +8,7 @@ Draft of 4 September 2026. Version 0.2. Written by the Wobo team, not yet review
 >
 > A subscription renews on its own until you cancel. We tell you the price, the date and the amount before you pay, and again before each renewal.
 >
-> Cancelling is the answer to almost everything here. It takes two taps in settings, at any time, with no phone call, no offer to make you stay and no reason to give. You keep the plan until the end of the period you have already paid for, nothing renews after that, and everything you learnt stays. Change your mind before the period ends and one tap puts the plan back.
+> Cancelling is the answer to almost everything here. It takes two taps in You, on the card called Your plan, at any time, with no phone call, no offer to make you stay and no reason to give. You keep the plan until the end of the period you have already paid for, nothing renews after that, and everything you learnt stays. It cannot be switched back on afterwards, so the confirmation says so before you tap it.
 >
 > We do not give money back as a gesture of goodwill. Where the law gives you a refund you have it, and section 5 lists every case: a charge after you cancelled, a charge taken twice, a charge you did not authorise, a service we did not supply, and the cooling-off right in the European Union, the European Economic Area and the United Kingdom.
 
@@ -20,31 +20,33 @@ Draft of 4 September 2026. Version 0.2. Written by the Wobo team, not yet review
 |---|---|
 | Free | Wobo, with a daily allowance of tutoring turns and generated lessons. The allowance and its reset time are shown in the app |
 | Pro, monthly | a higher daily allowance and spoken replies, billed every month, for one learner |
-| Max, monthly | a higher allowance again, and two learners on one plan, billed every month |
+| Pro, yearly | the same, billed once a year, for one learner. A year costs ten months |
+| Max, monthly | a higher allowance again, and past-paper sets, billed every month, for one learner |
+| Max, yearly | the same, billed once a year, for one learner. A year costs ten months |
 | Gift | a fixed period bought for someone else, which does not renew |
 
-This table is the plans page, and it is kept the same as `apps/web-pwa/src/screens/plans/prices.ts`, which is the one place a tier or a price is written down. There is no annual plan and no family plan; if either is ever sold, it is added here in the same change that adds it there. The benefits of each plan are listed on the plans page before you buy, with what is included and what is not.
+This table is the plans page, and it is kept the same as `apps/web-pwa/src/screens/plans/prices.ts`, which is the one place a tier or a price is written down, and as `docs/PRICING.md`, which is the canonical table of figures. **A subscription covers exactly one learner, on every plan and every period.** There is no family plan; if one is ever sold, it is added here in the same change that adds it there. The benefits of each plan are listed on the plans page before you buy, with what is included and what is not.
 
 ## 2. Before you pay
 
 On the checkout screen, before the payment control, you will see, together and in the same place:
 
 - what you are buying;
-- the total amount, in your currency, with tax stated;
-- how often it renews, and on what date the first renewal falls;
+- the total amount, in your currency, taken today;
+- the date of the next charge, and the same amount beside it;
 - that it renews automatically until you cancel;
 - how to cancel, in one line, and where the control is;
 - a separate, unticked box to accept the terms of service and the privacy policy;
-- a separate, unticked box acknowledging the recurring charge, naming the amount, the frequency and the cancellation route.
+- a separate, unticked box acknowledging the recurring charge, naming the frequency and the cancellation route, with the amount stated in the row directly above it.
 
 We keep those two boxes separate because agreeing to terms and agreeing to be charged repeatedly are two different decisions. [REVIEW: US state automatic-renewal laws, particularly California's, on clear and conspicuous disclosure, affirmative consent to the recurring charge, and the acknowledgment that must be sent afterwards; and the EU rules on the order button being labelled with a payment obligation.]
 
-After you pay, we email you the same information again, with the receipt.
+Prices are shown the way section 7 describes: tax included where we are required to show them that way, and added at checkout where we are not. **We do not email a receipt today.** Nothing on the gateway sends a mail when the payment lands, and this document will not promise one until something does. Your payment provider's own confirmation is the record until then. [REVIEW: whether a receipt is compulsory in each market before the first charge, and the RBI pre-debit notification in section 3, which the provider sends and we do not.]
 
 ## 3. Renewals
 
-- A monthly plan renews every month on the same date. Every plan we sell is monthly.
-- We send a reminder before a renewal, at least [7 days] ahead, with the amount and the date, and a link to cancel. [REVIEW: notice windows required by US state automatic-renewal laws, and by the EU where a contract auto-renews. Also confirm, before this document is published against a live checkout, that the reminder is actually sent: `docs/copy/emails/renewal-reminder-7-days.md` is written but nothing in `services/gateway` sends it, because nothing renews yet.]
+- A monthly plan renews every month on the same date; a yearly plan renews every year on the same date. Where that day does not exist in the month it falls in, it is the last day of that month.
+- We send a reminder before a renewal, at least [7 days] ahead, with the amount and the date, and a link to cancel. [REVIEW: notice windows required by US state automatic-renewal laws, and by the EU where a contract auto-renews. Also confirm, before this document is published against a live checkout, that the reminder is actually sent: `docs/copy/emails/renewal-reminder-7-days.md` is written but nothing in `services/gateway` sends it, because the mail is not wired.]
 - If the price changes, we tell you at least [30 days] before the renewal it applies to, and you can cancel before it takes effect. A price change never applies to a term you have already paid for. [REVIEW: the notice period a price change requires in each market, whether the change needs the subscriber's affirmative consent rather than silence, and the US state automatic-renewal rules on notifying a material change to a recurring charge.]
 - If a payment fails we retry, tell you, and give you [7 days] to fix it before the plan drops back to free. Nothing is deleted.
 
@@ -65,7 +67,7 @@ Cancelling is the main thing this document is about, so it is written out in ful
 - Everything you learnt stays: your history, your boards, your notes, your mastery and your climb. Cancelling a plan is not deleting an account.
 - Nothing is deleted unless you ask for it. Closing the account is a separate thing from cancelling a plan, there is no control in the product that does it, and `privacy-policy.md` section 8 says how to ask.
 
-**Changing your mind.** While the period you paid for is still running, one tap puts the plan back on and it renews as it did before. After the period ends there is nothing to resume, and you would be subscribing again at whatever the price is then.
+**Changing your mind.** A cancelled subscription cannot be switched back on. The payment provider cannot restart one, so the resume the app offers exists only for a plan with no provider behind it (one an operator granted), and for a plan we took payment for the gateway refuses it outright and says so. The confirmation says the same thing before you tap it: "Once it is cancelled it cannot be switched back on, so this is the one tap that counts." You keep the plan to the end of the period you have already paid for, and after that you start a fresh plan at whatever the price is then, if you want one.
 
 **If it does not work.** If the cancellation fails to save, we say so plainly and the plan is unchanged, so you can try again or write to us. We never show a cancellation that did not happen.
 

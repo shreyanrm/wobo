@@ -16,7 +16,14 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GIFT_FOR, GIFT_PAGE } from '../gift/copy';
 import { CTA, RETIRED_CTA } from '../site/cta';
-import { BENEFITS, CHECKOUT_PAGE, checkoutPageWords, faqItems, PLANS_PAGE } from './copy';
+import {
+  BENEFITS,
+  CHECKOUT_PAGE,
+  checkoutPageWords,
+  faqItems,
+  PLANS_PAGE,
+  renewalValue,
+} from './copy';
 import {
   BEST_FOR,
   formatMoney,
@@ -274,23 +281,52 @@ describe('the consent boxes', () => {
   it('say the adult agrees to the terms in one, and what is being paid for in the other', () => {
     expect(PLANS_PAGE.checkout.terms).toContain('agree to the terms');
     // the second box names the period being bought, so it can never consent to the other one
-    expect(PLANS_PAGE.checkout.renewal.yearly).toContain('a year');
-    expect(PLANS_PAGE.checkout.renewal.monthly).toContain('a month');
+    expect(PLANS_PAGE.checkout.renewal.yearly).toContain('every year');
+    expect(PLANS_PAGE.checkout.renewal.monthly).toContain('every month');
     for (const period of PERIODS) expect(PLANS_PAGE.checkout.renewal[period]).toContain('cancel');
   });
 
-  it('never tells anybody their subscription renews itself, because none of them does', () => {
-    // `services/gateway/src/wobo_gateway/billing.py` rule 2, in capitals: "NOTHING IN THIS REPO
-    // RENEWS A SUBSCRIPTION, and no user-facing line may say one does. There is no payment
-    // provider, no webhook and no scheduled sweep". `screens/you/billing.ts` repeats it. The
-    // second consent box said "I understand this renews yearly", and the checkout preview named
-    // the day of a charge nobody can take. The only lines allowed to carry the word are the ones
-    // that DENY a renewal, and the legal document's own title.
+  /**
+   * THE SECOND BOX ACKNOWLEDGES A RECURRING CHARGE, WHICH IS WHAT IT IS FOR.
+   *
+   * It used to say the opposite — "I understand I am paying for a year" and nothing about it
+   * happening again — on the authority of `services/gateway/src/wobo_gateway/billing.py` rule 2,
+   * in capitals: "NOTHING IN THIS REPO RENEWS A SUBSCRIPTION ... There is no payment provider, no
+   * webhook and no scheduled sweep." Commit 692affc deleted that file. The package that replaced
+   * it (`services/gateway/src/wobo_gateway/billing/`) has the provider, the webhook and the
+   * charge: `plans.py` creates every subscription with a `total_count` of five years or sixty
+   * months, so the card is taken again on its own until somebody cancels. Not one surface a payer
+   * reads said so. `docs/legal/refund-and-cancellation.md` §2 already promised this box would name
+   * "the amount, the frequency and the cancellation route"; these hold it to that.
+   */
+  it('acknowledges the recurring charge, names its frequency, and names the way out', () => {
+    for (const period of PERIODS) {
+      const box = PLANS_PAGE.checkout.renewal[period];
+      expect([period, /\brenews\b/i.test(box)]).toEqual([period, true]);
+      expect([period, /until i cancel/i.test(box)]).toEqual([period, true]);
+      expect([period, /settings/i.test(box)]).toEqual([period, true]);
+      // and the note under it says what happens on the day, rather than stopping at the date
+      expect(PLANS_PAGE.checkout.renewalNote[period]).toContain('taken again');
+    }
+    // the row beside the boxes carries the amount and the day; the words for it live here
+    expect(PLANS_PAGE.checkout.renews).toBe('Renews');
+    expect(renewalValue('₹19,992', '7 September 2027')).toBe('₹19,992 on 7 September 2027');
+  });
+
+  it('answers the question a payer actually has, in the money questions', () => {
+    const answer = faqItems('yearly').find((item) => /renew/i.test(item.question));
+    expect(answer?.answer).toContain('Yes.');
+    expect(answer?.answer).toMatch(/cancel/i);
+  });
+
+  it('claims no renewal anywhere the product cannot make one', () => {
+    // A gift is paid once and renews never, and the free plan has nothing to renew. The word may
+    // appear on a paid, provider-backed subscription and on the lines that deny one, and nowhere
+    // else — a page that says "renews" beside ₹0 is the same lie the other way round.
     const denies = /(nothing|never|no)\s+\w*\s*renew|renews\s+never/i;
-    const allowed = new Set<string>([CHECKOUT_PAGE.cancelling]);
     for (const [label, text] of STRINGS) {
-      if (allowed.has(text) || denies.test(text)) continue;
-      expect([label, /\brenew(s|ing|al|als)?\b/i.test(text)]).toEqual([label, false]);
+      if (!/\brenew(s|ing|al|als)?\b/i.test(text) || denies.test(text)) continue;
+      expect([label, /free|gift|\u20b90\b|\$0\b/i.test(text)]).toEqual([label, false]);
     }
   });
 });

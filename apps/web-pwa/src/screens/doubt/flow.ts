@@ -48,6 +48,7 @@ export type FlowAction =
   | { type: 'words'; text: string }
   | { type: 'explain' }
   | { type: 'explained' }
+  | { type: 'unexplained'; say: string }
   | { type: 'retake' };
 
 export function reduce(state: DoubtFlow, action: FlowAction): DoubtFlow {
@@ -78,9 +79,20 @@ export function reduce(state: DoubtFlow, action: FlowAction): DoubtFlow {
     case 'words':
       return state.phase === 'confirm' ? { ...state, words: action.text.slice(0, 500) } : state;
     case 'explain':
-      return explainAllowed(state) ? { ...state, phase: 'explaining', lit: null } : state;
+      return explainAllowed(state)
+        ? { ...state, phase: 'explaining', lit: null, error: null }
+        : state;
     case 'explained':
       return state.phase === 'explaining' ? { ...state, phase: 'placing' } : state;
+    // The answer never arrived (offline, a refusal, a turn that said nothing). The photo and the
+    // reading the learner already confirmed are kept exactly as they were, so Explain is one tap
+    // away again; what does NOT happen is 'placing', which is what files a doubt as explained.
+    // It is also reachable from 'confirm' itself: with no connection the turn is refused here,
+    // rather than sent to the chat as a queued message the photo will never see again.
+    case 'unexplained':
+      return state.phase === 'explaining' || state.phase === 'confirm'
+        ? { ...state, phase: 'confirm', lit: null, error: action.say }
+        : state;
     case 'retake':
       return initialFlow;
     default:

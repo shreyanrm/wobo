@@ -1476,6 +1476,53 @@ def corrected(doubt: Doubt, lines: list[LineCorrection]) -> Doubt:
     return replace(doubt, lines=kept)
 
 
+#: What each field on these routes is called when Wobo says it out loud. The FIRST match against
+#: the failing field's path wins, so a correction line is answered as a line and a capture as a
+#: capture. Every sentence names the thing the learner actually did.
+_FIELD_REFUSALS: tuple[tuple[str, str], ...] = (
+    (
+        "image",
+        "That photo did not come through. Take it again and send it to me.",
+    ),
+    (
+        "lines",
+        f"That line is longer than I can take. A line can be {MAX_LINE_CHARS} characters; "
+        "try a shorter one.",
+    ),
+    (
+        "words",
+        f"That note is longer than I can read. Say it in under {MAX_WORDS_CHARS} characters "
+        "and I will have it.",
+    ),
+    (
+        "framework_id",
+        "I could not tell which syllabus that was. Pick it again and send the page once more.",
+    ),
+)
+
+#: When the body is unreadable in a way none of the fields explains.
+_LAST_RESORT = "I could not read that. Send it to me again."
+
+
+def _validation_message(exc: Exception) -> str:
+    """Say what actually failed.
+
+    Until 2026-09-07 every validation failure on every /v1/doubt route got ONE sentence: "A line
+    can be 200 characters; try a shorter one." Lines belong to the correction editor on
+    ``POST /v1/doubt/{id}/answer``; there are none on the photo intake, so a learner whose camera
+    handed back an empty capture was told to shorten a line they never typed.
+    """
+    errors = getattr(exc, "errors", None)
+    fields: list[str] = []
+    if callable(errors):
+        for error in errors():
+            fields += [str(part) for part in error.get("loc", ()) if isinstance(part, str)]
+    for name, message in _FIELD_REFUSALS:
+        if name in fields:
+            return message
+    return _LAST_RESORT
+
+
 def refusal_for_validation(request: Request, exc: Exception) -> JSONResponse | None:
     """A body the doubt routes cannot read, as ``{code, message}`` in Wobo's voice. None on any
     other route, whose shape is its own business. The SDK's ``refusal()`` unwraps ``{code,
@@ -1484,10 +1531,7 @@ def refusal_for_validation(request: Request, exc: Exception) -> JSONResponse | N
         return None
     return JSONResponse(
         status_code=422,
-        content={
-            "code": "bad_request",
-            "message": "I could not read that. A line can be 200 characters; try a shorter one.",
-        },
+        content={"code": "bad_request", "message": _validation_message(exc)},
     )
 
 

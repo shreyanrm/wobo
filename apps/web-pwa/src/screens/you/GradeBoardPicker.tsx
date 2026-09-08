@@ -12,7 +12,7 @@
  * Nothing here offers a class a board does not teach.
  */
 
-import type { CurriculumFramework } from '@wobo/sdk';
+import type { CurriculumFramework, CurriculumFrameworkView } from '@wobo/sdk';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { BoardSearch } from '../../curriculum/BoardSearch';
@@ -38,6 +38,41 @@ export function boardOf(framework: CurriculumFramework): ChosenBoard {
 
 export function unlistedBoard(name: string): ChosenBoard {
   return { id: name, name, framework: null, unlisted: true };
+}
+
+/**
+ * The board a learner already has, as this picker needs it: the WORLD names it, and the framework
+ * VIEW carries the classes it teaches. Both, or the picker has nothing to offer.
+ *
+ * The You screen used to build this inline with `framework: null`, which made `levelsFor` empty on
+ * every board that was already pinned: the class list was blank and the line under it asked for a
+ * board the crumb one line above was already showing. A learner could not change their class at
+ * all. One function now, so the two halves cannot be separated again.
+ */
+export function chosenBoard(
+  world: { frameworkId: string; frameworkName: string } | null,
+  view: CurriculumFrameworkView | null,
+): ChosenBoard | null {
+  if (!world) return null;
+  return {
+    id: world.frameworkId,
+    name: view?.framework.name || world.frameworkName,
+    framework: view?.framework ?? null,
+    unlisted: false,
+  };
+}
+
+/**
+ * The line where a class list would be. Four states, and each of them true: no board yet, a board
+ * we are still fetching the classes for, a board we are out looking for, and a board whose classes
+ * the registry does not have.
+ */
+export function classesEmptyLine(board: ChosenBoard | null, loading = false): string {
+  if (!board) return 'Pick your board and I will bring its classes.';
+  if (board.unlisted)
+    return `I do not have ${board.name}'s classes yet. Pick your board first and I will bring them.`;
+  if (loading) return `Bringing ${board.name}'s classes.`;
+  return `I do not have ${board.name}'s classes yet. Ask me again in a moment.`;
 }
 
 /** The classes a chosen board offers. Empty until one is chosen — never a default ladder. */
@@ -158,10 +193,13 @@ export function GradePicker({
   board,
   grade,
   onGrade,
+  loading,
 }: {
   board: ChosenBoard | null;
   grade: string | null;
   onGrade: (grade: string) => void;
+  /** True while the framework this board names is still being fetched. */
+  loading?: boolean;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
@@ -170,11 +208,7 @@ export function GradePicker({
         levels={levelsFor(board)}
         level={grade}
         onLevel={onGrade}
-        emptyLine={
-          board?.unlisted
-            ? `I do not have ${board.name}'s classes yet. Pick your board first and I will bring them.`
-            : 'Pick your board and I will bring its classes.'
-        }
+        emptyLine={classesEmptyLine(board, loading)}
       />
     </div>
   );
@@ -187,17 +221,20 @@ export function GradeBoardPicker({
   onGrade,
   onBoard,
   onOwnSyllabus,
+  loading,
 }: {
   grade: string | null;
   board: ChosenBoard | null;
   onGrade: (grade: string) => void;
   onBoard: (board: ChosenBoard) => void;
   onOwnSyllabus: () => void;
+  /** True while the chosen board's framework is still being fetched. */
+  loading?: boolean;
 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 22, width: '100%' }}>
       <BoardPicker board={board} onBoard={onBoard} onOwnSyllabus={onOwnSyllabus} />
-      <GradePicker board={board} grade={grade} onGrade={onGrade} />
+      <GradePicker board={board} grade={grade} onGrade={onGrade} loading={loading} />
     </div>
   );
 }

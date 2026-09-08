@@ -33,6 +33,33 @@ export class NotAuthenticatedError extends Error {
   }
 }
 
+/**
+ * Raised when a code was asked for on a door that does not make accounts, and the number has none.
+ *
+ * The caller needs to tell those two cases apart to say anything useful, and it cannot do it from
+ * a status code: GoTrue answers a refused signup with the same 4xx it answers a malformed number
+ * with. The screen reads `name` rather than `instanceof`, so a second copy of this module in the
+ * bundle graph cannot silently turn a nameable problem back into the catch-all.
+ */
+export class NoSuchAccountError extends Error {
+  constructor() {
+    super('no account exists for that phone number, and this call was not allowed to create one');
+    this.name = 'NoSuchAccountError';
+  }
+}
+
+/** How a phone-OTP request should behave when the number has no account yet. */
+export interface PhoneOtpOptions {
+  /**
+   * Make an account for a number that has none. FALSE BY DEFAULT, and that is the point of it:
+   * creating an account is the sign-up door's job, and the sign-up door is the only screen that
+   * asks for a date of birth and takes an agreement to the terms. The sign-in door used to create
+   * accounts too — the request went out with `create_user: true` whichever door sent it — so a
+   * brand-new account could be minted with no age question and no consent recorded anywhere.
+   */
+  createUser?: boolean;
+}
+
 /** Parental consent record shape (DigiLocker-grade verification is a later Phase-4 step). */
 export interface ParentalConsentRecord {
   subject_id: string;
@@ -55,8 +82,12 @@ export interface AuthSeams {
    * (a small day's budget, no elevated doors). Resolves to the existing session when there is one.
    */
   signInAnonymously(): Promise<Session>;
-  /** Sends an SMS one-time code to the phone (E.164, e.g. +91…). */
-  requestPhoneOtp(phone: string): Promise<void>;
+  /**
+   * Sends an SMS one-time code to the phone (E.164, e.g. +91…). Signs an EXISTING account in
+   * unless `options.createUser` says otherwise; raises `NoSuchAccountError` when the number has
+   * no account and this call was not allowed to make one.
+   */
+  requestPhoneOtp(phone: string, options?: PhoneOtpOptions): Promise<void>;
   /** Verifies the code and establishes the session. Resolves to the new session. */
   verifyPhoneOtp(phone: string, code: string): Promise<Session>;
   /** Redirects the browser to Google sign-in; the session completes on return. */
@@ -254,7 +285,7 @@ export class SupabaseAuthIdentity implements IdentityProvider {
 
     this.auth = {
       signInAnonymously: () => this.signInAnonymously(),
-      requestPhoneOtp: (phone) => this.requestPhoneOtp(phone),
+      requestPhoneOtp: (phone, options) => this.requestPhoneOtp(phone, options),
       verifyPhoneOtp: (phone, code) => this.verifyPhoneOtp(phone, code),
       signInWithGoogle: (redirectTo) => this.signInWithGoogle(redirectTo),
       signOut: () => this.signOut(),
@@ -340,13 +371,28 @@ export class SupabaseAuthIdentity implements IdentityProvider {
     return this.getSession();
   }
 
-  private async requestPhoneOtp(phone: string): Promise<void> {
+  /**
+   * ONLY THE SIGN-UP DOOR MAY MAKE AN ACCOUNT. `create_user` was hard-coded true here, so the
+   * sign-in door — which asks no date of birth and takes no agreement to the terms — created a
+   * brand-new account for any number typed into it, and every consent gate downstream had nothing
+   * to read. The caller says which door it is; the default is the one that does not.
+   */
+  private async requestPhoneOtp(phone: string, options?: PhoneOtpOptions): Promise<void> {
+    const createUser = options?.createUser === true;
     const res = await fetch(`${this.cfg.url}/auth/v1/otp`, {
       method: 'POST',
       headers: { apikey: this.cfg.anonKey, 'content-type': 'application/json' },
-      body: JSON.stringify({ phone, create_user: true }),
+      body: JSON.stringify({ phone, create_user: createUser }),
     });
-    if (!res.ok) throw new Error(`could not send the code: ${await gotrueError(res)}`);
+    if (res.ok) return;
+    const said = await gotrueError(res);
+    // A refused signup is a nameable problem ("there is no account with that number"), not the
+    // catch-all. GoTrue says so as `otp_disabled` / "Signups not allowed for otp"; anything else
+    // stays the generic failure rather than being guessed at.
+    if (!createUser && /otp_disabled|signups?\s+(are\s+)?not\s+allowed/i.test(said)) {
+      throw new NoSuchAccountError();
+    }
+    throw new Error(`could not send the code: ${said}`);
   }
 
   private async verifyPhoneOtp(phone: string, code: string): Promise<Session> {

@@ -208,6 +208,37 @@ def test_the_learner_corrects_the_reading_before_a_number_is_computed(
     assert len(kept.lines) == 2
 
 
+def test_an_unreadable_body_is_told_what_it_actually_got_wrong(
+    client: TestClient, auth, eyes
+) -> None:
+    """Every validation failure on every /v1/doubt route used to get ONE sentence, and it
+    described the wrong thing: "I could not read that. A line can be 200 characters; try a
+    shorter one." Lines are the correction editor on POST /v1/doubt/{id}/answer. There are none
+    on the photo intake, so a learner whose camera handed back an empty capture was told to
+    shorten a line they had never typed."""
+    empty_capture = client.post(
+        "/v1/doubt",
+        json={"image": {"data": "", "mediaType": "image/jpeg"}, "words": ""},
+        headers=auth(),
+    )
+    assert empty_capture.status_code == 422
+    said = empty_capture.json()
+    assert said["code"] == "bad_request"
+    assert "photo" in said["message"]
+    assert "line" not in said["message"].lower()
+
+    long_syllabus = client.post("/v1/doubt", json=body(framework_id="x" * 200), headers=auth())
+    assert long_syllabus.status_code == 422
+    assert "syllabus" in long_syllabus.json()["message"]
+    assert "line" not in long_syllabus.json()["message"].lower()
+
+    # …and a line that really is too long is still told about the line, on the route that has one.
+    doubt_id = read(client, auth).json()["doubt"]
+    too_long = answer(client, auth, doubt_id, lines=[{"id": "r1", "text": "x" * 5000}])
+    assert too_long.status_code == 422
+    assert f"{doubt.MAX_LINE_CHARS} characters" in too_long.json()["message"]
+
+
 # --- the door -------------------------------------------------------------------------------------
 
 

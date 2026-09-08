@@ -16,6 +16,7 @@ import type { Sdk } from '@wobo/sdk';
 import {
   type FocusObject,
   hasSyncAnchor,
+  isTypingTarget,
   parseActions,
   plane,
   scrollHold,
@@ -60,7 +61,7 @@ import { CeremonyHost } from './ui/ceremony';
 import { MotionPrefConfig } from './ui/MotionPref';
 import { sfx } from './ui/sound';
 import { BoardBenchGate } from './wobo/board-bench';
-import { boardTurn } from './wobo/board-turn';
+import { boardTurn, dismissBoard } from './wobo/board-turn';
 import { WoboCompanion } from './wobo/Companion';
 import {
   boardTurnPayload,
@@ -93,7 +94,7 @@ import {
 } from './wobo/hands';
 import { holdToTalkEnd, holdToTalkStart } from './wobo/hold';
 import { lookingAt } from './wobo/looking';
-import { MODE_BY_ID, modeFromText, modePrompt } from './wobo/modes';
+import { modeDraws, modeFromText, modePrompt } from './wobo/modes';
 import { resolveTurnExtras, type TurnExtras } from './wobo/paths';
 import { useLifeSignals } from './wobo/presence';
 import { boardShapeOf, isLessonRoute } from './wobo/presentation';
@@ -331,7 +332,14 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       if (boardTurn.get().active) boardTurn.interrupt();
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.key === ' ') cut();
+      if (e.key !== 'Escape' && e.key !== ' ') return;
+      // TYPING IS NOT AN INTERRUPT. The commonest thing a fourteen year old does while an answer is
+      // still arriving is start typing the next question, and every space in it used to abort the
+      // stream, lift the pen and stop the voice — the derivation simply ended, with nothing said
+      // about why. The gesture layer solved this the same way for its own hotkey
+      // (packages/wobo/src/gesture.tsx), and Escape in a field is a field's own key too.
+      if (isTypingTarget(e.target)) return;
+      cut();
     };
     const opts: AddEventListenerOptions = { capture: true, passive: true };
     window.addEventListener('pointerdown', cut, opts);
@@ -649,30 +657,50 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       // The learner's word about the surface is obeyed before anything is asked of the brain:
       // "close the board" is not a question, and "fresh board" has to be true before Wobo draws.
       const mode = modeFromText(text);
+      const hasFocus = turnFocus() !== null;
       const shape = boardShapeOf(text, {
-        hasFocus: turnFocus() !== null,
-        modeDraws: mode ? MODE_BY_ID[mode].draws : false,
+        hasFocus,
+        // Whether the mode can draw on THIS turn is the mode's own to answer (wobo/modes.ts): a
+        // mode that needs something in hand cannot draw without it, and `quiz_me` needs nothing.
+        modeDraws: modeDraws(mode, hasFocus),
         // A question about a thing on this screen is answered on it, in place.
         namesTarget: looking !== null,
         // The screen said it would draw (onboarding step three); keep the promise.
         draw: options.draw === true,
       });
-      if (shape.word?.dismiss) {
-        plane.dismiss();
+      // ONLY THE LEARNER'S OWN WORD MOVES THE BOARD. A silent ask is Wobo's own sentence — the
+      // re-teach ladder asking for a second explanation on the learner's behalf — and the learner
+      // never typed it and never sees it (wobo/chat.tsx `AskOptions.silent`). Read as a surface
+      // word it would move the board, wipe it, or put it away with nothing on screen to explain
+      // why: Wobo obeying an instruction nobody gave. The words still make the turn a DRAWING
+      // turn; where the ink lands goes back to the ink.
+      const word = options.silent ? undefined : shape.word;
+      // The same rule for the override the board call reads (`askBoard` sends `shape.override`).
+      const turnShape = options.silent ? { ...shape, word: undefined, override: undefined } : shape;
+      if (word?.dismiss) {
+        // `plane.dismiss()` alone was wrong twice over: it returns early on a pinned board, and
+        // inside a lesson the ink is on the lesson's own full board, which the plane controller
+        // cannot reach at all. Either way Wobo said "Put away." over a board that had not moved.
+        const went = dismissBoard();
         say({
           role: 'wobo',
-          text: 'Put away. Say the word and it comes back with your ink on it.',
+          text: went
+            ? 'Put away. Say the word and it comes back with your ink on it.'
+            : 'There is no board out at the moment. Ask me to draw and one will come.',
         });
         setMood('idle');
         return;
       }
-      if (shape.word?.wipe) {
-        boardTurn.wipe();
-        say({ role: 'wobo', text: 'Wiped. Clean board.' });
+      if (word?.wipe) {
+        const wiped = boardTurn.wipe();
+        say({
+          role: 'wobo',
+          text: wiped > 0 ? 'Wiped. Clean board.' : 'The board is already clean.',
+        });
         setMood('idle');
         return;
       }
-      if (shape.word?.fresh) plane.fresh(orbOrigin());
+      if (word?.fresh) plane.fresh(orbOrigin());
 
       // The hands (WOBO-PLAN §3). "Show me" is not a description: a visible cursor glides to the
       // real control on the real screen and taps it, resolved through the registry so it works on
@@ -725,7 +753,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       // and the header is the only thing that chooses (docs/BOARD.md §4). Keyless builds never
       // stream, so the deterministic path below keeps every mode working with no gateway at all.
       if (shape.board && GATEWAY_URL) {
-        await askBoard(text, shape, context, mode ?? undefined);
+        await askBoard(text, turnShape, context, mode ?? undefined);
         return;
       }
       // Navigation on command (WOBO.md §10) — the one nav path, shared by the chat page and the

@@ -42,8 +42,11 @@ export const ENDPOINT = {
   /** POST: exchange a verified, second-factored sign-in for a console session. The one admin
    *  path that cannot be behind the session guard, because it is what issues the session. */
   session: '/v1/admin/session',
-  /** POST: close it. The row is revoked, so the token is dead on the next request. */
-  sessionEnd: '/v1/admin/session/end',
+  /** DELETE on the SAME path: close it. The row is revoked, so the token is dead on the next
+   *  request. Until 2026-09-07 this named `/v1/admin/session/end`, a route the gateway has never
+   *  registered — the POST 404'd, `signOut` discarded the failure, and the console showed a clean
+   *  sign-out while the session stayed live on the server until its TTL. */
+  sessionEnd: '/v1/admin/session',
   /** GET: who the console is talking to, and what this session may still do. */
   whoami: '/v1/admin/whoami',
   /** GET: `ops.usage_daily` rows for a window, plus the live in-process ceiling. */

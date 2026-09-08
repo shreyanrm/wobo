@@ -177,6 +177,11 @@ class _PhraseSet:
         return re.compile(r"\b(?:" + "|".join(re.escape(p) for p in ordered) + r")\b")
 
     def __init__(self, phrases: tuple[str, ...]) -> None:
+        # A phrase is put through the SAME normalisation the message is, so a literal can never
+        # be spelled in a form the reader will never see. This matters most in Devanagari, where
+        # "रोज़" is two different code point sequences depending on the keyboard that typed it and
+        # NFKC picks one of them: a literal written the other way silently never matches.
+        phrases = tuple(dict.fromkeys(n for n in (normalize(p) for p in phrases) if n))
         self.phrases = phrases
         ascii_words = [p for p in phrases if _ASCII_ONLY.match(p)]
         # Both the plain and the de-stretched readings match on word boundaries. Without them
@@ -228,6 +233,14 @@ _PERSONAL: dict[str, tuple[str, ...]] = {
         "in front of a train", "cut my arms", "cutting my arms", "cut my wrists",
         "cutting my wrists", "cut my wrist", "cutting my legs", "cutting my thighs",
         "been cutting", "slit my wrist", "slit my wrists", "swallow bleach", "drink bleach",
+        # THE ROPE, WHICH WAS NOT HERE AT ALL. "how do i make a noose" and "how to tie a noose"
+        # both came back ok AND needs_model=False on 2026-09-07: no layer read them.
+        "make a noose", "making a noose", "tie a noose", "tying a noose", "makes a noose",
+        "hang from the fan", "hang from the ceiling fan", "hanging from the fan",
+        "phansi laga", "phansi lagane", "phansi lagakar", "phaansi laga",
+        # Being finished with it, which is how a child says it before they say anything sharper.
+        "done with life", "done with my life", "finished with life", "tired of living",
+        "sick of living", "fed up of living", "no point in living", "no point living",
         # How it is actually typed. "kms" and "kys" are never matched bare — "how many kms to
         # school" is a real question — only with the intent that makes them what they are.
         "want to kms", "wanna kms", "going to kms", "gonna kms", "im gonna kms", "about to kms",
@@ -245,6 +258,20 @@ _PERSONAL: dict[str, tuple[str, ...]] = {
         "mujhe marna", "marna chahta", "marna chahti", "mar jana chahta", "mar jaunga",
         "mar jaungi", "jeena nahi chahta", "jina nahi chahta", "khudkushi", "khudkhushi",
         "khud kushi", "aatmahatya", "atmahatya", "jaan dena chahta", "mujhe nahi jeena",
+        # ROMANISED HINDI, which is how a fourteen year old in India actually types. Every one of
+        # these came back ok AND needs_model=False on 2026-09-07 while its English twin was a
+        # crisis. The first-person auxiliary is required on "marne wala" — "mera kutta marne wala
+        # hai" is a child telling us about their dog, and that is not this.
+        "mai marne wala", "main marne wala", "me marne wala", "mai marne wali",
+        "main marne wali", "me marne wali", "marne wala hu", "marne wali hu",
+        "marne wala hoon", "marne wali hoon", "marne vala hu", "marne vali hu",
+        "jeena nahi hai", "jina nahi hai", "jeena nhi hai", "mujhe jeena nahi",
+        "jeene ka mann nahi", "jeene ki iccha nahi", "ab jeena nahi",
+        "jeena nahi chahti", "jina nahi chahti", "marna chahti",
+        # Devanagari, inflected. The phrase sets are literals, so the dictionary form was carried
+        # and the form a child writes was not: "मैं मरना चाहता हूँ" only ever reached the model.
+        "मरना चाहता", "मरना चाहती", "मरने वाला हूं", "मरने वाली हूं", "जीना नहीं है",
+        "मुझे जीना नहीं", "फांसी लगा", "फाँसी लगा",
         # Telugu, Tamil, Bengali, Kannada, Marathi
         "చనిపోవాలని", "చచ్చిపోతాను", "சாக வேண்டும்", "இறக்க வேண்டும்", "মরে যেতে চাই",
         "ಸಾಯಬೇಕು", "मला मरायचं",
@@ -342,6 +369,55 @@ _VIOLENT_VERBS: tuple[str, ...] = (
 )
 
 
+#: WHERE a child says they will jump from. The lexicon carried "jump off the roof", "jump off a
+#: bridge" and "jump off the building" and stopped there, so "im going to jump from the terrace
+#: tonight" was invisible to both layers — and a terrace is the Indian idiom, the one spelling a
+#: child here is most likely to use. Generated rather than typed so the next place added cannot
+#: leave half the prepositions behind.
+_JUMP_LEADS: tuple[str, ...] = (
+    "jump off", "jump from", "jumping off", "jumping from", "jump of",
+    "leap off", "leap from", "throw myself off", "throw myself from",
+)
+#: Named structures only. Not "a height" and not the third-person "jumps", because "a man jumps
+#: from a height of 5 m" is a physics question and a physics question is not a disclosure.
+_JUMP_PLACES: tuple[str, ...] = (
+    "the roof", "a roof", "the terrace", "a terrace", "the balcony", "a balcony",
+    "the building", "a building", "the bridge", "a bridge", "the window",
+    "the flyover", "the water tank", "the top floor",
+)
+
+#: The Hindi for being beaten at home, in both scripts, with the adverb a child puts in the
+#: middle. "mujhe marte" was carried and "papa mujhe ROZ marte hai" was not, because the phrases
+#: are word-bounded literals and the adverb broke the phrase in two.
+_BEATEN_VERBS_ROMAN: tuple[str, ...] = (
+    "marta", "marte", "marti", "maarta", "maarte", "maarti",
+    "peetta", "peette", "peetti", "peeta", "peetate", "pitta", "pitte",
+)
+_BEATEN_VERBS_DEVA: tuple[str, ...] = (
+    "मारता", "मारते", "मारती", "पीटता", "पीटते", "पीटती", "मारा", "पीटा",
+)
+_OFTEN_ROMAN: tuple[str, ...] = (
+    "", "roz", "roj", "rozana", "rojana", "hamesha", "bahut", "har din", "har roz", "raat ko",
+)
+_OFTEN_DEVA: tuple[str, ...] = ("", "रोज़", "रोज", "हमेशा", "बहुत", "हर दिन", "हर रोज़", "रात को")
+
+
+def _jumped_from() -> tuple[str, ...]:
+    return tuple(f"{lead} {place}" for lead in _JUMP_LEADS for place in _JUMP_PLACES)
+
+
+def _beaten_at_home() -> tuple[str, ...]:
+    """``mujhe <how often> <hit>`` and ``मुझे <how often> <hit>``, every combination."""
+    out: list[str] = []
+    for often, verbs in (("roman", _BEATEN_VERBS_ROMAN), ("deva", _BEATEN_VERBS_DEVA)):
+        me = "mujhe" if often == "roman" else "मुझे"
+        adverbs = _OFTEN_ROMAN if often == "roman" else _OFTEN_DEVA
+        for adverb in adverbs:
+            for verb in verbs:
+                out.append(" ".join(part for part in (me, adverb, verb) if part))
+    return tuple(out)
+
+
 def _person_did_to_me() -> tuple[str, ...]:
     """Every ``<person> <violent verb> me`` phrase, plus the possessive form a child writes."""
     out: list[str] = []
@@ -351,7 +427,8 @@ def _person_did_to_me() -> tuple[str, ...]:
     return tuple(out)
 
 
-_PERSONAL[ABUSE] = _PERSONAL[ABUSE] + _person_did_to_me()
+_PERSONAL[ABUSE] = _PERSONAL[ABUSE] + _person_did_to_me() + _beaten_at_home()
+_PERSONAL[SELF_HARM] = _PERSONAL[SELF_HARM] + _jumped_from()
 
 # TOPICAL — a subject, not a disclosure. Cleared when the sentence reads academic.
 
@@ -360,6 +437,13 @@ _TOPICAL: dict[str, tuple[str, ...]] = {
         "suicide", "suicides", "suicidal", "self harm", "selfharm", "kill himself",
         "kill herself", "kill themselves", "killed himself", "killed herself",
         "took his own life", "took her own life", "die by suicide", "self injury",
+        # SECOND PERSON, INBOUND. "kill yourself" was only ever in the OUTBOUND set, so a child
+        # typing "how to kill yourself" — or telling us somebody said it to them — was read by
+        # nothing. Topical, so a lesson on cyberbullying still clears; bare, it does not.
+        "kill yourself", "killing yourself", "kill urself", "noose", "nooses",
+        "lethal dose", "fatal dose", "painless way to die", "painless death",
+        "easiest way to die", "quickest way to die", "fastest way to die", "ways to die",
+        "how to die", "how many pills would kill", "enough to kill a person",
         "आत्महत्या दर",
     ),
     ABUSE: (
@@ -454,8 +538,19 @@ _SOFT_SIGNALS: dict[str, tuple[str, ...]] = {
         "paracetamol", "acetaminophen", "aspirin", "ibuprofen", "sleeping pills",
         "sleeping tablets",
         "how many pills", "how many tablets", "whole bottle of", "asking for a friend",
-        "for a friend", "hypothetically", "kms", "kys", "end things", "jump off", "wrist",
+        "for a friend", "hypothetically", "kms", "kys", "end things", "jump off", "jump from",
+        "jumping off", "jumping from", "terrace", "balcony", "wrist", "noose", "phansi",
+        # What a method question is made of. Never a flag on its own — a chemistry question about
+        # a poison is a real question — but "which household chemicals mixed together are
+        # poisonous" reached NOTHING, and the model layer is the only thing that can read it.
+        "poison", "poisonous", "poisoning", "toxic", "lethal", "fatal", "household chemicals",
+        "mixed together", "mix bleach", "bleach", "phenyl", "kerosene", "pesticide",
+        "sleeping pill", "how much would kill", "how much is enough to",
         "उदास", "अकेला", "मरना", "थक गया", "dukhi", "akela", "thak gaya", "pareshan",
+        # Romanised Hindi. The soft set carried exactly four words of it and no form at all of
+        # marna, maarna or jeena — the three verbs every disclosure in this family is built on.
+        "marna", "maarna", "marne", "marunga", "marungi", "jeena", "jina", "jeene",
+        "zindagi", "khatam", "akela hu", "bekar hu", "kisi kaam ka nahi",
     ),
     ABUSE: (
         "hit", "hits", "hitting", "beat", "beaten", "beating", "slap", "slapped", "punch",
@@ -467,6 +562,11 @@ _SOFT_SIGNALS: dict[str, tuple[str, ...]] = {
         # the sentence rather than the substring.
         "hits me", "hurts me", "hurt me", "hit me", "locks the door", "locked the door",
         "मारना", "डर", "darr", "gussa",
+        # Romanised Hindi for being hit, so a sentence the generated set does not spell exactly
+        # still reaches the layer that can read a sentence rather than a substring.
+        "marta", "marte", "marti", "maarta", "maarte", "maarti", "peetta", "peette",
+        "peeta", "peetate", "thappad", "dard", "chot", "gaali", "daant", "dantata",
+        "papa", "mummy", "chacha", "mama", "ghar mein",
     ),
     NEGLECT: ("eat", "eating", "food", "hungry", "starving", "fat", "weight", "throw up", "vomit"),
     GROOMING: (

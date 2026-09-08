@@ -12,7 +12,7 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { boardBook, plane } from '@wobo/wobo';
-import { boardTurn, isAbort, screenStore } from './board-turn';
+import { boardTurn, dismissBoard, isAbort, screenStore } from './board-turn';
 
 type Frame = { id?: string; data: Record<string, unknown> };
 
@@ -229,5 +229,31 @@ describe('the board opens only when there is something new to build (the owner, 
     expect(outcome.presentation).toBe('screen');
     expect(plane.get().open).toBe(false);
     expect(screenStore.snapshot().map((s) => s.object.id)).toEqual(['ring']);
+  });
+});
+
+describe('wipe and put away tell the truth (wave 29, board-1 and board-2)', () => {
+  const circle = (id: string) =>
+    ({ id, kind: 'circle', anchor: { board: [100, 100] }, pad: 8 }) as never;
+  it('wipe clears the board in front of the learner and says how much went', () => {
+    // Between turns `state.presentation` still names the LAST turn's surface; the board in front is
+    // the plane while it is open. Wipe reads the surfaces, not the stale field.
+    const id = plane.fresh();
+    boardBook.get(id).ink(circle('a'));
+    boardBook.get(id).ink(circle('b'));
+    expect(boardTurn.wipe()).toBe(2);
+    expect(boardBook.get(id).snapshot().length).toBe(0);
+    // a second wipe has nothing to say
+    expect(boardTurn.wipe()).toBe(0);
+    plane.close();
+    boardBook.drop(id);
+  });
+  it('put away answers whether a board actually went', () => {
+    expect(plane.get().open).toBe(false);
+    expect(dismissBoard()).toBe(false);
+    const id = plane.fresh();
+    expect(dismissBoard()).toBe(true);
+    expect(plane.get().open).toBe(false);
+    boardBook.drop(id);
   });
 });

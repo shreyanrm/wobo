@@ -65,7 +65,7 @@ describe('the two lines the law draws', () => {
 describe('what still stands in the way of an account', () => {
   const fields = (over: Partial<SignUpFields> = {}): SignUpFields => ({
     birth: born(2005, 0, 1),
-    parentEmail: '',
+    parentContact: '',
     agreed: true,
     ...over,
   });
@@ -75,11 +75,24 @@ describe('what still stands in the way of an account', () => {
     expect(blockedBy(fields({ birth: 'nonsense' }), NOW)).toBe('birth-invalid');
   });
 
-  it('will not let a child past without a parent’s address', () => {
+  it('will not let a child past without a parent’s own contact', () => {
     const child = fields({ birth: born(2018, 0, 1) });
-    expect(blockedBy(child, NOW)).toBe('parent-email');
-    expect(blockedBy({ ...child, parentEmail: 'not an address' }, NOW)).toBe('parent-email');
-    expect(blockedBy({ ...child, parentEmail: 'parent@example.com' }, NOW)).toBeNull();
+    expect(blockedBy(child, NOW)).toBe('parent-contact');
+    expect(blockedBy({ ...child, parentContact: 'not an address' }, NOW)).toBe('parent-contact');
+    expect(blockedBy({ ...child, parentContact: 'parent@example.com' }, NOW)).toBeNull();
+  });
+
+  /**
+   * THE SHAPE OF THAT CONTACT IS THE SCREEN'S TO DECIDE, because only the screen knows which seam
+   * is wired. No shipped build has ever had an email seam, so a gate that could only accept an
+   * address was a gate no child could ever pass: `parental-consent.md` §2 names a message to the
+   * parent's "email address or phone number", and the door asks for whichever one it can send to.
+   */
+  it('takes whatever contact the build can actually reach a parent by', () => {
+    const child = fields({ birth: born(2018, 0, 1), parentContact: '+91 98765 43210' });
+    const byPhone = (v: string) => /^\+\d[\d\s-]{6,}$/.test(v.trim());
+    expect(blockedBy(child, NOW)).toBe('parent-contact');
+    expect(blockedBy(child, NOW, byPhone)).toBeNull();
   });
 
   it('does not hold a teenager up for a parent’s address', () => {
@@ -91,7 +104,7 @@ describe('what still stands in the way of an account', () => {
   });
 
   it('reports one thing at a time, in the order the learner meets it', () => {
-    const nothing: SignUpFields = { birth: '', parentEmail: '', agreed: false };
+    const nothing: SignUpFields = { birth: '', parentContact: '', agreed: false };
     expect(blockedBy(nothing, NOW)).toBe('birth');
   });
 });

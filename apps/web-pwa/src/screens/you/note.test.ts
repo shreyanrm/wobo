@@ -79,7 +79,7 @@ describe('the weekly note', () => {
     const note = weeklyNote({ ...BASE, marks: [] });
     expect(note.showedUp).toBe(0);
     expect(weekSentence(note)).toEqual([
-      { text: 'Rest is part of learning — quiet days are allowed' },
+      { text: 'Rest is part of learning. Quiet days are allowed.' },
     ]);
   });
 

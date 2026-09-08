@@ -564,6 +564,17 @@ def _socket_slot(subject: str, *, kind: str) -> Iterator[bool]:
                 _active_tts -= 1
 
 
+def relay_configured() -> bool:
+    """Can a SOCKET be opened at all? Gemini Live and nothing else.
+
+    Deliberately not ``plexus.media.speakers_configured``, which is the wider question — that one
+    counts the OpenAI text-to-speech fallback, which can answer a one-shot line but cannot hold a
+    live socket open. The two are asked in different places for different things, and the route
+    below asks this one BEFORE it charges, so a Gemini-less box refuses for free.
+    """
+    return bool(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY"))
+
+
 def voice_session(subject: str, accent: str = AMERICAN_ENGLISH) -> dict[str, str]:
     """The voice handshake: which mode this learner may use right now, their one token, and the
     accent they are about to hear.
@@ -573,7 +584,7 @@ def voice_session(subject: str, accent: str = AMERICAN_ENGLISH) -> dict[str, str
     message holds the model server-side, where it belongs. ``accent`` is a BCP-47 tag and not a
     voice name, so nothing about the provider's voice catalogue leaves either.
     """
-    if os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_AI_API_KEY"):
+    if relay_configured():
         return {"mode": "relay", "token": _mint_token(subject, accent), "accent": accent}
     # No session, no accent to promise: the client's own fallback picks whatever the device has.
     return {"mode": "unavailable"}
@@ -682,8 +693,16 @@ def _charge_voice(request: Request, capability: str) -> None:
 
     Voice is a PAID API, and until now the meter was charged in exactly one place — the capability
     route — so a learner with a fully spent day still minted relay tokens and still reached the
-    TTS API. Both routes go through the same meter as every other turn (``budget.CAPABILITY_CLASS``
-    keeps the classification in one dict), keyed on the same meter key the door derived.
+    TTS API. Both routes go through the same meter as every other capability
+    (``budget.CAPABILITY_CLASS`` keeps the classification in one dict), keyed on the same meter
+    key the door derived.
+
+    **ON THE VOICE COUNTER, NEVER THE QUESTION COUNTER.** ``voice.`` classifies as
+    ``budget.VOICE``. The client synthesises ONE CALL PER SENTENCE (``speech.tsx``
+    ``startUtterance``), so while these were turns, hearing a five-sentence answer cost five
+    questions on top of the one that earned it — six of an anonymous learner's six — and the
+    read-aloud path charged for a crisis disclosure that ``app.py`` had just refunded on purpose.
+    Speaking is not asking; it is capped, in lines, on a purse of its own.
 
     **AND THE PLATFORM'S CEILING, which voice was outside.** ``spend.py`` is the daily USD limit
     described as covering the platform, and voice reached neither half of it: no cost was recorded
@@ -699,7 +718,24 @@ def _charge_voice(request: Request, capability: str) -> None:
     middleware of its own, and both refuse to open without a single-use token minted by
     ``/v1/voice/session``, which comes through here.
     """
-    from wobo_gateway import billing, budget, consent, spend
+    from wobo_gateway import budget
+
+    plan = _ceiling_check(request, capability)
+    principal = request.state.principal
+    budget.charge(request.state.meter_key, capability, plan, anonymous=principal.anonymous)
+
+
+def _ceiling_check(request: Request, capability: str) -> str:
+    """Ask the platform's daily ceiling, and answer the learner's metered plan.
+
+    Split out of :func:`_charge_voice` so a route can ask the ceiling BEFORE it decides whether it
+    can serve at all. ``/v1/voice/session`` learned on 2026-09-07 not to charge when no relay key
+    exists, and in doing so it answered "unavailable" ahead of the ceiling: a learner on a spent
+    day was told the voice was missing when the money was. The ceiling is the first word either
+    way, because a spent day is the truer sentence, and the sockets this token opens spend real
+    money the moment a key does exist.
+    """
+    from wobo_gateway import billing, consent, spend
 
     principal = request.state.principal
     profile = consent.get_profile(principal.subject, anonymous=principal.anonymous)
@@ -715,7 +751,7 @@ def _charge_voice(request: Request, capability: str) -> None:
             extra={"fields": {"capability": capability, **spend.state().as_dict()}},
         )
         raise spend.SpendCeilingReached(priority, capability=capability)
-    budget.charge(request.state.meter_key, capability, plan, anonymous=principal.anonymous)
+    return plan
 
 
 def _refund_voice(request: Request, capability: str) -> Any:
@@ -737,6 +773,19 @@ def register_voice(app: FastAPI) -> None:
         # and the accent read from that same verified record — onto the sockets, which have no
         # middleware of their own. Metered here, because the token IS the spend: whatever it
         # opens, it opens on our key.
+        #
+        # The KEY IS CHECKED FIRST, exactly as the sibling TTS route checks it. Until 2026-09-07
+        # the charge came first and the answer was a 200 saying "unavailable", so a learner on a
+        # box with no Gemini key paid a call for every refusal — and the client mints a token per
+        # line, so it paid five of them for one silent answer. A learner never pays for a call we
+        # did not serve.
+        # The ceiling first, whatever the key situation: a spent day answers 429 and never
+        # "unavailable".
+        _ceiling_check(request, "voice.session")
+        if not relay_configured():
+            # No session, no charge, and no accent to promise: the client's own fallback picks
+            # whatever voice the device has.
+            return voice_session(request.state.principal.subject)
         _charge_voice(request, "voice.session")
         principal = request.state.principal
         accent = learner_accent(principal.claims, request.headers.get("accept-language"))

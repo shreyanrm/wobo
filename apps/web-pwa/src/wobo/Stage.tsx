@@ -211,11 +211,13 @@ function LessonBoard({
     () => lessonStore.snapshot().length,
     () => 0,
   );
-  const { view, host } = useLessonView();
-  const [dismissed, setDismissed] = useState(false);
+  // `dismissed` lives on the lesson view store, not in this component: "close the board" said in a
+  // lesson has to reach it too, and a local `useState` could only ever be set by the Escape key
+  // below (wobo/board-turn.ts `dismissBoard`).
+  const { view, host, dismissed } = useLessonView();
   // A new turn brings the ink back — dismissing is for this board, not for lessons.
   useEffect(() => {
-    if (state.active) setDismissed(false);
+    if (state.active) lessonView.show();
   }, [state.active]);
   const inked = objects > 0 && !dismissed;
   const full = inked && view === 'full';
@@ -226,7 +228,7 @@ function LessonBoard({
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       if (full) lessonView.view('plane');
-      else setDismissed(true);
+      else lessonView.dismiss();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

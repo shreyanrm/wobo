@@ -60,11 +60,18 @@ describe('the cancellation document', () => {
     expect(MONEY).not.toContain('offering a pause or a smaller plan');
   });
 
-  it('promises the plan to the end of the period, a resume, and an honest failure', () => {
+  it('promises the plan to the end of the period, and an honest failure', () => {
     expect(MONEY).toContain('until the end of the period you have already paid for');
     expect(MONEY).toContain('moves to the free allowance by itself');
-    expect(MONEY).toContain('one tap puts the plan back');
     expect(MONEY).toContain('We never show a cancellation that did not happen');
+  });
+
+  it('promises no resume the gateway refuses', () => {
+    // It said "one tap puts the plan back on and it renews as it did before", twice. A provider
+    // cannot restart a cancelled subscription: the gateway answers 409 `cannot_resume`, the plans
+    // FAQ says so, and the cancel confirmation now says so before the tap.
+    expect(MONEY).not.toContain('one tap puts the plan back');
+    expect(MONEY).toContain('cannot be switched back on');
   });
 
   it('drops every goodwill refund', () => {
@@ -105,9 +112,17 @@ describe('the cancellation document', () => {
     for (const absent of ['Plus, monthly', 'Plus, annual', '| Family']) {
       expect([absent, table.includes(absent)]).toEqual([absent, false]);
     }
-    // and nothing anywhere in the document sells a cadence the price list does not
-    expect(MONEY).not.toContain('an annual renewal');
-    expect(MONEY).toContain('There is no annual plan and no family plan');
+    // and it sells BOTH periods, because the product does: yearly is the plans page's default and
+    // the gateway's catalogue has `pro_yearly` and `max_yearly`. The document denied it outright
+    // ("There is no annual plan and no family plan") while the page beside it sold one.
+    for (const period of ['monthly', 'yearly']) {
+      expect([period, table.includes(`, ${period} |`)]).toEqual([period, true]);
+    }
+    expect(MONEY).not.toContain('There is no annual plan');
+    expect(MONEY).not.toContain('Every plan we sell is monthly');
+    // one learner on every plan, which is what `prices.ts` carries
+    expect(MONEY).not.toContain('two learners on one plan');
+    expect(MONEY).toContain('exactly one learner, on every plan and every period');
   });
 
   it('promises no control that is not in the product', () => {

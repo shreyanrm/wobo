@@ -22,6 +22,33 @@ import { SiteShell } from '../site/SiteShell';
 import { type PaymentsConfig, readPaymentsConfig } from './checkout-flow';
 import { CHECKOUT_PAGE, checkoutPageWords } from './copy';
 
+/**
+ * "Go to the checkout" has to arrive AT the checkout.
+ *
+ * Its address is `/plans#checkout`, and the router has no hash in it anywhere: `hrefRoute` splits
+ * the fragment off and `routeToPath` emits `/plans`, so the reader who pressed it landed at the top
+ * of a long plans page with the card they asked for several screens below. The router still owns
+ * the navigation; this brings the fragment along after it, once the page it names has rendered.
+ *
+ * A few frames are given because the destination mounts after the route changes, and the walk
+ * stops the moment it finds the section or runs out — never a loop that outlives the click.
+ */
+export function revealHash(href: string, doc: Document = document, frames = 12): void {
+  const id = href.split('#')[1];
+  if (!id) return;
+  let left = frames;
+  const look = () => {
+    const target = doc.getElementById(id);
+    if (target) {
+      target.scrollIntoView({ block: 'start' });
+      return;
+    }
+    left -= 1;
+    if (left > 0) requestAnimationFrame(look);
+  };
+  requestAnimationFrame(look);
+}
+
 export function Checkout() {
   // Whether the deploy can take money: null until the gateway has answered, and off on every
   // answer but the word. The browser never decides (checkout-flow.ts).
@@ -56,7 +83,11 @@ export function Checkout() {
           )}
           <div className="st-row">
             {words.cta.href ? (
-              <SiteLink href={words.cta.href} className="st-btn st-pig">
+              <SiteLink
+                href={words.cta.href}
+                className="st-btn st-pig"
+                onNavigate={() => revealHash(words.cta.href ?? '')}
+              >
                 {words.cta.label}
               </SiteLink>
             ) : (

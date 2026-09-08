@@ -409,29 +409,39 @@ describe('every price and every promise reads from one choice', () => {
 /**
  * docs/PRICING.md, "Where each number is allowed to appear" (owner, 2026-09-04): the plans page
  * shows the per-month amount and the words and NOT the total, and its Still-to-build item 2 is
- * explicit — "It must not appear on the plans page."
+ * explicit — "It must not appear on the plans page." The same table gives the checkout "the exact
+ * amount and the date of the charge", and the card at the bottom of this page is both: a preview
+ * while payments are off, the checkout itself while they are on. So every figure lives behind that
+ * one guard, and the page with payments off shows no total and no date at all.
  *
- * It did. The checkout preview printed `Today  ₹19,992` and, under it, "₹19,992 today, billed
- * annually. The next is taken on 4 September 2027, unless you cancel." The second half broke a
- * second law: `services/gateway/src/wobo_gateway/billing.py` rule 2, in capitals — "NOTHING IN THIS
- * REPO RENEWS A SUBSCRIPTION, and no user-facing line may say one does" — and the date named a day
- * on which nothing in this repo can take anything.
+ * The date of the NEXT charge is on the same guard for the same reason: it is the annual total a
+ * second time. It was forbidden outright until 2026-09-07 on the authority of
+ * `services/gateway/src/wobo_gateway/billing.py` rule 2 — "NOTHING IN THIS REPO RENEWS A
+ * SUBSCRIPTION" — a file commit 692affc deleted, and whose replacement creates every subscription
+ * with a `total_count` of five years or sixty months.
  */
 describe('the annual total is not on the plans page', () => {
   it('works the total out in one place, behind the payments-on guard, and nowhere else', () => {
     expect(PAGE_SOURCE).not.toContain('yearlyTotalLabel');
     expect(PAGE_SOURCE).not.toContain('yearlyTotalOf');
     expect(PAGE_SOURCE).not.toContain('dueToday');
-    // The one row that states the amount taken today is drawn only when the gateway says the
-    // deploy can take it: then this card IS the checkout, and docs/PRICING.md gives the checkout
-    // the total. Off, it is a preview on the plans page, and the page shows no total at all.
+    // Each figure is worked out exactly once, and the two ROWS that print them are inside the
+    // same `pay?.on` fragment. Off, this is a preview on the plans page, and the page shows no
+    // total and no date at all.
     expect(PAGE_SOURCE.match(/chargeLabel\(/g)?.length).toBe(1);
-    expect(PAGE_SOURCE).toMatch(/pay\?\.on \? \(\s*<div className="pl-total">/);
+    expect(PAGE_SOURCE.match(/renewsOn\(/g)?.length).toBe(1);
+    expect(PAGE_SOURCE.match(/renewalLabel\(/g)?.length).toBe(1);
+    const guarded = PAGE_SOURCE.split('{pay?.on ? (')[1]?.split(') : null}')[0] ?? '';
+    expect(guarded).toContain('{charge} {c.totalFor[period]}');
+    expect(guarded).toContain('renewalValue(charge, comesRound)');
+    expect(PAGE_SOURCE).toMatch(/pay\?\.on \? \(\s*<>\s*<div className="pl-total">/);
   });
 
-  it('never names a future charge, because nothing here can take one', () => {
-    expect(PAGE_SOURCE).not.toContain('renewsOn');
-    expect(PAGE_SOURCE).not.toContain('renewalLabel');
+  it('prints neither figure anywhere outside that guard', () => {
+    const off = PAGE_SOURCE.replace(/\{pay\?\.on \? \([\s\S]*?\) : null\}/, '');
+    expect(off).not.toContain('{charge}');
+    expect(off).not.toContain('renewalValue(');
+    expect(off).not.toContain('{comesRound}');
   });
 
   it('renders no string carrying a total, on either period or in either market', () => {

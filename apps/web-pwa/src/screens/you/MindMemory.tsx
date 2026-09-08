@@ -111,8 +111,12 @@ export function MindMemoryList({
           ))}
           {offered.map((o) => (
             <li className="wm-row" key={`offered:${o.id}`} data-source="parent">
+              {/* A REAL SPACE before the mark, not only the margin the sheet draws. Without it the
+                  row is one run in the accessibility tree and a screen reader says "he gets
+                  nervous before mathsfrom your parent", gluing the provenance to the fact it is
+                  there to qualify. The Remove button's own label already got this right. */}
               <span className="wm-text">
-                {o.body}
+                {o.body}{' '}
                 <em className="wm-tag">{MIND_MEMORY_COPY.parentTag}</em>
               </span>
               <Button

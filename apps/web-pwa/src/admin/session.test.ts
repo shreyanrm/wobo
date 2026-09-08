@@ -125,10 +125,28 @@ describe('the console fails closed', () => {
     expect(session.weakFactor).toBe(true);
 
     await signOut(fetcher);
-    const end = seen(fetcher).find((call) => call.url.includes('/v1/admin/session/end'));
+    // DELETE on /v1/admin/session, which is the route that revokes the row. The console used to
+    // POST /v1/admin/session/end, which the gateway has never registered: it 404'd, the failure
+    // was discarded, and the session token stayed live on the server until its TTL.
+    const end = seen(fetcher).find((call) => call.init.method === 'DELETE');
+    expect(end?.url.endsWith('/v1/admin/session')).toBe(true);
     const headers = end?.init.headers as Record<string, string>;
     expect(headers.authorization).toBe('Bearer product-token');
     expect(headers[SESSION_HEADER]).toBe('sess-1');
+  });
+
+  it('and sign-out reaches the one route that actually revokes the row', async () => {
+    // The gateway registers GET and DELETE /v1/admin/session and POST /v1/admin/session (the
+    // login). Anything else 404s, and a 404 reads as 'not_deployed' — indistinguishable from a
+    // console that is simply not deployed, which is why this went unnoticed.
+    const fetcher = fetcherFor(() => Response.json({ admin: OK_ADMIN, session_token: 'sess-3' }));
+    await signIn(CREDENTIALS, fetcher);
+    await signOut(fetcher);
+    const calls = seen(fetcher).filter((call) => call.url.includes('/v1/admin/session'));
+    for (const call of calls) {
+      expect(call.url.endsWith('/session/end')).toBe(false);
+    }
+    expect(calls.some((call) => call.init.method === 'DELETE')).toBe(true);
   });
 
   it('forgets both proofs on sign-out even when the revoke failed', async () => {

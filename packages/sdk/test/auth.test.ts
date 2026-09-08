@@ -3,6 +3,7 @@ import {
   AUTH_SESSION_KEY,
   createSdk,
   type KVStorage,
+  NoSuchAccountError,
   NotAuthenticatedError,
   SupabaseAuthIdentity,
 } from '../src/index';
@@ -87,6 +88,48 @@ describe('SupabaseAuthIdentity', () => {
     const rebooted = new SupabaseAuthIdentity(cfg(storage));
     expect(rebooted.subjectId).toBe(SUBJECT);
     expect(await rebooted.getAccessToken()).toBe(fakeJwt(SUBJECT));
+  });
+
+  /**
+   * ONLY THE DOOR THAT ASKS MAY MAKE AN ACCOUNT.
+   *
+   * `create_user` was hard-coded true, so the sign-in door — which has no date-of-birth field and
+   * no consent tick — created a brand-new account for any number typed into it. Every consent gate
+   * downstream then had nothing to read, and the age gate on the OTHER door was decoration.
+   */
+  it('does not create an account unless the caller asked for one', async () => {
+    const bodies: unknown[] = [];
+    mockFetch((url, init) => {
+      if (url.endsWith('/auth/v1/otp')) {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response(null, { status: 200 });
+      }
+      return new Response(null, { status: 404 });
+    });
+    const id = new SupabaseAuthIdentity(cfg(new MapKV()));
+    await id.auth.requestPhoneOtp('+911234567890');
+    await id.auth.requestPhoneOtp('+911234567890', { createUser: false });
+    await id.auth.requestPhoneOtp('+911234567890', { createUser: true });
+    expect(bodies).toEqual([
+      { phone: '+911234567890', create_user: false },
+      { phone: '+911234567890', create_user: false },
+      { phone: '+911234567890', create_user: true },
+    ]);
+  });
+
+  it('names the number with no account behind it, rather than failing anonymously', async () => {
+    mockFetch(() =>
+      Response.json({ code: 'otp_disabled', msg: 'Signups not allowed for otp' }, { status: 422 }),
+    );
+    const id = new SupabaseAuthIdentity(cfg(new MapKV()));
+    await expect(id.auth.requestPhoneOtp('+911234567890')).rejects.toBeInstanceOf(
+      NoSuchAccountError,
+    );
+    // and anything else stays the generic failure rather than being guessed at
+    mockFetch(() => Response.json({ msg: 'Invalid phone number' }, { status: 400 }));
+    await expect(id.auth.requestPhoneOtp('+911234567890')).rejects.not.toBeInstanceOf(
+      NoSuchAccountError,
+    );
   });
 
   it('signs out locally even when the server revoke fails', async () => {

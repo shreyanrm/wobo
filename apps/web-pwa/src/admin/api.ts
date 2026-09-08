@@ -152,14 +152,17 @@ export async function write<T>(
   body: unknown,
   guard: (value: unknown) => value is T,
   fetcher: typeof fetch = fetch,
+  method: 'POST' | 'DELETE' = 'POST',
 ): Promise<Fetched<T>> {
   const base = gatewayBase();
   if (!base) return { ok: false, reason: 'unconfigured', status: null };
+  const headers = proofHeaders();
+  if (body !== undefined) headers['content-type'] = 'application/json';
   return send(
     `${base}${ENDPOINT[endpoint]}`,
     {
-      method: 'POST',
-      headers: { ...proofHeaders(), 'content-type': 'application/json' },
+      method,
+      headers,
       body: body === undefined ? undefined : JSON.stringify(body),
     },
     guard,

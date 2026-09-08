@@ -165,6 +165,22 @@ const PATTERNS: [WoboModeId, RegExp][] = [
   ],
 ];
 
+/**
+ * Can this mode draw for THIS turn?
+ *
+ * A mode's `draws` says the answer is a drawing; `needsFocus` says the mode means nothing without
+ * something in hand. Both have to hold for the board to open, and the surface chooser used to ask
+ * only for a focus. That locked out `quiz_me` — the one drawing mode offered with an empty hand,
+ * whose card reads "Wobo asks on the board and grades the working" — so the chip promised the board
+ * on every press and never once opened it, while no other drawing mode could show the gap because
+ * every one of them needs a focus anyway.
+ */
+export function modeDraws(id: WoboModeId | null | undefined, hasFocus: boolean): boolean {
+  if (!id) return false;
+  const mode = MODE_BY_ID[id];
+  return mode.draws && (!mode.needsFocus || hasFocus);
+}
+
 /** The mode a line of text asks for, or null when it is an ordinary question. */
 export function modeFromText(text: string): WoboModeId | null {
   const t = text.trim();

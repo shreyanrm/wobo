@@ -15,6 +15,7 @@
 import type { Sdk, SyncStore } from '@wobo/sdk';
 import { isOffline } from '../shell/resilience';
 import { mindSyncStatus, syncMind } from './mind-sync';
+import { forgetScope } from './scope';
 
 /**
  * The stores whose debounced push the flush below owns. The others (the event outbox, the profile
@@ -45,12 +46,12 @@ export interface SignOutVerdict {
  * Push everything this device owes the account, then say whether anything is still owed. Never
  * throws: a push that fails is counted, not raised, and the caller reads the verdict.
  */
-export async function settleBeforeSignOut(
-  sdk: Pick<Sdk, 'sync'> & {
-    state: Pick<Sdk['state'], 'flush'>;
-    mastery: Pick<Sdk['mastery'], 'flush'>;
-  },
-): Promise<SignOutVerdict> {
+export type SettleSdk = Pick<Sdk, 'sync'> & {
+  state: Pick<Sdk['state'], 'flush'>;
+  mastery: Pick<Sdk['mastery'], 'flush'>;
+};
+
+export async function settleBeforeSignOut(sdk: SettleSdk): Promise<SignOutVerdict> {
   // The SDK's debounces (XP, the thread, the mastery evidence), then anything a past push left
   // behind, however few times it failed: "try again" has to carry it, or it is not true.
   await Promise.all([
@@ -69,4 +70,45 @@ export async function settleBeforeSignOut(
   const owed = stores + (mind.gate === 'ready' ? mind.waiting + mind.refused : 0);
   if (owed === 0) return { owed: 0, line: null };
   return { owed, line: isOffline() ? SIGN_OUT_COPY.offline(owed) : SIGN_OUT_COPY.owed(owed) };
+}
+
+/** The least of the account layer a hand-over needs. */
+export interface SignOutAccount {
+  subjectId(): string | null;
+  signOut(): Promise<void>;
+}
+
+export interface HandOverParts {
+  sdk: SettleSdk;
+  account: SignOutAccount;
+  /** Where the device lands afterwards. Injected so a test needs no browser. */
+  leave?: (url: string) => void;
+}
+
+/**
+ * THE WHOLE HAND-OVER, IN ONE PLACE: settle what is owed, sweep this learner's keys off the
+ * device, end the session, and land on the front door for whoever comes next.
+ *
+ * It lives here rather than inside a screen because there is now more than one way to reach it,
+ * and there had to be. Sign-out existed only as a row in the ⌘K palette, and the palette has no
+ * touch trigger — its own docblock says the OPEN_PALETTE_EVENT exists because "on a phone and in
+ * the installed PWA there is no ⌘K", and nothing in the app ever dispatched it. So on a phone
+ * there was NO way to sign out at all, which is exactly the family-tablet hand-over `forgetScope`
+ * and `docs/ONE-LEARNER-ONE-WOBO.md` exist for: a sibling could not be given the device without
+ * inheriting the last learner's Wobo.
+ *
+ * Returns the refusal line when the device still owes the account something, in which case
+ * nothing is swept and nobody is signed out; null when the hand-over went through.
+ */
+export async function handOverDevice({ sdk, account, leave }: HandOverParts): Promise<string | null> {
+  const verdict = await settleBeforeSignOut(sdk);
+  if (verdict.line) return verdict.line;
+  const subject = account.subjectId();
+  if (subject) forgetScope(subject);
+  // The session ends whether or not the server can be told: the local sweep already happened, and
+  // a device the learner has walked away from must not stay signed in waiting for a network.
+  await account.signOut().catch(() => undefined);
+  const go = leave ?? ((url: string) => window.location.assign(url));
+  go('/');
+  return null;
 }

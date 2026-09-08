@@ -27,15 +27,15 @@ describe('every refusal names the control it is about', () => {
     expect(whereBlocked('agree')).not.toBe('who');
   });
 
-  it("sends the parent's address to the parent's field", () => {
-    expect(whereBlocked('parent-email')).toBe('parent-email');
+  it("sends the parent's contact to the parent's field", () => {
+    expect(whereBlocked('parent-contact')).toBe('parent-contact');
   });
 
   it('gives every reason a place, so none of them can fall back on the ruled field', () => {
     const reasons: Exclude<BlockReason, null>[] = [
       'birth',
       'birth-invalid',
-      'parent-email',
+      'parent-contact',
       'agree',
     ];
     for (const reason of reasons) {
@@ -92,7 +92,7 @@ describe('the screen cannot go back to one error for the whole page', () => {
 
 describe('a refusal sends focus to the control it is about', () => {
   it('names an id on the page for every control, and none for the whole form', () => {
-    const wheres: Where[] = ['who', 'password', 'birth', 'parent-email', 'consent', 'code'];
+    const wheres: Where[] = ['who', 'password', 'birth', 'parent-contact', 'consent', 'code'];
     for (const where of wheres) expect(controlOf(where)).toMatch(/^au-/);
     expect(new Set(wheres.map(controlOf)).size).toBe(wheres.length);
     expect(controlOf('form')).toBeNull();

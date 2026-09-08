@@ -49,7 +49,8 @@ function summaryOf(over: Partial<DeskSummary> = {}): DeskSummary {
         what: 'A learner telling us something Wobo produced is wrong, confusing or upsetting.',
         feeds: 'POST /v1/flags, from the flag control in the learner app.',
         missing:
-          'The control itself is not in the app yet, so this desk fills only from direct calls.',
+          'A report carries the reason, the words if any, and pointers at what was on screen. ' +
+          'There is no picture of the screen and no message back when one is settled.',
       },
     },
     ...over,
@@ -222,7 +223,11 @@ describe('a queue row identifies nobody', () => {
       if (feed?.kind === 'absent') {
         // Verbatim from the gateway (desks_api.FEEDS), never a second copy written here.
         expect(feed.because).toContain('POST /v1/flags');
-        expect(feed.wouldFill).toContain('not in the app yet');
+        // Whatever the gateway says is missing, rendered verbatim. This used to assert the exact
+        // sentence 'not in the app yet', which pinned a claim that stopped being true the day the
+        // flag control shipped (5 September 2026).
+        expect(feed.wouldFill).toBe(summaryOf().feeds?.flag?.missing ?? '');
+        expect(feed.wouldFill).not.toContain('not in the app yet');
       }
     }
   });

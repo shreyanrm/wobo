@@ -40,6 +40,21 @@ export type IdentifierKind = 'both' | 'email' | 'phone' | 'none';
 /** How an address typed into the field would be used, when one can be used at all. */
 export type EmailSeam = 'password' | 'magicLink' | null;
 
+/**
+ * HOW THIS BUILD CAN REACH A PARENT on the under-13 branch, where the account is the parent's and
+ * the door they sign in through is a message to their own device. A link to an address, a code to
+ * a number, or nothing at all.
+ *
+ * It exists because the branch used to assume the first of the three. Its only submit called the
+ * magic-link seam, and NO BUILD HAS EVER HAD ONE — the SDK exposes requestPhoneOtp, verifyPhoneOtp
+ * and signInWithGoogle, so `emailSeam` is null in every live build. The branch stripped the field
+ * and both provider buttons off the page, drew zero controls in the action column, and ended on
+ * "Writing to a parent is not switched on yet". Under-13 sign-up was unreachable in production.
+ * `docs/legal/parental-consent.md` §2 names both shapes of message in one sentence, so the branch
+ * takes whichever one is really wired.
+ */
+export type ParentWay = 'link' | 'code' | null;
+
 export interface WaysIn {
   /** The one field, or `none` when neither an email nor a phone seam exists. */
   identifier: IdentifierKind;
@@ -51,6 +66,8 @@ export interface WaysIn {
   emailSeam: EmailSeam;
   /** The provider buttons, in order. Each one is open or carries `soon`. */
   providers: ProviderDoor[];
+  /** How a parent can be reached where the branch needs one. Null when they cannot be. */
+  parentWay: ParentWay;
   /** Draw the rule with `or` in it. True only when both sides of it have something. */
   divider: boolean;
   /** False when this build cannot sign anybody in by any route. */
@@ -80,6 +97,9 @@ export function waysIn(states: readonly MethodState[]): WaysIn {
   return {
     identifier,
     emailSeam,
+    // A link beats a code where both exist: a parent reading a page on their own device is closer
+    // to what §2 describes than a parent reading six digits out loud.
+    parentWay: open('magicLink') ? 'link' : phone ? 'code' : null,
     providers,
     // Both sides, or no rule. The providers keep their shape whether or not they work, so the
     // right-hand side is only empty when there are no providers to offer at all.

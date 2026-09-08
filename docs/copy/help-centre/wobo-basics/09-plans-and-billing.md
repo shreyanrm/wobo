@@ -20,15 +20,15 @@ One turn is one thing you ask Wobo, and everything Wobo draws, plays, says or se
 Card, or the payment method your device offers. At checkout you confirm two things in writing: that you accept the terms and the privacy notice, and that you understand the amount, when it renews and how to cancel. You should never be surprised by a charge.
 
 **Renewals**
-Every plan we sell is monthly. Before a renewal we write to you with the amount and the date, and cancelling any time before it means you are not charged. [Owner: the reminder is written (`docs/copy/emails/renewal-reminder-7-days.md`) and nothing sends it, because nothing renews yet — there is no checkout and no payment provider. The notice period is not stated here until the mail is actually sent. There is no annual plan and no family plan; the tiers are Free, Pro and Max, monthly, and this article names no other.]
+Pro and Max are sold by the month or by the year, and either one renews on its own at the end of every period until you cancel. The checkout shows the amount and the day of the next charge before you pay, and the card on Your plan shows them again afterwards. Cancelling any time before that day means you are not charged. [Owner: the 7-day reminder is written (`docs/copy/emails/renewal-reminder-7-days.md`) and nothing in `services/gateway` sends it yet, so the notice period is not stated here until the mail is wired. There is no family plan; a plan covers one learner on every plan and every period.]
 
 **Cancelling**
-Open You, the last of the four doors, and find the card called Your plan. Cancel is on it. Two taps: the control, and one confirmation that says what happens. No offer to stay, no reason to give, no survey. You keep your plan until the end of the period you paid for, nothing renews after that, and the account goes back to free with everything you have learnt intact. Change your mind before that date and one tap puts the plan back.
+Open You, the last of the four doors, and find the card called Your plan. Cancel is on it. Two taps: the control, and one confirmation that says what happens. No offer to stay, no reason to give, no survey. You keep your plan until the end of the period you paid for, nothing renews after that, and the account goes back to free with everything you have learnt intact. Once it is cancelled it cannot be switched back on, so the confirmation says so before you tap it, and starting again after that date is a fresh plan.
 
 **Money back**
 We do not give money back as a gesture of goodwill. Cancelling is the answer instead: you keep the plan until the period you paid for ends and nothing renews. Where the law gives you a refund you still have it, and the cancellation document lists every case.
 
 **Receipts**
-Every payment gets one by email. For anything that looks wrong, write to [support email] with it.
+Your payment provider sends its own confirmation for every charge. We do not send a receipt of our own yet. For anything that looks wrong, write to [support email] with it.
 
 **Related:** Your privacy and your data.

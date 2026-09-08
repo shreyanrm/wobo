@@ -149,9 +149,21 @@ export async function stillOpen(fetcher: typeof fetch = fetch): Promise<boolean>
 }
 
 /** End the session server-side, then forget both proofs whatever the server said. Forgetting is
- *  unconditional on purpose: a revoke that failed must still not leave a live token in this tab. */
+ *  unconditional on purpose: a revoke that failed must still not leave a live token in this tab.
+ *
+ *  DELETE on `/v1/admin/session`, which is the route that actually revokes the row
+ *  (`admin_auth.close_console_session`). The POST to `/v1/admin/session/end` this used to send
+ *  reached a route that has never existed: it 404'd, `api.statusToReason` read the 404 as
+ *  'not_deployed', and the result was thrown away here — so an operator pressed sign-out, saw a
+ *  locked console, and left a live session token on the server. */
 export async function signOut(fetcher: typeof fetch = fetch): Promise<Session> {
-  await write('sessionEnd', {}, (value): value is unknown => value !== undefined, fetcher);
+  await write(
+    'sessionEnd',
+    undefined,
+    (value): value is unknown => value !== undefined,
+    fetcher,
+    'DELETE',
+  );
   clearProofs();
   return { state: 'locked', why: null };
 }

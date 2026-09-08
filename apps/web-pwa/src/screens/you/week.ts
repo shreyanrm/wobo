@@ -297,7 +297,7 @@ export interface Segment {
 
 /** The line at the top of the You screen. Every number is the ledger's. */
 export function weekSentence(s: WeekSummary): Segment[] {
-  if (s.showedUp === 0) return [{ text: 'Rest is part of learning — quiet days are allowed' }];
+  if (s.showedUp === 0) return [{ text: 'Rest is part of learning. Quiet days are allowed.' }];
   const out: Segment[] = [];
   const days = `You showed up ${word(s.showedUp)} ${plural(s.showedUp, 'day', 'days')}`;
   if (s.asked > 0) {
@@ -377,7 +377,7 @@ export function strengths(s: WeekSummary): Strength[] {
 
 /** The Sunday note, as the parent reads it. The shape is the site's; the numbers are the week's. */
 export function sundayNote(s: WeekSummary, name: string): Segment[] {
-  if (s.showedUp === 0) return [{ text: 'Rest is part of learning — quiet days are allowed' }];
+  if (s.showedUp === 0) return [{ text: 'Rest is part of learning. Quiet days are allowed.' }];
   const who = name.trim() || 'They';
   const lessons = `${word(s.entered)} ${plural(s.entered, 'lesson', 'lessons')}`;
   const problems = `${word(s.answered)} ${plural(s.answered, 'problem', 'problems')}`;

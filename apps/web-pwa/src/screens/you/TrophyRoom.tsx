@@ -140,7 +140,7 @@ export function TrophyRoom({
       <div style={{ height: 1, background: 'var(--wobo-card-border)', marginTop: 8 }} />
       <div style={{ fontSize: '0.8rem', color: 'var(--wobo-ink-faint)', marginTop: 8 }}>
         {earnedObjects.length === 0
-          ? 'The room is waiting — your first trophy is one finished course, a three-day streak, or 250 XP away.'
+          ? 'The room is waiting. Your first trophy is one finished course, a three-day streak, or 250 XP away.'
           : `${earnedObjects.length} on display · the dim shelves name what comes next`}
       </div>
     </div>

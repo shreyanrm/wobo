@@ -64,8 +64,10 @@ export function consentBranch(age: number): ConsentBranch {
       holder: 'parent',
       parentRequired: true,
       parentOffered: true,
+      // NAMES NO SHAPE OF CONTACT. It used to say "give us their email", and the field under it
+      // asks for a phone number in every build that has ever shipped (`doors.ts` ParentWay).
       notice:
-        'You are under 13, so a parent or guardian holds the account with you. Give us their email and Wobo will ask them, from their own device.',
+        'You are under 13, so a parent or guardian holds the account with you. I ask them on their own device, and they let you in.',
     };
   }
   if (band === 'teen') {
@@ -90,13 +92,21 @@ export function consentBranch(age: number): ConsentBranch {
 export interface SignUpFields {
   /** ISO date, from the date input. Empty until answered. */
   birth: string;
-  /** The parent or guardian's address, when the branch asks for one. */
-  parentEmail: string;
+  /**
+   * THE PARENT OR GUARDIAN'S OWN CONTACT, in whichever form this build can actually reach them by:
+   * an address where a link can be sent, a number where a code can be. It was `parentEmail`, and
+   * an address was the only thing the field would take — which made the whole under-13 branch
+   * unreachable in every shipped build, because no build has ever had an email seam
+   * (`doors.ts` computes `emailSeam: null`) and the branch's only submit went down that seam.
+   * `parental-consent.md` §2 names both: "a message to the parent's own email address or phone
+   * number". The door now asks for whichever one it can send to.
+   */
+  parentContact: string;
   /** The terms and privacy tick. Never pre-ticked. */
   agreed: boolean;
 }
 
-export type BlockReason = 'birth' | 'birth-invalid' | 'parent-email' | 'agree' | null;
+export type BlockReason = 'birth' | 'birth-invalid' | 'parent-contact' | 'agree' | null;
 
 /** A rough shape check. Deliverability is the mail server's answer, not something to guess at here. */
 export function looksLikeEmail(value: string): boolean {
@@ -109,12 +119,21 @@ export function looksLikeEmail(value: string): boolean {
  * nothing is. The screen shows one thing at a time; a form that lights up five errors at once is a
  * form that has given up on the person filling it in.
  */
-export function blockedBy(fields: SignUpFields, now: Date = new Date()): BlockReason {
+export function blockedBy(
+  fields: SignUpFields,
+  now: Date = new Date(),
+  /**
+   * Whether the parent's contact is one this build can send to. It is passed in because only the
+   * screen knows which seam is wired: an address where a link can go, a number where a code can.
+   * The default is an address, which is what the gate meant when there was only one shape of it.
+   */
+  parentContactOk: (value: string) => boolean = looksLikeEmail,
+): BlockReason {
   if (!fields.birth) return 'birth';
   const age = ageOn(fields.birth, now);
   if (age === null) return 'birth-invalid';
-  if (consentBranch(age).parentRequired && !looksLikeEmail(fields.parentEmail)) {
-    return 'parent-email';
+  if (consentBranch(age).parentRequired && !parentContactOk(fields.parentContact)) {
+    return 'parent-contact';
   }
   if (!fields.agreed) return 'agree';
   return null;

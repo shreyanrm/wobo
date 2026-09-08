@@ -18,16 +18,20 @@
  *
  * WHAT EACH SURFACE MAY SAY ABOUT THE PERIOD (docs/PRICING.md, owner, 2026-09-04): a card shows the
  * per-month amount and the words under it — "billed annually" — and NEVER the annual total. The
- * total is not a selling number, it is the thing being agreed to, so it appears at checkout and
- * NOWHERE ON THIS PAGE. It briefly appeared here twice, in the checkout preview's `Today ₹19,992`
- * and in a sentence naming the day the next charge would be taken; the doc's own words are "It
- * must not appear on the plans page", and the sentence broke a second law as well —
+ * total is not a selling number, it is the thing being agreed to, so it appears at checkout, where
+ * that same document asks for "the exact amount and the date of the charge". The card at the bottom
+ * of this page is BOTH: a preview while payments are off, drawing no total at all, and the checkout
+ * itself the moment they are on, drawing what is taken today and what is taken when it comes round.
+ *
+ * IT COMES ROUND. That sentence used to be forbidden here, on the authority of
  * `services/gateway/src/wobo_gateway/billing.py` rule 2, in capitals: "NOTHING IN THIS REPO RENEWS
- * A SUBSCRIPTION, and no user-facing line may say one does." At the time there was no payment
- * provider, no webhook and no sweep, so a stated future date was a mechanism we could not show.
- * Both are gone, and the preview says only what this page is allowed to say: the per-month amount
- * and the words. The provider and its webhook have since landed on the gateway
- * (`services/gateway/src/wobo_gateway/billing/`); what they change here is the door, below.
+ * A SUBSCRIPTION, and no user-facing line may say one does. There is no payment provider, no
+ * webhook and no scheduled sweep." That file went with commit 692affc and the package that replaced
+ * it (`services/gateway/src/wobo_gateway/billing/`) has all three: `plans.py` creates every
+ * subscription with a `total_count` of five years or sixty months, and the provider charges the
+ * card again on its own until somebody cancels. The copy law forbids describing a mechanism we
+ * cannot show; denying one we do is the same lie the other way round, and on the screen that takes
+ * a family's money it is the more expensive of the two.
  *
  * There is NO country switch here, and there never will be. Law v5's copy law (DESIGN.md §0):
  * where someone is reading from is not a question worth asking. `readMarket()` answers it from the
@@ -85,7 +89,22 @@ import {
   showsCheckoutPreviewLink,
   startCheckout,
 } from './checkout-flow';
-import { ALLOWANCE_WORDS, BENEFITS, type Benefit, faqItems, PLANS_PAGE } from './copy';
+import {
+  bothTicked,
+  type ConsentState,
+  NO_CONSENT,
+  offerKey,
+  tick,
+  ticked,
+} from './consent';
+import {
+  ALLOWANCE_WORDS,
+  BENEFITS,
+  type Benefit,
+  faqItems,
+  PLANS_PAGE,
+  renewalValue,
+} from './copy';
 import {
   BEST_FOR,
   billedLine,
@@ -101,6 +120,8 @@ import {
   priceLabel,
   priceUnit,
   readMarket,
+  renewalLabel,
+  renewsOn,
 } from './prices';
 import { ensurePlansStyles } from './styles';
 
@@ -243,14 +264,23 @@ export function Plans() {
   // The one choice the whole page reads from. Yearly, because it is the better deal.
   const [period, setPeriod] = useState<Period>(DEFAULT_PERIOD);
   const [previewId, setPreviewId] = useState<PlanTier['id']>('pro');
-  const [terms, setTerms] = useState(false);
-  const [renewal, setRenewal] = useState(false);
+  // The two boxes, and the offer they were ticked FOR (`consent.ts`). Switching the period or the
+  // plan rewrites both sentences, so the answers given to the old ones stop counting on their own.
+  const [consent, setConsent] = useState<ConsentState>(NO_CONSENT);
   const checkoutRef = useRef<HTMLElement | null>(null);
   const preview =
     PLAN_TIERS.find((t) => t.id === previewId && t.price) ??
     PLAN_TIERS.find((t) => t.recommended) ??
     (PLAN_TIERS[1] as PlanTier);
   const c = PLANS_PAGE.checkout;
+  const offer = offerKey(preview.id, period);
+  const boxes = ticked(consent, offer);
+  // THE TWO FIGURES THE CHECKOUT STATES, worked out once: what is taken today, and the day the
+  // same amount is taken again. Both are the annual total on the yearly period, so both are drawn
+  // only inside the payments-on guard below — off, this card is a preview and docs/PRICING.md
+  // keeps the total off the plans page entirely.
+  const charge = chargeLabel(preview, market, period);
+  const comesRound = renewalLabel(renewsOn(new Date(), period), period);
   // The two cancel answers follow the period, so the page never answers for the other one.
   const faq = useMemo(() => faqItems(period), [period]);
 
@@ -285,7 +315,7 @@ export function Plans() {
 
   const buy = async () => {
     if (!pay?.on || busy) return;
-    if (!terms || !renewal) {
+    if (!bothTicked(consent, offer)) {
       dispatch({ type: 'stopped', message: CHECKOUT_LINES.untick });
       return;
     }
@@ -383,8 +413,11 @@ export function Plans() {
               <div className={CARD_CLASS[tier.id]} key={tier.id}>
                 {tier.recommended ? <span className="pl-best">{BEST_FOR}</span> : null}
                 <div className="pl-name">{tier.name}</div>
+                {/* A real space between the amount and its unit: the sheet's gap separates them
+                    on screen, and nothing separated them in the accessibility tree, so the cards
+                    were read out as "₹1,666a month". The checkout row below always had one. */}
                 <div className="pl-price">
-                  <span>{priceLabel(tier, market, period)}</span>
+                  <span>{priceLabel(tier, market, period)}</span>{' '}
                   <small>{priceUnit(tier)}</small>
                 </div>
                 {/* The words, never the total: both periods carry a line here, so the switch
@@ -488,19 +521,34 @@ export function Plans() {
                   are off this is a preview on the plans page, and docs/PRICING.md keeps the total
                   off the plans page. The monthly period names the month, never a year. */}
               {pay?.on ? (
-                <div className="pl-total">
-                  <span>{c.today}</span>
-                  <b>
-                    {chargeLabel(preview, market, period)} {c.totalFor[period]}
-                  </b>
-                </div>
+                <>
+                  <div className="pl-total">
+                    <span>{c.today}</span>
+                    <b>
+                      {charge} {c.totalFor[period]}
+                    </b>
+                  </div>
+                  {/* AND WHAT COMES ROUND AGAIN. `billing/plans.py` creates the subscription with
+                      a `total_count` of five years or sixty months, so the provider takes this
+                      amount again on its own until somebody cancels. It is the annual total a
+                      second time, so it lives behind the same payments-on guard: on the plans
+                      page there is no total (docs/PRICING.md), and where this card is the
+                      checkout there is the amount and the date, which is what that document
+                      gives the checkout. */}
+                  {charge ? (
+                    <div className="pl-row">
+                      <span>{c.renews}</span>
+                      <b>{renewalValue(charge, comesRound)}</b>
+                    </div>
+                  ) : null}
+                </>
               ) : null}
               <label htmlFor="consent-terms">
                 <input
                   id="consent-terms"
                   type="checkbox"
-                  checked={terms}
-                  onChange={(e) => setTerms(e.target.checked)}
+                  checked={boxes.terms}
+                  onChange={(e) => setConsent(tick(consent, offer, 'terms', e.target.checked))}
                 />
                 <div>
                   <b>{c.terms}</b>
@@ -511,8 +559,8 @@ export function Plans() {
                 <input
                   id="consent-renewal"
                   type="checkbox"
-                  checked={renewal}
-                  onChange={(e) => setRenewal(e.target.checked)}
+                  checked={boxes.renewal}
+                  onChange={(e) => setConsent(tick(consent, offer, 'renewal', e.target.checked))}
                 />
                 <div>
                   <b>{c.renewal[period]}</b>
