@@ -100,3 +100,28 @@ challenge to match equivalent pairs against the clock (make it fun). An ISC clas
 "nature of roots" gets the same three shapes with different content: a slider on the discriminant
 that moves the parabola across the axis, a sort of equations by number of real roots, a challenge
 to classify twenty in a minute. Neither feels like the other. Both cost a fraction of today.
+
+## 6. The arcade: bonus levels in the middle of the climb (owner, 2026-09-08)
+
+**The owner:** optional study arcade games as bonus levels for extra XP, "every now and then in the
+middle" of a chapter, since the boss level already sits at the end.
+
+What exists: `engines/ArcadeShell.tsx` (score, lives, restart; one mechanic, answers rain down and a
+wrong catch costs a life; wired to real quiz items; records real evidence), the `bonus` stop type on
+the home map in marigold, and a once-keyed bonus award so XP cannot be farmed.
+
+The rules:
+- **Placement:** in the middle, not the end. After every second or third topic of a chapter, a bonus
+  level appears as a side door off the climb: optional, never in the path, never a nag. The boss
+  level stays the summit.
+- **The mechanic is the concept.** A bonus level exists only where speed or recall is genuinely the
+  skill (times tables, unit conversions, equivalent-fraction pairs, dates and order, balancing under
+  a clock). Never a multiple-choice quiz with lights on: the judges scored engagement 1.12 for
+  exactly "no tap can be wrong" and "all recognition".
+- **Six mechanics, not one skin:** catch, sort against the clock, match pairs, defend the number
+  line, build the sequence, the running quiz with lives. Templates filled from the level rendering,
+  zero model calls per play; the same game on two chapters looks and reads like two games.
+- **XP:** bonus XP is capped per day and separate from the XP that unlocks levels; a reward, never a
+  shortcut past the learning.
+- **The register and the never-narrate law hold inside a game.** Calm; older classes get a lighter
+  shell than class 6.
