@@ -98,8 +98,9 @@ in Updates or Promotions or Spam; they come straight to Primary. We need to do t
 Gmail's tabs are a classifier over three things: whether the sender is authenticated and known, what
 the mail looks like, and what people do with it. Brilliant lands in Primary because all three are
 in order. Ours, measured on 2026-09-08: **none of the three exist yet.** `heywobo.com` publishes no
-SPF, no DKIM, no DMARC and no MX record; Resend has no verified domain; so the gateway holds every
-live send as `domain_unverified` and not one mail from Wobo has ever reached an inbox. Wording is the
+SPF, no DKIM, no DMARC and no MX record (so no domain can be verified with Resend; the send-only
+key we hold cannot list domains, DNS is the proof); so the gateway holds every live send as
+`domain_unverified` and not one mail from Wobo has ever reached an inbox. Wording is the
 third thing; the first two come first.
 
 **First, the identity (an owner action, half an hour, once):**

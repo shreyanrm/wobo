@@ -1474,7 +1474,7 @@ from the console with an audit row. Wave 36.
 ### 10.40 The mail has never left the building (2026-09-08, on the Primary-tab question)
 
 The owner asked how Brilliant lands in Primary. Measured: `heywobo.com` has no SPF, DKIM, DMARC or MX
-on any public resolver and Resend has no verified domain, so `EMAIL_MODE=live` on Railway has been
+on any public resolver (the Resend key is send-only and cannot list domains; DNS is the proof), so `EMAIL_MODE=live` on Railway has been
 holding every send as `domain_unverified`. Nothing has reached anyone. The fix is DNS, an owner
 action (docs/EMAILS-AND-ANIMATIONS.md §6, four steps), and then wave 38 enforces the shape and the
 seed test measures placement. Add to the owner's list in §10.27: (18) add the domain in Resend and
