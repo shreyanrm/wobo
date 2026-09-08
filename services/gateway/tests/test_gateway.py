@@ -82,7 +82,9 @@ def test_tracks_are_never_conflated() -> None:
 TIER_TABLE = {
     Tier.TINY: ("openai/gpt-5.6-luna", "anthropic/claude-haiku-4-5"),
     Tier.TURN: ("openai/gpt-5.6-terra", "anthropic/claude-sonnet-5"),
-    Tier.GENERATE: ("openai/gpt-5.6-terra", "anthropic/claude-opus-5"),
+    # Owner, 2026-09-08: generation starts at the CHEAPEST model that passes and climbs one rung per
+    # judge rejection (luna, terra, sol); its outage chain stays cross-provider at the same class.
+    Tier.GENERATE: ("openai/gpt-5.6-luna", "anthropic/claude-haiku-4-5"),
     Tier.REASON: ("openai/gpt-5.6-sol", "anthropic/claude-opus-5"),
     Tier.VERIFY: ("openai/gpt-5.6-sol", "anthropic/claude-opus-5"),
 }
@@ -145,10 +147,11 @@ def test_the_cost_rule_escalates_one_tier_and_logs_the_reason(caplog) -> None:
 
     with caplog.at_level(logging.INFO, logger="wobo.gateway.telemetry"):
         escalated = escalate_for("engine.compose", "verifier rejected the derivation")
-    assert escalated == TIER_TABLE[Tier.REASON][0]  # generate -> reason, not straight to the top
+    # generation climbs its own ladder one rung at a time: luna -> terra, never straight to sol
+    assert escalated == "openai/gpt-5.6-terra"
     line = next(r for r in caplog.records if r.getMessage() == "gateway.escalation")
     assert line.fields["reason"] == "verifier rejected the derivation"
-    assert line.fields["from_tier"] == "generate" and line.fields["to_tier"] == "reason"
+    assert line.fields["from_tier"] == "generate" and line.fields["model"] == "openai/gpt-5.6-terra"
 
 
 def test_the_top_of_the_ladder_does_not_escalate() -> None:
