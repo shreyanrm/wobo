@@ -1529,3 +1529,17 @@ from a clean `git archive` export, `/healthz` degraded only for payments off, pr
 OpenAI key live. Web: promoted with `vercel deploy --prod --yes` from the same export; heywobo.com
 serves today's description ("A tutor that draws, never judges, and is always there"). Both ends on
 the same commit. Running: wave 35 (never narrate) and the understand workflow for the ink redesign.
+
+### 10.45 The ink's new law and the order of the queue (2026-09-08, evening)
+
+On the 0.92 scorecard the owner ruled: understand Clicky, then "come up with a plan in your head and
+trace it, that's all"; freeze the glass; and use what we know as the code that Clicky cannot. Six
+readers mapped Clicky's public mechanics and every line of our own ink path (brain, client, targets,
+doubt; preserved with the wave 33 reports as understand-clicky-and-our-ink.json). The law is
+docs/INK-FREEZE-PLAN-TRACE.md: one glass map from the rendered DOM carrying the content model's
+meaning, the glass held for the turn, a plan of at most two marks per sentence on Luna, one pen in
+screen px tracing from the real box, ink before the word, ink held while the ask is open, one-tick
+interruption; the overlay pipeline and the registry bridge go; the plane keeps BOARD.md's from-scratch
+grammar. Wave 39 was rebuilt on it (the glass, the plan, the trace, the seam; the same 59 turns
+re-judged; twelve live on Luna under the cap) and moves to the front: after 35 lands, 39 runs, then 34,
+36, 37, 38. Also today: quality is shared and quantity is sold (docs/ALLOWANCE.md, the free pool cap).
