@@ -87,8 +87,12 @@ for the destination.
   that a mail template references only these.
 - `apps/web-pwa/src/ui/orb-moves.css` and the loading screens per subject in `screens/course` and
   `screens/doubt`, under never-narrate, measured at 390 and 1440, both themes, reduced motion.
-- The router's card segment and the signed link; the superadmin's mail desk: sends, opens, clicks,
-  unsubscribes per kind, and the switch per kind.
+- The mail log moves into the database: `ops.mail_log`, append-only (migration 0024), because today it
+  is a JSONL file on a Railway instance with no volume, so every held would-send and every record of a
+  send is lost on each redeploy, and a mail desk cannot stand on that. The seed test's tab placements
+  and the Postmaster numbers land in the same schema.
+- The router's card segment and the signed link; the superadmin's mail desk on `ops.mail_log`: sends,
+  held, clicks, unsubscribes per kind, the tab each seed landed in, and the switch per kind.
 
 ## 6. Landing in Primary, not Promotions
 
