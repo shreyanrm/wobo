@@ -1508,3 +1508,15 @@ Punnett cells filling one at a time. The worst: a 15 cm lens asked and a 10 cm l
 verified; a route change that kept drawing the lesson's note over the Learn page. Wave 39 (written,
 queued after 32 lands: brain, choreography, targets, doubt; the same 59 turns re-scored; twelve live
 turns on Luna under the cap) closes them.
+
+### 10.43 Who pays, the free tier's five rupees, and dials that apply (2026-09-08)
+
+The owner's second ruling on money: the platform pays ONLY for the design work made once and cached
+(the blueprint and the concept cores on Astra); the first render of a level is the asking learner's
+and the cache serves the rest for nothing; every turn and re-explanation is the learner's allowance,
+because "keep teaching until they understand" is what a plan buys. Free is 5 rupees a day on the free
+lane (`routing.lane_tier`: turn steps down to tiny, Luna; tests in `test_router_fallbacks.py`); the
+creative work is identical for free and paid, which is where the quality lives. The console must show
+every expense by payer, plan, tier, capability and day, and every dial must apply within a minute
+without a deploy. Specified in docs/ALLOWANCE.md (two new sections) and docs/CONSOLE-MODELS.md
+("Expenses you can see, dials that apply"); wave 36 builds it.

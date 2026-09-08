@@ -479,3 +479,21 @@ def test_the_creative_job_is_registered_on_the_create_tier() -> None:
     assert not registry.platform_paid("generate.course")
     for served in ("wobo.turn", "engine.compose", "voice.tts", "doubt.read"):
         assert not registry.platform_paid(served), served
+
+
+def test_the_free_lane_runs_turns_on_luna_and_never_touches_the_creative_work() -> None:
+    """The owner, 2026-09-08: "for the free tier by default we only give them 5 rupees a day;
+    use models like luna for them to get slightly longer use... but we don't compromise on
+    quality". A free learner's turn runs on the tiny chain (Luna); a paid learner's on turn
+    (Terra). The creative work (Astra, platform-paid) is the same for both, which is where the
+    quality lives. A plan nobody recognises is treated as free, never as paid."""
+    from wobo_gateway.routing import lane_tier
+
+    assert lane_tier(Tier.TURN, "free") is Tier.TINY
+    assert lane_tier(Tier.TURN, None) is Tier.TINY
+    assert lane_tier(Tier.TURN, "mystery") is Tier.TINY
+    for paid in ("plus", "pro", "max"):
+        assert lane_tier(Tier.TURN, paid) is Tier.TURN, paid
+    for plan in ("free", "pro", None):
+        for tier in (Tier.CREATE, Tier.VERIFY, Tier.SAFETY, Tier.VOICE, Tier.VISION, Tier.TINY):
+            assert lane_tier(tier, plan) is tier, (tier, plan)

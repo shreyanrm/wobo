@@ -226,6 +226,24 @@ _ESCALATION: dict[Tier, Tier] = {
 }
 
 
+# --- the plan lanes (owner, 2026-09-08) ----------------------------------------------------------
+# "For the free tier by default we only give them 5 rupees a day; use models like luna for them to
+# get slightly longer use, lower quality comparatively, but we don't compromise on quality." The
+# quality lives in the creative work (Astra, once, cached, the platform's); the live turn is what
+# a plan buys. A free learner's turn runs on the tiny chain, a paid learner's on turn. Nothing else
+# moves: verify, safety, voice, vision and the creative tier are the same for everyone. A plan name
+# nobody recognises is free, never paid (the same rule budget.py and spend.py keep).
+_PAID_PLANS: frozenset[str] = frozenset({"plus", "pro", "max"})
+_FREE_LANE: dict[Tier, Tier] = {Tier.TURN: Tier.TINY}
+
+
+def lane_tier(tier: Tier, plan: str | None) -> Tier:
+    """The tier a call actually runs on for this plan: the free lane steps a turn down to tiny."""
+    if plan in _PAID_PLANS:
+        return tier
+    return _FREE_LANE.get(tier, tier)
+
+
 def _primary_name(tier: Tier) -> str:
     return f"tier.{tier.value}"
 

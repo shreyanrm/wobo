@@ -76,3 +76,29 @@ design, film choreography, on the create tier) is the platform's cost, marked
 `registry.PLATFORM_PAID`, booked to the creative pool on the models desk with its own cap, and
 never subtracted from anyone's day. The allowance code asks `registry.platform_paid(capability)`
 before it counts anything.
+
+## Who pays for what (owner, 2026-09-08, the second ruling)
+
+*"I don't want to pay for most of it or the generation of internal content, because we are saying
+we will keep teaching until they understand, and we aren't the ones paying for that."*
+
+| what | paid by | why |
+|---|---|---|
+| the blueprint of a topic (`engine.blueprint`) and a concept's core (`engine.create`), Astra, once per topic, board, grade, version, then cached for every learner | **the platform's creative pool** | made once, shared by everyone, the quality of the brand |
+| rendering a level for a cell the first time (`engine.compose`, `engine.simulate`, the films) | **the learner whose ask triggered it**; the cache serves the next learner of that cell for nothing | content the learner asked for; the store makes it nearly free after the first |
+| every turn, every re-explanation, every "again", the voice, a read page, the free-text-goal course | **the learner's allowance** | teaching until they understand is usage, and the plan buys usage |
+
+So the platform's share is small and bounded (the creative pool's cap), and "keep teaching until they
+understand" is paid by the plan, which is what a plan is for.
+
+## The free tier: five rupees a day, on Luna (owner, 2026-09-08)
+
+- Free is **5 rupees a day** by default (a dial on the console, applied live).
+- A free learner's turns run on the **free lane**: `routing.lane_tier` steps `turn` down to `tiny`
+  (Luna), so five rupees is roughly three hundred short turns instead of thirty. Paid plans run
+  turns on Terra.
+- **Quality is not where the lane is.** The blueprint, the cores, the films and the mechanics a
+  free learner gets are the same Astra-made, judged, cached work a paid learner gets; verify,
+  safety, voice, vision and never-narrate are identical; the cost rule still escalates a rejected
+  answer. What free buys less of is depth per turn and turns per day, never a wrong answer.
+- Money is never shown to a learner or a parent; the bar in the profile is the only trace.

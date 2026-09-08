@@ -61,3 +61,22 @@ The desk carries one more row and one more line: the **create** tier (GPT-6 Astr
 alert at 50/80/100 percent), shown beside the learners' spend and never mixed with it. The row
 shows what was created today (concepts, candidates, films), what it cost, and the cache's hit rate,
 so the owner can see the impressive stuff being paid for exactly once.
+
+## Expenses you can see, dials that apply (owner, 2026-09-08)
+
+*"I want to be able to track all these expenses in my dashboards and adjust them so that what I
+request will apply."* Two obligations on the console:
+
+**See.** Spend by day, by payer (the creative pool; learners by plan: free, plus, pro, max; strangers),
+by tier and model, by capability, with cache hit rates beside every content row so paid-once work is
+visibly paid once. Per learner on the learner's admin page: today's allowance, spent, on which tiers.
+The daily ceiling, the creative pool's cap and the free tier's rupees each with a bar. Exported as a
+CSV a month at a time. The provider dashboards remain the authority for the bill; the desk
+reconciles to them and shows the gap.
+
+**Apply.** Every dial the owner changes (generosity, the free tier's rupees, the creative pool's cap,
+the daily ceiling, any tier's model, a promo code) is written to `ops.settings` with an audit row,
+and the gateway reads it within a minute without a deploy: `routing.configure()` and the spend and
+allowance readers re-read on a short interval and on a `/v1/admin/settings/apply` call. The desk
+shows "applied at" next to each dial and turns red if the gateway's view lags. A test proves a
+changed dial changes the very next call's model and cap.
