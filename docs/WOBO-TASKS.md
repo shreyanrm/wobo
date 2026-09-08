@@ -709,9 +709,10 @@ needed it was asked and the answer is recorded beside the task.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
 ### 10.11 Running now (refreshed 2026-09-08)
-- Nothing running. Wave 29 landed in `f7f22aa`; wave 31 (the gateway content fixes, built in the lab while the
-  repo was unreadable) is being applied now. Next: a wave for the site region (10), the learn region (7),
-  board-5/6, and the five web-side content fixes; then redeploy.
+- Wave 29 landed `f7f22aa`; wave 31 (the gateway content fixes) landed `716e934`. Gateway and web redeploying.
+- [ ] **Wave 32** — the site region (10), the learn region (7), board-5/6, the web half of the content
+      scorecard (0 of 3 is a pass, untappable marks, MathScene, scene titles, unreached activities, the seed
+      shown as a lesson), and the films (generation never emits motion; the sanitiser was never the cause)
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
       "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
@@ -1411,3 +1412,22 @@ gateway 4176, gate clean):
 
 **The owner should know:** plans are created with five years of auto-charges (`billing/plans.py` TOTAL_COUNT
 yearly 5, monthly 60). The You panel now discloses the renewal; the count itself is a decision (§10.27, 7).
+
+### 10.34 Wave 31 landed (2026-09-08, `716e934`): the gateway half of the content fix list
+
+Built in a clean lab export while the repository was unreadable; applied as one patch, no conflicts. The gate
+refuses (below the bar stays provisional and pages; an unreachable judge promotes nothing); the board, class,
+subject, chapter and syllabus version reach the prompt and the rubric and the artifact key (CBSE-8 no longer
+equals ISC-11; a version change regenerates); a cached record is re-sanitised and re-linted on every read and
+refused if bad; a seed is never canonical, never verified, carries provenance.placeholder, and refunds the
+learner's generation; answer keys are machine-checked (9 of 72 checkable, one real error caught, zero false
+refusals); the fact base matches on subject; image and speech are priced and speech is cached. The adversary
+opened two leaks in the first cut (a case-sensitive attribute name; a check that looked only inside the svg
+slice) and both are closed. Gateway suite 4293, up 117.
+
+**The claim that did not survive:** "one sanitiser line un-blanks every film". The raw model responses carry
+no animation functions; the films are blank because generation never emits motion. Wave 32 owns that.
+
+**A lesson about the tooling, recorded so it is not repeated:** `git apply --3way` stages into the index, and a
+docs commit run in parallel swept the 26 patched files in under its message. Split back apart before the
+verified commit. Never run two index-mutating git commands in the same breath.
