@@ -708,11 +708,10 @@ needed it was asked and the answer is recorded beside the task.
       that width the header now carries the wordmark and one control; signing in lives in the footer.
       STILL TO APPLY to the React header once Wave 9 releases `screens/site/`
 
-### 10.11 Running now (refreshed 2026-09-07 evening)
-- [ ] **Wave 29** `wf_049640be-455` (task `wh11qn0wd`) — the whole application, seven regions. The You region
-      already walked and found 13 (see 10.30); the other six walk now, then confirm, fix, regress
-- [ ] **Wave 30** `wf_126f92fa-1bf` (task `wwn2rz8sv`) — the content judged; the generate stage re-runs because
-      the disk filled last time and the social group's numbers were placeholders
+### 10.11 Running now (refreshed 2026-09-08)
+- Nothing running. Wave 29 landed in `f7f22aa`; wave 31 (the gateway content fixes, built in the lab while the
+  repo was unreadable) is being applied now. Next: a wave for the site region (10), the learn region (7),
+  board-5/6, and the five web-side content fixes; then redeploy.
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
       "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
@@ -1383,3 +1382,32 @@ route exposes no cache flag.
 board, the class and the chapter; the store key must include them and the syllabus version; the video seam must
 either render or stop calling a seed canonical; flashcards, podcast and a real reading want to be capabilities,
 not optional attachments; the moderation layer must not block our own composer's titles.
+
+### 10.33 Wave 29 landed (2026-09-08, `f7f22aa`): 33 of 60 findings closed; the block, and what it cost
+
+The whole-application walk (§10.30 for the You region) found 60 across seven regions, confirmed 57. Five
+regions' fixers finished; two never ran, because macOS revoked this process's access to Documents mid-run
+(§10.31, the TCC memory). Landed and verified as an exact index (typecheck 0, web 2369, wobo 738, sdk 169,
+gateway 4176, gate clean):
+
+- **Doors (7):** under-13 sign-up was a dead end (its only submit called an email seam that has never
+  existed); the age gate recorded nothing; a teen was asked for a parent address under a false promise;
+  the provider round trip landed on the bare origin; sign-out existed only in the command palette; a
+  phone number with no country code was sent; the 44px touch floor stopped at 900px.
+- **You (14):** the class picker was always empty once the world was pinned; the yearly renewal was
+  undisclosed (now: "renews on <date>, and the same amount is taken again"); the refund page said every
+  plan was monthly; a refused parent-unlink showed as success; a WhatsApp promise for nothing; a dead
+  checkout link; em dashes; lowercase sentence starts; a console error on every signed-out plans visit.
+- **Gateway (7):** speaking spent the question allowance (its own counter now, in spoken lines).
+- **Doubt (5):** the one-tap door under a transformed wrapper; a doubt filed as explained when nothing was.
+- **Board (5 of 7):** wipe and put-away now act on the board actually in front of the learner and say
+  whether anything went; a silent re-teach ask no longer moves the board; typing a space no longer cuts
+  the answer; quiz_me can finally open the board. The fixer was cut before writing tests; they are written
+  now. **board-5 and board-6 (wobo.py) remain open.**
+- **Repaired by hand after the block:** the voice-session route answered "unavailable" ahead of the spend
+  ceiling; an em dash in a comment; the runtime's unused import and the silent turn's override wiring.
+
+**Still open from the walk:** the public site (10 findings) and the learning surfaces (7). Their fixers never ran.
+
+**The owner should know:** plans are created with five years of auto-charges (`billing/plans.py` TOTAL_COUNT
+yearly 5, monthly 60). The You panel now discloses the renewal; the count itself is a decision (§10.27, 7).
