@@ -1491,3 +1491,20 @@ docs/CONSOLE-MODELS.md (the creative pool), docs/OPERATIONS.md §11.7. Wave 37 w
 creative step to `engine.create` and stores the candidates; wave 36's allowance asks
 `registry.platform_paid()` before counting and the desk shows the pool. Also today: GPT-5.6 Sol's
 price is promotional through 2026-11-21 (catalogue note) and the long-context boundary is 272K.
+
+### 10.42 The ink judged on real screens: 0.92 of 4, and the planner still unmeasured (2026-09-08)
+
+Wave 33 (four surfaces, five judges each, a skeptic each, one scorecard): 59 turns, 247 findings, 239
+confirmed, 8 refuted; grand mean **0.92/4** (course 0.72, board from scratch 0.76, doubt 1.02, world
+1.29); lens means relevance 0.92, correctness 0.83, craft 0.68, timing 1.42, experience 0.75. The
+controlling fact: every provider was out of credit during the run, so the planner is unmeasured and
+what was judged is the pipelines, the registry, the layout and the client choreography on the
+keyless and fallback paths. Lab spend: $0.0004. Root causes A to G and a 12-step ordered fix list
+with files and lines are in the preserved scorecard
+(`~/.claude/projects/-Users-depl-Documents-classess-learner/wave33-ink-reports/reports/INK-SCORECARD.md`,
+with the best and worst frames beside it). The best measured moments: a ring that rides a scrolled
+row with zero drift; a theme flip that re-inks mid-stroke; Escape stopping pen and voice in one tick;
+Punnett cells filling one at a time. The worst: a 15 cm lens asked and a 10 cm lens drawn and signed
+verified; a route change that kept drawing the lesson's note over the Learn page. Wave 39 (written,
+queued after 32 lands: brain, choreography, targets, doubt; the same 59 turns re-scored; twelve live
+turns on Luna under the cap) closes them.
