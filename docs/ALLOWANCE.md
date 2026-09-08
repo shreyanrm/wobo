@@ -102,3 +102,32 @@ understand" is paid by the plan, which is what a plan is for.
   safety, voice, vision and never-narrate are identical; the cost rule still escalates a rejected
   answer. What free buys less of is depth per turn and turns per day, never a wrong answer.
 - Money is never shown to a learner or a parent; the bar in the profile is the only trace.
+
+## Best of both worlds: quality is shared, quantity is sold (owner, 2026-09-08)
+
+*"I don't want free users to get low quality content and not be impressed and not upgrade. We should
+absolutely impress them on free, but I can't keep giving free service out of goodwill and pay from my
+pocket. We need the best of both worlds."*
+
+The rule that gives both:
+
+1. **Everything impressive is made once and shared.** The blueprint, the concept cores, the mechanics,
+   the films, the loading scenes, the ink choreography: Astra-made, judged, cached, and served to a free
+   learner exactly as to a paid one. Its cost is the platform's, paid once, and spread over every
+   learner who ever opens that cell; per learner it rounds to nothing. Free is never a worse Wobo.
+2. **What a plan buys is more of Wobo, never a better Wobo.** Free is five rupees of live tutoring a
+   day, on Luna, which is about three hundred short turns, far more than a twenty-minute session uses.
+   A paid plan buys a bigger day, Terra behind the turns for deeper explanations, more voice, more
+   photographed doubts, offline downloads, and the parent's account. The bar in the profile shows a day
+   running out, and the upgrade is more time with Wobo, not the real Wobo.
+3. **Never a degraded answer.** When the day is spent, Wobo says one kind line and offers tomorrow or
+   more, never a thinner answer. A bad answer costs the brand more than a refused one.
+4. **The owner's exposure is bounded twice.** Per learner by the daily allowance (a free learner who
+   uses every rupee costs at most 150 rupees a month, and most use a fraction), and in total by a
+   **free pool cap** on the console: the day's spend on free learners, with a dial and an alert, so
+   growth cannot outrun the money. A cohort dial lets the owner change free learners' generosity by
+   age of account (for instance a smaller day after sixty days without upgrading), off by default.
+5. **What it costs, in numbers:** a Luna turn is about 0.0007 USD; a heavy free session of thirty
+   turns is about 2 rupees; the creative pool is a one-time cost per cell. The console shows free
+   learners' spend against the free pool every day, so the owner sees the goodwill in rupees, not in
+   surprises.
