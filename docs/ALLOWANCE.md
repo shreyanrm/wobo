@@ -25,12 +25,13 @@ arithmetic; the learner sees one bar.
 
 ## 2. What the learner sees
 
-One bar on the You page, under the plan: **"Today"**, filled by today's spend against today's
-allowance, with one line underneath: "Resets at midnight." No rupee figure for a learner; a parent
-paying for the child sees the same bar with the rupees beside it on the parent's own page. When the
-bar is full, Wobo says the same honest line the question counter says today, and the lesson already
-on screen stays; nothing already generated is taken away. Never a number for the month, never the
-word "budget", never the generosity fraction.
+One bar on the You page, under the plan: **"Today"**, filled by today's use against today's
+allowance, with one line underneath: "Resets at midnight." **No money anywhere at the learner's end,
+and not at the parent's either** (the owner, 2026-09-08: "it's not money based at the users' end;
+that is only for internal purposes"). The rupees exist in the gateway's arithmetic and on the
+superadmin's pace desk, and nowhere else. When the bar is full, Wobo says the same honest line the
+question counter says today, and the lesson already on screen stays; nothing already generated is
+taken away. Never a number for the month, never the word "budget", never the generosity fraction.
 
 ## 3. What the superadmin sees (the console, `desks_api.py`)
 
@@ -62,6 +63,6 @@ word "budget", never the generosity fraction.
 ## 5. Decisions taken so nothing waits; say the word to change any
 
 - The free plan's ₹5 a day.
-- A learner sees the bar and no rupees; the paying parent sees the rupees.
+- Money is internal only: no currency on any learner or parent surface; the bar is the only thing shown.
 - The counters stay as abuse caps rather than being deleted.
 - Generosity is per plan, so Max can be more generous than Pro later without a deploy.
