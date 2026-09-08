@@ -176,3 +176,34 @@ The rules:
 - **What it costs, in one line:** about 3k tokens in and 8k out per concept, roughly 0.45 USD on
   Astra against 0.01 on Luna; the whole seeded syllabus (1,493 nodes) is about 670 USD once, at
   the platform's pace, never in one night.
+
+## 9. The architect (owner, 2026-09-08, the same hour)
+
+*"Astra should be like a designer, an architect, a visionary. It needs to think how a certain topic
+could be split and taught in the best possible ways, how the flow should be, what all types and
+sub-modules or levels there should be."*
+
+Today a syllabus topic is split into levels mechanically, and the only model-made course is the
+free-text-goal path (`generate.course`: a learner's own ask, six to ten node names, and rightly the
+learner's to pay for). The architect is a new job, `engine.blueprint`, on the create tier, paid by
+the platform, run once per topic, board, grade and syllabus version, judged, cached, and served to
+every learner of that cell. Its input is the syllabus node and its chapter outline, the subject,
+the board's register, the grade, and the archetypes we teach (never a person). Its output is the
+**blueprint**:
+
+- **The thread:** the one idea the topic is really about, in a sentence a learner of that grade
+  would say, and the misconceptions the topic exists to undo.
+- **The split:** the levels, each with its aim, its kind (a reading, a worked example, a
+  simulation, a film, a set of items, a game, a boss), the concept cores it needs (which
+  `engine.create` then makes), the misconception it targets, its minutes, and what it assumes.
+- **The flow:** the order and why; where a side door (the arcade, §7) sits and what it rehearses;
+  where the boss goes and what it must prove; where a learner may skip ahead and where they may
+  not; what a stuck learner is shown instead.
+- **The variety:** for each level, two or three candidate mechanics from the primitives, so the
+  90-day rotation of §3 is a pick from stored candidates, never a new bill.
+
+The blueprint is judged on the verify tier against the syllabus (nothing outside the node, nothing
+missing from it), the hours and register laws, and the content laws; a failed blueprint is
+regenerated once on the create tier's second rung, then held for the superadmin. Rendering each
+level for the cell stays on generate (Luna) and is the learner's; the web's placement keeps a
+learner's progress along the blueprint's levels rather than along the mechanical split.

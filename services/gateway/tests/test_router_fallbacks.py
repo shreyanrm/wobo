@@ -469,8 +469,13 @@ def test_the_creative_side_is_astra_and_astra_is_nowhere_else() -> None:
 def test_the_creative_job_is_registered_on_the_create_tier() -> None:
     from wobo_gateway import registry
 
-    policy = registry.policy("engine.create")
-    assert policy.tier is Tier.CREATE
-    assert registry.platform_paid("engine.create")
+    for creative in ("engine.create", "engine.blueprint"):
+        policy = registry.policy(creative)
+        assert policy.tier is Tier.CREATE, creative
+        assert policy.max_tokens >= 16000, creative  # an architect needs room
+        assert registry.platform_paid(creative), creative
+    # the free-text goal course is the learner's own ask, served and paid like content
+    assert registry.policy("generate.course").tier is Tier.GENERATE
+    assert not registry.platform_paid("generate.course")
     for served in ("wobo.turn", "engine.compose", "voice.tts", "doubt.read"):
         assert not registry.platform_paid(served), served
