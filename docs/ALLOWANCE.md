@@ -66,3 +66,13 @@ taken away. Never a number for the month, never the word "budget", never the gen
 - Money is internal only: no currency on any learner or parent surface; the bar is the only thing shown.
 - The counters stay as abuse caps rather than being deleted.
 - Generosity is per plan, so Max can be more generous than Pro later without a deploy.
+
+## Creative work is never on the allowance (owner, 2026-09-08)
+
+*"I don't want to charge the users; bill them only for content and usage."* A learner's daily
+allowance counts what is served to that learner: turns, voice, a read page, and the rendering of a
+level for their board and grade. The creative layer (`engine.create`: concept cores, interaction
+design, film choreography, on the create tier) is the platform's cost, marked
+`registry.PLATFORM_PAID`, booked to the creative pool on the models desk with its own cap, and
+never subtracted from anyone's day. The allowance code asks `registry.platform_paid(capability)`
+before it counts anything.

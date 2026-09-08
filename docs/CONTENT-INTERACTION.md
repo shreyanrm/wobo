@@ -146,3 +146,33 @@ The rules:
   shortcut past the learning.
 - **The register and the never-narrate law hold inside a game.** Calm; older classes get a lighter
   shell than class 6.
+
+## 8. The creative side runs on Astra, and the platform pays for it (owner, 2026-09-08)
+
+**The owner:** *"I think we should use Astra more on the creative side"*, and then: *"I want the
+superadmin to be responsible for the creative billing. I don't want to charge the users; bill them
+only for content and usage. This way our templates, caching and all the impressive stuff will be
+top notch."*
+
+So the three layers of §1 get their models by who pays for them:
+
+| layer | job | tier and model | paid by | how often |
+|---|---|---|---|---|
+| concept core, the interaction's design, the film's choreography | `engine.create` | **create: GPT-6 Astra** (Opus 5, then Flash behind it) | the platform's creative pool | once per concept and version, then cached for everyone |
+| level rendering for a board, grade, version | `engine.compose` and the rest | generate: Luna, then the ladder | the learner's allowance | once per cell, cached |
+| the served turn, the voice, the read page | `wobo.turn`, `voice.tts`, `doubt.read` | turn, tiny, voice, vision | the learner's allowance | every time |
+
+The rules:
+- **Astra designs, never serves.** It is on the create chain and on no other; nothing escalates
+  into it; when the platform's day is spent it steps down to generate and the cache carries on.
+- **One paid call makes several things.** A create call returns the core and two or three
+  candidate mechanics for the concept at once, so the 90-day variety of §3 comes from the stored
+  candidates and the judge's pick, not from paying Astra again. Regeneration happens on a signal
+  (the judge's score, the observer's flag, a version change), never on a clock.
+- **The platform pays** (`registry.PLATFORM_PAID`): a create call is never counted against a
+  learner's daily allowance and never appears on a learner's or a parent's surface. It lands in
+  the creative pool on the models desk, which has its own daily cap, its own line on the day's
+  spend, and its own alert.
+- **What it costs, in one line:** about 3k tokens in and 8k out per concept, roughly 0.45 USD on
+  Astra against 0.01 on Luna; the whole seeded syllabus (1,493 nodes) is about 670 USD once, at
+  the platform's pace, never in one night.

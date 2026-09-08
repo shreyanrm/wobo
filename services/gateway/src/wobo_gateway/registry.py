@@ -79,6 +79,7 @@ _TIER_BUDGETS: dict[Tier, tuple[int, float, int]] = {
     Tier.TINY: (1500, 0.002, 400),
     Tier.TURN: (8000, 0.02, 800),
     Tier.GENERATE: (12000, 0.08, 4000),
+    Tier.CREATE: (60000, 1.50, 24000),
     Tier.REASON: (20000, 0.20, 4000),
     Tier.VERIFY: (20000, 0.20, 2000),
     Tier.VISION: (20000, 0.05, 1500),
@@ -195,6 +196,9 @@ _POLICIES: dict[str, RoutingPolicy] = {
         _policy("generate.course", Tier.GENERATE, CacheTier.EXACT, max_tokens=1200),
         _policy("engine.compose", Tier.GENERATE, CacheTier.EXACT, max_tokens=16000),
         _policy("engine.simulate", Tier.GENERATE, CacheTier.EXACT, max_tokens=2000),
+        # the creative side: the concept core, the interaction's design, the film's choreography;
+        # once per concept and cached; the platform pays (PLATFORM_PAID), never the learner
+        _policy("engine.create", Tier.CREATE, CacheTier.EXACT, max_tokens=24000),
         _policy(
             "engine.diagram",
             Tier.GENERATE,
@@ -294,6 +298,7 @@ EXPECTED_CAPABILITIES: tuple[str, ...] = (
     "engine.simulate",
     "engine.diagram",
     "engine.video",
+    "engine.create",
     "archetype.classify",
     "peakcut.evaluate",
     "curriculum.search",
@@ -362,3 +367,14 @@ def validate_registry() -> None:
 
 
 validate_registry()
+
+
+# The owner, 2026-09-08: "the superadmin is responsible for the creative billing; bill the users
+# only for content and usage". These capabilities are paid from the platform's creative pool
+# (its own daily cap on the models desk) and are never counted against a learner's allowance.
+PLATFORM_PAID: frozenset[str] = frozenset({"engine.create"})
+
+
+def platform_paid(capability: str) -> bool:
+    """Is this call the platform's cost rather than the learner's?"""
+    return capability in PLATFORM_PAID

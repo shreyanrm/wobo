@@ -17,7 +17,8 @@ tier        first                       second                        last
 ==========  ==========================  ============================  =========================
 tiny        openai/gpt-5.6-luna         anthropic/claude-haiku-4-5    gemini/gemini-2.5-flash
 turn        openai/gpt-5.6-terra        anthropic/claude-sonnet-5     gemini/gemini-2.5-flash
-generate    openai/gpt-5.6-terra        anthropic/claude-opus-5       gemini/gemini-2.5-flash
+generate    openai/gpt-5.6-luna         anthropic/claude-haiku-4-5    gemini/gemini-2.5-flash
+create      openai/gpt-6-astra          anthropic/claude-opus-5       gemini/gemini-2.5-flash
 reason      openai/gpt-5.6-sol          anthropic/claude-opus-5       gemini/gemini-2.5-flash
 verify      openai/gpt-5.6-sol          anthropic/claude-opus-5       gemini/gemini-2.5-flash
 voice       Gemini TTS                  openai/gpt-4o-mini-tts        the device's own voice
@@ -94,6 +95,7 @@ class Tier(StrEnum):
     TINY = "tiny"
     TURN = "turn"
     GENERATE = "generate"
+    CREATE = "create"
     REASON = "reason"
     VERIFY = "verify"
     VOICE = "voice"
@@ -181,6 +183,10 @@ DEFAULT_TABLE: dict[Tier, tuple[str, ...]] = {
     Tier.TINY: ("openai/gpt-5.6-luna", "anthropic/claude-haiku-4-5", _GEMINI_TEXT),
     Tier.TURN: ("openai/gpt-5.6-terra", "anthropic/claude-sonnet-5", _GEMINI_TEXT),
     Tier.GENERATE: ("openai/gpt-5.6-luna", "anthropic/claude-haiku-4-5", _GEMINI_TEXT),
+    # The creative side (owner, 2026-09-08: "use astra more on the creative side"): the concept
+    # core, the interaction\'s design, the film\'s choreography. Paid ONCE per concept and cached,
+    # billed to the platform\'s creative pool and never to a learner\'s allowance; on no other chain.
+    Tier.CREATE: ("openai/gpt-6-astra", "anthropic/claude-opus-5", _GEMINI_TEXT),
     Tier.REASON: ("openai/gpt-5.6-sol", "anthropic/claude-opus-5", _GEMINI_TEXT),
     Tier.VERIFY: ("openai/gpt-5.6-sol", "anthropic/claude-opus-5", _GEMINI_TEXT),
     # The live seams pin their own Gemini ids (voice.VOICE_MODEL, plexus.media.TTS_MODEL,

@@ -28,7 +28,7 @@ from wobo_gateway import health, model_call, routing, spend
 from wobo_gateway.routing import Tier, Track, resolve_any, tier_fallbacks, tier_model
 
 OPENAI, ANTHROPIC, GEMINI = "openai", "anthropic", "gemini"
-TEXT_TIERS = (Tier.TINY, Tier.TURN, Tier.GENERATE, Tier.REASON, Tier.VERIFY)
+TEXT_TIERS = (Tier.TINY, Tier.TURN, Tier.GENERATE, Tier.CREATE, Tier.REASON, Tier.VERIFY)
 
 
 def chain_of(tier: Tier) -> list[str]:
@@ -55,6 +55,7 @@ OWNERS_WORD = {
     Tier.TINY: "openai/gpt-5.6-luna",
     Tier.TURN: "openai/gpt-5.6-terra",
     Tier.GENERATE: "openai/gpt-5.6-luna",
+    Tier.CREATE: "openai/gpt-6-astra",
     Tier.REASON: "openai/gpt-5.6-sol",
     Tier.VERIFY: "openai/gpt-5.6-sol",
 }
@@ -446,3 +447,30 @@ def test_generation_starts_at_the_cheapest_model_that_passes_and_climbs_one_rung
         )
     finally:
         routing.configure()
+
+
+def test_the_creative_side_is_astra_and_astra_is_nowhere_else() -> None:
+    """The owner, 2026-09-08: "use astra more on the creative side". The create tier is the
+    concept core, the interaction's design and the film's choreography: paid once per concept
+    and cached, never a per-turn rung. Astra sits on that chain and on no other, nothing
+    escalates into it, and when the day is spent it steps down to generate."""
+    from wobo_gateway import spend
+    from wobo_gateway.routing import escalation_tier
+
+    assert chain_of(Tier.CREATE)[0] == "openai/gpt-6-astra"
+    for tier in Tier:
+        if tier is not Tier.CREATE:
+            assert "openai/gpt-6-astra" not in chain_of(tier), tier
+        assert escalation_tier(tier) is not Tier.CREATE, tier
+    assert escalation_tier(Tier.CREATE) is None
+    assert spend.cheaper_tier(Tier.CREATE) is Tier.GENERATE
+
+
+def test_the_creative_job_is_registered_on_the_create_tier() -> None:
+    from wobo_gateway import registry
+
+    policy = registry.policy("engine.create")
+    assert policy.tier is Tier.CREATE
+    assert registry.platform_paid("engine.create")
+    for served in ("wobo.turn", "engine.compose", "voice.tts", "doubt.read"):
+        assert not registry.platform_paid(served), served

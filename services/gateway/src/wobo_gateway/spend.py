@@ -125,6 +125,7 @@ _DEFAULT_WARN_FRACTIONS = (0.5, 0.8, 1.0)
 # By PRICE, not by tier order: since 2026-09-08 generate sits on luna, the floor, so there is nothing
 # cheaper to fall to and a degraded generation is served as it is (both callers treat None so).
 _CHEAPER: dict[Tier, Tier] = {
+    Tier.CREATE: Tier.GENERATE,
     Tier.VERIFY: Tier.TURN,
     Tier.REASON: Tier.TURN,
     Tier.TURN: Tier.TINY,

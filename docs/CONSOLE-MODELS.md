@@ -53,3 +53,11 @@ forty-five times Luna and the daily allowance would buy six of them. The desk
 shows the promotion's end date beside Sol's price and turns the row amber thirty days before it, and
 the catalogue's prices are re-read from the vendor pages on the first of every month with the diff
 logged to the audit.
+
+## The creative pool (owner, 2026-09-08)
+
+The desk carries one more row and one more line: the **create** tier (GPT-6 Astra first) and the
+**creative pool**, the platform's own daily cap for it (default 40 USD, its own dial, its own
+alert at 50/80/100 percent), shown beside the learners' spend and never mixed with it. The row
+shows what was created today (concepts, candidates, films), what it cost, and the cache's hit rate,
+so the owner can see the impressive stuff being paid for exactly once.
