@@ -710,7 +710,7 @@ needed it was asked and the answer is recorded beside the task.
 
 ### 10.11 Running now (refreshed 2026-09-08)
 - Wave 29 landed `f7f22aa`; wave 31 (the gateway content fixes) landed `716e934`. Gateway and web redeploying.
-- [ ] **Wave 32** — the site region (10), the learn region (7), board-5/6, the web half of the content
+- [ ] **Wave 32** `wf_c2d87ad5-6a6` (task `wqfk2df8s`) — the site region (10), the learn region (7), board-5/6, the web half of the content
       scorecard (0 of 3 is a pass, untappable marks, MathScene, scene titles, unreached activities, the seed
       shown as a lesson), and the films (generation never emits motion; the sanitiser was never the cause)
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
