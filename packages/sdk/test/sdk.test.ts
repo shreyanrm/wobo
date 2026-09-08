@@ -8,7 +8,9 @@ describe('identity boundary', () => {
     const session = await sdk.identity.getSession();
     expect(session.subject_id).toBe('00000000-0000-7000-8000-000000000001');
     expect(session.consent_tier).toBe('un_elevated');
-    expect(session.display_name).toBe('Learner');
+    // No name means no name (DESIGN.md §0.x): the dev session never mints a placeholder one, so
+    // nothing downstream can greet, label or address a learner as "Learner".
+    expect(session.display_name).toBeUndefined();
     expect(await sdk.identity.getAccessToken()).toBeNull();
   });
 

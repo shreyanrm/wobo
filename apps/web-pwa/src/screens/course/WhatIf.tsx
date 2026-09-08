@@ -20,7 +20,7 @@ import { CardBody, cardTitle, equationType, lead, Scrubber, Stage, whisper } fro
 
 const HUE = 'var(--pig)';
 /** What Wobo says over the free-play plane — its one line, in its own voice. */
-export const FREE_PLAY_LINE = 'Pull any number. I am watching.';
+export const FREE_PLAY_LINE = 'Pull any number and watch the line move.';
 
 /**
  * The living plot behind the equation — y = a·x + b as a line, y = c as a horizon, their

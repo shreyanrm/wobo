@@ -39,7 +39,8 @@ export const DEV_DEFAULTS: SdkConfig = {
   mockSubjectId: '00000000-0000-7000-8000-000000000001',
   consentTierDefault: 'un_elevated',
   surface: 'pwa',
-  displayName: 'Learner',
+  // No default name. A dev session used to be "Learner", and the word reached a lesson header
+  // as "Wobo · with Learner" (DESIGN.md §0.x). No name means no name.
   llmMode: 'mock',
   contentMode: 'seed',
   persistMode: 'local',

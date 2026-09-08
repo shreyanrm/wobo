@@ -126,24 +126,14 @@ export function DiagramView({
   const clean = useMemo(() => svgIsClean(svg), [svg]);
   const ref = useRegisterTarget<HTMLDivElement>(`diagram-${id}`, { kind: 'diagram', label });
 
+  // A drawing that did not pass is not there. Nothing captions its absence (DESIGN.md §0.x): no
+  // box, no "being redrawn", no caption under an empty frame.
+  if (!clean) return null;
+
   return (
     <figure style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div ref={ref} style={{ width: '100%' }}>
-        {clean ? (
-          <SafeSvg svg={svg} label={label} />
-        ) : (
-          <div
-            style={{
-              ...whisper,
-              padding: '30px 0',
-              textAlign: 'center',
-              border: '0.5px solid var(--wobo-hairline-on-paper)',
-              borderRadius: 'var(--wobo-radius-md)',
-            }}
-          >
-            this diagram is being redrawn
-          </div>
-        )}
+        <SafeSvg svg={svg} label={label} />
       </div>
       {caption && <figcaption style={{ ...whisper, textAlign: 'center' }}>{caption}</figcaption>}
     </figure>

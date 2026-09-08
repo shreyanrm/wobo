@@ -343,10 +343,8 @@ def _name(data: dict[str, Any], key: str = "name", default: str = "there") -> st
 def account_created(data: dict[str, Any]) -> dict[str, str]:
     name = _name(data)
     body = (
-        _p("i'm Wobo, your AI wobot. i'll be the one learning how you think, so every idea "
-           "meets you where you are, not where a textbook assumes you are.")
-        + _p("there's nothing to set up. pick something you're curious about and we'll start "
-             "there. your first course is on me, written for you the moment you open it.")
+        _p("i'm Wobo. there's nothing to set up: pick something you're curious about and "
+           "we'll start there. your first course is on me, written the moment you open it.")
     )
     html_out = _shell(
         preheader="your account is ready, and so am i.",
@@ -359,9 +357,8 @@ def account_created(data: dict[str, Any]) -> dict[str, str]:
     )
     text = (
         f"welcome, {data.get('name') or 'there'}\n\n"
-        "i'm Wobo, your AI wobot. i'll be the one learning how you think, so every idea meets "
-        "you where you are.\n\nthere's nothing to set up. pick something you're curious about and "
-        "we'll start there. your first course is on me.\n\n"
+        "i'm Wobo. there's nothing to set up: pick something you're curious about and we'll "
+        "start there. your first course is on me.\n\n"
         f"start your first course: {_link(data, 'cta_url', '/learn')}\n\n"
         "— Wobo\nWobo · made for curious minds"
     )

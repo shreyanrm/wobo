@@ -50,7 +50,6 @@ import { type BarState, type LessonOutline, useAdvanceTarget } from './course/sh
 import { WhatIf } from './course/WhatIf';
 import { PlacementCheck, usePlacementGate } from './onboarding/PlacementCheck';
 import './course/lesson.css';
-import { loadProfile } from './you/profile';
 
 /** The three chips at the top: where Wobo's board shows. */
 const VIEWS: readonly { id: LessonView; label: string }[] = [
@@ -196,7 +195,6 @@ export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?
   );
   // This lesson's steps, reported by the player on stage; free play has none.
   const [outline, setOutline] = useState<LessonOutline | null>(null);
-  const learner = useMemo(() => loadProfile().name, []);
   const crumb = useMemo(() => {
     // free play on no topic in particular is just free play
     if (sandbox) return topic || custom ? `Free play · ${title}` : 'Free play';
@@ -261,18 +259,19 @@ export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?
         ))}
       />
       <div className="ls-lesson">
-        <section className="ls-plane" aria-label={`${title}, with Wobo`}>
+        <section className="ls-plane" aria-label={title} aria-busy={drawing || undefined}>
           <div className="ls-bar">
             <b>Wobo</b>
-            {learner ? ` · with ${learner}` : null}
             {/* on-stage voice controls: mute Wobo's narration, or replay the current card */}
             <span className="ls-voice">
               <ReplayButton onReplay={narration.replay} />
               <MuteButton />
             </span>
+            {/* the pen is moving: the pulse says so, no word does (DESIGN.md §0.x); aria-busy on
+                the section carries it to assistive tech */}
             {drawing && (
-              <span className="ls-live">
-                <i /> drawing
+              <span className="ls-live" aria-hidden="true">
+                <i />
               </span>
             )}
           </div>

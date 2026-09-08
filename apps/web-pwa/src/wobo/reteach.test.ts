@@ -232,7 +232,6 @@ describe('the re-teach changes an axis, never volume', () => {
     expect(again?.fresh).toBe(true);
     expect(again?.approach.id).toBe(order[0]); // used longest ago
     expect(again?.approach.id).not.toBe(order[order.length - 1]); // never the one that just failed
-    expect(again?.line).toContain('different example');
   });
 });
 
@@ -248,12 +247,19 @@ describe('the learner’s own world is used, and never invented', () => {
     expect(chooseApproach('c2', ctx())?.approach.id).not.toBe('their_world');
   });
 
-  it('the analogy rung is offered once a world is known, and names it in the line', () => {
+  it('the analogy rung is offered once a world is known', () => {
     const { sdk, nodeId } = fakeSdk();
     const opts = { nodeId, conceptId: 'c1', from: 'opener' as const, context: ctx('cricket') };
-    const lines: string[] = [];
-    for (let i = 0; i < RUNGS.length; i++) lines.push(reteachNow(sdk, opts)?.line ?? '');
-    expect(lines.some((l) => l.includes('cricket'))).toBe(true);
+    const chosen: string[] = [];
+    for (let i = 0; i < RUNGS.length; i++) chosen.push(reteachNow(sdk, opts)?.approach.id ?? '');
+    expect(chosen).toContain('their_world');
+  });
+
+  it('no rung carries a line of its own: the switch is never announced (DESIGN.md §0.x)', () => {
+    for (const a of APPROACHES) expect('line' in a).toBe(false);
+    const { sdk, nodeId } = fakeSdk();
+    const turn = reteachNow(sdk, { nodeId, conceptId: 'c1', from: 'opener', context: ctx() });
+    expect(turn && 'line' in turn).toBe(false);
   });
 });
 
@@ -264,7 +270,6 @@ describe('the switch rides the routing that already exists', () => {
       expect(ask.trim().length).toBeGreaterThan(0);
       expect(ask).not.toContain('{');
       expect(ask).not.toContain('—'); // copy law: no em dashes
-      expect(a.line(ctx('cricket'))).not.toContain('—');
     }
   });
 
@@ -290,7 +295,7 @@ describe('the switch rides the routing that already exists', () => {
     expect(reteachOnMiss(sdk, opts)).toBeNull(); // first miss is still noise
     const second = reteachOnMiss(sdk, opts);
     expect(second).not.toBeNull(); // the teaching still happens
-    expect((second?.line.length ?? 0) > 0).toBe(true);
+    expect((second?.ask.length ?? 0) > 0).toBe(true);
     expect(log).toHaveLength(0); // and nothing malformed reached the backbone
   });
 });

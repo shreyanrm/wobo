@@ -73,7 +73,6 @@ type Step = RunStep;
 /** The bubble's line on each step, verbatim. The door speaks its own (`SIGN_UP.hand`). */
 const BUBBLE: Partial<Record<Step, string>> = {
   1: SIGN_UP.hand,
-  2: "Tell me once. I'll find your exact chapter every week after.",
   4: 'On Sundays I write three lines home. Want someone to get them?',
 };
 
@@ -481,9 +480,6 @@ export function Onboarding() {
         {step === 2 && (
           <div className="ob-card">
             <WoboHead size={120} shadow className="ob-wobo" mood="listening" />
-            <div className="ob-bub">
-              Tell me once. I'll find your exact chapter every week after.
-            </div>
             <h1 ref={heading} tabIndex={-1}>
               Who's learning, and where?
             </h1>
@@ -635,21 +631,23 @@ export function Onboarding() {
           <div className="ob-card">
             <h1 ref={heading} tabIndex={-1}>
               Ask me anything from {grade ? classLine(grade) : 'your class'}
-              {boardLabel ? `, ${boardLabel}` : ''}. I'll draw it.
+              {boardLabel ? `, ${boardLabel}` : ''}.
             </h1>
-            <p className="ob-sub">
-              Try one of these, or type your own. This is the whole thing, in thirty seconds.
-            </p>
+            <p className="ob-sub">Try one of these, or type your own.</p>
             <div className="ob-aha">
               <div className="ob-bar">
-                <b>Wobo{firstName ? ` · with ${firstName}` : ''}</b>
+                <b>Wobo</b>
                 {chat.busy || drawing ? (
-                  <span className="ob-live">
-                    <i /> drawing
+                  <span className="ob-live" aria-hidden="true">
+                    <i />
                   </span>
                 ) : null}
               </div>
-              <div className="ob-canvas" aria-live="polite">
+              <div
+                className="ob-canvas"
+                aria-live="polite"
+                aria-busy={chat.busy || drawing || undefined}
+              >
                 {reply ? (
                   <div className="ob-hw">{reply}</div>
                 ) : question ? (
@@ -767,8 +765,7 @@ export function Onboarding() {
               .
             </h1>
             <p className="ob-sub">
-              Enough questions for a normal day, every day, for free. Hold space to talk to me, or
-              just type. I'll be here whenever you want me.
+              Enough questions for a normal day, every day, for free. Hold space to talk, or type.
             </p>
             <div className="ob-allow">
               <b>Today's allowance</b>

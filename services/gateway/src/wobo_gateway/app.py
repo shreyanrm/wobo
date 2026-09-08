@@ -964,10 +964,7 @@ def stream_board_turn(
             status_code=413,
             content={
                 "code": "too_much_at_once",
-                "message": (
-                    "That is more than one board. Ask me for a piece of it and I will "
-                    "draw that."
-                ),
+                "message": "That is more than one board. Ask for a piece of it.",
                 "objects": exc.count,
             },
             headers=headers,
@@ -1395,7 +1392,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                 status_code=404,
                 content={
                     "code": "turn_not_found",
-                    "message": "That one is already finished. Ask me anything.",
+                    "message": "That one is already finished.",
                 },
             )
         return JSONResponse(
@@ -1478,7 +1475,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                 status_code=403,
                 content={
                     "code": "sign_in_required",
-                    "message": "Sign in first and I will build this for you.",
+                    "message": "Sign in first.",
                 },
             )
         meter = http.state.meter_key

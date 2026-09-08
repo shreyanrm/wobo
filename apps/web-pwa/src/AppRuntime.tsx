@@ -416,11 +416,9 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     const start = Math.max(0, archive.length - CHAT_PAGE);
     return { tail: archive.slice(start), start };
   });
-  const [turns, setTurns] = useState<ChatTurn[]>(() =>
-    boot.tail.length > 0
-      ? boot.tail
-      : [{ id: 'seed', role: 'wobo', text: 'Ask me anything. I can see the page you are on.' }],
-  );
+  // A conversation begins when the learner speaks. Nothing is said before (DESIGN.md §0.x): an
+  // empty archive is an empty thread, never a bubble from nobody.
+  const [turns, setTurns] = useState<ChatTurn[]>(() => boot.tail);
   const loadedStart = useRef(boot.start);
   const [hasOlder, setHasOlder] = useState(boot.start > 0);
   const loadOlder = () => {
@@ -481,7 +479,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       bootTurns.current = false;
       return;
     }
-    sdk.state.saveThread('wobo', turns.slice(-60));
+    sdk.state.saveThread('wobo', turns.filter((t) => !t.ephemeral).slice(-60));
   }, [sdk, turns]);
 
   // One line into the one conversation. Hoisted out of `ask` so the board turn writes into exactly
@@ -570,8 +568,12 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       // Nothing came back with a shape after all — Wobo still owes the learner an answer. Unless
       // the learner cut Wobo off: BOARD.md §4 says the pen lifts and the voice stops, and a line
       // Wobo never asked for is not silence, it is Wobo talking over their own interruption.
+      // What lands is the honest thing (voice.md §6), never a filler that pretends to begin.
       if (outcome.completed && !outcome.said.trim() && outcome.objects === 0) {
-        growTurn(line.id, 'Let us look at this together.');
+        growTurn(
+          line.id,
+          'That one did not come out. Ask it once more, or say which part is the sticking point.',
+        );
       }
       sdk.events.record('wobo.turn.assistant.v1', {
         turn_id: crypto.randomUUID(),
@@ -654,11 +656,10 @@ function AppInner({ sdk }: { sdk: Sdk }) {
               : '';
         return `${e.event_type.replace(/\.v1$/, '')}${tail}`;
       });
-    // The first turn a learner ever takes with Wobo. Wobo introduced themself during setup, so the
-    // gateway greets by name here and never re-introduces (owner law: one introduction, ever).
-    // Keyed to THIS learner (store/scope.ts): a sibling on the same phone gets their own
-    // introduction, and this one's is not repeated. A refused write means Wobo is warm twice at
-    // worst, never a second introduction.
+    // The first turn a learner ever takes with Wobo. The gateway answers what they asked and never
+    // introduces itself (DESIGN.md §0.x: the first words are the learner's); the flag still marks
+    // the meeting for the welcome that follows it. Keyed to THIS learner (store/scope.ts): a
+    // sibling on the same phone gets their own first meeting.
     const firstMeeting = !scoped.getItem(MET_TURN_KEY);
     if (firstMeeting) scoped.setItem(MET_TURN_KEY, '1');
     bus.publishSession({ sessionId: 'dev-session', recentEvents, firstMeeting });
@@ -907,11 +908,17 @@ function AppInner({ sdk }: { sdk: Sdk }) {
           text,
           context.curriculum?.nodeName,
         );
-        spokenTurnId = say({
-          role: 'wobo',
-          text: output.say ?? 'Let us look at this together.',
-          ...(extras.path !== 'inline' ? { extras } : {}),
-        }).id;
+        // A turn with no words and nothing attached says nothing: never a filler line in its place.
+        const said = output.say ?? '';
+        if (said || extras.path !== 'inline') {
+          spokenTurnId = say({
+            role: 'wobo',
+            text: said,
+            ...(extras.path !== 'inline' ? { extras } : {}),
+            // the answer to Wobo's own question lives in the drawer for this session only
+            ...(options.silent ? { ephemeral: true } : {}),
+          }).id;
+        }
         // the route path: Wobo walks you there, docked — after Wobo's line lands
         if (extras.route) {
           const dest = NAV_ROUTES[extras.route.to];

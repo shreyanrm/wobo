@@ -61,6 +61,7 @@ import {
   WordProblemBreakdown,
   type WordProblemSpec,
 } from '../../engines/WordProblemBreakdown';
+import { reconcilePlaceholder } from '../../store/downloads';
 import { preferredAnalogy } from '../../store/mind';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
@@ -766,16 +767,16 @@ function ItemSet({
   chatRef.current = chat;
   const [entries, setEntries] = useState<string[]>(() => items.map(() => ''));
   const [results, setResults] = useState<boolean[] | null>(null);
-  const [reteachLine, setReteachLine] = useState<string | null>(null);
   const round = useRef(0);
   const startedAt = useRef(Date.now());
 
   /**
    * What Wobo does with a round that came back wrong. Two misses on this concept is a pattern
    * rather than a slip, and the answer is never the same set shown again: the ladder in
-   * wobo/reteach.ts picks an approach on a different axis, Wobo says so in one warm line, and the
-   * ask rides the routing every mode already uses. Offline the line still lands and the ask waits,
-   * because a queued bubble the learner never typed is noise rather than teaching.
+   * wobo/reteach.ts picks an approach on a different axis and the ask rides the routing every mode
+   * already uses. Nothing announces the switch (DESIGN.md §0.x): the next explanation arrives in
+   * the drawer and its words are about the idea. Offline the ask waits, because a queued bubble
+   * the learner never typed is noise rather than teaching.
    */
   const reteach = useCallback(
     (marks: boolean[]) => {
@@ -783,7 +784,6 @@ function ItemSet({
       if (missed === 0) {
         // Only a clean round clears the tally: one right answer must not erase two wrong ones.
         noteConceptCorrect(nodeId);
-        setReteachLine(null);
         return;
       }
       let turn: ReteachTurn | null = null;
@@ -798,13 +798,12 @@ function ItemSet({
           }) ?? turn;
       }
       if (!turn) return;
-      setReteachLine(turn.line);
       bus.dispatch([{ type: 'setMood', mood: 'hint' }]);
       const { ask, offline } = chatRef.current;
       if (offline) return;
-      // The new explanation lands in Wobo's drawer, so the drawer opens (wobo/drawer.ts): the
-      // learner reads "let me show this a different way" and then actually sees the different way.
-      // Silent, because Wobo asked it: the archive holds the learner's own words and nobody else's.
+      // The new explanation lands in Wobo's drawer, so the drawer opens (wobo/drawer.ts) and the
+      // learner sees the different way. Silent, because Wobo asked it: the archive holds the
+      // learner's own words and nobody else's.
       openCompanion({ reason: 'reteach', ask: turn.ask });
       void ask(turn.ask, { silent: true }).catch(() => undefined);
     },
@@ -926,16 +925,6 @@ function ItemSet({
             <div style={{ ...cardTitle, marginTop: 8 }}>{heading}</div>
           </div>
         </motion.div>
-        {/* Wobo changing approach, said out loud before the next way of teaching it arrives. */}
-        {reteachLine && (
-          <motion.div
-            variants={rise}
-            style={{ ...lead, color: 'var(--wobo-ink-700)' }}
-            role="status"
-          >
-            {reteachLine}
-          </motion.div>
-        )}
         {items.map((item, i) => (
           <ItemBlock
             key={item.id}
@@ -987,7 +976,8 @@ function GenCardView({
       surface =
         artifact.kind === 'sim' ? (
           <SimRunner spec={artifact.spec} />
-        ) : (
+        ) : svgIsClean(artifact.svg) ? (
+          // the frame only when the drawing passes: a refused svg left a blank tinted box
           <Stage
             hue={hue}
             tint={0.05}
@@ -996,14 +986,10 @@ function GenCardView({
           >
             <DiagramView id={card.id} svg={artifact.svg} label={`diagram: ${card.title}`} />
           </Stage>
-        );
+        ) : null;
     } else if (artifact.status === 'pending') {
-      surface = (
-        <Shimmer
-          lines={3}
-          note="Wobo is composing this piece just for you. It will land here on its own"
-        />
-      );
+      // the shimmer says a thing is coming; no words caption its absence (DESIGN.md §0.x)
+      surface = <Shimmer lines={3} />;
     }
     // failed: the idea and the act stand alone — refusal invisible
   }
@@ -1083,8 +1069,7 @@ export function outlineSteps(course: Pick<GenCourse, 'cards' | 'seeded'>): strin
  * What a learner reads when the brain could only offer its floor. Plain, and nothing pretends:
  * the scaffold behind it is not this topic's lesson and is never started as one.
  */
-export const PLACEHOLDER_COURSE_LINE =
-  'Wobo has not finished this one yet. Nothing here is the lesson, so it stays out of sight until it is real. Come back in a little while and it will be waiting.';
+export const PLACEHOLDER_COURSE_LINE = 'Not written yet. Come back in a little while.';
 
 function InkScreen({
   topicId,
@@ -1100,6 +1085,11 @@ function InkScreen({
   // A placeholder course has no outline worth reading: its cards are a scaffold with the topic's
   // name in it, and listing them would be listing the lesson this is not (SCORECARD.md 3.5 #9).
   const outline = course && !course.seeded ? outlineSteps(course) : null;
+  // A course that opens as a placeholder was never ready, whatever an older build's queue said:
+  // the "Your course is ready" toast and this page's "Still being made" cannot both stand.
+  useEffect(() => {
+    if (course?.seeded) reconcilePlaceholder(topicId);
+  }, [course?.seeded, topicId]);
   return (
     <CardBody maxWidth={560}>
       <CourseIntroScene
@@ -1109,11 +1099,7 @@ function InkScreen({
         sigilSize={112}
       />
       <div style={whisper}>
-        {course
-          ? course.seeded
-            ? 'Still being made'
-            : 'Written and verified'
-          : 'Wobo is composing your course'}
+        {course ? (course.seeded ? 'Still being made' : 'Written and verified') : 'Being made'}
       </div>
       <div style={cardTitle}>{title.toLowerCase()}</div>
       {course?.seeded && (
@@ -1304,12 +1290,7 @@ function VideoBeat({
             <MotionPlayer scene={video.scene} />
           </motion.div>
         )}
-        {video.status === 'pending' && (
-          <Shimmer
-            lines={4}
-            note="Wobo is animating this one by hand. It will land here on its own"
-          />
-        )}
+        {video.status === 'pending' && <Shimmer lines={4} />}
         {video.status === 'failed' && (
           <motion.div variants={rise} style={lead}>
             the animation is still rendering. Carry on; it will be here when you come back.

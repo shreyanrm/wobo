@@ -153,6 +153,17 @@ export function markFailed(topicId: string): void {
   settle(topicId, 'failed');
 }
 
+/**
+ * The course page found a placeholder behind a 'ready' entry (settled by a build older than
+ * composeOutcome). It was never ready: it becomes failed, the one state a later tap restarts from,
+ * and already seen, so no second toast lands on the learner who is reading the honest line.
+ */
+export function reconcilePlaceholder(topicId: string): void {
+  const d = getDownload(topicId);
+  if (!d || d.status !== 'ready') return;
+  persist(items.map((x) => (x.topicId === topicId ? { ...x, status: 'failed', seen: true } : x)));
+}
+
 /** Acknowledge a landed notification — the toast drops, the ready status stays for the card. */
 export function acknowledge(topicId: string): void {
   persist(items.map((d) => (d.topicId === topicId ? { ...d, seen: true } : d)));

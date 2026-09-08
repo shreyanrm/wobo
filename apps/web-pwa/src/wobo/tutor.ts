@@ -27,18 +27,6 @@ export const LADDER = [
 ] as const;
 export type AssistMode = (typeof LADDER)[number];
 
-const WHISPERS: Record<AssistMode, string> = {
-  learn: 'learn mode · I show, you watch',
-  coach: 'coach mode · I nudge, you move',
-  hint: 'Hint mode · one clue at a time',
-  work_with_me: 'work-with-me mode · we take turns',
-  check_my_work: 'check-my-work mode · you finish, I verify',
-  challenge: 'challenge mode · almost all yours',
-  assessment: 'assessment mode · just you and the problem',
-};
-
-export const modeWhisper = (m: AssistMode): string => WHISPERS[m];
-
 const idx = (m: AssistMode) => LADDER.indexOf(m);
 
 /** Below this rung Wobo never hands the final answer — the hint ladder stops one move short. */
@@ -203,7 +191,7 @@ const GAPS: Gap[] = [
 export const MAX_PROBES = 3;
 
 export function teachBackOpening(topic: string): string {
-  return `today you are the teacher and I am the student. explain ${topic.toLowerCase()} to me like I have never seen it — start anywhere.`;
+  return `explain ${topic.toLowerCase()} to me like I have never seen it. Start anywhere.`;
 }
 
 /**

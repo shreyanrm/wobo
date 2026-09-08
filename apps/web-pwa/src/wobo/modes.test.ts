@@ -24,6 +24,16 @@ describe("Wobo's modes", () => {
       expect(mode.label.slice(1)).toBe(mode.label.slice(1).replace(/[A-Z]{2,}/g, ''));
     }
   });
+
+  it('never narrate a role: no label or hint says what part Wobo plays (DESIGN.md §0.x)', () => {
+    for (const mode of MODES) {
+      for (const line of [mode.label, mode.hint]) {
+        expect(line).not.toMatch(/\bWobo (?:is|plays) the\b/);
+        expect(line).not.toMatch(/\bI(?:'ll| will) (?:draw|show|find|be)\b/);
+        expect(line).not.toContain('—');
+      }
+    }
+  });
 });
 
 describe('reading a mode out of what the learner said', () => {

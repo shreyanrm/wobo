@@ -27,7 +27,8 @@ import './chat/chat.css';
 import { loadProfile } from './you/profile';
 
 /** The product's own line for what this page is. It is the crumb, so the address explains itself. */
-const CRUMB = 'Wobo · One conversation, always';
+// The crumb is the name and nothing after it: a surface does not describe itself (DESIGN.md §0.x).
+const CRUMB = 'Wobo';
 
 export function ChatScreen() {
   const { turns, ask, busy, setMood, hasOlder, loadOlder, offline, pending } = useWoboChat();
@@ -132,16 +133,20 @@ export function ChatScreen() {
         right={<Avatar aria-hidden={initial ? undefined : true}>{initial}</Avatar>}
       />
       <div className="ls-lesson">
-        <section className="ls-plane ch-plane" aria-label="Your conversation with Wobo">
+        <section
+          className="ls-plane ch-plane"
+          aria-label="Your conversation with Wobo"
+          aria-busy={busy || undefined}
+        >
           <div className="ls-bar">
             <b>Wobo</b>
-            {learner ? ` · with ${learner}` : null}
             <span className="ls-voice">
               <MuteButton />
             </span>
+            {/* a reply is on its way: the pulse says so, no word does (DESIGN.md §0.x) */}
             {busy && (
-              <span className="ls-live">
-                <i /> thinking
+              <span className="ls-live" aria-hidden="true">
+                <i />
               </span>
             )}
           </div>

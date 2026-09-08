@@ -71,9 +71,7 @@ const STARS_KEY = 'wobo-course-stars-v1';
 
 export function readCourseStars(topicId: string): 1 | 2 | 3 | undefined {
   try {
-    const v = (JSON.parse(scoped.getItem(STARS_KEY) ?? '{}') as Record<string, number>)[
-      topicId
-    ];
+    const v = (JSON.parse(scoped.getItem(STARS_KEY) ?? '{}') as Record<string, number>)[topicId];
     return v === 1 || v === 2 || v === 3 ? v : undefined;
   } catch {
     return undefined;
@@ -201,10 +199,7 @@ export function useAdvanceTarget(
         waitingForWobo: live.current.gated,
         ready: ready(),
       }),
-      getValidActions: () =>
-        ready()
-          ? [live.current.bar?.primary.label ?? 'continue']
-          : ['Wobo is still reading this card'],
+      getValidActions: () => (ready() ? [live.current.bar?.primary.label ?? 'continue'] : ['wait']),
       applyTutorAction: (patch) => {
         if (patch.advance === true && ready()) live.current.bar?.primary.onClick();
       },

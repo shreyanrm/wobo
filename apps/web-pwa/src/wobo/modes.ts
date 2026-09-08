@@ -103,7 +103,7 @@ export const MODES: readonly WoboMode[] = [
   {
     id: 'teach_back',
     label: 'Teach it back to me',
-    hint: 'You teach, Wobo plays the student and finds the gap',
+    hint: 'Say it in your own words',
     search: 'teach back protege explain to Wobo i will teach',
     needsFocus: false,
     draws: false,

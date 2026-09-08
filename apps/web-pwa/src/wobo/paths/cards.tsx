@@ -38,7 +38,7 @@ const rise = {
   transition: { type: 'spring', stiffness: 300, damping: 28 },
 } as const;
 
-function Shell({ eyebrow, children }: { eyebrow: string; children: React.ReactNode }) {
+function Shell({ eyebrow, children }: { eyebrow?: string; children: React.ReactNode }) {
   return (
     <motion.div
       {...rise}
@@ -53,15 +53,17 @@ function Shell({ eyebrow, children }: { eyebrow: string; children: React.ReactNo
         gap: 10,
       }}
     >
-      <span
-        style={{
-          ...whisper,
-          textTransform: 'lowercase',
-          letterSpacing: '0.04em',
-        }}
-      >
-        {eyebrow}
-      </span>
+      {eyebrow && (
+        <span
+          style={{
+            ...whisper,
+            textTransform: 'lowercase',
+            letterSpacing: '0.04em',
+          }}
+        >
+          {eyebrow}
+        </span>
+      )}
       {children}
     </motion.div>
   );
@@ -527,12 +529,6 @@ function DoodleView({ doodle }: { doodle: DoodleSpec }) {
 
 // --- the action card (approval + explainability + outcome) ------------------------------------------
 
-const CONFIDENCE_COPY: Record<ActionAttachment['confidence'], string> = {
-  high: 'confidence · high',
-  medium: 'confidence · medium',
-  low: 'confidence · low',
-};
-
 function ActionCard({ turnId, action }: { turnId: string; action: ActionAttachment }) {
   const router = useRouter();
   const sdk = useSdk();
@@ -586,33 +582,17 @@ function ActionCard({ turnId, action }: { turnId: string; action: ActionAttachme
   if (!capability) return null;
 
   return (
-    <Shell eyebrow="Wobo can do this">
+    <Shell>
       <div style={{ fontSize: '0.98rem', fontWeight: 600, lineHeight: 1.4 }}>
         {capability.label(action.params)}
       </div>
 
-      {/* explainable, always: the why, the evidence, the confidence band */}
+      {/* the why, in one line. The evidence and the confidence band stay on the attachment for
+          the record (wobo.offer.outcome.v1) and never on the card: a learner who typed "teach me
+          fractions" does not need it read back with a confidence score (DESIGN.md §0.x) */}
       <div style={{ fontSize: '0.9rem', lineHeight: 1.55, color: 'var(--wobo-ink-700)' }}>
         {action.why}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {action.evidence.map((line) => (
-          <span key={line} style={whisper}>
-            · {line}
-          </span>
-        ))}
-      </div>
-      <span
-        style={{
-          ...whisper,
-          alignSelf: 'flex-start',
-          padding: '3px 8px',
-          background: 'var(--wobo-canvas)',
-          borderRadius: 'var(--wobo-radius-sm)',
-        }}
-      >
-        {CONFIDENCE_COPY[action.confidence]}
-      </span>
 
       {action.status === 'offered' && capability.rung !== 'safe_automatic' && (
         <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
@@ -651,7 +631,7 @@ export function TurnAttachments({ turn }: { turn: ChatTurn }) {
     if (kind === 'sim') {
       const parsed = simSpecFromGateway(spec, concept || 'simulation') ?? parseSimSpec(spec);
       return parsed ? (
-        <Shell eyebrow="A sim, made for this">
+        <Shell eyebrow={concept ? `a sim · ${concept}` : 'a sim'}>
           <SimRunner spec={parsed} />
         </Shell>
       ) : null;
@@ -683,7 +663,7 @@ export function TurnAttachments({ turn }: { turn: ChatTurn }) {
     if (kind === 'doodle') {
       const doodle = parseDoodle(spec);
       return doodle ? (
-        <Shell eyebrow="Drawn just for fun">
+        <Shell eyebrow="a doodle">
           <DoodleView doodle={doodle} />
         </Shell>
       ) : null;
@@ -697,15 +677,17 @@ export function TurnAttachments({ turn }: { turn: ChatTurn }) {
   }
 
   if (extras.path === 'visualization' && extras.viz) {
+    // The drawing carries its own caption (the idea it is of); the card says nothing about who
+    // drew it or for whom (DESIGN.md §0.x).
     return (
-      <Shell eyebrow="Drawn for you">
+      <Shell>
         {/* Wobo's ink inherits the page's ink colour — a drawing built on currentColor reads in both
             themes instead of vanishing as black-on-black at night */}
         <div style={{ color: 'var(--wobo-ink-900)' }}>
           <DiagramView
             id={turn.id}
             svg={extras.viz.spec.svg}
-            label={extras.viz.spec.caption ?? 'a drawing from Wobo'}
+            label={extras.viz.spec.caption ?? 'a drawing'}
             caption={extras.viz.spec.caption}
           />
         </div>

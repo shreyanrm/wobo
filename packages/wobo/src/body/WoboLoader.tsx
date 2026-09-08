@@ -59,7 +59,7 @@ const round = (v: number) => Math.round(v * 1000) / 1000;
 export function WoboLoader({
   width = 240,
   onDone,
-  label = 'Wobo is drawing the page',
+  label = 'Wobo',
   className,
   style,
 }: WoboLoaderProps) {

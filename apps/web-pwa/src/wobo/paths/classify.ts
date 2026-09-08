@@ -70,7 +70,8 @@ function conceptFrom(text: string, fallback: string): string {
 
 export function classifyLocal(text: string, nodeName?: string): LocalClassification {
   const t = text.toLowerCase().trim();
-  const fallback = nodeName || 'this idea';
+  // No placeholder concept: with nothing to name, the concept is empty and nothing prints it.
+  const fallback = nodeName || '';
   const concept = conceptFrom(t, fallback);
 
   // route — the learner just wants to go somewhere
@@ -88,7 +89,7 @@ export function classifyLocal(text: string, nodeName?: string): LocalClassificat
       path: 'action',
       capability: 'prepare_parent_note',
       params: {},
-      why: 'you asked me to prepare a note for your parent',
+      why: 'You asked me to prepare a note for your parent',
       confidence: 'high',
       concept,
     };
@@ -98,7 +99,7 @@ export function classifyLocal(text: string, nodeName?: string): LocalClassificat
       path: 'action',
       capability: 'start_boss',
       params: { query: concept === fallback ? '' : concept },
-      why: 'you asked for the boss — it is how a topic is truly closed',
+      why: 'You asked for the boss. It is how a topic is truly closed',
       confidence: 'medium',
       concept,
     };
@@ -108,7 +109,7 @@ export function classifyLocal(text: string, nodeName?: string): LocalClassificat
       path: 'action',
       capability: 'go_to_twin',
       params: {},
-      why: 'your knowledge twin is the honest map of what you asked about',
+      why: 'Your knowledge twin is the honest map of what you asked about',
       confidence: 'high',
       concept,
     };
@@ -118,7 +119,7 @@ export function classifyLocal(text: string, nodeName?: string): LocalClassificat
       path: 'action',
       capability: 'start_practice',
       params: {},
-      why: 'a short unaided run is the fastest way to make this stick',
+      why: 'A short unaided run is the fastest way to make this stick',
       confidence: 'medium',
       concept,
     };
@@ -128,7 +129,7 @@ export function classifyLocal(text: string, nodeName?: string): LocalClassificat
       path: 'action',
       capability: 'open_course',
       params: { query: concept === fallback ? '' : concept },
-      why: 'you asked to open this course',
+      why: 'You asked to open this course',
       confidence: 'medium',
       concept,
     };
@@ -148,7 +149,7 @@ export function classifyLocal(text: string, nodeName?: string): LocalClassificat
         path: 'action',
         capability: 'open_course',
         params: { query: c },
-        why: `you want to learn ${c} — I will compose a course for it`,
+        why: `You asked to learn ${c}`,
         confidence: 'medium',
         concept: c,
       };
@@ -323,72 +324,12 @@ function seedComponentSpec(kind: ComponentKind, concept: string): Record<string,
   }
 }
 
-const esc = (s: string) =>
-  s.replace(
-    /[&<>"']/g,
-    (c) =>
-      (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }) as const)[
-        c as '&'
-      ] as string,
-  );
-
 /**
  * The honest client-side drawing when the gateway sent no SVG. It is ink on paper, so it is drawn
  * in the theme's own colours: `currentColor` for every stroke and label (the card sets `color` from
  * the ink token) and `var(--wobo-paper)` for the fills that must knock out the background. Hard
  * `#111` on `#fff` disappeared into a dark page.
  */
-export function seedVizSvg(kind: VizKind, concept: string): string {
-  const label = esc(concept.length <= 38 ? concept : `${concept.slice(0, 37)}…`);
-  // var() is not honoured in a presentation attribute — the knockout fill rides an inline style.
-  const paper = 'style="fill:var(--wobo-paper)"';
-  if (kind === 'chart') {
-    const bars = [46, 74, 58, 92]
-      .map(
-        (h, i) =>
-          `<rect x="${58 + i * 60}" y="${150 - h}" width="34" height="${h}" fill="none" stroke="currentColor" stroke-width="1"/>`,
-      )
-      .join('');
-    return (
-      `<svg viewBox="0 0 320 180" role="img" aria-label="${label}">` +
-      `<text x="160" y="24" text-anchor="middle" font-size="13" fill="currentColor">${label}</text>` +
-      `<line x1="44" y1="150" x2="292" y2="150" stroke="currentColor" stroke-width="1"/>` +
-      `<line x1="44" y1="150" x2="44" y2="36" stroke="currentColor" stroke-width="1"/>${bars}</svg>`
-    );
-  }
-  if (kind === 'conceptmap') {
-    const spokes: [number, number, string][] = [
-      [70, 60, 'what it is'],
-      [250, 60, 'why it matters'],
-      [70, 140, 'where it breaks'],
-      [250, 140, 'what it unlocks'],
-    ];
-    const parts = spokes
-      .map(
-        ([x, y, t]) =>
-          `<line x1="160" y1="96" x2="${x}" y2="${y}" stroke="currentColor" stroke-width="0.5"/>` +
-          `<circle cx="${x}" cy="${y}" r="26" ${paper} stroke="currentColor" stroke-width="1"/>` +
-          `<text x="${x}" y="${y + 3}" text-anchor="middle" font-size="7.5" fill="currentColor">${t}</text>`,
-      )
-      .join('');
-    return (
-      `<svg viewBox="0 0 320 192" role="img" aria-label="${label}">${parts}` +
-      `<circle cx="160" cy="96" r="34" ${paper} stroke="currentColor" stroke-width="1.5"/>` +
-      `<text x="160" y="99" text-anchor="middle" font-size="9" fill="currentColor">${esc(concept.slice(0, 16))}</text></svg>`
-    );
-  }
-  return (
-    `<svg viewBox="0 0 320 180" role="img" aria-label="${label}">` +
-    `<text x="160" y="28" text-anchor="middle" font-size="13" fill="currentColor">${label}</text>` +
-    `<circle cx="92" cy="106" r="34" fill="none" stroke="currentColor" stroke-width="1"/>` +
-    `<text x="92" y="110" text-anchor="middle" font-size="11" fill="currentColor">idea</text>` +
-    `<line x1="126" y1="106" x2="192" y2="106" stroke="currentColor" stroke-width="0.5"/>` +
-    `<polygon points="192,102 200,106 192,110" fill="currentColor"/>` +
-    `<circle cx="234" cy="106" r="34" fill="none" stroke="currentColor" stroke-width="1"/>` +
-    `<text x="234" y="110" text-anchor="middle" font-size="11" fill="currentColor">effect</text></svg>`
-  );
-}
-
 // --- resolving a turn into extras -----------------------------------------------------------------
 
 function newAction(
@@ -415,6 +356,19 @@ function buildEvidence(text: string, nodeName?: string): string[] {
  * valid; otherwise the local keyword classifier decides, and seed specs keep it working keyless.
  * Inline turns return { path: 'inline' } — the caller attaches nothing.
  */
+/**
+ * A board-stream `card` frame is the bare payload (`output.viz` or `output.component` on its
+ * own), not the `{ path, viz }` an ordinary turn returns. Read as an ordinary turn it had no svg
+ * under `.viz`, so every drawing that arrived over the wire degraded to prose while Wobo's line
+ * still read the drawing aloud (DESIGN.md §0.x). The bare card is lifted back into a turn.
+ */
+export function liftBoardCard(output: Record<string, unknown>): Record<string, unknown> {
+  if (typeof output.path === 'string' || typeof output.kind !== 'string') return output;
+  if (VIZ_KINDS.has(output.kind)) return { path: 'visualization', viz: output };
+  if (COMPONENT_KINDS.has(output.kind)) return { path: 'component', component: output };
+  return output;
+}
+
 export function resolveTurnExtras(
   output: Record<string, unknown>,
   text: string,
@@ -422,6 +376,7 @@ export function resolveTurnExtras(
 ): TurnExtras {
   const evidence = buildEvidence(text, nodeName);
   const local = classifyLocal(text, nodeName);
+  output = liftBoardCard(output);
   const path = typeof output.path === 'string' && PATHS.has(output.path) ? output.path : local.path;
 
   if (path === 'component') {
@@ -430,7 +385,7 @@ export function resolveTurnExtras(
       typeof gw.kind === 'string' && COMPONENT_KINDS.has(gw.kind) ? gw.kind : local.componentKind
     ) as ComponentKind | undefined;
     if (!kind) return { path: 'inline' };
-    const concept = (typeof gw.concept === 'string' && gw.concept) || local.concept || 'this idea';
+    const concept = (typeof gw.concept === 'string' && gw.concept) || local.concept || '';
     const spec = gw.spec ?? seedComponentSpec(kind, concept);
     return { path: 'component', component: { kind, concept, spec } };
   }
@@ -444,11 +399,10 @@ export function resolveTurnExtras(
     const gwSpec = isRecord(gw.spec) ? gw.spec : {};
     const caption =
       (typeof gwSpec.caption === 'string' && gwSpec.caption) || local.concept || undefined;
-    const svg =
-      typeof gwSpec.svg === 'string' && gwSpec.svg.includes('<svg')
-        ? gwSpec.svg
-        : seedVizSvg(kind, caption ?? 'this idea');
-    return { path: 'visualization', viz: { kind, spec: { svg, caption } } };
+    // A drawing that did not arrive is not stubbed: the turn stays prose (DESIGN.md §0.x, never a
+    // caption for an absence). The words are the answer until the ink is real.
+    if (typeof gwSpec.svg !== 'string' || !gwSpec.svg.includes('<svg')) return { path: 'inline' };
+    return { path: 'visualization', viz: { kind, spec: { svg: gwSpec.svg, caption } } };
   }
 
   if (path === 'action') {

@@ -147,7 +147,8 @@ export class DevMockIdentity implements IdentityProvider {
       subject_id: config.mockSubjectId,
       consent_tier: config.consentTierDefault,
       surface: config.surface,
-      display_name: config.displayName,
+      // Only a name somebody actually gave; an absent one stays absent rather than becoming ''.
+      ...(config.displayName ? { display_name: config.displayName } : {}),
     };
     // The Phase-1 dev JWT (sub = mockSubjectId, role authenticated), env-supplied — RLS keys on it.
     this.accessToken = config.supabaseAccessToken ?? null;

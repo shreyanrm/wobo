@@ -22,6 +22,7 @@ import { boardTurn } from './board-turn';
 import { appendToArchive, type ChatTurn, useWoboChat } from './chat';
 import { subscribeCompanionOpen } from './drawer';
 import { FlyingWobo } from './Flight';
+import { withHelplines } from './helplines';
 import { registerHoldToTalk } from './hold';
 import {
   type LeanReason,
@@ -34,15 +35,8 @@ import { availableModes, modePrompt } from './modes';
 import { TurnAttachments } from './paths';
 import { moodFor, useIdleSince } from './presence';
 import { isMuted, MuteButton } from './speech';
-import {
-  modeWhisper,
-  probeTeachBack,
-  type TeachBackTurn,
-  teachBackOpening,
-  useTutor,
-} from './tutor';
+import { probeTeachBack, type TeachBackTurn, teachBackOpening } from './tutor';
 import { useWoboVoice } from './voice';
-import { withHelplines } from './helplines';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -118,7 +112,6 @@ export function WoboCompanion() {
   const bus = useWoboBus();
   const sdk = useSdk();
   const { award, xp } = useProgress();
-  const { mode } = useTutor();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [voiceNote, setVoiceNote] = useState<string | null>(null);
@@ -600,13 +593,11 @@ export function WoboCompanion() {
                 mood={busy ? 'thinking' : open ? 'listening' : mood}
                 gaze="pointer"
               />
+              {/* the name and nothing under it: the ladder's rung is not narrated, and a reply on
+                  its way is the body's mood, never a caption (DESIGN.md §0.x) */}
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, color: 'var(--wobo-ink-900)', lineHeight: 1.1 }}>
                   Wobo
-                </div>
-                {/* the quiet mode whisper — the assistance ladder, worn lightly */}
-                <div style={{ fontSize: '0.75rem', color: 'var(--wobo-ink-500)' }}>
-                  {busy ? 'Thinking…' : tb ? 'Teach-back · Wobo is the student' : modeWhisper(mode)}
                 </div>
               </div>
               <MuteButton />
@@ -685,6 +676,7 @@ export function WoboCompanion() {
 
             <div
               ref={scrollRef}
+              aria-busy={busy || undefined}
               style={{
                 overflowY: 'auto',
                 padding: 18,
@@ -773,7 +765,7 @@ export function WoboCompanion() {
                   textAlign: 'left',
                 }}
               >
-                teach Wobo: {topicName.toLowerCase()} — Wobo plays the student
+                teach it back: {topicName.toLowerCase()}
               </button>
             )}
 

@@ -374,8 +374,8 @@ export function HowItWorks() {
                     q7 says find the hypotenuse, sides 3 and 4. what is that even
                   </div>
                   <div className="pt-wo">
-                    The <b>longest side</b> of a right triangle. Give me a second, I'll draw the
-                    triangle so you can see it.
+                    The <b>longest side</b> of a right triangle, the one across from the right
+                    angle. Sides 3 and 4, and the third side is the question.
                   </div>
                 </div>
                 <Sticker style={{ right: 22, top: 18 }}>listening</Sticker>

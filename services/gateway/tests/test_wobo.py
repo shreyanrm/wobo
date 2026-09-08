@@ -11,7 +11,6 @@ import re
 import pytest
 from wobo_gateway.providers import MockProvider
 from wobo_gateway.wobo import (
-    WOBO_INTRO,
     WOBO_PERSONA,
     _build_user_prompt,
     _ground_working,
@@ -107,7 +106,7 @@ def test_no_prompt_still_describes_wobo_as_the_old_jelly_orb() -> None:
     from wobo_gateway.wobo import WOBO_NO_GENDER, WOBO_SYSTEM
 
     retired = ("jelly", "molten", "orange orb", "warm glow")
-    spoken = (WOBO_SYSTEM, WOBO_INTRO, WOBO_NO_GENDER, accent_instruction("en-IN"))
+    spoken = (WOBO_SYSTEM, WOBO_NO_GENDER, accent_instruction("en-IN"))
     for text in spoken:
         lowered = text.lower()
         for word in retired:
@@ -307,16 +306,13 @@ def test_legacy_capability_endpoint_is_not_a_404(auth) -> None:
     assert legacy.json()["capability"] == current.json()["capability"] == "wobo.turn"
 
 
-# --- the first meeting (owner copy, 2026-09-02) ---------------------------------------------------
+# --- the first meeting (no introduction: DESIGN.md §0.x, owner 2026-09-08) ------------------------
 
 
-def test_persona_calls_wobo_a_wobot_and_carries_the_exact_intro() -> None:
+def test_persona_calls_wobo_a_wobot_and_never_narrates() -> None:
     assert "AI wobot" in WOBO_PERSONA
-    assert WOBO_INTRO in WOBO_PERSONA
-    assert WOBO_INTRO == (
-        "Hey there. I'm Wobo, your AI wobot. I'll help you learn, and I'll be with you every "
-        "step of the way."
-    )
+    assert "NEVER NARRATE" in WOBO_PERSONA
+    assert "I'm Wobo" not in WOBO_PERSONA
 
 
 def test_first_meeting_flag_reads_both_signals() -> None:
@@ -327,18 +323,19 @@ def test_first_meeting_flag_reads_both_signals() -> None:
     assert is_first_meeting({"first_meeting": False, "context": {"turn": {}}}) is False
 
 
-def test_prompt_asks_for_the_intro_only_on_a_first_meeting() -> None:
+def test_prompt_marks_a_first_meeting_and_asks_for_no_introduction() -> None:
     ctx = {"turn": {"lastUserInput": "hello"}, "curriculum": {"nodeName": "x"}}
     first = _build_user_prompt(ctx, None, first_meeting=True)
     assert "FIRST MEETING" in first
-    assert WOBO_INTRO in first
+    assert "never introduce yourself" in first
+    assert "I'm Wobo" not in first
 
     returning = _build_user_prompt(ctx, None)
     assert "FIRST MEETING" not in returning
     assert "never introduce yourself again" in returning
 
 
-def test_mock_first_meeting_says_the_intro_verbatim() -> None:
+def test_mock_first_meeting_answers_the_question_and_does_not_introduce() -> None:
     out = (
         MockProvider()
         .complete(
@@ -348,8 +345,8 @@ def test_mock_first_meeting_says_the_intro_verbatim() -> None:
         )
         .output
     )
-    assert out["say"] == WOBO_INTRO
-    assert out["path"] == "inline"
+    assert "Wobo" not in out["say"]
+    assert out["path"] == "component"
 
 
 # --- Wave 3: a prose-only reply is spoken, not swallowed by the canned line -------------
@@ -612,8 +609,10 @@ def test_a_keyless_plan_that_would_draw_nothing_is_not_a_board_turn() -> None:
     # abs is not a name the verifier reads, so the equation is refused by name, and honestly so
     assert mock_board_plan(payload("solve abs(x - 2) = 3 for me")) is None
     # and a plan that draws keeps its say
+    from wobo_gateway.wobo import _BOARD_SAY
+
     plan = mock_board_plan(payload("solve 2x + 3 = 7"))
-    assert plan is not None and plan["say"].startswith("Look at this")
+    assert plan is not None and plan["say"] == _BOARD_SAY["math"]
 
 
 def test_a_word_glued_to_a_bracket_is_left_for_the_verifier_to_refuse() -> None:

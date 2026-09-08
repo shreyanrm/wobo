@@ -1228,7 +1228,7 @@ export function BoardSurface(props: BoardSurfaceProps) {
         // picture called "Wobo's board". An svg with no role of its own maps to `graphics-document`,
         // which exposes what is inside it — which is everything Wobo wrote.
         data-wobo-surface=""
-        aria-label={props.label ?? 'what Wobo is drawing'}
+        aria-label={props.label ?? 'the board'}
         {...(capture
           ? {
               tabIndex: 0,

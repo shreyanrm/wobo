@@ -11,6 +11,7 @@ import {
   positionOf,
   READY_TOAST,
   readyLine,
+  reconcilePlaceholder,
   SLIPPED_TOAST,
   settleCompose,
 } from './downloads';
@@ -117,5 +118,29 @@ describe('a compose that settled on the honest floor is not a ready course', () 
       expect(line).not.toContain('—');
     }
     expect(readyLine('Algebra play')).toContain('algebra play');
+  });
+});
+
+describe('a course that opens as a placeholder was never ready (DESIGN.md §0.x)', () => {
+  it('reconcilePlaceholder settles a stale ready entry as failed, and raises no second toast', () => {
+    // An entry settled ready by an earlier build, before placeholders counted as failures, kept
+    // saying "Your course is ready" over a page that said "Still being made".
+    enqueue('stale-a', 'Cells');
+    claimNext();
+    markReady('stale-a');
+    expect(getDownload('stale-a')).toMatchObject({ status: 'ready', seen: false });
+    reconcilePlaceholder('stale-a');
+    expect(getDownload('stale-a')).toMatchObject({ status: 'failed', seen: true });
+  });
+
+  it('is a no-op for a topic with no download, or one already failed', () => {
+    reconcilePlaceholder('never-queued');
+    expect(getDownload('never-queued')).toBeUndefined();
+    enqueue('stale-b', 'Light');
+    claimNext();
+    markFailed('stale-b');
+    acknowledge('stale-b');
+    reconcilePlaceholder('stale-b');
+    expect(getDownload('stale-b')).toMatchObject({ status: 'failed', seen: true });
   });
 });

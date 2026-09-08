@@ -44,12 +44,10 @@ from wobo_gateway.telemetry import record_cost
 
 logger = logging.getLogger("wobo_gateway.wobo")
 
-# The one line Wobo says the very first time a learner meets Wobo (owner copy, 2026-09-02) — shown
-# letter by letter in Wobo's handwriting and spoken by TTS. Verbatim: never paraphrase it.
-WOBO_INTRO = (
-    "Hey there. I'm Wobo, your AI wobot. I'll help you learn, and I'll be with you every step of "
-    "the way."
-)
+# There is no introduction line. There was one ("Hey there. I'm Wobo, your AI wobot. I'll help you
+# learn...", owner copy 2026-09-02), and on 2026-09-08 the owner saw it open a conversation before
+# the learner had said a word. A conversation begins when the learner speaks, and the answer is to
+# what they said (DESIGN.md §0.x, voice.md §10c). Nothing is said before, about Wobo or otherwise.
 
 # The answer to "are you a boy or a girl?" (WOBO-PLAN.md §19): Wobo has no gender, says so warmly
 # and briefly, and moves on. Same line in live prompts and in the keyless mock turn.
@@ -105,11 +103,11 @@ you are a boy or a girl, say exactly this and then move straight on with the les
 When you write or speak about yourself in the third person, use the name — Wobo — and they/them only
 where a pronoun is unavoidable.
 
-The first time you ever meet a learner — and ONLY on a turn explicitly marked FIRST MEETING — you
-introduce yourself with exactly this line, word for word, as your whole opening:
-"{WOBO_INTRO}"
-Never paraphrase it, never add to it, never lead with anything before it. On every other turn they
-already know you: greet them by name when it is natural and never introduce yourself again.
+NEVER NARRATE. You do; you do not announce. Never introduce yourself, never say what you are, never
+say what you can see, and never say what you are about to do ("let me draw", "I'll show you",
+"here's a diagram"). Draw, and let the words be about the idea. A first meeting is answered like any
+other turn: with the answer to what they asked. Greet them by name when it is natural, and never
+introduce yourself.
 
 When you are listening to them speak, be honest about what you actually heard. If the words came
 through empty, garbled, or as just a fragment too short to be sure of — the kind of thing a noisy
@@ -466,18 +464,31 @@ _CONCEPT_SPLIT = re.compile(r"\b(?:on|about|of|for)\b", re.IGNORECASE)
 
 def _concept_from(text: str, fallback: str) -> str:
     """The concept is whatever follows on/about/of/for — else the curriculum node."""
+    # "draw a triangle for me": the "for me" names nobody's concept, and split on it the concept
+    # was "me", drawn and captioned as such.
+    text = re.sub(r"\s+(?:for|to|with) me\b[\s.?!]*$", "", text, flags=re.IGNORECASE)
     parts = _CONCEPT_SPLIT.split(text, maxsplit=1)
     if len(parts) == 2:
         concept = parts[1].strip(" .?!,\"'")
         if concept:
             return concept[:120]
+    # "draw a triangle": the thing after the verb, so the drawing is captioned with its subject.
+    drawn = re.match(
+        r"^\s*(?:please\s+)?(?:draw|sketch|plot|chart|graph|diagram|show)\s+(?:me\s+)?"
+        r"(?:a|an|the)?\s*(.+?)\s*[.?!]*$",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if drawn and drawn.group(1).strip():
+        return drawn.group(1).strip()[:120]
     return fallback
 
 
 def classify_intent(text: str, node_name: str = "") -> dict[str, Any]:
     """Deterministic keyword classification into exactly one of the five paths."""
     t = (text or "").lower().strip()
-    fallback = node_name or "this idea"
+    # No placeholder concept: with nothing to name, the concept is empty and nothing prints it.
+    fallback = node_name or ""
     concept = _concept_from(t, fallback)
 
     # route — the learner just wants to go somewhere ("take me to practice", "go home")
@@ -552,7 +563,7 @@ def classify_intent(text: str, node_name: str = "") -> dict[str, Any]:
                 "action": {
                     "capability": "open_course",
                     "params": {"query": c},
-                    "why": f"You want to learn {c} — I will compose a course for it",
+                    "why": f"You asked to learn {c}",
                     "confidence": "medium",
                 },
             }
@@ -707,7 +718,7 @@ def _apply_classification(
         comp = classification.get("component") or {}
         kind = comp.get("kind")
         if kind in COMPONENT_KINDS:
-            hydrated = _hydrate_component(kind, str(comp.get("concept") or "this idea"), live)
+            hydrated = _hydrate_component(kind, str(comp.get("concept") or ""), live)
             if hydrated:
                 out["component"] = hydrated
                 return out
@@ -716,7 +727,7 @@ def _apply_classification(
         viz = classification.get("viz") or {}
         kind = viz.get("kind")
         if kind in VIZ_KINDS:
-            hydrated = _hydrate_viz(kind, str(viz.get("concept") or "this idea"), live)
+            hydrated = _hydrate_viz(kind, str(viz.get("concept") or ""), live)
             if hydrated:
                 out["viz"] = hydrated
                 return out
@@ -746,13 +757,34 @@ def _apply_classification(
 
 # --- the mock turn (keyless: deterministic classification over verified seed artifacts) -----------
 
+# The words beside a keyless turn. About the thing on screen, never about Wobo or the making of it
+# (DESIGN.md §0.x): the sim is poked, the drawing is read, the action is a card with its own why.
+# These are the lines with nothing to name; ``_mock_say`` puts the concept in when there is one.
 _MOCK_SAY = {
-    "inline": "Peek at the step where you moved a term across. Something's hiding there.",
-    "component": "Here, I made this just for you. Give it a poke and watch what happens.",
-    "visualization": "Let me draw it instead. This one's easier to show than to say.",
-    "action": "Ooh, I can do that for you. Here's what I have in mind.",
-    "route": "Come on, I'll take you there.",
+    "inline": "Which step feels shaky? Start there.",
+    "component": "Give it a poke and watch what happens.",
+    "visualization": "Follow it across from the left. Which part is new to you?",
+    "action": "Which part of it do you already know?",
+    "route": "This way.",
 }
+
+
+def _mock_say(out: dict[str, Any], classification: dict[str, Any], node: str) -> str:
+    """The line beside the path the turn ENDED on, about its subject. Chosen after hydration, so a
+    drawing that could not be drawn is never read aloud ("start at the left and follow it across"
+    with nothing on the board), and the one algebra line no longer greets a biology course."""
+    path = str(out.get("path") or "inline")
+    if path == "visualization":
+        c = str((classification.get("viz") or {}).get("concept") or "").strip()
+        return f"{c[0].upper()}{c[1:]}, left to right. Which part is new to you?" if c else _MOCK_SAY[path]
+    if path == "action":
+        params = (classification.get("action") or {}).get("params") or {}
+        c = str(params.get("query") or "").strip()
+        return f"{c[0].upper()}{c[1:]}. What do you already know about it?" if c else _MOCK_SAY[path]
+    if path == "inline":
+        c = str((classification.get("viz") or {}).get("concept") or node or "").strip()
+        return f"Take {c} one step at a time. Which step feels shaky?" if c else _MOCK_SAY[path]
+    return _MOCK_SAY[path]
 
 
 def _preferred_name(learner: dict[str, Any], facts: list[Any]) -> str:
@@ -798,16 +830,6 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
     facts = lifetime.get("facts") or []
     text = str(turn.get("lastUserInput") or "")
     name = _preferred_name(learner, facts)
-
-    # The very first meeting: the introduction, verbatim, before anything else can claim the turn.
-    if is_first_meeting(payload):
-        return {
-            "path": "inline",
-            "say": WOBO_INTRO,
-            "actions": [{"type": "setMood", "mood": "idle"}],
-            "grounded": True,
-            "handed_answer": False,
-        }
 
     # "Are you a boy or a girl?" — WOBO-PLAN.md §19. Wobo has no gender; the same line the live
     # persona is instructed to give, answered here without a key.
@@ -877,14 +899,16 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
                     "handed_answer": False,
                 }
 
-    classification = classify_intent(text, str(curriculum.get("nodeName") or ""))
+    node = str(curriculum.get("nodeName") or "")
+    classification = classify_intent(text, node)
     out: dict[str, Any] = {
-        "say": _MOCK_SAY[str(classification["path"])],
         "actions": [{"type": "setMood", "mood": "thinking"}],
         "grounded": True,
         "handed_answer": False,
     }
-    return _apply_classification(out, classification, live=False)
+    out = _apply_classification(out, classification, live=False)
+    out["say"] = _mock_say(out, classification, node)
+    return out
 
 
 # --- prompt assembly -------------------------------------------------------------------------------
@@ -1124,10 +1148,9 @@ def _machine_room(machine: dict[str, Any]) -> str:
 
 
 def is_first_meeting(payload: dict[str, Any]) -> bool:
-    """Is this the very first time this learner meets Wobo? The web client marks the onboarding
-    turn — either ``payload["first_meeting"]`` or ``context.turn.firstMeeting`` — and only then
-    does Wobo give the owner's exact introduction line. Absent or false means a returning
-    learner: greet by name, never re-introduce."""
+    """Is this the very first time this learner meets Wobo? The web client marks the turn (either
+    ``payload["first_meeting"]`` or ``context.turn.firstMeeting``). It gates the welcome that
+    follows a first meeting, never an introduction: the turn itself is answered like any other."""
     if payload.get("first_meeting") is True:
         return True
     context = payload.get("context") or {}
@@ -1217,8 +1240,8 @@ def _build_user_prompt(
         "no interest. "
     )
     meeting = (
-        f"FIRST MEETING — this learner is meeting you for the very first time. Your reply is your "
-        f'introduction and nothing else: say exactly "{WOBO_INTRO}", word for word, path "inline".\n'
+        "FIRST MEETING — this learner has not met you before. Answer what they asked, and never "
+        "introduce yourself or describe what you are.\n"
         if first_meeting
         else "Not a first meeting — they already know you, so never introduce yourself again.\n"
     )
@@ -1774,16 +1797,20 @@ def _equation_variable(text: str, equation: str) -> str | None:
 #: was drawn, and distinct from every line in ``_BOARD_SAY`` so the two cases stay tellable apart.
 #: True only over ink: ``run_board_plan`` puts it on a silent plan after ``_draws_something`` has
 #: seen an object survive the pipelines and the verifier, never before.
-SILENT_BOARD_SAY = "Here it is. Take a look at what I have put on the board."
+#: And never words about Wobo or the drawing of it (DESIGN.md §0.x): the line points the learner
+#: at the ink, it does not announce that ink was put there.
+SILENT_BOARD_SAY = "Take a look. Which part of this is new to you?"
 
 #: Each line is true of anything its family draws: nothing is named that a number line, a lens or a
 #: timeline would not carry. The maths line used to promise "the curve first, then the line that
-#: just touches it" over every maths board, including a number line with no curve on it.
+#: just touches it" over every maths board, including a number line with no curve on it. And no
+#: line says what Wobo is about to do ("I'll draw it a piece at a time", "Let me build it"): the
+#: words are about what is on the board and what the learner does with it.
 _BOARD_SAY = {
-    "math": "Look at this. I'll draw it a piece at a time, and you tell me the part that looks off.",
-    "physics": "Here it is. Watch what happens to each piece as it moves.",
-    "chemistry": "Let me build it. Each part goes on in the order you'd draw it yourself.",
-    "bio_social": "Here. I'll label it as I go, and you tell me the one I miss.",
+    "math": "Read it a piece at a time, and say which part looks off.",
+    "physics": "Watch what happens to each piece as it moves.",
+    "chemistry": "Each part goes on in the order you'd draw it yourself.",
+    "bio_social": "Read the labels as they land, and say which one is missing.",
 }
 
 

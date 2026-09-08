@@ -178,6 +178,10 @@ const AGAINST_THE_LAW = [
   /the first question is on us/i, // the same invitation, in Wobo's hand
   /which classes and subjects/i, // a grade gate with the numbers taken out is still a gate
   /\bshe\b|\bher\b|\bhe\b|\bhis\b/i, // a learner with a gender is an invented learner
+  // NEVER NARRATE (DESIGN.md §0.x, owner, 2026-09-08). Wobo draws; Wobo does not say "I'll draw".
+  // The prototype's transcript still has Wobo announcing the triangle, and a page is right to
+  // refuse that line: the words while drawing are about the idea (never-narrate.test.ts).
+  /\b(?:let me|I(?:'|’)?ll|I will) (?:draw|show)\b|give me a second/i,
 ];
 
 const bannedByLaw = (phrase: string): boolean => AGAINST_THE_LAW.some((r) => r.test(phrase));

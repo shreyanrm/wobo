@@ -17,6 +17,12 @@ export interface ChatTurn {
   text: string;
   /** What the turn carries beyond prose — a path result (component / viz / action / route). */
   extras?: TurnExtras;
+  /**
+   * Said in the drawer, never archived: Wobo's answer to its own silent ask (the re-teach rung).
+   * An archive that opened on a Wobo bubble with no learner turn before it was a conversation
+   * nobody started (DESIGN.md §0.x: a conversation begins when the learner speaks).
+   */
+  ephemeral?: boolean;
 }
 
 /** How a turn is asked. Everything here is about whose words the transcript records. */
@@ -115,6 +121,7 @@ export function writeArchive(turns: ChatTurn[]): void {
 }
 
 export function appendToArchive(turn: ChatTurn): void {
+  if (turn.ephemeral) return;
   const a = readArchive();
   a.push(turn);
   writeArchive(a);

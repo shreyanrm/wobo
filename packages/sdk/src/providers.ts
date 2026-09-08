@@ -36,10 +36,13 @@ export interface LLMProvider {
 /** Capabilities that profile the learner — refused under un_elevated (DPDP). Mirrors the gateway. */
 const ELEVATED_ONLY = new Set(['archetype.classify', 'peakcut.evaluate']);
 
-/** Wobo's voice, canned: warm, playful, page-aware. Rotated deterministically by the input. */
+/**
+ * Wobo's voice, canned. About the work on the page, never about Wobo or what Wobo can see
+ * (DESIGN.md §0.x). Rotated deterministically by the input.
+ */
 const MOCK_WOBO_TURNS = [
   {
-    say: 'Oh, I like this page — I can see the whole thing from where I sit. Want to take the first step together?',
+    say: 'Which line are you least sure of? Start there.',
     actions: [
       { type: 'setMood', mood: 'thinking' },
       { type: 'highlight', targetId: 'concept-linear-eq', level: 'primary' },
@@ -47,15 +50,15 @@ const MOCK_WOBO_TURNS = [
     ],
   },
   {
-    say: "I'm right here, watching your working as you write it — nothing sneaks past us. Try a step and I'll follow along.",
+    say: 'Take the first step, then check it before the next.',
     actions: [{ type: 'setMood', mood: 'listening' }],
   },
   {
-    say: "You bring the curiosity, I'll bring the second pair of eyes. Tell me where it feels wobbly and we'll steady it together.",
+    say: 'Say where it feels wobbly. That is the step to redo.',
     actions: [{ type: 'setMood', mood: 'thinking' }],
   },
   {
-    say: "I was hoping you'd ask. I've got your page in view, so point me anywhere and we'll poke at it.",
+    say: 'Point at the part that is new. Begin with that.',
     actions: [{ type: 'setMood', mood: 'hint' }],
   },
 ];

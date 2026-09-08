@@ -40,9 +40,14 @@
  * anything. The current representation is excluded from the candidates before one is chosen.
  *
  * When every rung has been tried for a concept the ladder does not stop and it does not repeat the
- * one that just failed: it returns to the LEAST recently tried rung with a different example, and
- * says so. Nothing here names a model, a provider or a limit. Each rung carries the sentence Wobo
- * is asked with, in the learner's own voice, so the call rides the routing that already exists.
+ * one that just failed: it returns to the LEAST recently tried rung with a different example.
+ * Nothing here names a model, a provider or a limit. Each rung carries the sentence Wobo is asked
+ * with, in the learner's own voice, so the call rides the routing that already exists.
+ *
+ * A RUNG HAS NO LINE OF ITS OWN. It used to ("let me draw this one instead, so you can see the
+ * shape of it"), and the line landed on the lesson as a subtitle. A tutor changing approach does
+ * not announce it: the next explanation simply arrives, and its words are about the idea
+ * (DESIGN.md §0.x, voice.md §10c). The switch is the ask and the event, nothing said about either.
  *
  * WHAT HAS BEEN TRIED SURVIVES A RELOAD. The tally and the tried-list are one record per concept,
  * persisted under the learner's own storage scope. They used to live in a module Map: the tally was
@@ -94,8 +99,6 @@ export interface ReteachApproach {
   mode?: WoboModeId;
   /** False when this rung needs something we do not have. */
   ready: (ctx: ReteachContext) => boolean;
-  /** Wobo's one warm line, said as the switch happens. */
-  line: (ctx: ReteachContext) => string;
   /** The sentence Wobo is asked with. The learner's voice, so nothing about routing changes. */
   ask: (ctx: ReteachContext) => string;
 }
@@ -109,7 +112,6 @@ export const APPROACHES: readonly ReteachApproach[] = [
     axis: 'method',
     modality: 'opener',
     ready: always,
-    line: () => 'here is the idea.',
     ask: (c) => `explain ${c.topic.toLowerCase()}`,
   },
   {
@@ -119,8 +121,6 @@ export const APPROACHES: readonly ReteachApproach[] = [
     axis: 'method',
     modality: 'reading',
     ready: always,
-    line: () =>
-      'let me show this a different way: I will work one all the way through, and then the next one is yours.',
     ask: (c) =>
       `work one ${c.topic.toLowerCase()} problem all the way through, one step at a time, before the rule.`,
   },
@@ -129,7 +129,6 @@ export const APPROACHES: readonly ReteachApproach[] = [
     axis: 'representation',
     modality: 'canvas',
     ready: always,
-    line: () => 'let me draw this one instead, so you can see the shape of it rather than read it.',
     // NO SURFACE WORD IN A RUNG'S SENTENCE. Every rung's ask is sent down the same door a typed
     // question takes, and `presentationWord` reads "on the board" as the LEARNER's override: the
     // one thing that beats the ink. Inside a lesson those three words locked the second
@@ -138,7 +137,7 @@ export const APPROACHES: readonly ReteachApproach[] = [
     // a board sitting over the thing it was about, which is the pair BOARD.md §11 calls fatal. The
     // learner never typed the words and never sees them, so nothing on screen explained the move.
     // "draw" alone is what makes this a board turn; where it lands is the ink's to decide.
-    ask: (c) => `draw ${c.topic.toLowerCase()} so I can see it.`,
+    ask: (c) => `draw ${c.topic.toLowerCase()}.`,
   },
   {
     id: 'their_world',
@@ -147,7 +146,6 @@ export const APPROACHES: readonly ReteachApproach[] = [
     mode: 'my_world',
     // Never invented: no stated interest means this rung is not offered at all.
     ready: (c) => Boolean(c.world?.trim()),
-    line: (c) => `let me put this in ${c.world?.trim()}, where you already know how things behave.`,
     // The mind already carries the world into every turn, so the existing phrase is enough.
     ask: () => modePrompt('my_world'),
   },
@@ -159,7 +157,6 @@ export const APPROACHES: readonly ReteachApproach[] = [
     modality: 'interactive',
     mode: 'teach_back',
     ready: always,
-    line: () => 'let us talk this one out loud, and then you say it back to me in your own words.',
     ask: () => modePrompt('teach_back'),
   },
 ];
@@ -377,8 +374,6 @@ export function chooseApproach(
 
 export interface ReteachTurn {
   approach: ReteachApproach;
-  /** Wobo's one warm line, said as the switch happens. */
-  line: string;
   /** The sentence Wobo is asked with, so the model call rides the routing that exists. */
   ask: string;
   from: Modality;
@@ -423,11 +418,6 @@ export function reteachNow(
   entry.modality = to;
   persist();
 
-  const base = choice.approach.line(opts.context);
-  const line = choice.fresh
-    ? `we have tried a few ways, so let me come back to this one with a different example. ${base}`
-    : base;
-
   try {
     sdk.events.record(
       'learn.modality.switched.v1',
@@ -441,7 +431,6 @@ export function reteachNow(
 
   return {
     approach: choice.approach,
-    line,
     ask: choice.approach.ask(opts.context),
     from,
     to,

@@ -438,10 +438,7 @@ export function DoubtScreen() {
           >
             <CameraIcon />
             <h2>{DOUBT_TITLE}</h2>
-            <p>
-              Point at the page, the sum, the diagram, whatever it is. I say what I read, you fix
-              anything I got wrong, then I explain it on the photo.
-            </p>
+            <p>Point at the page, the sum, the diagram, whatever it is.</p>
             <div className="db-row">
               <label className="wk-btn wk-pig db-take">
                 Take a photo

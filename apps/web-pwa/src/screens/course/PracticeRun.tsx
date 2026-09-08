@@ -342,9 +342,10 @@ export function PracticeRun({
   /**
    * Wobo changes approach without being asked. Two wrong on this concept is a pattern rather than a
    * slip (wobo/reteach.ts owns the threshold and the ladder), and the answer is never the same
-   * explanation said again: a different axis, said in one warm line in Wobo's own ink, then asked
-   * for through the routing every mode already uses. Offline the line still lands; the ask waits,
-   * because a queued bubble the learner never typed is noise, not teaching.
+   * explanation said again: a different axis, asked for through the routing every mode already
+   * uses. Nothing announces the switch (DESIGN.md §0.x): the next explanation arrives and its
+   * words are about the idea. Offline the ask waits, because a queued bubble the learner never
+   * typed is noise, not teaching.
    */
   const reteach = useCallback(() => {
     const turn = reteachOnMiss(sdk, {
@@ -355,10 +356,7 @@ export function PracticeRun({
       context: { topic: topicName, world: preferredAnalogy() },
     });
     if (!turn) return;
-    bus.dispatch([
-      { type: 'setMood', mood: 'hint' },
-      { type: 'write', targetId: 'course-practice-equation', text: turn.line, ttl: 11_000 },
-    ]);
+    bus.dispatch([{ type: 'setMood', mood: 'hint' }]);
     if (offline) return;
     // The new explanation arrives in Wobo's drawer, so the drawer opens: a second way of teaching
     // it that the learner never sees is not a second way of teaching it (wobo/drawer.ts). Silent,

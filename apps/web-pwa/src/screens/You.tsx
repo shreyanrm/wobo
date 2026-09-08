@@ -50,12 +50,7 @@ import { MindMemory } from './you/MindMemory';
 import { chosenNames, type MailPrefsView, readMailPrefs, writeCalendars } from './you/mailPrefs';
 import { ParentInvite } from './you/ParentInvite';
 import { PlanPanel } from './you/PlanPanel';
-import {
-  endParentLink,
-  type ParentLinkStatus,
-  phoneLink,
-  readParentLink,
-} from './you/parentLink';
+import { endParentLink, type ParentLinkStatus, phoneLink, readParentLink } from './you/parentLink';
 import {
   boardName,
   frameworkLabel,
@@ -142,7 +137,10 @@ function StrengthIcon({ id }: { id: 'resilience' | 'initiative' | 'consistency' 
  * the address inside it does not.
  */
 export function sentenceCase(line: string): string {
-  return line.replace(/(^|\.\s+)([a-z])/g, (_m, lead: string, ch: string) => lead + ch.toUpperCase());
+  return line.replace(
+    /(^|\.\s+)([a-z])/g,
+    (_m, lead: string, ch: string) => lead + ch.toUpperCase(),
+  );
 }
 
 /** The phone link the device kept, if any. */
@@ -414,7 +412,8 @@ export function You() {
 
   const crumb: ReactNode = (
     <>
-      You · {firstName || profile.name}
+      You
+      {(firstName || profile.name) && ` · ${firstName || profile.name}`}
       {(profile.grade || board) && (
         <>
           {' · '}
@@ -538,10 +537,7 @@ export function You() {
           <Tag>Learning strengths</Tag>
           <div className="wy-strengths">
             {praise.length === 0 ? (
-              <p>
-                Wobo is still getting to know you: how you answer, where you linger, when you show
-                up. It gathers here as you learn.
-              </p>
+              <p>Nothing here yet. It gathers as you learn.</p>
             ) : (
               praise.map((s) => (
                 <div key={s.id}>
