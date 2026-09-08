@@ -59,19 +59,37 @@ PerturbationSandbox, WhatIfNumerical, WordProblemBreakdown, CompareInteractive, 
 Flashcards, MotionPlayer, the subject scenes) plus what is missing from it today: **drag and drop
 into bins**, **sort into order**, **match**, **build step by step**, **the challenge**.
 
-## 3. Templates, but not blindly
+## 3. The model designs the mechanic; templates are the floor, not the ceiling (owner, 2026-09-08)
 
-A template is a mechanic, never a look. "Sort into order" is one piece of code; the five things
-being sorted, their names, the picture on each, the feedback on a wrong order, the register of
-the words are all from the level rendering, so the same template on two concepts looks and reads
-like two different things. The judge's engagement lens (wave 30 scored it 1.12 of 4: "one visual
-idea per cell, templated") is the test: a learner should never feel the template.
+**The owner:** *"Let's have our LLM be creative about the interactive content on a regular basis
+rather than go with the same template."*
 
-What is generated per interaction, cheaply: the items and their assets from the level rendering;
+So the menu in section 2 is a vocabulary, not a catalogue. For each concept the model DESIGNS the
+interaction: what the learner moves, what responds, what is revealed, what a wrong move teaches, what
+the moment of surprise is. It writes that design as a composition of primitives the client already
+renders (today: tap, drag, slide in `plexus/specs.py`; to add: drop zones with rules, sort, match,
+sequence, timer, score, reveal, branch-on-answer, canvas mark), never as code: nothing generated ever
+executes on a learner's device, exactly as simulations are declarative specs today. Any valid
+composition renders; the schema (`codegen.py`) is the contract, and a composition the schema refuses
+never ships.
+
+The gate judges the design before it is cached: does the mechanic embody THIS concept (a wrong move
+must teach something about the idea, not about the game); can a finger complete it at 390 wide; is
+it genuinely different from the last three interactions this learner's chapter used; would a
+fourteen-year-old feel the template. Below the bar, the model tries again one rung up; below it
+twice, the concept's template from section 2 is used, so quality never falls under the template floor.
+
+**On a regular basis:** the design is cached at the concept level (section 1) and refreshed on a
+cadence the superadmin sets (default: a new design every ninety days, and immediately when the
+concept core changes), so a returning learner meets new mechanics over a year without the cost of
+generating per view. The judge's variety criterion reads the chapter's recent interactions from the
+cache, so the model is told what it must not repeat.
+
+## 4. What is generated per interaction, cheaply the items and their assets from the level rendering;
 the feedback lines (a wrong sort says WHY the order matters, in this concept's words); the
 "moment" (what changes, what is revealed, what the learner sees that they did not before).
 
-## 4. What changes in the code
+## 5. What changes in the code
 
 1. `plexus/store.py`: two keys, not one. The concept core keyed on the concept alone; the level
    rendering keyed on concept x board x grade x version (as wave 31 made it). A cache read for a
@@ -82,16 +100,19 @@ the feedback lines (a wrong sort says WHY the order matters, in this concept's w
 3. `plexus/validate.py`: the interaction chooser before generation (rules, then luna); the judge's
    rubric scores a level rendering against its core, and scores an interaction on whether the
    learner would feel the template.
-4. `plexus/specs.py` and `engines/`: the five missing templates (drag into bins, sort, match, build
-   step by step, the challenge), each a real component with a hit area a finger can use (wave 32's
-   fix for the marks applies to all of them), each with its feedback slot.
+4. `plexus/specs.py` and `engines/`: the interaction primitives as a composable vocabulary (drop zones
+   with rules, sort, match, sequence, timer, score, reveal, branch-on-answer, canvas mark) rendered by
+   one composer component, plus the template floor for each row of section 2; every primitive with a
+   hit area a finger can use (wave 32's fix for the marks applies to all of them).
+   The judge's playability and variety criteria in `plexus/validate.py`; the refresh cadence as a
+   superadmin setting (docs/ALLOWANCE.md's settings table).
 5. `routing.py`: generate tier starts at luna and climbs one rung per rejection (the owner's rule);
    the core is made at the verify tier's model from the start (that is "better models where
    needed").
 6. The ledger: cost per concept core, per level rendering, per interaction, so the saving is a
    number on the console and not a claim.
 
-## 5. What a 4 looks like
+## 6. What a 4 looks like
 
 A CBSE class 6 child opening "equivalent fractions" gets: a slider where they stretch a chocolate
 bar into more pieces and watch two fractions stay the same size (build the idea), a sort of six
@@ -101,7 +122,7 @@ challenge to match equivalent pairs against the clock (make it fun). An ISC clas
 that moves the parabola across the axis, a sort of equations by number of real roots, a challenge
 to classify twenty in a minute. Neither feels like the other. Both cost a fraction of today.
 
-## 6. The arcade: bonus levels in the middle of the climb (owner, 2026-09-08)
+## 7. The arcade: bonus levels in the middle of the climb (owner, 2026-09-08)
 
 **The owner:** optional study arcade games as bonus levels for extra XP, "every now and then in the
 middle" of a chapter, since the boss level already sits at the end.
