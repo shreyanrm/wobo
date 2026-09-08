@@ -1,3 +1,5 @@
+> **2026-09-08:** docs/INK-FREEZE-PLAN-TRACE.md is the board's law for every mark on the glass (freeze, plan, trace). This file keeps the plane's from-scratch grammar; where the two disagree, the new law wins.
+
 # BOARD.md — how Wobo draws
 
 The board is the medium of every explanation. This file is the contract between the brain (which composes) and the hand (which draws). It is law for Wave 5 and after. Companion to `WOBO.md` (who Wobo is), `DESIGN.md` (how the product looks) and `docs/WOBO-PLAN.md` (the build).
