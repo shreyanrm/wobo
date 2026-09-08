@@ -1543,3 +1543,11 @@ interruption; the overlay pipeline and the registry bridge go; the plane keeps B
 grammar. Wave 39 was rebuilt on it (the glass, the plan, the trace, the seam; the same 59 turns
 re-judged; twelve live on Luna under the cap) and moves to the front: after 35 lands, 39 runs, then 34,
 36, 37, 38. Also today: quality is shared and quantity is sold (docs/ALLOWANCE.md, the free pool cap).
+
+### 10.46 Production on e7cf20a; wave 39 running (2026-09-08, 17:50 IST)
+
+Wave 35 committed as `e7cf20a` (verified as the exact tree after the worktree recipe learned to mirror
+every package's own node_modules). Gateway: Railway `e7aeb9a3` SUCCESS, `/healthz` degraded only for
+payments off, providers ok. Web: Vercel `dpl_djYSRbrLJA9TWWBpmnEv5nt9EuTX` promoted from the same export;
+the live bundle no longer carries the removed narrating strings. Wave 39 (the ink rebuilt on
+docs/INK-FREEZE-PLAN-TRACE.md) launched at 17:41 on the still tree: `wf_f1055981-e52`.
