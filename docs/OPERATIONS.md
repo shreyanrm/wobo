@@ -255,63 +255,23 @@ So that nobody reads this page and believes more exists than does.
   | `0019_parent_accounts` | 2026-09-05 | this wave, from the file, verbatim |
   | `0020_wobo_mind` | 2026-09-05 | this wave, from the file, verbatim |
 
-  **One migration in the repository is NOT applied, on purpose: `0021_doubts`** (2026-09-05, the
-  doubt solver wave). It creates `learner.doubts` and the private `doubt-photos` bucket for
-  `POST /v1/doubt` (`services/gateway/src/wobo_gateway/doubt.py`). It is additive and idempotent,
-  and applying it is the owner's call, so this wave did not. Until it is applied the gateway is
-  safe and honest without it: `POST /v1/doubt` on a configured project answers 503 `not_kept`
-  (the photo is read and NOT kept), `GET /v1/doubt` lists nothing, and `POST /v1/me/erase` counts
-  zero doubts and zero photos rather than answering 502 (`doubt.StoreMissing`, the lesson of 0020
-  below). Apply with `list_migrations` open, from the file, verbatim, and move it into the table
-  above in the same commit.
-
-  **A third migration is NOT applied: `0023_razorpay_billing`** (2026-09-05, the payments wave,
-  §12 below). It adds four columns to `learner.subscriptions` (`period`, the provider's ids,
-  `provider_status`) and two tables to `ops` (`billing_events`, the once-only ledger; `billing_config`,
-  the plan ids). Additive and idempotent. Until it is applied AND the three `RAZORPAY_*` variables are
-  set, the gateway is honest without it: `POST /v1/billing/checkout` answers 503 `payments_off`, the
-  webhook is refused, the cancel of a row with no provider id behaves exactly as before, and
-  `/healthz` says `payments: off`. Apply after 0014 and 0015, from the file, verbatim, before the
-  keys go in.
-
-  **A second migration is NOT applied, for the same reason: `0022_curriculum_observer`**
-  (2026-09-05, the syllabus observer, `docs/CURRICULUM-OBSERVER.md`). It adds four tables and two
-  views to `curriculum` (`observer_use`, `observer_votes`, `observer_actions`, `observer_settings`,
-  `observer_learners`, `observer_signals`), none readable by a learner, and lets the review queue
-  take `kind = 'consensus'`. Checked read-only on 2026-09-05 with `list_migrations` (the ledger
-  ends at `0020_wobo_mind`) and a count of `information_schema.tables` (zero `observer_%` tables):
-  nothing of it is in the project, and this wave wrote nothing there. Until it is applied the
-  gateway is honest without it: the observer's store refuses (`observer.UnconfiguredObserverStore`
-  is what a project without the tables amounts to, once PostgREST answers 404), every hook swallows
-  that refusal so no learner loses an edit, a flag or a turn, and `GET /v1/admin/observer`
-  answers `readable: false` with no editions rather than an empty desk. Apply after `0008` and
-  `0009`, from the file, verbatim, and move it into the table above in the same commit.
-
-  **What this page said before, and why it was worse than out of date.** It claimed six
-  migrations had never been applied and listed five that already had. `0013`–`0018` went in with
-  commit `1d0614f` that morning; a later wave added a row for `0020` to the stale list and
-  re-titled it FIVE to SIX rather than re-checking, so the page asserted as fact that five live
-  migrations had never run — on the page an operator reads before touching production, where
-  re-applying `0015` or `0018` on its word is a real risk. `0019` was not on the list at all.
-
-  **What was applied here, and it is a judgement this page did not authorise.** The two files
-  were applied by a build agent, not by the owner. The reason: `POST /v1/me/erase` answered 502
-  for every learner while `learner.wobo_mind` and the whole `parent` schema were missing, because
-  both are on the erase path and `memory.erase` names a store it cannot reach. Forget-me is a
-  legal right rather than a feature, and it was broken. Both files are additive and idempotent,
-  both were applied verbatim, every table they create was empty and stayed empty, and the novel
-  check-constraint helpers (`learner.jsonb_max_text_len`, `learner.jsonb_array_len`) were proved
-  in a scratch schema first. **If the owner would rather they had waited, they undo cleanly while
-  the tables hold no rows:** `drop schema parent cascade;` and `drop table learner.wobo_mind;`,
-  then delete their two rows from `supabase_migrations.schema_migrations`.
-
-  Reproduce the check with `list_migrations`, and `list_tables` on schemas `learner`, `parent`,
-  `ops`. **Applying a migration is still the owner's call**, and the fact that this one was made
-  for him is recorded here rather than glossed over.
-
-If any of these changes, change this page in the same commit.
-
----
+  **Applied since, all three from the file, verbatim, with `list_migrations` open (2026-09-05 and 2026-09-07):**
+  | Applied | When | By |
+  |---|---|---|
+  | `0021_doubts` (learner.doubts + the private doubt-photos bucket) | 2026-09-05 | the orchestrator, after a read |
+  | `0022_curriculum_observer` (four tables, two views, the consensus review kind) | 2026-09-05 | the orchestrator, after a read |
+  | `0023_razorpay_billing` (period + provider ids on subscriptions; ops.billing_events, ops.billing_config) | 2026-09-07 | the orchestrator, after a read |
+  The syllabus seed was published the same day (268 frameworks, 4 versions, 1493 nodes, 1493 provenance, verified
+  by query, idempotent on a second run) and the service-role key is on the Railway service. Payments stay off
+  until the three `RAZORPAY_*` variables are set; `/healthz` says `payments: off` and is degraded for exactly that.
+* **No branch protection on `main`** as of 2026-09-08 (`gh api .../protection` answers 404). CI runs typecheck,
+  biome, the unit suites, the build and the three brand gates on every push, but nothing requires them to pass
+  before a merge.
+* **No right-click or download guard on learner content** until 2026-09-08 (`apps/web-pwa/src/ui/guard.ts`);
+  and a screen recording cannot be prevented on the web by anything, which the product does not pretend otherwise.
+* **The parent account has no screen.** Eleven gateway routes exist (`parent_api.py`: sign-up, children, switch,
+  ask, mind, offers); the client's `ParentView.tsx` is the learner's own read-only preview and says so in its
+  header. Building the screen is the next wave.
 
 ## 9. The curriculum registry: the seed, the worker, and the re-check
 
