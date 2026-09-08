@@ -6,8 +6,11 @@ import { VitePWA } from 'vite-plugin-pwa';
 // environment, so renaming or swapping the domain is one env change and no code edit.
 // Fallbacks keep a bare `bun run dev` (no .env) working.
 const DEFAULT_APP_NAME = 'Wobo';
+// THE MOST-READ LINE OF COPY THE PRODUCT HAS: the Google snippet, the link preview and the
+// install text on every published address. It reads as the site does (docs/copy/voice.md 10a:
+// no em dash, no feature list, nothing that names the model), in the footer's own words.
 const DEFAULT_APP_DESCRIPTION =
-  'Learn with Wobo — mastery-first courses, practice, and your AI wobot beside you.';
+  'A tutor that draws, never judges, and is always there. Every subject your board sets, free every day.';
 
 export default defineConfig(({ mode }) => {
   // loadEnv reads .env[.mode][.local] AND the VITE_-prefixed vars the host injects

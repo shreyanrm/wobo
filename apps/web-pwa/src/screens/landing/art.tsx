@@ -530,6 +530,8 @@ export function ClimbQuest({
       viewBox="0 0 900 340"
       role="img"
       aria-label={label}
+      // the faded-out dressing is off the accessibility tree, not just the screen (site-7)
+      aria-hidden={on ? undefined : true}
     >
       <title>{label}</title>
       <path
@@ -635,6 +637,7 @@ export function ClimbFocus({
       viewBox="0 0 900 340"
       role="img"
       aria-label={label}
+      aria-hidden={on ? undefined : true}
     >
       <title>{label}</title>
       <g fontFamily="Poppins" fontSize="16" fill="var(--ink)">

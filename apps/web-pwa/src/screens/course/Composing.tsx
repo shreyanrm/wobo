@@ -120,6 +120,21 @@ type CardActivity =
   | { type: 'map'; spec: MapSpec }
   | { type: 'anatomy'; spec: AnatomyScene };
 
+/**
+ * Which of a card's renderers is on stage. A card may carry BOTH a discovery and an activity: the
+ * discovery plays first, and once it is done the activity follows on the same card. Returning
+ * `discovery` ahead of the whole activity branch used to leave every derivation, flashcard set and
+ * podcast that rode beside a discovery generated, paid for and never seen (SCORECARD.md 3.5 #18).
+ */
+export function cardBeat(
+  card: Pick<GenCard, 'discovery' | 'activity'>,
+  discoveryDone: boolean,
+): 'discovery' | 'activity' | 'idea' {
+  if (card.discovery && !discoveryDone) return 'discovery';
+  if (card.activity) return 'activity';
+  return 'idea';
+}
+
 /** Try each activity parser in turn; the first field that yields a valid spec wins (refusal → none). */
 function parseActivity(c: Record<string, unknown>): CardActivity | undefined {
   const perturb = parsePerturbSpec(c.perturbation);
@@ -195,8 +210,12 @@ export interface GenCard {
   imageSpec?: RasterSpec;
 }
 
-/** The wire Item from the generated contract, with options narrowed to the client's parsed shape. */
-type GenItem = Omit<WireItem, 'options'> & { options?: string[] };
+/**
+ * The wire Item from the generated contract, with options narrowed to the client's parsed shape.
+ * `explanation` is the teaching line a miss deserves (SCORECARD.md 3.5 #14); the gateway schema is
+ * growing it, and this side renders it the moment it arrives. Absent, the answer alone is shown.
+ */
+type GenItem = Omit<WireItem, 'options'> & { options?: string[]; explanation?: string };
 
 interface GenCourse {
   courseId: string;
@@ -221,18 +240,34 @@ function parseItems(raw: unknown): GenItem[] | null {
     const answer = typeof it.answer === 'string' ? it.answer.trim() : '';
     if (!prompt || !answer) return;
     const id = typeof it.id === 'string' ? it.id : `i${i + 1}`;
+    const explanation = typeof it.explanation === 'string' ? it.explanation.trim() : '';
+    const teach = explanation ? { explanation } : {};
     if (it.type === 'mcq' && Array.isArray(it.options)) {
       const options = it.options.filter(
         (o): o is string => typeof o === 'string' && o.trim() !== '',
       );
       // the verifier's law, re-checked at the door: exactly one correct option present
       if (options.length < 2 || options.filter((o) => o === answer).length !== 1) return;
-      items.push({ id, type: 'mcq', prompt, options, answer });
+      items.push({ id, type: 'mcq', prompt, options, answer, ...teach });
     } else if (it.type === 'fill') {
-      items.push({ id, type: 'fill', prompt, answer });
+      items.push({ id, type: 'fill', prompt, answer, ...teach });
     }
   });
   return items.length >= 3 ? items.slice(0, 3) : null;
+}
+
+/**
+ * Is this engine envelope the honest floor rather than this topic's content? The gateway names it
+ * three ways: `seeded: true` on the envelope, and `provenance.placeholder: true` /
+ * `provenance.source: "seed"` (engines._public_provenance). Every hydration reads it here, once,
+ * because a seed served under `verified: true, status: "canonical"` used to reach a learner as
+ * the lesson (SCORECARD.md 3.2 #55): a balance-beam algebra scaffold in a biology cell.
+ */
+export function isPlaceholderEnvelope(raw: unknown): boolean {
+  if (!isRecord(raw)) return false;
+  if (raw.seeded === true) return true;
+  const prov = isRecord(raw.provenance) ? raw.provenance : null;
+  return prov !== null && (prov.placeholder === true || prov.source === 'seed');
 }
 
 export function parseGenCourse(raw: unknown, fallbackTitle: string): GenCourse | null {
@@ -274,7 +309,7 @@ export function parseGenCourse(raw: unknown, fallbackTitle: string): GenCourse |
     cards,
     workbook,
     boss,
-    seeded: raw.seeded === true,
+    seeded: isPlaceholderEnvelope(raw),
   };
 }
 
@@ -473,13 +508,15 @@ function useArtifact(card: GenCard, topic: string, courseId: string): Artifact {
         if (cancelled) return;
         const body =
           isRecord(res.output) && 'artifact' in res.output ? res.output.artifact : res.output;
+        // A placeholder (the live generation refused) is a generic scaffold with the topic's name
+        // in it. Rather than risk a wrong-subject sandbox or picture on this card, degrade to the
+        // idea + act, the honest floor. Read for BOTH kinds: the diagram path used to skip it.
+        if (isPlaceholderEnvelope(res.output)) {
+          setArtifact({ status: 'failed' });
+          return;
+        }
         if (card.kind === 'sim') {
-          // A seeded sim is a generic fallback (the live generation refused). Rather than risk a
-          // wrong-subject sandbox on this card, degrade to the idea + act — the honest floor.
-          const seeded = isRecord(res.output) && res.output.seeded === true;
-          const spec = seeded
-            ? null
-            : (simSpecFromGateway(res.output, card.title) ?? parseSimSpec(body));
+          const spec = simSpecFromGateway(res.output, card.title) ?? parseSimSpec(body);
           setArtifact(spec ? { status: 'ready', kind: 'sim', spec } : { status: 'failed' });
         } else {
           const svg =
@@ -579,6 +616,35 @@ const itemBlockStyle = (state: 'idle' | 'correct' | 'retry'): CSSProperties => (
 
 // --- Item answering (shared by the workbook and the boss) ------------------------------------------
 
+/**
+ * How many of the three must be right to carry on. The workbook's bar was 0, so a learner who
+ * missed all three read "0 of 3, that is a pass, earned." and was advanced to the boss
+ * (SCORECARD.md 3.2 #43). Two of three, for both: the boss has always asked for two.
+ */
+export const WORKBOOK_PASS_NEEDED = 2;
+export const BOSS_PASS_NEEDED = 2;
+
+/**
+ * What a checked round means, said once. Below the bar the round never advances and the line
+ * points at the teaching already on screen: every missed item shows its answer (and the
+ * explanation, when the gateway sent one), so "one more look" is a look at something.
+ */
+export function roundVerdict(
+  correct: number,
+  total: number,
+  passNeeded: number,
+): { advance: boolean; line: string } {
+  if (correct >= total) return { advance: true, line: 'All of them. Clean.' };
+  // A full miss is never a pass, whatever bar a caller set.
+  if (correct >= Math.max(1, passNeeded)) {
+    return { advance: true, line: `${correct} of ${total}. That is a pass, earned.` };
+  }
+  return {
+    advance: false,
+    line: `${correct} of ${total}. Not yet. The answer is under each one you missed: read it, see why it is the answer, then try again.`,
+  };
+}
+
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
 function answerIsCorrect(item: GenItem, entry: string): boolean {
@@ -651,7 +717,8 @@ function ItemBlock({
       )}
       {state === 'retry' && (
         <div style={{ fontSize: '0.88rem', color: 'var(--wobo-ink-700)', lineHeight: 1.55 }}>
-          not this one — the answer worth keeping is “{item.answer}”.
+          Not this one. The answer is “{item.answer}”.
+          {item.explanation ? ` ${item.explanation}` : ''}
         </div>
       )}
     </motion.div>
@@ -759,7 +826,7 @@ function ItemSet({
       steps: [
         `${eyebrow}: ${answered} of ${items.length} answered`,
         evaluated
-          ? `Checked — ${results?.filter(Boolean).length ?? 0} of ${items.length} correct`
+          ? `Checked: ${results?.filter(Boolean).length ?? 0} of ${items.length} correct`
           : 'Not yet checked',
       ],
       lastEditedAt: new Date().toISOString(),
@@ -805,16 +872,15 @@ function ItemSet({
     } else {
       const correct = results?.filter(Boolean).length ?? 0;
       setBar({
-        primary:
-          correct >= passNeeded
-            ? { label: 'Continue', onClick: () => onDone(correct) }
-            : {
-                label: 'One more look',
-                onClick: () => {
-                  setResults(null);
-                  startedAt.current = Date.now();
-                },
+        primary: roundVerdict(correct, items.length, passNeeded).advance
+          ? { label: 'Continue', onClick: () => onDone(correct) }
+          : {
+              label: 'One more look',
+              onClick: () => {
+                setResults(null);
+                startedAt.current = Date.now();
               },
+            },
       });
     }
   }, [
@@ -890,11 +956,7 @@ function ItemSet({
               transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
               style={{ textAlign: 'center', color: 'var(--wobo-ink-700)', fontSize: '0.95rem' }}
             >
-              {correct === items.length
-                ? 'All of them. Clean.'
-                : correct >= passNeeded
-                  ? `${correct} of ${items.length} — that is a pass, earned.`
-                  : 'Close. Take one more look — the answers are still yours to find.'}
+              {roundVerdict(correct, items.length, passNeeded).line}
             </motion.div>
           )}
         </AnimatePresence>
@@ -939,7 +1001,7 @@ function GenCardView({
       surface = (
         <Shimmer
           lines={3}
-          note="Wobo is composing this piece just for you — it will land here on its own"
+          note="Wobo is composing this piece just for you. It will land here on its own"
         />
       );
     }
@@ -956,7 +1018,7 @@ function GenCardView({
       >
         <motion.div variants={rise} style={whisper}>
           {card.kind === 'sim'
-            ? 'Drag it — feel the law move'
+            ? 'Drag it and feel the law move'
             : card.kind === 'diagram'
               ? 'the picture'
               : 'the idea'}
@@ -1007,6 +1069,23 @@ function GenCardView({
 
 // --- The composing ink screen (skeleton first, the real outline the moment it lands) ---------------
 
+/**
+ * The side column's steps. A placeholder course has none: its cards are the scaffold, and a
+ * column that lists "meet a new course, feel the rule" beside a screen saying "still being made"
+ * is the lesson this is not, said twice.
+ */
+export function outlineSteps(course: Pick<GenCourse, 'cards' | 'seeded'>): string[] {
+  if (course.seeded) return [];
+  return [...course.cards.map((c) => c.title.toLowerCase()), 'the workbook', 'the boss'];
+}
+
+/**
+ * What a learner reads when the brain could only offer its floor. Plain, and nothing pretends:
+ * the scaffold behind it is not this topic's lesson and is never started as one.
+ */
+export const PLACEHOLDER_COURSE_LINE =
+  'Wobo has not finished this one yet. Nothing here is the lesson, so it stays out of sight until it is real. Come back in a little while and it will be waiting.';
+
 function InkScreen({
   topicId,
   title,
@@ -1018,9 +1097,9 @@ function InkScreen({
   course: GenCourse | null;
   settled: boolean;
 }) {
-  const outline = course
-    ? [...course.cards.map((c) => c.title.toLowerCase()), 'the workbook', 'the boss']
-    : null;
+  // A placeholder course has no outline worth reading: its cards are a scaffold with the topic's
+  // name in it, and listing them would be listing the lesson this is not (SCORECARD.md 3.5 #9).
+  const outline = course && !course.seeded ? outlineSteps(course) : null;
   return (
     <CardBody maxWidth={560}>
       <CourseIntroScene
@@ -1032,16 +1111,21 @@ function InkScreen({
       <div style={whisper}>
         {course
           ? course.seeded
-            ? 'a working course, honestly floored'
+            ? 'Still being made'
             : 'Written and verified'
           : 'Wobo is composing your course'}
       </div>
       <div style={cardTitle}>{title.toLowerCase()}</div>
-      {!outline && (
+      {course?.seeded && (
+        <div style={{ ...lead, marginTop: 2 }} role="status">
+          {PLACEHOLDER_COURSE_LINE}
+        </div>
+      )}
+      {!outline && !course?.seeded && (
         <>
           <Shimmer lines={4} />
           <div style={{ ...lead, marginTop: 2 }}>
-            Every card is generated, then checked, before it reaches you — it will land here on its
+            Every card is generated, then checked, before it reaches you. It will land here on its
             own; no need to hold your breath.
           </div>
         </>
@@ -1057,11 +1141,7 @@ function InkScreen({
             <OutlineLine key={line} index={i} line={line} />
           ))}
           <div style={{ ...lead, marginTop: 4 }}>
-            {course?.seeded
-              ? 'The fully generated course is still in verification — this working path is live now and follows the same grammar.'
-              : settled
-                ? 'Composed and checked, line by line. It starts on the next card.'
-                : ''}
+            {settled ? 'Composed and checked, line by line. It starts on the next card.' : ''}
           </div>
         </motion.div>
       )}
@@ -1168,7 +1248,11 @@ function useVideoScene(title: string, courseId: string): VideoState {
     ])
       .then((res) => {
         if (cancelled) return;
-        const scene = motionSceneFromVideo(res.output, title);
+        // A placeholder film narrates "watch how one thing reaches the next" over any topic. It
+        // is not this topic's film, so it is not shown as one.
+        const scene = isPlaceholderEnvelope(res.output)
+          ? null
+          : motionSceneFromVideo(res.output, title);
         setState(scene ? { status: 'ready', scene } : { status: 'failed' });
       })
       .catch(() => {
@@ -1223,12 +1307,12 @@ function VideoBeat({
         {video.status === 'pending' && (
           <Shimmer
             lines={4}
-            note="Wobo is animating this one by hand — it will land here on its own"
+            note="Wobo is animating this one by hand. It will land here on its own"
           />
         )}
         {video.status === 'failed' && (
           <motion.div variants={rise} style={lead}>
-            the animation is still rendering — carry on; it will be here when you come back.
+            the animation is still rendering. Carry on; it will be here when you come back.
           </motion.div>
         )}
       </motion.div>
@@ -1305,6 +1389,9 @@ export function Composing({
   // idx walks: cards… then workbook, boss, greeting
   const [idx, setIdx] = useState(0);
   const [revealed, setRevealed] = useState(false);
+  // The discovery on the card at `idx` has completed, so the same card's activity follows it.
+  // Reset when the index moves; the advance callback below does both.
+  const [discoveryDone, setDiscoveryDone] = useState(false);
   const attempts = useRef(0);
   const enteredAt = useRef(Date.now());
   const arrivalRecorded = useRef(false);
@@ -1405,7 +1492,13 @@ export function Composing({
       // card index; restore only into content/workbook/boss, never the finished greeting. A
       // completed course never resumes a stale end state: a replay always begins at card 0.
       const saved = readCoursePos(topicId);
-      if (!replay && typeof saved === 'number' && saved >= 1 && saved <= built.cards.length + 1) {
+      if (
+        !replay &&
+        !built.seeded &&
+        typeof saved === 'number' &&
+        saved >= 1 &&
+        saved <= built.cards.length + 1
+      ) {
         setIdx(saved);
         setEntered(true);
         onResume?.();
@@ -1425,8 +1518,12 @@ export function Composing({
   }, []);
   const advance = useCallback(() => {
     setRevealed(false);
+    setDiscoveryDone(false);
     setIdx((i) => i + 1);
   }, []);
+  // A discovery finishing on a card that also carries an activity stays on the card: the
+  // activity is the second half of it. A card with nothing after the discovery moves on.
+  const afterDiscovery = useCallback(() => setDiscoveryDone(true), []);
   const awardWorkbookItem = useCallback(
     (item: GenItem) => award('item', { onceKey: `gen-wb-${topicId}-${item.id}`, hue }),
     [award, topicId, hue],
@@ -1459,7 +1556,7 @@ export function Composing({
   // the side column's steps: the ink screen's own outline, with the one on stage marked
   useEffect(() => {
     if (!course) return;
-    const steps = [...course.cards.map((c) => c.title.toLowerCase()), 'the workbook', 'the boss'];
+    const steps = outlineSteps(course);
     const at = !entered
       ? -1
       : stage === 'cards'
@@ -1483,13 +1580,12 @@ export function Composing({
   useEffect(() => {
     if (entered) return;
     setBar({
-      primary: {
-        label: course?.seeded ? 'Start the working course' : 'Start the course',
-        disabled: !settled,
-        onClick: () => setEntered(true),
-      },
+      primary: course?.seeded
+        ? // A placeholder is not started. The one honest move is back to where they came from.
+          { label: 'Back for now', onClick: onExit }
+        : { label: 'Start the course', disabled: !settled, onClick: () => setEntered(true) },
     });
-  }, [entered, settled, course, setBar]);
+  }, [entered, settled, course, setBar, onExit]);
 
   // content cards: act → check (reveal + XP) → continue
   const card = course && idx < stops ? course.cards[idx] : null;
@@ -1499,6 +1595,7 @@ export function Composing({
     // ground under a topic is not an achievement, and paying a child 15 XP for tapping past it
     // teaches them that the tap was the point.
     if (!entered || !card || card.discovery || card.activity || card.id === 'bridge') return;
+    // (a card that is still on its discovery, or now on its activity, owns its own bar either way)
     if (!revealed) {
       setBar({
         primary: {
@@ -1572,7 +1669,7 @@ export function Composing({
           eyebrow="The workbook · three quick ones"
           heading="Hold what you just built"
           hue={hue}
-          passNeeded={0}
+          passNeeded={WORKBOOK_PASS_NEEDED}
           setBar={setBar}
           onAttempt={bumpAttempts}
           awardCorrect={awardWorkbookItem}
@@ -1593,7 +1690,7 @@ export function Composing({
           eyebrow="The boss · answered together, checked together"
           heading="Prove it is yours"
           hue={hue}
-          passNeeded={2}
+          passNeeded={BOSS_PASS_NEEDED}
           setBar={setBar}
           onAttempt={bumpAttempts}
           awardCorrect={awardNothing}
@@ -1603,15 +1700,22 @@ export function Composing({
     );
   }
 
-  if (card?.discovery) {
+  const beat = card ? cardBeat(card, discoveryDone) : 'idea';
+
+  if (card?.discovery && beat === 'discovery') {
     return (
       <Deck id={`gen-discovery-${idx}`}>
-        <Discovery spec={card.discovery} hue={hue} setBar={setBar} onDone={advance} />
+        <Discovery
+          spec={card.discovery}
+          hue={hue}
+          setBar={setBar}
+          onDone={card.activity ? afterDiscovery : advance}
+        />
       </Deck>
     );
   }
 
-  if (card?.activity) {
+  if (card?.activity && beat === 'activity') {
     const a = card.activity;
     return (
       <Deck id={`gen-activity-${idx}`}>

@@ -14,6 +14,7 @@
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { configureGatewayAuth } from '@wobo/sdk';
 import type { Subscription, SubscriptionRead } from '../you/billing';
 import {
   awaitConfirmation,
@@ -105,6 +106,40 @@ describe('whether payments are switched on', () => {
     expect(await readPaymentsConfig(GATEWAY, fetcher)).toEqual({ on: true });
     expect(calls.map((c) => c.url)).toEqual([`${GATEWAY}${CHECKOUT_PATHS.config}`]);
     expect(CHECKOUT_PATHS.config).toBe('/healthz');
+  });
+
+  /**
+   * A HEALTH CHECK ASKS NOBODY WHO THEY ARE. The default fetcher used to be `gatewayFetch`, which
+   * binds the learner's identity to every call, and binding it means establishing a session,
+   * which is an anonymous sign-in against a project where anonymous sign-ins are off. So every
+   * signed-out stranger who opened /plans got a 422 from POST /db/auth/v1/signup in their console
+   * and Lighthouse's best-practices score dropped to 92 (wave 29, site-5). The guard on the
+   * allowance card was holding; this call was the one that slipped past it. `/healthz` is public,
+   * so it is fetched plain, and the identity layer is never consulted for it.
+   */
+  it('never asks the identity layer for a token to read the health route', async () => {
+    let asked = 0;
+    configureGatewayAuth({
+      accessToken: async () => {
+        asked += 1;
+        return 'a-token-that-must-not-be-sent';
+      },
+    });
+    const seen: { url: string; authorization: string | null }[] = [];
+    const real = globalThis.fetch;
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      seen.push({ url: String(input), authorization: headers.get('authorization') });
+      return new Response(JSON.stringify(ON), { status: 200 });
+    }) as typeof fetch;
+    try {
+      expect(await readPaymentsConfig(GATEWAY)).toEqual({ on: true });
+    } finally {
+      globalThis.fetch = real;
+      configureGatewayAuth({});
+    }
+    expect(seen).toEqual([{ url: `${GATEWAY}/healthz`, authorization: null }]);
+    expect(asked).toBe(0);
   });
 });
 

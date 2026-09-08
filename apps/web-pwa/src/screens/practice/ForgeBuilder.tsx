@@ -138,7 +138,7 @@ export function ForgeBuilder({ onForged }: { onForged: (id: string) => void }) {
               lineHeight: 1.6,
             }}
           >
-            nothing to forge from yet — the forge only takes chapters you've already met. learn one
+            nothing to forge from yet. the forge only takes chapters you've already met: learn one
             first, then come back and bind it into a workbook of your own.
           </div>
         ) : (
@@ -171,7 +171,7 @@ export function ForgeBuilder({ onForged }: { onForged: (id: string) => void }) {
                               disabled={!can || (!on && picks.length >= MAX_PICKS)}
                               onClick={() => toggle(t.id)}
                               title={
-                                can ? undefined : "you haven't met this one yet — learn it first"
+                                can ? undefined : "you haven't met this one yet. learn it first"
                               }
                               style={{
                                 padding: '8px 13px',
@@ -360,7 +360,7 @@ export function ForgeBuilder({ onForged }: { onForged: (id: string) => void }) {
             >
               <span style={{ ...whisper, color: 'var(--wobo-ultramarine)' }}>Wobo</span>
               <div style={{ marginTop: 3 }}>
-                you slipped on “{suggestion.name}” lately — add it to the forge?
+                you slipped on “{suggestion.name}” lately. add it to the forge?
               </div>
             </motion.button>
           )}
@@ -393,7 +393,7 @@ export function ForgeBuilder({ onForged }: { onForged: (id: string) => void }) {
             ? 'binding…'
             : picks.length === 0
               ? 'pick a page to begin'
-              : `forge — ${size} items`}
+              : `forge · ${size} items`}
           {picks.length > 0 && !binding && <ChevronIcon size={14} />}
         </motion.button>
       </div>
@@ -405,6 +405,9 @@ function segStyle(active: boolean, hue: string, single = false): React.CSSProper
   return {
     flex: 1,
     padding: single ? '10px 8px' : '10px 6px',
+    // the 44 px hit-area law (DESIGN.md §0): the chips measured 156x42 at 390 and 1440
+    minHeight: 44,
+    boxSizing: 'border-box',
     borderRadius: 3,
     cursor: 'pointer',
     fontFamily: 'inherit',

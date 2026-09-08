@@ -13,7 +13,7 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { canonicalUrl } from '../../shell/router';
 import { GIFT_PAGE } from '../gift/copy';
@@ -292,6 +292,45 @@ describe('the copy law has no exception for a character', () => {
       [],
     );
   });
+
+  /**
+   * THE TEST ABOVE READ ONE FILE, so the character survived everywhere else: four pull-quote
+   * attributions ("— Wobo"), the help centre's search-miss line, and the site's one meta
+   * description, which is the Google snippet, the link preview and the PWA install text on every
+   * one of the 61 published URLs (wave 29, site-4). Comments are stripped first, because a comment
+   * is where a law is explained, not where a reader meets it; what is left of a page's source is
+   * what it renders.
+   */
+  it('carries no em dash on any page a stranger reads, nor in the meta description', () => {
+    const pages: [string, string][] = [
+      ...PUBLIC_SOURCES,
+      ['site/Help.tsx', shipped('screens', 'site', 'Help.tsx')],
+      ['site/HelpArticle.tsx', shipped('screens', 'site', 'HelpArticle.tsx')],
+      ['site/Sitemap.tsx', shipped('screens', 'site', 'Sitemap.tsx')],
+      ['site/SiteShell.tsx', shipped('screens', 'site', 'SiteShell.tsx')],
+      ['site/nav.ts', shipped('screens', 'site', 'nav.tsx')],
+      ['plans/copy.ts', shipped('screens', 'plans', 'copy.ts')],
+      ['plans/Plans.tsx', shipped('screens', 'plans', 'Plans.tsx')],
+      ['landing/sections', readdirSync(join(SRC, 'screens', 'landing', 'sections'))
+        .filter((n) => n.endsWith('.tsx'))
+        .map((n) => shipped('screens', 'landing', 'sections', n))
+        .join('\n')],
+    ];
+    const guilty = pages
+      .filter(([, source]) => source.includes('—'))
+      .map(([name, source]) => {
+        const at = source.indexOf('—');
+        return `${name}: …${source.slice(Math.max(0, at - 40), at + 20).replace(/\s+/g, ' ')}…`;
+      });
+    expect(guilty).toEqual([]);
+    // the one line of copy every published address carries
+    const vite = repoFile('apps', 'web-pwa', 'vite.config.ts');
+    const description = /DEFAULT_APP_DESCRIPTION =\s*'([^']*)'/.exec(vite)?.[1] ?? '';
+    expect(description.length).toBeGreaterThan(20);
+    expect(description).not.toContain('—');
+    // and it is written in the site's own register, not a feature list
+    expect(description).not.toMatch(/mastery-first|wobot|AI/);
+  });
 });
 
 // --- C. one page, one job, one call to action ----------------------------------------------------
@@ -465,8 +504,10 @@ describe('the front page has one declared address', () => {
 
   it('writes the tag, and leaves a bare slash alone', () => {
     const router = raw('shell', 'router.tsx');
-    expect(router).toContain("tag.rel = 'canonical'");
-    expect(router).toContain('tag.href = canonicalUrl(route)');
+    expect(router).toContain("canonical.rel = 'canonical'");
+    // the head is written from one table (`headFor`), which is where a 404 is told apart
+    expect(router).toContain('canonical.href = head.canonical');
+    expect(router).toContain('const head = headFor(route)');
     expect(router).toContain(
       "writePath(bare ? '/' : routeToPath(stack[0] as Route), 1, 'replace')",
     );

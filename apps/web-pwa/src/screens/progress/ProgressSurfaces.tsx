@@ -15,9 +15,10 @@
  */
 
 import { useRegisterTarget } from '@wobo/wobo';
-import { useEffect, useMemo, useState } from 'react';
-import { useRegistryRevision } from '../../curriculum/hooks';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useRegistryRevision, useWorld } from '../../curriculum/hooks';
 import { chaptersBySubject, loadedTopics, subjects } from '../../curriculum/registry';
+import { warmFromCache } from '../../curriculum/warm';
 import { useRouter } from '../../shell/router';
 import { useMastery } from '../../store/mastery';
 import { loadMind } from '../../store/mind';
@@ -63,6 +64,21 @@ export function ProgressSurfaces() {
   const { completed, topicProgress, xp, streakDays } = useProgress();
   const { bandOf, bands, nextNodeId } = useMastery();
   const revision = useRegistryRevision();
+  const world = useWorld();
+
+  // A cold open — a reload on this screen, a deep link, a bookmark — arrives before any screen has
+  // ingested the pinned world, and the registry is empty until one does. Home, Learn and Course
+  // read the offline cache on arrival; this screen did not, so it told a parent the child had
+  // learnt nothing and had no board set, three lines above a footer that counted the lesson. The
+  // read is synchronous and idempotent (curriculum/warm.ts); before paint, so the empty map is
+  // never drawn for a frame first.
+  const worldKey = world
+    ? `${world.frameworkId}:${world.versionId ?? ''}:${world.level ?? ''}`
+    : '';
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the world key is the trigger; the cache read is idempotent
+  useLayoutEffect(() => {
+    warmFromCache();
+  }, [worldKey]);
   const [span, setSpan] = useState<Span>('week');
   const [marks] = useState(() => markToday());
   // One reading of the clock for the whole screen. A fresh `Date.now()` on every render would make
@@ -102,9 +118,11 @@ export function ProgressSurfaces() {
   );
   const [firstLook] = useState(() => readSeen());
   const lit = useMemo(() => new Set(newlyLit(learntIds, firstLook)), [learntIds, firstLook]);
+  // Never against an empty registry: the same cold read used to write an empty learnt set over
+  // `wobo-sky-seen-v1`, so every star already seen ignited again on the next visit.
   useEffect(() => {
-    writeSeen(learntIds);
-  }, [learntIds]);
+    if (topics.length > 0) writeSeen(learntIds);
+  }, [topics, learntIds]);
 
   // The week, from the one function the home and the You screen also call.
   const summary = useMemo(

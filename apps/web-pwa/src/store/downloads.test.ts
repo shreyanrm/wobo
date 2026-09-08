@@ -2,12 +2,17 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 import {
   acknowledge,
   claimNext,
+  composeOutcome,
   enqueue,
   getDownload,
   getDownloads,
   markFailed,
   markReady,
   positionOf,
+  READY_TOAST,
+  readyLine,
+  SLIPPED_TOAST,
+  settleCompose,
 } from './downloads';
 
 // The store is a module singleton (localStorage in the app, in-memory here). Between tests we
@@ -67,5 +72,50 @@ describe('download queue — the on-first-start generation store', () => {
     acknowledge('rdy-a');
     expect(getDownload('rdy-a')?.seen).toBe(true);
     expect(getDownload('rdy-a')?.status).toBe('ready');
+  });
+});
+
+// --- wave 29 (#9 on the client): a placeholder is not a course, so it is never 'ready' ------------
+describe('a compose that settled on the honest floor is not a ready course', () => {
+  // The exact live envelope the gateway serves when it has nothing verified for a topic: named a
+  // placeholder three ways (Composing.isPlaceholderEnvelope). The runner used to markReady on any
+  // settled compose, so the toast read 'Your course is ready', Wobo said it aloud, and the tap
+  // opened 'Still being made'. The row then stayed ready for ever.
+  const placeholder = {
+    verified: false,
+    status: 'provisional',
+    seeded: true,
+    provenance: { engine: 'engine.compose', source: 'seed', placeholder: true },
+    artifact: { topic: 'Algebra play', cards: [], workbook: [], boss: [] },
+  };
+  const real = {
+    verified: true,
+    status: 'canonical',
+    provenance: { engine: 'engine.compose', source: 'model', placeholder: false },
+    artifact: { topic: 'Algebra play', cards: [{}, {}, {}], workbook: [], boss: [] },
+  };
+
+  it('reads the envelope: a placeholder settles as failed, a verified course as ready', () => {
+    expect(composeOutcome(placeholder)).toBe('failed');
+    expect(composeOutcome({ seeded: true })).toBe('failed');
+    expect(composeOutcome({ provenance: { source: 'seed' } })).toBe('failed');
+    expect(composeOutcome(real)).toBe('ready');
+  });
+
+  it('settling a placeholder leaves the topic retryable, never presented as downloaded', () => {
+    enqueue('ph-a', 'Algebra play');
+    claimNext();
+    settleCompose('ph-a', placeholder);
+    expect(getDownload('ph-a')?.status).toBe('failed');
+    // a failed row is the one state enqueue restarts from: the learner can ask again later
+    enqueue('ph-a', 'Algebra play');
+    expect(getDownload('ph-a')?.status).toBe('queued');
+  });
+
+  it('the lines a learner reads or hears carry no em dash', () => {
+    for (const line of [readyLine('Algebra play'), READY_TOAST, SLIPPED_TOAST]) {
+      expect(line).not.toContain('—');
+    }
+    expect(readyLine('Algebra play')).toContain('algebra play');
   });
 });

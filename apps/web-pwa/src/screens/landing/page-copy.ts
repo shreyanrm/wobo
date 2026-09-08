@@ -27,6 +27,7 @@
 
 import { CTA } from '../site/cta';
 import { HANDOFFS } from '../site/handoffs';
+import { FOOTER_COLUMNS } from '../site/nav';
 
 export interface NavLink {
   label: string;
@@ -79,7 +80,9 @@ export const HERO_FORMS: readonly HeroForm[] = [
 export const HERO_CYCLE_MS = 3800;
 
 export const HERO = {
-  eyebrow: { lead: 'Every subject · every board · ', accent: 'free every day' },
+  // The accent's spaces are NON-BREAKING: at 390 it wrapped as "FREE EVERY / DAY", orphaning one word
+  // of the promise the page is built on under the pigment run (wave 29, site-9).
+  eyebrow: { lead: 'Every subject · every board · ', accent: 'free\u00a0every\u00a0day' },
   /**
    * THE HEADLINE IS THE OWNER'S, AND IT IS A DECISION RATHER THAN A DRAFT (2026-09-05).
    *
@@ -737,44 +740,18 @@ export const CLOSE = {
 
 // --- The footer -----------------------------------------------------------------------------------
 
+/**
+ * ONE LIST, READ BY BOTH FOOTERS. The columns are `site/nav.ts`'s `FOOTER_COLUMNS`, the same
+ * four the site shell draws under every public page. This file used to carry its own copy of
+ * them, and the two had drifted: the front page was missing Donate Wobo and Cookies, so the donate
+ * page and one of the ten legal documents had no path from the door most visitors come through,
+ * and "Questions" went to /help here and to a dead anchor there (wave 29, site-10 and site-1).
+ * The tagline stays the prototype's own sentence; only the addresses are shared.
+ */
 export const FOOTER = {
   tagline: 'A tutor that draws, films, listens and never judges.',
-  columns: [
-    {
-      heading: 'Wobo',
-      links: [
-        { label: 'Meet Wobo', href: '/meet-wobo' },
-        { label: 'How it works', href: '/how-it-works' },
-        { label: 'Subjects', href: '/subjects' },
-        { label: 'Plans', href: '/plans' },
-        { label: 'Gift Wobo', href: '/gift' },
-      ],
-    },
-    {
-      heading: 'For',
-      links: [
-        { label: 'Parents', href: '/for-parents' },
-        { label: 'Students', href: '/for-students' },
-      ],
-    },
-    {
-      heading: 'Help',
-      links: [
-        { label: 'Help centre', href: '/help' },
-        { label: 'Contact', href: '/contact' },
-        { label: 'Questions', href: '/help' },
-      ],
-    },
-    {
-      heading: 'Company',
-      links: [
-        { label: 'About', href: '/about' },
-        { label: 'Security and trust', href: '/security' },
-        { label: 'Terms', href: '/legal/terms-of-service' },
-        { label: 'Privacy', href: '/legal/privacy-policy' },
-        { label: "Children's privacy", href: '/legal/childrens-privacy' },
-        { label: 'Accessibility', href: '/legal/accessibility-statement' },
-      ],
-    },
-  ],
+  columns: FOOTER_COLUMNS.map((column) => ({
+    heading: column.title,
+    links: column.links.map(({ label, href }) => ({ label, href })),
+  })),
 } as const;

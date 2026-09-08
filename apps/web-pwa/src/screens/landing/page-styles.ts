@@ -92,7 +92,7 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} p{margin:0}
 .${ROOT} .hand{font-family:var(--hand);font-weight:600}
 .${ROOT} .wrap{width:min(1180px,calc(100% - var(--gutter) * 2));margin:0 auto}
-.${ROOT} .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.${ROOT} .eyebrow{font:500 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
 .${ROOT} .eyebrow b{color:var(--pig);font-weight:500}
 .${ROOT} section{padding:calc(var(--band) / 2) 0;position:relative;scroll-margin-top:96px}
 .${ROOT} h2.t{font:700 clamp(30px,3.8vw,50px)/1.06 var(--sans)}
@@ -157,7 +157,7 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} #hero .asked{padding:0 var(--s3) 4px;font:500 15px/1.35 var(--sans);color:var(--ink-2)}
 .${ROOT} #hero .asked .wake{display:block;font-family:var(--hand);font-weight:700;font-size:20px;color:var(--pig)}
 .${ROOT} #hero .cta{display:flex;gap:12px;margin-top:var(--s4);flex-wrap:wrap;align-items:center}
-.${ROOT} #hero .under{display:flex;gap:var(--s3);margin-top:var(--s3);flex-wrap:wrap;color:var(--ink-3);font-size:14px}
+.${ROOT} #hero .under{display:flex;gap:var(--s3);margin-top:var(--s3);flex-wrap:wrap;color:var(--ink-2);font-size:14px}
 .${ROOT} #hero .under span{display:inline-flex;align-items:center;gap:8px}
 .${ROOT} #hero .under i{width:7px;height:7px;border-radius:50%;background:var(--mint)}
 @media (max-width:980px){
@@ -168,7 +168,7 @@ export const LANDING_CSS = `${FACES}
 
 /* the device: one question, answered four ways */
 .${ROOT} .device{position:relative;border-radius:26px;background:var(--paper);box-shadow:var(--shadow);padding:14px;border:1px solid var(--line)}
-.${ROOT} .device .top{display:flex;align-items:center;gap:10px;padding:4px 8px 12px;font-size:13px;color:var(--ink-3)}
+.${ROOT} .device .top{display:flex;align-items:center;gap:10px;padding:4px 8px 12px;font-size:13px;color:var(--ink-2)}
 .${ROOT} .device .top b{color:var(--ink-2);font-weight:500}
 .${ROOT} .device .top .live{margin-left:auto;display:inline-flex;align-items:center;gap:6px;color:var(--rose);font-size:12px}
 .${ROOT} .device .top .live i{width:7px;height:7px;border-radius:50%;background:var(--rose)}
@@ -176,7 +176,7 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .device .stage > div{position:absolute;inset:0;opacity:0;display:grid;place-items:center}
 .${ROOT} .device .stage > div.on{opacity:1}
 .${ROOT} .device .rail{display:flex;gap:8px;padding:12px 6px 2px}
-.${ROOT} .device .rail button{flex:1;border:0;background:transparent;padding:8px 4px 10px;cursor:pointer;font:500 12px/1.2 var(--sans);color:var(--ink-3);border-top:2px solid var(--line);transition:color .2s}
+.${ROOT} .device .rail button{flex:1;border:0;background:transparent;padding:8px 4px 10px;cursor:pointer;font:500 12px/1.2 var(--sans);color:var(--ink-2);border-top:2px solid var(--line);transition:color .2s}
 .${ROOT} .device .rail button.on{color:var(--ink);border-top-color:var(--pig)}
 .${ROOT} .ink{fill:none;stroke:var(--ink);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
 .${ROOT} .ink.pig{stroke:var(--pig)}.${ROOT} .ink.thin{stroke-width:2.6;stroke:var(--ink-3)}.${ROOT} .ink.rose{stroke:var(--rose)}.${ROOT} .ink.mint{stroke:var(--mint)}
@@ -225,7 +225,7 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .forms .label{position:absolute;left:24px;bottom:20px;display:flex;align-items:center;gap:10px;font:500 13px/1 var(--sans);color:var(--ink-2)}
 .${ROOT} .forms .label i{width:8px;height:8px;border-radius:50%;background:var(--pig)}
 .${ROOT} .formsnav{display:flex;gap:8px;margin-top:var(--s3);flex-wrap:wrap}
-.${ROOT} .formsnav > span{font:500 13px/1 var(--sans);padding:9px 14px;border-radius:999px;background:var(--paper-2);color:var(--ink-3)}
+.${ROOT} .formsnav > span{font:500 13px/1 var(--sans);padding:9px 14px;border-radius:999px;background:var(--paper-2);color:var(--ink-2)}
 .${ROOT} .formsnav > span.on{background:var(--ink);color:var(--paper)}
 
 /* video moment */
@@ -258,19 +258,19 @@ export const LANDING_CSS = `${FACES}
 
 /* parents: the report */
 .${ROOT} .report{width:100%;border-radius:24px;background:var(--paper);border:1px solid var(--line);box-shadow:var(--shadow);padding:var(--s3);display:grid;gap:var(--s3)}
-.${ROOT} .report .head{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-3)}
+.${ROOT} .report .head{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-2)}
 .${ROOT} .report .head b{color:var(--ink);font:600 15px/1 var(--sans)}
-.${ROOT} .report .head .tag{margin-left:auto;font:500 12px/1 var(--sans);color:var(--mint);background:color-mix(in srgb,var(--mint) 12%,transparent);padding:6px 10px;border-radius:999px}
+.${ROOT} .report .head .tag{margin-left:auto;font:500 12px/1 var(--sans);color:var(--ink);background:color-mix(in srgb,var(--mint) 14%,transparent);padding:6px 10px;border-radius:999px}
 .${ROOT} .report .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .${ROOT} .report .kpi{background:var(--paper-2);border-radius:16px;padding:14px}
-.${ROOT} .report .kpi > span{font:500 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);display:block}
+.${ROOT} .report .kpi > span{font:500 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);display:block}
 .${ROOT} .report .kpi > b{display:block;font:700 26px/1 var(--sans);margin-top:8px;font-variant-numeric:tabular-nums}
 .${ROOT} .report .kpi > b span{font:inherit;letter-spacing:0;text-transform:none;color:inherit}
 .${ROOT} .report .kpi > em{font-style:normal;font-size:12px;color:var(--ink-2);display:block;margin-top:6px}
 .${ROOT} .report .chart{position:relative;height:150px}
 .${ROOT} .report .chart svg{width:100%;height:100%;overflow:visible}
 .${ROOT} .report .note{background:var(--paper-2);border-radius:16px;padding:16px 18px;font-family:var(--hand);font-weight:600;font-size:21px;line-height:1.2}
-.${ROOT} .report .note em{font-style:normal;color:var(--rose)}
+.${ROOT} .report .note em{font-style:normal;color:var(--ink);background:color-mix(in srgb,var(--rose) 24%,transparent);border-radius:4px;padding:0 .12em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .${ROOT} .badges{display:flex;gap:10px;flex-wrap:wrap}
 .${ROOT} .badges > div{display:inline-flex;align-items:center;gap:8px;background:var(--paper-2);border-radius:999px;padding:8px 14px;font:500 13px/1 var(--sans);color:var(--ink-2)}
 .${ROOT} .badges svg{width:16px;height:16px;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
@@ -280,7 +280,7 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .stage{background:var(--paper-2);border-radius:20px;padding:clamp(16px,1.8vw,24px);display:grid;grid-template-columns:190px 1fr;gap:var(--s3);align-items:start}
 .${ROOT} .stage .who{display:grid;gap:4px}
 .${ROOT} .stage .who > b{font:600 17px/1.2 var(--sans)}
-.${ROOT} .stage .who > span{font-size:13px;color:var(--ink-3)}
+.${ROOT} .stage .who > span{font-size:13px;color:var(--ink-2)}
 .${ROOT} .stage .subs{display:flex;flex-wrap:wrap;gap:8px}
 .${ROOT} .stage .subs > span{font:500 13px/1 var(--sans);background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:9px 13px;color:var(--ink-2)}
 .${ROOT} .stage .subs span.acc{border-color:transparent;background:var(--pig-soft);color:var(--pig)}
@@ -333,7 +333,7 @@ export const LANDING_CSS = `${FACES}
    4px inset bar painted with a gradient rather than a border, because law v5
    allows no border line on a surface. */
 .${ROOT} .tmodes{margin-top:var(--s4);display:grid;gap:var(--s2)}
-.${ROOT} .tmodes-note{font:600 15px/1.3 var(--sans);color:var(--ink-3)}
+.${ROOT} .tmodes-note{font:600 15px/1.3 var(--sans);color:var(--ink-2)}
 .${ROOT} .tmodes-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--s2)}
 .${ROOT} .tmode{min-width:0;background:var(--paper-2);border-radius:20px;padding:var(--s3);
   background-image:linear-gradient(var(--tm),var(--tm));background-repeat:no-repeat;
@@ -367,7 +367,7 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .beat h3{font:700 clamp(24px,2.6vw,34px)/1.1 var(--sans);margin-top:6px;letter-spacing:-.03em}
 .${ROOT} .beat p{color:var(--ink-2);font-size:16px;margin-top:var(--s2);max-width:44ch}
 .${ROOT} .beat .said{font-family:var(--hand);font-weight:600;font-size:22px;color:var(--ink);margin-top:var(--s2)}
-.${ROOT} .beat .said em{font-style:normal;color:var(--rose)}
+.${ROOT} .beat .said em{font-style:normal;color:var(--ink);background:color-mix(in srgb,var(--rose) 24%,transparent);border-radius:4px;padding:0 .12em;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 .${ROOT} .beat-art{background:var(--paper);border-radius:18px;padding:var(--s3);display:grid;place-items:center;min-height:260px}
 .${ROOT} .beat-art svg{width:100%;height:auto;overflow:visible}
 @media (max-width:900px){.${ROOT} .beat,.${ROOT} .beat:nth-child(even){grid-template-columns:1fr;padding:var(--s3)}
@@ -376,7 +376,7 @@ export const LANDING_CSS = `${FACES}
 /* ── the climb: one path, two vibes ───────────────────────────────────────────── */
 .${ROOT} .climb{margin-top:var(--s4);background:var(--paper-2);border-radius:26px;padding:var(--s4);display:grid;gap:var(--s3)}
 .${ROOT} .climb .switch{display:inline-flex;background:var(--paper);border-radius:999px;padding:4px;gap:4px;justify-self:start;border:0;margin:0;min-inline-size:0}
-.${ROOT} .climb .switch button{border:0;background:transparent;cursor:pointer;font:500 14px/1 var(--sans);color:var(--ink-3);padding:11px 18px;border-radius:999px}
+.${ROOT} .climb .switch button{border:0;background:transparent;cursor:pointer;font:500 14px/1 var(--sans);color:var(--ink-2);padding:11px 18px;border-radius:999px}
 .${ROOT} .climb .switch button.on{background:var(--ink);color:var(--paper)}
 .${ROOT} .climb .stagewrap{position:relative;border-radius:20px;background:var(--paper);overflow:hidden;min-height:clamp(280px,34vw,360px)}
 .${ROOT} .climb .stagewrap > svg{position:absolute;inset:0;width:100%;height:100%;opacity:0;transition:opacity .45s ease}
@@ -398,16 +398,16 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} .prices .plan{background:var(--paper-2);border-radius:20px;padding:clamp(18px,2vw,26px);display:grid;gap:10px;align-content:start}
 .${ROOT} .prices .plan.lead{background:var(--ink)}
 .${ROOT} .prices .plan > .pl-name{font:600 17px/1.2 var(--sans);display:flex;align-items:baseline;gap:10px}
-.${ROOT} .prices .plan.lead > .pl-name{color:#fff}
-.${ROOT} .prices .plan > .pl-name em{font-style:normal;font:500 12px/1 var(--sans);color:var(--marigold)}
+.${ROOT} .prices .plan.lead > .pl-name{color:var(--paper)}
+.${ROOT} .prices .plan > .pl-name em{font-style:normal;font:500 12px/1 var(--sans);color:#14142B;background:var(--marigold);padding:4px 8px;border-radius:999px}
 .${ROOT} .prices .plan > .pl-amount{font:700 clamp(26px,3vw,34px)/1 var(--sans);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
-.${ROOT} .prices .plan.lead > .pl-amount{color:#fff}
-.${ROOT} .prices .plan > .pl-amount span{font:500 14px/1 var(--sans);letter-spacing:0;color:var(--ink-3);margin-left:8px}
-.${ROOT} .prices .plan.lead > .pl-amount span{color:rgba(255,255,255,.6)}
+.${ROOT} .prices .plan.lead > .pl-amount{color:var(--paper)}
+.${ROOT} .prices .plan > .pl-amount span{font:500 14px/1 var(--sans);letter-spacing:0;color:var(--ink-2);margin-left:8px}
+.${ROOT} .prices .plan.lead > .pl-amount span{color:color-mix(in srgb,var(--paper) 72%,transparent)}
 .${ROOT} .prices .plan > .pl-said{font-size:14px;color:var(--ink-2)}
-.${ROOT} .prices .plan.lead > .pl-said{color:rgba(255,255,255,.72)}
-.${ROOT} .prices .plan > .pl-fine{font-size:12px;color:var(--ink-3)}
-.${ROOT} .prices .plan.lead > .pl-fine{color:rgba(255,255,255,.5)}
+.${ROOT} .prices .plan.lead > .pl-said{color:color-mix(in srgb,var(--paper) 80%,transparent)}
+.${ROOT} .prices .plan > .pl-fine{font-size:12px;color:var(--ink-2)}
+.${ROOT} .prices .plan.lead > .pl-fine{color:color-mix(in srgb,var(--paper) 72%,transparent)}
 .${ROOT} .cancel{margin-top:12px;background:var(--paper-2);border-radius:20px;padding:var(--s3);display:grid;gap:8px;justify-items:start}
 .${ROOT} .cancel > b{font:600 17px/1.3 var(--sans)}
 .${ROOT} .cancel > p{color:var(--ink-2);font-size:15px;max-width:70ch}
@@ -427,12 +427,22 @@ export const LANDING_CSS = `${FACES}
 .${ROOT} #close .fine{color:rgba(255,255,255,.5);font-size:13px;margin-top:var(--s2)}
 .${ROOT} #close .glow{position:absolute;width:520px;height:520px;border-radius:50%;background:radial-gradient(circle,rgba(43,69,255,.35),transparent 70%);filter:blur(20px);pointer-events:none}
 
-.${ROOT} footer{padding:0 0 var(--band);color:var(--ink-3);font-size:14px}
+.${ROOT} footer{padding:0 0 var(--band);color:var(--ink-2);font-size:14px}
 .${ROOT} footer .grid{display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:var(--s3)}
 .${ROOT} footer b{display:block;color:var(--ink);font-weight:600;margin-bottom:12px;font-size:14px}
 .${ROOT} footer a{display:block;padding:5px 0;color:var(--ink-2)}
 .${ROOT} footer .wm svg{height:20px;color:var(--ink)}
 @media (max-width:860px){.${ROOT} footer .grid{grid-template-columns:1fr 1fr}}
+/* A THUMB, NOT A POINTER. On a phone every control is at least 44px tall (WCAG 2.5.8, and the
+   proof rule in DESIGN.md §0): the footer's links measured 32px, the ask chips 31, the hero rail
+   33, the climb switch 36 and the wordmark 22 at 390 (wave 29's walk). The type and the spacing
+   are the prototype's; only the hit area grows, the same way the site sheet grows its footer. */
+@media (max-width:640px){
+  .${ROOT} footer a{min-height:44px;display:flex;align-items:center}
+  .${ROOT} header .wm{min-height:44px;display:inline-flex;align-items:center}
+  .${ROOT} .chips button,.${ROOT} .device .rail button,.${ROOT} .climb .switch button{min-height:44px}
+  .${ROOT} .safe .item .proof,.${ROOT} .cancel > a{min-height:44px;display:inline-flex;align-items:center}
+}
 
 .${ROOT} .blink{transform-origin:center;animation:wb-blink 5.5s infinite}
 @keyframes wb-blink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.08)}}

@@ -129,9 +129,17 @@ export function parsePaymentsConfig(body: unknown): PaymentsConfig {
  * grown the route yet), a refusal, a network that never answered, or a body that is not a
  * config: the default is the honest one, and the control says so rather than pretending.
  */
+/**
+ * A health check asks nobody who they are. `gatewayFetch` binds the learner's identity to every
+ * call, and binding it means establishing a session, which on a signed-out visit is an anonymous
+ * sign-in against a project where anonymous sign-ins are off: a 422 in every stranger's console
+ * on /plans (wave 29, site-5). `/healthz` is public, so it is fetched plain.
+ */
+const plainFetch: Fetch = (url, init) => fetch(url, init);
+
 export async function readPaymentsConfig(
   gatewayUrl: string | undefined = import.meta.env.VITE_GATEWAY_URL,
-  fetcher: Fetch = gatewayFetch,
+  fetcher: Fetch = plainFetch,
 ): Promise<PaymentsConfig> {
   if (!gatewayUrl) return { on: false };
   try {

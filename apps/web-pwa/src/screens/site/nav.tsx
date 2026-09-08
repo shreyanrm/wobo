@@ -141,7 +141,14 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     links: [
       { label: 'Help centre', href: '/help', section: 'help' },
       { label: 'Contact', href: '/contact', section: 'contact' },
-      { label: 'Questions', href: '/#questions', section: 'questions' },
+      /**
+       * The questions live on the PARENTS page (`pitch/ForParents.tsx`, ported from
+       * `design/prototypes/site-parents.html`, the only prototype with the id). This pointed at
+       * `/#questions`, an anchor the landing does not carry, so on thirteen pages the link put the
+       * reader at the top of the front page at `/landing`. `nav.test.ts` now proves every hash is
+       * an id on the source of the page it names.
+       */
+      { label: 'Questions', href: '/for-parents#questions', section: 'questions' },
     ],
   },
   {
@@ -160,6 +167,37 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
 
 /** The line under the footer's wordmark. */
 export const FOOTER_LINE = 'A tutor that draws, never judges, and is always there.';
+
+/**
+ * Put the reader on `#hash` of the page that has just been asked for.
+ *
+ * The router addresses ROUTES, and a route has no hash: `routeToPath` writes the bare path, so an
+ * anchor on another page (`/for-parents#questions`) used to arrive at the top of that page with
+ * the hash gone. The page's chunk is loaded lazily and its shell scrolls a fresh document to its
+ * top on mount, so this waits for the id to exist, lets that mount settle, then scrolls to it and
+ * writes the hash back into the bar (replace, never push: the entry is the page's own). A hash
+ * that never turns up within a few seconds is left alone rather than scrolled anywhere.
+ */
+export function landOnAnchor(hash: string, doc: Document = document): void {
+  if (!hash) return;
+  const deadline = Date.now() + 4000;
+  const look = () => {
+    const target = doc.getElementById(hash);
+    if (!target) {
+      if (Date.now() < deadline) setTimeout(look, 50);
+      return;
+    }
+    // one more tick, so a shell that scrolls to its top on mount has done so first
+    setTimeout(() => {
+      target.scrollIntoView({ block: 'start' });
+      const win = doc.defaultView;
+      if (win?.history && win.location.hash !== `#${hash}`) {
+        win.history.replaceState(win.history.state, '', `${win.location.pathname}#${hash}`);
+      }
+    }, 0);
+  };
+  look();
+}
 
 export function SiteLink({
   to,
@@ -184,12 +222,14 @@ export function SiteLink({
   const router = useRouter();
   const address = to ? routeToPath(to) : (href ?? '/');
   const target = to ?? hrefRoute(address);
+  const hash = address.split('#')[1] ?? '';
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.defaultPrevented || browserOwnsClick(event)) return;
     if (!target) return;
     event.preventDefault();
     onNavigate?.();
     router.navigate(target);
+    if (hash) landOnAnchor(hash);
   };
   return (
     <a

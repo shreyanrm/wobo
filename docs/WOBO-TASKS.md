@@ -1484,11 +1484,11 @@ the three records plus DMARC in Vercel DNS; (19) a real mailbox behind hello@ an
 
 Two rulings the same afternoon: *"use Astra more on the creative side"* and *"the superadmin is
 responsible for the creative billing; bill the users only for content and usage"*. Landed in the
-router: `Tier.CREATE` (Astra, Opus 5, Flash), `engine.create` in the registry on it with
+router: `Tier.CREATE` (Astra, Opus 5, Flash), `create.core` in the registry on it with
 `PLATFORM_PAID`, `spend._CHEAPER[CREATE] = GENERATE`, Astra on no other chain, tests in
 `test_router_fallbacks.py`. Specified in docs/CONTENT-INTERACTION.md §8, docs/ALLOWANCE.md,
 docs/CONSOLE-MODELS.md (the creative pool), docs/OPERATIONS.md §11.7. Wave 37 wires compose's
-creative step to `engine.create` and stores the candidates; wave 36's allowance asks
+creative step to `create.core` and stores the candidates; wave 36's allowance asks
 `registry.platform_paid()` before counting and the desk shows the pool. Also today: GPT-5.6 Sol's
 price is promotional through 2026-11-21 (catalogue note) and the long-context boundary is 272K.
 

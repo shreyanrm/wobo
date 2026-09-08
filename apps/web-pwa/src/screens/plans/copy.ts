@@ -136,9 +136,9 @@ export const PLANS_PAGE = {
      */
     renewal: {
       yearly:
-        'I understand this renews every year at the same price until I cancel, and I can cancel in Settings, in two taps.',
+        'I understand this renews every year at the same price until I cancel, and I can cancel from You, in two taps.',
       monthly:
-        'I understand this renews every month at the same price until I cancel, and I can cancel in Settings, in two taps.',
+        'I understand this renews every month at the same price until I cancel, and I can cancel from You, in two taps.',
     } as Readonly<Record<Period, string>>,
     /** `{plan}` is the tier's name. */
     renewalNote: {

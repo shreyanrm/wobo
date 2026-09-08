@@ -304,7 +304,9 @@ describe('the consent boxes', () => {
       const box = PLANS_PAGE.checkout.renewal[period];
       expect([period, /\brenews\b/i.test(box)]).toEqual([period, true]);
       expect([period, /until i cancel/i.test(box)]).toEqual([period, true]);
-      expect([period, /settings/i.test(box)]).toEqual([period, true]);
+      // the way out is the door the product has: You, not a Settings screen (wave 29, site-2)
+      expect([period, /from You, in two taps/.test(box)]).toEqual([period, true]);
+      expect([period, /settings/i.test(box)]).toEqual([period, false]);
       // and the note under it says what happens on the day, rather than stopping at the date
       expect(PLANS_PAGE.checkout.renewalNote[period]).toContain('taken again');
     }

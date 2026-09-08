@@ -432,7 +432,7 @@ export function MeetWobo() {
                     Triangles: half done. Next: ten
                   </text>
                   <text className="pt-hw" x="100" y="310" fontSize="30">
-                    minutes a day. — Wobo
+                    minutes a day. From Wobo
                   </text>
                   <path
                     className="pt-ink pt-pig pt-draw"

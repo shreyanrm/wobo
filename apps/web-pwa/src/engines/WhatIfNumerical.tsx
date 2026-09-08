@@ -267,7 +267,7 @@ export function WhatIfNumerical({
         style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
       >
         <div style={whisper}>what-if — every number is yours to change</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         {/* the word problem, with inline editable value chips */}
         <div ref={ref} style={{ ...lead, color: 'var(--wobo-ink-900)', fontSize: '1.05rem' }}>

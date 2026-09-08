@@ -17,6 +17,7 @@
 
 import type { CSSProperties, MouseEvent, ReactNode } from 'react';
 import { pathToRoute, useRouter } from '../../shell/router';
+import { landOnAnchor } from '../site/nav';
 
 /** True when the browser, not the router, should handle this click. */
 export function browserOwnsClick(event: {
@@ -57,10 +58,14 @@ export function LandingLink({
     );
   }
   const route = pathToRoute(href);
+  // An anchor on ANOTHER page (`/for-parents#questions`): the route is that page, and the hash is
+  // landed on once the page is there, the same way the site's own links do it (`site/nav.tsx`).
+  const hash = href.split('#')[1] ?? '';
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {
     if (event.defaultPrevented || browserOwnsClick(event) || !route) return;
     event.preventDefault();
     router.navigate(route);
+    if (hash) landOnAnchor(hash);
   };
   return (
     <a href={href} className={className} style={style} onClick={onClick} {...rest}>

@@ -140,6 +140,14 @@ def _shape(capability: str, seed: int) -> dict[str, Any]:
                 {"id": "n5", "name": "Putting it together", "blurb": "Bring the pieces together."},
             ],
         }
+    if capability == "create.blueprint":
+        return {
+            "thread": "mock thread of the topic",
+            "levels": [{"id": "l1", "aim": "mock aim", "kind": "reading", "minutes": 5}],
+            "flow": {"order": ["l1"], "boss": "l1", "sideDoors": []},
+        }
+    if capability == "create.core":
+        return {"core": "mock concept core", "candidates": [{"mechanic": "tap", "why": "mock"}]}
     if capability == "archetype.classify":
         return {"archetype": _ARCHETYPES[seed % len(_ARCHETYPES)], "confidence": 0.5}
     if capability == "peakcut.evaluate":

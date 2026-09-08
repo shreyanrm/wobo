@@ -36,6 +36,7 @@ import {
   SUBJECTS,
   TEACHES,
 } from './page-copy';
+import { FOOTER_COLUMNS, hrefRoute } from '../site/nav';
 
 const PROTOTYPE = readFileSync(
   join(import.meta.dir, '../../../../../design/prototypes/landing-v8.html'),
@@ -108,6 +109,10 @@ const OURS: readonly string[] = [
   // and the rest were pictures.
   ...PRACTICE.cells,
   PRACTICE.notHalf,
+  // The footer is the site's one list (`site/nav.ts`), which carries two pages the landing
+  // prototype's footer predates: the donate page and the cookies document (wave 29, site-10).
+  'Donate Wobo',
+  'Cookies',
   /*
     THREE SAFE CARDS THE PROTOTYPE PROMISES AND THE CODE DOES NOT KEEP. Verified against this
     repository on 2026-09-04; the reason is written beside each line in `page-copy.ts`.
@@ -293,30 +298,43 @@ describe('the landing copy', () => {
     for (const line of pageStrings()) expect(line).not.toMatch(banned);
   });
 
+  /**
+   * Walked through the ROUTER, not a list typed here: the list used to name sixteen addresses and
+   * pass, while the footer it was guarding had drifted from the site's (wave 29, site-10). An
+   * anchor on another page (`/for-parents#questions`) is a route plus an id, and the id is proved
+   * on the page's own source in `site/nav.test.ts`.
+   */
   it('sends every nav and footer address to a route that exists', () => {
-    const routes = new Set([
-      '/how-it-works',
-      '/subjects',
-      '/for-parents',
-      '/for-students',
-      '/plans',
-      '/sign-in',
-      '/meet-wobo',
-      '/gift',
-      '/contact',
-      '/help',
-      '/about',
-      '/security',
-      '/legal/terms-of-service',
-      '/legal/privacy-policy',
-      '/legal/childrens-privacy',
-      '/legal/accessibility-statement',
-    ]);
-    for (const link of NAV_LINKS) expect(routes.has(link.href)).toBe(true);
+    for (const link of NAV_LINKS) expect([link.href, hrefRoute(link.href)]).not.toEqual([link.href, null]);
     for (const column of FOOTER.columns) {
-      for (const link of column.links) expect(routes.has(link.href)).toBe(true);
+      for (const link of column.links) {
+        expect([link.href, hrefRoute(link.href)]).not.toEqual([link.href, null]);
+      }
     }
-    for (const item of SAFE.items) expect(routes.has(item.href)).toBe(true);
+    for (const item of SAFE.items) expect([item.href, hrefRoute(item.href)]).not.toEqual([item.href, null]);
+  });
+
+  /**
+   * ONE FOOTER, READ BY BOTH PAGES. The landing's footer and the site's had drifted: the front page
+   * was missing Donate Wobo and Cookies, so the donate page and one of the ten legal documents had
+   * no path from the front door, and "Questions" went to two different places depending on which
+   * footer the reader was standing in. The landing now reads the site's list, column for column.
+   */
+  it('carries the same links as the site footer, column for column', () => {
+    const ours = FOOTER.columns.map((c) => [c.heading, c.links.map((l) => [l.label, l.href])]);
+    const site = FOOTER_COLUMNS.map((c) => [c.title, c.links.map((l) => [l.label, l.href])]);
+    expect(ours).toEqual(site);
+  });
+
+  /**
+   * THE PROMISE THE PAGE IS BUILT ON DOES NOT BREAK IN HALF. At 390 the eyebrow wrapped as
+   * "EVERY SUBJECT · EVERY BOARD · FREE EVERY / DAY", orphaning the one word of the pigment
+   * phrase on its own line (wave 29, site-9). The accent's spaces are non-breaking, so the three
+   * clauses can only break at the separators. `flat` above treats them as spaces, so the copy
+   * still reads as the prototype's.
+   */
+  it('keeps "free every day" on one line', () => {
+    expect(HERO.eyebrow.accent).toBe('free\u00a0every\u00a0day');
   });
 
   it('hands the reader’s own assistant the prototype’s exact deep links', () => {

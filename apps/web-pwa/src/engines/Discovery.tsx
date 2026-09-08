@@ -219,6 +219,67 @@ export function parseDiscoverySpec(raw: unknown): DiscoverySpec | null {
 const VB_W = 100;
 const VB_H = 62;
 
+/** What a mark is to the learner's finger: something to tap, something to drag, or the scenery. */
+export type MarkRole = 'target' | 'handle' | 'static';
+
+/** The scale a 390 wide phone renders the stage at, used before the first measurement lands. */
+const PHONE_PX_PER_UNIT = 3.3;
+/** Half of the 44 css px law (DESIGN.md), with a pixel to spare for rounding. */
+const HIT_FLOOR_PX = 23;
+
+/**
+ * The radius of a mark's hit disc, in viewBox units: its own size plus a margin, and never less
+ * than 44 css px across (SCORECARD.md 3.5 #3: 96 of 96 maths marks and 102 of 102 physics marks
+ * had no hit area a real finger could land on). `pxPerUnit` is the measured render scale; zero
+ * (unmeasured) assumes a phone, which is the tighter case.
+ */
+export function hitRadius(r: number, pxPerUnit: number): number {
+  const scale = pxPerUnit > 0 ? pxPerUnit : PHONE_PX_PER_UNIT;
+  return Math.max(r + 4, HIT_FLOOR_PX / scale);
+}
+
+/**
+ * The fill a mark rests with. The spec's own `fill` wins. Without one, a thing the learner is
+ * asked to tap or drag still gets a body (a target is an object, not a hairline), and the
+ * scenery stays an outline as CONTENT-VISUALS.md 3.1 intends. Only bodies fill: a ring, a line
+ * and a label are structure whatever their role.
+ */
+export function bodyFill(mark: Mark, role: MarkRole): 'soft' | 'solid' | undefined {
+  if (mark.fill) return mark.fill;
+  if (mark.shape !== 'circle' && mark.shape !== 'rect') return undefined;
+  if (role === 'handle') return 'solid';
+  if (role === 'target') return 'soft';
+  return undefined;
+}
+
+/**
+ * Bring the board to the top of the scroller as a stage opens, so the thing to act on is on
+ * screen before the prompt is read. Tolerant of a missing method (a server render, a test).
+ */
+export function scrollBoardIntoView(el: unknown, reduced: boolean): void {
+  const target = el as { scrollIntoView?: (o: ScrollIntoViewOptions) => void } | null;
+  if (!target || typeof target.scrollIntoView !== 'function') return;
+  target.scrollIntoView({ block: 'start', behavior: reduced ? 'auto' : 'smooth' });
+}
+
+/** Where a mark's hit disc sits: the centre of a body, the midpoint of a line, the anchor of text. */
+function centerOf(mark: Mark): { cx: number; cy: number } {
+  if (mark.shape === 'rect')
+    return { cx: mark.x + (mark.w ?? 10) / 2, cy: mark.y + (mark.h ?? 10) / 2 };
+  if (mark.shape === 'line')
+    return { cx: (mark.x + (mark.x2 ?? mark.x)) / 2, cy: (mark.y + (mark.y2 ?? mark.y)) / 2 };
+  return { cx: mark.x, cy: mark.y };
+}
+
+/** A mark's own radius, for the hit disc: a circle's r, half a rect's longer side, a line's half length. */
+function extentOf(mark: Mark): number {
+  if (mark.shape === 'rect') return Math.max(mark.w ?? 10, mark.h ?? 10) / 2;
+  if (mark.shape === 'line')
+    return Math.hypot((mark.x2 ?? mark.x) - mark.x, (mark.y2 ?? mark.y) - mark.y) / 2;
+  if (mark.shape === 'text') return (mark.r ?? 7) / 2;
+  return mark.r ?? (mark.shape === 'ring' ? 20 : 4);
+}
+
 function toneStroke(tone: Tone, hue: string): string {
   return tone === 'hue' ? hue : tone === 'muted' ? 'var(--wobo-ink-300)' : 'var(--wobo-ink-700)';
 }
@@ -230,6 +291,8 @@ function MarkShape({
   lit,
   tappable,
   chosen,
+  role,
+  pxPerUnit,
   onTap,
 }: {
   mark: Mark;
@@ -237,6 +300,9 @@ function MarkShape({
   lit: boolean;
   tappable: boolean;
   chosen: boolean;
+  role: MarkRole;
+  /** The measured render scale (css px per viewBox unit); 0 until the stage has been measured. */
+  pxPerUnit: number;
   onTap?: () => void;
 }) {
   const stroke = lit || chosen ? hue : toneStroke(mark.tone ?? 'ink', hue);
@@ -256,11 +322,14 @@ function MarkShape({
   // a tactile filled body AT REST (CONTENT-VISUALS.md §3.1) — flat fill via fill-opacity, never a
   // gradient/shadow. Reveal (filledLit) and tapped-pick still win over it. Bodies only; ring/line
   // /text stay structural. For dimension, the model stacks a darker offset copy behind (§3.2).
+  // A target or a handle always has a body (bodyFill): the wire drops `fill` today, and an
+  // outline is not a thing a finger can find.
+  const fill = bodyFill(mark, role);
   const restFill =
-    mark.fill && !lit && !chosen
+    fill && !lit && !chosen
       ? {
           fill: toneStroke(mark.tone ?? 'ink', hue),
-          fillOpacity: mark.fill === 'solid' ? 0.9 : 0.16,
+          fillOpacity: fill === 'solid' ? 0.9 : 0.16,
         }
       : {};
 
@@ -322,22 +391,43 @@ function MarkShape({
   })();
 
   if (!tappable) return inner;
-  // a soft pulsing hit-ring so a tap target reads as "touch me" without shouting
+  const { cx, cy } = centerOf(mark);
+  // The hit disc: painted (transparent, not none) so its whole interior takes the tap, and at
+  // least 44 css px across. Under the mark, so the mark's own paint still shows on top.
+  // Then a soft pulsing ring so a tap target reads as "touch me" without shouting.
   return (
     <g>
+      {/* biome-ignore lint/a11y/useSemanticElements: an SVG stage has no <button>; the disc is the tap target */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={hitRadius(extentOf(mark), pxPerUnit)}
+        fill="transparent"
+        pointerEvents="all"
+        style={{ cursor: 'pointer' }}
+        role="button"
+        tabIndex={0}
+        aria-label={mark.text ?? mark.id}
+        onClick={onTap}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onTap?.();
+          }
+        }}
+      />
       {!chosen && (
         <motion.circle
-          cx={mark.x}
-          cy={mark.y}
-          r={(mark.r ?? 4) + 4}
+          cx={cx}
+          cy={cy}
+          r={extentOf(mark) + 4}
           fill="none"
           stroke={hue}
           strokeWidth={0.8}
           initial={{ opacity: 0.15, scale: 1 }}
           animate={{ opacity: [0.15, 0.5, 0.15], scale: [1, 1.12, 1] }}
           transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-          style={{ transformOrigin: `${mark.x}px ${mark.y}px`, cursor: 'pointer' }}
-          onClick={onTap}
+          style={{ transformOrigin: `${cx}px ${cy}px`, cursor: 'pointer', pointerEvents: 'none' }}
         />
       )}
       {inner}
@@ -373,7 +463,28 @@ function DiscoveryStageView({
   const bus = useWoboBus();
   const { setMood } = useWoboChat();
   const svgRef = useRef<SVGSVGElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
   const it = stage.interaction;
+
+  // The render scale, so a hit disc can be sized in css px rather than in viewBox units.
+  const [pxPerUnit, setPxPerUnit] = useState(0);
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const measure = () => setPxPerUnit(svg.clientWidth / VB_W);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(svg);
+    return () => ro.disconnect();
+  }, []);
+
+  // The board is on screen as the stage opens (SCORECARD.md 3.5 #3): a stage entered with the
+  // scroller left low by the previous card put the prompt in view and the thing to act on above it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: on entry only; the view is keyed by stage
+  useEffect(() => {
+    scrollBoardIntoView(boardRef.current, reduced ?? false);
+  }, []);
 
   const [state, setState] = useState<StageState>(() => ({
     done: false,
@@ -518,6 +629,7 @@ function DiscoveryStageView({
   return (
     <CardBody maxWidth={640}>
       <motion.div
+        ref={boardRef}
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -569,12 +681,24 @@ function DiscoveryStageView({
                     onPointerCancel={isHandle ? onHandleUp : undefined}
                     style={isHandle ? { cursor: state.done ? 'default' : 'grab' } : undefined}
                   >
+                    {/* the handle's grab disc: painted, and at least 44 css px across */}
+                    {isHandle && !state.done && (
+                      <circle
+                        cx={centerOf(drawn).cx}
+                        cy={centerOf(drawn).cy}
+                        r={hitRadius(extentOf(drawn), pxPerUnit)}
+                        fill="transparent"
+                        pointerEvents="all"
+                      />
+                    )}
                     <MarkShape
                       mark={drawn}
                       hue={hue}
                       lit={state.done}
                       tappable={Boolean(tapSet?.has(m.id)) && !state.done}
                       chosen={state.tapped.includes(m.id)}
+                      role={isHandle ? 'handle' : tapSet?.has(m.id) ? 'target' : 'static'}
+                      pxPerUnit={pxPerUnit}
                       onTap={tapSet?.has(m.id) ? () => tapTarget(m.id) : undefined}
                     />
                   </g>
@@ -782,7 +906,7 @@ export const DISCOVERY_DEMO: DiscoverySpec = {
         targets: ['nucleus'],
       },
       reveal:
-        'that tiny core — the nucleus — holds more than 99.9% of the atom’s mass in a speck of its volume.',
+        'that tiny core, the nucleus, holds more than 99.9% of the atom’s mass in a speck of its volume.',
       caption: 'so an atom is mostly nothing, with everything heavy crammed into the middle.',
     },
     {
@@ -814,7 +938,7 @@ export const DISCOVERY_DEMO: DiscoverySpec = {
         bind: { mark: 'core', prop: 'r', at: [4, 11] },
       },
       reveal:
-        'six protons — and it is carbon, always. the proton count alone fixes which element an atom is.',
+        'six protons, and it is carbon, always. the proton count alone fixes which element an atom is.',
       caption: 'change the protons and you change the element itself, not just its size.',
     },
     {
@@ -835,7 +959,7 @@ export const DISCOVERY_DEMO: DiscoverySpec = {
         radius: 7,
       },
       reveal:
-        'electrons live in shells, not on the nucleus — held at a distance, filling from the inside out.',
+        'electrons live in shells, not on the nucleus, held at a distance, filling from the inside out.',
       caption: 'they orbit out here, which is exactly why the atom is so mostly-empty.',
     },
   ],

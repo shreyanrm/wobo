@@ -59,3 +59,24 @@ describe('a parent can open the report and a learner can open the map', () => {
     expect(entry).not.toContain("'/you'");
   });
 });
+
+/**
+ * learn-1: the report and the map collapsed to zero on any cold open of /progress. The surfaces walk
+ * the registry, and the registry is empty until something reads the pinned world's offline cache;
+ * Home, Learn and Course all do, this folder did not. Worse, the cold read then wrote an empty
+ * learnt set over `wobo-sky-seen-v1`, so every star ignited again on the next visit.
+ */
+describe('a cold open of /progress reads what the device already holds', () => {
+  it('warms the registry from the offline cache before the standings are read', () => {
+    expect(SURFACES).toContain("from '../../curriculum/warm'");
+    const warm = SURFACES.indexOf('warmFromCache()');
+    const read = SURFACES.indexOf('standings(syllabus');
+    expect(warm).toBeGreaterThan(-1);
+    expect(read).toBeGreaterThan(warm);
+  });
+
+  it('never records an empty learnt set as seen', () => {
+    // the guard: the write is skipped while the registry holds no topic at all
+    expect(SURFACES).toMatch(/if \(topics\.length > 0\) writeSeen\(learntIds\)/);
+  });
+});

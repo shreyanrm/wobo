@@ -78,7 +78,7 @@ const COLLECT: readonly { what: string; detail: string; why: string; how: string
       detail: 'email, name, class, board',
       why: 'To sign you in and teach the right syllabus.',
       how: 'While the account exists',
-      del: 'Settings → Your data',
+      del: 'You → Settings → Your data',
     },
     {
       what: 'Learning',
@@ -443,7 +443,7 @@ export function Security() {
                   <div>
                     <b>How to delete it</b>
                     <span>
-                      You, in Settings, any time. Gone from live systems at once, and out of the
+                      On You, under Settings, any time. Gone from live systems at once, and out of the
                       backups behind them as those roll over.
                     </span>
                   </div>
@@ -693,7 +693,7 @@ export function Security() {
                     {/* "It deletes memory, progress and the account." It does not delete the
                         account: POST /v1/me/erase clears six things and nothing anywhere calls the
                         auth admin API. Verified live against the running gateway. */}
-                    <b>The erase button.</b> In Settings. It clears what Wobo remembers about you,
+                    <b>The erase button.</b> On You, under Settings. It clears what Wobo remembers about you,
                     your saved boards and threads, and the parent link. Deleting the account itself
                     is done by a person when you write to support@heywobo.com.
                   </div>

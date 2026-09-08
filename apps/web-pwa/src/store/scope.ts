@@ -46,6 +46,7 @@ export const SCOPED_KEYS = [
    * `scope.test.ts`. They are the learner's own work and they leave with the learner.
    */
   'wobo-course-pos-v1', // where they are in each course
+  'wobo-practice-v1', // where they are in the practice set, and their marks on it (screens/practice/run-store.ts)
   'wobo-course-stars-v1', // what each course was worth when they first finished it
   'wobo-fsrs-v1', // the spaced-repetition model of this learner's memory
   'wobo-forged-v1', // the workbooks they built

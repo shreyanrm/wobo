@@ -171,19 +171,37 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
               <span className="wake">{HERO.staged.wake}</span>
               {HERO.staged.question}
             </div>
+            {/* FADED OUT IS NOT GONE. The four answers cross-fade on opacity, which is right for
+                the eye and nothing to a screen reader, which read all four as one run-on with no
+                way to tell which was on screen (wave 29, site-7). Every answer but the shown one
+                is taken out of the accessibility tree and made inert, so nothing inside it can
+                be reached by Tab either; the rail's aria-pressed says which one is up. */}
             <div className="stage" id="heroStage">
-              <div className={form === 0 ? 'on' : undefined} data-form="draw">
-                <HeroDrawn label="Wobo draws the leaf and where the light goes" />
-              </div>
-              <div className={form === 1 ? 'on' : undefined} data-form="video">
-                <HeroFilmed label="The same idea as a short film" caption={HERO.filmed.caption} />
-              </div>
-              <div className={form === 2 ? 'on' : undefined} data-form="try">
-                <HeroTried label="Now you try one" copy={HERO.tried} />
-              </div>
-              <div className={form === 3 ? 'on' : undefined} data-form="say">
-                <HeroSpoken label="Wobo says it out loud" line={HERO.spoken.line} />
-              </div>
+              {(
+                [
+                  ['draw', <HeroDrawn key="draw" label="Wobo draws the leaf and where the light goes" />],
+                  [
+                    'video',
+                    <HeroFilmed
+                      key="video"
+                      label="The same idea as a short film"
+                      caption={HERO.filmed.caption}
+                    />,
+                  ],
+                  ['try', <HeroTried key="try" label="Now you try one" copy={HERO.tried} />],
+                  ['say', <HeroSpoken key="say" label="Wobo says it out loud" line={HERO.spoken.line} />],
+                ] as const
+              ).map(([key, art], i) => (
+                <div
+                  key={key}
+                  className={form === i ? 'on' : undefined}
+                  data-form={key}
+                  aria-hidden={form === i ? undefined : true}
+                  inert={form !== i}
+                >
+                  {art}
+                </div>
+              ))}
             </div>
             <div className="rail" id="heroRail">
               {HERO_FORMS.map((entry, i) => (

@@ -434,8 +434,8 @@ function MapSceneImpl({
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
       >
-        <div style={whisper}>{it.prompt.toLowerCase()}</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={whisper}>{it.prompt}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <Stage
           hue={hue}

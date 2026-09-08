@@ -92,6 +92,17 @@ const BETTER_HERE = new Set([
   'A linked parent sees lessons, progress and the Sunday note. They cannot read a childs typed questions word for word unless the childs settings allow it.',
   'The erase-everything button.',
   'In Settings, for the learner and for a linked parent. It deletes memory, progress and the account.',
+  /*
+    --- a door that does not exist, and a character the law forbids (wave 29, site-3 and site-4) --
+
+    "You, in Settings, any time" sends a reader to a Settings screen; the app has four doors and
+    Settings is a card on You, so the page says "On You, under Settings" (`site/doors.test.ts`).
+    The two note sign-offs carried an em dash, which docs/copy/voice.md 10a allows nowhere a
+    learner reads; the notes now sign "From Wobo" (`site/sell.test.ts`).
+  */
+  'You, in Settings, any time. Gone from live systems at once, and out of the backups behind them as those roll over.',
+  'minutes a day. — Wobo',
+  'triangles. — Wobo',
   'A parents verifiable consent before a childs account opens, no profiling of a child for advertising, and erasure on request.',
   'Reviewed and gated.',
   'Holds accounts, learning data and backups, encrypted.',

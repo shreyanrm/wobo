@@ -1641,28 +1641,139 @@ def board_intents(text: str) -> list[dict[str, Any]]:
     if re.search(r"\b(solve|derivation|step by step|show the steps)\b", t):
         # "solve 2*x + 3 = 7 step by step" — the equation is what is left once the ask is gone.
         body = re.sub(
-            r"^.*?\b(?:solve|derivation|derive|work(?:ing)? out|show me)\b\s*[:]?\s*",
+            r"^.*?\b(?:solve|derivation|derive|work(?:ing)? out|show me)\b\s*(?:for\s+[a-z]\b)?\s*[:,]?\s*",
             "",
             text or "",
             count=1,
             flags=re.IGNORECASE,
         )
-        body = re.split(r"\b(?:step by step|show the steps|for me|please)\b", body, maxsplit=1)[0]
         equation = _EQUATION_RE.search(body)
         if equation:
-            return [
-                {
+            bare = _bare_equation(equation.group(1))
+            if bare:
+                intent: dict[str, Any] = {
                     "pipeline": "math",
                     "op": "derivation",
-                    "equation": equation.group(1).strip().replace("^", "**"),
+                    "equation": bare.replace("^", "**"),
                     "steps": [],
                 }
-            ]
+                # The pipeline solves for ``var`` and defaults to x, so every equation in y, t or
+                # a was refused with "no single solution I can write down" (wave 29 fixer).
+                var = _equation_variable(text or "", bare)
+                if var:
+                    intent["var"] = var
+                return [intent]
     return []
+
+
+_NAME_RE = re.compile(r"[A-Za-z][A-Za-z0-9_]*")
+#: A variable as a learner writes one: ``x``, ``v_0``, ``x2``, ``E_k``.
+_VARIABLE_RE = re.compile(r"[A-Za-z](?:[0-9]{1,2}|_[A-Za-z0-9]{1,3})?")
+#: The function names and constants a Class 6 to 12 learner types into an equation, and that the
+#: verifier's parser reads as such. NOT ``hasattr(sympy, word)``: that is true of thirty-odd
+#: ordinary English words (``solve``, ``factor``, ``expand``, ``test``, ``ask``, ``series``,
+#: ``product``, ``prime``, ``root``, ``true``, ``limit``, ``plot``, ``degree``, ``trace``,
+#: ``together``, ``cancel``, ``collect``), so "show me how to solve 2x = 10 on the board" kept
+#: ``solve`` in the equation and the CAS read it as s*o*l*v*e (wave 29 fixer, on board-5's own
+#: probe list).
+_MATHS_WORDS = frozenset(
+    {
+        "sin", "cos", "tan", "sec", "csc", "cosec", "cot",
+        "asin", "acos", "atan", "arcsin", "arccos", "arctan",
+        "sinh", "cosh", "tanh",
+        "sqrt", "cbrt", "log", "ln", "exp", "abs", "Abs", "floor", "ceiling",
+        "pi", "e", "E", "I", "oo",
+    }
+)
+#: What the verifier's parser actually reads as a function or a constant (cas._build_namespace:
+#: SymPy's Basic classes and instances). ``abs`` and ``ln`` are a learner's spelling and stay in
+#: the equation, but the parser reads them as a*b*s and l*n, so an equation carrying one is never
+#: handed a ``var``: with a variable named the CAS solves for it round the stray letters and draws
+#: ``x = 2 + 3/(abs)``, which is not maths. Without one it refuses under its own reason.
+_PARSER_READS = frozenset(
+    {
+        "sin", "cos", "tan", "sec", "csc", "cot", "asin", "acos", "atan", "sinh", "cosh", "tanh",
+        "sqrt", "cbrt", "log", "exp", "Abs", "floor", "ceiling", "pi", "E", "I", "oo",
+    }
+)
+_CONSTANTS = frozenset({"pi", "E", "I", "oo"})
+_TOKEN_RE = re.compile(r"\s+|[0-9]+(?:\.[0-9]+)?|[A-Za-z][A-Za-z0-9_]*|.")
+
+
+def _is_maths_name(word: str) -> bool:
+    """A name the verifier's parser reads as maths: a variable (``x``, ``v_0``, ``x2``) or one of
+    the function names and constants a learner writes (``sin``, ``sqrt``, ``pi``, ``log``).
+    Anything else is the learner's English."""
+    return bool(_VARIABLE_RE.fullmatch(word)) or word in _MATHS_WORDS
+
+
+def _bare_equation(text: str) -> str:
+    """The equation and nothing round it.
+
+    ``_EQUATION_RE`` lets letters and spaces onto both sides of the ``=``, so the words a learner
+    puts round the equation ride in with it: "the equation x + 2 = 5 quickly", and the way anyone
+    asks for exactly this, "solve x^2 - 5x + 6 = 0 and show me on the board how the factors work".
+    The tail used to be cut on four literal phrases only, the CAS was handed the rest, refused it
+    twice, and the learner got nothing on the board (wave 29, board-5).
+
+    On the left the ask's words are the run of English at the start, each standing on its own: a
+    word glued to a bracket (``abs(x - 2)``) is left in and refused by the verifier under its own
+    name, which is honest, rather than cut off into the solution of a different equation, which is
+    not.
+
+    On the right the equation ends at the first English word ("and", "quickly", "on", "factor"),
+    and ALSO at a maths name that follows a number or a name with nothing but a space between and
+    English after it: "7 x is what", "7 I think", "5 E is what" are the learner's sentence, and
+    they used to be solved as ``2x + 3 = 7x``, ``... = 7I`` and ``... = 5E`` and drawn as ink. A
+    trailing juxtaposition with nothing English after it ("= 7 pi", "= 2 pi r") is the learner's
+    maths and stays: cutting it would draw a different equation.
+    """
+    lhs, _, rhs = text.partition("=")
+    head = re.match(r"\s*([A-Za-z][A-Za-z0-9_]*)\s+", lhs)
+    while head and not _is_maths_name(head.group(1)):
+        lhs = lhs[head.end() :]
+        head = re.match(r"\s*([A-Za-z][A-Za-z0-9_]*)\s+", lhs)
+    tokens = [(m.group(0), m.start()) for m in _TOKEN_RE.finditer(rhs)]
+    cut = len(rhs)
+    prev_operand = False  # the token before this one (ignoring spaces) was a number or a name
+    for i, (tok, at) in enumerate(tokens):
+        if tok.isspace():
+            continue
+        is_name = tok[0].isalpha()
+        if is_name and not _is_maths_name(tok):
+            cut = at
+            break
+        is_operand = is_name or tok[0].isdigit()
+        if is_operand and prev_operand and at > 0 and rhs[at - 1].isspace():
+            # a juxtaposition across a space: maths ("2 pi r") unless English follows it
+            rest = [t for t, _ in tokens[i + 1 :] if not t.isspace()]
+            if rest and rest[0][0].isalpha() and not _is_maths_name(rest[0]):
+                cut = at
+                break
+        prev_operand = is_operand
+    rhs = rhs[:cut]
+    lhs, rhs = lhs.strip(), rhs.strip()
+    return f"{lhs} = {rhs}" if lhs and rhs else ""
+
+
+def _equation_variable(text: str, equation: str) -> str | None:
+    """The letter the derivation solves for: what the learner said ("for t"), else the one variable
+    in the equation. None when the equation carries more than one and nothing was said, so the
+    verifier refuses it under its own reason rather than the pipeline guessing ``x``."""
+    names = {m.group(0) for m in _NAME_RE.finditer(equation)}
+    if any(not _VARIABLE_RE.fullmatch(n) and n not in _PARSER_READS for n in names):
+        return None  # a name the parser does not read: the verifier says so, nothing is solved
+    said = re.search(r"\bfor\s+([A-Za-z](?:[0-9]{1,2}|_[A-Za-z0-9]{1,3})?)\b", text)
+    if said:
+        return said.group(1)
+    variables = {n for n in names if _VARIABLE_RE.fullmatch(n) and n not in _CONSTANTS}
+    return variables.pop() if len(variables) == 1 else None
 
 
 #: The floor under a live plan that drew something and said nothing. In Wobo's voice, true whatever
 #: was drawn, and distinct from every line in ``_BOARD_SAY`` so the two cases stay tellable apart.
+#: True only over ink: ``run_board_plan`` puts it on a silent plan after ``_draws_something`` has
+#: seen an object survive the pipelines and the verifier, never before.
 SILENT_BOARD_SAY = "Here it is. Take a look at what I have put on the board."
 
 #: Each line is true of anything its family draws: nothing is named that a number line, a lens or a
@@ -1849,12 +1960,22 @@ def mock_board_plan(payload: dict[str, Any]) -> dict[str, Any] | None:
         # first, then the thing on the screen their words name.
         return _focus_plan(context, text) or _target_plan(context, text)
     family = str(intents[0].get("pipeline") or "math")
-    return {
+    plan = {
         "say": _BOARD_SAY.get(family, _BOARD_SAY["math"]),
         "intents": intents,
         "objects": [],
         "ask": {"prompt": "What do you notice about it?", "targets": []},
     }
+    # NEVER A PROMISE OVER AN EMPTY BOARD. The say above is true of anything its family draws,
+    # and the route streams it before the pipelines have drawn, so on a turn where every object
+    # was refused (a solution set the CAS cannot write down, a name the parser does not read) the
+    # learner heard "Look at this. I'll draw it a piece at a time" over ``ink=[]``: board-6, end
+    # to end on the keyless route (wave 29 fixer). A plan that cannot draw is not a board turn;
+    # None here sends the route to the spoken answer. The dry run is the same planner the route
+    # runs, on a copy; the verifier's checks are cached, so the route's own run costs nothing more.
+    if not _draws_something(plan, payload):
+        return None
+    return plan
 
 
 def run_board_plan(
@@ -1907,8 +2028,40 @@ def run_board_plan(
         # card, done, in order"; the say is not the optional part. One honest sentence is the floor,
         # and it is deliberately NOT one of the keyless plan's four, so a report can still tell a
         # model that said nothing from a provider that answered nothing.
+        #
+        # AND NEVER WORDS ABOUT INK THAT IS NOT THERE. The floor says "what I have put on the
+        # board", and it used to go on here whatever the pipelines and the verifier then made of
+        # the intents, so on a turn where every object was refused the learner heard Wobo claim a
+        # drawing that never appeared: four of seventeen live cases in the wave-29 harness run,
+        # the exact failure BOARD.md §11 calls fatal, said out loud (board-6). A silent plan with
+        # nothing that survives is not a board turn at all: it goes back empty, and
+        # ``board_plan_for`` falls to the keyless reading and, past that, the five-path answer.
+        if not _draws_something(data, payload):
+            return {}, tokens
         data["say"] = SILENT_BOARD_SAY
     return data, tokens
+
+
+def _draws_something(plan: dict[str, Any], payload: dict[str, Any]) -> bool:
+    """Whether at least one object survives the pipelines and the verifier.
+
+    The same planner the route runs, run once more here on a copy (the planner resolves anchors in
+    place), and only for the rare silent plan. A plan that is more than one board counts as
+    drawing: the route refuses it as such before any say streams.
+    """
+    import copy
+
+    from wobo_gateway.board.planner import TooMuchAtOnce, plan_board
+
+    try:
+        planned = plan_board(
+            copy.deepcopy(plan),
+            context=payload.get("context") or {},
+            board_context=payload.get("board") or {},
+        )
+    except TooMuchAtOnce:
+        return True
+    return bool(planned.objects)
 
 
 def board_plan_for(payload: dict[str, Any], *, live: bool) -> dict[str, Any] | None:

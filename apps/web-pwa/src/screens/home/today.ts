@@ -36,6 +36,16 @@ export interface TodayPlan {
   world: boolean;
   continue: Lesson | null;
   next: Lesson | null;
+  /**
+   * Every topic this device holds is complete. Nothing to continue and nothing next is ALSO what
+   * a learner who has opened nothing looks like, and the two need different sentences.
+   */
+  finished: boolean;
+}
+
+/** True when there are topics in hand and every one of them is done. */
+export function finishedAll(topics: readonly Topic[], completed: ReadonlySet<string>): boolean {
+  return topics.length > 0 && topics.every((t) => completed.has(t.id));
 }
 
 function lessonOf(topic: Topic, p: Progress): Lesson {
@@ -61,10 +71,12 @@ export function todayPlan(p: Progress): TodayPlan {
   };
   const cont = topicAt('continue');
   const next = topicAt('next');
+  const world = loadWorld();
   return {
-    world: Boolean(loadWorld()),
+    world: Boolean(world),
     continue: cont ? lessonOf(cont, p) : null,
     next: next ? lessonOf(next, p) : null,
+    finished: finishedAll(world ? loadedTopics() : [], p.completed),
   };
 }
 
@@ -107,7 +119,28 @@ export function todayLine(plan: TodayPlan): string {
     return `${name}.`;
   }
   if (plan.next) return `Next: ${plan.next.topic.name}.`;
+  if (plan.finished) return FINISHED_LINE;
   return 'Open your subjects. Your chapters come from your board when you open one.';
+}
+
+/**
+ * The registry holds only the chapters opened so far (CURRICULUM.md §8), so "everything done" is
+ * everything opened, and the next chapter is opened from Learn. The card says both.
+ */
+export const FINISHED_LINE =
+  'Everything you have opened is done. Open the next chapter and it lands here.';
+
+/** The practice card's second line: the fractions set's own sentence (board 01 of app-v1.html). */
+export const FRACTIONS_LINE = "Shade, drag and draw. Wobo rings the gap when you're close.";
+
+/**
+ * What the practice card's button opens, in one line. With a topic above it the button opens the
+ * free-play sandbox on that topic, so the line is the sandbox's own words (course/WhatIf.tsx); the
+ * fractions sentence belongs to the fractions set and is drawn only when that is what opens.
+ */
+export function practiceLine(topic: Topic | null): string {
+  if (!topic) return FRACTIONS_LINE;
+  return 'Every number here is yours to drag. No task, no clock.';
 }
 
 /** "Chapter 6 · lesson 3 of 5." — the continue card's line. */

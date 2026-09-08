@@ -123,6 +123,32 @@ export function canonicalUrl(route: Route, origin?: string): string {
   return `${base}${path}`;
 }
 
+/** What the head says about a route: written by the provider on every route change. */
+export interface Head {
+  /** A title the ROUTER owns. Null for every real page, which sets its own. */
+  title: string | null;
+  /** `noindex` on a page that says nothing is here; null everywhere else. */
+  robots: 'noindex' | null;
+  /** The one address a crawler should index this route at; null where nothing should be indexed. */
+  canonical: string | null;
+}
+
+const NOT_FOUND_TITLE = 'Page not found · Wobo';
+
+/**
+ * A 404 KEEPS ITS ADDRESS AND DISOWNS IT. The bar shows what the learner typed or followed (the
+ * comment on `routeToPath` says why), but the head used to be written from that address as though
+ * the page were real: `/for-schools`, a surface removed on purpose, answered with a canonical
+ * pointing at itself, no `noindex`, and a tab that read the bare "Wobo" because the 404 screen sets
+ * no title (wave 29, site-8). So a crawler was invited to index a page whose only content is that
+ * nothing exists there. Now the 404 carries a title that says so, asks not to be indexed, and
+ * claims no canonical; every other route declares its own address and leaves the title to the page.
+ */
+export function headFor(route: Route, origin?: string): Head {
+  if (route.name === 'notfound') return { title: NOT_FOUND_TITLE, robots: 'noindex', canonical: null };
+  return { title: null, robots: null, canonical: canonicalUrl(route, origin) };
+}
+
 const PLAIN_ROUTES = new Set([
   'landing',
   'onboarding',
@@ -297,6 +323,9 @@ export function RouterProvider({ initial, children }: { initial: Route; children
   // effect of the ACTION, never of a render — a setState updater must stay pure (React may run it
   // twice, and two pushState calls would take two backs to undo).
   const depth = useRef(1);
+  // The document's own title as served (index.html's, the product name), which a 404 borrows the
+  // tab from and hands back on the way to any real page.
+  const baseTitle = useRef(typeof document === 'undefined' ? 'Wobo' : document.title);
 
   // The address of the first screen, written once: a deep link keeps its URL, and a boot that was
   // locked to another screen corrects the bar to what is actually shown.
@@ -316,17 +345,39 @@ export function RouterProvider({ initial, children }: { initial: Route; children
   // the front page was reachable at both `/` and `/landing` with nothing saying which one it is,
   // and a crawler had to guess. The tag is written on every route change: `landing` canonicalises
   // to `/`, which is what the sitemap publishes, and every other page declares its own path.
+  //
+  // The 404 is the one route the head says something different about (`headFor`): no canonical,
+  // a `noindex`, and a title of its own, put back to the document's base title on the way to any
+  // real page, which then sets its own.
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const route = stack[stack.length - 1] as Route | undefined;
     if (!route) return;
-    let tag = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (!tag) {
-      tag = document.createElement('link');
-      tag.rel = 'canonical';
-      document.head.appendChild(tag);
+    const head = headFor(route);
+    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+    if (head.canonical) {
+      if (!canonical) {
+        canonical = document.createElement('link');
+        canonical.rel = 'canonical';
+        document.head.appendChild(canonical);
+      }
+      canonical.href = head.canonical;
+    } else {
+      canonical?.remove();
     }
-    tag.href = canonicalUrl(route);
+    let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    if (head.robots) {
+      if (!robots) {
+        robots = document.createElement('meta');
+        robots.name = 'robots';
+        document.head.appendChild(robots);
+      }
+      robots.content = head.robots;
+    } else {
+      robots?.remove();
+    }
+    if (head.title) document.title = head.title;
+    else if (document.title === NOT_FOUND_TITLE) document.title = baseTitle.current;
   }, [stack]);
 
   // The browser (or Android) moved through history — the stack follows it, never the other way.

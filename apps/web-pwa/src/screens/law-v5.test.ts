@@ -134,8 +134,9 @@ describe('law v5 — one pointer per view', () => {
 
   it('the home points at exactly one thing, and it is the next best action', () => {
     const home = SCREENS.find(([f]) => f === 'Home.tsx')?.[1] ?? '';
-    // one pig BUTTON per branch of the Continue card, and no pig anywhere else on the screen
-    expect([...home.matchAll(/tone="pig"/g)]).toHaveLength(4);
+    // one pig BUTTON per branch of the Continue card (in flight, next, everything opened done,
+    // open your subjects, choose your board), and no pig anywhere else on the screen
+    expect([...home.matchAll(/tone="pig"/g)]).toHaveLength(5);
     expect(home).not.toContain('tint=');
   });
 });

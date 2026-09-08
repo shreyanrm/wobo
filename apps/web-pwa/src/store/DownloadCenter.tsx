@@ -32,18 +32,16 @@ import {
   type Download,
   enqueue,
   markFailed,
-  markReady,
+  READY_TOAST,
+  readyLine,
+  SLIPPED_TOAST,
+  settleCompose,
   useDownloads,
 } from './downloads';
 import { loadMind } from './mind';
 import { useSdk } from './sdk';
 
 const COMPOSE_TIMEOUT_MS = 75_000;
-
-/** Playful-cute, sentence case, no emoji, no exclamation (DESIGN.md copy law). */
-function readyLine(title: string): string {
-  return `your course on ${title.toLowerCase()} is ready — tap to dive in whenever you like.`;
-}
 
 export function DownloadCenter() {
   const sdk = useSdk();
@@ -106,8 +104,9 @@ export function DownloadCenter() {
       timeout,
     ])
       // A refusal or timeout is not an error the learner should see: the course player floors to a
-      // structural seed course either way (Composing.tsx). "ready" here just means it can be opened.
-      .then(() => markReady(next.topicId))
+      // structural seed course either way (Composing.tsx). "ready" means this topic's course came
+      // back; a placeholder envelope settles as failed (downloads.composeOutcome), never as ready.
+      .then((res) => settleCompose(next.topicId, res.output))
       .catch((err: unknown) => {
         // Two refusals ARE worth a page, because they are about the learner rather than this one
         // course: a spent day (with the real reset instant off the 429's own header) and a request
@@ -164,7 +163,7 @@ export function DownloadCenter() {
       forgeNotified.current.add(w.id);
       sfx.ding();
       void speakLine(
-        `your workbook on ${w.title.toLowerCase()} is forged — it's on your shelf, ready whenever you are.`,
+        `your workbook on ${w.title.toLowerCase()} is forged. it's on your shelf, ready whenever you are.`,
       );
     }
   }, [forged]);
@@ -314,8 +313,8 @@ export function DownloadCenter() {
                   {composing
                     ? `${stage}… Wobo will let you know the moment it's ready`
                     : d.status === 'ready'
-                      ? 'Your course is ready — tap to dive in'
-                      : 'That one slipped away — tap to try again'}
+                      ? READY_TOAST
+                      : SLIPPED_TOAST}
                 </span>
               </span>
               <span

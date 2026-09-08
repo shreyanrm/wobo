@@ -82,7 +82,8 @@ export function About() {
               <em>whether or not the family can afford one.</em> That's the whole company.
             </div>
             <div className="ab-sig">
-              <WoboHead size={40} />— written by Wobo, kept by us
+              <WoboHead size={40} />
+              written by Wobo, kept by us
             </div>
           </div>
         </div>

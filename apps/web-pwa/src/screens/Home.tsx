@@ -46,6 +46,7 @@ import {
   finishedChapter,
   HOME_QUESTION,
   noticed as noticedBy,
+  practiceLine,
   todayLine,
   todayPlan,
 } from './home/today';
@@ -282,6 +283,19 @@ export function Home() {
               </Button>
             </CardFoot>
           </Card>
+        ) : plan.finished ? (
+          // Everything opened is done: the same card as "opened nothing" would contradict the
+          // "Wobo noticed / You finished ..." card beside it. The next chapter is opened from Learn.
+          <Card>
+            <Tag>Continue</Tag>
+            <h3>Everything you have opened is done</h3>
+            <p>Open the next chapter and it lands here.</p>
+            <CardFoot>
+              <Button size="sm" tone="pig" onClick={() => router.navigate({ name: 'learn' })}>
+                Open the next chapter
+              </Button>
+            </CardFoot>
+          </Card>
         ) : plan.world ? (
           <Card>
             <Tag>Continue</Tag>
@@ -309,7 +323,7 @@ export function Home() {
         <Card>
           <Tag>Practice</Tag>
           <h3>{practiceTopic?.name ?? SET_TITLE}</h3>
-          <p>Shade, drag and draw. Wobo rings the gap when you're close.</p>
+          <p>{practiceLine(practiceTopic)}</p>
           <CardFoot>
             <Button
               size="sm"

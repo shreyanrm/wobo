@@ -72,8 +72,8 @@ export function Help() {
           <div className="st-wrap">
             {results.length === 0 ? (
               <p className="hp-empty">
-                Nothing here matches that. Try one word instead of a sentence, or ask Wobo directly
-                — Wobo answers from these same pages.
+                Nothing here matches that. Try one word instead of a sentence, or ask Wobo
+                directly: Wobo answers from these same pages.
               </p>
             ) : (
               <div className="hp-results">

@@ -668,6 +668,22 @@
           ],
           "default": null,
           "title": "Text"
+        },
+        "fill": {
+          "anyOf": [
+            {
+              "enum": [
+                "soft",
+                "solid"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fill"
         }
       },
       "required": [

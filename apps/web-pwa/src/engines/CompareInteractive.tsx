@@ -349,7 +349,7 @@ export function CompareInteractive({
         style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
       >
         <div style={whisper}>compare — tap a part to see it in both</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <div ref={ref} style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
           <Panel

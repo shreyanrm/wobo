@@ -24,7 +24,8 @@ import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Coordinates, Line, Mafs, MovablePoint, Plot, Point, Polygon, Text } from 'mafs';
 import 'mafs/core.css';
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import './mathscene.css';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { BarState } from '../screens/course/shared';
 import { CardBody, cardTitle, lead, whisper } from '../screens/course/shared';
 import { sfx } from '../ui/sound';
@@ -329,14 +330,36 @@ function toneColor(t: MathTone | undefined, hue: string): string {
   return 'var(--wobo-ink-700)';
 }
 
-/** Bind Mafs' theme variables to the app's ink tokens so the canvas is correct in light and dark. */
-const mafsTheme = {
-  '--mafs-bg': 'transparent',
-  '--mafs-fg': 'var(--wobo-ink-900)',
-  '--mafs-line-color': 'var(--wobo-ink-300)',
-  '--mafs-origin-color': 'var(--wobo-ink-500)',
-  color: 'var(--wobo-ink-900)',
-} as CSSProperties;
+// The Mafs theme lives in ./mathscene.css, on .MafsView itself: mafs/core.css sets black-on-white
+// there, and a wrapper's variables never reached it (SCORECARD.md 3.5 #15).
+
+/** Mafs adds this many units of padding on every side of the declared view. */
+const VIEW_PAD = 0.4;
+const FRAME_MIN = 220;
+const FRAME_MAX = 480;
+
+/**
+ * The canvas frame for a declared view. `preserveAspectRatio="contain"` on a fixed 340 px height
+ * widened every scene to fill the box, so the spec's x-domain of [-1, 6] was shown as roughly
+ * [-6, 11] and the handles huddled in the middle (SCORECARD.md 3.5 #15). The height now follows
+ * the view's own shape, so contain has nothing to add. When the clamp stops it following, a plot
+ * or a number line keeps the declared domain and lets its two axes scale apart (as any graph
+ * paper does), while a shape scene keeps true proportions: a square must look square.
+ */
+export function mafsFrame(
+  kind: MathSceneKind,
+  view: MathSceneSpec['view'],
+  width: number,
+): { height: number; preserveAspectRatio: 'contain' | false } {
+  const w = width > 0 ? width : 350;
+  const xr = view.x[1] - view.x[0] + 2 * VIEW_PAD;
+  const yr = view.y[1] - view.y[0] + 2 * VIEW_PAD;
+  const ideal = (w * yr) / xr;
+  const height = clamp(ideal, FRAME_MIN, FRAME_MAX);
+  const follows = Math.abs(ideal - height) < 1;
+  const trueShape = kind === 'geometry' || kind === 'areaProof' || kind === 'probability';
+  return { height, preserveAspectRatio: follows || trueShape ? 'contain' : false };
+}
 
 function fillTemplate(text: string, vars: State): string {
   return text.replace(/\{(\w+)\}/g, (_, id) =>
@@ -440,6 +463,21 @@ export function MathScene({
     }
   };
 
+  // The rendered width, so the frame can follow the declared view (mafsFrame).
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [frameWidth, setFrameWidth] = useState(0);
+  useEffect(() => {
+    const el = frameRef.current;
+    if (!el) return;
+    const measure = () => setFrameWidth(el.clientWidth);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const frame = mafsFrame(spec.kind, spec.view, frameWidth);
+
   const ref = useRegisterTarget<HTMLDivElement>(`mathscene-${spec.id}`, {
     kind: 'scene',
     label: `the ${spec.kind} scene "${spec.title}" — every handle is draggable`,
@@ -492,140 +530,142 @@ export function MathScene({
         style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
       >
         <div style={whisper}>{spec.kind} — drag it and watch the numbers move</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         {spec.caption && <div style={lead}>{spec.caption}</div>}
 
         <div
           ref={ref}
+          className="wobo-mathscene"
           style={{
-            ...mafsTheme,
             borderRadius: 'var(--wobo-radius-md)',
             overflow: 'hidden',
             border: '0.5px solid var(--wobo-hairline-on-paper-strong)',
             background: 'var(--wobo-paper)',
           }}
         >
-          <Mafs
-            height={340}
-            pan={false}
-            zoom={false}
-            preserveAspectRatio="contain"
-            viewBox={{ x: spec.view.x, y: spec.view.y, padding: 0.4 }}
-          >
-            <Coordinates.Cartesian
-              subdivisions={2}
-              xAxis={spec.kind === 'probability' ? { labels: false } : undefined}
-              yAxis={
-                spec.kind === 'numberline'
-                  ? false
-                  : spec.kind === 'probability'
-                    ? { labels: false }
-                    : undefined
-              }
-            />
-
-            {/* polygons — filled tactile bodies (areaProof / probability / geometry) */}
-            {(spec.polys ?? []).map((p) => (
-              <Polygon
-                key={p.id}
-                points={p.points.map(pt)}
-                color={toneColor(p.color, hue)}
-                fillOpacity={p.fill === false ? 0 : 0.16}
-                strokeStyle="solid"
-                weight={2}
+          <div ref={frameRef}>
+            <Mafs
+              height={frame.height}
+              pan={false}
+              zoom={false}
+              preserveAspectRatio={frame.preserveAspectRatio}
+              viewBox={{ x: spec.view.x, y: spec.view.y, padding: VIEW_PAD }}
+            >
+              <Coordinates.Cartesian
+                subdivisions={2}
+                xAxis={spec.kind === 'probability' ? { labels: false } : undefined}
+                yAxis={
+                  spec.kind === 'numberline'
+                    ? false
+                    : spec.kind === 'probability'
+                      ? { labels: false }
+                      : undefined
+                }
               />
-            ))}
 
-            {/* segments — axes, guides, reach lines */}
-            {(spec.segments ?? []).map((s) => (
-              <Line.Segment
-                key={s.id}
-                point1={pt(s.from)}
-                point2={pt(s.to)}
-                color={toneColor(s.color, hue)}
-                weight={s.dashed ? 2 : 2.5}
-                style={s.dashed ? 'dashed' : 'solid'}
-              />
-            ))}
+              {/* polygons — filled tactile bodies (areaProof / probability / geometry) */}
+              {(spec.polys ?? []).map((p) => (
+                <Polygon
+                  key={p.id}
+                  points={p.points.map(pt)}
+                  color={toneColor(p.color, hue)}
+                  fillOpacity={p.fill === false ? 0 : 0.16}
+                  strokeStyle="solid"
+                  weight={2}
+                />
+              ))}
 
-            {/* curves — y = f(x) plotted with the live handle values */}
-            {(spec.curves ?? []).map((c) => (
-              <Plot.OfX
-                key={c.id}
-                y={(x) => {
-                  const v = evaluateExpr(c.expr, { ...vars, x });
-                  return v === null ? Number.NaN : v;
-                }}
-                color={toneColor(c.color, hue)}
-                weight={2.5}
-              />
-            ))}
+              {/* segments — axes, guides, reach lines */}
+              {(spec.segments ?? []).map((s) => (
+                <Line.Segment
+                  key={s.id}
+                  point1={pt(s.from)}
+                  point2={pt(s.to)}
+                  color={toneColor(s.color, hue)}
+                  weight={s.dashed ? 2 : 2.5}
+                  style={s.dashed ? 'dashed' : 'solid'}
+                />
+              ))}
 
-            {/* fixed points */}
-            {(spec.points ?? []).map((p) => {
-              const [x, y] = pt(p.at);
-              return <Point key={p.id} x={x} y={y} color={toneColor(p.color, hue)} />;
-            })}
+              {/* curves — y = f(x) plotted with the live handle values */}
+              {(spec.curves ?? []).map((c) => (
+                <Plot.OfX
+                  key={c.id}
+                  y={(x) => {
+                    const v = evaluateExpr(c.expr, { ...vars, x });
+                    return v === null ? Number.NaN : v;
+                  }}
+                  color={toneColor(c.color, hue)}
+                  weight={2.5}
+                />
+              ))}
 
-            {/* text labels, templated with the live values */}
-            {(spec.labels ?? []).map((l) => {
-              const [x, y] = pt(l.at);
-              return (
-                <Text key={l.id} x={x} y={y} size={16} color="var(--wobo-ink-700)">
-                  {fillTemplate(l.text, vars)}
-                </Text>
-              );
-            })}
-            {(spec.polys ?? []).flatMap((p) =>
-              p.label && p.labelAt
-                ? [
-                    <Text
-                      key={`${p.id}-label`}
-                      x={res(p.labelAt[0])}
-                      y={res(p.labelAt[1])}
-                      size={16}
-                      color="var(--wobo-ink-700)"
-                    >
-                      {fillTemplate(p.label, vars)}
-                    </Text>,
-                  ]
-                : [],
-            )}
+              {/* fixed points */}
+              {(spec.points ?? []).map((p) => {
+                const [x, y] = pt(p.at);
+                return <Point key={p.id} x={x} y={y} color={toneColor(p.color, hue)} />;
+              })}
 
-            {/* the draggable handles — points and sliders, live-bound to the expressions */}
-            {spec.handles.map((h) => {
-              if (h.along === 'free') {
+              {/* text labels, templated with the live values */}
+              {(spec.labels ?? []).map((l) => {
+                const [x, y] = pt(l.at);
+                return (
+                  <Text key={l.id} x={x} y={y} size={16} color="var(--wobo-ink-700)">
+                    {fillTemplate(l.text, vars)}
+                  </Text>
+                );
+              })}
+              {(spec.polys ?? []).flatMap((p) =>
+                p.label && p.labelAt
+                  ? [
+                      <Text
+                        key={`${p.id}-label`}
+                        x={res(p.labelAt[0])}
+                        y={res(p.labelAt[1])}
+                        size={16}
+                        color="var(--wobo-ink-700)"
+                      >
+                        {fillTemplate(p.label, vars)}
+                      </Text>,
+                    ]
+                  : [],
+              )}
+
+              {/* the draggable handles — points and sliders, live-bound to the expressions */}
+              {spec.handles.map((h) => {
+                if (h.along === 'free') {
+                  return (
+                    <MovablePoint
+                      key={h.id}
+                      color={hue}
+                      point={[state[`${h.id}x`] ?? 0, state[`${h.id}y`] ?? 0]}
+                      onMove={([x, y]) =>
+                        move({
+                          [`${h.id}x`]: clamp(x, h.min, h.max),
+                          [`${h.id}y`]: clamp(y, h.min, h.max),
+                        })
+                      }
+                    />
+                  );
+                }
+                const at = h.at ?? 0;
+                const val = state[h.id] ?? 0;
+                // A constrain FUNCTION pins the point to its track and clamps to range (the component's
+                // `constrain` takes a mapper, not the hook's "horizontal"/"vertical" string).
+                const constrain = ([x, y]: [number, number]): [number, number] =>
+                  h.along === 'x' ? [clamp(x, h.min, h.max), at] : [at, clamp(y, h.min, h.max)];
                 return (
                   <MovablePoint
                     key={h.id}
                     color={hue}
-                    point={[state[`${h.id}x`] ?? 0, state[`${h.id}y`] ?? 0]}
-                    onMove={([x, y]) =>
-                      move({
-                        [`${h.id}x`]: clamp(x, h.min, h.max),
-                        [`${h.id}y`]: clamp(y, h.min, h.max),
-                      })
-                    }
+                    constrain={constrain}
+                    point={h.along === 'x' ? [val, at] : [at, val]}
+                    onMove={([x, y]) => move({ [h.id]: h.along === 'x' ? x : y })}
                   />
                 );
-              }
-              const at = h.at ?? 0;
-              const val = state[h.id] ?? 0;
-              // A constrain FUNCTION pins the point to its track and clamps to range (the component's
-              // `constrain` takes a mapper, not the hook's "horizontal"/"vertical" string).
-              const constrain = ([x, y]: [number, number]): [number, number] =>
-                h.along === 'x' ? [clamp(x, h.min, h.max), at] : [at, clamp(y, h.min, h.max)];
-              return (
-                <MovablePoint
-                  key={h.id}
-                  color={hue}
-                  constrain={constrain}
-                  point={h.along === 'x' ? [val, at] : [at, val]}
-                  onMove={([x, y]) => move({ [h.id]: h.along === 'x' ? x : y })}
-                />
-              );
-            })}
-          </Mafs>
+              })}
+            </Mafs>
+          </div>
         </div>
 
         {/* the live readouts */}

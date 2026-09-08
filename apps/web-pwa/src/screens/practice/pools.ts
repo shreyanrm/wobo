@@ -17,6 +17,7 @@
  */
 
 import { chapterById, subjectById, topicById } from '../../curriculum/registry';
+import { subjectFamily } from '../../curriculum/subjects';
 import type { Topic } from '../../data/model';
 import type { MiniWorkbookSpec, WorkbookItem } from '../../engines/MiniWorkbook';
 import { onScopeChange, scoped } from '../../store/scope';
@@ -111,7 +112,7 @@ function buildRecallPool(topic: Topic): WorkbookItem[] {
     items.push({
       id: `${topic.id}-cloze`,
       kind: 'fill',
-      prompt: `fill the gap — ${topic.name.toLowerCase()}`,
+      prompt: `fill the gap: ${topic.name.toLowerCase()}`,
       text: gapped,
       blanks: [key],
       distractors,
@@ -145,10 +146,21 @@ function recallPool(topic: Topic): WorkbookItem[] {
   return built;
 }
 
-/** Is this topic computable enough to generate real solvable problems from? (math for now.) */
+/**
+ * Is a subject computable enough to generate real solvable problems from? (maths, for now.)
+ *
+ * By the family behind the door, never by the id: a board names its own subjects, so the chapter's
+ * `subjectId` is "Mathematics" on a real syllabus, and the literal `'math'` this used to compare
+ * against matched only the bundled catalog wave 6 deleted. Every forge bound from a real board
+ * composed to nothing, and the dev-time assert below never saw it because it ran on that catalog.
+ */
+export function computableSubject(subject: string): boolean {
+  return subjectFamily(subject) === 'math';
+}
+
 function isComputable(topic: Topic): boolean {
-  const subjectId = chapterById(topic.chapterId)?.subjectId;
-  return subjectId === 'math';
+  const subjectId = chapterById(topic.chapterId)?.subjectId ?? '';
+  return computableSubject(subjectById(subjectId)?.name ?? subjectId);
 }
 
 /** Real linear-equation problems, deterministic per (topic, index) — an unbounded honest supply. */
@@ -314,7 +326,7 @@ export function composeWorkbook(
   const note =
     mix === 'wobo'
       ? slipped.size > 0
-        ? 'i weighed this toward what you last slipped on — those come first.'
+        ? 'i weighed this toward what you last slipped on. those come first.'
         : 'nothing recent to catch, so i kept it evenly balanced.'
       : `${total} items · ${MIX_LABEL[mix]}.`;
 

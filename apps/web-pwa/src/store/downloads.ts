@@ -114,6 +114,41 @@ export function markReady(topicId: string): void {
   settle(topicId, 'ready');
 }
 
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+/**
+ * What a settled compose is: this topic's course, or the honest floor the gateway serves when it
+ * has nothing verified for it. The floor is named three ways (`seeded: true`, `provenance.placeholder:
+ * true`, `provenance.source: "seed"`; the same reading as Composing.isPlaceholderEnvelope, kept
+ * here so the pure store stays free of the player and its engines). The runner used to markReady
+ * on ANY settled compose, so a placeholder landed as 'Your course is ready', Wobo said so aloud,
+ * and the tap opened 'Still being made' (wave 29). A placeholder is not ready: it settles as failed,
+ * which is the one state a later tap restarts from.
+ */
+export function composeOutcome(output: unknown): 'ready' | 'failed' {
+  if (!isRecord(output)) return 'ready'; // an empty mock answer still floors to a real seed course
+  if (output.seeded === true) return 'failed';
+  const prov = isRecord(output.provenance) ? output.provenance : null;
+  if (prov !== null && (prov.placeholder === true || prov.source === 'seed')) return 'failed';
+  return 'ready';
+}
+
+/** Settle a compose by what it actually returned. */
+export function settleCompose(topicId: string, output: unknown): void {
+  settle(topicId, composeOutcome(output));
+}
+
+// The lines a learner reads on the toast or hears from Wobo. Sentence case, no em dash, no
+// exclamation (DESIGN.md §0, voice.md 10a).
+export const READY_TOAST = 'Your course is ready. Tap to dive in';
+export const SLIPPED_TOAST = 'That one slipped away. Tap to try again';
+
+export function readyLine(title: string): string {
+  return `your course on ${title.toLowerCase()} is ready. tap to dive in whenever you like.`;
+}
+
 export function markFailed(topicId: string): void {
   settle(topicId, 'failed');
 }

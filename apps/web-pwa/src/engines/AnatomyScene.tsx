@@ -410,7 +410,7 @@ export function AnatomyScene({
             ? 'find it — drag to turn the model, tap the right part'
             : 'explore — drag to turn it, tap a part to name it'}
         </div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         {spec.model && <div style={whisper}>{spec.model}</div>}
 
         <Stage hue={hue} tint={0.05} minHeight={280} style={{ padding: 0, overflow: 'hidden' }}>

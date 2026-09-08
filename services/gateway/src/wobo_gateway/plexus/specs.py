@@ -70,6 +70,10 @@ class Mark(Spec):
     w: float | None = None
     h: float | None = None
     text: str | None = None
+    # A tactile filled body at rest (CONTENT-VISUALS.md 3.1): "solid" is a chunky object, "soft" a
+    # roomy tinted container. Absent is an outline: axes, rays, leaders. Discovery.tsx has read
+    # this field all along and the compose prompt asks for it; the schema never declared it.
+    fill: Literal["soft", "solid"] | None = None
 
 
 class TapInteraction(Spec):

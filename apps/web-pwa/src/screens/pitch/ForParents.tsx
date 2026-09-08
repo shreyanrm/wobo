@@ -362,7 +362,7 @@ export function ForParents() {
                     Next: the other half of
                   </text>
                   <text className="pt-hw" x="116" y="280" fontSize="26">
-                    triangles. — Wobo
+                    triangles. From Wobo
                   </text>
                 </g>
                 <path

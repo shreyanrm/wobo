@@ -75,13 +75,30 @@ function Sparks({ hue }: { hue: string }) {
   );
 }
 
-/** The "what you proved" headline. Course-aware via the run's real performance rather than a
- *  topic-specific metaphor — "you kept the scale level" is the equations balance, and read as
- *  nonsense in a chemistry or biology course. Stars come from this run's graded evidence. */
-function provedLine(stars: number): string {
-  if (stars >= 3) return 'You never put a foot wrong, the whole way through.';
+/**
+ * The "what you proved" headline. Course-aware via the run's real performance rather than a
+ * topic-specific metaphor — "you kept the scale level" is the equations balance, and read as
+ * nonsense in a chemistry or biology course. Stars come from this run's graded evidence.
+ *
+ * Three stars forgive one stumble (`performanceStars`), which is a fair bar for the reward; the
+ * sentence is not allowed the same tolerance. A learner whose one miss the app stopped to
+ * dramatise thirty seconds ago knows they put a foot wrong, so the absolute line is reserved for
+ * a walk with no miss at all, and the one-slip walk gets its own true one. A replay reads its
+ * banked stars, but the words still follow the walk the learner just did.
+ */
+export function provedLine(
+  run: { bossCorrect?: number; bossTotal?: number; attemptsTotal: number; itemsTotal: number },
+  stars: number = performanceStars(run),
+): string {
+  const bossClean = run.bossTotal ? (run.bossCorrect ?? 0) >= run.bossTotal : true;
+  const noMiss = bossClean && run.attemptsTotal <= run.itemsTotal;
+  if (stars >= 3) {
+    return noMiss
+      ? 'You never put a foot wrong, the whole way through.'
+      : 'One slip on the way, and you set it right before the end.';
+  }
   if (stars >= 2) return 'You found the through-line and held it.';
-  return 'You got there — and that is what counts.';
+  return 'You got there, and that is what counts.';
 }
 
 export function Greeting({
@@ -307,7 +324,9 @@ export function Greeting({
             color: 'var(--wobo-ink-900)',
           }}
         >
-          {replay ? 'You walked it again.' : provedLine(stars)}
+          {replay
+            ? 'You walked it again.'
+            : provedLine({ bossCorrect, bossTotal, attemptsTotal, itemsTotal }, stars)}
         </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 10 }}

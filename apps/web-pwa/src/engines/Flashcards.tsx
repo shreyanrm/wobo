@@ -68,9 +68,8 @@ const FSRS_KEY = 'wobo-fsrs-v1';
 function loadSchedule(cardKey: string): RetrievalCard | null {
   try {
     return (
-      (JSON.parse(scoped.getItem(FSRS_KEY) ?? '{}') as Record<string, RetrievalCard>)[
-        cardKey
-      ] ?? null
+      (JSON.parse(scoped.getItem(FSRS_KEY) ?? '{}') as Record<string, RetrievalCard>)[cardKey] ??
+      null
     );
   } catch {
     return null;
@@ -233,11 +232,22 @@ export function Flashcards({
           recall · {idx + 1} / {spec.cards.length}
         </div>
 
-        {/* the card — real 3D flip on a spring, swipe-out on grade */}
+        {/* the card — real 3D flip on a spring, swipe-out on grade. It is a button: the flip is
+            reachable from a keyboard (Enter or Space) outside a course, where no action bar offers
+            "flip to check", and the face turned away is out of the accessibility tree, so a
+            screen reader is read the question OR the answer, never both in one breath. The
+            retrieval this engine exists for depends on the answer staying hidden until asked. */}
         <div style={{ perspective: 1200, width: '100%', maxWidth: 440, height: 260 }}>
           <motion.div
             key={card.id}
+            role="button"
+            tabIndex={0}
             onClick={() => !swipe && setFlipped((f) => !f)}
+            onKeyDown={(e) => {
+              if (swipe || (e.key !== 'Enter' && e.key !== ' ')) return;
+              e.preventDefault();
+              setFlipped((f) => !f);
+            }}
             initial={{ x: 0, opacity: 1 }}
             animate={{
               rotateY: flipped ? 180 : 0,
@@ -259,6 +269,7 @@ export function Flashcards({
           >
             {/* front */}
             <div
+              aria-hidden={flipped}
               style={{
                 position: 'absolute',
                 inset: 0,
@@ -289,6 +300,7 @@ export function Flashcards({
             </div>
             {/* back */}
             <div
+              aria-hidden={!flipped}
               style={{
                 position: 'absolute',
                 inset: 0,

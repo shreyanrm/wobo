@@ -523,7 +523,7 @@ function Balancer({
         <div style={whisper}>
           balance it — drag each coefficient until every atom is accounted for
         </div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <Stage hue={hue} tint={0.05} minHeight={132} style={{ padding: 'clamp(16px, 3vw, 26px)' }}>
           <div
@@ -821,7 +821,7 @@ function Titration({
         <div style={whisper}>
           titrate it — add {spec.titrant.name} drop by drop and watch the pH turn
         </div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <Stage hue={hue} tint={0.05} minHeight={220} style={{ padding: 'clamp(14px, 3vw, 24px)' }}>
           <div
@@ -1083,7 +1083,7 @@ function Structure({ spec, hue }: { spec: ChemStructureSpec; hue: string }) {
     <CardBody maxWidth={560}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={whisper}>the structure — every bond and atom, drawn from its formula</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         <Stage
           hue={hue}
           tint={0.05}
@@ -1186,7 +1186,7 @@ function Molecule3D({ spec, hue }: { spec: ChemMolecule3DSpec; hue: string }) {
     <CardBody maxWidth={560}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={whisper}>the molecule in 3D — drag to turn it over</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         <Stage hue={hue} tint={0.05} minHeight={280} style={{ padding: 0, overflow: 'hidden' }}>
           <div ref={ref} style={{ width: '100%', height: 300, position: 'relative' }}>
             <div ref={holder} style={{ width: '100%', height: '100%', position: 'relative' }} />

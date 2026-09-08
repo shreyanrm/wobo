@@ -109,6 +109,7 @@ export interface Mark {
   w?: number | null;
   h?: number | null;
   text?: string | null;
+  fill?: 'soft' | 'solid' | null;
 }
 
 export interface Scene {

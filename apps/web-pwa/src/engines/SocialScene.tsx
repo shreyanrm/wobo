@@ -366,7 +366,7 @@ function TimelineScene({
         <div style={whisper}>
           {place ? `drag the marker to the year — ${place.label}` : 'read the years left to right'}
         </div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         {spec.caption && <div style={lead}>{spec.caption}</div>}
 
         <Stage hue={hue} tint={0.05} minHeight={210} style={{ padding: 'clamp(10px, 2vw, 20px)' }}>
@@ -657,7 +657,7 @@ function EventOrderScene({
     <CardBody maxWidth={640}>
       <div ref={ref} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={whisper}>drag the events into the order they happened</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         {spec.caption && <div style={lead}>{spec.caption}</div>}
 
         <Reorder.Group
@@ -944,7 +944,7 @@ function SupplyDemandScene({
             ? `drag the ${shift.target} curve — the market finds a new balance`
             : 'the intersection is the market price'}
         </div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         <div style={{ ...equationType, textAlign: 'center' }}>
           {lineEquation(supply)} · {lineEquation(demand)}
         </div>

@@ -252,7 +252,7 @@ export function ConceptMap({
         style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
       >
         <div style={whisper}>concept map — tap a node to trace how it connects</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <div
           ref={mapRef}

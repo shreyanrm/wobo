@@ -71,7 +71,7 @@ taken away. Never a number for the month, never the word "budget", never the gen
 
 *"I don't want to charge the users; bill them only for content and usage."* A learner's daily
 allowance counts what is served to that learner: turns, voice, a read page, and the rendering of a
-level for their board and grade. The creative layer (`engine.create`: concept cores, interaction
+level for their board and grade. The creative layer (`create.core`: concept cores, interaction
 design, film choreography, on the create tier) is the platform's cost, marked
 `registry.PLATFORM_PAID`, booked to the creative pool on the models desk with its own cap, and
 never subtracted from anyone's day. The allowance code asks `registry.platform_paid(capability)`
@@ -84,7 +84,7 @@ we will keep teaching until they understand, and we aren't the ones paying for t
 
 | what | paid by | why |
 |---|---|---|
-| the blueprint of a topic (`engine.blueprint`) and a concept's core (`engine.create`), Astra, once per topic, board, grade, version, then cached for every learner | **the platform's creative pool** | made once, shared by everyone, the quality of the brand |
+| the blueprint of a topic (`create.blueprint`) and a concept's core (`create.core`), Astra, once per topic, board, grade, version, then cached for every learner | **the platform's creative pool** | made once, shared by everyone, the quality of the brand |
 | rendering a level for a cell the first time (`engine.compose`, `engine.simulate`, the films) | **the learner whose ask triggered it**; the cache serves the next learner of that cell for nothing | content the learner asked for; the store makes it nearly free after the first |
 | every turn, every re-explanation, every "again", the voice, a read page, the free-text-goal course | **the learner's allowance** | teaching until they understand is usage, and the plan buys usage |
 

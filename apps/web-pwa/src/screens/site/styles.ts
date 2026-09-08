@@ -214,7 +214,7 @@ export const SITE_CSS = `
 .pl-allow b{font-weight:600}
 .pl-allow .pl-bar{height:14px;border-radius:7px;background:var(--paper-3);overflow:hidden;position:relative}
 .pl-allow .pl-bar i{position:absolute;left:0;top:0;height:100%;width:100%;border-radius:7px;background:var(--marigold);transform:scaleX(0);transform-origin:left;will-change:transform;transition:transform 1.4s cubic-bezier(.6,0,.2,1)}
-.pl-allow span{font-size:13px;color:var(--ink-3)}
+.pl-allow > span:not(.wk-sticker){font-size:13px;color:var(--ink-2)}
 .pl-allow .hand{font-size:24px;color:var(--pig)}
 .pl-allow .wk-sticker{right:-14px;top:-16px}
 .pl-plans{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s2);align-items:start}
@@ -397,6 +397,9 @@ export const SITE_CSS = `
   .st-header .st-wm{display:inline-flex;align-items:center;min-height:44px}
   .st-footer .st-wrap a{display:flex;align-items:center;min-height:44px;padding:0}
   .st-footer .st-wrap{grid-template-columns:1fr 1fr}
+  /* the allowance sticker overhangs its card by 14px on a wide screen; on a phone the card is
+     the width of the screen less the gutter, so the overhang sits inside the card's corner */
+  .pl-allow .wk-sticker{right:4px}
   .hp-search input{min-height:44px}
   .st-ask{grid-template-columns:1fr}
   .st-grid3,.st-grid2{grid-template-columns:1fr}

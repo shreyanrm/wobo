@@ -19,7 +19,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { CTA } from './cta';
 import { handoff } from './handoffs';
-import { DOORS, FOOTER_COLUMNS, FOOTER_LINE, NAV_LINKS } from './nav';
+import { DOORS, FOOTER_COLUMNS, FOOTER_LINE, hrefRoute, NAV_LINKS } from './nav';
 
 const REPO = join(import.meta.dir, '..', '..', '..', '..', '..');
 const HTML = readFileSync(join(REPO, 'design', 'prototypes', 'site-about.html'), 'utf8');
@@ -75,6 +75,42 @@ describe('the shell says what the prototype says', () => {
     for (const href of hrefs) expect(href.startsWith('/')).toBe(true);
     const footerHrefs = FOOTER_COLUMNS.flatMap((c) => c.links).map((l) => l.href);
     expect(new Set(footerHrefs).size).toBe(footerHrefs.length);
+  });
+
+  /**
+   * A DEAD CONTROL IN THE FOOTER OF EVERY PUBLIC PAGE. "Questions" pointed at `/#questions`, and
+   * the `#questions` section does not live on the landing page at all: it is the parents page's
+   * (`pitch/ForParents.tsx`). `SiteLink` stripped the hash, `/` resolved to the landing route, and
+   * the reader was deposited at the top of the front page at `/landing`, the address the page's
+   * own canonical disowns (wave 29, site-1). So every address here is walked through the router
+   * AND every hash it carries must be an id on the source of the page it names.
+   */
+  it('sends every address to a route the router answers, and every anchor to an id on that page', () => {
+    const REPO_SRC = join(import.meta.dir, '..');
+    const PAGE_SOURCE: Record<string, string> = {
+      'for-parents': join('pitch', 'ForParents.tsx'),
+      'for-students': join('pitch', 'ForStudents.tsx'),
+      'meet-wobo': join('pitch', 'MeetWobo.tsx'),
+      'how-it-works': join('pitch', 'HowItWorks.tsx'),
+      subjects: join('pitch', 'Subjects.tsx'),
+      security: join('pitch', 'Security.tsx'),
+      about: join('site', 'About.tsx'),
+    };
+    for (const link of [...NAV_LINKS, ...FOOTER_COLUMNS.flatMap((c) => c.links)]) {
+      const route = hrefRoute(link.href);
+      expect([link.label, link.href, route?.name ?? null]).not.toEqual([link.label, link.href, null]);
+      const hash = link.href.split('#')[1];
+      if (!hash || !route) continue;
+      const file = PAGE_SOURCE[route.name];
+      expect([link.href, file]).not.toEqual([link.href, undefined]);
+      const source = readFileSync(join(REPO_SRC, file as string), 'utf8');
+      expect([link.href, source.includes(`id="${hash}"`)]).toEqual([link.href, true]);
+    }
+  });
+
+  it('points "Questions" at the page that carries the questions', () => {
+    const questions = FOOTER_COLUMNS.flatMap((c) => c.links).find((l) => l.label === 'Questions');
+    expect(questions?.href).toBe('/for-parents#questions');
   });
 
   it('closes in the shape the prototype closes in, on the words law v5 allows', () => {

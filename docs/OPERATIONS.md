@@ -699,7 +699,7 @@ The next step (docs/CONTENT-INTERACTION.md) caches the concept once and renders 
 ### 11.7 The create tier and who pays (2026-09-08)
 
 `create` = GPT-6 Astra (10.00 / 1.00 cached / 50.00 per M; above 272K input, 2x in and 1.5x out),
-Opus 5 behind it, Flash last. Only `engine.create` runs on it: the concept core, the interaction's
+Opus 5 behind it, Flash last. Only `create.core` runs on it: the concept core, the interaction's
 design, the film's choreography, once per concept and cached. The platform pays (the creative pool
 on the models desk, its own cap); a learner's allowance is only ever charged for what is served to
 them. Astra is on no other chain and nothing escalates into it. `WOBO_TIER_CREATE` overrides it.

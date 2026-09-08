@@ -8,6 +8,12 @@ render BROKEN in the browser yet slip past both the structural verifier and the 
     a malformed ``viewBox``, a ``<script>``/``<foreignObject>``, a SMIL animation with a garbage
     ``dur`` or a misspelled attribute, a ``url(#ref)`` / ``href="#ref"`` with no matching
     definition (a dangling gradient / filter / use).
+  • a SMIL animation with timing and NO animation function — ``<animate attributeName="opacity"
+    keyTimes="0;1" dur="1s" keySplines="0.2 0 0 1">`` with no ``values``/``from``/``to``/``by``.
+    SMIL builds nothing from it, so it never runs and the mark stays exactly as authored; a mark
+    authored at ``opacity="0"`` waiting for it stays invisible for the whole narration. This was
+    every film in the product in wave 30 (615 elements, four subjects, all blank), and the raw
+    model responses carried the same shape: the defect is generation, and this is its gate.
   • an EVALUATED expression (perturbation output, whatIf working) the client's safe parser
     (``evaluateExpr``) cannot read — the interaction renders dead. Display-only expressions
     (derivation, wordProblem) are deliberately NOT parse-checked: they are free text on the
@@ -91,11 +97,241 @@ _SMIL_ATTRS = {
     "type", "href", "id", "class", "style", "role", "tabindex",
     "systemlanguage", "requiredfeatures", "requiredextensions",
 }
+# What an animation element needs before it HAS an animation function (SMIL Animation §3.2, and
+# Blink's animation-mode table, which is what actually runs a film): from+to, from+by, by, to, or
+# values. `from` ALONE is no function; an EMPTY function is no function. <animateMotion> may take
+# a path or an <mpath> child instead; <set> takes only 'to'. Without one the element is timed but
+# never runs. The timing attributes are listed so the reason can say what the model wrote instead
+# of the function it forgot.
+_FUNCTION_ATTRS = {"values", "from", "to", "by"}
+_TIMING_ATTRS = ("keytimes", "dur", "keysplines", "calcmode", "begin", "end", "repeatcount")
+# A begin that fires on its own in a film nobody touches: a clock value (optionally signed), or a
+# syncbase on another animation ("draw.end", "fade.begin+0.3s"). "indefinite" waits for a script
+# that never comes; "click", "mouseover", "accessKey(...)" and "wallclock(...)" wait for a hand
+# or a clock the film does not have.
+_CLOCK_RE = re.compile(r"^[+-]?\s*(\d+(\.\d+)?(h|min|s|ms)?|\d+(:\d\d){1,2}(\.\d+)?)$", re.I)
+_SYNCBASE_RE = re.compile(
+    r"^[A-Za-z_][\w\-.]*\.(begin|end)(\s*[+-]\s*\d+(\.\d+)?(h|min|s|ms)?)?$", re.I
+)
+# Every attribute a film may animate: SVG 1.1 geometry, the presentation attributes (which are
+# also CSS properties), the text attributes, and the transform attributes for <animateTransform>.
+# A name outside this set ("opacty", "stroke-dash-offset") animates nothing.
+_ANIMATABLE = {
+    # geometry
+    "x", "y", "cx", "cy", "r", "rx", "ry", "x1", "y1", "x2", "y2", "width", "height", "d",
+    "points", "dx", "dy", "rotate", "offset", "startoffset", "textlength", "lengthadjust",
+    "viewbox", "preserveaspectratio", "fx", "fy", "fr", "refx", "refy", "markerwidth",
+    "markerheight", "pathlength", "href", "xlink:href",
+    # presentation
+    "opacity", "fill", "fill-opacity", "fill-rule", "stroke", "stroke-width", "stroke-opacity",
+    "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin",
+    "stroke-miterlimit", "visibility", "display", "color", "stop-color", "stop-opacity",
+    "flood-color", "flood-opacity", "lighting-color", "font-size", "font-weight", "font-family",
+    "font-style", "font-variant", "font-stretch", "letter-spacing", "word-spacing",
+    "text-anchor", "text-decoration", "dominant-baseline", "alignment-baseline",
+    "baseline-shift", "clip-path", "clip-rule", "mask", "filter", "marker-start", "marker-mid",
+    "marker-end", "overflow", "cursor", "pointer-events", "shape-rendering", "text-rendering",
+    "image-rendering", "color-interpolation", "color-interpolation-filters", "direction",
+    "writing-mode", "unicode-bidi", "glyph-orientation-vertical", "glyph-orientation-horizontal",
+    "vector-effect", "paint-order", "transform-origin", "transform-box",
+    # transforms (animateTransform)
+    "transform", "patterntransform", "gradienttransform",
+    # filter primitives, in case a film uses one
+    "stddeviation", "in", "in2", "result", "mode", "type", "values", "k1", "k2", "k3", "k4",
+    "operator", "radius", "scale", "xchannelselector", "ychannelselector", "surfacescale",
+    "specularexponent", "specularconstant", "diffuseconstant", "azimuth", "elevation",
+    "limitingconeangle", "pointsatx", "pointsaty", "pointsatz", "z", "basefrequency",
+    "numoctaves", "seed", "stitchtiles", "tablevalues", "slope", "intercept", "amplitude",
+    "exponent", "kernelmatrix", "divisor", "bias", "targetx", "targety", "edgemode",
+    "kernelunitlength", "preservealpha", "order",
+}
 
 
 def _local(name: str) -> str:
     """Strip an XML namespace ``{uri}tag`` → ``tag``."""
     return name.rsplit("}", 1)[-1]
+
+
+def _entries(value: str) -> list[str]:
+    """The non-empty entries of a ';'-separated SMIL list."""
+    return [v.strip() for v in value.split(";") if v.strip()]
+
+
+def _floats(value: str) -> list[float] | None:
+    try:
+        return [float(v) for v in _entries(value)]
+    except ValueError:
+        return None
+
+
+def _function_of(tag: str, names: dict[str, str], el: ET.Element) -> str | None:
+    """Why this element has no animation function, or None when it has one that runs."""
+    values = _entries(names["values"]) if "values" in names else None
+    has = {k for k in ("from", "to", "by") if names.get(k, "").strip()}
+    if tag == "set":
+        if not names.get("to", "").strip():
+            return "no 'to' (a <set> takes only 'to')"
+        return None
+    if tag == "animatemotion" and (
+        names.get("path", "").strip()
+        or any(_local(child.tag).lower() == "mpath" for child in el)
+    ):
+        return None
+    if values:
+        return None
+    if "to" in has or "by" in has:
+        return None
+    if "from" in has:
+        return "'from' alone (no 'to' or 'by' to reach)"
+    if values is not None:
+        return "an empty 'values'"
+    if any(names.get(k) is not None for k in ("to", "by", "path")):
+        return "an empty 'to'/'by'/'path'"
+    if tag == "animatemotion":
+        return "no values/from/to/by, no path, no <mpath> child"
+    return "no values/from/to/by"
+
+
+def _dead_animation(el: ET.Element, tag: str) -> str | None:
+    """The reason this SMIL element can never run, or None when it runs.
+
+    Proven in headless Chromium, not guessed: each shape here was rendered with SMIL paused and
+    sampled at 0.05 s, 0.5 s and 3 s and left the mark exactly as authored. Three families:
+
+    * no animation function: none of values/from/to/by, `from` alone, or an empty one (an
+      <animateMotion> also accepts a path or an <mpath> child; a <set> animates only 'to');
+    * timing that never fires: begin="indefinite" or an event begin, dur="0s", dur="indefinite"
+      on an <animate>;
+    * a function the engine refuses as malformed: no attributeName or one that names nothing, a
+      keyTimes list that does not fit the values or does not run 0 to 1, a keySplines list that
+      does not fit the segments.
+
+    A single value (``values="1"``) is a legal discrete hold and passes.
+    """
+    names = {_local(k).lower(): v for k, v in el.attrib.items()}
+    target = names.get("attributename")
+    head = f"<{tag} attributeName={target!r}>" if target else f"<{tag}>"
+    timing = ", ".join(t for t in _TIMING_ATTRS if t in names) or "no timing"
+    why = _function_of(tag, names, el)
+    if why:
+        return (
+            f"svg: {head} has {timing} and no animation function ({why}): it never runs, "
+            "so the mark stays exactly as authored"
+        )
+    if tag != "animatemotion":
+        if target is None or not target.strip():
+            return f"svg: {head} names no attributeName: it never runs"
+        if target.strip().lower() not in _ANIMATABLE:
+            return f"svg: {head} animates nothing ({target!r} is not an attribute): it never runs"
+    begin = names.get("begin")
+    if begin is not None:
+        entries = _entries(begin)
+        if not any(_CLOCK_RE.match(e) or _SYNCBASE_RE.match(e) for e in entries):
+            return (
+                f"svg: {head} has begin={begin!r}: nothing in a film starts it, so it never fires"
+            )
+    dur = names.get("dur", "").strip().lower()
+    if dur and tag != "set":
+        if _DUR_RE.match(dur) and re.fullmatch(r"0+(\.0+)?(h|min|s|ms)?", dur):
+            return f"svg: {head} has dur={names['dur']!r}: it never runs"
+        if dur == "indefinite":
+            return (
+                f"svg: {head} has dur=\"indefinite\": held at its first value for ever, "
+                "it never runs"
+            )
+    values = _entries(names["values"]) if "values" in names else None
+    calc = names.get("calcmode", "linear").strip().lower()
+    segments = (len(values) - 1) if values else 1
+    if "keytimes" in names and calc != "paced":
+        kt = _floats(names["keytimes"])
+        expected = len(values) if values else 2
+        if kt is None or len(kt) != expected:
+            return (
+                f"svg: {head} has keyTimes={names['keytimes']!r} for {expected} value(s): the "
+                "lists do not fit, so the engine refuses the animation and it never runs"
+            )
+        if kt[0] != 0 or (calc != "discrete" and kt[-1] != 1) or any(
+            b < a for a, b in zip(kt, kt[1:], strict=False)
+        ):
+            return (
+                f"svg: {head} has keyTimes={names['keytimes']!r}: it must run 0 to 1 in order, so "
+                "the engine refuses the animation and it never runs"
+            )
+    if calc == "spline":
+        ks = _entries(names.get("keysplines", ""))
+        if len(ks) != segments or any(
+            (v := _floats(k.replace(",", " ").replace(" ", ";"))) is None
+            or len(v) != 4
+            or any(not 0 <= n <= 1 for n in v)
+            for k in ks
+        ):
+            return (
+                f"svg: {head} has calcMode=\"spline\" with keySplines={names.get('keysplines')!r} "
+                f"for {segments} segment(s): the lists do not fit, so the engine refuses the "
+                "animation and it never runs"
+            )
+    return None
+
+
+def _lands(anim: ET.Element, tag: str) -> bool:
+    """Whether this opacity animation ever shows its mark and leaves it showing: some value above
+    0, and either frozen there (fill="freeze"), looping, or a <set> that holds by itself."""
+    names = {_local(k).lower(): v for k, v in anim.attrib.items()}
+    if _dead_animation(anim, tag):
+        return False
+    reached: list[float] = []
+    if "values" in names:
+        reached = _floats(names["values"]) or []
+    else:
+        for k in ("to", "by"):
+            v = _floats(names.get(k, "")) or []
+            reached += v
+    if not any(v > 0 for v in reached):
+        return False
+    if tag == "set":
+        dur = names.get("dur", "indefinite").strip().lower()
+        return dur == "indefinite" or names.get("fill", "").strip().lower() == "freeze"
+    if names.get("fill", "").strip().lower() == "freeze":
+        return True
+    return any(
+        names.get(k, "").strip().lower() == "indefinite" for k in ("repeatcount", "repeatdur")
+    )
+
+
+def _never_lands(el: ET.Element, tag: str) -> str | None:
+    """A mark authored invisible is a mark waiting for its fade, and nothing else.
+
+    Wave 30's films authored every mark at opacity="0" and never landed one. The motion law now
+    says so, and this is its lint: an element with opacity 0 (attribute or style) must carry its
+    OWN opacity animation that reaches a value above 0 and stays there (fill="freeze", a loop,
+    or a <set>). Measured frozen in Chromium and passing the old lint: ``values="0;0"``, the hold
+    ``values="0"``, a child fading inside a parent that never fades, and a fade with no freeze
+    that showed for a second and snapped back to 0.
+    """
+    opacity = el.get("opacity")
+    style = el.get("style") or ""
+    m = re.search(r"(?:^|;)\s*opacity\s*:\s*([0-9.]+)", style)
+    authored = opacity if opacity is not None else (m.group(1) if m else None)
+    if authored is None:
+        return None
+    try:
+        if float(authored) > 0:
+            return None
+    except ValueError:
+        return None
+    fades = [
+        child
+        for child in el
+        if _local(child.tag).lower() in ("animate", "set")
+        and (child.get("attributeName") or "").strip().lower() == "opacity"
+    ]
+    if any(_lands(child, _local(child.tag).lower()) for child in fades):
+        return None
+    what = "no opacity animation" if not fades else "an opacity animation that never lands it"
+    return (
+        f"svg: <{tag} opacity=\"0\"> has {what} (a value above 0, frozen or looping): the mark "
+        "never lands and stays invisible for the whole scene"
+    )
 
 
 def _viewbox_ok(vb: str) -> bool:
@@ -132,6 +368,19 @@ def lint_svg(svg: str) -> list[str]:
 
     defined_ids: set[str] = set()
     refs: list[tuple[str, str]] = []  # (referenced id, the attribute it came from)
+    # A hidden element that is a track or a definition, not a mark: inside <defs>, or pointed at
+    # by an <mpath>/href. The landing law does not apply to it.
+    hidden_ok: set[ET.Element] = set()
+    for defs in root.iter():
+        if _local(defs.tag).lower() == "defs":
+            hidden_ok.update(defs.iter())
+    pointed = {
+        v.lstrip("#")
+        for el in root.iter()
+        for k, v in el.attrib.items()
+        if _local(k).lower() in ("href", "xlink:href") or k.endswith("}href")
+    }
+    hidden_ok.update(el for el in root.iter() if el.get("id") in pointed)
     for el in root.iter():
         tag = _local(el.tag).lower()
         if tag in _FORBIDDEN_TAGS:
@@ -158,6 +407,15 @@ def lint_svg(svg: str) -> list[str]:
                     reasons.append(f"svg: <{tag}> dur={value!r} is not a valid clock value")
                 elif name == "values" and not value.strip():
                     reasons.append(f"svg: <{tag}> has an empty 'values'")
+        if is_anim and (dead := _dead_animation(el, tag)):
+            reasons.append(dead)
+        elif (
+            not is_anim
+            and tag not in ("svg", "defs", "mpath")
+            and el not in hidden_ok
+            and (landing := _never_lands(el, tag))
+        ):
+            reasons.append(landing)
 
     for ref, where in refs:
         if ref not in defined_ids:
@@ -367,6 +625,11 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
     _anim = '<rect x="1" y="1" width="2" height="2"><animate attributeName="x" values="1;5" dur="abc"/></rect>'  # noqa: E501
     _bad_dur = {"scenes": [{"id": "s1", "visual": {"kind": "svg", "payload": _hdr + _anim + "</svg>"}}]}  # noqa: E501
     assert not lint_artifact("video", _bad_dur).ok, "bad SMIL dur slipped through"
+
+    # wave 30: timing with no function is the shape every blank film carried
+    _timed_only = '<g opacity="0"><animate attributeName="opacity" keyTimes="0;1" dur="1s" keySplines="0.2 0 0 1"/></g>'  # noqa: E501
+    _dead_film = {"scenes": [{"id": "s1", "visual": {"kind": "svg", "payload": _hdr + _timed_only + "</svg>"}}]}  # noqa: E501
+    assert not lint_artifact("video", _dead_film).ok, "a functionless animation slipped through"
 
     _dangling = _hdr + '<rect x="1" y="1" width="2" height="2" fill="url(#nope)"/></svg>'
     assert not lint_artifact("diagram", _dangling).ok, "dangling url(#ref) slipped through"

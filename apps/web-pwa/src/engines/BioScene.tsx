@@ -531,7 +531,7 @@ function DragLabel({
     <CardBody maxWidth={640}>
       <div ref={ref} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={whisper}>label it — drag each name onto the right part</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <Stage hue={hue} tint={0.05} minHeight={220} style={{ padding: 'clamp(12px, 3vw, 22px)' }}>
           <svg
@@ -803,7 +803,7 @@ function Punnett({
         <div style={whisper}>
           cross it — pick each cell's genotype: combine the row and column allele
         </div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <Stage hue={hue} tint={0.05} minHeight={220} style={{ padding: 'clamp(14px, 3vw, 24px)' }}>
           <div
@@ -998,7 +998,7 @@ function FoodWeb({
     <CardBody maxWidth={640}>
       <div ref={ref} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={whisper}>energy flows along the arrows — tap an organism to remove it</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <Stage hue={hue} tint={0.05} minHeight={240} style={{ padding: 'clamp(12px, 3vw, 22px)' }}>
           <svg
@@ -1197,7 +1197,7 @@ function Taxonomy({
     <CardBody maxWidth={560}>
       <div ref={ref} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={whisper}>classify it — narrow down one rank at a time</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <Stage hue={hue} tint={0.05} minHeight={200} style={{ padding: 'clamp(14px, 3vw, 24px)' }}>
           <div

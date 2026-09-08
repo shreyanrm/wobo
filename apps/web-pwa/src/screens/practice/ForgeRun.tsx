@@ -27,8 +27,31 @@ import {
 import { recordAttempt, useForge } from './forge-store';
 import { MIX_LABEL, SIZE_LABEL } from './pools';
 
+/**
+ * The height of the phone rail when it is fixed across the bottom of the viewport, else 0. The
+ * cover below sits inside the screen's own stacking context, so no z-index of its own can put
+ * its action bar over a body-level fixed rail: at 390 'Begin' (y 788) sat under the rail (y 773
+ * to 844) and no tap reached it (wave 29 fixer). The cover is padded clear of it instead.
+ */
+function useRailInset(): number {
+  const [inset, setInset] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      const rail = document.querySelector('aside.wk-rail');
+      if (!rail) return setInset(0);
+      const fixed = getComputedStyle(rail).position === 'fixed';
+      setInset(fixed ? Math.ceil(rail.getBoundingClientRect().height) : 0);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+  return inset;
+}
+
 export function ForgeRun({ id, onExit }: { id: string; onExit: () => void }) {
   const forge = useForge(id);
+  const railInset = useRailInset();
   const { award, setReplay } = useProgress();
   const [phase, setPhase] = useState<'intro' | 'run' | 'done'>('intro');
   const [page, setPage] = useState(0);
@@ -117,6 +140,7 @@ export function ForgeRun({ id, onExit }: { id: string; onExit: () => void }) {
         background: 'var(--wobo-paper)',
         display: 'flex',
         flexDirection: 'column',
+        paddingBottom: railInset,
       }}
     >
       {/* close — back to the shelf, never a trap */}
@@ -125,12 +149,17 @@ export function ForgeRun({ id, onExit }: { id: string; onExit: () => void }) {
         onClick={onExit}
         style={{
           position: 'absolute',
-          top: 'calc(16px + env(safe-area-inset-top, 0px))',
-          left: 16,
+          // the 44 px hit-area law (DESIGN.md §0): the text sits where it did (16px in from the
+          // corner), the padding round it is the hit area. It measured 89x23.
+          top: 'calc(5px + env(safe-area-inset-top, 0px))',
+          left: 4,
           zIndex: 2,
           display: 'inline-flex',
           alignItems: 'center',
           gap: 4,
+          minHeight: 44,
+          minWidth: 44,
+          padding: '11px 12px',
           background: 'transparent',
           border: 'none',
           cursor: 'pointer',
@@ -198,7 +227,7 @@ export function ForgeRun({ id, onExit }: { id: string; onExit: () => void }) {
               transition={{ type: 'spring', stiffness: 300, damping: 26 }}
               style={{ textAlign: 'center' }}
             >
-              <div style={whisper}>the forge cooled — here is how it held</div>
+              <div style={whisper}>the forge cooled. here is how it held</div>
               <div
                 style={{
                   margin: '18px auto 0',
@@ -233,10 +262,10 @@ export function ForgeRun({ id, onExit }: { id: string; onExit: () => void }) {
                 }}
               >
                 {replay
-                  ? 'a re-forge earns no new xp — but every answer still sharpens the record.'
+                  ? 'a re-forge earns no new xp, but every answer still sharpens the record.'
                   : pct >= 80
                     ? 'clean work. this one is on your shelf to re-forge whenever it starts to fade.'
-                    : 'the reds are the ones worth another pass — the shelf keeps it ready for you.'}
+                    : 'the reds are the ones worth another pass. the shelf keeps it ready for you.'}
               </div>
             </motion.div>
           </CardBody>

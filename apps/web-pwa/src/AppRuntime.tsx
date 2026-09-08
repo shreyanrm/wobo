@@ -230,33 +230,76 @@ const screenVariants = {
           ? { duration: 0.001 }
           : SHARED_SPRING,
   }),
+  // A leaving screen takes no tap: for the length of its exit it sits over the new one at
+  // opacity 0.x, and a finger that lands then lands on the old page. pointerEvents is set, not
+  // tweened, by framer-motion, so it is off from the first exit frame.
   exit: (d: Dir) =>
     d === 'sibling'
-      ? { opacity: 0, y: -8, transition: { duration: 0.18, ease: [0.4, 0, 0.2, 1] } }
+      ? {
+          opacity: 0,
+          y: -8,
+          pointerEvents: 'none' as const,
+          transition: { duration: 0.18, ease: [0.4, 0, 0.2, 1] },
+        }
       : d === 'back'
-        ? { opacity: 0, x: 24, transition: { duration: 0.18, ease: [0.3, 0, 0.8, 0.4] } }
+        ? {
+            opacity: 0,
+            x: 24,
+            pointerEvents: 'none' as const,
+            transition: { duration: 0.18, ease: [0.3, 0, 0.8, 0.4] },
+          }
         : d === 'forward'
-          ? { opacity: 0, x: -24, transition: { duration: 0.18, ease: [0.3, 0, 0.8, 0.4] } }
-          : { opacity: 0, transition: { duration: 0.12 } },
+          ? {
+              opacity: 0,
+              x: -24,
+              pointerEvents: 'none' as const,
+              transition: { duration: 0.18, ease: [0.3, 0, 0.8, 0.4] },
+            }
+          : { opacity: 0, pointerEvents: 'none' as const, transition: { duration: 0.12 } },
 } as const;
 
 function Screen() {
   const { route, depth } = useRouter();
-  const key = JSON.stringify(route);
+  const routeKey = JSON.stringify(route);
+  // ONE KEY PER NAVIGATION, never per route. The key used to be the route alone, so a screen that
+  // came straight back while its last instance was still leaving shared a key with it: the
+  // download-first gate mounts Course, enqueues and bounces `back()` to Learn in the same tick, so
+  // Learn's exiting instance and its new instance were one child to AnimatePresence, and neither
+  // it nor the bouncing Course was ever removed. Measured 2026-09-08 (wave 29, learn-2): three
+  // `.wk-shell`s at top:0 for as long as the page lived, the stale climb over 'Start the course'
+  // taking the tap. A key minted per navigation makes every instance its own child, so every exit
+  // finishes and the DOM under the new screen is the new screen alone.
+  //
+  // AND ONE DIRECTION PER NAVIGATION. The direction used to be classified on every render against
+  // `prevRef`, which the effect below advances to the current route as soon as the navigation
+  // commits, so the very next re-render (a bus message, a store event) re-classified the same
+  // navigation as 'none' and handed both screens a different variant mid-flight. For the leaving
+  // screen that re-resolved its exit while the first exit was still running, and the first one's
+  // promise never settled, so AnimatePresence never heard the exit finish and never removed the
+  // node: 'AP exit start' with no 'AP exit done' in the instrumented trace, the unit page still in
+  // the DOM under Learn after a plain back. Classified once, when the key is minted, and held.
+  const seq = useRef(0);
+  const lastRouteKey = useRef<string | null>(null);
   const prevRef = useRef<{ name: string; depth: number } | null>(null);
-  const dir = classifyTransition(prevRef.current, route.name, depth);
+  const dirRef = useRef<Dir>('none');
+  if (routeKey !== lastRouteKey.current) {
+    if (lastRouteKey.current !== null) seq.current += 1;
+    lastRouteKey.current = routeKey;
+    dirRef.current = classifyTransition(prevRef.current, route.name, depth);
+  }
+  const key = `${seq.current}:${routeKey}`;
+  const dir = dirRef.current;
   // The single transition sound (MOTION.md §2) rides structural forward/back only — never a sibling
   // tab, never an own-viewport scene. Skip the first mount.
   const firstScreen = useRef(true);
   // biome-ignore lint/correctness/useExhaustiveDependencies: key is the trigger, not a body dep
   useEffect(() => {
-    const d = classifyTransition(prevRef.current, route.name, depth);
     prevRef.current = { name: route.name, depth };
     if (firstScreen.current) {
       firstScreen.current = false;
       return;
     }
-    if (d === 'forward' || d === 'back') sfx.whoosh();
+    if (dir === 'forward' || dir === 'back') sfx.whoosh();
   }, [key]);
   // Leaving a screen mid-stroke: the hold lets go on the spot and the ink that was about the old
   // page goes with it. Measured on 2026-09-05: for ~200 ms after a navigation the previous page's

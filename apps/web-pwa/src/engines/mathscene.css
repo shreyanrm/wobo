@@ -1,0 +1,16 @@
+/*
+ * The maths canvas in the app's own ink (SCORECARD.md 3.5 #15).
+ *
+ * mafs/core.css defines --mafs-bg: black and --mafs-fg: white ON .MafsView itself, so a wrapper
+ * that set the same variables was overridden by the element's own rule and every scene rendered
+ * black on white in both themes. The override has to land on .MafsView, at higher specificity.
+ * Namespaced (DESIGN.md 0, trap 1): .wobo-mathscene is this engine's own wrapper class.
+ */
+.wobo-mathscene .MafsView {
+  --mafs-bg: transparent;
+  --mafs-fg: var(--wobo-ink-900);
+  --mafs-line-color: var(--wobo-ink-300);
+  --mafs-origin-color: var(--wobo-ink-500);
+  --grid-line-subdivision-color: var(--wobo-hairline-on-paper);
+  color: var(--wobo-ink-900);
+}

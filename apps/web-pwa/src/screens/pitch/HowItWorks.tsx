@@ -678,7 +678,8 @@ export function HowItWorks() {
                     minutes a day.
                   </div>
                   <div className="hw-sig">
-                    <WoboHead size={28} />— Wobo
+                    <WoboHead size={28} />
+                    Wobo
                   </div>
                 </div>
               </div>

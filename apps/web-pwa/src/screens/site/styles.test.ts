@@ -156,7 +156,12 @@ const PLANS: Record<string, string> = {
   '.pl-allow b': '.allow b',
   '.pl-allow .pl-bar': '.allow .bar',
   '.pl-allow .pl-bar i': '.allow .bar i',
-  '.pl-allow span': '.allow span',
+  // NOT THE STICKER (DESIGN.md §0, trap 3). The prototype's `.allow span` reached its own sticker
+  // too, and its `.allow .sticker` rule, written later and more specific, won. Ours is the kit's
+  // `.wk-sticker` from an earlier sheet at lower specificity, so the bare rule painted "free,
+  // every day" in --ink-3 on marigold at 1.92:1 (wave 29, site-6). The sticker is a child span
+  // of the card as well, so a child selector alone is not enough: it is named out.
+  '.pl-allow > span:not(.wk-sticker)': '.allow span',
   '.pl-allow .hand': '.allow .hand',
   '.pl-plans': '.plans',
   '.pl-plan': '.plan',
@@ -209,11 +214,26 @@ const PLANS: Record<string, string> = {
   '.pl-faq details p': '.faq details p',
 };
 
+/**
+ * Declarations the law overrules the prototype on, one per selector, with the reason. The
+ * prototype's declaration is what the port is held to; the sheet carries the lawful one instead.
+ */
+const LAWFUL: Record<string, { theirs: string; ours: string; why: string }> = {
+  '.pl-allow > span:not(.wk-sticker)': {
+    theirs: 'color:var(--ink-3)',
+    ours: 'color:var(--ink-2)',
+    why: '13px in --ink-3 on paper-2 measures 3.13:1 by day, and this is the sentence that says how much of today is left.',
+  },
+};
+
 function holds(port: Record<string, string>, source: Map<string, string[]>): void {
   for (const [mine, theirs] of Object.entries(port)) {
     const expected = source.get(theirs);
     expect(expected, `${theirs} is in the prototype`).toBeDefined();
-    const got = (site.get(mine) ?? []).filter((d) => !EXTRAS.has(d));
+    const lawful = LAWFUL[mine];
+    const got = (site.get(mine) ?? [])
+      .filter((d) => !EXTRAS.has(d))
+      .map((d) => (lawful && d === lawful.ours ? lawful.theirs : d));
     expect([mine, got]).toEqual([mine, expected ?? []]);
   }
 }
@@ -233,6 +253,13 @@ describe('the site sheet is the prototypes, rule for rule', () => {
 
   it('ports the plans page from site-plans.html', () => {
     holds(PLANS, plans);
+  });
+
+  it("lets the allowance sticker keep the kit's ink on marigold", () => {
+    // no descendant rule reaches into the sticker; the line under the bar is a child of the card
+    expect(site.has('.pl-allow span')).toBe(false);
+    expect(site.has('.pl-allow > span')).toBe(false);
+    expect(site.get('.pl-allow > span:not(.wk-sticker)')).toContain('color:var(--ink-2)');
   });
 
   it('hides the pill nav on a phone, as the prototype does', () => {

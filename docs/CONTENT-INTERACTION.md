@@ -158,7 +158,7 @@ So the three layers of §1 get their models by who pays for them:
 
 | layer | job | tier and model | paid by | how often |
 |---|---|---|---|---|
-| concept core, the interaction's design, the film's choreography | `engine.create` | **create: GPT-6 Astra** (Opus 5, then Flash behind it) | the platform's creative pool | once per concept and version, then cached for everyone |
+| concept core, the interaction's design, the film's choreography | `create.core` | **create: GPT-6 Astra** (Opus 5, then Flash behind it) | the platform's creative pool | once per concept and version, then cached for everyone |
 | level rendering for a board, grade, version | `engine.compose` and the rest | generate: Luna, then the ladder | the learner's allowance | once per cell, cached |
 | the served turn, the voice, the read page | `wobo.turn`, `voice.tts`, `doubt.read` | turn, tiny, voice, vision | the learner's allowance | every time |
 
@@ -185,7 +185,7 @@ sub-modules or levels there should be."*
 
 Today a syllabus topic is split into levels mechanically, and the only model-made course is the
 free-text-goal path (`generate.course`: a learner's own ask, six to ten node names, and rightly the
-learner's to pay for). The architect is a new job, `engine.blueprint`, on the create tier, paid by
+learner's to pay for). The architect is a new job, `create.blueprint`, on the create tier, paid by
 the platform, run once per topic, board, grade and syllabus version, judged, cached, and served to
 every learner of that cell. Its input is the syllabus node and its chapter outline, the subject,
 the board's register, the grade, and the archetypes we teach (never a person). Its output is the
@@ -195,7 +195,7 @@ the board's register, the grade, and the archetypes we teach (never a person). I
   would say, and the misconceptions the topic exists to undo.
 - **The split:** the levels, each with its aim, its kind (a reading, a worked example, a
   simulation, a film, a set of items, a game, a boss), the concept cores it needs (which
-  `engine.create` then makes), the misconception it targets, its minutes, and what it assumes.
+  `create.core` then makes), the misconception it targets, its minutes, and what it assumes.
 - **The flow:** the order and why; where a side door (the arcade, §7) sits and what it rehearses;
   where the boss goes and what it must prove; where a learner may skip ahead and where they may
   not; what a stuck learner is shown instead.

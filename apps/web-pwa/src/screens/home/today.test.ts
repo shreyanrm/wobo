@@ -4,10 +4,12 @@ import {
   asHeading,
   calendarWeek,
   continueLine,
+  finishedAll,
   HOME_QUESTION,
   markedRun,
   type NoticedInput,
   noticed,
+  practiceLine,
   relativeDay,
   todayLine,
   words,
@@ -33,7 +35,7 @@ const chapter = {
 
 describe('the situational line', () => {
   it('says the board is missing before anything else', () => {
-    expect(todayLine({ world: false, continue: null, next: null })).toBe(
+    expect(todayLine({ world: false, continue: null, next: null, finished: false })).toBe(
       'Tell me your board. Then your own syllabus lands here.',
     );
   });
@@ -50,6 +52,7 @@ describe('the situational line', () => {
         progress: 0.4,
       },
       next: null,
+      finished: false,
     });
     expect(line).toBe("Triangles and the hypotenuse. You're two lessons in.");
   });
@@ -66,6 +69,7 @@ describe('the situational line', () => {
         progress: 0.2,
       },
       next: null,
+      finished: false,
     });
     expect(line).toBe('Triangles and the hypotenuse. Lesson 1 of 3.');
   });
@@ -82,12 +86,13 @@ describe('the situational line', () => {
         done: 0,
         progress: 0,
       },
+      finished: false,
     });
     expect(line).toBe('Next: Data handling.');
   });
 
   it('opens the subjects when the world has no topics loaded', () => {
-    expect(todayLine({ world: true, continue: null, next: null })).toBe(
+    expect(todayLine({ world: true, continue: null, next: null, finished: false })).toBe(
       'Open your subjects. Your chapters come from your board when you open one.',
     );
   });
@@ -230,5 +235,51 @@ describe('the home’s own words', () => {
     expect(HOME_QUESTION).toBe('what are we figuring out today?');
     expect(asHeading(HOME_QUESTION)).toBe('What are we figuring out today?');
     expect(asHeading('')).toBe('');
+  });
+});
+
+// --- learn-9: everything opened is done ------------------------------------------------------------
+
+describe('the day when everything opened is done', () => {
+  const OPEN_YOUR_SUBJECTS =
+    'Open your subjects. Your chapters come from your board when you open one.';
+
+  it('does not hand a learner who finished everything the words for one who opened nothing', () => {
+    const line = todayLine({ world: true, continue: null, next: null, finished: true });
+    expect(line).not.toBe(OPEN_YOUR_SUBJECTS);
+    expect(line).toBe(
+      'Everything you have opened is done. Open the next chapter and it lands here.',
+    );
+  });
+
+  it('still says open your subjects to a learner who has opened nothing', () => {
+    expect(todayLine({ world: true, continue: null, next: null, finished: false })).toBe(
+      OPEN_YOUR_SUBJECTS,
+    );
+  });
+
+  it('knows finished from the topics in hand: none is not finished, all done is', () => {
+    const topics = chapter.topics;
+    expect(finishedAll([], new Set(['t1']))).toBe(false);
+    expect(finishedAll(topics, new Set(['t1', 't2']))).toBe(false);
+    expect(finishedAll(topics, new Set(['t1', 't2', 't3']))).toBe(true);
+  });
+});
+
+// --- learn-8: the practice card's line belongs to the topic above it --------------------------------
+
+describe("the practice card's second line", () => {
+  const FRACTIONS = "Shade, drag and draw. Wobo rings the gap when you're close.";
+
+  it('keeps the fractions sentence for the fractions set, and only for it', () => {
+    expect(practiceLine(null)).toBe(FRACTIONS);
+  });
+
+  it('says what the button opens for a topic: the free-play sandbox, in its own words', () => {
+    const linear = topic('m2-1', 'Solving equations with the variable on one side', 'm2');
+    const line = practiceLine(linear);
+    expect(line).not.toContain('Shade, drag');
+    expect(line).toBe('Every number here is yours to drag. No task, no clock.');
+    expect(line).not.toContain('—');
   });
 });

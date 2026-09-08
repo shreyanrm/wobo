@@ -420,7 +420,7 @@ function ProjectileScene({
     <CardBody maxWidth={640}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={whisper}>launch — change the angle and watch the arc</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         {spec.law && <div style={{ ...equationType, textAlign: 'center' }}>{spec.law}</div>}
         {spec.caption && <div style={lead}>{spec.caption}</div>}
 
@@ -648,7 +648,7 @@ function FreeBodyScene({
     <CardBody maxWidth={640}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={whisper}>drag each arrow — the resultant follows</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         {spec.caption && <div style={lead}>{spec.caption}</div>}
 
         <Stage hue={hue} tint={0.05} minHeight={280} style={{ padding: 'clamp(10px, 2vw, 20px)' }}>
@@ -832,7 +832,7 @@ function WaveScene({
     <CardBody maxWidth={640}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={whisper}>add the waves — the bold curve is their sum</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
         {spec.law && <div style={{ ...equationType, textAlign: 'center' }}>{spec.law}</div>}
         {spec.caption && <div style={lead}>{spec.caption}</div>}
 

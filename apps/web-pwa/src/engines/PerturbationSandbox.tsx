@@ -230,7 +230,7 @@ export function PerturbationSandbox({
         style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
       >
         <div style={whisper}>break it — find where the law stops working</div>
-        <div style={cardTitle}>{spec.title.toLowerCase()}</div>
+        <div style={cardTitle}>{spec.title}</div>
 
         <Stage hue={hue} tint={0.05} minHeight={260} style={{ padding: 'clamp(14px, 3vw, 26px)' }}>
           <div style={equationRow}>{spec.law}</div>

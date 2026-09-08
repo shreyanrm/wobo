@@ -469,7 +469,7 @@ def test_the_creative_side_is_astra_and_astra_is_nowhere_else() -> None:
 def test_the_creative_job_is_registered_on_the_create_tier() -> None:
     from wobo_gateway import registry
 
-    for creative in ("engine.create", "engine.blueprint"):
+    for creative in ("create.core", "create.blueprint"):
         policy = registry.policy(creative)
         assert policy.tier is Tier.CREATE, creative
         assert policy.max_tokens >= 16000, creative  # an architect needs room

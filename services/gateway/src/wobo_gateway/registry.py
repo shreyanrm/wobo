@@ -198,10 +198,10 @@ _POLICIES: dict[str, RoutingPolicy] = {
         _policy("engine.simulate", Tier.GENERATE, CacheTier.EXACT, max_tokens=2000),
         # the creative side: the concept core, the interaction's design, the film's choreography;
         # once per concept and cached; the platform pays (PLATFORM_PAID), never the learner
-        _policy("engine.create", Tier.CREATE, CacheTier.EXACT, max_tokens=24000),
+        _policy("create.core", Tier.CREATE, CacheTier.EXACT, max_tokens=24000),
         # the architect: how a topic splits into levels, the flow, the kind of each level,
         # where the side doors and the boss go; once per topic, board, grade, version; cached
-        _policy("engine.blueprint", Tier.CREATE, CacheTier.EXACT, max_tokens=24000),
+        _policy("create.blueprint", Tier.CREATE, CacheTier.EXACT, max_tokens=24000),
         _policy(
             "engine.diagram",
             Tier.GENERATE,
@@ -301,8 +301,8 @@ EXPECTED_CAPABILITIES: tuple[str, ...] = (
     "engine.simulate",
     "engine.diagram",
     "engine.video",
-    "engine.create",
-    "engine.blueprint",
+    "create.core",
+    "create.blueprint",
     "archetype.classify",
     "peakcut.evaluate",
     "curriculum.search",
@@ -376,7 +376,7 @@ validate_registry()
 # The owner, 2026-09-08: "the superadmin is responsible for the creative billing; bill the users
 # only for content and usage". These capabilities are paid from the platform's creative pool
 # (its own daily cap on the models desk) and are never counted against a learner's allowance.
-PLATFORM_PAID: frozenset[str] = frozenset({"engine.create", "engine.blueprint"})
+PLATFORM_PAID: frozenset[str] = frozenset({"create.core", "create.blueprint"})
 
 
 def platform_paid(capability: str) -> bool:

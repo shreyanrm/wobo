@@ -68,6 +68,86 @@ const CHANGED: readonly { body: string; why: string }[] = [
     why: 'the same block plus `border:0;margin:0;min-inline-size:0`, because the climb\u2019s two-way switch is a `<fieldset>` here \u2014 two controls answering one question are a named group, which is the element a screen reader trusts \u2014 and a fieldset needs those three resets to lay out like a plain div.',
   },
   {
+    body: 'font:500 12px/1 var(--sans);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'display:flex;gap:var(--s3);margin-top:var(--s3);flex-wrap:wrap;color:var(--ink-3);font-size:14px',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'display:flex;align-items:center;gap:10px;padding:4px 8px 12px;font-size:13px;color:var(--ink-3)',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'flex:1;border:0;background:transparent;padding:8px 4px 10px;cursor:pointer;font:500 12px/1.2 var(--sans);color:var(--ink-3);border-top:2px solid var(--line);transition:color .2s',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'font:500 13px/1 var(--sans);padding:9px 14px;border-radius:999px;background:var(--paper-2);color:var(--ink-3)',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink-3)',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'margin-left:auto;font:500 12px/1 var(--sans);color:var(--mint);background:color-mix(in srgb,var(--mint) 12%,transparent);padding:6px 10px;border-radius:999px',
+    why: 'mint on a mint tint measured 2.27:1. Mint is the confirmation and it still paints the tag; the word on it is ink, which is what a reader has to make out (wave 29, site-6).',
+  },
+  {
+    body: 'font:500 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);display:block',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'font-style:normal;color:var(--rose)',
+    why: 'rose type at 22px measured 2.59:1 on paper-2. Rose is the thing that needs care, and it still marks the phrase, as the HIGHLIGHT behind ink rather than as the ink, the way marigold already rides the headline (wave 29, site-6).',
+  },
+  {
+    body: 'font-size:13px;color:var(--ink-3)',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'font:600 15px/1.3 var(--sans);color:var(--ink-3)',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'border:0;background:transparent;cursor:pointer;font:500 14px/1 var(--sans);color:var(--ink-3);padding:11px 18px;border-radius:999px',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'color:#fff',
+    why: 'the lead card is painted `--ink`, which is near-black by day and near-white at night, so white type on it vanished in the dark theme; `--paper` swaps with it and reads on both (wave 29, site-6).',
+  },
+  {
+    body: 'font-style:normal;font:500 12px/1 var(--sans);color:var(--marigold)',
+    why: 'marigold type on the lead card measured 1.5:1 at night, where the card is near-white. The tag is now the sticker treatment, ink on a marigold pill, which is the earned moment in both themes (wave 29, site-6).',
+  },
+  {
+    body: 'font:500 14px/1 var(--sans);letter-spacing:0;color:var(--ink-3);margin-left:8px',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'color:rgba(255,255,255,.6)',
+    why: 'white mixed toward the lead card, which is only dark by day; mixed from `--paper` instead, at 72%, so it clears AA on the card in both themes (wave 29, site-6).',
+  },
+  {
+    body: 'color:rgba(255,255,255,.72)',
+    why: 'white mixed toward the lead card, which is only dark by day; mixed from `--paper` instead, at 80%, so it clears AA on the card in both themes (wave 29, site-6).',
+  },
+  {
+    body: 'font-size:12px;color:var(--ink-3)',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
+    body: 'color:rgba(255,255,255,.5)',
+    why: 'white at half strength on the lead card measured 3.4:1 by day and vanished at night; mixed from `--paper` at 72% it clears AA on both (wave 29, site-6).',
+  },
+  {
+    body: 'padding:0 0 var(--band);color:var(--ink-3);font-size:14px',
+    why: '`--ink-3` is 3.38:1 on paper and 3.13:1 on paper-2 by day (WCAG AA wants 4.5:1) and this is text a reader needs; it is `--ink-2` (7.0:1), the same weight and size, and `landing/contrast.test.ts` measures it (wave 29, site-6).',
+  },
+  {
     body: 'transform-origin:center;animation:blink 5.5s infinite',
     why: '`@keyframes` names are document-scoped, not sheet-scoped, so a bare `blink` would be claimed by whichever stylesheet loaded last. The animation is identical; the name is `wb-blink`.',
   },

@@ -212,9 +212,11 @@ describe('the today row never has a hole in it', () => {
 
   it('always draws Continue, whatever the learner has started', () => {
     expect(row).toContain('<Tag>Continue</Tag>');
-    // four readings of "continue": the topic in flight, the next one, the subjects, the board
-    expect(row.match(/<Tag>Continue<\/Tag>/g)?.length).toBe(4);
+    // five readings of "continue": the topic in flight, the next one, everything opened done
+    // (learn-9: not the same words as opened nothing), the subjects, the board
+    expect(row.match(/<Tag>Continue<\/Tag>/g)?.length).toBe(5);
     expect(row).toContain('Open your subjects');
+    expect(row).toContain('Everything you have opened is done');
   });
 
   it('always draws Practice, falling back to the set itself', () => {

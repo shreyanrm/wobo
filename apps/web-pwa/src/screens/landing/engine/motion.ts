@@ -207,6 +207,18 @@ export function mountForms(root: ParentNode): Disposer {
 
   gsap.set(first, { opacity: 1 });
   let shown = 0;
+  // FADED OUT IS NOT GONE. The cards cross-fade on opacity, and opacity is nothing to a screen
+  // reader, which read all four as one run-on (wave 29, site-7). The three that are not up are
+  // taken out of the accessibility tree, and put back when the sequence is torn down. Under
+  // reduced motion this never mounts and the stylesheet lays all four out as plain cards, so
+  // nothing is hidden there.
+  const reveal = (i: number) => {
+    cards.forEach((card, n) => {
+      if (n === i) card.removeAttribute('aria-hidden');
+      else card.setAttribute('aria-hidden', 'true');
+    });
+  };
+  reveal(0);
   const trigger = ScrollTrigger.create({
     trigger: section,
     start: 'top top',
@@ -224,6 +236,7 @@ export function mountForms(root: ParentNode): Disposer {
       navs.forEach((nav, n) => {
         nav.classList.toggle('on', n === i);
       });
+      reveal(i);
       shown = i;
     },
   });
@@ -231,6 +244,7 @@ export function mountForms(root: ParentNode): Disposer {
   return () => {
     trigger.kill();
     gsap.set(cards, { clearProps: 'opacity' });
+    for (const card of cards) card.removeAttribute('aria-hidden');
   };
 }
 
