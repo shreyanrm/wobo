@@ -11,10 +11,15 @@ grammar/sentence-case. On a quality-fail (score below the bar, or a critical/fac
 SAME spec is regenerated on the escalation model (GPT-5.5); both artifacts are re-scored and the
 BEST-OF is promoted to ``status="canonical"``.
 
-Validation ALWAYS terminates in a canonical record, so a provisional is validated exactly
-once and every later learner reuses the canonical core. When the judge is unreachable the
-already structurally-verified artifact is promoted as-is (score ``None``) — the gate never
-blocks a serve on a flaky judge.
+Validation terminates in a canonical record ONLY when a judge actually scored the artifact
+at or above :data:`PASS_THRESHOLD` with no critical error. Below the bar the gate REFUSES: the
+honest seed takes the live pointer as a refused PROVISIONAL record, both judged candidates are
+kept forever as REJECTED versions with their scores, and the refusal pages. When the judge is
+unreachable nothing is learned and so nothing is promoted — the artifact keeps serving as the
+provisional it already is (the gate never blocks a serve on a flaky judge) and is scored on a
+later serve. Until this wave every path here wrote ``status="canonical"`` with the record's
+``verified: true`` intact, which is how artifacts this system's own judge scored 0, 5, 8, 12,
+18, 22, 28, 32 and 42 against a stated bar of 70 became canonical courses.
 
 Provenance on the promoted artifact records ``{model, prompt_version, validation:{model,
 validatedAt, score}}`` — ``model`` is the model that actually produced the canonical
@@ -38,6 +43,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from wobo_gateway import alerts
 from wobo_gateway.plexus import store
 from wobo_gateway.providers import timeout_for
 from wobo_gateway.telemetry import record_cost
@@ -46,11 +52,38 @@ logger = logging.getLogger("wobo.gateway.plexus.validate")
 
 PASS_THRESHOLD = 70.0  # overall score 0..100; below this (or a critical error) → escalate
 
-_JUDGE_SYSTEM = (
+#: Alarm event names. Deliberately not added to :data:`wobo_gateway.alerts.EVENTS`, whose exact
+#: contents the suite asserts as "the six things app.py pages for"; ``alert()`` takes any event
+#: name and writes the same greppable line either way.
+QUALITY_REFUSED = "content_quality_refused"
+JUDGE_UNREACHABLE = "content_judge_unreachable"
+
+
+def _judge_system(scope: dict[str, str] | None = None) -> str:
+    """The rubric, addressed to the learner the artifact was actually written for.
+
+    Until wave 30 this was a constant that hard-coded "an Indian middle-school learner", so a
+    CBSE class 12 genetics module was scored against a middle-school bar by the same gate that
+    promoted it (SCORECARD §3.5 fix 5; biology-eng.md, biology-pedagogy.md). It now takes the
+    same scope the generation prompt took, through the same :func:`engines.audience_line`, so
+    the writer and the judge cannot be aimed at two different children."""
+    from wobo_gateway.plexus.engines import audience_line
+
+    # str.replace, not str.format: the template ends in a literal JSON example whose braces
+    # would be read as format fields.
+    return _JUDGE_SYSTEM_TEMPLATE.replace(_AUDIENCE_SLOT, audience_line(scope))
+
+
+_AUDIENCE_SLOT = "<the reader>"
+
+_JUDGE_SYSTEM_TEMPLATE = (
     "You are a strict quality judge for Wobo, an Indian K-12 guided-discovery learning app in "
-    "the spirit of Brilliant. Score ONE generated learning artifact against these bars:\n"
-    "  • correctness — every fact, formula, and label is right for an Indian middle-school learner "
-    "(NCERT framing where it fits). A wrong fact or a wrong-subject law is a CRITICAL error.\n"
+    "the spirit of Brilliant. Score ONE generated learning artifact against these bars, and "
+    "score it FOR THIS READER: " + _AUDIENCE_SLOT + ".\n"
+    "  • correctness — every fact, formula, and label is right for that reader, at that board's "
+    "framing for that class (NCERT where it fits). A wrong fact or a wrong-subject law is a "
+    "CRITICAL error, and so is content pitched at the wrong class — a lesson written for a "
+    "younger or older child than the one named above.\n"
     "  • interactivity — the learner ACTS before any prose; each card/scene carries a real "
     "tap/drag/slide/type or moving visual. A dead, read-only artifact is critical.\n"
     "  • visual-heaviness — the visual does the teaching; prose is minimal (~40 words per card).\n"
@@ -69,9 +102,15 @@ def _judge(
     artifact: Any,
     facts: list[str] | None = None,
     contradictions: list[str] | None = None,
+    *,
+    scope: dict[str, str] | None = None,
 ) -> dict[str, Any] | None:
     """Score the artifact via the LLM judge. Returns the parsed verdict, or ``None`` when the
     judge is unreachable or unparseable (the caller then keeps the artifact, never blocks).
+
+    ``scope`` is the curriculum coordinate the artifact was GENERATED for; it renders the
+    rubric's reader (:func:`_judge_system`). Without it the judge scored every artifact against
+    one hard-coded middle-schooler.
 
     ``facts`` (verified NCERT ground truth for the concept) and ``contradictions``
     (deterministic fact-base conflicts) are appended for bio/social subjects so the judge
@@ -103,7 +142,7 @@ def _judge(
         response = model_complete(
             model=judge_model,
             messages=[
-                {"role": "system", "content": _JUDGE_SYSTEM},
+                {"role": "system", "content": _judge_system(scope)},
                 {"role": "user", "content": user},
             ],
             fallbacks=_judge_chain(judge_model) or None,
@@ -143,6 +182,32 @@ def _passes(verdict: dict[str, Any] | None) -> bool:
     return verdict["score"] >= PASS_THRESHOLD and not verdict["critical"]
 
 
+def _promotable(verdict: dict[str, Any] | None) -> bool:
+    """May this verdict make an artifact CANONICAL? Only a real, scored, clean pass may.
+
+    This is deliberately NOT :func:`_passes`. That one answers "should we buy a rebuild?", where
+    an unreachable judge (``None``) means "no reason to spend" — and reusing it as the promotion
+    test is what stamped ``verified: true`` on artifacts no judge ever read. An unknown is not a
+    pass.
+    """
+    if verdict is None:
+        return False
+    return verdict["score"] >= PASS_THRESHOLD and not verdict["critical"]
+
+
+def _verdict_summary(model: str, verdict: dict[str, Any] | None) -> dict[str, Any] | None:
+    """One candidate's judgement, small enough to sit on the record forever."""
+    if verdict is None:
+        return None
+    return {
+        "model": model,
+        "score": verdict["score"],
+        "critical": bool(verdict["critical"]),
+        "weak": list(verdict.get("weak") or [])[:8],
+        "notes": str(verdict.get("notes") or "")[:280],
+    }
+
+
 def _score_of(verdict: dict[str, Any] | None) -> float:
     """The raw judge score (for logs and provenance). -1 when the judge was unreachable."""
     return -1.0 if verdict is None else verdict["score"]
@@ -161,9 +226,12 @@ def _factcheck(artifact: Any, concept: str, scope: dict[str, str]) -> tuple[list
     bio/social subject. bio/social have no CAS: the fact base is the correctness solver
     (SUBJECTS.md §2)."""
     from wobo_gateway.plexus import store
-    from wobo_gateway.plexus.factcheck import FACTBASE_SUBJECTS, facts_for, validate_claims
+    from wobo_gateway.plexus.factcheck import covers, facts_for, validate_claims
 
-    if (scope or {}).get("subject") not in FACTBASE_SUBJECTS:
+    # `covers()`, not raw `in FACTBASE_SUBJECTS`: this line tested a payload carrying "Science"
+    # and "Social Science" against a frozenset of {"science", "social"}, so it returned early
+    # every single time and the whole fact base was unreachable in production.
+    if not covers((scope or {}).get("subject")):
         return [], []
     cid = store.concept_id(concept, scope)
     return validate_claims(artifact, cid), facts_for(cid)
@@ -224,8 +292,18 @@ def _promote_after_lint_failure(
     alt_reasons: list[str] = []
     if escalation_model:
         try:
+            # The rebuild carries the SAME curriculum coordinate as the draft it replaces. An
+            # empty payload sent it to the generic reader — and a lint-clean rebuild from THIS
+            # path is promoted to canonical with no judge call at all, so generic-reader content
+            # would be written unscored into a board+class-scoped slot and served to that child
+            # forever. (The quality-failure escalation below carries the same dict.)
             alt, alt_model, _tokens, alt_seeded = generate_live(
-                modality, concept, difficulty, escalation_model, fallbacks, {}
+                modality,
+                concept,
+                difficulty,
+                escalation_model,
+                fallbacks,
+                {k: (scope or {}).get(k, "") for k in store.SCOPE_KEYS},
             )
         except Exception:
             logger.warning("validate: lint-failure GPT-5.5 rebuild raised", exc_info=True)
@@ -259,7 +337,12 @@ def _promote_after_lint_failure(
         seed_artifact = _seed_for(modality, concept, difficulty)
         canonical = {
             **record,
-            "status": store.CANONICAL,
+            # NOT canonical and NOT verified: this is the topic-agnostic scaffold, and two
+            # frontier models failing a lint is the opposite of a lesson earning that word. It
+            # was the last seed path still stamped `status: canonical, verified: true` — and the
+            # most reachable one, since every artifact the answer-checker disproves comes here.
+            "status": store.PROVISIONAL,
+            "verified": False,
             "artifact": seed_artifact,
             "seeded": True,  # an honest floor, not a ceiling
             # A seed is normally retried on the next live serve. This one must NOT be: TWO
@@ -276,7 +359,12 @@ def _promote_after_lint_failure(
             "provenance": {
                 **record.get("provenance", {}),
                 "model": "seed",
-                "validation": {"model": judge_model, "validatedAt": now, "score": None},
+                "validation": {
+                    "model": judge_model,
+                    "validatedAt": now,
+                    "score": None,
+                    "passed": False,  # a lint refusal is not a judgement, and never a pass
+                },
             },
         }
 
@@ -310,6 +398,152 @@ def _promote_after_lint_failure(
             scope,
         )
     return canonical
+
+
+def _refuse_after_quality_failure(
+    *,
+    concept: str,
+    modality: str,
+    difficulty: str,
+    scope: dict[str, str],
+    record: dict[str, Any],
+    artifact: Any,
+    base_model: str,
+    verdict: dict[str, Any] | None,
+    alt: Any,
+    alt_model: str,
+    alt_verdict: dict[str, Any] | None,
+    alt_seeded: bool,
+    best_verdict: dict[str, Any] | None,
+    now: str,
+    provenance: Any,
+) -> dict[str, Any]:
+    """The gate said no.
+
+    Below :data:`PASS_THRESHOLD`, or on a CRITICAL verdict at any score, nothing is promoted.
+    What the learner gets instead is the honest seed — the same floor the technical-lint refusal
+    serves — at ``status="provisional"``, carrying ``refusedAt`` and the scores that refused it.
+    Both judged candidates are kept forever as REJECTED versions (owner law), and the refusal
+    pages, because a gate that refuses in silence is a gate nobody fixes.
+
+    The refused record is ``verified: false``: what it now holds is the topic-agnostic SEED,
+    which no judge scored and no verification passed — ``engines.run_engine`` writes exactly the
+    same flag for the seed it falls back to. The failing draft is not on the live pointer at
+    all. ``seeded`` + ``refusedAt`` are what make the refusal
+    terminal in :func:`engines.is_stale`: the seed serves rather than erroring, and the concept
+    that just failed two models does not buy two more frontier generations on the next request.
+    A ``prompt_version`` bump still reopens it — a pause, not a grave.
+    """
+    rebuilt = alt is not None and not alt_seeded
+    failure = {
+        "threshold": PASS_THRESHOLD,
+        "base": _verdict_summary(base_model, verdict),
+        "rebuild": _verdict_summary(alt_model, alt_verdict) if rebuilt else None,
+    }
+    logger.error(
+        "validate: quality gate REFUSED %s/%r (best score=%s bar=%s critical=%s) — serving the "
+        "seed, nothing promoted",
+        modality,
+        concept,
+        _score_of(best_verdict),
+        PASS_THRESHOLD,
+        None if best_verdict is None else best_verdict["critical"],
+    )
+    refused = {
+        **record,
+        "status": store.PROVISIONAL,  # NOT canonical: nothing here earned that word
+        "verified": False,  # ...and nothing verified the scaffold it now holds, either
+        "artifact": _seed_for(modality, concept, difficulty),
+        "seeded": True,  # an honest floor, not a ceiling
+        "refusedAt": now,
+        "qualityFailure": failure,
+        "provenance": provenance("seed", best_verdict),
+    }
+    store.save(concept, modality, difficulty, refused, scope)
+    store.save_version(concept, modality, difficulty, refused, scope)
+    # Owner law: every version is kept forever. Both judged candidates persist as REJECTED, with
+    # the score that rejected them, so a human can see exactly what the gate turned down.
+    store.save_version(
+        concept,
+        modality,
+        difficulty,
+        {
+            **record,
+            "status": store.REJECTED,
+            "artifact": artifact,
+            "provenance": provenance(base_model, verdict),
+        },
+        scope,
+    )
+    if rebuilt:
+        store.save_version(
+            concept,
+            modality,
+            difficulty,
+            {
+                **record,
+                "status": store.REJECTED,
+                "artifact": alt,
+                "provenance": provenance(alt_model, alt_verdict),
+            },
+            scope,
+        )
+    alerts.alert(
+        QUALITY_REFUSED,
+        f"The quality gate refused a {modality} artifact and is serving the seed instead.",
+        severity=alerts.CRITICAL,
+        concept=concept,
+        modality=modality,
+        difficulty=difficulty,
+        score=None if best_verdict is None else best_verdict["score"],
+        threshold=PASS_THRESHOLD,
+        critical=None if best_verdict is None else bool(best_verdict["critical"]),
+        weak=(best_verdict or {}).get("weak", []),
+    )
+    return refused
+
+
+def _leave_provisional_unscored(
+    *,
+    concept: str,
+    modality: str,
+    difficulty: str,
+    scope: dict[str, str],
+    record: dict[str, Any],
+    base_model: str,
+    now: str,
+    provenance: Any,
+) -> dict[str, Any]:
+    """The judge could not be reached, so nothing is known about this artifact — and an unknown
+    never promotes.
+
+    The artifact keeps serving as the provisional it already is (the gate still never blocks a
+    serve on a flaky judge), with the failed attempt recorded and ``score: None``. No refusal is
+    written, so the next live serve re-arms the gate and the artifact is actually scored then.
+    """
+    logger.warning(
+        "validate: judge unreachable for %s/%r — nothing promoted, the provisional keeps serving "
+        "and will be scored on a later serve",
+        modality,
+        concept,
+    )
+    unscored = {
+        **record,
+        "status": store.PROVISIONAL,
+        "provenance": provenance(base_model, None),
+    }
+    store.save(concept, modality, difficulty, unscored, scope)
+    alerts.alert(
+        JUDGE_UNREACHABLE,
+        f"The quality judge could not be reached for a {modality} artifact; it stays provisional.",
+        severity=alerts.WARN,
+        concept=concept,
+        modality=modality,
+        difficulty=difficulty,
+        score=None,
+        threshold=PASS_THRESHOLD,
+    )
+    return unscored
 
 
 def _seed_for(modality: str, concept: str, difficulty: str) -> Any:
@@ -436,7 +670,14 @@ def validate_and_promote(
     fallbacks: tuple[str, ...] = (),
 ) -> dict[str, Any]:
     """Score the provisional artifact, escalate + best-of on a quality-fail, and promote the
-    winner to canonical. ALWAYS writes a canonical record (validation is once-and-done).
+    winner to canonical — or REFUSE.
+
+    Promotion is earned, never automatic: only a judged score at or above
+    :data:`PASS_THRESHOLD` with no critical error writes a canonical record. Below the bar the
+    artifact stays provisional behind the honest seed (:func:`_refuse_after_quality_failure`),
+    and an unreachable judge promotes nothing at all
+    (:func:`_leave_provisional_unscored`) — it leaves the provisional to be scored on a later
+    serve.
 
     A DETERMINISTIC technical lint runs FIRST, before the LLM judge: a broken SVG attribute, a
     dead expression, or an out-of-vocabulary enum is a certain reject, so it routes an Opus rebuild
@@ -458,6 +699,9 @@ def validate_and_promote(
                 "model": judge_model,
                 "validatedAt": now,
                 "score": None if ver is None else ver["score"],
+                # the gate's own answer, written beside the score: an unscored or failing
+                # artifact is never recorded as having passed anything.
+                "passed": _promotable(ver),
             },
         }
         if lint_reasons is not None:  # the deterministic lint's verdict, on a rejected version
@@ -490,7 +734,7 @@ def validate_and_promote(
     verdict = _with_factbase(
         _judge(
             judge_model, modality, concept, artifact,
-            facts=fact_context, contradictions=contradictions,
+            facts=fact_context, contradictions=contradictions, scope=scope,
         ),
         contradictions,
     )
@@ -515,10 +759,13 @@ def validate_and_promote(
             escalation_model,
         )
         try:
-            # regenerate the SAME spec (concept x difficulty) on the quality-backup (GPT-5.5); empty
-            # payload (no raster)
+            # Regenerate the SAME spec on the quality-backup (GPT-5.5). The payload carries the
+            # curriculum coordinate so the rebuild is written for the SAME child as the draft it
+            # is competing with — an empty payload sent it back to the generic reader the whole
+            # fix removes. ``raster`` is deliberately not passed: the escalation is the SVG path.
             alt, alt_model, _tokens, alt_seeded = _generate_live(
-                modality, concept, difficulty, escalation_model, fallbacks, {}
+                modality, concept, difficulty, escalation_model, fallbacks,
+                {k: (scope or {}).get(k, "") for k in store.SCOPE_KEYS},
             )
         except Exception:
             logger.warning("validate: escalation regeneration raised", exc_info=True)
@@ -529,7 +776,7 @@ def validate_and_promote(
             alt_verdict = _with_factbase(
                 _judge(
                     judge_model, modality, concept, alt,
-                    facts=fact_context, contradictions=alt_contra,
+                    facts=fact_context, contradictions=alt_contra, scope=scope,
                 ),
                 alt_contra,
             )
@@ -539,6 +786,40 @@ def validate_and_promote(
                     "validate: best-of chose the escalated artifact (score=%s)",
                     _score_of(alt_verdict),
                 )
+
+    if not _promotable(best_verdict):
+        # The gate's refusal path. Neither candidate earned canonical, so neither gets it: an
+        # unreachable judge leaves the provisional alone to be scored later, and a real failing
+        # score refuses to the seed. Nothing below runs — no promotion, and no MP4 render of a
+        # film the gate just turned down.
+        if verdict is None and alt is None:
+            return _leave_provisional_unscored(
+                concept=concept,
+                modality=modality,
+                difficulty=difficulty,
+                scope=scope,
+                record=record,
+                base_model=base_model,
+                now=now,
+                provenance=_provenance,
+            )
+        return _refuse_after_quality_failure(
+            concept=concept,
+            modality=modality,
+            difficulty=difficulty,
+            scope=scope,
+            record=record,
+            artifact=artifact,
+            base_model=base_model,
+            verdict=verdict,
+            alt=alt,
+            alt_model=alt_model,
+            alt_verdict=alt_verdict,
+            alt_seeded=alt_seeded,
+            best_verdict=best_verdict,
+            now=now,
+            provenance=_provenance,
+        )
 
     canonical = {
         **record,

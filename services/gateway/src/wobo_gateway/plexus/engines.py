@@ -1242,12 +1242,44 @@ _JSON_RULES = (
     "no emoji, no exclamation marks, no hype."
 )
 
+# The one place the reader is named. Until wave 30 nothing the learner was about to be taught
+# reached the model: the user message was {concept, difficulty, audience: "Indian K-12 learner"}
+# and the composer's system prompt fixed the reader at "an Indian middle-school learner", so a
+# class 6 fractions card and a class 12 genetics module were written for the same imaginary child
+# (SCORECARD §3.5 fix 5; biology-pedagogy.md §"Class 12 gets a class-10 lesson").
+_NO_SCOPE_AUDIENCE = "an Indian K-12 learner (no board or class was supplied with this request)"
+
+
+def audience_line(scope: dict[str, str] | None) -> str:
+    """The learner this artifact is for, in one line, from the curriculum coordinate.
+
+    Shared by the generation prompt and the judge's rubric on purpose: an artifact must not be
+    scored against a different reader than the one it was written for."""
+    s = scope or {}
+    board = str(s.get("board") or "").strip()
+    grade = str(s.get("grade") or "").strip()
+    subject = str(s.get("subject") or "").strip()
+    chapter = str(s.get("chapter") or "").strip()
+    version = str(s.get("contentVersion") or "").strip()
+    if not (board or grade):
+        return _NO_SCOPE_AUDIENCE
+    who = " ".join(p for p in (board, f"class {grade}" if grade else "", "learner") if p)
+    tail = [
+        f"subject {subject}" if subject else "",
+        f"chapter “{chapter}”" if chapter else "",
+        f"syllabus {version}" if version else "",
+    ]
+    return ", ".join([who, *[t for t in tail if t]])
+
 _SYSTEMS = {
     "compose": (
         "You design complete guided-discovery micro-courses for Wobo, an Indian K-12 "
         "learning app in the spirit of Brilliant: VISUAL-FIRST, one idea per card, the "
-        "learner ACTS before any prose, zero lecturing. Everything must be factually "
-        "correct for an Indian middle-school learner (NCERT framing where it fits).\n\n"
+        "learner ACTS before any prose, zero lecturing. Everything must be factually correct "
+        "for, and pitched at, the EXACT learner the request names — its board, class, subject "
+        "and chapter — never a generic Indian schoolchild. Use that board's own framing and "
+        "vocabulary for that class (NCERT where it fits), that class's prior knowledge, and "
+        "nothing from a later class as though it were assumed.\n\n"
         '{"topic":"...",'
         '"cards":[{"id":"c1","kind":"sim|diagram|text","title":"...",'
         '"idea":"<the one idea, at most ~40 words — never a paragraph>",'
@@ -1797,14 +1829,25 @@ def _generate_live(
                 if clean is not None:
                     return clean, image.MODEL, 0, False
             # no key or the image path refused: fall through to the SVG path
-        user = json.dumps(
-            {
-                "concept": concept,
-                "difficulty": difficulty,
-                "audience": "Indian K-12 learner",
-            },
-            ensure_ascii=False,
-        )
+        # The curriculum coordinate the route already received rides INTO the prompt. Absent
+        # fields are omitted rather than sent empty, so a request that genuinely carries no
+        # board still reads as a clean brief; ``audience`` then says so in words.
+        scope = _scope(payload)
+        brief: dict[str, Any] = {
+            "concept": concept,
+            "difficulty": difficulty,
+            "audience": audience_line(scope),
+        }
+        for field, out in (
+            ("board", "board"),
+            ("grade", "class"),
+            ("subject", "subject"),
+            ("chapter", "chapter"),
+            ("contentVersion", "syllabusVersion"),
+        ):
+            if scope.get(field):
+                brief[out] = scope[field]
+        user = json.dumps(brief, ensure_ascii=False)
         if modality == "video":
             return _generate_video_live(
                 concept, difficulty, provider_model, fallbacks, user, timeout_s=timeout_s
@@ -1919,8 +1962,13 @@ def _generation_slot(subject: str | None | object) -> Iterator[None]:
 
 
 def _scope(payload: dict[str, Any]) -> dict[str, str]:
-    """The board-shared curriculum coordinate — never personalization (that stays runtime-only)."""
-    return {k: str(payload.get(k) or "").strip() for k in store.SCOPE_KEYS}
+    """The curriculum coordinate — never personalization (that stays runtime-only).
+
+    ``variant`` rides alongside it: it is not curriculum, it is which artifact the payload asks
+    for (raster image vs line-art SVG), and it keys. See :func:`store.variant_of`."""
+    scope = {k: str(payload.get(k) or "").strip() for k in store.SCOPE_KEYS}
+    scope["variant"] = store.variant_of(payload)
+    return scope
 
 
 def _mock_tokens(concept: str, modality: str, difficulty: str) -> int:
@@ -1975,11 +2023,21 @@ def _public_provenance(prov: dict[str, Any]) -> dict[str, Any]:
         "prompt_version": prov.get("prompt_version"),
         "source": "seed" if model == "seed" else "generated",
     }
+    if out["source"] == "seed":
+        # `source` alone was never enough to act on while the same envelope said
+        # `verified: true, status: "canonical"` — no client read it, and the app shipped the
+        # scaffold as the lesson. This is the unambiguous flag a client can branch on: what you
+        # are holding is a placeholder, not this topic's content.
+        out["placeholder"] = True
     val = prov.get("validation")
     if isinstance(val, dict):  # the judge's identity is ours; the score and time are the learner's
         out["validation"] = {
             "validatedAt": val.get("validatedAt"),
             "score": val.get("score"),
+            # The gate's own answer, beside the number. Dropping it left the judge-unreachable
+            # envelope reading `verified: true, source: "generated", score: null` — a lesson no
+            # judge ever read, indistinguishable from a passing one except by that null.
+            "passed": val.get("passed"),
         }
     return out
 
@@ -2059,8 +2117,11 @@ def _spawn_validation(
                 _validating.discard(key)
 
     # ponytail: daemon thread, at-least-once per gateway instance; a Redis lock dedupes across
-    # instances (same seam as the generation slot). validate_and_promote is idempotent — it always
-    # writes canonical, so a provisional is validated once and never re-enters the gate.
+    # instances (same seam as the generation slot). validate_and_promote is idempotent, and a
+    # promotion or a refusal ends the matter: canonical is no longer provisional, and a refusal
+    # leaves a SEEDED provisional, which the re-arm below skips. The one record that does re-enter
+    # the gate is the one an UNREACHABLE judge left unscored — which is the point: an artifact no
+    # judge could read is not promoted, it is scored on a later serve.
     threading.Thread(target=_run_once, daemon=True, name=f"validate-{modality}").start()
 
 
@@ -2096,6 +2157,31 @@ def is_stale(cached: dict[str, Any], modality: str, *, live: bool) -> bool:
     return bool(cached.get("seeded")) and not cached.get("refusedAt")
 
 
+def _cache_read_refusals(modality: str, artifact: Any) -> list[str]:
+    """Why this CACHED artifact must not be served. Empty list = serve it.
+
+    THE GATES RUN ON THE SERVE PATH TOO. ``sanitize`` and ``lint`` used to be wired only into
+    generation and into ``validate_and_promote``, so a record already in the cache was handed
+    to ``_public()`` untouched. A cache record poisoned on disk with a cookie-exfiltrating
+    ``<script>``, an ``onload=`` and a ``javascript:`` href was served back verbatim, marked
+    ``status: canonical``, in 3.8-56.5 ms — and the render worker injects that markup into
+    headless Chrome with ``dangerouslySetInnerHTML``.
+
+    A cached record that needs cleaning is a record somebody tampered with, so this REFUSES
+    rather than launders: the caller drops the record and regenerates. Both checks are pure
+    stdlib over an artifact already in memory — microseconds, on a path that is otherwise 2-6 ms.
+    """
+    # lint imports engines, so both imports are function-local (module-level would be circular).
+    from wobo_gateway.plexus.lint import _find_svg_strings, lint_artifact
+    from wobo_gateway.plexus.sanitize import svg_violations
+
+    reasons = [f"sanitize: {r}" for svg in _find_svg_strings(artifact) for r in svg_violations(svg)]
+    verdict = lint_artifact(modality, artifact)
+    if not verdict.ok:
+        reasons += [f"lint: {r}" for r in verdict.reasons]
+    return reasons
+
+
 def run_engine(
     *,
     capability: str,
@@ -2128,9 +2214,23 @@ def run_engine(
     cached = store.load(concept, modality, difficulty, scope)
     servable = (
         cached is not None
-        and cached.get("verified")
+        # A seed is deliberately UNVERIFIED (it is a placeholder, not a lesson) but it is still
+        # the honest floor a recorded refusal serves — so it is servable without claiming to be
+        # verified. Anything else must carry the verification it claims.
+        and (cached.get("verified") or cached.get("seeded"))
         and not is_stale(cached, modality, live=live)
     )
+    if cached is not None and servable:
+        # THE GATES, ON THE SERVE PATH. A record that fails sanitize or lint on the way out is
+        # not served and not laundered: it is dropped and regenerated, loudly.
+        refusals = _cache_read_refusals(modality, cached.get("artifact"))
+        if refusals:
+            logger.error(
+                "plexus: REFUSED a cached %s artifact — regenerating instead of serving it",
+                modality,
+                extra={"fields": {"concept": concept, "reasons": refusals[:12]}},
+            )
+            cached, servable = None, False
     if cached is not None and servable:
         # Prefer canonical; serve provisional without blocking. A live provisional cache-hit
         # means the original validation thread never finished (e.g. the process restarted) —
@@ -2152,16 +2252,24 @@ def run_engine(
             artifact = _seed(modality, concept, difficulty)
             model_used, tokens, seeded = "mock", _mock_tokens(concept, modality, difficulty), False
 
-        # A real live artifact serves as PROVISIONAL and is validated after serve (below); a seed
-        # (the honest floor) and every mock artifact are stable — canonical with nothing to promote.
+        # A real live artifact serves as PROVISIONAL and is validated after serve (below); a mock
+        # artifact is stable — canonical with nothing to promote.
+        #
+        # A SEED IS NEITHER. `_seed` returns a topic-AGNOSTIC scaffold with the concept name
+        # interpolated into it: three scenes narrated "Watch how one thing reaches the next.",
+        # or a balance-beam algebra course served to a Class 7 Geography learner. It is an
+        # honest floor and the learner should still see something — but it was being written
+        # `verified: true, status: "canonical"`, which is the system telling the app, the
+        # version ledger and the operator that a placeholder is the finished lesson. It is not
+        # verified (nothing verified it) and it is not canonical (it is what we fell back to).
         provisional = live and not seeded
         record = {
             "concept": concept,
             "modality": modality,
             "difficulty": difficulty,
-            "verified": True,
+            "verified": not seeded,
             "seeded": seeded,
-            "status": store.PROVISIONAL if provisional else store.CANONICAL,
+            "status": store.CANONICAL if (not provisional and not seeded) else store.PROVISIONAL,
             "provenance": {
                 "engine": capability,
                 "model": model_used,

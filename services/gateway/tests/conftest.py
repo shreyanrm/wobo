@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -57,11 +58,18 @@ def mint(
 
 
 @pytest.fixture(autouse=True)
-def _gateway_test_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def _gateway_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """A verifiable identity and empty meters for every test."""
     from wobo_gateway import alerts, auth, billing, budget, consent, health, ledger, spend, voice
 
     monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
+    # The content cache is per-test for the same reason the meters are. Twenty test modules
+    # already point it at their own tmp_path; the ones that do not were writing into the repo's
+    # own ``content/cache`` and reading each other's leavings — which became visible the day the
+    # spoken-line cache landed (``plexus/media.py``), because one test's cached audio is another
+    # test's vendor call that never happened. A test that wants a warm cache still sets this
+    # itself: its own setenv runs after this fixture and wins.
+    monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path / "plexus-cache"))
     # The platform's money ledger, the alarm's cooldowns and the provider health window are all
     # per-process, exactly like the meters: one test's spend must never be another test's
     # refusal, and one test's alert must never be another test's suppressed page.

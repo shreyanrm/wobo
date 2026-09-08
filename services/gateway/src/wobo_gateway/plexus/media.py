@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import hashlib
 import json
 import logging
 import os
@@ -98,6 +99,12 @@ def synthesize_narration(
     ``telemetry.record_cost``, so the row is written here, and it says which one answered
     (``model_served``) against the one asked first (``model_requested``): a day when every line
     came from the fallback reads as exactly that.
+
+    **The same line is bought once** (:func:`_cached`). A narration line is deterministic — the
+    same words, the same instruction and the same voice produce the same audio — and the content
+    lab paid twice for identical lines, about eighteen seconds of synthesis each. A hit returns
+    the audio already on disk, records the seconds the learner received with ``cache_hit`` set and
+    no provider charge, and never touches a vendor or the day's ceiling.
     """
     if not text.strip():
         return None
@@ -110,8 +117,15 @@ def synthesize_narration(
         return None
     from wobo_gateway import health, telemetry
 
+    key = _cache_key(text, instruction)
+    remembered = _cached(key)
+    if remembered is not None:
+        audio, spoke = remembered
+        _record_cached(capability, audio, served=spoke)
+        return audio
+
     requested = GEMINI_TTS_ID if google else OPENAI_TTS_ID
-    audio: dict[str, str] | None = None
+    audio = None
     if google:
         if health.provider_available(GEMINI_TTS_ID):
             audio = _gemini_speak(
@@ -123,6 +137,7 @@ def synthesize_narration(
             )
             if audio is not None:
                 _record_spoken(capability, audio, served=GEMINI_TTS_ID, requested=requested)
+                _remember(key, audio, served=GEMINI_TTS_ID)
                 return audio
         else:
             telemetry.note_skipped(provider="gemini", model=GEMINI_TTS_ID)
@@ -131,10 +146,97 @@ def synthesize_narration(
             audio = _openai_speak(text, instruction, openai_key)
             if audio is not None:
                 _record_spoken(capability, audio, served=OPENAI_TTS_ID, requested=requested)
+                _remember(key, audio, served=OPENAI_TTS_ID)
                 return audio
         else:
             telemetry.note_skipped(provider="openai", model=OPENAI_TTS_ID)
     return None
+
+
+# --- the spoken-line cache ---------------------------------------------------------------------
+#
+# Tier 1 of the content economy already keeps every generated artifact on disk (``plexus/store``);
+# the audio those artifacts are read with was the one paid thing that was bought again every time.
+# It is keyed on everything that changes the SOUND — the words, the beat instruction, and the two
+# voices' identities — so a voice change or a re-worded line is a different file rather than a
+# stale one. Nothing here may ever cost a child their audio: every failure is a miss.
+
+#: Bump to invalidate every remembered line at once (a voice change, a container format change).
+_CACHE_VERSION = "tts-v1"
+
+
+def _cache_key(text: str, instruction: str | None) -> str:
+    identity = "\x00".join(
+        [
+            _CACHE_VERSION,
+            TTS_MODEL,
+            _VOICE,
+            OPENAI_TTS_ID,
+            _OPENAI_VOICE,
+            text.strip(),
+            (instruction or "").strip(),
+        ]
+    )
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()
+
+
+def _cache_path(key: str) -> Any:
+    from wobo_gateway.plexus import store
+
+    return store.cache_dir() / "voice" / f"{key}.json"
+
+
+def _cached(key: str) -> tuple[dict[str, str], str] | None:
+    """The audio already bought for this line, with the voice that spoke it. None on any miss."""
+    try:
+        raw = _cache_path(key).read_text(encoding="utf-8")
+        entry = json.loads(raw)
+        mime, b64 = str(entry["mime"]), str(entry["b64"])
+        if not b64:
+            return None
+        return {"mime": mime, "b64": b64}, str(entry.get("model") or GEMINI_TTS_ID)
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def _remember(key: str, audio: dict[str, str], *, served: str) -> None:
+    """Keep this line's audio for the next learner who asks for it. Never raises."""
+    try:
+        from wobo_gateway.plexus import store
+
+        store.write_atomic(
+            _cache_path(key),
+            json.dumps(
+                {"mime": audio.get("mime"), "b64": audio.get("b64"), "model": served},
+                ensure_ascii=False,
+            ),
+        )
+    except Exception as exc:  # noqa: BLE001 — a cache that cannot be written is a cache miss
+        logger.debug("tts: line not cached (%s: %s)", type(exc).__name__, exc)
+
+
+def _record_cached(capability: str, audio: dict[str, str], *, served: str) -> None:
+    """A cache hit is still a spoken line the learner received — the seconds are recorded, the
+    money is not. Without the row, the ledger would only ever see the expensive half of the
+    traffic and every per-minute figure drawn from it would be wrong."""
+    try:
+        from wobo_gateway import ledger
+
+        ms = wav_duration_ms(audio.get("b64") or "")
+        if not ms:
+            return
+        ledger.record(
+            capability=capability,
+            model_requested=served,
+            model_served=served,
+            cost_usd=0.0,
+            cost_source=ledger.NO_PROVIDER_CHARGE,
+            unit_kind=ledger.SPOKEN_SECOND,
+            unit_count=ms / 1000.0,
+            cache_hit=True,
+        )
+    except Exception as exc:  # noqa: BLE001 — accounting must never break a spoken line
+        logger.debug("tts: cache hit not recorded (%s: %s)", type(exc).__name__, exc)
 
 
 def _openai_speak(text: str, instruction: str | None, key: str) -> dict[str, str] | None:
@@ -399,10 +501,11 @@ def _record_spoken(
     is ninety. The length is MEASURED off the WAV that is about to be played, never estimated from
     the character count.
 
-    litellm has no price for this model, so the cost is written only when an operator has entered
-    one (``LEDGER_PRICE_SPOKEN_SECOND_USD``), and the row then says the number came from a person
-    rather than from a vendor. With no price entered the row is honestly unpriced and the free-day
-    derivation reports the gap in words instead of guessing at it.
+    litellm has no price for this model, so the number comes from ``ledger.unit_price``: the
+    operator's entry (``LEDGER_PRICE_SPOKEN_SECOND_USD``) when there is one, otherwise the vendor's
+    own per-second rate from the ledger's catalogue, and the row says which. Until that catalogue
+    existed every spoken row in this product was unpriced, and — because the ceiling below is fed
+    from the same figure — every spoken second was outside the day's money ceiling as well.
 
     Never raises. An accounting line is worth less than the audio a child is waiting for.
     """
@@ -413,14 +516,14 @@ def _record_spoken(
         if not ms:
             return
         seconds = ms / 1000.0
-        price = ledger.configured_price(ledger.SPOKEN_SECOND)
+        price, source = ledger.unit_price(ledger.SPOKEN_SECOND, served)
         cost = None if price is None else price * seconds
         ledger.record(
             capability=capability,
             model_requested=requested or served,
             model_served=served,
             cost_usd=cost,
-            cost_source=ledger.UNPRICED if price is None else ledger.FROM_CONFIGURED,
+            cost_source=source,
             unit_kind=ledger.SPOKEN_SECOND,
             unit_count=seconds,
         )
@@ -428,9 +531,9 @@ def _record_spoken(
         # only sees litellm completions — this is a raw HTTPS POST to a paid API, so every spoken
         # second the ledger recorded was a dollar the ceiling never counted. A ceiling that cannot
         # see the most expensive per-minute thing in the product is not the platform's ceiling.
-        # With no price configured there is no number to add: the row is honestly unpriced and the
-        # ceiling is honestly not charged for a figure nobody has. ``docs/OPERATIONS.md`` names
-        # LEDGER_PRICE_SPOKEN_SECOND_USD as the entry that closes that gap.
+        # With the vendor's own per-second rate in the ledger's catalogue there is now always a
+        # number for the two voices we actually call; a voice with no published unit price is
+        # still honestly unpriced, and ``LEDGER_PRICE_SPOKEN_SECOND_USD`` closes that.
         if cost:
             from wobo_gateway import spend
 

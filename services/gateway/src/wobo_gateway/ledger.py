@@ -152,8 +152,9 @@ def unit_for(capability: str) -> str:
 # plexus/media.py, and it has never been costed anywhere in this repo.
 #
 # So an operator may enter a price for those seams, and when they do the row says the number came
-# from a person (``cost_source='configured'``) rather than from a price table. With no price
-# entered the row is UNPRICED and stays unpriced: the derivation in unit_economics.py reports the
+# from a person (``cost_source='configured'``) rather than from a price table. With no entry, the
+# vendor's own published unit price is used where there is one (see the catalogue below), and with
+# neither the row is UNPRICED and stays unpriced: the derivation in unit_economics.py reports the
 # gap in words rather than guessing at it, because the owner is going to price a product on this.
 
 _PRICE_ENV: dict[str, str] = {
@@ -177,6 +178,64 @@ def configured_price(unit_kind: str) -> float | None:
         logger.warning("ledger: %s is not a number, treating the unit as unpriced", name)
         return None
     return value if value >= 0 else None
+
+
+# --- the vendors' own unit prices -----------------------------------------------------------------
+#
+# An operator entry was the ONLY way these two seams could ever carry a number, and nobody had
+# entered one: in the wave-30 content lab 161 of 986 rows were unpriced, and they were every
+# ``engine.image`` row and every ``voice.tts`` row. Unpriced does not only mean a blank in a
+# report — ``spend.py``, the daily USD ceiling, is charged from the same figure, so all image and
+# all audio spend was outside the ceiling entirely. The dearest per-minute thing in the product
+# was free on paper.
+#
+# The numbers were already in this repo. ``routing.CATALOGUE`` quotes the vendors' own pages for
+# both models; they are quoted per TOKEN, and what a ledger row measures is the UNIT the learner
+# received (a spoken second, one drawn image), so the conversion is done ONCE, here, with the
+# arithmetic written out:
+#
+#   • Gemini 2.5 Flash Preview TTS — 10.00 USD per million audio-output tokens (the pricing page,
+#     via routing.CATALOGUE) at 32 audio tokens a second (Google's tokens page, the same figure
+#     ``voice.py`` costs the live microphone with) = 0.00032 USD a second.
+#   • OpenAI gpt-4o-mini-tts, the voice behind it — 12.00 USD per million audio-output tokens at
+#     the same 32 tokens a second = 0.000384 USD a second.
+#   • Gemini 2.5 Flash Image — 0.039 USD per image, quoted per IMAGE on the page, so no
+#     conversion at all.
+#
+# A model that is not in this table stays honestly UNPRICED rather than being guessed at, which
+# is the rule this module has always had. ``openai/gpt-image-2``, the fallback painter, is one:
+# its page prices image OUTPUT TOKENS (30.00 USD per million), and the tokens one image costs
+# depend on the size and quality asked for, so there is no per-image number to copy. An operator
+# who has read their own invoice closes that with ``LEDGER_PRICE_IMAGE_USD``.
+_AUDIO_TOKENS_PER_SECOND = 32
+CATALOGUE_UNIT_PRICE: dict[tuple[str, str], float] = {
+    (SPOKEN_SECOND, "gemini/gemini-2.5-flash-preview-tts"): 10.00 * _AUDIO_TOKENS_PER_SECOND / 1e6,
+    (SPOKEN_SECOND, "openai/gpt-4o-mini-tts"): 12.00 * _AUDIO_TOKENS_PER_SECOND / 1e6,
+    (IMAGE, "gemini/gemini-2.5-flash-image"): 0.039,
+}
+
+
+def catalogue_unit_price(unit_kind: str, model: str | None) -> float | None:
+    """The vendor's own price for one unit of this model's output, or None when none is published
+    for it here."""
+    if not model:
+        return None
+    return CATALOGUE_UNIT_PRICE.get((unit_kind, model))
+
+
+def unit_price(unit_kind: str, model: str | None) -> tuple[float | None, str]:
+    """``(price for one unit, where the number came from)`` for a seam litellm cannot price.
+
+    An operator's entry wins over the catalogue — a person reading their own invoice knows more
+    than a copied price list — and with neither, the honest answer is no number at all.
+    """
+    entered = configured_price(unit_kind)
+    if entered is not None:
+        return entered, FROM_CONFIGURED
+    quoted = catalogue_unit_price(unit_kind, model)
+    if quoted is not None:
+        return quoted, FROM_CATALOGUE
+    return None, UNPRICED
 
 
 # --- the pseudonym -------------------------------------------------------------------------------
@@ -946,9 +1005,11 @@ __all__ = [
     "TURN",
     "UNPRICED",
     "VIDEO_SECOND",
+    "CATALOGUE_UNIT_PRICE",
     "CallContext",
     "LedgerRow",
     "calling",
+    "catalogue_unit_price",
     "configure",
     "configured",
     "configured_price",
@@ -968,4 +1029,5 @@ __all__ = [
     "stop",
     "take_latency",
     "unit_for",
+    "unit_price",
 ]

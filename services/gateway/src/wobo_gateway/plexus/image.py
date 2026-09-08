@@ -230,20 +230,23 @@ def _record_image(served: str, requested: str) -> None:
     """One drawn diagram in the usage ledger, naming the painter that actually drew it.
 
     A raw HTTPS call never passes through ``telemetry.record_cost``, so the row is written here.
-    No vendor price table covers these models, so the cost is the operator's entry
-    (``LEDGER_PRICE_IMAGE_USD``) or honestly unpriced. Never raises: a diagram outranks a line
-    of accounting.
+    litellm prices none of these models, so the number is the operator's entry
+    (``LEDGER_PRICE_IMAGE_USD``) or the vendor's own per-image price from the ledger's catalogue,
+    and the row says which; a painter with neither is honestly unpriced. Until that catalogue
+    existed EVERY image row in this product was unpriced, and the day's money ceiling — charged
+    from the same figure below — never saw a single drawn diagram. Never raises: a diagram
+    outranks a line of accounting.
     """
     try:
         from wobo_gateway import ledger
 
-        price = ledger.configured_price(ledger.IMAGE)
+        price, source = ledger.unit_price(ledger.IMAGE, served)
         ledger.record(
             capability=ENGINE_NAME,
             model_requested=requested,
             model_served=served,
             cost_usd=price,
-            cost_source=ledger.UNPRICED if price is None else ledger.FROM_CONFIGURED,
+            cost_source=source,
             unit_kind=ledger.IMAGE,
             unit_count=1.0,
         )

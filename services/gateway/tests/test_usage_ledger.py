@@ -428,15 +428,29 @@ def test_a_spoken_line_is_recorded_in_measured_seconds(
     raw HTTPS POST, so until the ledger existed it cost money and left no trace at all.
 
     Driven through ``synthesize_narration`` itself rather than through the recording helper, so a
-    future edit that keeps the helper and drops the call site fails here."""
+    future edit that keeps the helper and drops the call site fails here.
+
+    The row was UNPRICED here until the ledger carried the vendors' own per-unit rates: litellm
+    prices none of this, nobody had entered an operator price, and 161 of the content lab's 986
+    rows — every spoken line and every drawn image — therefore carried no cost at all, and did not
+    count against the day's ceiling either. The price now comes from the catalogue and the row
+    says so."""
     assert _speak(monkeypatch, 2.5) is not None
     ledger.flush_now()
     row = store.rows[0]
     assert row["capability"] == "voice.tts"
     assert row["unit_kind"] == "spoken_second"
     assert row["unit_count"] == pytest.approx(2.5, abs=0.01)
-    assert row["cost_usd"] is None
-    assert row["cost_source"] == ledger.UNPRICED  # litellm has no price for this model
+    assert row["cost_source"] == ledger.FROM_CATALOGUE
+    assert row["cost_usd"] == pytest.approx(
+        2.5 * ledger.catalogue_unit_price(ledger.SPOKEN_SECOND, media_id()), rel=0.01
+    )
+
+
+def media_id() -> str:
+    from wobo_gateway.plexus.media import GEMINI_TTS_ID
+
+    return GEMINI_TTS_ID
 
 
 def test_the_video_engines_narration_is_told_apart_from_a_read_aloud(

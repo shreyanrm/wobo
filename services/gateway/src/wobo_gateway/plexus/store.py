@@ -1,13 +1,31 @@
 """File cache under ``content/cache/`` — tier 1 of the content economy.
 
-Artifacts are keyed (concept x modality x difficulty). The concept is BOARD-AGNOSTIC: the same
-topic under a different board / grade / chapter is the SAME concept and reuses ONE verified
-artifact — that reuse is the whole cost economy (CONTEXT.md) and keying to board paths instead is
-the SUBJECTS.md §9 anti-pattern that kills it. board / grade / subject / chapter are a *mapping
-layer* only: they resolve a request to a conceptId at serve time (via ``concept_id``), they never
-enter the artifact key. Difficulty DOES stay in the key (a stretch variant is genuinely different
-content). Personalization is NEVER in the key or the record — Wobo personalizes the shared
-artifact at runtime. Each record carries provenance ``{engine, model, prompt_version}``.
+Artifacts are keyed (concept x modality x difficulty x board x class x syllabus version x variant).
+
+THIS HEADER USED TO SAY THE OPPOSITE, AND THE OPPOSITE WAS WRONG. Until wave 30 the key digested
+only (concept x modality x difficulty), and this file argued that was deliberate: one topic, one
+verified artifact, reused across every board — the cost economy of CONTENT.md, with keying to
+board paths named as the SUBJECTS.md §9 anti-pattern. What the judges measured is what that
+actually bought (SCORECARD §3.5 fix 6, mathematics-eng.md §1.2, biology-eng.md §1): the CBSE
+class 8 key EQUALLED the ISC class 11 key, so a class 3 request was served the class 11 module
+byte-for-byte in 3 ms, and a ``contentVersion`` bump to 2099.9 returned the 2026-27 artifact
+forever because the request's version was inert. Reuse across a whole board and a whole school
+career is not reuse, it is one lesson pretending to be twelve.
+
+So the key now carries the coordinate that changes the CONTENT: ``board`` (an ICSE chapter is not
+a CBSE chapter), ``grade`` (class 6 fractions is not class 11 quadratics), ``contentVersion`` (a
+syllabus revision must miss, which is the only thing that makes a revision reach a learner), and
+``variant`` (a raster ``engine.image`` diagram is not the line-art SVG — they collided, which is
+why every ``image.svg`` in the lab is byte-identical to its ``diagram.svg``). Difficulty stays in
+the key as before.
+
+What is still a *mapping layer* only, and still never in the key: ``subject`` and ``chapter``.
+Two boards that file one concept under different chapter names still share one artifact, and that
+is where the real reuse lives — they resolve a request to a conceptId at serve time (via
+``concept_id``). Board and grade are normalized before they are digested ("CBSE" == "cbse",
+"8" == "Class 8"), so a spelling difference never costs a second generation. Personalization is
+NEVER in the key or the record — Wobo personalizes the shared artifact at runtime. Each record
+carries provenance ``{engine, model, prompt_version}``.
 
 Server-side only for now. ``learner.content_cache`` (Supabase) is the eventual shared-sync
 home; this file cache is the source of truth until that sync lands.
@@ -63,13 +81,59 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60] or "concept"
 
 
-# --- board-agnostic concept keying (SUBJECTS.md §9) ------------------------------------
-# The curriculum coordinate that rides in every engine payload. It is NOT part of the artifact
-# key — it is only ever the mapping layer that resolves a request to a conceptId (and the audit
-# trail for the shared cache). ``contentVersion`` is retained here so payloads still carry it, but
-# a content-version bump regenerates via PROMPT_VERSION + the engine's staleness checks, not by
-# forking the key. engines._scope reads this tuple, so it stays defined.
+# --- the curriculum coordinate, and the half of it that keys ---------------------------
+# SCOPE_KEYS is what rides in every engine payload; engines._scope reads this tuple.
 SCOPE_KEYS = ("board", "grade", "subject", "chapter", "contentVersion")
+
+# KEY_SCOPE_KEYS is the half of it that changes the CONTENT and therefore digests into the key
+# (wave 30, SCORECARD §3.5 fixes 6 and 10). ``subject`` and ``chapter`` stay out: they are the
+# mapping layer that resolves a request to a conceptId, and keeping them out is what still lets
+# two boards filing one concept under different chapter names share one artifact.
+# ``variant`` is not curriculum — it is the artifact variant a payload asks for (today: the raster
+# ``engine.image`` diagram vs the line-art SVG), set by engines._scope via :func:`variant_of`.
+KEY_SCOPE_KEYS = ("board", "grade", "contentVersion", "variant")
+
+
+def variant_of(payload: dict[str, Any]) -> str:
+    """The artifact variant a request asks for — a key part, not a curriculum coordinate.
+
+    ``payload["raster"]`` selects the Nano-Banana image path in ``engines._generate_live``, which
+    produces genuinely different content from the line-art SVG. It never entered the key, so both
+    resolved to one file and whichever ran first (compose, always) won — the raster path was
+    unreachable in practice (mathematics-eng.md §1.5)."""
+    return "raster" if payload.get("raster") else ""
+
+
+def _grade_key(grade: str) -> str:
+    """Normalize a class so one class spelled two ways is still one artifact.
+
+    "8", "Class 8" and "class-8" are the same eleven-year-old; digesting them separately would
+    triple the miss rate and the money for content that must be identical.
+
+    Exactly ONE integer in the string is the class. Taking the FIRST integer merged classes that
+    are not the same class — "11" and "11-12" (the ordinary way senior secondary is written in
+    Indian syllabus documents) resolved to one key, as did "10" and "Class 10 (2019 scheme)", so
+    a class-span or scheme-specific request was silently served the class-11 artifact. That is
+    over-MERGING, the very defect the scoped key exists to remove. Anything else — a span, a
+    dated scheme, a named stage with no integer — falls back to its slug, which over-splits at
+    worst and costs one extra generation."""
+    numbers = re.findall(r"\d+", grade)
+    return numbers[0] if len(numbers) == 1 else _slug(grade)
+
+
+def scope_key(scope: dict[str, str] | None) -> str:
+    """The key contribution of a request's scope. Empty string when a caller supplies none —
+    which keeps an unscoped call (tests, ``migrate``, an internal reindex) on the bare
+    concept key it has always had."""
+    s = scope or {}
+    parts = []
+    for k in KEY_SCOPE_KEYS:
+        raw = str(s.get(k) or "").strip()
+        if not raw:
+            parts.append("")
+        else:
+            parts.append(_grade_key(raw) if k == "grade" else _slug(raw))
+    return "" if not any(parts) else "\x00".join(parts)
 
 
 def _concepts_file() -> Path:
@@ -139,15 +203,21 @@ def _inside_cache(path: Path) -> Path:
 def artifact_path(
     concept: str, modality: str, difficulty: str, scope: dict[str, str] | None = None
 ) -> Path:
-    # The key is the CONCEPT (board-agnostic), never the curriculum path. ``scope`` is consulted
-    # only to resolve the conceptId (registry overrides); board/grade/chapter never touch the key.
+    # The key is the concept PLUS the part of the request that changes what the content says:
+    # board, class, syllabus version and variant (:data:`KEY_SCOPE_KEYS`). ``scope`` also still
+    # resolves the conceptId (registry overrides); ``subject`` and ``chapter`` remain mapping-only.
     # modality and difficulty are slugged BEFORE they become path components: they arrive from the
-    # request body, and "../../etc" is a directory traversal, not a difficulty.
+    # request body, and "../../etc" is a directory traversal, not a difficulty. The scope half is
+    # digested, never a path component, so a hostile board name cannot walk out of the cache dir.
     cid = concept_id(concept, scope)
     modality = _slug(modality)
     difficulty = _slug(difficulty)
     identity = concept_identity(concept, scope)
-    digest = hashlib.sha256(f"{identity}\x00{modality}\x00{difficulty}".encode()).hexdigest()[:16]
+    body = f"{identity}\x00{modality}\x00{difficulty}"
+    skey = scope_key(scope)
+    if skey:  # an unscoped call keeps the bare concept key it has always had
+        body += f"\x00{skey}"
+    digest = hashlib.sha256(body.encode()).hexdigest()[:16]
     return _inside_cache(cache_dir() / modality / f"{cid}--{difficulty}--{digest}.json")
 
 
@@ -201,6 +271,17 @@ def _write_atomic(path: Path, text: str) -> None:
         raise
 
 
+def write_atomic(path: Path, text: str) -> None:
+    """The same crash-safe write, for a cache file that is not an artifact record.
+
+    The spoken-line cache in ``plexus/media.py`` keeps WAV audio beside the artifacts and needs
+    exactly the guarantee above — a reader must never meet a half-written file. The containment
+    assertion comes with it: a caller cannot write outside the cache directory through this seam
+    any more than :func:`save` can.
+    """
+    _write_atomic(_inside_cache(path), text)
+
+
 def _read(path: Path) -> dict[str, Any] | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -216,6 +297,13 @@ def load(
     record = _read(path)
     if record is not None:
         return record
+    # The legacy file is board-, class- and version-BLIND: nothing recorded which learner it was
+    # written for. Re-indexing it onto a scoped key would hand a CBSE class 8 request an artifact
+    # that may have been generated for ISC class 11 — the exact defect the scoped key exists to
+    # end. So the fallback serves only an unscoped call. A scoped request misses and regenerates;
+    # the old file is still never touched (retention), and `migrate` still reindexes it.
+    if scope_key(scope):
+        return None
     legacy = _legacy_artifact_path(concept, modality, difficulty, scope)
     if legacy == path:
         return None

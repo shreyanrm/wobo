@@ -1641,7 +1641,12 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         # that a child who disclosed harm was charged one of their daily turns for the
         # disclosure, on a route whose published description said "nothing is charged, nothing is
         # counted". No model was reached, so nothing is owed.
-        if result.model == "safety.gate":
+        # Nor is a PLACEHOLDER. When live generation fails, the engines fall back to a
+        # topic-agnostic seed (``provenance.model == "seed"``) so the learner sees something
+        # rather than an error — an honest floor, but not the lesson they asked for and not
+        # one of their generations. They were being charged for it: three phys/chem cells and
+        # two social-science courses in the wave-30 lab are seeds, billed and served.
+        if result.model in ("safety.gate", "seed"):
             budget.refund(meter, name)
             snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
             headers = budget.headers(snap, budget.classify(name))

@@ -134,7 +134,17 @@ def test_unknown_concept_and_unverified_fact_are_ignored(crafted_base):
 
 
 def test_gate_subject_scoping():
-    # science + social gated; every other subject is left to the CAS/sim (never fact-checked)
-    assert frozenset({"science", "social"}) == factcheck.FACTBASE_SUBJECTS
-    for other in ("math", "physics", "chemistry", "cs"):
-        assert other not in factcheck.FACTBASE_SUBJECTS
+    """Every subject the product teaches is fact-checked, however the board spells it.
+
+    This test used to assert the opposite — `frozenset({"science", "social"})`, with physics and
+    chemistry "left to the CAS/sim". Wave 30 measured that: the CAS accepts falsified kinematics
+    (`x = v*t` -> `x = v*t**2`), so nothing checked them; and the caller compared a payload's
+    "Science" / "Social Science" against the lowercase set, so the gate never fired for anything
+    at all. See tests/test_factbase_gate.py.
+    """
+    for subject in ("Science", "Social Science", "Biology", "Physics", "Chemistry", "Mathematics"):
+        assert factcheck.covers(subject)
+    # a subject the base has nothing for is still a no-op, but by having no facts — never by
+    # being excluded before the base is consulted
+    assert not factcheck.covers("Sanskrit")
+    assert not factcheck.covers(None)

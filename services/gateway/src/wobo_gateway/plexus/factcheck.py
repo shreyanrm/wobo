@@ -1,9 +1,10 @@
 """NCERT fact-base validator seam (SUBJECTS.md §2).
 
 For biology and social science the fact base IS the solver — there is no CAS to prove a date or a
-name right. This module reads the versioned fact base (``content/factbase/facts.v*.jsonl``,
-verified facts only) and offers two things to the post-serve gate (:mod:`validate`), for bio/social
-subjects only:
+name right, and measurement showed the CAS does not cover physics or chemistry either (the sim
+verifier proves only that a formula parses and solves). This module reads the versioned fact base
+(``content/factbase/facts.v*.jsonl``, verified facts only) and offers two things to the post-serve
+gate (:mod:`validate`), for every subject the product teaches (:func:`covers`):
 
   • :func:`validate_claims` — a DETERMINISTIC contradiction check. It fires only on facts that carry
     a machine-checkable atom (a ``check`` with a year/number ``value`` for an ``entity``): if the
@@ -17,9 +18,18 @@ subjects only:
     the judge can catch the looser factual errors (a wrong definition, a wrong sequence) the
     deterministic check deliberately does not attempt in v1.
 
-Keying: facts are stored under the same board-agnostic conceptId the runtime resolves for a topic
-(``store.concept_id`` -> ``_slug``); the arg is normalized with the identical (idempotent) slug so a
-resolved id OR a raw topic name both hit. No network, pure stdlib + the JSONL on disk.
+Keying: facts are stored under the catalog's chapter/topic slug; the runtime resolves a learner's
+request to the longer topic LABEL they were shown, so the two are rarely equal and an exact lookup
+found nothing in production. :func:`resolve_concept` matches exactly, else on the longest
+fact-base key that is a hyphen-boundary prefix of the concept. No network, pure stdlib + the
+JSONL on disk.
+
+Honest limit, measured 2026-09-07: 0 of the 532 shipped rows carry a ``check`` block, and only 2
+of them state a year at all, so ``validate_claims`` can prove a contradiction against exactly two
+facts (``_derive_check`` reads those two atoms out of the claims' own verified text — nothing is
+invented). The other 530 rows are structural (chapter, topic, ordering, blurb) and reach the judge
+through :func:`facts_for`, which is where their value is. A fact base that can prove a date wrong
+needs dated facts in it; that is ``build.py --live``, an operator run with keys, not this module.
 """
 
 from __future__ import annotations
@@ -31,10 +41,41 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-# CBSE Class 10 keeps biology inside "science" and history/geography/civics/economics inside
-# "social" (mirrors content/factbase/build.FACTBASE_SUBJECTS). The CAS/sim already covers the rest,
-# so the fact-base gate fires ONLY for these subjects — never math/physics/chemistry/CS.
-FACTBASE_SUBJECTS = frozenset({"science", "social"})
+# Which subjects the gate FIRES for.
+#
+# It used to be `{"science", "social"}`, tested with `scope["subject"] not in FACTBASE_SUBJECTS`
+# against a payload carrying "Science" and "Social Science" — a case-and-wording mismatch that
+# meant the gate fired for NOTHING, ever. And the exclusion of physics/chemistry/biology was
+# justified by "the CAS/sim already covers the rest", which measurement disproved: `_verify_sim`
+# proves only that a formula parses and solves, so falsifying kinematics from `x = v*t` to
+# `x = v*t**2` is accepted, and no accuracy gate of any kind ran on physics or chemistry.
+#
+# So: every subject the product teaches, matched through `covers()` rather than raw membership.
+# This is not a widening of what gets FLAGGED — the check is fail-open and a subject with no
+# facts for the concept is still a no-op (`_load()` returns nothing, `validate_claims` returns
+# []). It only stops a subject being excluded before the base is even consulted.
+FACTBASE_SUBJECTS = frozenset({
+    "science", "social", "biology", "physics", "chemistry", "mathematics",
+})
+
+# Board wording -> the id above. "Social Science" and "Social Studies" are the same subject the
+# fact base calls "social"; "maths"/"math" are the same one it calls "mathematics".
+_SUBJECT_ALIASES = {
+    "social science": "social",
+    "social studies": "social",
+    "social-science": "social",
+    "maths": "mathematics",
+    "math": "mathematics",
+    "bio": "biology",
+    "phy": "physics",
+    "chem": "chemistry",
+}
+
+
+def covers(subject: str | None) -> bool:
+    """Does the fact-base gate fire for this subject, however the board spells it?"""
+    key = re.sub(r"\s+", " ", str(subject or "")).strip().lower()
+    return _SUBJECT_ALIASES.get(key, key) in FACTBASE_SUBJECTS
 
 # A 4-digit year an NCERT date fact would assert (history sits ~1500-2099). Deliberately narrow so a
 # stray "12" or "100" in prose is never read as a year.
@@ -56,6 +97,37 @@ def _factbase_dir() -> Path | None:
         if cand.is_dir():
             return cand
     return None
+
+
+# The quoted name a catalog-seeded claim is ABOUT: build.py writes every one of them as
+# "In CBSE Class 10 History, 'The Russian Revolution' is a chapter." / "'X' covers: ...".
+_CLAIM_ENTITY_RE = re.compile(r"'([^']{3,80})'")
+
+
+def _derive_check(fact: dict[str, Any]) -> dict[str, Any] | None:
+    """A machine-checkable atom read out of a verified claim's OWN text. Never an invention.
+
+    0 of the 532 shipped rows carry a ``check`` block, so ``validate_claims`` — which fires only
+    on a ``check`` — could not fire on anything. Rather than write facts into the file that no
+    NCERT source verified, this derives the atom the claim already states, and only when the
+    claim is unambiguous: exactly one year in it, and a quoted entity that is not itself a year.
+    Anything looser (two years, no named entity) yields nothing, because a guessed atom would
+    flag correct content.
+    """
+    existing = fact.get("check")
+    if isinstance(existing, dict):
+        return existing
+    claim = str(fact.get("claim") or "")
+    years = set(_YEAR_RE.findall(claim))
+    if len(years) != 1:
+        return None
+    match = _CLAIM_ENTITY_RE.search(claim)
+    if not match:
+        return None
+    entity = match.group(1).strip()
+    if not entity or _YEAR_RE.search(entity):
+        return None
+    return {"kind": "year", "entity": entity, "value": years.pop(), "derived": True}
 
 
 @lru_cache(maxsize=1)
@@ -81,8 +153,37 @@ def _load() -> dict[str, list[dict[str, Any]]]:
             continue
         cid = fact.get("conceptId")
         if isinstance(cid, str) and cid:
+            check = _derive_check(fact)
+            if check is not None:
+                fact["check"] = check
             idx.setdefault(cid, []).append(fact)
     return idx
+
+
+def resolve_concept(conceptId: str) -> str | None:
+    """The fact-base key for a runtime concept-id, or ``None`` when the base holds none.
+
+    The base is keyed by the catalog's chapter and topic NAMES (``motion``,
+    ``constitutional-design``); the runtime resolves a learner's request to the topic label they
+    were shown, which is longer (``motion-distance-displacement-speed-velocity-and-their-graphs``,
+    ``constitutional-design-how-the-indian-constitution-was-made``). The two were never equal, so
+    every lookup returned nothing however the subject gate was spelled.
+
+    The rule is an exact match, else the LONGEST fact-base key that is a hyphen-boundary prefix
+    of the concept — a boundary, not a substring, so ``emotions-in-poetry`` can never resolve to
+    a key ``emotion``. Longest wins so a topic beats the chapter that contains it.
+    """
+    slug = _slug(conceptId)
+    idx = _load()
+    if slug in idx:
+        return slug
+    prefixes = [key for key in idx if slug.startswith(f"{key}-")]
+    return max(prefixes, key=len) if prefixes else None
+
+
+def _facts(conceptId: str) -> list[dict[str, Any]]:
+    key = resolve_concept(conceptId)
+    return _load().get(key, []) if key else []
 
 
 def _all_text(obj: Any) -> str:
@@ -109,7 +210,7 @@ def validate_claims(artifact: Any, conceptId: str) -> list[str]:
     concept.
     Empty list = nothing proven wrong (the common case). Each string is a human-readable
     contradiction the gate hands to the judge and records on provenance."""
-    facts = _load().get(_slug(conceptId)) or []
+    facts = _facts(conceptId)
     if not facts:
         return []
     text = _all_text(artifact)
@@ -143,7 +244,7 @@ def validate_claims(artifact: Any, conceptId: str) -> list[str]:
 
 def facts_for(conceptId: str) -> list[str]:
     """The verified claims for a concept — ground truth for the LLM judge. Empty when none exist."""
-    return [f.get("claim", "") for f in (_load().get(_slug(conceptId)) or []) if f.get("claim")]
+    return [f.get("claim", "") for f in _facts(conceptId) if f.get("claim")]
 
 
 if __name__ == "__main__":  # runnable self-check — no framework, no network
@@ -179,4 +280,15 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
     assert facts_for("Nationalism in India") == [
         "The Dandi March began in 1930."
     ], facts_for("Nationalism in India")
+
+    # the runtime concept-id is longer than the key the base holds — it must still resolve
+    _runtime = "nationalism in India: from non-cooperation to civil disobedience"
+    assert resolve_concept(_slug(_runtime)) == "nationalism-in-india"
+    assert facts_for(_runtime) == ["The Dandi March began in 1930."]
+    assert resolve_concept("nationalism-in-indian-cinema-and-its-critics") is None
+
+    # every subject the product teaches, however the board spells it
+    assert covers("Science") and covers("Social Science") and covers("Biology")
+    assert covers("Physics") and covers("Chemistry") and covers("Mathematics")
+    assert not covers("") and not covers(None)
     print("factcheck self-check ok")

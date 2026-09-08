@@ -14,6 +14,9 @@ render BROKEN in the browser yet slip past both the structural verifier and the 
     client, so checking them would be a false positive.
   • a card-type enum outside the client's exact vocabulary, or a spec coordinate that is not
     numeric.
+  • an ANSWER that is provably wrong — a quiz key that does not satisfy its own equation, a key
+    that names one of two roots, a line of working that is false (:mod:`maths`). Everything else
+    here proves an artifact is not broken; that one proves it is not wrong.
 
 Pure stdlib (``xml`` + ``re``) plus the CAS parser already in the tree. No network, fully
 deterministic: the same artifact always lints the same way. It fails CLOSED on a *proven*
@@ -42,6 +45,10 @@ from wobo_gateway.plexus.engines import (
     _VISUAL_KINDS,
     _fnum,
 )
+
+# The answer checker (``maths.py``): the same CAS, asked whether the content is TRUE rather than
+# whether it parses. It refuses only what it can prove wrong and declines everything else.
+from wobo_gateway.plexus.maths import check_compose
 
 
 @dataclass
@@ -309,6 +316,10 @@ def _lint_compose(artifact: dict) -> list[str]:
         for item in artifact.get(bank) or []:
             if isinstance(item, dict) and (t := item.get("type", "mcq")) not in _ITEM_TYPES:
                 out.append(f"{bank} item {item.get('id')!r}: type {t!r} outside vocabulary")
+    # …and the answers themselves. Everything above proves an artifact is not BROKEN; this proves
+    # it is not WRONG, which is the defect a child cannot catch alone (they mark their own correct
+    # working wrong against a confident key). Only what the CAS can PROVE false comes back here.
+    out += check_compose(artifact)
     return out
 
 
@@ -365,6 +376,19 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
 
     _dead = {"cards": [{"id": "c1", "whatIf": {"solve": [{"id": "s1", "expr": "12 +/ x"}]}}]}
     assert not lint_artifact("compose", _dead).ok, "dead expression slipped through"
+
+    _wrong_key = {
+        "workbook": [
+            {
+                "id": "w1",
+                "type": "mcq",
+                "prompt": "Solve 2x + 4 = 16.",
+                "options": ["x = 4", "x = 6", "x = 8"],
+                "answer": "x = 8",
+            }
+        ]
+    }
+    assert not lint_artifact("compose", _wrong_key).ok, "a wrong answer key slipped through"
 
     # 3. a clean, valid expression is NEVER a false positive.
     _ok = {"cards": [{"id": "c1", "whatIf": {"solve": [{"id": "s1", "expr": "sqrt(25 - 9)"}]}}]}

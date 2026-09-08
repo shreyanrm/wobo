@@ -133,9 +133,13 @@ def test_fail_escalates_and_best_of_promotes_opus_rebuild(monkeypatch, cache_dir
     assert PASS_THRESHOLD == 70.0
 
 
-def test_fail_but_base_still_best_keeps_base(monkeypatch, cache_dir) -> None:
-    """Escalation fires on a fail, but the Opus rebuild scores no better — keep the GPT base
-    (best-of never downgrades)."""
+def test_fail_but_base_still_best_is_refused_not_promoted(monkeypatch, cache_dir) -> None:
+    """Escalation fires on a fail and the Opus rebuild scores no better. Best-of still picks the
+    base (it never downgrades) — but 60 is below the bar, so the gate REFUSES: nothing is stamped
+    canonical, the honest seed serves, and the base's score rides on the record.
+
+    (Wave 30, fix #4: this test used to assert the promotion. That promotion is the defect —
+    artifacts the system's own judge scored 0, 5, 8, 12, 18 … were all stamped canonical.)"""
     record = _provisional({"cards": ["base"]})
 
     def judge(_jm, _mo, _co, art, **_k):
@@ -149,10 +153,12 @@ def test_fail_but_base_still_best_keeps_base(monkeypatch, cache_dir) -> None:
         regen=lambda *_a: ({"cards": ["alt"]}, _OPUS, 1, False),
         escalation_model=_OPUS,
     )
-    assert out["status"] == store.CANONICAL
-    assert out["artifact"] == {"cards": ["base"]}
-    assert out["provenance"]["model"] == "openai/gpt-5.6-terra"  # the GPT primary is kept
-    assert out["provenance"]["validation"]["score"] == 60.0
+    assert out["status"] == store.PROVISIONAL  # never canonical below the bar
+    assert out["seeded"] is True
+    assert out["provenance"]["model"] == "seed"
+    assert out["provenance"]["validation"]["score"] == 60.0  # best-of's own number, recorded
+    assert out["qualityFailure"]["base"]["score"] == 60.0
+    assert out["qualityFailure"]["rebuild"]["score"] == 30.0
 
 
 def test_critical_error_escalates_even_with_high_score(monkeypatch, cache_dir) -> None:
@@ -175,10 +181,17 @@ def test_critical_error_escalates_even_with_high_score(monkeypatch, cache_dir) -
     assert out["provenance"]["model"] == _OPUS
 
 
-# --- judge unreachable: promote as-is, never block --------------------------------------
+# --- judge unreachable: never blocks a serve, and never promotes ------------------------
 
 
-def test_unreachable_judge_promotes_unscored(monkeypatch, cache_dir) -> None:
+def test_unreachable_judge_never_promotes(monkeypatch, cache_dir) -> None:
+    """An unreachable judge is an UNKNOWN, not a pass. The artifact keeps serving as the
+    provisional it already is, and is scored on a later serve — it is never stamped canonical
+    and never claims a verification that never happened.
+
+    (Wave 30, fix #4: this test used to assert the unscored promotion. `"verified": true` over
+    an artifact no judge ever read is exactly how a hardcoded algebra placeholder became a CBSE
+    class 10 History learner's canonical course.)"""
     record = _provisional({"cards": ["base"]})
     escalated = {"called": False}
 
@@ -187,11 +200,17 @@ def test_unreachable_judge_promotes_unscored(monkeypatch, cache_dir) -> None:
         return {"cards": ["alt"]}, "openai/gpt-5.6-terra", 1, False
 
     out = _promote(monkeypatch, record, judge=lambda *_a, **_k: None, regen=regen)
-    assert out["status"] == store.CANONICAL
-    assert out["artifact"] == {"cards": ["base"]}  # kept as-is
+    assert out["status"] == store.PROVISIONAL  # NOT canonical
+    assert out["artifact"] == {"cards": ["base"]}  # kept as-is — nothing is known to be wrong
+    assert out["seeded"] is False  # an unknown is not a refusal: the real artifact still serves
     assert out["provenance"]["validation"]["score"] is None
-    # a None verdict never escalates — the gate never blocks a serve on a flaky judge
+    assert "refusedAt" not in out  # so the next live serve re-arms the gate and scores it
+    # a None verdict never escalates — the gate never buys a rebuild on a flaky judge
     assert escalated["called"] is False
+    # and it is still provisional on disk: the judge gets another go, canonical stays unclaimed
+    loaded = store.load("photosynthesis", "compose", "core", {})
+    assert store.status(loaded) == store.PROVISIONAL
+    assert loaded["artifact"] == {"cards": ["base"]}
 
 
 # --- seeded escalation is refused (never best-of a floor) -------------------------------
@@ -203,7 +222,7 @@ def test_seeded_escalation_is_not_chosen(monkeypatch, cache_dir) -> None:
     def judge(_jm, _mo, _co, _art, **_k):
         return {"score": 40.0, "critical": False, "weak": [], "notes": ""}
 
-    # the escalation regeneration itself fell back to a seed — must NOT be promoted over the base
+    # the escalation regeneration itself fell back to a seed — must NOT be best-of'd over the base
     out = _promote(
         monkeypatch,
         record,
@@ -211,8 +230,12 @@ def test_seeded_escalation_is_not_chosen(monkeypatch, cache_dir) -> None:
         regen=lambda *_a: ({"cards": ["seed"]}, "seed", 0, True),
         escalation_model=_OPUS,
     )
-    assert out["artifact"] == {"cards": ["base"]}
-    assert out["provenance"]["model"] == "openai/gpt-5.6-terra"  # the GPT primary is kept
+    # best-of never scored the floor, so the base's own 40 is the number the gate acts on — and
+    # 40 is below the bar, so the gate refuses rather than promoting (wave 30, fix #4)
+    assert out["qualityFailure"]["base"]["score"] == 40.0
+    assert out["qualityFailure"]["rebuild"] is None  # a seeded rebuild is not a candidate
+    assert out["status"] == store.PROVISIONAL
+    assert out["provenance"]["model"] == "seed"
 
 
 # --- the cost rule (owner, 2026-09-02): generate by default, escalate ONE rung on failure ---
@@ -288,9 +311,10 @@ def test_superseded_loser_survives_promotion(monkeypatch, cache_dir) -> None:
     assert by_status[store.SUPERSEDED]["provenance"]["model"] == "openai/gpt-5.6-terra"
 
 
-def test_rejected_loser_survives_when_base_wins(monkeypatch, cache_dir) -> None:
-    """When the Opus rebuild loses best-of, the rebuild itself is kept as a rejected record — every
-    generated version persists, even the ones that never served."""
+def test_both_candidates_survive_a_refusal(monkeypatch, cache_dir) -> None:
+    """Neither candidate cleared the bar (60 and 20), so nothing is promoted — and BOTH are kept
+    in the immutable ledger as rejected records with their scores. Every generated version
+    persists, even the ones that never served (owner law), refusal included."""
     record = _provisional({"cards": ["base"]})
 
     def judge(_jm, _mo, _co, art, **_k):
@@ -305,10 +329,15 @@ def test_rejected_loser_survives_when_base_wins(monkeypatch, cache_dir) -> None:
         escalation_model=_OPUS,
     )
     versions = store.load_versions("photosynthesis", "compose", "core", {})
-    by_status = {v["status"]: v for v in versions}
-    assert by_status[store.CANONICAL]["artifact"] == {"cards": ["base"]}  # GPT base won
-    assert by_status[store.REJECTED]["artifact"] == {"cards": ["alt"]}  # losing rebuild kept
-    assert by_status[store.REJECTED]["provenance"]["model"] == _OPUS
+    assert not [v for v in versions if v["status"] == store.CANONICAL]  # nothing was promoted
+    rejected = {v["provenance"]["model"]: v for v in versions if v["status"] == store.REJECTED}
+    assert rejected["openai/gpt-5.6-terra"]["artifact"] == {"cards": ["base"]}
+    assert rejected["openai/gpt-5.6-terra"]["provenance"]["validation"]["score"] == 60.0
+    assert rejected[_OPUS]["artifact"] == {"cards": ["alt"]}  # the losing rebuild kept too
+    assert rejected[_OPUS]["provenance"]["validation"]["score"] == 20.0
+    # the refusal itself is a version: the honest seed that actually serves
+    refusal = [v for v in versions if v["status"] == store.PROVISIONAL and v.get("refusedAt")]
+    assert len(refusal) == 1 and refusal[0]["seeded"] is True
 
 
 # --- deterministic technical lint: a subtle SVG/spec defect routes a rebuild on the quality- ------
@@ -452,8 +481,12 @@ def test_lint_rebuild_also_broken_falls_to_seed_loudly(monkeypatch, cache_dir) -
     )
     assert judge_calls == []  # still no judge call
     assert rebuild_calls == [_GPT]
-    assert out["status"] == store.CANONICAL
-    assert out["seeded"] is True  # the honest floor, served as canonical
+    # Two frontier models failed the lint, so what is left is the topic-agnostic scaffold. It is
+    # served (a learner never sees an error) but it is neither canonical nor verified: this was
+    # the last seed path still claiming both, and the most reachable one in the system.
+    assert out["status"] == store.PROVISIONAL
+    assert out["verified"] is False
+    assert out["seeded"] is True  # the honest floor
     assert out["provenance"]["model"] == "seed"
     from wobo_gateway.plexus.lint import lint_artifact
 
@@ -477,3 +510,150 @@ def test_lint_clean_artifact_takes_the_normal_judge_path(monkeypatch, cache_dir)
     assert judged == [True]  # lint passed → the judge ran exactly once
     assert out["status"] == store.CANONICAL
     assert out["provenance"]["validation"]["score"] == 91.0
+
+
+# --- wave 30, fix #4: the gate has a refusal path ----------------------------------------
+# The finding: `validate.py` wrote `verified: true` and `status: canonical` on artifacts its own
+# judge had scored 0, 5, 8, 12, 18, 22, 28, 32 and 42 against a stated bar of 70 — one of them
+# scored 0.0 with `critical: true` and promoted thirty seconds later. Below the bar the gate now
+# refuses: the honest seed serves, the record stays provisional, and somebody is told.
+
+
+def _refused(monkeypatch, cache_dir, *, judge, regen=None, modality="compose", artifact=None,
+             escalation_model=_OPUS):
+    record = _provisional({"cards": ["base"]}) if artifact is None else artifact
+    monkeypatch.setattr("wobo_gateway.plexus.validate._judge", judge)
+    if regen is not None:
+        monkeypatch.setattr("wobo_gateway.plexus.engines._generate_live", regen)
+    return validate_and_promote(
+        concept="photosynthesis",
+        modality=modality,
+        difficulty="core",
+        scope={},
+        record=record,
+        judge_model=_OPUS,
+        escalation_model=escalation_model,
+    )
+
+
+def test_below_the_bar_refuses_to_the_seed(monkeypatch, cache_dir) -> None:
+    """A judge score under PASS_THRESHOLD never becomes canonical. The learner gets the honest
+    seed, plainly marked, and the failing draft is kept as a rejected version."""
+    out = _refused(
+        monkeypatch,
+        cache_dir,
+        judge=lambda *_a, **_k: {"score": 42.0, "critical": False, "weak": ["correctness"],
+                                 "notes": "off-syllabus"},
+        escalation_model="",  # no rebuild available — the base's own score decides
+    )
+    assert out["status"] == store.PROVISIONAL
+    assert out["seeded"] is True
+    assert out["artifact"] != {"cards": ["base"]}  # the failing draft is NOT what serves
+    assert out["provenance"]["model"] == "seed"
+    assert out["provenance"]["validation"]["score"] == 42.0
+    assert out["provenance"]["validation"]["passed"] is False
+    assert out["refusedAt"]
+    assert out["qualityFailure"]["threshold"] == PASS_THRESHOLD
+    assert out["qualityFailure"]["base"]["weak"] == ["correctness"]
+
+    loaded = store.load("photosynthesis", "compose", "core", {})
+    assert store.status(loaded) == store.PROVISIONAL  # nothing canonical was ever written
+    assert loaded["seeded"] is True
+    rejected = [v for v in store.load_versions("photosynthesis", "compose", "core", {})
+                if v["status"] == store.REJECTED]
+    assert [v["artifact"] for v in rejected] == [{"cards": ["base"]}]  # kept forever, not served
+
+
+def test_a_zero_scored_critical_artifact_never_promotes(monkeypatch, cache_dir) -> None:
+    """`physchem-accuracy-11` / `social-accuracy-12`: a diagram scored 0.0 with critical=True was
+    canonical thirty seconds later. A critical verdict is a refusal even when a rebuild ran."""
+    out = _refused(
+        monkeypatch,
+        cache_dir,
+        judge=lambda *_a, **_k: {"score": 0.0, "critical": True, "weak": ["correctness"],
+                                 "notes": "10 electrons drawn for an 11-electron atom"},
+        regen=lambda *_a: ({"cards": ["alt"]}, _OPUS, 1, False),
+    )
+    assert out["status"] == store.PROVISIONAL
+    assert out["seeded"] is True
+    assert out["provenance"]["validation"]["score"] == 0.0
+    assert out["qualityFailure"]["base"]["critical"] is True
+    assert out["qualityFailure"]["rebuild"]["critical"] is True
+    assert store.status(store.load("photosynthesis", "compose", "core", {})) == store.PROVISIONAL
+
+
+def test_a_refusal_alerts(monkeypatch, cache_dir) -> None:
+    """A gate that refuses in silence is a gate nobody fixes. The refusal pages, carrying the
+    score, the bar and the coordinate — and never the artifact."""
+    from wobo_gateway import alerts
+
+    raised: list = []
+    monkeypatch.setattr(alerts, "alert", lambda event, message, **f: raised.append(
+        {"event": event, "message": message, **f}))
+    _refused(
+        monkeypatch,
+        cache_dir,
+        judge=lambda *_a, **_k: {"score": 12.0, "critical": False, "weak": ["interactivity"],
+                                 "notes": ""},
+        escalation_model="",
+    )
+    assert len(raised) == 1
+    page = raised[0]
+    assert page["severity"] == alerts.CRITICAL
+    assert page["score"] == 12.0
+    assert page["threshold"] == PASS_THRESHOLD
+    assert page["modality"] == "compose" and page["concept"] == "photosynthesis"
+
+
+def test_an_unreachable_judge_alerts_and_promotes_nothing(monkeypatch, cache_dir) -> None:
+    from wobo_gateway import alerts
+
+    raised: list = []
+    monkeypatch.setattr(alerts, "alert", lambda event, message, **f: raised.append(
+        {"event": event, "message": message, **f}))
+    out = _refused(monkeypatch, cache_dir, judge=lambda *_a, **_k: None, escalation_model="")
+    assert out["status"] == store.PROVISIONAL
+    assert len(raised) == 1 and raised[0]["score"] is None
+    assert raised[0]["severity"] == alerts.WARN  # an outage, not a bad artifact
+
+
+def test_a_refused_film_is_never_queued_for_an_mp4(monkeypatch, cache_dir) -> None:
+    """The render worker bakes an MP4 from what the gate promoted. A refused film must not reach
+    it — a blank or wrong video is not worth rendering, and an MP4 outlives the record."""
+    clean_video = {"scenes": [{"id": "s1", "durationMs": 1000, "narration": "n",
+                               "visual": {"kind": "svg", "payload": _CLEAN_SVG}}]}
+    record = {**_provisional(clean_video), "modality": "video",
+              "provenance": {"engine": "engine.video", "model": "openai/gpt-5.6-terra",
+                             "prompt_version": "plexus-v4"}}
+    out = _refused(
+        monkeypatch,
+        cache_dir,
+        judge=lambda *_a, **_k: {"score": 8.0, "critical": True, "weak": [], "notes": "blank"},
+        modality="video",
+        artifact=record,
+        escalation_model="",
+    )
+    assert out["status"] == store.PROVISIONAL
+    assert not (cache_dir / "_render-queue.jsonl").exists()
+
+
+def test_a_refusal_is_terminal_and_still_serves(monkeypatch, cache_dir) -> None:
+    """The refusal must not turn into a bill. The seed it leaves is servable (so no learner sees
+    an error), it is NOT re-armed for validation (it is not a live draft), and it is not stale (so
+    the next request does not buy two more frontier generations of the concept that just failed).
+    A prompt_version bump still reopens it — a pause, not a grave."""
+    from wobo_gateway.plexus import engines
+
+    out = _refused(
+        monkeypatch,
+        cache_dir,
+        judge=lambda *_a, **_k: {"score": 5.0, "critical": False, "weak": [], "notes": ""},
+        escalation_model="",
+    )
+    # The record now holds the SEED, which nothing verified — the same flag `run_engine` writes
+    # for the seed it falls back to. `seeded` is what keeps it servable, not `verified`.
+    assert out["verified"] is False
+    assert engines.is_stale(out, "compose", live=True) is False  # served, not regenerated
+    assert out["seeded"] is True  # so engines never re-arms the gate on this record
+    stale_after_bump = {**out, "provenance": {**out["provenance"], "prompt_version": "plexus-v3"}}
+    assert engines.is_stale(stale_after_bump, "compose", live=True) is True

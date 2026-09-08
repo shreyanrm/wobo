@@ -419,6 +419,9 @@ def test_a_200_with_no_audio_is_asked_once_more_and_an_http_error_is_not(
     monkeypatch.setenv("GEMINI_API_KEY", "test-key-not-a-real-one")
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
 
+    # A DIFFERENT line each time on purpose: a line already spoken is served from the spoken-line
+    # cache and never reaches the vendor, which is what this test is about.
+
     # silent once, audio on the second ask: the line is spoken, and the prompt was the same twice
     answers[:] = [silent, audio]
     assert media.synthesize_narration("Look at the second term.") is not None
@@ -427,13 +430,13 @@ def test_a_200_with_no_audio_is_asked_once_more_and_an_http_error_is_not(
     # silent twice: given up, honestly, after exactly two asks
     calls.clear()
     answers[:] = [silent, silent, audio]
-    assert media.synthesize_narration("Look at the second term.") is None
+    assert media.synthesize_narration("Look at the third term.") is None
     assert len(calls) == 2
 
     # an HTTP error is not retried: one ask, then the client's fallback
     calls.clear()
     answers[:] = [urllib.error.HTTPError("u", 500, "INTERNAL", {}, None), audio]  # type: ignore[arg-type]
-    assert media.synthesize_narration("Look at the second term.") is None
+    assert media.synthesize_narration("Look at the fourth term.") is None
     assert len(calls) == 1
 
 

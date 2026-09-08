@@ -912,22 +912,20 @@ def test_artifact_cached_on_disk_keyed_by_concept_modality_difficulty(cache_dir)
     assert store.artifact_path("fractions", "compose", "stretch") != path
 
 
-# --- board-agnostic concept keying (SUBJECTS.md §9: never key content to board paths) ----
+# --- concept keying: what still shares one artifact, and what no longer does -------------
+# Wave 30 (SCORECARD §3.5 fix 6) narrowed this law. It used to read "the same topic under a
+# different board / grade is the SAME concept and reuses ONE verified artifact", and these two
+# tests asserted exactly that — which is how a CBSE class 3 request was served the ISC class 11
+# module byte-for-byte. Board, class and syllabus version now key. SUBJECT and CHAPTER still do
+# not: two boards filing one concept under different chapter names still share one artifact, and
+# that is where the reuse the cost economy depends on actually lives.
 
 
-def test_same_concept_across_boards_is_one_artifact() -> None:
+def test_same_concept_same_class_different_chapter_name_is_one_artifact() -> None:
     cbse = {"board": "CBSE", "grade": "8", "subject": "maths", "chapter": "c2"}
-    telangana = {
-        "board": "Telangana State Board",
-        "grade": "Class 8",
-        "subject": "maths",
-        "chapter": "c9",
-    }
+    cbse_other_school = {"board": "cbse", "grade": "Class 8", "subject": "maths", "chapter": "c9"}
     assert store.artifact_path("linear equations", "compose", "core", cbse) == store.artifact_path(
-        "linear equations", "compose", "core", telangana
-    )
-    assert store.artifact_path("linear equations", "compose", "core", {}) == store.artifact_path(
-        "linear equations", "compose", "core", cbse
+        "linear equations", "compose", "core", cbse_other_school
     )
     assert store.artifact_path("linear equations", "compose", "core") != store.artifact_path(
         "linear equations", "compose", "stretch"
@@ -937,7 +935,7 @@ def test_same_concept_across_boards_is_one_artifact() -> None:
     )
 
 
-def test_two_boards_same_concept_generate_once_serve_both(cache_dir) -> None:
+def test_a_different_board_is_a_different_artifact() -> None:
     cbse = {"board": "CBSE", "grade": "8", "subject": "maths", "chapter": "c2"}
     telangana = {
         "board": "Telangana State Board",
@@ -945,12 +943,26 @@ def test_two_boards_same_concept_generate_once_serve_both(cache_dir) -> None:
         "subject": "maths",
         "chapter": "c9",
     }
-    first = invoke("engine.compose", concept="linear equations", user="cbse-kid", **cbse)
+    assert store.artifact_path("linear equations", "compose", "core", cbse) != store.artifact_path(
+        "linear equations", "compose", "core", telangana
+    )
+    # and an unscoped call keeps the bare concept key — it is nobody's board in particular
+    assert store.artifact_path("linear equations", "compose", "core", {}) != store.artifact_path(
+        "linear equations", "compose", "core", cbse
+    )
+
+
+def test_two_schools_on_one_board_generate_once_serve_both(cache_dir) -> None:
+    cbse = {"board": "CBSE", "grade": "8", "subject": "maths", "chapter": "c2"}
+    cbse_other_school = {"board": "cbse", "grade": "Class 8", "subject": "maths", "chapter": "c9"}
+    first = invoke("engine.compose", concept="linear equations", user="kid-a", **cbse)
     assert first.tokens > 0
-    second = invoke("engine.compose", concept="linear equations", user="tel-kid", **telangana)
+    second = invoke(
+        "engine.compose", concept="linear equations", user="kid-b", **cbse_other_school
+    )
     assert second.tokens == 0
     assert first.output == second.output
-    base = store.artifact_path("linear equations", "compose", "core")
+    base = store.artifact_path("linear equations", "compose", "core", cbse)
     assert len(list(base.parent.glob("linear-equations--core--*.json"))) == 1
 
 

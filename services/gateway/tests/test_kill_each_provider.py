@@ -511,8 +511,10 @@ def test_kill_gemini_by_a_hang_and_a_spoken_line_waits_a_share_and_then_not_at_a
     monkeypatch.setenv("WOBO_PROVIDER_WEATHER_COOLOFF_S", "60")
     _keys(monkeypatch)
     http = _http(monkeypatch, google="hang", openai="up")
-    for _ in range(3):
-        assert media.synthesize_narration("A line.") is not None
+    # Three DIFFERENT lines: an identical line would be served from the spoken-line cache and
+    # never reach a vendor at all, and this test is about what the vendors are asked.
+    for i in range(3):
+        assert media.synthesize_narration(f"A line, the {i} one.") is not None
     google_calls = [r for r in http.requests if GOOGLE_HOST in r.full_url]
     assert len(google_calls) == health.hang_streak() == 2, "asked twice, then marked"
     assert http.timeouts[0] == media._PRIMARY_TIMEOUT_S
