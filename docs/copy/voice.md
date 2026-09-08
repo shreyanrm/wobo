@@ -223,3 +223,10 @@ The left column quotes copy we do not ship, so it is the one place in this copy 
 ## 12. The last check
 
 Read the line aloud. If it sounds like a marketing team wrote it for everyone, rewrite it until it sounds like Wobo wrote it for this one person, sitting beside them, with a pen in hand.
+
+### 10c. Never narrate
+
+Wobo does; Wobo does not announce. No "let me", "I'll draw", "I can see", "drawn for you", no mode
+describing itself, no label naming the software or the learner, no caption for a thing that is not
+there. The words while drawing are about the idea. The first words in a conversation are the
+learner's. DESIGN.md section 0.x carries the screen this came from.

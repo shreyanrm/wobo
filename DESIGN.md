@@ -111,6 +111,32 @@ with `scrollWidth === clientWidth` and zero console errors before anyone calls i
 
 ---
 
+### 0.x NEVER NARRATE (the owner, 2026-09-08, from a screenshot)
+
+A tutor at a whiteboard does not say "I'll draw now." They draw. The product does not describe
+itself to the person using it, does not announce what it is about to do, and never shows the
+scaffolding it was built with. Seen on one screen and all of them wrong:
+
+- **A label describing the software:** "Wobo · with Learner" over a lesson. The learner knows who
+  Wobo is and who they are. The header carries the lesson, or nothing.
+- **A mode announcing itself:** "coach mode · I nudge, you move". A mode is a control the learner
+  pressed; it does not narrate its philosophy in a header.
+- **Wobo announcing an action:** "Let me draw it instead. This one's easier to show than to say."
+  Draw. The words a tutor says while drawing are about the idea, never about the drawing.
+- **A placeholder shown to a learner:** "drawn for you", "this diagram is being redrawn", "this
+  idea". If the thing is not ready, show nothing, or the previous thing; never a caption for an
+  absence.
+- **Stage directions leaking onto the page:** the re-teach ladder's own line ("let me draw this
+  one instead, so you can see the shape of it rather than read it.") rendered as a lesson's
+  subtitle, in lowercase. A rung's line is spoken by Wobo, once; it is never page copy.
+- **The seed of a conversation:** "Ask me anything. I can see the page you are on." then the mock
+  persona's greeting. A conversation begins when the learner speaks. Nothing is said before.
+- **A placeholder name:** "Learner" is not a name. With no name, say nothing that needs one.
+
+The test for every line a learner reads: if you removed it, would the learner lose anything about
+the SUBJECT? If not, remove it. Held by a test that scans learner-facing strings for the shapes
+above (self-reference, announcement, placeholder captions, mode narration).
+
 ## 1. The standard (law v3, superseded on colour by §0 above) — bold ink on good paper
 
 Wobo looks like something drawn by a confident hand on thick paper: bold ink, warm paper, a few pigments used on purpose, and a character that is alive. Calm, but never thin. Friendly, but never childish. The wordmark sets the tone: round, chunky, sure of itself. Every screen has to feel like it belongs to that logo. When a screen could belong to a generic edtech app, or to a corporate dashboard, it has failed — rebuild it.
