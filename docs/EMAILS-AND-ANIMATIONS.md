@@ -89,3 +89,55 @@ for the destination.
   `screens/doubt`, under never-narrate, measured at 390 and 1440, both themes, reduced motion.
 - The router's card segment and the signed link; the superadmin's mail desk: sends, opens, clicks,
   unsubscribes per kind, and the switch per kind.
+
+## 6. Landing in Primary, not Promotions
+
+**The owner, later the same day:** *"They use such wording or tactics that their mails do not end up
+in Updates or Promotions or Spam; they come straight to Primary. We need to do that too."*
+
+Gmail's tabs are a classifier over three things: whether the sender is authenticated and known, what
+the mail looks like, and what people do with it. Brilliant lands in Primary because all three are
+in order. Ours, measured on 2026-09-08: **none of the three exist yet.** `heywobo.com` publishes no
+SPF, no DKIM, no DMARC and no MX record; Resend has no verified domain; so the gateway holds every
+live send as `domain_unverified` and not one mail from Wobo has ever reached an inbox. Wording is the
+third thing; the first two come first.
+
+**First, the identity (an owner action, half an hour, once):**
+1. Add `heywobo.com` in Resend (region: the nearest to India) and put its three records into Vercel
+   DNS: the DKIM `TXT` at `resend._domainkey`, the SPF `TXT` and the `MX` for the bounce address
+   at `send.heywobo.com` (a sending subdomain keeps bounces and reputation off the root).
+2. Publish DMARC: `_dmarc.heywobo.com TXT "v=DMARC1; p=none; rua=mailto:dmarc@heywobo.com"`,
+   then `p=quarantine` after two clean weeks. Gmail's 2024 sender rules require SPF, DKIM, an
+   aligned DMARC, one-click `List-Unsubscribe-Post` (we send it), a spam rate under 0.3 percent,
+   and a valid forward and reverse DNS on the sender. Without these the mail goes to spam or is
+   dropped regardless of the words in it.
+3. Register the domain in Google Postmaster Tools; the spam rate and the reputation there are the
+   only honest measurement, and they belong on the superadmin's mail desk.
+4. Put a real mailbox behind `hello@heywobo.com` and `support@heywobo.com`, and read replies.
+   Replies are the strongest Primary signal Gmail has; a sender nobody can answer is a promotion.
+
+**Then, the shape (the gateway enforces every line; the wave writes the tests):**
+- One sender, always: `Wobo <hello@heywobo.com>`. Never `noreply`, never a second address, never a
+  different display name per kind. The address that sent the welcome sends the streak.
+- A person's mail, not a campaign's: text first, one image (the orb), one link. Gmail files
+  image-heavy multi-link mail with a footer full of badges in Promotions. Brilliant's badges sit
+  below a hairline, small, and are the ONLY extra links; we do the same or drop them.
+- Under 120 words. No promotional vocabulary: no "free", "offer", "unlock", "limited", "%", no
+  exclamation mark, no ALL CAPS, no emoji in the subject. A test scans every template and subject.
+- The subject is the learner's name and a verb, and the first line of the body carries something
+  only this learner would get (the chapter, the card count, the day of the streak). Personal is not
+  a trick here; it is the inbox law's content rule.
+- No open-tracking pixel and no click-tracking rewrite (Resend's tracking stays OFF for the
+  domain); tracked links are a promotion signal and a privacy cost, and children's mail must not
+  carry them. Opens are not measured; clicks are measured on our side by the deep link landing.
+- `List-Unsubscribe` and `List-Unsubscribe-Post` on every nudge (already there), one click, no
+  login. Honouring it instantly is a Primary signal; ignoring it is the spam signal.
+- Send from a warm domain: the first fortnight sends only welcomes and Sunday notes, then the
+  nudges, and volume grows with the learner count, never in a burst. A daily send cap in the
+  gateway, raised by the superadmin, not by a deploy.
+- Every send is one address per twenty-four hours (the inbox law), which also keeps the volume
+  shape human.
+
+**Then, the proof:** a seed test before launch and monthly after: the five mails to a Gmail, an
+Outlook and a Yahoo inbox we own, and the tab each lands in recorded on the mail desk. Placement is
+measured, not assumed.

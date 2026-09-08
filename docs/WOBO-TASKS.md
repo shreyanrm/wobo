@@ -712,8 +712,9 @@ needed it was asked and the answer is recorded beside the task.
 - [ ] **Wave 32** `wf_c2d87ad5-6a6` — site (10), learn (7), board-5/6, the web half of the content fixes, the films
 - [ ] **Wave 33** `wf_62f56aa1-73a` — the ink judged on four real surfaces, six lenses, a skeptic each
 - Queued, in order, each after the tree is still: **35** never narrate (§10.36), **34** the parent account's
-  screens (§10.37), **36** the daily allowance + the models desk + promo codes (§10.38), then the content
-  re-judge (the same twelve cells, six judges) once the fixes and the concept-cache design have landed.
+  screens (§10.37), **36** the daily allowance + the models desk + promo codes (§10.38), **37** the content design
+  (docs/CONTENT-INTERACTION.md + docs/CACHES.md), **38** mail and the orb (docs/EMAILS-AND-ANIMATIONS.md), then
+  the content re-judge (the same twelve cells, six judges).
 ### 10.12 Cancel, never refund (owner, 2026-09-04)
 - [ ] **The site promises a feature that does not exist.** `screens/plans/copy.ts:143` prints
       "You → Your plan → Cancel. Two taps, no call, no 'are you sure' maze." There is no
@@ -1469,3 +1470,12 @@ from the console with an audit row. Wave 36.
 - The right-click and download guard is WRITTEN (guard.ts, guard.css, its tests) and parked in the scratchpad:
   its test needs the happy-dom package and the wiring touches files wave 32 is editing; it lands with wave 35.
 - docs/OPERATIONS.md 8 told the truth again about applied migrations.
+
+### 10.40 The mail has never left the building (2026-09-08, on the Primary-tab question)
+
+The owner asked how Brilliant lands in Primary. Measured: `heywobo.com` has no SPF, DKIM, DMARC or MX
+on any public resolver and Resend has no verified domain, so `EMAIL_MODE=live` on Railway has been
+holding every send as `domain_unverified`. Nothing has reached anyone. The fix is DNS, an owner
+action (docs/EMAILS-AND-ANIMATIONS.md §6, four steps), and then wave 38 enforces the shape and the
+seed test measures placement. Add to the owner's list in §10.27: (18) add the domain in Resend and
+the three records plus DMARC in Vercel DNS; (19) a real mailbox behind hello@ and support@.
