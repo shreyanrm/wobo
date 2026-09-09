@@ -1742,3 +1742,18 @@ grant and revoke each capability per person from the console with an audit row; 
 console's panels, read and act separately; a panel a person cannot read is absent rather than greyed,
 and its route refuses them; adding a person is the owner's action alone, with a second factor before
 the first sign-in. Queued as a wave after the three now running.
+
+### 10.56 The first learner on a board never sees an empty shelf (owner, 2026-09-09)
+
+*"We should never show no syllabus. Put them on a loading screen since it's the first ever user for
+that board while we fetch the actual syllabus, and the next user selecting the same board lands there
+immediately."* Specified in docs/BOARD-COLD-START.md. The correction that improves it: a first
+extraction is 30 seconds to a few minutes (search, fetch, read, verify, publish), so the learner is
+never held. Instead, **teaching does not need the syllabus** because the concept cores are
+board-agnostic: they get a designed wait of about eight seconds, and if the syllabus has not landed
+they begin on the class-and-subject plan every board shares while theirs is read behind them, and
+their climb re-anchors quietly when it arrives. Every learner after them arrives instantly. The phrase
+"no syllabus stored yet" leaves the product. Prewarm by student population so a first learner is rare;
+one job per board at a time; refusals remembered and sent to the console; the platform pays from the
+creative pool with a per-board and per-day budget and an alert. Queued after the running waves,
+alongside 10.54's switch-on of the discovery worker.
