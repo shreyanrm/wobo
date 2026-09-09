@@ -1774,3 +1774,21 @@ is permanent; **iOS after that**, because Apple rejects thin wrappers and it nee
 app**, as a recommendation rather than a deferral, since there is no desktop discovery surface for this
 audience and the web app already installs on a laptop. Everything that makes a store app good is web
 work already in the plan, so the builds become packaging rather than a project.
+
+### 10.58 Gamification is feedback, not points (owner, 2026-09-09)
+
+Audited: the structure is all there (XP, streaks, awards, the trophy room, boss battles across 38
+files, the climb's frontier, and a topic ring that ignites in its subject's pigment when mastered), and
+the motion package is real (Ignite, CountUp, SpringBar, Magnetic, Ripple, entrance, focus, annotation,
+constellation ignite, reduced-motion, easing tokens). **It is used in eleven files and most of them are
+marketing pages**: MeetWobo, the reveals, the ask block, plans and the landing are animated while the
+learning surfaces are still. That is a beautifully animated brochure in front of a still product, and
+it is why experience has been the lowest lens in every round of judging (0.56, then 1.34).
+
+docs/FEEL.md is the law: every moment a learner acts, the product answers in motion within 100 ms and
+the number moves after, as confirmation. Ten moments named, each with what it looks like. Subtle means
+under 400 ms, never blocking, never loud, reduced motion a still with the spark. What is missing: the
+motion package wired into any learning surface, a single earned-moment component (today no place owns
+"something good just happened"), the twelve orb moves, the arcade's screen, and two or three tiny
+optional sounds. It ships with the animation library because it is the same work, and after the ink
+scores four, because a celebration on top of a mark that missed is worse than none.

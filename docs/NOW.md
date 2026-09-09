@@ -40,6 +40,8 @@ updated in the same breath as the decision, not later.
 | The press page and the launch assets | docs/GROWTH-PRESS.md, docs/copy/press-kit.md |
 | The adaptive line on the public pages | docs/copy/growth/lines.md, WOBO-TASKS 10.47 |
 | Chapter pages tier two: the drawn explanation and three questions | docs/GROWTH-SEARCH.md, needs 37 |
+| The felt moments: every reward wired to motion, one earned-moment component, the sounds | docs/FEEL.md |
+| The arcade: bonus levels mid-climb | docs/CONTENT-INTERACTION.md section 7, ships with wave 37 |
 | The Android shell | docs/PLATFORMS.md — **held until the owner walks the web version and is satisfied** |
 | The 67 handcrafted pages, designed one at a time | docs/GROWTH-SEARCH.md section 6 |
 
