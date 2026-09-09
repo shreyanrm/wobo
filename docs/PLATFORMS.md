@@ -66,6 +66,29 @@ plan: offline lessons, a fast cold start on a cheap Android phone, the camera pa
 push notifications, and the install prompt in the right place. Doing these makes the web app better on
 its own and turns the store builds into packaging rather than a project.
 
-## 6. The order, in one line
+## 6. The gate is the owner's own review (owner, 2026-09-09)
 
-Reserve both names this week. Build the web app to four out of four. Ship Android. Then iOS. No desktop.
+*"On the mobile and desktop apps, I want the web version to be ready. I view it and test it, and then
+when I am satisfied is when we will implement it."*
+
+So the gate is not a score and not a date. **No store build begins until the owner has walked the web
+version end to end and said it is ready.** Four out of four on the ink and the first real boards are
+what make that walk worth doing, not a substitute for it.
+
+What that means in practice:
+
+- Every hour that would have gone into a shell goes into the web version instead, which is where the
+  work belongs anyway: offline lessons, a fast cold start on a cheap Android phone, the camera path,
+  share targets, notifications, and the install prompt in the right place. All of it makes the web
+  version better on its own and turns the store builds into packaging.
+- When the owner is ready to walk it, they get a clean build and a route through every surface: the
+  door, onboarding, a lesson with the ink, a photographed doubt, the arcade, the parent's view, the
+  plans, the console. Not a demo, the real thing, on a real phone.
+- The one thing that is not an implementation and does not wait, if the owner wants it: **reserving the
+  name Wobo in both stores**, which is a form rather than a build, protects a first-come namespace, and
+  is a strong entity signal on its own. That is the owner's call, and everything else holds.
+
+## 7. The order, in one line
+
+Build the web version until the owner walks it and is satisfied. Then Android. Then iOS. No desktop.
+Reserve the two store names whenever the owner chooses, since that is a namespace rather than a build.

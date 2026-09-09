@@ -40,7 +40,7 @@ updated in the same breath as the decision, not later.
 | The press page and the launch assets | docs/GROWTH-PRESS.md, docs/copy/press-kit.md |
 | The adaptive line on the public pages | docs/copy/growth/lines.md, WOBO-TASKS 10.47 |
 | Chapter pages tier two: the drawn explanation and three questions | docs/GROWTH-SEARCH.md, needs 37 |
-| The Android shell | docs/PLATFORMS.md |
+| The Android shell | docs/PLATFORMS.md — **held until the owner walks the web version and is satisfied** |
 | The 67 handcrafted pages, designed one at a time | docs/GROWTH-SEARCH.md section 6 |
 
 ## Waiting on the owner, and nothing else
@@ -48,7 +48,7 @@ updated in the same breath as the decision, not later.
 | What | Why it matters | Effort |
 |---|---|---|
 | Claim @heywobo everywhere, and linkedin.com/company/wobo | a handle is first-come and unobtainable once noticed | an hour |
-| Reserve the app name Wobo in Play Console and App Store Connect | same, plus it is a strong entity signal | a form, about 10,500 rupees a year |
+| Reserve the app name Wobo in Play Console and App Store Connect | a namespace, not a build; the owner's call whether to do it now | a form, about 10,500 rupees a year |
 | Add heywobo.com in Resend and put the three records plus DMARC in DNS | until this is done, not one mail has ever been delivered | half an hour |
 | A real mailbox behind hello@ and support@ | replies are the strongest inbox signal there is | minutes |
 | Set WOBO_DISCOVERY_WORKER on Railway | 264 boards are named and empty until this runs | one variable |
@@ -58,6 +58,15 @@ updated in the same breath as the decision, not later.
 | Razorpay keys | checkout answers 503 until they exist | minutes |
 | Turn on Supabase leaked-password protection | an open advisory | one switch |
 | Push the branch | 100 or so commits sit local | one command |
+
+## The owner's walk, which gates the store apps
+
+Before any store build, the owner walks the web version end to end on a real phone and says whether it
+is ready. What that walk needs from us, and it is the same work that makes the store apps good anyway:
+the ink at four out of four, the first real boards, offline lessons, a fast cold start on a cheap
+Android phone, the camera path, share targets, notifications, and the install prompt in the right place.
+When it is close, the owner gets a clean build and a route through every surface: the door, onboarding,
+a lesson with the ink, a photographed doubt, the arcade, the parent's view, plans, and the console.
 
 ## Landed today
 
