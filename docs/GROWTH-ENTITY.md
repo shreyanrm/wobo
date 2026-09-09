@@ -88,3 +88,44 @@ the number of first-page results we own; whether Google shows a knowledge panel 
 says; and a standing prompt to each answer engine asking what Wobo is, with the answer recorded. The
 day all five engines answer "an AI tutor for Indian school students" without a qualifier in the
 question, the name is ours.
+
+## 7. The handles: claim them today
+
+Checked 2026-09-09. Only YouTube, X, GitHub, LinkedIn, Substack and Product Hunt give a truthful
+answer from outside; Instagram, Threads, Pinterest and Telegram return success for any string, so
+those four must be checked by hand while signed in.
+
+| Platform | `wobo` | `heywobo` | `wobolearn` | `woboai` |
+|---|---|---|---|---|
+| YouTube | taken | **free** | free | taken |
+| X | taken | **free** | free | taken |
+| GitHub | taken | **free** | free | taken |
+| LinkedIn company | **free** | **free** | free | taken |
+| Substack | taken | **free** | free | free |
+| Product Hunt | taken | **free** | free | free |
+
+**The decision: `@heywobo` everywhere, and `linkedin.com/company/wobo` as well.**
+
+`heywobo` is free on every platform that answers truthfully, it is exactly our domain, and it follows
+the pattern of the product the owner admires (heyclicky.com posts as heyclicky). One handle used
+identically everywhere is worth more than a better handle used inconsistently, because sameness is
+what makes an engine confident. The bare `wobo` LinkedIn company page is free and a company page is
+one of the strongest entity signals there is, so take that one under the bare name and point it at
+heywobo.com.
+
+**Claim in this order, today, before anything draws attention to the name.** A handle costs nothing
+now and is unobtainable once somebody notices the product.
+
+1. LinkedIn company page at `company/wobo`, named Wobo, with the one line from docs/copy/press-kit.md
+2. YouTube `@heywobo` (this is also where the drawn explanations live, so it matters twice)
+3. X `@heywobo`
+4. GitHub organisation `heywobo`
+5. Product Hunt `heywobo`, ready for the launch
+6. Substack `heywobo`, parked even if the newsletter lives elsewhere
+7. Instagram, Threads, Pinterest, Telegram, TikTok, Reddit, Discord, Medium and Quora: check each
+   while signed in and take `heywobo`, falling back to `wobolearn` if one is gone
+8. Reserve the app name **Wobo** in Play Console and App Store Connect, which is a separate namespace
+   from every handle above and one of the strongest signals an engine reads
+
+Every one of them carries the identical one line, the same orb icon, the same wordmark, and a link to
+heywobo.com. Where a platform allows a second link, it points at the press page.

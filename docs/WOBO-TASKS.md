@@ -1648,7 +1648,13 @@ for the bare word, win every qualified query and the Indian market, and the word
 because entity resolution is per-market and follows the people. Checked today: `wobo.com`, `.in`,
 `.ai`, `.app`, `.io` are taken; **`wobo.ink` and `wobo.co.in` are available**, the first being the
 better brand asset we could own (we are the tutor that draws), the second being the strongest per-market
-signal. Owner actions: register those two and park the education set; file the trademark in India in
+signal. **The handles, checked 2026-09-09 (docs/GROWTH-ENTITY.md section 7):** bare `wobo` is taken on
+YouTube, X, GitHub, Substack and Product Hunt, but **free on LinkedIn as a company page**; **`heywobo`
+is free on every platform that answers truthfully**. The decision: `@heywobo` everywhere plus
+`linkedin.com/company/wobo`, claimed today, before the name draws attention. Instagram, Threads,
+Pinterest and Telegram return success for any string so they must be checked by hand while signed in.
+Owner actions: claim the handles in the order listed; reserve the app name Wobo in both stores;
+register `wobo.ink` and `wobo.co.in` and park the education set; file the trademark in India in
 classes 41 and 9; create the ten listings with the copy in docs/copy/press-kit.md unchanged. Ours:
 pre-render the site, the press page, the sameAs graph, the chapter pages, and the monthly measure of
 what each answer engine says Wobo is.
