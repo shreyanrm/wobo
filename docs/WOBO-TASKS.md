@@ -1612,7 +1612,12 @@ and Education Q&A remain. `llms.txt` is read by nobody today (Google says so; 97
 never fetched). AI Overviews roughly halve clicks where they appear, so the goal is to be the named
 recommendation, not the blue link.
 
-Written today: docs/GROWTH-PRESS.md (press, awards, listings, and the entity problem). To write when
-the remaining readers land: docs/GROWTH-SEARCH.md (the technical fixes, the chapter-page programme,
-the schema set) and docs/GROWTH-DESK.md (the daily content engine and what may be automated per
-channel). The build waves follow the ink (41), the rebrand sweep (40) and the queue.
+Written today: docs/GROWTH-PRESS.md (press, awards, listings, the entity problem) and
+docs/GROWTH-DESK.md (the content engine). The desk's two rulings, both from the readers: **the learner
+app is never measured by a third party** (DPDP Act 2023 s.9(3) bars tracking or behavioural monitoring
+of anyone under 18, absolutely, and parental consent does not cure it; Google does not withhold IP
+logging for Indian traffic), so measurement splits physically at the sign-in door, Plausible on the
+public site and first-party counters in the gateway for the app; and **Reddit and Quora are never
+automated** (Reddit's bans are tuned for exactly that pattern, Quora has no write API), so the machine
+drafts and a person posts. Still to write when the last two readers land: docs/GROWTH-SEARCH.md. The
+build waves follow the ink (41) and the rebrand sweep (40).
