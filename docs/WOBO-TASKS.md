@@ -1880,3 +1880,18 @@ deploy**: `doors_open` in ops.settings, default false, refused at the gateway wi
 copy following within a minute; a test proves no path creates an account while it is off. Nineteen
 places saying "Start free" become the invitation. It reopens when the owner has walked the web version
 and is satisfied, the same gate as the store apps, and everyone on the list gets one mail that day.
+
+### 10.64 The wait is worth something (owner, 2026-09-09, from ChatGPT's loading game)
+
+docs/THE-WAIT.md. Three lengths, decided when the wait starts because we know what we asked for: under
+2 seconds, nothing but the orb's breath; 2 to 10 seconds, the orb doing the subject's thing; over 10
+seconds, **a light game, offered and never imposed**. The long waits are real and named: composing a
+course, rendering a film, reading a photographed page, and the first learner on a board whose syllabus
+is being read. Ours can beat ChatGPT's because theirs is a generic dot grid: they have no subject and we
+do. Four games, each **composed rather than authored** like the celebrations: Trace (the concept's own
+generated sigil as a dotted outline to draw over), Catch (the concept's parts drifting in the subject's
+pigment), Line up (steps or dates the learner already finished), and Just dots (pure play, for a child
+who does not want to be taught anything). Mostly play, lightly seasoned, never scored, never recorded,
+never shown to a parent: nothing that happens in a wait is evidence of anything. Seven rules keep it
+from annoying, and the first is that the content arriving always wins, immediately, mid-move. Ships
+with the animation library.

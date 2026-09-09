@@ -42,6 +42,7 @@ updated in the same breath as the decision, not later.
 | The adaptive line on the public pages | docs/copy/growth/lines.md, WOBO-TASKS 10.47 |
 | Chapter pages tier two: the drawn explanation and three questions | docs/GROWTH-SEARCH.md, needs 37 |
 | The felt moments: every reward wired to motion, one earned-moment component, the sounds | docs/FEEL.md |
+| The wait: the orb for short waits, a light game for long ones, composed per concept | docs/THE-WAIT.md |
 | The reward system: composed celebrations, the sky, the try-again ladder | docs/REWARDS.md |
 | Levels from XP with a rising curve, the earning rates, the anti-farming rules | docs/LEVELS.md |
 | The arcade: bonus levels mid-climb | docs/CONTENT-INTERACTION.md section 7, ships with wave 37 |
