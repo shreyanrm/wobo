@@ -1585,3 +1585,34 @@ The local folder: `~/Documents/classess-learner` becomes `~/Documents/wobo` once
 (the running wave's workers hold absolute paths). The rename moves this project's memory directory to
 the new key, recreates the Python environment (`uv sync`), rewrites `.claude/settings.local.json`, and
 the next session starts in the new folder.
+
+### 10.49 Search, the growth desk, press: what the readers found (2026-09-09)
+
+The owner asked for SEO, GEO and AEO "at god tier level", a content engine that posts all day, and
+press on the top media sites. Seven readers went out. What has landed so far, and it is the biggest
+marketing fact of the build:
+
+**No major AI crawler runs JavaScript, and our public site is a client-rendered app.** Every one of
+the 61 URLs in our sitemap returns the same 3.3 KB shell with the title "Wobo", one description, and
+a canonical pointing at the home page, so ChatGPT search, Perplexity and Claude see ONE page of about
+thirty words and treat every help article as a duplicate of the home page. Google renders and can
+read us, but takes the root canonical first. `/llms.txt` and any removed path return the shell with a
+200, so every wrong URL is a soft success. Fixing this is the single highest-value piece of work in
+growth: pre-render the public pages to real HTML at build time, per-page title, description and
+canonical, real static files for robots and llms.txt, and a 404 that is a 404.
+
+**"Wobo" is already somebody's entity.** wobo.ai (a job-search app) and wobo.app (workbooks) own the
+name in every engine; asked about "Wobo AI tutor" an engine answers about the job app. Entity work
+(listings, press, awards, a consistent one-line description everywhere) is the only fix, and it is
+what docs/GROWTH-PRESS.md is for.
+
+**Schema matters less than it used to:** Google ended FAQ rich results (May 2026), HowTo (2023),
+Course info (Sept 2025), practice problems (Nov 2025). Organization, SoftwareApplication, Course list
+and Education Q&A remain. `llms.txt` is read by nobody today (Google says so; 97 percent of them are
+never fetched). AI Overviews roughly halve clicks where they appear, so the goal is to be the named
+recommendation, not the blue link.
+
+Written today: docs/GROWTH-PRESS.md (press, awards, listings, and the entity problem). To write when
+the remaining readers land: docs/GROWTH-SEARCH.md (the technical fixes, the chapter-page programme,
+the schema set) and docs/GROWTH-DESK.md (the daily content engine and what may be automated per
+channel). The build waves follow the ink (41), the rebrand sweep (40) and the queue.
