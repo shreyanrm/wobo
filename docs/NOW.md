@@ -14,7 +14,6 @@ updated in the same breath as the decision, not later.
 | What | Wave | Where it is |
 |---|---|---|
 | Four out of four on the ink | 42 | loops build, judge, close until every lens scores 4 |
-| The door closed, the list in its place | 46 | launched; nothing deploys until it lands |
 | The public site becomes readable by crawlers | 43 | pre-render, real 404s, one address per document, previews, the entity graph |
 | The page families | 44 | the open syllabus door, then chapters, topics, subjects, comparisons, the blog |
 
@@ -53,6 +52,8 @@ updated in the same breath as the decision, not later.
 
 | What | Why it matters | Effort |
 |---|---|---|
+| **Supabase: turn off "Allow new users to sign up" and anonymous sign-ins** | the only way an account can still be made; the gateway refuses them everywhere else | two clicks |
+| **Apply migrations 0024 then 0025** | the doors dial and the list have nowhere to live until then | two files |
 | Claim @heywobo everywhere, and linkedin.com/company/wobo | a handle is first-come and unobtainable once noticed | an hour |
 | Reserve the app name Wobo in Play Console and App Store Connect | a namespace, not a build; the owner's call whether to do it now | a form, about 10,500 rupees a year |
 | Add heywobo.com in Resend and put the three records plus DMARC in DNS | until this is done, not one mail has ever been delivered | half an hour |

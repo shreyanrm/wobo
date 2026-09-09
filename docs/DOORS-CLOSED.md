@@ -72,3 +72,25 @@ Nothing on the public pages implies the product is open. Nothing implies it is c
 The dial goes back on when the owner has walked the web version and is satisfied (docs/PLATFORMS.md),
 which is the same gate as the store apps. On that day everyone on the list gets one mail, and it is the
 launch.
+
+## 7. The one thing code cannot close (found by the wave's own adversary, 2026-09-09)
+
+The gateway refuses every path, the app mints no session, and a record written after the closure is
+not treated as an existing account. But **an account is created at the auth server, not at our
+gateway**, so a stranger pressing "Continue with Google" still mints a Supabase user. They can do
+nothing with it: every authenticated route answers 403 and the product never sees them as a learner.
+The row exists anyway, and that is untidy rather than dangerous.
+
+**Two switches in the Supabase dashboard close it properly, and they are the owner's:**
+
+1. Authentication, then Sign In and Providers: **turn off "Allow new users to sign up"**.
+2. In the same place: **turn off anonymous sign-ins**.
+
+Both are reversible in a click on the day the door opens, and both belong beside the `doors_open` dial
+in the reopening checklist. Until they are flipped, the door is closed in every way that affects a
+person and open in the one way that leaves a stray row.
+
+The other half, also the owner's and lower priority: `learner.profiles_cache` lets a signed-in learner
+insert their own row, which the gateway now neutralises by refusing any record younger than the
+closure. A policy on that table would close it at the database as well. It was deliberately not
+written by the wave, because a mistake there breaks sign-up permanently for everyone.

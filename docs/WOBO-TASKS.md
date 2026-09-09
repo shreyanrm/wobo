@@ -1895,3 +1895,18 @@ who does not want to be taught anything). Mostly play, lightly seasoned, never s
 never shown to a parent: nothing that happens in a wait is evidence of anything. Seven rules keep it
 from annoying, and the first is that the content arriving always wins, immediately, mid-move. Ships
 with the animation library.
+
+### 10.65 Wave 46 landed: the door is shut, and its adversary earned its keep (2026-09-09)
+
+The gateway half was unbreakable: every authenticated route refuses an anonymous or unknown principal,
+the five account paths are refused before any principal is read, the fail-closed posture holds in every
+direction (no row, no project, timeout, unreachable), data rights stay open, and existing accounts were
+proven unaffected rather than assumed. **The adversary got in twice anyway**, because account creation
+happens at the auth server: "Continue with Google" minted a real user, and the app minted anonymous
+ones. The fixer closed both: the SDK now mints no session unless the dial says a plain yes, and the
+gateway refuses any `profiles_cache` record younger than the closure, using the one column a learner
+cannot write (`created_at`, always the database's own clock). It also found the list nobody could
+reach (three shape mismatches between the web's post and the gateway's contract, all live in the built
+files) and a one-way valve where the dial could be shut and never reopened. Suites: web 3140, sdk 177,
+gateway green, typecheck clean. **Two owner switches remain and code cannot do them**: turn off "Allow
+new users to sign up" and anonymous sign-ins in Supabase, and apply migrations 0024 and 0025.
