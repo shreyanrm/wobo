@@ -13,7 +13,8 @@ updated in the same breath as the decision, not later.
 
 | What | Wave | Where it is |
 |---|---|---|
-| Four out of four on the ink | 42 | just launched; loops build, judge, close until every lens scores 4 |
+| Four out of four on the ink | 42 | loops build, judge, close until every lens scores 4 |
+| The door closed, the list in its place | 46 | launched; nothing deploys until it lands |
 | The public site becomes readable by crawlers | 43 | pre-render, real 404s, one address per document, previews, the entity graph |
 | The page families | 44 | the open syllabus door, then chapters, topics, subjects, comparisons, the blog |
 
@@ -32,7 +33,6 @@ updated in the same breath as the decision, not later.
 
 | What | Where it is specified |
 |---|---|
-| **The door is closed: no new accounts, a list instead, one dial** | docs/DOORS-CLOSED.md — urgent, ships before the pages deploy |
 | The learning model: chapter pools of modules, groups chosen per learner | docs/LEARNING-MODEL.md — changes the blueprint, progress and the climb |
 
 | The board changes once, then a person handles it | docs/CONSOLE-ROLES-AND-BOARD.md |
