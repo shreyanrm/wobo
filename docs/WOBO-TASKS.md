@@ -1652,3 +1652,28 @@ signal. Owner actions: register those two and park the education set; file the t
 classes 41 and 9; create the ten listings with the copy in docs/copy/press-kit.md unchanged. Ours:
 pre-render the site, the press page, the sameAs graph, the chapter pages, and the monthly measure of
 what each answer engine says Wobo is.
+
+### 10.52 The search law, and the market that left the field open (2026-09-09)
+
+docs/GROWTH-SEARCH.md is written from all five readers. The two facts that matter most:
+
+**The category has abandoned organic search.** Khanmigo has 9 indexed pages, Photomath has no sitemap,
+Gauth blocks crawlers. School search is held by decaying content farms: Vedantu (343k pages, solutions
+behind a sign-in), Allen (8.27M doubt pages, zero structured data, it absorbed Doubtnut), Byju's
+(frozen on the 2023-24 syllabus, still listing a chapter the board removed) and Toppr (offline since
+its certificate expired in April 2025). Physics Wallah is the one to respect. **Nobody ships an
+original explanatory figure with image or video markup**; Vedantu's video sitemap holds three URLs.
+Our product is a tutor that draws, so the wedge is unguarded.
+
+**Our site cannot be read.** All 61 sitemap URLs return the same 3,338-byte shell; the canonical is
+hardcoded to the root so every page tells crawlers it is the home page; the social tags never change
+so every shared link previews as the home page; there is no preview image, no card and no structured
+data anywhere; every legal document exists at two self-canonicalising addresses; every missing path
+returns success, including /llms.txt and /favicon.ico; mobile layout shift is 0.243.
+
+Honest publishable inventory: 4 boards, 13 classes, 50 subjects, 333 chapters (181 with topics; ICSE
+and ISC have none), 711 topics, 3,948 concept slugs, every node carrying its source document, page,
+hash and checks. **That provenance is the rarest asset we own** and no competitor can copy it. Order
+of work in the law: pre-render first (nothing else counts until it is done), then the schema that
+still earns something, then the 333 chapter pages at tier 1, then tier 2 and the glossary as the
+concept cores land.
