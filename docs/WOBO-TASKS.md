@@ -1693,3 +1693,38 @@ never "HeyWobo" and never "Hey Wobo" as a name; heywobo.com is an address and @h
 so a listing's name field says Wobo and its website field says heywobo.com. "Hey Wobo" is allowed only
 as speech, because that is how a learner summons the tutor. `wobo.ink` and `wobo.co.in` are noted as
 free and worth having later; `wobo.com` or `wobo.co` is the eventual purchase.
+
+### 10.54 Four boards work, 268 are named, and most of India is in neither (2026-09-09)
+
+Asked whether it is only 4 boards or only the UI. It is both, and the gap is the biggest hole in the
+product, not just in search. Measured in production today:
+
+| | |
+|---|---|
+| frameworks named in the registry | 268, across 66 countries |
+| Indian frameworks named | 54 |
+| frameworks with a published syllabus | **4**: CBSE (verified), NIOS (verified), ICSE and ISC (provisional) |
+| what the other 264 show a learner | the honest label, "no syllabus stored yet" |
+
+So the landing page's "268 boards across 65 countries" is true as a registry claim and the honest-label
+law keeps it from becoming a lie, but a learner from Maharashtra, Uttar Pradesh, Bihar, Tamil Nadu,
+Karnataka, West Bengal, Rajasthan, Madhya Pradesh, Gujarat, Andhra Pradesh or Telangana opens Wobo,
+finds their board named, and gets nothing. **The majority of Indian school students sit in state
+boards**, and we serve three national boards and one open school.
+
+**The machine to fix it is built and switched off.** `curriculum/discovery/fetch.py` and
+`run_discovery` read a board's own document and mint a version; the freshness path re-reads it; the
+observer (docs/CURRICULUM-OBSERVER.md) watches learners and asks the document to settle disagreements.
+All of it sits behind one switch, `WOBO_DISCOVERY_WORKER`, and that variable **is not set on Railway**,
+so none of it has ever run in production.
+
+This is also the largest unserved search opportunity the market audit found: state board queries in
+class-subject-chapter form are a family "the incumbents barely serve", because Vedantu and the rest
+built for CBSE.
+
+**The plan:** turn the discovery worker on under a budget, aimed at the ten state boards with the most
+students, verify each syllabus against its own document before it is published, and let the honest
+labels do their job (verified, provisional, community, and "no syllabus stored yet" for the rest).
+Every board that lands multiplies the chapter pages, the topic pages and the addressable market at
+once. The owner's action is the switch; the wave is running it and proving each version against its
+source.
