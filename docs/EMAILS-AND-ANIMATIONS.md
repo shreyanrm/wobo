@@ -164,3 +164,57 @@ something with a prop (the camera GIF is the doubt page in one image). Ours:
 The orb move for it: a small bounce, then the spark. And one new move for the library: **the orb
 holding up a phone**, for the doubt mail ("Photograph the page.") and the doubt page's own empty state.
 No exclamation mark in ours; the register (voice.md 10a) carries the warmth without it.
+
+## 8. One library, used everywhere (owner, 2026-09-09)
+
+*"We have a library of animations like the Brilliant ones I shared, right? We use them everywhere,
+popups, emails, wherever needed."* The library is designed and **not yet built**: there is no rendered
+orb, no move sheet and no renderer in the tree today, only the orb's own pulse in the companion. Wave
+38 builds it. This section widens what it is for, because the instinct is right: it is not an email
+asset, it is the product's whole non-verbal vocabulary, and one library serves every surface.
+
+**The moves, extended from section 2 to cover every moment the product actually has:**
+
+| Move | What it says | Where it is used |
+|---|---|---|
+| hover | resting, present | the docked orb, an idle screen |
+| wave | hello | the welcome, the first sign-in, the welcome mail |
+| bounce | a small yes | a streak, a card completed, a correct answer |
+| the spark | earned | a boss cleared, a badge, a level finished, the win mail |
+| thinking | working, not stuck | any wait under about eight seconds |
+| drawing | making something | a lesson composing, a film rendering |
+| reading | taking something in | a photographed doubt being read |
+| the subject scenes | the wait has a subject | a number line, a pendulum, a cell dividing, beakers pouring, a map filling, a page turning, one per subject |
+| sleeping | nothing here yet | an empty trophy room, an empty archive, a quiet day |
+| the shrug | we could not | a refusal, a failure, a board we could not read |
+| looking up | a question is open | an ask waiting for the learner |
+| the shake | not that one | a wrong answer, gently, once |
+
+**Where they are used, and it is everywhere a screen would otherwise be blank or a spinner would
+otherwise spin:**
+
+- **Waits**: a lesson composing, a course building, a film rendering, a doubt being read, checkout
+  settling, and the board cold start (docs/BOARD-COLD-START.md, the eight seconds while a board's
+  syllabus is read for the first learner).
+- **Empty states**: no doubts yet, no trophies yet, no notes yet, an archive with nothing in it, a
+  parent's view before the child has begun.
+- **Moments**: a card finished, a chapter finished, a boss cleared, a streak reached, a badge earned.
+- **Popups and sheets**: the confirmation before a board change, the invitation to a parent, the
+  plan sheet, the "ask us to change it" support panel.
+- **Refusals**: a day's allowance spent, a photograph we could not read, a board whose document is
+  missing. A refusal always carries the shrug and never a bare sentence.
+- **Mail**: every kind in section 1, as a GIF rendered from the same source.
+- **The public site**: the landing, the meet page, the press page, and the social preview images.
+- **Errors and the 404**, because a page that is not there should still feel like Wobo.
+
+**The rules that keep it one library rather than a drawer of assets:**
+
+1. **One source.** Every move is defined once, in the app's own orb component, and everything else is
+   rendered from it: the CSS and SVG for the product, the GIFs for mail, the stills for previews. A
+   move drawn by hand a second time is a bug.
+2. **One thing at a time.** A move does one thing, the way the Brilliant mascot does. Never two moves
+   at once and never a move that loops forever where a person is waiting.
+3. **It never narrates.** A move never spells out what the product is doing. It shows the orb doing
+   something true and stops.
+4. **Reduced motion is a still with the spark**, everywhere, without exception.
+5. **A move is never decoration.** If a screen is fine without it, it does not get one.
