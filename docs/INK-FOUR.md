@@ -109,3 +109,13 @@ The eight that must close, each its own item, each with its own test and its own
 | 6 | pythagoras, quadratic and timeline draw nothing and speak a wrong-step line |
 | 7 | a curve is labelled in programming syntax rather than mathematics |
 | 8 | the food web and map scenes have never been measured at either width |
+
+## A lab is silent (2026-09-09)
+
+An agent's headless browser plays through the owner's speakers. On 2026-09-09 several live-voice tests
+made noise on the owner's machine while he was working, and I had to kill the browsers to stop it.
+
+**Every lab is muted, without exception.** Launch every browser with audio off (`--mute-audio` in the
+Chromium args, or the app's own muted state), and measure voice timings from the synthesis call and the
+wire rather than from anything a speaker plays. Hearing it is never the proof; the wire is. If a wave
+genuinely needs to hear something, it asks the owner first and does it in one short window he agrees to.
