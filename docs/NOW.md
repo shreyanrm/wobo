@@ -22,6 +22,7 @@ updated in the same breath as the decision, not later.
 | What | Wave | Why it waits |
 |---|---|---|
 | No trace of the old name | 40 | touches the gate scripts the others read |
+| The boards: discovery actually runs, the cold start, prewarm, the console | 45 | written today; three real state boards run end to end first |
 | The parent's account screens | 34 | shares files with the ink waves |
 | The daily allowance, the models desk, the free pool cap | 36 | shares the gateway with the ink waves |
 | The content layers, the caches, the five stores | 37 | the concept cores that tier-two pages need |
@@ -32,8 +33,7 @@ updated in the same breath as the decision, not later.
 | What | Where it is specified |
 |---|---|
 | The learning model: chapter pools of modules, groups chosen per learner | docs/LEARNING-MODEL.md — changes the blueprint, progress and the climb |
-| The board cold start: never an empty shelf, teaching does not wait | docs/BOARD-COLD-START.md |
-| The discovery worker on, prewarmed by student population | WOBO-TASKS 10.54 |
+
 | The board changes once, then a person handles it | docs/CONSOLE-ROLES-AND-BOARD.md |
 | One owner, and the owner shapes every other role | docs/CONSOLE-ROLES-AND-BOARD.md |
 | The growth desk: gather, make, post, measure | docs/GROWTH-DESK.md |
