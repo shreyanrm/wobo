@@ -1728,3 +1728,17 @@ labels do their job (verified, provisional, community, and "no syllabus stored y
 Every board that lands multiplies the chapter pages, the topic pages and the addressable market at
 once. The owner's action is the switch; the wave is running it and proving each version against its
 source.
+
+### 10.55 The board changes once, and one owner shapes every other role (owner, 2026-09-09)
+
+Two rulings, specified in docs/CONSOLE-ROLES-AND-BOARD.md. **The board:** a learner may change their
+board and class once from Settings, with the cost shown before they confirm; every change after that
+replaces the picker with one line and one button that asks a person, and the request lands in a console
+queue an operator can grant. Under 13 the parent does it under the same rule. The dials (how many free
+changes, whether a parent's counts, whether the rule is off for a cohort) live in ops.settings, live and
+audited. **The console:** exactly one active owner, enforced by a database constraint, unremovable by
+anyone else, with a documented break-glass; the three roles stay as starting points but the owner may
+grant and revoke each capability per person from the console with an audit row; capabilities ARE the
+console's panels, read and act separately; a panel a person cannot read is absent rather than greyed,
+and its route refuses them; adding a person is the owner's action alone, with a second factor before
+the first sign-in. Queued as a wave after the three now running.
