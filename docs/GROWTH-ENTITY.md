@@ -26,23 +26,30 @@ stop that. So the fight is not for the word. It is for India, and it is for thes
 Every one of those is unclaimed today. Winning all of them is a month of the work already planned, and
 each one teaches the engines a little more about which Wobo is which.
 
-## 2. The domains
+## 2. The domain is settled: heywobo.com, and the brand is Wobo
 
-Checked on 2026-09-09. `wobo.com`, `wobo.in`, `wobo.ai`, `wobo.app` and `wobo.io` are taken. Two of
-the available ones are worth having, and one of them is better than the name we own:
+**The owner, 2026-09-09:** *"Leave it as heywobo.com, I don't think it is a blocker anywhere. In the
+future we shall buy wobo.co or wobo.com itself once we make some money; they are currently out of
+budget. So until then heywobo.com is the domain but Wobo will be the brand."*
 
-| Domain | Why |
-|---|---|
-| **wobo.ink** | We are the tutor that draws. The name and the product are the same word. It is short, memorable, and no other Wobo can ever use it as well as we can. Worth taking as the brand's second home and possibly its first. |
-| **wobo.co.in** | Entity resolution is per-market, and this is the strongest available signal that Wobo is Indian. Cheap, and it makes "wobo india" ours by default. |
+Settled, and it is the right call. The "hey" prefix suits a thing you talk to (heygen, heypi, hey.com,
+heyclicky), a dot-com is the extension an Indian parent trusts with a card, and neither of the other
+two Wobos holds the dot-com either. Nobody types domains any more; they search, and what decides a
+search is the sameness of our listings, our brand search volume and our app store presence, none of
+which the address changes.
 
-Also free and worth parking so nobody else in education takes them: `wobo.education`, `wobo.study`,
-`wobo.school`, `wobo.academy`, `wobo.co`, `wobo.net`, `wobo.me`. The whole set costs less than a
-month of hosting.
+**The naming law that follows, and it is not optional:**
 
-**The recommendation:** register `wobo.ink` and `wobo.co.in` now, park the education set, and keep
-`heywobo.com` as the live site until a rename is deliberate. If `wobo.ink` becomes the primary later,
-that is a redirect and a rebuild of the entity work, so decide it once rather than drift into it.
+- **The brand is Wobo.** Everywhere a person reads a name, it is Wobo. Never "HeyWobo", never
+  "Hey Wobo" as a name, never "heywobo" with a capital anything.
+- **heywobo.com is an address, and @heywobo is a handle.** They are how you reach the brand, not what
+  it is called. A listing's name field says Wobo; its website field says heywobo.com.
+- The one place "Hey Wobo" is allowed is as speech, because that is how a learner summons the tutor.
+
+**Not bought now, and not blocking anything:** `wobo.ink` and `wobo.co.in` were free on 2026-09-09 and
+are worth having when there is budget, the first as a short address for posters and video captions,
+the second as a market signal. `wobo.com` and `wobo.co` are the eventual purchase once there is money.
+None of this changes the plan below, which is what actually wins the name.
 
 ## 3. Own the whole first page
 

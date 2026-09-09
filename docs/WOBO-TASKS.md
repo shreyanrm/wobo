@@ -1654,8 +1654,7 @@ is free on every platform that answers truthfully**. The decision: `@heywobo` ev
 `linkedin.com/company/wobo`, claimed today, before the name draws attention. Instagram, Threads,
 Pinterest and Telegram return success for any string so they must be checked by hand while signed in.
 Owner actions: claim the handles in the order listed; reserve the app name Wobo in both stores;
-register `wobo.ink` and `wobo.co.in` and park the education set; file the trademark in India in
-classes 41 and 9; create the ten listings with the copy in docs/copy/press-kit.md unchanged. Ours:
+file the trademark in India in classes 41 and 9; create the ten listings with the copy in docs/copy/press-kit.md unchanged. Ours:
 pre-render the site, the press page, the sameAs graph, the chapter pages, and the monthly measure of
 what each answer engine says Wobo is.
 
@@ -1683,3 +1682,14 @@ hash and checks. **That provenance is the rarest asset we own** and no competito
 of work in the law: pre-render first (nothing else counts until it is done), then the schema that
 still earns something, then the 333 chapter pages at tier 1, then tier 2 and the glossary as the
 concept cores land.
+
+### 10.53 The domain is settled, and the brand is Wobo (owner, 2026-09-09)
+
+*"Leave it as heywobo.com, I don't think it is a blocker anywhere. In the future we shall buy wobo.co
+or wobo.com itself once we make some money; they are currently out of budget. So until then
+heywobo.com is the domain but Wobo will be the brand."* No domain is bought now. The naming law that
+follows (docs/GROWTH-ENTITY.md section 2): **the brand is Wobo everywhere a person reads a name**,
+never "HeyWobo" and never "Hey Wobo" as a name; heywobo.com is an address and @heywobo is a handle,
+so a listing's name field says Wobo and its website field says heywobo.com. "Hey Wobo" is allowed only
+as speech, because that is how a learner summons the tutor. `wobo.ink` and `wobo.co.in` are noted as
+free and worth having later; `wobo.com` or `wobo.co` is the eventual purchase.
