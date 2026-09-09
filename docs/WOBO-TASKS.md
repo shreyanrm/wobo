@@ -1812,3 +1812,18 @@ varies by attempt, never by randomness: the first miss barely happens, the secon
 to the step, the third offers a different way in via the re-teach ladder; never red, never a buzzer,
 and pigment never appears on a miss. **Most completions are not popups**: only a boss cleared, a
 subject completed and the first time ever earn a surface. Two or three sounds, off by default.
+
+### 10.60 Levels from XP, on a rising curve (owner, 2026-09-09)
+
+*"Level ups only based off XP, and the same amount of XP doesn't lead to level ups as the level
+increases; progressive, it should get harder."* docs/LEVELS.md, modelled rather than guessed. Cost of
+the next level is `60 x level^1.35` rounded to ten, with the first three levels nearly free (30, 60,
+120: a first session should end at level 3, which is the hook) and the cost capped at 8,000 XP around
+level 39 so the number never becomes meaningless. Earning: card 10, topic 50, chapter 200, boss 300,
+a streak day 20, arcade 15 capped per chapter; free and paid earn identically. Modelled pacing: a
+steady learner reaches level 5 in week one, 7 in a month, 13 in a term, 18 in the school year; a keen
+one reaches 27. Anti-farming: a concept pays once, a day pays once, the arcade is capped, nothing pays
+for speed, nothing is ever deducted, a broken streak resets the streak and not the level. A level is a
+distance travelled, never a rank: no leaderboard, no comparison, and it never gates a lesson. The curve
+is one pure function with a test pinning every number, and the rates are console dials. The level-up
+moment is composed like every other reward and there is no popup, because the bar is already there.

@@ -30,8 +30,10 @@ because their sigils and their pigments are not the same. Nobody authored either
 
 ## 2. The level system: your sky, not your rank
 
-**There is no "Level 47".** A number that means nothing is the cheapest thing in the category and it
-does not belong in a product that refuses to judge. The metaphor already in the code is the right one:
+**Both, and they do different jobs (owner, 2026-09-09).** There IS a level, it comes from experience
+points alone, and each one costs more than the last: the curve, the earning rates and the anti-farming
+rules are in docs/LEVELS.md. The level is the number that moves today. The sky below is the picture of
+what a learner has actually covered, and it is what they look at to see their year:
 
 - **Every concept mastered is a star**, lit in its subject's pigment, drawn as its own sigil.
 - **A subject's stars form its constellation**, and its edges draw as the concepts connect.
