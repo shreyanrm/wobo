@@ -1757,3 +1757,16 @@ their climb re-anchors quietly when it arrives. Every learner after them arrives
 one job per board at a time; refusals remembered and sent to the console; the platform pays from the
 creative pool with a per-board and per-day budget and an alert. Queued after the running waves,
 alongside 10.54's switch-on of the discovery worker.
+
+### 10.57 The stores: reserve now, Android after four, iOS after that, no desktop (2026-09-09)
+
+Asked whether the store apps are last. Specified in docs/PLATFORMS.md. Nothing is built; the web app
+already installs standalone with its own icon. The split: **reserve the name Wobo in Play Console and
+App Store Connect this week** (a form, not an app; a namespace is first-come and a store listing is one
+of the strongest entity signals an answer engine reads); **Android next**, a Capacitor shell around the
+same codebase, gated on the ink scoring four and the first boards being real, because a one-star review
+is permanent; **iOS after that**, because Apple rejects thin wrappers and it needs the native pieces
+(offline, notifications, the camera path, share targets) which are worth building anyway; **no desktop
+app**, as a recommendation rather than a deferral, since there is no desktop discovery surface for this
+audience and the web app already installs on a laptop. Everything that makes a store app good is web
+work already in the plan, so the builds become packaging rather than a project.
