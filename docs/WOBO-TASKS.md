@@ -1848,3 +1848,20 @@ a 15 cm ask, signed verified), the renderer's labels (a curve labelled with Pyth
 5 to 8 pixel axis letters), and the live half of the doubt door. No live run at all: the whole lab was
 keyless, so the cap fix is proven by unit test and by mechanism, not yet by a live stream. Wave 42
 launched.
+
+### 10.62 The learning model: modules belong to the chapter (owner, 2026-09-09)
+
+*"It's not modules within that topic. It's multiple modules within that chapter, and a group of modules
+teaches the topic."* docs/LEARNING-MODEL.md, and it supersedes the flatter reading in
+CONTENT-INTERACTION section 9. Chapters and topics come from the board and say WHAT must be learned;
+modules are ours, live in the chapter's pool, and say HOW. A group of modules teaches a topic, a module
+may serve several topics (which is why it sits at the chapter), and **the group is chosen per learner**
+from prerequisites, pace, style and what went wrong. Mastery is evidence that the topic's ideas are held
+and its misconceptions gone, not a module count: two learners may arrive with four modules and eleven,
+both light the same star, neither is told they took a different road. The economics matter: **adapting
+costs nothing**, because choosing from an existing pool is a selection rather than a generation, which
+is what makes "it does not stop until the topic is yours" affordable at five rupees a day. The pool must
+contain at least two ways into every idea, a repair module per known misconception, a stretch module,
+and a prerequisite module for anything the chapter assumes; a pool that cannot serve a learner who
+missed the prerequisite is a judgeable fault. XP attaches to a module (10) and to a topic mastered (50),
+so nobody is paid less for finding it hard.

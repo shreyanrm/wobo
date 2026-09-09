@@ -179,6 +179,14 @@ The rules:
 
 ## 9. The architect (owner, 2026-09-08, the same hour)
 
+> **Amended 2026-09-09 by docs/LEARNING-MODEL.md, which wins where the two differ.** The architect's
+> output is a CHAPTER'S POOL OF MODULES plus the map of which modules can teach which topic, not a
+> linear list of levels belonging to a topic. Modules live at the chapter, a group of them teaches a
+> topic, a module may serve several topics, and the group is chosen per learner from the pool. Read
+> that file first; the section below still holds for the thread, the flow, the misconceptions and the
+> candidate mechanics.
+
+
 *"Astra should be like a designer, an architect, a visionary. It needs to think how a certain topic
 could be split and taught in the best possible ways, how the flow should be, what all types and
 sub-modules or levels there should be."*

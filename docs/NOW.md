@@ -31,6 +31,7 @@ updated in the same breath as the decision, not later.
 
 | What | Where it is specified |
 |---|---|
+| The learning model: chapter pools of modules, groups chosen per learner | docs/LEARNING-MODEL.md — changes the blueprint, progress and the climb |
 | The board cold start: never an empty shelf, teaching does not wait | docs/BOARD-COLD-START.md |
 | The discovery worker on, prewarmed by student population | WOBO-TASKS 10.54 |
 | The board changes once, then a person handles it | docs/CONSOLE-ROLES-AND-BOARD.md |
