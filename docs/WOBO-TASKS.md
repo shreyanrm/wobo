@@ -1551,3 +1551,13 @@ every package's own node_modules). Gateway: Railway `e7aeb9a3` SUCCESS, `/health
 payments off, providers ok. Web: Vercel `dpl_djYSRbrLJA9TWWBpmnEv5nt9EuTX` promoted from the same export;
 the live bundle no longer carries the removed narrating strings. Wave 39 (the ink rebuilt on
 docs/INK-FREEZE-PLAN-TRACE.md) launched at 17:41 on the still tree: `wf_f1055981-e52`.
+
+### 10.47 The adaptive line for the public pages (2026-09-09)
+
+The owner: "not a fixed course or content, adapts and changes to your learning style and pace, and it
+doesn't stop until the topic is mastered". Four forms in the register in docs/copy/growth/lines.md,
+with placement (landing chapter after the drawn answer, its proof beside the re-teach ladder, the
+parents' page first promise, the eyebrow). True in the product (re-teach ladder, blueprint levels
+against the learner's state, the boss level). Small wave after 39 lands: the copy, the tests that hold
+it, measured at 390 and 1440. Wave 39 resumed by hand 2026-09-09 09:23 (`wf_f1055981-e52`, task
+wibvx9stg) after the session-only timer did not fire.
