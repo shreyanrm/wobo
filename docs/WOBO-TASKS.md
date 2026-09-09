@@ -1792,3 +1792,23 @@ motion package wired into any learning surface, a single earned-moment component
 "something good just happened"), the twelve orb moves, the arcade's screen, and two or three tiny
 optional sounds. It ships with the animation library because it is the same work, and after the ink
 scores four, because a celebration on top of a mark that missed is worse than none.
+
+### 10.59 The reward system: composed, never chosen (owner, 2026-09-09)
+
+*"Level system, XP vibe animations, celebration scenes, try again scenes, not same for all, everything
+should depend on the vibe."* docs/REWARDS.md. The machinery for the variation is already in the tree and
+unconnected: `ui/art.tsx` derives a unique sigil per concept from its id (one generator, thousands of
+artworks, zero authored assets, already igniting in the subject's pigment when mastered), `ui/hues.ts`
+gives each subject a pigment reserved for earned moments, and the motion package has the constellation.
+So a celebration is **composed** from the concept's own sigil, its subject's pigment, how hard it was
+for this learner, and which moment it is, rather than chosen from a list. Electrostatics does not look
+like photosynthesis because their sigils differ, and nobody authored either.
+
+**No "Level 47".** The level system is the sky: a mastered concept is a star drawn as its own sigil, a
+subject's stars form its constellation, and standing is how much of the sky is lit. XP stays as the
+day-to-day number. The trophy room becomes the sky. **Intensity is earned**: a concept got first time
+gets a quick bright bloom, one returned to three times gets a slower warmer longer one. **Try again**
+varies by attempt, never by randomness: the first miss barely happens, the second brings the ink back
+to the step, the third offers a different way in via the re-teach ladder; never red, never a buzzer,
+and pigment never appears on a miss. **Most completions are not popups**: only a boss cleared, a
+subject completed and the first time ever earn a surface. Two or three sounds, off by default.
