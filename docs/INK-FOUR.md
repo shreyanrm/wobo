@@ -80,3 +80,32 @@ than today, not more.
 
 Each wave ends with the same 59 turns judged on this file. The wave is not finished when its findings
 are closed. It is finished when the lens it was built for scores 4.
+
+## The discipline (added 2026-09-09, after two waves deferred the same work)
+
+Findings 7 and 8 were named in wave 39, carried into wave 41, and reported NOT DONE by both. That is
+not the work being hard. It is a brief being too wide for one agent, and an agent honestly running out
+of room. Three rules, from here:
+
+1. **A named defect is never deferred.** A builder who cannot finish one says so BEFORE it runs out of
+   room, not after, and the wave splits it. "Not done, and here is why" at the end of a run is a
+   process failure, not an acceptable report.
+2. **One agent per bounded body of work.** The from-scratch drawings are eight separate defects across
+   five pipelines; that is not one builder's brief, it is eight. When a brief contains a list, the list
+   is the fan-out.
+3. **A wave is finished when the lens scores four**, not when the agents stop. The loop already
+   encodes this: build, judge, close, judge again. What was missing was making the closers fine-grained
+   enough that nothing can hide inside one agent's honest exhaustion.
+
+The eight that must close, each its own item, each with its own test and its own frame:
+
+| # | The defect |
+|---|---|
+| 1 | the lens draws f = 10 for a 15 cm ask, and signs 15 and -0.5 verified |
+| 2 | the Punnett is a 3x2 table with genotypes pre-printed, not a 2x2 with a blank corner |
+| 3 | the plant cell draws seven labels for five parts, with leaders on the outline |
+| 4 | the projectile's vertical scale is stretched about 2.9 times |
+| 5 | axis and label text measures 5 to 8 px at 1440 |
+| 6 | pythagoras, quadratic and timeline draw nothing and speak a wrong-step line |
+| 7 | a curve is labelled in programming syntax rather than mathematics |
+| 8 | the food web and map scenes have never been measured at either width |
