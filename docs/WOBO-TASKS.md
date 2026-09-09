@@ -1865,3 +1865,18 @@ contain at least two ways into every idea, a repair module per known misconcepti
 and a prerequisite module for anything the chapter assumes; a pool that cannot serve a learner who
 missed the prerequisite is a judgeable fault. XP attaches to a module (10) and to a topic mastered (50),
 so nobody is paid less for finding it hard.
+
+### 10.63 The door is closed until the owner says otherwise (owner, 2026-09-09)
+
+*"Block any account creations for now until further notice, because we have SEO, AEO and GEO but no
+product yet."* docs/DOORS-CLOSED.md. Closed: every path that creates an account, including the anonymous
+one, the checkout, a parent invitation and a gift. Open: all 438 public pages, the public ask box on
+every chapter page (grounded, screened, rate limited, no account needed, and the honest taste of the
+product), every existing account, and the console. **In place of the door, a list**: an email and,
+optionally, class and board, with a plain sentence that Wobo is not open yet and they will hear the day
+it is. No queue position, no scarcity, no countdown. The class and board are worth having because they
+say which boards to read first. Under 13, the parent's address and never the child's. **A dial, not a
+deploy**: `doors_open` in ops.settings, default false, refused at the gateway with an audit row, the web
+copy following within a minute; a test proves no path creates an account while it is off. Nineteen
+places saying "Start free" become the invitation. It reopens when the owner has walked the web version
+and is satisfied, the same gate as the store apps, and everyone on the list gets one mail that day.
