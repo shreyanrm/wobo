@@ -1561,3 +1561,27 @@ parents' page first promise, the eyebrow). True in the product (re-teach ladder,
 against the learner's state, the boss level). Small wave after 39 lands: the copy, the tests that hold
 it, measured at 390 and 1440. Wave 39 resumed by hand 2026-09-09 09:23 (`wf_f1055981-e52`, task
 wibvx9stg) after the session-only timer did not fire.
+
+### 10.48 No trace of the old name (owner, 2026-09-09)
+
+*"I need a full rebrand everywhere, no trace of classess learner."* This reverses the 2026-09-02 rule
+that kept the old name for the ecosystem and identifiers. Inventory: GitHub `shreyanrm/wobo`, Supabase
+"Wobo", Railway "wobo", Vercel "wobo", domain heywobo.com were already right; the GitHub homepage
+link still pointed at the old Vercel URL and now points at heywobo.com. Inside the tree the old name
+survives in 32 files, every one excused by the gate's allowlist: the ecosystem line in the context
+documents, history documents and finished workflow scripts, absolute paths with the folder name, the
+gate scripts named after the word, one legacy environment variable, the CI job's label, a cache file
+and the local settings file. Wave 40 (written, runs after 39): empties the allowlist and makes the
+gate pass with zero excused occurrences; the gate is renamed old-brand and builds its pattern without
+the literal.
+
+Two things are the owner's to decide, and the default is stated: (1) **git history is not rewritten**
+(the old name lives in past commits and in GitHub's redirect from the old repository name; rewriting
+a public repository's history breaks every clone and gains nothing a reader can see); (2) **the
+sister projects keep their names**: `shreyanrm/classess-school` and the local folders for the School
+platform and the voice avatar are other products, not this one.
+
+The local folder: `~/Documents/classess-learner` becomes `~/Documents/wobo` once no wave is running
+(the running wave's workers hold absolute paths). The rename moves this project's memory directory to
+the new key, recreates the Python environment (`uv sync`), rewrites `.claude/settings.local.json`, and
+the next session starts in the new folder.
