@@ -31,6 +31,10 @@ from typing import Any
 MARK_KINDS: tuple[str, ...] = (
     "point",
     "circle",
+    "ring",
+    "tick",
+    "cross",
+    "note",
     "underline",
     "arrow",
     "bracket",
@@ -107,6 +111,12 @@ _FIELDS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
     # marks
     "point": ((), ()),
     "circle": ((), ("pad",)),
+    # The plan of marks on the glass (docs/INK-FREEZE-PLAN-TRACE.md section 3): a ring hugs the
+    # element's real box, a tick and a cross sit beside it, a note is a few words in the margin.
+    "ring": ((), ("pad",)),
+    "tick": ((), ()),
+    "cross": ((), ()),
+    "note": (("text",), ("size", "maxWidth")),
     "underline": ((), ()),
     "strike": ((), ()),
     "bracket": ((), ("side", "label")),
@@ -190,6 +200,12 @@ _VISIBLE_BY_NAME: dict[str, bool] = {
     "href": False,
     "variable": False,
     "bounds": False,
+    # What a mark MEANS, spoken with it (the plan grammar's `words`). The hand does not write it
+    # as glyphs; the sentence that carries the same words is under the spoken-number law, and the
+    # plan validator (board.glass) refuses a number in it the ask did not give before it is here.
+    "words": False,
+    # When the pen touches down, against the sentence it lands with: timing, never glyphs.
+    "beat": False,
 }
 
 #: Where one field name means two different things depending on the kind. ``table.rows`` is the

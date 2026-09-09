@@ -376,6 +376,11 @@ export interface BenchApi {
   /** ms from the start of the utterance to the first stroke in the DOM (BOARD.md §10: under 1 s). */
   firstStrokeMs: number | null;
   /**
+   * Where that first stroke was, in viewport px. A stroke nobody could see is not a first stroke
+   * (docs/INK-FREEZE-PLAN-TRACE.md §5: the bench requires the stroke inside the viewport).
+   */
+  firstStrokeBox: { x: number; y: number; w: number; h: number } | null;
+  /**
    * ms from the page opening to that same first stroke. The cold number: module evaluation, React
    * mounting, the surface measuring itself, the first geometry pass and the first paint, all in.
    * Set once per page load and never overwritten, so a replay cannot flatter it.
@@ -414,18 +419,74 @@ declare global {
  */
 const FIRST_MARK = '[data-wobo-object] path, [data-wobo-object] text, [data-wobo-object] image';
 
-function watchFirstStroke(root: Element, from: number, onFirst: (ms: number) => void): () => void {
-  if (root.querySelector(FIRST_MARK)) {
-    onFirst(performance.now() - from);
-    return () => {};
+type Box = { x: number; y: number; w: number; h: number };
+
+/**
+ * Where the ink is, in viewport px: the union of every painted mark's rect. A path inside a
+ * `<mask>` (the nib revealing a glyph) has no box of its own, and a stroke on its first frame can
+ * be a zero-length dash, so this is null until something has a box.
+ */
+function boxOfInk(root: Element): Box | null {
+  let box: Box | null = null;
+  for (const el of Array.from(root.querySelectorAll(FIRST_MARK))) {
+    if (el.closest('mask')) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 && r.height <= 0) continue;
+    if (!box) box = { x: r.x, y: r.y, w: r.width, h: r.height };
+    else {
+      const x = Math.min(box.x, r.x);
+      const y = Math.min(box.y, r.y);
+      box = {
+        x,
+        y,
+        w: Math.max(box.x + box.w, r.x + r.width) - x,
+        h: Math.max(box.y + box.h, r.y + r.height) - y,
+      };
+    }
   }
+  return box;
+}
+
+/**
+ * The first mark's time is taken at first sighting; its box is taken as soon as any ink has one,
+ * within the next half second, so a glyph's first empty frame does not read as ink off the glass.
+ */
+function watchFirstStroke(
+  root: Element,
+  from: number,
+  onFirst: (ms: number) => void,
+  onBox: (box: Box) => void,
+): () => void {
+  let boxed = false;
+  let deadline: ReturnType<typeof setTimeout> | null = null;
+  const tryBox = () => {
+    if (boxed) return true;
+    const box = boxOfInk(root);
+    if (!box) return false;
+    boxed = true;
+    onBox(box);
+    return true;
+  };
+  let seen = Boolean(root.querySelector(FIRST_MARK));
+  if (seen) onFirst(performance.now() - from);
+  if (seen && tryBox()) return () => {};
   const observer = new MutationObserver(() => {
-    if (!root.querySelector(FIRST_MARK)) return;
-    observer.disconnect();
-    onFirst(performance.now() - from);
+    if (!seen) {
+      if (!root.querySelector(FIRST_MARK)) return;
+      seen = true;
+      onFirst(performance.now() - from);
+      deadline = setTimeout(() => observer.disconnect(), 500);
+    }
+    if (tryBox()) {
+      observer.disconnect();
+      if (deadline) clearTimeout(deadline);
+    }
   });
-  observer.observe(root, { childList: true, subtree: true });
-  return () => observer.disconnect();
+  observer.observe(root, { childList: true, subtree: true, attributes: true });
+  return () => {
+    observer.disconnect();
+    if (deadline) clearTimeout(deadline);
+  };
 }
 
 // --- The bench --------------------------------------------------------------------------------------------
@@ -485,6 +546,7 @@ export function BoardBench(props: { board?: string }) {
       if (api) {
         api.ready = false;
         api.firstStrokeMs = null;
+        api.firstStrokeBox = null;
         api.current = name;
       }
       window.__woboBenchReady = false;
@@ -500,12 +562,20 @@ export function BoardBench(props: { board?: string }) {
         if (stopped) return;
         const from = performance.now();
         const stopWatching = hostRef.current
-          ? watchFirstStroke(hostRef.current, from, (ms) => {
-              const api = window.__woboBench;
-              if (!api) return;
-              api.firstStrokeMs = ms;
-              if (api.firstMarkFromLoadMs === null) api.firstMarkFromLoadMs = performance.now();
-            })
+          ? watchFirstStroke(
+              hostRef.current,
+              from,
+              (ms) => {
+                const api = window.__woboBench;
+                if (!api) return;
+                api.firstStrokeMs = ms;
+                if (api.firstMarkFromLoadMs === null) api.firstMarkFromLoadMs = performance.now();
+              },
+              (box) => {
+                const api = window.__woboBench;
+                if (api) api.firstStrokeBox = box;
+              },
+            )
           : () => {};
         const cancelPlan = playPlan(store, next.plan, options);
         // Settled means every object has finished drawing, plus a breath for the last paint.
@@ -540,6 +610,7 @@ export function BoardBench(props: { board?: string }) {
       play: (name, options) => start(name, options),
       ready: false,
       firstStrokeMs: null,
+      firstStrokeBox: null,
       firstMarkFromLoadMs: null,
       current: null,
       ledger: () =>

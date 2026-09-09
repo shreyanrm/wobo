@@ -47,6 +47,7 @@ import {
   textOfTargets,
 } from './focus';
 import { inkRng } from './freehand';
+import { type GlassTextRun, WOBO_OWN, joinTextRuns, textRunsOf } from './glass/read';
 import { type Rect, type SurfaceRegistry, surfaceRegistry } from './registry';
 
 // --- The hotkey ----------------------------------------------------------------------------------
@@ -119,12 +120,50 @@ function subscribeArmed(listener: () => void): () => void {
 
 // --- Resolving a gesture into a focus object -----------------------------------------------------
 
+/** Wobo's own surfaces, by the mark on their roots (packages/wobo/src/glass/read.ts). */
+const WOBO_OWN_SELECTOR = WOBO_OWN.join(', ');
+
+/**
+ * The topmost element under the pointer that is the LEARNER'S PAGE.
+ *
+ * While a lasso is being drawn the gesture layer is the topmost element under every point of it,
+ * and its own text — the trace's `<title>` and the spoken announcement — was what came back. So a
+ * lasso on a fresh page made a focus whose text read "the circle being drawn", the chip asked
+ * "explain this: the circle being drawn", and the plan rang Wobo's own announcement in the corner
+ * of the page (the adversary's lab, 2026-09-08, all fourteen lasso turns). Wobo's own surfaces are
+ * skipped here for the same reason the glass read skips them, and by the same mark.
+ */
+export function firstPageElement<T extends { closest(selector: string): unknown }>(
+  nodes: readonly T[],
+): T | null {
+  for (const node of nodes) {
+    if (!node.closest(WOBO_OWN_SELECTOR)) return node;
+  }
+  return null;
+}
+
+/**
+ * The words of an element, from the runs the page laid out (the adversary, wave 47, finding 6).
+ *
+ * `textContent` concatenates markup with no regard for layout, so a numbered line written as
+ * `<span>2</span><p>feel the rule</p>` came back "2feel the rule" and the learner's own printed
+ * ask read `explain this: “2feel the rule”` on the repeat, while the first ask — which reads the
+ * glass — printed it correctly. This is the glass's own join: a markup boundary with real space
+ * between the boxes, or a wrap onto the next line, is a word break; a boundary with the boxes
+ * flush (c then ², one word in two elements) is not.
+ */
+export function textOfRuns(runs: readonly GlassTextRun[], fallback: string): string {
+  return normaliseText(runs.length > 0 ? joinTextRuns(runs) : fallback, 200);
+}
+
 /** Text under a point when nothing there is registered — read from the DOM, never from pixels. */
 function textUnder(x: number, y: number): string {
   if (typeof document === 'undefined' || typeof document.elementsFromPoint !== 'function')
     return '';
-  const element = document.elementsFromPoint(x, y).find((node) => node instanceof HTMLElement);
-  return normaliseText(element?.textContent ?? '', 200);
+  const stack = document.elementsFromPoint(x, y).filter((node) => node instanceof HTMLElement);
+  const element = firstPageElement(stack);
+  if (!element) return '';
+  return textOfRuns(textRunsOf(element), element.textContent ?? '');
 }
 
 export interface ResolveOptions {
@@ -317,15 +356,25 @@ export function GestureLayer(props: GestureLayerProps): ReactElement | null {
     handlers.current.onFocus?.(next);
   }, []);
 
+  /**
+   * A STATE UPDATER IS A PURE FUNCTION OF THE STATE IT IS GIVEN (the adversary, wave 47, finding 9).
+   *
+   * `onClear` used to be called from inside `setFocus((current) => …)`. React runs an updater
+   * during another component's render, so the surface's own setState landed in the middle of that
+   * render and every escape-mid-stroke run logged 'Cannot update a component while rendering a
+   * different component. WoboStage GestureLayer', keyless and live. The live focus is already
+   * mirrored in `focusRef`, so the decision is taken here, in the event, and the updater goes back
+   * to being pure.
+   */
   const clear = useCallback(() => {
     setTrace(null);
     setRing((current) =>
       current && current.endedAt === null ? { ...current, endedAt: Date.now() } : current,
     );
-    setFocus((current) => {
-      if (current) handlers.current.onClear?.();
-      return null;
-    });
+    const had = focusRef.current !== null;
+    focusRef.current = null;
+    setFocus(null);
+    if (had) handlers.current.onClear?.();
   }, []);
 
   // Once the ring has faded it leaves the DOM; until then it is still ink on the page.
@@ -622,6 +671,10 @@ export function GestureLayer(props: GestureLayerProps): ReactElement | null {
   return (
     <div
       data-wobo-gesture-layer=""
+      // Wobo's own layer, never the learner's page: the trace, the ring and the spoken
+      // announcement are all skipped by the glass read (docs/INK-FREEZE-PLAN-TRACE.md §3).
+      data-wobo-surface=""
+      data-glass-ignore=""
       style={{
         position: 'fixed',
         inset: 0,

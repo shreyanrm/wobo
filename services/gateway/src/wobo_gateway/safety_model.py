@@ -58,6 +58,36 @@ _TIMEOUT_ENV = "SAFETY_MODEL_TIMEOUT_S"
 _DEFAULT_TIMEOUT_S = 4.0
 _CACHE_MAX = 2048
 
+#: What a model on the safety chain actually takes to return one line of JSON. Measured from the
+#: live gateway, 2026-09-08 and 2026-09-09.
+#:
+#: A DEADLINE SHORTER THAN THE MODEL'S OWN PACE BUYS A CHILD NOTHING. The policy said 1500 ms and
+#: the chain's primary (Luna) answers in about four seconds, so the screen spent the whole 1.5 s,
+#: timed out, screened the turn fail-closed and said "I couldn't check that one just now" — about
+#: a question nothing ever checked. Live on 2026-09-08 that happened on every doubt turn: three
+#: turns, zero ink, a photograph read correctly and never explained. The child waited the full
+#: budget AND lost the answer. So the budget is set by the model that serves the screen; the
+#: policy's number is the target it is routed to meet, not a guillotine held over it.
+#: Keyed on the FAMILY WORD in the id, never a whole model id: a table of ids here would be a
+#: second routing table, drifting behind :mod:`routing`, which is exactly what this service does
+#: not do (see the comment on the registry in ``wobo.run_wobo_turn``).
+MODEL_PACE_S: tuple[tuple[str, float], ...] = (
+    ("flash-lite", 2.0),
+    ("flash", 3.0),
+    ("haiku", 4.0),
+    ("luna", 5.0),
+    ("sonnet", 6.0),
+    ("terra", 6.0),
+    ("sol", 8.0),
+    ("astra", 8.0),
+    ("opus", 8.0),
+)
+#: A model nobody has timed. Four seconds is the old hardcoded default and a fair guess.
+DEFAULT_PACE_S = _DEFAULT_TIMEOUT_S
+#: No screen holds a child's turn longer than this, whatever is serving it. Past here the offline
+#: layer is the better answer: it is instant, and it is already the floor under every verdict.
+MAX_BUDGET_S = 8.0
+
 SYSTEM = (
     "You are a child-safety screen for a tutoring product used by children aged roughly 6 to 18, "
     "mostly in India. You are given one message. Decide ONE thing: is a child disclosing harm to "
@@ -151,17 +181,42 @@ def _policy_timeout_s() -> float:
     return float(ms) / 1000.0
 
 
+def pace_of(model: str) -> float:
+    """How long the model serving the screen takes to answer, in seconds."""
+    name = (model or "").lower()
+    for needle, seconds in MODEL_PACE_S:
+        if needle in name:
+            return seconds
+    return DEFAULT_PACE_S
+
+
+def budget_s() -> float:
+    """The time the screen needs to get an answer out of the model that serves it.
+
+    Not the time we would LIKE it to take: :func:`_policy_timeout_s` is that, and it is the
+    number the routing meets by putting the screen on a fast tier. This is the number that
+    decides whether a child gets a real verdict or a fail-closed guess dressed as one.
+    """
+    try:
+        primary, _fallbacks = _chain()
+    except Exception:  # noqa: BLE001 — a registry that will not resolve is not a child's problem
+        return DEFAULT_PACE_S
+    return min(pace_of(primary), MAX_BUDGET_S)
+
+
 def timeout_s() -> float:
-    """The deadline for one moderation call. The env var may only SHORTEN the policy's number."""
-    ceiling = min(_policy_timeout_s(), _DEFAULT_TIMEOUT_S)
+    """The deadline for one moderation call: whichever is longer, the policy's target or the pace
+    of the model that serves it. The env var may only SHORTEN it, because shortening it is a
+    deployment posture somebody chose out loud."""
+    deadline = min(max(_policy_timeout_s(), budget_s()), MAX_BUDGET_S)
     raw = os.getenv(_TIMEOUT_ENV)
     if not raw:
-        return ceiling
+        return deadline
     try:
         value = float(raw)
     except ValueError:
-        return ceiling
-    return min(value, ceiling) if value > 0 else ceiling
+        return deadline
+    return min(value, deadline) if value > 0 else deadline
 
 
 # =================================================================================================
@@ -365,6 +420,10 @@ class ModelClassifier:
             # No temperature. It asked for 0.0 and a model in the chain answered 400 to it; a
             # strict-JSON classification does not need the knob, and the knob cost a lesson.
             timeout=timeout_s(),
+            # A timeout on the child-safety screen is never written to the provider's weather.
+            # It screens the message, which is the whole point, and marking the provider out for
+            # it took a child's NEXT two turns down with it (live, 2026-09-08).
+            short_deadline=True,
         )
         record_cost(capability=CAPABILITY, model=primary, response=response)
         return _parse(response.choices[0].message.content or "")

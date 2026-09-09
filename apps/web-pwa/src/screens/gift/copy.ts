@@ -8,6 +8,10 @@
  * for a sentence quoted from the reviewed copy, which is the sentence the card shows.
  */
 
+import type { Route } from '../../shell/router';
+import { LIST_DOOR } from '../site/cta';
+import { LIST } from '../site/invitation';
+
 export interface GiftFor {
   label: string;
   /** Quoted from `docs/copy/growth/gift-page.md`. Not paraphrased. */
@@ -59,3 +63,25 @@ export const GIFT_PAGE = {
   cardCta: (planName: string) => `Give ${planName.split(',')[0]}`,
   ctaNote: 'Paying is not open yet, and nothing can be charged before it is.',
 } as const;
+
+/**
+ * THE GIFT PAGE'S DOOR, WHICH IS A PUBLIC DOOR AND HAD NEVER READ THE DIAL.
+ *
+ * `docs/DOORS-CLOSED.md` §1 names a gift among the paths that may not create an account, and §5
+ * says nothing on the public pages may imply the product is open. The gateway's half was shut
+ * before the route was even written; this page's half was not touched at all. It is linked from
+ * the footer of every built file, and it carried three live purchase buttons under a header that
+ * said "Join the list": "Give Wobo", "Give Pro", "Give Max". Nothing was charged and no account
+ * was made, but a page saying give while its own header says wait is a page arguing with itself.
+ *
+ * So the doors follow the switch like every other public surface, and the note under the hero
+ * says the one sentence the whole site says about when.
+ */
+export function giftDoor(open: boolean, label: string): { label: string; to?: Route } {
+  return open ? { label } : { label: LIST_DOOR.label, to: LIST_DOOR.to };
+}
+
+/** The line under the hero door: what is true about paying, or what is true about the door. */
+export function giftNote(open: boolean): string {
+  return open ? GIFT_PAGE.ctaNote : LIST.under;
+}

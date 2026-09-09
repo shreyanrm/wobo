@@ -66,10 +66,12 @@
 import { useReducedMotion } from '@wobo/motion';
 import type { Me } from '@wobo/sdk';
 import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import type { Route } from '../../shell/router';
 import { useSdk } from '../../store/sdk';
 import { Label, Sticker, WoboHead } from '../../ui/primitives';
 import { legalPath } from '../legal/catalog';
 import { ClosePanel } from '../site/ClosePanel';
+import { useDoorsOpen } from '../site/dial';
 import { SiteLink } from '../site/nav';
 import { Reveal } from '../site/Reveal';
 import { SiteShell } from '../site/SiteShell';
@@ -89,20 +91,14 @@ import {
   showsCheckoutPreviewLink,
   startCheckout,
 } from './checkout-flow';
-import {
-  bothTicked,
-  type ConsentState,
-  NO_CONSENT,
-  offerKey,
-  tick,
-  ticked,
-} from './consent';
+import { bothTicked, type ConsentState, NO_CONSENT, offerKey, tick, ticked } from './consent';
 import {
   ALLOWANCE_WORDS,
   BENEFITS,
   type Benefit,
   faqItems,
   PLANS_PAGE,
+  planDoor,
   renewalValue,
 } from './copy';
 import {
@@ -257,6 +253,8 @@ const CARD_CLASS: Record<PlanTier['id'], string> = {
 
 export function Plans() {
   const sdk = useSdk();
+  // Every card's door and the line about when all follow the dial (docs/DOORS-CLOSED.md §5).
+  const open = useDoorsOpen();
   const reduced = useReducedMotion();
   // Read once per mount, from the browser and nothing else: the reader is never asked where they
   // are, and there is no control that could change this.
@@ -283,6 +281,9 @@ export function Plans() {
   const comesRound = renewalLabel(renewsOn(new Date(), period), period);
   // The two cancel answers follow the period, so the page never answers for the other one.
   const faq = useMemo(() => faqItems(period), [period]);
+
+  /** The control at the foot of one card, which is the door and follows the dial. */
+  const cardDoor = (tier: PlanTier) => planDoor(tier, open);
 
   const choose = (tier: PlanTier) => {
     setPreviewId(tier.id);
@@ -401,6 +402,9 @@ export function Plans() {
             {PLANS_PAGE.title} <em>{PLANS_PAGE.titleEm}</em>
           </h1>
           <p className="pl-sub">{PLANS_PAGE.lead}</p>
+          {/* The prices are the prices. What is not open is the door, and a reader about to
+              compare three numbers is told so before they compare them (DOORS-CLOSED.md §5). */}
+          {open ? null : <p className="pl-when">{PLANS_PAGE.when}</p>}
           <Allowance />
         </div>
       </section>
@@ -417,8 +421,7 @@ export function Plans() {
                     on screen, and nothing separated them in the accessibility tree, so the cards
                     were read out as "₹1,666a month". The checkout row below always had one. */}
                 <div className="pl-price">
-                  <span>{priceLabel(tier, market, period)}</span>{' '}
-                  <small>{priceUnit(tier)}</small>
+                  <span>{priceLabel(tier, market, period)}</span> <small>{priceUnit(tier)}</small>
                 </div>
                 {/* The words, never the total: both periods carry a line here, so the switch
                     cannot change the height of a card. The free tier has no period and no line. */}
@@ -439,17 +442,24 @@ export function Plans() {
                     </li>
                   ))}
                 </ul>
-                {tier.price ? (
+                {/* EVERY CARD'S DOOR FOLLOWS THE DIAL, not only the free one. Closed, the page
+                    said "Wobo is not open yet" in the hero and offered two plans three cards
+                    down, which is the page arguing with itself (DOORS-CLOSED §5). The prices do
+                    not move: what changes is the door, and only the door. */}
+                {cardDoor(tier).kind === 'choose' ? (
                   <button
                     type="button"
                     className={tier.recommended ? 'st-btn st-pig' : 'st-btn'}
                     onClick={() => choose(tier)}
                   >
-                    {tier.cta}
+                    {cardDoor(tier).label}
                   </button>
                 ) : (
-                  <SiteLink to={{ name: 'onboarding' }} className="st-btn st-quiet pl-free">
-                    {tier.cta}
+                  <SiteLink
+                    to={(cardDoor(tier) as { to: Route }).to}
+                    className="st-btn st-quiet pl-free"
+                  >
+                    {cardDoor(tier).label}
                   </SiteLink>
                 )}
                 <div className="pl-fine">{fineLine(tier, period)}</div>

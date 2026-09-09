@@ -43,12 +43,19 @@ export interface BoardFrame {
   zoom: number;
   panX: number;
   panY: number;
+  /**
+   * Viewport px per board unit at zoom 1. Unset, the surface is a BOARD: 1000 units across its own
+   * width, whatever that width is (the plane, the full board). Set to 1, the surface is the GLASS:
+   * one unit is one CSS px, so a 9 px pad is 9 px at 390 and at 1440 and a note is 22 px tall on
+   * every phone (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace: one pen, CSS px, from the real box).
+   */
+  scale?: number;
 }
 
 /** A frame for a surface of the given viewport rect, with an optional camera. */
 export function frameOf(
   rect: RectLike,
-  camera?: { zoom?: number; panX?: number; panY?: number },
+  camera?: { zoom?: number; panX?: number; panY?: number; scale?: number },
 ): BoardFrame {
   return {
     left: rect.x,
@@ -58,13 +65,29 @@ export function frameOf(
     zoom: camera?.zoom ?? 1,
     panX: camera?.panX ?? 0,
     panY: camera?.panY ?? 0,
+    ...(camera?.scale !== undefined ? { scale: camera.scale } : {}),
   };
 }
 
 /** Viewport px per board unit. A zero-width surface degrades to 1 rather than dividing by zero. */
 export function pxPerUnit(frame: BoardFrame): number {
-  const base = frame.width > 0 ? frame.width / BOARD_UNITS : 1;
+  const base =
+    frame.scale !== undefined && frame.scale > 0
+      ? frame.scale
+      : frame.width > 0
+        ? frame.width / BOARD_UNITS
+        : 1;
   return base * (frame.zoom > 0 ? frame.zoom : 1);
+}
+
+/** How many units wide a surface is at zoom 1: 1000 for a board, its own px for the glass. */
+export function unitsWide(frame: BoardFrame): number {
+  return frame.width / pxPerUnit({ ...frame, zoom: 1 });
+}
+
+/** How many units tall a surface is at zoom 1. */
+export function unitsHigh(frame: BoardFrame): number {
+  return frame.height / pxPerUnit({ ...frame, zoom: 1 });
 }
 
 /** The board-unit height a surface can show — 1000 wide, this tall. */
@@ -74,7 +97,30 @@ export function boardHeight(frame: BoardFrame): number {
 
 /** The board-unit box currently visible (the camera's window). */
 export function visibleBox(frame: BoardFrame): BoardRect {
-  return { x: frame.panX, y: frame.panY, w: BOARD_UNITS / frame.zoom, h: boardHeight(frame) };
+  return {
+    x: frame.panX,
+    y: frame.panY,
+    w: frame.width / pxPerUnit(frame),
+    h: boardHeight(frame),
+  };
+}
+
+/**
+ * True when a target's viewport rect lies wholly outside the surface's own rect: the thing the
+ * mark is about has left the glass. The mark then fades; it never floats and it is never dropped
+ * on the frame the rect went (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace).
+ */
+export function offGlass(
+  rect: RectLike,
+  frame: Pick<BoardFrame, 'left' | 'top' | 'width' | 'height'>,
+): boolean {
+  if (frame.width <= 0 || frame.height <= 0) return false;
+  return (
+    rect.x + rect.width <= frame.left ||
+    rect.x >= frame.left + frame.width ||
+    rect.y + rect.height <= frame.top ||
+    rect.y >= frame.top + frame.height
+  );
 }
 
 /** Viewport px → board units. */

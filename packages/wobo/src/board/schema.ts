@@ -105,6 +105,26 @@ const common = {
   t: TimingSchema.optional(),
   /** Variable names; when a bound control moves, the brain recomputes these objects. */
   depends: z.array(z.string().min(1)).max(16).optional(),
+  /**
+   * What the mark means, spoken with it (docs/INK-FREEZE-PLAN-TRACE.md §3, Plan: a mark is
+   * `{kind, target, words}`). The say names what it draws; this is the words for the ear and the
+   * screen reader, never a label read back.
+   */
+  words: z.string().max(200).optional(),
+  /**
+   * The beat this mark keeps with the voice (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace: ink before
+   * the word, the hand waits on sentence boundaries). `with` is the index of the sentence the
+   * mark belongs to, counted across the turn's say frames; `lag` is how many ms after that
+   * sentence's first word the pen starts, never past a hand's reach. Left out, a mark belongs to
+   * the sentence said just before it.
+   */
+  beat: z.object({ with: z.number().int().min(0), lag: z.number().min(0).optional() }).optional(),
+  /**
+   * The brain's own note on an object (a verifier's provenance string, the plan's `{beat, mark,
+   * words}`). The hand never reads it as a grammar: it is carried whole so a plan that nests its
+   * beat here still keeps time (wobo/beat.ts reads `beat`, then `meta.beat`).
+   */
+  meta: z.unknown().optional(),
 };
 
 const text = z.string().min(1).max(400);
@@ -119,7 +139,28 @@ export const CircleMarkSchema = z.object({
   /** Extra room around the anchored rect, in board units. */
   pad: finite.optional(),
 });
+/** The plan's word for a circle. One mark, two names; the hand draws them the same. */
+export const RingMarkSchema = z.object({
+  ...common,
+  kind: z.literal('ring'),
+  pad: finite.optional(),
+});
 export const UnderlineMarkSchema = z.object({ ...common, kind: z.literal('underline') });
+/** A check beside the thing: this one is right. */
+export const TickMarkSchema = z.object({ ...common, kind: z.literal('tick') });
+/** A cross through the thing: this one is wrong. */
+export const CrossMarkSchema = z.object({ ...common, kind: z.literal('cross') });
+/**
+ * A few words in the margin beside the thing, never on the page's own text and never more than
+ * `NOTE_REACH` px from what they are about (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace).
+ */
+export const NoteMarkSchema = z.object({
+  ...common,
+  kind: z.literal('note'),
+  text,
+  size: z.number().positive().optional(),
+  maxWidth: z.number().positive().optional(),
+});
 export const ArrowMarkSchema = z.object({
   ...common,
   kind: z.literal('arrow'),
@@ -320,6 +361,10 @@ export const DragControlSchema = z.object({
 export const MARK_KINDS = [
   'point',
   'circle',
+  'ring',
+  'tick',
+  'cross',
+  'note',
   'underline',
   'arrow',
   'bracket',
@@ -352,6 +397,10 @@ export const CONTROL_KINDS = ['slider', 'toggle', 'input', 'drag'] as const;
 export const BoardObjectSchema = z.discriminatedUnion('kind', [
   PointMarkSchema,
   CircleMarkSchema,
+  RingMarkSchema,
+  TickMarkSchema,
+  CrossMarkSchema,
+  NoteMarkSchema,
   UnderlineMarkSchema,
   ArrowMarkSchema,
   BracketMarkSchema,

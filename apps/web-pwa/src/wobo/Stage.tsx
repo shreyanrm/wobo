@@ -37,9 +37,17 @@ import { createPortal } from 'react-dom';
 import { FlagControl } from '../ui/FlagControl';
 import { Button } from '../ui/primitives';
 import { saveBoardToNotes } from './board-notes';
-import { boardTargets, boardTurn, focusRegionsFor, lessonStore, screenStore } from './board-turn';
-import { useBusRegistryBridge } from './bus-bridge';
+import {
+  boardTargets,
+  boardTurn,
+  focusRegionsFor,
+  lessonStore,
+  screenInkHolding,
+  screenStore,
+} from './board-turn';
 import { setTurnFocus, turnFocus } from './capabilities';
+import { INK_CLEARANCE_CSS, INK_ON_SCREEN_ATTRIBUTE } from './clearance';
+import { glassLinesNear } from './glass';
 import { showCursor } from './hands';
 import { lessonView, useLessonView } from './lesson-view';
 import { videoHandoff } from './video';
@@ -67,7 +75,11 @@ export interface WoboStageProps {
 /** Wobo's ink, Wobo's boards, Wobo's hands — one mount, above everything. */
 export function WoboStage(props: WoboStageProps) {
   const { route, title, gestures = true } = props;
-  useBusRegistryBridge(route);
+  // The registry's route, for the packet: the page's targets themselves are read off the glass
+  // (wobo/glass.ts), never mirrored from the bus (docs/INK-FREEZE-PLAN-TRACE.md §4).
+  useEffect(() => {
+    surfaceRegistry.setRoute(route);
+  }, [route]);
   const [focus, setFocus] = useState<FocusObject | null>(null);
 
   const publish = useCallback(
@@ -109,6 +121,18 @@ export function WoboStage(props: WoboStageProps) {
   const regions = useMemo(() => focusRegionsFor(focus), [focus]);
   const focusRegions = useCallback(() => regions, [regions]);
   usePlaneTarget();
+  // WOBO'S OWN FURNITURE STANDS ASIDE WHILE WOBO'S INK IS ON THE PAGE (wobo/clearance.ts). The
+  // root carries the mark for as long as any of the screen's marks are up — the whole turn and the
+  // open question after it, not only the moments the glass is held — so the toast and the pill
+  // cannot sit over the thing the ring is about, and both come back the moment the ink goes.
+  const inkOnScreen = useSyncExternalStore(screenStore.subscribe, screenInkHolding, () => false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    if (inkOnScreen) root.setAttribute(INK_ON_SCREEN_ATTRIBUTE, '');
+    else root.removeAttribute(INK_ON_SCREEN_ATTRIBUTE);
+    return () => root.removeAttribute(INK_ON_SCREEN_ATTRIBUTE);
+  }, [inkOnScreen]);
 
   return (
     <>
@@ -122,6 +146,7 @@ export function WoboStage(props: WoboStageProps) {
           {...(props.onHoldEnd ? { onHoldEnd: props.onHoldEnd } : {})}
         />
       ) : null}
+      <style>{INK_CLEARANCE_CSS}</style>
       {/* Ink on the screen: fixed to the viewport, anchored to what is under it, fading like a
           whiteboard. Wobo never draws on it; the learner's ink belongs on a board. */}
       <BoardSurface
@@ -129,7 +154,11 @@ export function WoboStage(props: WoboStageProps) {
         store={screenStore}
         targets={boardTargets}
         focusRegions={focusRegions}
+        avoid={glassLinesNear}
         label="Wobo's ink on this screen"
+        // Above the companion panel (900): at 1440 every ring at x >= 1020 was drawn UNDER the
+        // chat, and "ink holds while the ask is open" held an invisible ring.
+        style={{ zIndex: zIndex.ink }}
       />
       <WoboPlane
         targets={boardTargets}
@@ -161,14 +190,22 @@ function usePlaneTarget(): void {
   const open = state.open && !state.minimized;
   useEffect(() => {
     if (!open) return;
-    return registerTarget({
+    const label = `${state.title} — Wobo's board, floating over this screen`;
+    const element = () =>
+      document.querySelector('[role="dialog"][aria-label*="Wobo\'s board"]') as Element | null;
+    const rect = () => element()?.getBoundingClientRect() ?? null;
+    // The plane has no element on the learner's page for the glass reader to walk, so it is one of
+    // the few things registered by hand: the hand anchors to it and a gesture can land on it.
+    const unregisterSurface = surfaceRegistry.registerSurface({
+      id: 'wobo-plane',
+      title: "Wobo's board",
+      targets: [{ id: 'wobo-plane', kind: 'board', label, rect, element }],
+    });
+    const unregisterScene = registerTarget({
       id: 'wobo-plane',
       kind: 'board',
-      label: `${state.title} — Wobo's board, floating over this screen`,
-      getRect: () => {
-        const el = document.querySelector('[role="dialog"][aria-label*="Wobo\'s board"]');
-        return el ? el.getBoundingClientRect() : null;
-      },
+      label,
+      getRect: rect,
       getSceneState: () => ({
         title: state.title,
         pinned: state.pinned,
@@ -181,6 +218,10 @@ function usePlaneTarget(): void {
         if (patch.fresh === true) plane.fresh();
       },
     });
+    return () => {
+      unregisterScene();
+      unregisterSurface();
+    };
   }, [registerTarget, open, state.title, state.pinned]);
 }
 
@@ -370,7 +411,9 @@ export function ShowMeCursor() {
       <div
         aria-hidden
         // Where Wobo is, and what Wobo is doing there — readable from outside, so "show me" can be
-        // proved to have reached the real control rather than merely narrated.
+        // proved to have reached the real control rather than merely narrated. Wobo's own hand is
+        // never on the glass map (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze).
+        data-wobo-surface=""
         data-wobo-cursor={state.tapping ? 'tapping' : 'gliding'}
         data-wobo-cursor-saying={state.saying ?? ''}
         style={{

@@ -16,11 +16,14 @@
  */
 
 import { routeToPath } from '../../../shell/router';
-import { CTA } from '../../site/cta';
+import { useDoorsOpen } from '../../site/dial';
 import { LandingLink } from '../link';
-import { CLOSE } from '../page-copy';
+import { closeCopy } from '../page-copy';
 
 export function Close() {
+  // Both lines either side of the door follow it: while new accounts are closed, a close that
+  // says "free every day" is describing a product the reader cannot have (docs/DOORS-CLOSED.md §5).
+  const close = closeCopy(useDoorsOpen());
   return (
     <div className="wrap">
       <div id="close">
@@ -34,18 +37,18 @@ export function Close() {
           }}
           aria-hidden="true"
         />
-        <h2 className="reveal">{CLOSE.title}</h2>
-        <p className="sub reveal">{CLOSE.sub}</p>
+        <h2 className="reveal">{close.title}</h2>
+        <p className="sub reveal">{close.sub}</p>
         <div className="cl-row reveal">
-          <LandingLink className="btn" href={routeToPath(CTA.to)}>
-            <span>{CLOSE.primary}</span>
+          <LandingLink className="btn" href={routeToPath(close.primaryTo)}>
+            <span>{close.primary}</span>
           </LandingLink>
-          <LandingLink className="btn cl-q" href={CLOSE.quietHref}>
-            <span>{CLOSE.quiet}</span>
+          <LandingLink className="btn cl-q" href={close.quietHref}>
+            <span>{close.quiet}</span>
           </LandingLink>
         </div>
-        <p className="hand cl-hand reveal">{CLOSE.hand}</p>
-        <p className="fine reveal">{CLOSE.fine}</p>
+        {close.hand ? <p className="hand cl-hand reveal">{close.hand}</p> : null}
+        <p className="fine reveal">{close.fine}</p>
       </div>
     </div>
   );

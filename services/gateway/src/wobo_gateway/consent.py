@@ -34,6 +34,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any
 
 from wobo_gateway.registry import ConsentTier
@@ -60,6 +61,12 @@ _MAX_VALUES = frozenset({"max"})
 _TIER_COLUMNS = ("consent_tier", "tier", "consent")
 _PLAN_COLUMNS = ("plan", "subscription", "tier_plan")
 _EMAIL_COLUMNS = ("email", "email_address", "contact_email")
+#: WHEN THE PRODUCT FIRST HELD A RECORD FOR THIS SUBJECT, and the one column on this row a
+#: learner cannot write. `profiles_cache_own` is `for all`, and migration 0014 re-granted INSERT
+#: on exactly the columns the profile sync sends; `created_at` is not among them, so it is always
+#: the database's own `now()`. The door reads it to tell an account the product already had from
+#: a row a stranger wrote for themselves a moment ago (:func:`wobo_gateway.doors.refusal_for`).
+_CREATED_COLUMNS = ("created_at", "inserted_at")
 
 # The live schema (infra/supabase/migrations/0002 + 0006). Overridable, because a deploy that
 # moves the profile behind a governed view should not need a code change.
@@ -68,6 +75,11 @@ _DEFAULT_TABLE = "profiles_cache"
 _DEFAULT_ID_COLUMN = "subject_id"
 
 _cache: dict[str, tuple[float, Profile]] = {}
+#: Does a record for this subject EXIST? Kept apart from ``_cache`` because the profile cache
+#: cannot answer it: a subject with no row and a subject we could not look up both fall to
+#: ``DEFAULT_PROFILE`` there, and the door (:mod:`wobo_gateway.doors`) has to tell those two
+#: apart. Only a definite answer is ever cached; "could not tell" is asked again.
+_exists_cache: dict[str, tuple[float, tuple[bool, datetime | None]]] = {}
 
 
 @dataclass(frozen=True)
@@ -120,8 +132,14 @@ def _rest_url(subject: str) -> str | None:
     return f"{base.rstrip('/')}/rest/v1/{urllib.parse.quote(table)}?{query}"
 
 
-def fetch_profile(subject: str) -> Profile | None:
-    """One PostgREST read. Split out so tests can substitute it without a database."""
+def _fetch_rows(subject: str) -> list[dict[str, Any]] | None:
+    """One PostgREST read, with the two failures kept apart.
+
+    ``[]`` means the question was asked and this subject has no record. ``None`` means it could
+    not be asked at all — no project, no key, a timeout, a shape we do not recognise. Collapsing
+    those two into one answer is what made :func:`account_exists` impossible to write, and it is
+    the difference between "you are new" and "we cannot tell", which the door turns on.
+    """
     url = _rest_url(subject)
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
     if not url or not key:
@@ -141,7 +159,15 @@ def fetch_profile(subject: str) -> Profile | None:
     except (urllib.error.URLError, TimeoutError, ValueError, OSError) as exc:
         logger.warning("consent lookup failed", extra={"fields": {"error": str(exc)}})
         return None
-    if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
+    if not isinstance(rows, list):
+        return None
+    return [row for row in rows if isinstance(row, dict)]
+
+
+def fetch_profile(subject: str) -> Profile | None:
+    """One PostgREST read. Split out so tests can substitute it without a database."""
+    rows = _fetch_rows(subject)
+    if not rows:
         return None
     row = rows[0]
     email = _first(row, _EMAIL_COLUMNS)
@@ -175,6 +201,72 @@ def get_plan(subject: str, *, anonymous: bool = False) -> str:
     return get_profile(subject, anonymous=anonymous).plan
 
 
+def _as_moment(value: Any) -> datetime | None:
+    """A timestamp as PostgREST hands it back, or ``None`` for anything we cannot read as one."""
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=UTC)
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+
+
+def _record(subject: str) -> tuple[bool, datetime | None] | None:
+    """One lookup, answering both questions the door asks: is there a record, and since when.
+
+    ``None`` means the question could not be asked at all. Kept as one cached read because the
+    two answers come off the same row and asking twice would double every door's database work.
+    """
+    if not subject:
+        return None
+    cached = _exists_cache.get(subject)
+    if cached is not None and (time.monotonic() - cached[0]) < _CACHE_TTL_S:
+        return cached[1]
+    rows = _fetch_rows(subject)
+    if rows is None:
+        return None
+    found: tuple[bool, datetime | None] = (
+        len(rows) > 0,
+        _as_moment(_first(rows[0], _CREATED_COLUMNS)) if rows else None,
+    )
+    if len(_exists_cache) >= _CACHE_MAX:
+        _exists_cache.clear()  # ponytail: cheap prune; worst case one extra lookup per subject
+    _exists_cache[subject] = (time.monotonic(), found)
+    return found
+
+
+def account_exists(subject: str) -> bool | None:
+    """Does the product hold a record for this subject? ``None`` when we could not find out.
+
+    The door (:mod:`wobo_gateway.doors`) is the caller, and the three answers mean three
+    different things to it: ``True`` is an existing account and works exactly as before;
+    ``False`` is a sign-up that happened at the auth server while the door was shut and is
+    refused; ``None`` is a database we could not reach, and nobody is locked out by that.
+
+    Anonymous subjects never come here — they are refused on their own account, before this.
+
+    THIS ANSWER IS NOT PROOF ON ITS OWN. The row it reads is one a learner may write with their
+    own token (``profiles_cache_own`` is ``for all``), so "there is a record" is a thing a
+    stranger can arrange. :func:`account_created_at` is the half they cannot forge.
+    """
+    record = _record(subject)
+    return None if record is None else record[0]
+
+
+def account_created_at(subject: str) -> datetime | None:
+    """When the product's record for this subject was written, as the DATABASE wrote it.
+
+    ``None`` when there is no record, when the lookup could not be made, or when the row does not
+    carry the column. The door treats all three the same way and leaves its extra rule off, which
+    fails towards the learner exactly as the lookup itself does.
+    """
+    record = _record(subject)
+    return None if record is None else record[1]
+
+
 def account_email(subject: str) -> str | None:
     """The address on file for a verified subject, or None. The email seam calls this to refuse
     a send to any address the learner does not own."""
@@ -184,3 +276,4 @@ def account_email(subject: str) -> str | None:
 def reset_cache() -> None:
     """Test seam, and the hook a future "my consent changed" webhook calls."""
     _cache.clear()
+    _exists_cache.clear()

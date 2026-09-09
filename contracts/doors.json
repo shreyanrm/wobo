@@ -1,0 +1,19 @@
+{
+  "what": "The two addresses the door wave shares between the web app and the gateway, and the exact bodies that cross them. One file, read by BOTH sides' real code in their own test suites, because two green suites that each tested their own mock is how three contract breaks shipped at once (docs/DOORS-CLOSED.md, the wave 46 review).",
+  "rule": "Nothing here is a description. Changing a path or a key here without changing both sides fails both suites.",
+  "dial": {
+    "why": "GET, no token, open to anybody: a stranger's browser asks this before it draws the door.",
+    "path": "/v1/doors",
+    "body": { "doors_open": false }
+  },
+  "list": {
+    "why": "POST, no token. The invitation that stands where the door was.",
+    "path": "/v1/waiting-list",
+    "body": {
+      "email": "someone@example.com",
+      "class": "class 9",
+      "board": "CBSE",
+      "page": "/sign-up"
+    }
+  }
+}

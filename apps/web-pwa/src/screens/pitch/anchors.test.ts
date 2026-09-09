@@ -51,7 +51,7 @@ describe('every in-page anchor lands on something', () => {
     it(`${file} answers every anchor it offers, and the one its close names`, () => {
       const text = source(file);
       const answered = ids(text);
-      const close = handoff(page);
+      const close = handoff(page, true);
       const fromClose = [close.primary, close.quiet]
         .map((action) => action.href ?? '')
         .filter((href) => href.startsWith('#'))
@@ -63,11 +63,11 @@ describe('every in-page anchor lands on something', () => {
 
   it('checks the two anchors a close actually depends on today', () => {
     // a guard on the guard: if these move out of the table this test quietly stops proving anything
-    expect(handoff('subjects').quiet.href).toBe('#ask');
+    expect(handoff('subjects', true).quiet.href).toBe('#ask');
     // /security's second was `#collect`, an anchor back UP the page the reader had just finished,
     // so the only forward move off the trust page was the primary. It points at the documents now,
     // which is a step onward and the evidence the page cites all the way down (docs/SELL.md §6).
-    expect(handoff('security').quiet.href).toBe('/legal');
+    expect(handoff('security', true).quiet.href).toBe('/legal');
   });
 });
 

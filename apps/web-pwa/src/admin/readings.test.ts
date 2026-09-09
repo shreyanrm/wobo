@@ -16,9 +16,9 @@ import { usd } from './panels';
 import {
   droppedRows,
   groupBy,
-  rollupNote,
   modelPanels,
   pacingPanels,
+  rollupNote,
   spendPanels,
   summary,
   toneOfFallback,
@@ -396,9 +396,7 @@ describe('a figure that could not be read is counted, never swallowed', () => {
 
   it('does not count an absent column as a fault', () => {
     // An older rollup row may simply not carry a column. Absent and malformed are different facts.
-    const sums = totals([
-      { ...row({ calls: 1 }), cache_hits: undefined as unknown as number },
-    ]);
+    const sums = totals([{ ...row({ calls: 1 }), cache_hits: undefined as unknown as number }]);
     expect(sums.unreadable).toBe(0);
   });
 });
@@ -417,7 +415,9 @@ describe('a model with no priced call is not a model that costs nothing', () => 
     );
     const table = panels.find((panel) => panel.id === 'models-table');
     const video =
-      table?.kind === 'rows' ? table.rows.find((entry) => entry.cells[0] === 'a-video-model') : null;
+      table?.kind === 'rows'
+        ? table.rows.find((entry) => entry.cells[0] === 'a-video-model')
+        : null;
     expect(video?.cells[1]).toBe('no priced calls');
     expect(video?.cells[1]).not.toBe('$0.00');
     expect(video?.tone).toBe('unknown');
@@ -436,7 +436,9 @@ describe('the pacing desk shows the rates the day was built from', () => {
     expect(kinds).toContain('turn');
     expect(kinds).toContain('spoken_second');
     const spoken =
-      rates?.kind === 'rows' ? rates.rows.find((entry) => entry.cells[0] === 'spoken_second') : null;
+      rates?.kind === 'rows'
+        ? rates.rows.find((entry) => entry.cells[0] === 'spoken_second')
+        : null;
     expect(spoken?.cells[5]).toContain('a figure we entered');
   });
 
@@ -446,7 +448,9 @@ describe('the pacing desk shows the rates the day was built from', () => {
     const day = panels.find((panel) => panel.id === 'pacing-free-day');
     expect(day?.kind === 'figure' && day.note).toContain('priced from a figure we entered');
     expect(day?.kind === 'figure' && day.tone).toBe('warn');
-    expect(day?.kind === 'figure' && day.provenance.caveat).toContain('only as good as that number');
+    expect(day?.kind === 'figure' && day.provenance.caveat).toContain(
+      'only as good as that number',
+    );
   });
 
   it('and stays plain when every rate came from a real price table', () => {

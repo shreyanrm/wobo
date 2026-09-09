@@ -36,6 +36,11 @@ export const FLAG_CSS = `
 /* Above the phone's tab bar, and above the save-trouble strip when that is up: --wst-height is
    the strip's own measured height (store/SaveTrouble.tsx), 0 when there is no strip. */
 .wf-float{position:fixed;left:12px;bottom:calc(84px + var(--wst-height,0px) + env(safe-area-inset-bottom));z-index:900}
+/* While the glass is held the sheet is a strip along the bottom and the page is the point, and
+   for as long as Wobo's ink is on that page the pill stands aside with the rest of Wobo's
+   furniture (wobo/clearance.ts): it sat over the strip through every turn at 390
+   (docs/INK-FREEZE-PLAN-TRACE.md section 3). */
+[data-glass-held] .wf-float,[data-wobo-ink] .wf-float{visibility:hidden}
 .wf-corner{position:absolute;right:16px;top:16px;z-index:2}
 .wf-panel{position:fixed;left:20px;bottom:20px;width:min(320px,calc(100vw - 24px));max-height:min(560px,calc(100vh - 40px));overflow:auto;z-index:1000;display:grid;gap:12px;padding:20px;border-radius:24px;background:var(--paper-2);box-shadow:var(--shadow)}
 .wf-panel.wf-at-top{left:auto;bottom:auto;right:16px;top:16px}
@@ -243,6 +248,8 @@ export function FlagControl({ about, placement = 'rail', send = raiseFlag }: Fla
       aria-haspopup="dialog"
       aria-controls={open ? panelId : undefined}
       aria-label={FLAG_COPY.openHint}
+      // Wobo's own control, not the lesson's: never on the glass map.
+      data-wobo-surface=""
       onClick={() => (open ? close() : setOpen(true))}
     >
       <FlagGlyph />

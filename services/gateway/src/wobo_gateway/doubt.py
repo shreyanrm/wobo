@@ -86,6 +86,7 @@ import os
 import re
 import secrets
 import threading
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -140,6 +141,27 @@ BUCKET = "doubt-photos"
 TABLE = "doubts"
 _SCHEMA = "learner"
 _HTTP_TIMEOUT_S = 8.0
+
+#: THE WHOLE DOUBT READ, ON THE WALL CLOCK (the adversary, 2026-09-09, finding 4).
+#:
+#: Live on that day the door was one photo in three. The maths page read correctly in 15 949 ms;
+#: the diagram photo refused with a 503 after 5 849 ms; and the history photo came back 422 after
+#: the learner had waited 90 021 MILLISECONDS. Every model call on this path already carries a
+#: deadline — ``model_call.complete`` treats ``timeout`` as the whole chain's budget — but THE DOOR
+#: CARRIED NONE, so the screen, the re-screen after a crop and the read each spent their own and a
+#: child paid the sum with a phone in their hand. Nothing in this product has a clause for a minute
+#: and a half.
+#:
+#: So the door has a wall clock, and what is left of it is handed DOWN: each call is started with
+#: the smaller of its own deadline and the time the door has left (:meth:`LiveReader.with_seconds`),
+#: and a step with no time left is not started at all. A learner is told, honestly, that it took
+#: too long — which is a thing they can act on, unlike silence.
+DOUBT_BUDGET_S = 45.0
+#: No model call is worth starting with less than this left: it would fail on the clock anyway,
+#: and the learner would pay for the failing.
+_MIN_CALL_S = 4.0
+#: What the learner reads when the door runs out. It blames the wait, never the photograph.
+TOO_SLOW_SAY = "That one took longer than it should have. Send it again and I will have another go."
 #: Storage lists and deletes a page at a time.
 _BUCKET_PAGE = 1000
 _BUCKET_MAX_PAGES = 100
@@ -348,6 +370,11 @@ class LiveImageScreen:
     timeout_s: float = 12.0
     degraded: bool = False
 
+    def with_seconds(self, seconds: float) -> LiveImageScreen:
+        """The same screen, given no more than ``seconds``. It only ever NARROWS: a door with time
+        to spare does not lengthen a call's own deadline (:data:`DOUBT_BUDGET_S`)."""
+        return replace(self, timeout_s=min(self.timeout_s, max(0.0, float(seconds))))
+
     def screen(self, *, image: bytes, media_type: str) -> ImageVerdict:
         from wobo_gateway.model_call import complete
         from wobo_gateway.providers import max_tokens_for
@@ -412,6 +439,14 @@ READ_SYSTEM = (
 
 #: When the reader found no line and no figure. Honest about both halves: it may be the photo, and
 #: it may be that the learner has to say what the page shows.
+#: With no key there are no eyes, and that is a different thing from a photo Wobo could not read.
+#: Blaming the picture ("try a straighter, brighter photo") for a missing model is a lie a learner
+#: would act on, so the keyless path says what is actually true and hands the move back.
+NO_EYES_SAY = (
+    "I cannot see the page on this device. Type what it says, line by line, and I will start "
+    "from there."
+)
+
 NOTHING_READ_SAY = (
     "I could not make out any writing or figure on that page. Try a straighter, brighter photo, "
     "or type what the page shows and I will start from there."
@@ -440,6 +475,9 @@ class Reading:
     lines: tuple[Line, ...]
     #: Lines the reader placed off the page or nowhere. Counted, never silently dropped.
     unplaced: int = 0
+    #: True when nothing looked at the photo at all — the keyless path. Not the same as a page
+    #: that was looked at and could not be read, and it is not said the same way.
+    blind: bool = False
 
     @property
     def targets(self) -> tuple[Line, ...]:
@@ -448,7 +486,7 @@ class Reading:
     def say(self) -> str:
         """Law 1, in Wobo's voice: what was read, and the question that hands it back."""
         if not self.lines:
-            return NOTHING_READ_SAY
+            return NO_EYES_SAY if self.blind else NOTHING_READ_SAY
         shown = "; ".join(line.text for line in self.lines[:6])
         more = f" and {len(self.lines) - 6} more lines" if len(self.lines) > 6 else ""
         return f"I read this as: {shown}{more}. Is that right? Fix anything I got wrong first."
@@ -492,8 +530,12 @@ class Reader(Protocol):
 class LiveReader:
     """The generate-tier vision read, on the same rung the own-syllabus photo already goes to."""
 
-    timeout_s: float = 45.0
+    timeout_s: float = 30.0
     degraded: bool = False
+
+    def with_seconds(self, seconds: float) -> LiveReader:
+        """The same reader, given no more than ``seconds`` (:data:`DOUBT_BUDGET_S`)."""
+        return replace(self, timeout_s=min(self.timeout_s, max(0.0, float(seconds))))
 
     def read(self, *, image: bytes, media_type: str, words: str) -> Reading:
         from wobo_gateway.model_call import complete
@@ -532,29 +574,30 @@ class LiveReader:
 
 
 class MockEyes:
-    """Keyless eyes for ``LLM_MODE=mock``: a page is a page, and the reading says so honestly.
+    """Keyless eyes for ``LLM_MODE=mock``: nothing here looks at a pixel, and nothing pretends to.
 
-    Nothing here looks at a pixel. The reading is one line that says what it is, so a local run
-    walks the whole two-step path — the reading shown, corrected, and taught over — without a key
-    and without pretending it read the page.
+    IT USED TO SPEAK A STAGE DIRECTION. The reading was one line reading "(the page, as far as I
+    could read it without my eyes)", boxed over 80% of the photo — so the learner heard "I read
+    this as: (the page, as far as I could read it without my eyes). Is that right?" and the one
+    ring Wobo drew went round the whole page (the adversary, 2026-09-09, finding 8). A parenthesis
+    is a note to a developer; a child heard it read out at both widths.
+
+    What this has instead is the one thing it honestly holds: the words the learner typed beside
+    the photo. Those are read back for correction, which is the whole of law 1, and they carry NO
+    BOX — a line with no box is text a learner can correct and never a rect ink may anchor to, so
+    nothing is ringed on a page nobody looked at. With no words there is nothing at all, and the
+    say is :data:`NO_EYES_SAY`, which blames the missing model rather than the photograph.
     """
 
     def screen(self, *, image: bytes, media_type: str) -> ImageVerdict:
         return ImageVerdict(allowed=True)
 
     def read(self, *, image: bytes, media_type: str, words: str) -> Reading:
-        return Reading(
-            subject="",
-            topic="",
-            question="",
-            lines=(
-                Line(
-                    "r1",
-                    "(the page, as far as I could read it without my eyes)",
-                    (0.1, 0.1, 0.9, 0.9),
-                ),
-            ),
-        )
+        typed = [_clean_line(part) for part in re.split(r"[\n;]+", words or "")]
+        lines = tuple(
+            Line(f"r{i + 1}", text, None) for i, text in enumerate(t for t in typed if t)
+        )[:MAX_LINES]
+        return Reading(subject="", topic="", question="", lines=lines, blind=True)
 
 
 @dataclass(frozen=True)
@@ -1206,12 +1249,12 @@ def turn_payload(doubt: Doubt, words: str) -> dict[str, Any]:
     corrected line, and the learner's words are theirs or the tap's meaning, never the reader's.
     """
     targets = [{"id": line.id, "kind": "line", "label": line.text} for line in doubt.targets]
-    surface = {
-        "id": f"doubt:{doubt.id}",
-        "title": "the photo of the page",
-        "description": "a photograph of the learner's own page of work",
-        "targets": targets,
-    }
+    # The photo's lines ARE the glass map (docs/INK-FREEZE-PLAN-TRACE.md section 3, Freeze): the
+    # same plan grammar marks a line of the page by id, with the box the vision read gave it.
+    glass = [
+        {"id": line.id, "role": "photo-line", "text": line.text, "box": list(line.box or ())}
+        for line in doubt.targets
+    ]
     return {
         "context": {
             "turn": {"lastUserInput": (words or DEFAULT_WORDS)[:MAX_WORDS_CHARS]},
@@ -1225,7 +1268,7 @@ def turn_payload(doubt: Doubt, words: str) -> dict[str, Any]:
                 "steps": [f"{line.id}: {line.text}" for line in doubt.lines],
             },
             "targets": targets,
-            "packet": {"screen": {"surfaces": [surface]}},
+            "packet": {"v": 1, "glass": glass},
         },
         "board": {"presentation": "screen"},
     }
@@ -1399,6 +1442,17 @@ def _words(text: str | None) -> str:
     return " ".join((text or "").split())[:MAX_WORDS_CHARS]
 
 
+def _given(part: Any, seconds: float) -> Any:
+    """The screen or the reader, holding no more of the clock than the door has left.
+
+    A part that does not know how to be narrowed is handed back untouched: the keyless eyes and
+    every fake in the suite have no deadline to narrow, and a door that insisted would be a door
+    that could only be built one way.
+    """
+    narrow = getattr(part, "with_seconds", None)
+    return narrow(seconds) if callable(narrow) else part
+
+
 def read_doubt(
     *,
     subject: str,
@@ -1408,15 +1462,35 @@ def read_doubt(
     framework_id: str | None,
     eyes: Eyes,
     store: DoubtStore,
+    budget_s: float = DOUBT_BUDGET_S,
 ) -> Doubt:
-    """The reading step, end to end: bound, screen, crop, read, place, keep. Raises DoubtRefused."""
+    """The reading step, end to end: bound, screen, crop, read, place, keep. Raises DoubtRefused.
+
+    ``budget_s`` is the whole door's wall clock (:data:`DOUBT_BUDGET_S`). Each step is started with
+    what is left of it, and a step with nothing left is not started.
+    """
+    deadline = time.monotonic() + max(0.0, float(budget_s))
+
+    def left() -> float:
+        return deadline - time.monotonic()
+
+    def in_time() -> float:
+        seconds = left()
+        if seconds < _MIN_CALL_S:
+            raise DoubtRefused("photo_slow", TOO_SLOW_SAY, status=503)
+        return seconds
+
     prepared = prepare_image(raw, media_type=media_type)
-    verdict = screen_image(prepared.data, media_type=prepared.media_type, screen=eyes.screen)
+    verdict = screen_image(
+        prepared.data, media_type=prepared.media_type, screen=_given(eyes.screen, left())
+    )
     if verdict.allowed and verdict.crop is not None:
         # The screen found the work apart from something the page does not need. Keep the work,
         # and ask once more about what is left: a crop is the screen's suggestion, not its verdict.
         prepared = prepare_image(raw, media_type=media_type, crop=verdict.crop)
-        verdict = screen_image(prepared.data, media_type=prepared.media_type, screen=eyes.screen)
+        verdict = screen_image(
+            prepared.data, media_type=prepared.media_type, screen=_given(eyes.screen, in_time())
+        )
         if verdict.allowed and verdict.details:
             # The crop still carries someone's details. Until 2026-09-05 this second "details,
             # but here is a crop" was read as a pass and the photo was kept and read.
@@ -1428,7 +1502,11 @@ def read_doubt(
         raise DoubtRefused(f"photo_{verdict.reason or 'refused'}", verdict.say, status=status)
 
     try:
-        reading = eyes.reader.read(image=prepared.data, media_type=prepared.media_type, words=words)
+        reading = _given(eyes.reader, in_time()).read(
+            image=prepared.data, media_type=prepared.media_type, words=words
+        )
+    except DoubtRefused:
+        raise
     except Exception as exc:  # noqa: BLE001 - one honest refusal, nothing kept
         raise DoubtRefused(
             "reader_failed",
@@ -1436,7 +1514,7 @@ def read_doubt(
             status=503,
         ) from exc
     if not reading.lines:
-        raise DoubtRefused("nothing_read", NOTHING_READ_SAY, status=422)
+        raise DoubtRefused("nothing_read", reading.say(), status=422)
     placement = place(subject, reading, framework_id)
     doubt = Doubt(
         id=secrets.token_urlsafe(12),
@@ -1729,6 +1807,7 @@ __all__ = [
     "MAX_PIXELS",
     "MockEyes",
     "NOTHING_READ_SAY",
+    "NO_EYES_SAY",
     "OFF_PAGE",
     "PostgrestDoubtStore",
     "Prepared",

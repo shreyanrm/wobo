@@ -1,0 +1,1561 @@
+{
+  "title": "The Wobo blog",
+  "blurb": "What we learn while building a tutor, written down: how to read a syllabus document, what a board actually changed this year, and what a machine can and cannot do for a learner.",
+  "note": "Drafted with AI help, from source documents and notes a person gathered, then read and edited by a person before it went up. Every figure in it is one we can show you the source of.",
+  "authors": [
+    {
+      "key": "syllabus-desk",
+      "name": null,
+      "role": "syllabus desk",
+      "about": "Fetches the board documents, reads them against their own page numbers, and keeps a record of what was read and when."
+    },
+    {
+      "key": "teaching-desk",
+      "name": null,
+      "role": "teaching desk",
+      "about": "Works on how an explanation is built, what happens when one misses, and what the tutor should refuse to do."
+    }
+  ],
+  "tags": [
+    {
+      "slug": "syllabus",
+      "title": "Syllabus",
+      "blurb": "What a board actually publishes, where it publishes it, and how to tell this year's document from the one that is still sitting in a search result."
+    },
+    {
+      "slug": "how-wobo-teaches",
+      "title": "How Wobo teaches",
+      "blurb": "Why a drawn explanation lands, how a photographed doubt is solved step by step, and what happens when the first explanation misses."
+    },
+    {
+      "slug": "for-parents",
+      "title": "For parents",
+      "blurb": "For the person paying and worrying: what to look for, what to ask, and what nobody should promise you."
+    }
+  ],
+  "posts": [
+    {
+      "slug": "read-a-syllabus-document",
+      "title": "How to read a syllabus document and know it is current",
+      "summary": "Four checks tell you whether the syllabus in front of you is the one your board is actually setting this year, and all four take about five minutes.",
+      "published": "2026-09-09",
+      "updated": null,
+      "author": "syllabus-desk",
+      "tags": [
+        "syllabus",
+        "for-parents"
+      ],
+      "aiAssisted": true,
+      "lead": [
+        {
+          "t": "strong",
+          "v": "A syllabus is not current because a page says it is: it is current when you can name the document it came from, find the chapter on the page it cites, and see the date somebody last checked that the file was still there."
+        }
+      ],
+      "blocks": [
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Most of what a search engine returns for \"syllabus\" is a page about a syllabus rather than the syllabus. A chapter list gets typed up once, from a document that was correct that week, and then it sits there. Nothing on the page tells you which week that was, and nothing on the page moves when the board moves. That is not anybody's bad faith; it is just what happens to a copy of a document that has no date on it."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "That matters more than it used to, because the boards have been moving. If your child's chapter list does not match the book in their bag, the list is usually the thing that is wrong."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Here is the check we run, in the order we run it."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "1. Get to the board's own document"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Start on the board's own site, not on a site about the board. In India the ones that matter are cbseacademic.nic.in for CBSE, ncert.nic.in for the prescribed textbooks, cisce.org for ICSE and ISC, and nios.ac.in for NIOS. State boards each have their own, and several of them will only serve the document to a browser, which is a real limit and worth knowing about before you spend an evening on it."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "What you are looking for is a file, usually a PDF, that the board itself published. Not a summary of it. Not a blog post about it. The document."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "2. Make it name its own year"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A current syllabus says which academic year it is for, on its cover or in its header, in the board's own words. If the file does not say, you are holding something that cannot tell you whether it is this year's, and no amount of reading the chapter list will settle it."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "This is the single fastest way to throw away a bad source. A chapter list with no year attached is a chapter list from an unknown year."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "3. Check the document actually contains the chapter"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Open the document and find the chapter. Not the chapter name in a contents page somewhere else: the chapter, in this file, on a page you can point at."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "It sounds pedantic and it catches real errors. When we audited our own reading of the board documents, the checks that failed were almost all of this shape: a name that was in the document but not on the page we had cited, or a unit that the document numbered and we had not. One of our own class 11 mathematics files was short a chapter under Coordinate Geometry against the document's own numbering, and it is marked as provisional in our data because of exactly that. A chapter list that nobody has held against its own source is a chapter list nobody has checked."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "4. Write down the day you read it"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A document that was right in September can be replaced in November. The board does not send you a message when that happens. So the last check is the cheapest one: note the day you read the file, and note something that identifies the file itself, so that next term you can tell whether you are looking at the same bytes or at a new document with the same name."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "We keep a hash of every document we read for exactly this. When we re-fetched all 41 of our source documents on 5 September 2026, every one of them came back identical to what the build had recorded, which is the only way to say \"nothing changed\" and mean it."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "What \"current\" still cannot tell you"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A current document can still be read wrong, and this is the part nobody admits."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Our own class 10 science file passed every structural check and was still wrong about three topics, because a PDF's text layer indented a whole page and the first reading took that indent for the box the document uses to mark what is assessed only formatively. The checks asked whether every name was in the source. They could not ask whether we had understood what the source said about that name. It took a second reading, off the rendered pages rather than the text layer, to catch it."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "So \"verified\" is a claim about the checks that passed, and it is worth saying which ones. It is not a claim of perfection, and anybody who offers you one should be asked what they checked."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "What we do with this"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Every chapter page on this site carries the same four things, in plain sight: the official document the chapter came from, the page or section inside it, a hash of the bytes we read, and the day we read them. Where a board's document is one we are still checking, the page says so in those words rather than pretending."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "It is not a feature anybody asks for. It is just the only honest way to publish somebody else's syllabus, and it is the thing you can use to check us the same way you would check anyone else."
+            }
+          ]
+        }
+      ],
+      "words": 885,
+      "minutes": 4,
+      "plain": "A syllabus is not current because a page says it is: it is current when you can name the document it came from, find the chapter on the page it cites, and see the date somebody last checked that the file was still there. Most of what a search engine returns for \"syllabus\" is a page about a syllabus rather than the syllabus. A chapter list gets typed up once, from a document that was correct that week, and then it sits there. Nothing on the page tells you which week that was, and nothing on the page moves when the board moves. That is not anybody's bad faith; it is just what happens to a copy of a document that has no date on it. That matters more than it used to, because the boards have been moving. If your child's chapter list does not match the book in their bag, the list is usually the thing that is wrong. Here is the check we run, in the order we run it. 1. Get to the board's own document Start on the board's own site, not on a site about the board. In India the ones that matter are cbseacademic.nic.in for CBSE, ncert.nic.in for the prescribed textbooks, cisce.org for ICSE and ISC, and nios.ac.in for NIOS. State boards each have their own, and several of them will only serve the document to a browser, which is a real limit and worth knowing about before you spend an evening on it. What you are looking for is a file, usually a PDF, that the board itself published. Not a summary of it. Not a blog post about it. The document. 2. Make it name its own year A current syllabus says which academic year it is for, on its cover or in its header, in the board's own words. If the file does not say, you are holding something that cannot tell you whether it is this year's, and no amount of reading the chapter list will settle it. This is the single fastest way to throw away a bad source. A chapter list with no year attached is a chapter list from an unknown year. 3. Check the document actually contains the chapter Open the document and find the chapter. Not the chapter name in a contents page somewhere else: the chapter, in this file, on a page you can point at. It sounds pedantic and it catches real errors. When we audited our own reading of the board documents, the checks that failed were almost all of this shape: a name that was in the document but not on the page we had cited, or a unit that the document numbered and we had not. One of our own class 11 mathematics files was short a chapter under Coordinate Geometry against the document's own numbering, and it is marked as provisional in our data because of exactly that. A chapter list that nobody has held against its own source is a chapter list nobody has checked. 4. Write down the day you read it A document that was right in September can be replaced in November. The board does not send you a message when that happens. So the last check is the cheapest one: note the day you read the file, and note something that identifies the file itself, so that next term you can tell whether you are looking at the same bytes or at a new document with the same name. We keep a hash of every document we read for exactly this. When we re-fetched all 41 of our source documents on 5 September 2026, every one of them came back identical to what the build had recorded, which is the only way to say \"nothing changed\" and mean it. What \"current\" still cannot tell you A current document can still be read wrong, and this is the part nobody admits. Our own class 10 science file passed every structural check and was still wrong about three topics, because a PDF's text layer indented a whole page and the first reading took that indent for the box the document uses to mark what is assessed only formatively. The checks asked whether every name was in the source. They could not ask whether we had understood what the source said about that name. It took a second reading, off the rendered pages rather than the text layer, to catch it. So \"verified\" is a claim about the checks that passed, and it is worth saying which ones. It is not a claim of perfection, and anybody who offers you one should be asked what they checked. What we do with this Every chapter page on this site carries the same four things, in plain sight: the official document the chapter came from, the page or section inside it, a hash of the bytes we read, and the day we read them. Where a board's document is one we are still checking, the page says so in those words rather than pretending. It is not a feature anybody asks for. It is just the only honest way to publish somebody else's syllabus, and it is the thing you can use to check us the same way you would check anyone else."
+    },
+    {
+      "slug": "what-changed-in-the-cbse-syllabus",
+      "title": "What changed in the CBSE syllabus this year, with the document for each change",
+      "summary": "The middle stage is being taught out of new books with new chapter names, and two reading traps sit in the secondary documents. Each one cited to its page.",
+      "published": "2026-09-09",
+      "updated": null,
+      "author": "syllabus-desk",
+      "tags": [
+        "syllabus"
+      ],
+      "aiAssisted": true,
+      "lead": [
+        {
+          "t": "strong",
+          "v": "The largest change is that the middle stage is being taught out of new books with new names, so the chapter list a parent remembers no longer matches the book in the bag, and neither does any list written for the previous books."
+        }
+      ],
+      "blocks": [
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Everything below is read off the board's own documents. We fetched them on 3 September 2026, re-fetched every one of them on 5 September 2026, and each came back byte for byte identical, so what follows is what those files say and not what anybody remembers them saying. Where our own reading of a document is still unsettled, that is said too."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "CBSE publishes a curriculum document for one stage and prescribes books for the other"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "This is the fact that explains most of the confusion, and it is not a change, it is just rarely stated. For the secondary stage CBSE publishes a curriculum document per subject per year, on its own site. For the middle stage it does not: it prescribes the NCERT textbook, and the textbook is the syllabus."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "So \"the CBSE syllabus\" means two different kinds of source depending on which class you are asking about, and presenting both as one tidy list flattens something real."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "The middle stage: new books, new names, new shape"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The prescribed NCERT books for the middle stage have been replaced, and the new ones are not renamed editions of the old. Mathematics is now Ganita Prakash. Science is now Curiosity. Social science is now Exploring Society: India and Beyond, and it is organised as themes rather than as three separate books for history, geography and civics."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The contents pages are on ncert.nic.in, in each book's own prelims PDF. Ganita Prakash for the class 8 mathematics course is published in two parts, and its parts are the units, with the book's chapters underneath them. Exploring Society runs on lettered themes, so a chapter now sits under something like Governance and Democracy or Economic Life Around Us rather than under a subject name."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "What this means in practice, for a parent: chapter-wise notes and solutions written for the previous books will not line up. Not slightly. The chapter names are different, the order is different, and the grouping is different. If a chapter list you are working from still reads the way it did two years ago, that is the tell, whoever wrote it."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "Reading trap one: what class 10 science actually examines"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The class 10 science document for 2026-27 is Science, Class X, Secondary Curriculum Part 1, on cbseacademic.nic.in, and the course structure sits on page 4 with the syllabus prose running to page 6."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Inside it, three areas sit in boxes the document marks as assessed only formatively: Periodic Classification of Elements, Evolution, and Motor, Electromagnetic Induction and Electric Generator. Everything else is examined. The Note for Teachers on page 6 names exactly what is not."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "We got this wrong on the first pass, and the reason is worth repeating because it will catch anybody reading the same file. The PDF's text layer indents one whole page, and our first reading took that indent for the document's formative box, which produced three topics marked as not examined that the document does in fact examine. Reading the rendered pages instead of the extracted text fixed it. The document also carries one genuine contradiction of its own, between its prose and its Note for Teachers, on Heredity, and our file records the contradiction rather than picking a side."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "Reading trap two: marks that belong to a group, not a unit"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "In the class 12 physics document the course structure table prints marks against a bracketed group of units, not against each unit inside it. Read the table quickly and you will copy one unit's number onto the wrong row, which is exactly what our own first reading did, twice."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The class 11 mathematics document carries a related note in the board's own words: there is no chapter-wise weightage inside a unit. So a per-chapter marks figure for that course is not in the document, and if you are holding one it came from somewhere the board did not write."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "What is still open, on our side"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Our class 11 mathematics file is marked provisional, because the document numbers three chapters under Coordinate Geometry and our reading holds two. That is our error, not the board's, and the file says so rather than quietly rounding up."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "ICSE and ISC are in the same honest position for a different reason. We hold their unit lists, checked against the board's own booklet, and we do not hold a topic layer under those units, so our pages for them carry the unit and the provenance and nothing invented underneath it."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "How to check any of this yourself"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Open the board's own file, find the page, and read the sentence. Every claim above names the document and the page it is on precisely so that you can do that in about ten minutes and disagree with us if we are wrong. That is the whole point of citing a source rather than asserting a fact."
+            }
+          ]
+        }
+      ],
+      "words": 851,
+      "minutes": 4,
+      "plain": "The largest change is that the middle stage is being taught out of new books with new names, so the chapter list a parent remembers no longer matches the book in the bag, and neither does any list written for the previous books. Everything below is read off the board's own documents. We fetched them on 3 September 2026, re-fetched every one of them on 5 September 2026, and each came back byte for byte identical, so what follows is what those files say and not what anybody remembers them saying. Where our own reading of a document is still unsettled, that is said too. CBSE publishes a curriculum document for one stage and prescribes books for the other This is the fact that explains most of the confusion, and it is not a change, it is just rarely stated. For the secondary stage CBSE publishes a curriculum document per subject per year, on its own site. For the middle stage it does not: it prescribes the NCERT textbook, and the textbook is the syllabus. So \"the CBSE syllabus\" means two different kinds of source depending on which class you are asking about, and presenting both as one tidy list flattens something real. The middle stage: new books, new names, new shape The prescribed NCERT books for the middle stage have been replaced, and the new ones are not renamed editions of the old. Mathematics is now Ganita Prakash. Science is now Curiosity. Social science is now Exploring Society: India and Beyond, and it is organised as themes rather than as three separate books for history, geography and civics. The contents pages are on ncert.nic.in, in each book's own prelims PDF. Ganita Prakash for the class 8 mathematics course is published in two parts, and its parts are the units, with the book's chapters underneath them. Exploring Society runs on lettered themes, so a chapter now sits under something like Governance and Democracy or Economic Life Around Us rather than under a subject name. What this means in practice, for a parent: chapter-wise notes and solutions written for the previous books will not line up. Not slightly. The chapter names are different, the order is different, and the grouping is different. If a chapter list you are working from still reads the way it did two years ago, that is the tell, whoever wrote it. Reading trap one: what class 10 science actually examines The class 10 science document for 2026-27 is Science, Class X, Secondary Curriculum Part 1, on cbseacademic.nic.in, and the course structure sits on page 4 with the syllabus prose running to page 6. Inside it, three areas sit in boxes the document marks as assessed only formatively: Periodic Classification of Elements, Evolution, and Motor, Electromagnetic Induction and Electric Generator. Everything else is examined. The Note for Teachers on page 6 names exactly what is not. We got this wrong on the first pass, and the reason is worth repeating because it will catch anybody reading the same file. The PDF's text layer indents one whole page, and our first reading took that indent for the document's formative box, which produced three topics marked as not examined that the document does in fact examine. Reading the rendered pages instead of the extracted text fixed it. The document also carries one genuine contradiction of its own, between its prose and its Note for Teachers, on Heredity, and our file records the contradiction rather than picking a side. Reading trap two: marks that belong to a group, not a unit In the class 12 physics document the course structure table prints marks against a bracketed group of units, not against each unit inside it. Read the table quickly and you will copy one unit's number onto the wrong row, which is exactly what our own first reading did, twice. The class 11 mathematics document carries a related note in the board's own words: there is no chapter-wise weightage inside a unit. So a per-chapter marks figure for that course is not in the document, and if you are holding one it came from somewhere the board did not write. What is still open, on our side Our class 11 mathematics file is marked provisional, because the document numbers three chapters under Coordinate Geometry and our reading holds two. That is our error, not the board's, and the file says so rather than quietly rounding up. ICSE and ISC are in the same honest position for a different reason. We hold their unit lists, checked against the board's own booklet, and we do not hold a topic layer under those units, so our pages for them carry the unit and the provenance and nothing invented underneath it. How to check any of this yourself Open the board's own file, find the page, and read the sentence. Every claim above names the document and the page it is on precisely so that you can do that in about ten minutes and disagree with us if we are wrong. That is the whole point of citing a source rather than asserting a fact."
+    },
+    {
+      "slug": "why-a-drawn-explanation-lands",
+      "title": "Why a drawn explanation lands where a finished diagram does not",
+      "summary": "A drawing carries the order the thinking happened in, and the order is most of the explanation. A finished picture has already thrown that away.",
+      "published": "2026-09-09",
+      "updated": null,
+      "author": "teaching-desk",
+      "tags": [
+        "how-wobo-teaches"
+      ],
+      "aiAssisted": true,
+      "lead": [
+        {
+          "t": "strong",
+          "v": "Watching a diagram appear stroke by stroke tells you why each line is there, and that is the part a finished diagram has already thrown away."
+        }
+      ],
+      "blocks": [
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Think about what a good teacher does when you say you do not get it. They do not open a book at the finished figure. They pick up a pen, put down one line, and say what that line is. Then the next one, and why it goes there and not somewhere else. By the time the figure is complete you have not been shown a figure; you have been walked through a decision, several times over."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The finished figure is the residue of that walk. It is useful once you already understand it, which is exactly when you no longer need it."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "The order is the argument"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Take a circle theorem, or a free body diagram, or the moment in a long division where the remainder comes down. In every one of them the thing that is hard is not the final picture. It is knowing which mark to make next and why."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A drawing made in front of you carries that order in the only way it can be carried: in time. The angle is marked, then the radius, then the second radius, and the reason the second radius matters is visible because it arrives after the first and changes what you are looking at. Nothing about the completed figure tells you which of its lines was the idea and which were bookkeeping."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "This is also why copying a worked example out of a book so often produces nothing. You reproduce the marks in the order they are printed, which is not the order anybody thought them."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A recorded explanation keeps the order, which is why a good video is genuinely good. What it cannot keep is you. It was finished before you arrived, so it cannot slow down at the line you are stuck on, and pausing it is not the same act as asking a question. You can rewind a video to the third minute. You cannot ask it why it did that."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "The pen can point at your line, not at a line"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The second thing a drawing does, and the reason this is not a style choice, is that it can happen on your page."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A general explanation has to be about a general case. A pen circling the third line of your own working can be about the exact place where your sign flipped. Those are different acts. One of them is teaching material and the other is teaching you, and the difference is not effort or warmth, it is what the explanation is allowed to refer to."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "Where drawing is the wrong form, and what happens then"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Drawing is one of several things a tutor should be able to do, and treating it as the whole job would be its own mistake."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Some things want a short film, because they move: a wave passing through a medium, an eclipse, a mechanism turning. Some want a model you can drag, because the understanding is in the rotation. Some want to be said out loud slowly, because the difficulty is in the wording of the question rather than in the mathematics. Some want practice and nothing else, because the idea is understood and the hand is not yet quick. And after any of them, something has to remember what did not stick and bring it back later, or the evening was entertainment."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "So the honest claim is narrow and it is about form, not about medium. For the class of ideas where the reasoning has an order, watching the order happen is a better explanation than being shown the result of it. For other classes of idea, something else wins, and the tutor's job is to pick."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "What we do not claim"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "We do not claim that a drawn explanation raises marks. We have no study, and a number without a study behind it is a number somebody made up. What we can say is what the product does, which is that the explanation is generated for the question in front of it, that the working is drawn as it is reasoned rather than replayed from a library, and that when one explanation does not land the next one changes its method rather than repeating itself louder."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A claim that any product improves results by a percentage is a factual claim, and a factual claim is worth a study, a sample size and the name of whoever paid for it. That is fair to ask of us, and our honest answer today is that we do not have one."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "The cheapest test of any of this"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Take something your child said they did not understand this week. Find whatever explanation they were given: a video, a page, a solution. Watch it and ask one question afterwards, which is not \"do you get it now\" but \"why is that line there\"."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "If the explanation carried the order, they can answer. If it only carried the result, they will describe the picture back to you. That is the whole distinction, and it takes about two minutes to run."
+            }
+          ]
+        }
+      ],
+      "words": 868,
+      "minutes": 4,
+      "plain": "Watching a diagram appear stroke by stroke tells you why each line is there, and that is the part a finished diagram has already thrown away. Think about what a good teacher does when you say you do not get it. They do not open a book at the finished figure. They pick up a pen, put down one line, and say what that line is. Then the next one, and why it goes there and not somewhere else. By the time the figure is complete you have not been shown a figure; you have been walked through a decision, several times over. The finished figure is the residue of that walk. It is useful once you already understand it, which is exactly when you no longer need it. The order is the argument Take a circle theorem, or a free body diagram, or the moment in a long division where the remainder comes down. In every one of them the thing that is hard is not the final picture. It is knowing which mark to make next and why. A drawing made in front of you carries that order in the only way it can be carried: in time. The angle is marked, then the radius, then the second radius, and the reason the second radius matters is visible because it arrives after the first and changes what you are looking at. Nothing about the completed figure tells you which of its lines was the idea and which were bookkeeping. This is also why copying a worked example out of a book so often produces nothing. You reproduce the marks in the order they are printed, which is not the order anybody thought them. A recorded explanation keeps the order, which is why a good video is genuinely good. What it cannot keep is you. It was finished before you arrived, so it cannot slow down at the line you are stuck on, and pausing it is not the same act as asking a question. You can rewind a video to the third minute. You cannot ask it why it did that. The pen can point at your line, not at a line The second thing a drawing does, and the reason this is not a style choice, is that it can happen on your page. A general explanation has to be about a general case. A pen circling the third line of your own working can be about the exact place where your sign flipped. Those are different acts. One of them is teaching material and the other is teaching you, and the difference is not effort or warmth, it is what the explanation is allowed to refer to. Where drawing is the wrong form, and what happens then Drawing is one of several things a tutor should be able to do, and treating it as the whole job would be its own mistake. Some things want a short film, because they move: a wave passing through a medium, an eclipse, a mechanism turning. Some want a model you can drag, because the understanding is in the rotation. Some want to be said out loud slowly, because the difficulty is in the wording of the question rather than in the mathematics. Some want practice and nothing else, because the idea is understood and the hand is not yet quick. And after any of them, something has to remember what did not stick and bring it back later, or the evening was entertainment. So the honest claim is narrow and it is about form, not about medium. For the class of ideas where the reasoning has an order, watching the order happen is a better explanation than being shown the result of it. For other classes of idea, something else wins, and the tutor's job is to pick. What we do not claim We do not claim that a drawn explanation raises marks. We have no study, and a number without a study behind it is a number somebody made up. What we can say is what the product does, which is that the explanation is generated for the question in front of it, that the working is drawn as it is reasoned rather than replayed from a library, and that when one explanation does not land the next one changes its method rather than repeating itself louder. A claim that any product improves results by a percentage is a factual claim, and a factual claim is worth a study, a sample size and the name of whoever paid for it. That is fair to ask of us, and our honest answer today is that we do not have one. The cheapest test of any of this Take something your child said they did not understand this week. Find whatever explanation they were given: a video, a page, a solution. Watch it and ask one question afterwards, which is not \"do you get it now\" but \"why is that line there\". If the explanation carried the order, they can answer. If it only carried the result, they will describe the picture back to you. That is the whole distinction, and it takes about two minutes to run."
+    },
+    {
+      "slug": "what-to-look-for-in-a-tutoring-app",
+      "title": "What to look for in a tutoring app, as the person paying for it",
+      "summary": "Seven questions worth asking of any tutoring app, why each one matters, and our own answers to all seven, including the ones that are not finished.",
+      "published": "2026-09-09",
+      "updated": null,
+      "author": "teaching-desk",
+      "tags": [
+        "for-parents"
+      ],
+      "aiAssisted": true,
+      "lead": [
+        {
+          "t": "strong",
+          "v": "Ask any tutoring app these seven questions before you pay for it, and ask them of us as well: the answers are more useful than any feature list, because most of them are checkable in an evening."
+        }
+      ],
+      "blocks": [
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "None of this is about which product is better. It is about which questions have answers you can verify yourself, because a claim you cannot check is not information, however confidently it is made."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Our own answers are under each one, in the same words we would give a regulator."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "1. Whose syllabus is it teaching, and can it show you the document?"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Why it matters: a tutor following the wrong chapter list is worse than no tutor, because your child does the work and it counts for nothing. Boards move, and books get replaced."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Ask to see the source. Not a chapter list on a page, the board's own document, with a page reference and a date somebody last checked it."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "strong",
+              "v": "Us."
+            },
+            {
+              "t": "text",
+              "v": " Every chapter page carries the official document it came from, the page or section, a hash of the bytes we read and the day we read them. Four boards carry a syllabus today: two we call verified after structural checks and a second reading, two we call provisional and label as still being checked. Where we hold units and no topics under them, the page shows the units and nothing invented underneath."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "2. What happens when the first explanation does not land?"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Why it matters: this is the whole job. Anything can explain something once. A child who did not understand it the first time needs a second explanation that is different, not the same one repeated more slowly."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Ask what changes on the second attempt."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "strong",
+              "v": "Us."
+            },
+            {
+              "t": "text",
+              "v": " The second explanation changes axis rather than volume: a different method, a different representation, a different example, or a different voice, and it never repeats the explanation that just missed."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "3. What does it do with your child's data?"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Why it matters: this one is law, not preference. India's Data Protection Act forbids a company from tracking or behaviourally monitoring a child, and from directing advertising at one. A child is anyone under eighteen. Parental consent does not make it allowed."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Ask two things: is there advertising, and is there any third-party analytics running while the child is signed in. The second one is the question almost nobody asks and it is the one that separates a policy from a practice."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "strong",
+              "v": "Us."
+            },
+            {
+              "t": "text",
+              "v": " No advertising anywhere. No third-party analytics at all behind the sign-in door, enforced by the content security policy rather than by anybody's discipline, so it cannot be switched on by accident. The public pages a parent reads before signing up use a measurement tool with no cookies and no persistent identifiers. What happens inside the product is counted by our own server, by the day, and never by anybody else."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "4. What can a parent see, and what can a parent not see?"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Why it matters: a parent needs enough to help and not so much that the child stops asking honest questions. An app that shows every keystroke turns a tutor into surveillance, and a child who knows they are being watched asks safer questions."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "strong",
+              "v": "Us."
+            },
+            {
+              "t": "text",
+              "v": " A parent view of the week and a weekly note home: what was worked on, what stuck, what did not. Not a transcript."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "5. What does the free version actually do?"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Why it matters: \"free\" covers everything from a real product to a demonstration that stops at the first hard question."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Ask whether the free version teaches the same syllabus with the same tutor, or a reduced one."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "strong",
+              "v": "Us."
+            },
+            {
+              "t": "text",
+              "v": " Free every day, from the first day, with no card to start. Every learner gets the same tutor and the same lessons. A paid plan buys more time with it and never a better version of it, and it refills once a day rather than running out permanently."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "6. Can you leave, and what happens then?"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Why it matters: the ease of leaving is the most reliable single signal of how a company regards you, and it is visible before you join."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Ask where the cancel button is, and what happens to the data afterwards."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "strong",
+              "v": "Us."
+            },
+            {
+              "t": "text",
+              "v": " Cancelling is in the account, in the same number of taps as subscribing, and the deletion path is on the same page. The legal set says what is kept, for how long, and why."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "7. What does it refuse to do?"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Why it matters: a product with no stated limits has not thought about its limits. It has thought about its marketing."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "strong",
+              "v": "Us."
+            },
+            {
+              "t": "text",
+              "v": " It does not promise a grade or a mark. It does not do the homework for a child who has asked it to. It says when it does not know rather than producing something plausible. It has no streaks to lose, no countdowns and no messages designed to pull a child back. And it hands a child in real distress to a person rather than trying to be one."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "The two we cannot answer well yet"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "We have no independent study of learning outcomes, because we have not run one. We are not going to describe internal numbers as evidence."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "And several state boards do not yet have a syllabus in the product, because their portals will not serve their documents to anything but a browser. Those boards are stored as an honest negative rather than filled in with a guess, so choosing one of them today gets you nothing, and the product says so instead of pretending."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "That is the list. If you run it against us and something above turns out not to be true, write to support and we will either fix the product or fix the sentence."
+            }
+          ]
+        }
+      ],
+      "words": 955,
+      "minutes": 5,
+      "plain": "Ask any tutoring app these seven questions before you pay for it, and ask them of us as well: the answers are more useful than any feature list, because most of them are checkable in an evening. None of this is about which product is better. It is about which questions have answers you can verify yourself, because a claim you cannot check is not information, however confidently it is made. Our own answers are under each one, in the same words we would give a regulator. 1. Whose syllabus is it teaching, and can it show you the document? Why it matters: a tutor following the wrong chapter list is worse than no tutor, because your child does the work and it counts for nothing. Boards move, and books get replaced. Ask to see the source. Not a chapter list on a page, the board's own document, with a page reference and a date somebody last checked it. Us. Every chapter page carries the official document it came from, the page or section, a hash of the bytes we read and the day we read them. Four boards carry a syllabus today: two we call verified after structural checks and a second reading, two we call provisional and label as still being checked. Where we hold units and no topics under them, the page shows the units and nothing invented underneath. 2. What happens when the first explanation does not land? Why it matters: this is the whole job. Anything can explain something once. A child who did not understand it the first time needs a second explanation that is different, not the same one repeated more slowly. Ask what changes on the second attempt. Us. The second explanation changes axis rather than volume: a different method, a different representation, a different example, or a different voice, and it never repeats the explanation that just missed. 3. What does it do with your child's data? Why it matters: this one is law, not preference. India's Data Protection Act forbids a company from tracking or behaviourally monitoring a child, and from directing advertising at one. A child is anyone under eighteen. Parental consent does not make it allowed. Ask two things: is there advertising, and is there any third-party analytics running while the child is signed in. The second one is the question almost nobody asks and it is the one that separates a policy from a practice. Us. No advertising anywhere. No third-party analytics at all behind the sign-in door, enforced by the content security policy rather than by anybody's discipline, so it cannot be switched on by accident. The public pages a parent reads before signing up use a measurement tool with no cookies and no persistent identifiers. What happens inside the product is counted by our own server, by the day, and never by anybody else. 4. What can a parent see, and what can a parent not see? Why it matters: a parent needs enough to help and not so much that the child stops asking honest questions. An app that shows every keystroke turns a tutor into surveillance, and a child who knows they are being watched asks safer questions. Us. A parent view of the week and a weekly note home: what was worked on, what stuck, what did not. Not a transcript. 5. What does the free version actually do? Why it matters: \"free\" covers everything from a real product to a demonstration that stops at the first hard question. Ask whether the free version teaches the same syllabus with the same tutor, or a reduced one. Us. Free every day, from the first day, with no card to start. Every learner gets the same tutor and the same lessons. A paid plan buys more time with it and never a better version of it, and it refills once a day rather than running out permanently. 6. Can you leave, and what happens then? Why it matters: the ease of leaving is the most reliable single signal of how a company regards you, and it is visible before you join. Ask where the cancel button is, and what happens to the data afterwards. Us. Cancelling is in the account, in the same number of taps as subscribing, and the deletion path is on the same page. The legal set says what is kept, for how long, and why. 7. What does it refuse to do? Why it matters: a product with no stated limits has not thought about its limits. It has thought about its marketing. Us. It does not promise a grade or a mark. It does not do the homework for a child who has asked it to. It says when it does not know rather than producing something plausible. It has no streaks to lose, no countdowns and no messages designed to pull a child back. And it hands a child in real distress to a person rather than trying to be one. The two we cannot answer well yet We have no independent study of learning outcomes, because we have not run one. We are not going to describe internal numbers as evidence. And several state boards do not yet have a syllabus in the product, because their portals will not serve their documents to anything but a browser. Those boards are stored as an honest negative rather than filled in with a guess, so choosing one of them today gets you nothing, and the product says so instead of pretending. That is the list. If you run it against us and something above turns out not to be true, write to support and we will either fix the product or fix the sentence."
+    },
+    {
+      "slug": "how-a-doubt-is-solved-from-a-photograph",
+      "title": "How a doubt gets solved from a photograph, step by step",
+      "summary": "What happens between photographing a page and understanding it, why the reading is shown back before any answer, and where this still fails.",
+      "published": "2026-09-09",
+      "updated": null,
+      "author": "teaching-desk",
+      "tags": [
+        "how-wobo-teaches"
+      ],
+      "aiAssisted": true,
+      "lead": [
+        {
+          "t": "strong",
+          "v": "The important step is the one that looks like a delay: before anything is solved, the page is read back to you line by line so you can correct the reading, because a confident answer to a misread question is the worst thing this could produce."
+        }
+      ],
+      "blocks": [
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Photographing a page of homework and getting help with it is an old idea. The difference between a useful version and a frustrating one is almost entirely in what happens in the first few seconds, so here is the whole sequence, in order."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "1. The photo is prepared on the device"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The picture is turned the right way up, scaled down to a sensible size and re-encoded before it leaves the phone. A page photographed at an angle in poor light is the normal case, not the exception, and doing this work on the device rather than on a server means the thing that travels is small and the thing that arrives is upright."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A photo that is too large is refused on the device with a plain message rather than sent and rejected later."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "2. It is screened before it is read"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Before any reading happens, the image is checked. A face, another child's name, a home address or a live examination paper comes back as a refusal, and nothing is kept, not even in memory on the device."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "That is a deliberate cost. It means an innocent photo occasionally gets refused, and we would rather explain a refusal than store a photograph of somebody's child."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "3. The reading is shown back before any answer"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Vision misreads. A 3 becomes an 8. A minus sign vanishes. An exponent lands on the wrong term."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "So the page comes back as a list of lines, each one editable in place, with the question stated as it was understood: this is what I read, is that right, fix anything I got wrong first. Nothing is computed until that is settled, and the code will not let it be: the state machine simply does not accept an instruction to explain until a reading exists and has been shown."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "This is the step people expect to be able to skip, and it is the step that decides whether the rest is worth anything. Correcting one character here is quicker than discovering, four lines into a confident solution, that the whole thing was answering a different question."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "4. The explanation happens on your page"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Once the reading is confirmed, the working is explained on the photograph itself. The ink lands on the line it is talking about, at the moment it is being talked about, and it circles a line rather than pointing at a pixel, because a line is a thing you can find again and a pixel is not."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The rule underneath this is small and it is enforced in the code: every mark made on the photo has to fall inside the window of the sentence that explains it. Stroke by sentence. A drawing that arrives before or after its explanation is decoration, and it is exactly the failure that makes annotated answers feel like something being performed at you."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "If the idea needs more than a mark on the page, it opens somewhere with more room, which is the only time that happens."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "5. It joins the rest of the learning"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A solved photo that leaves no trace is a missed lesson. So the doubt is placed on the topic it belongs to, the topic moves to started on the learner's own map, and it is scheduled to come back later to see whether it stuck."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "What it does not do is record it as mastered. A doubt explained is not a topic learnt, and there is no answer from the learner to be right or wrong about, so nothing is claimed. The map moves forward and never backwards, and never all the way."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Under the surface it also counts as a miss on that concept, so if the same idea comes up again the next explanation changes its method rather than repeating the one that has already failed once."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "Where this still fails"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Handwriting that is genuinely hard to read is genuinely hard to read, and no amount of asking politely changes that. A page with several questions on it will be read as several questions and the useful move is to photograph one. A diagram-heavy page in dim light is the hardest case there is."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The honest behaviour in all of those is the same: say the page could not be read, say why, and ask for another photograph. A guess at an unreadable page is the one outcome that wastes a child's evening, because it looks like an answer."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "Why the boring step is the whole thing"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "If you take one idea from this: the reading is shown before the answer, and it is a rule rather than a courtesy. Every other part of this can be rebuilt. That one cannot be skipped without turning a tutor into a machine that is confidently wrong on your child's homework, which is worse than nothing at all."
+            }
+          ]
+        }
+      ],
+      "words": 853,
+      "minutes": 4,
+      "plain": "The important step is the one that looks like a delay: before anything is solved, the page is read back to you line by line so you can correct the reading, because a confident answer to a misread question is the worst thing this could produce. Photographing a page of homework and getting help with it is an old idea. The difference between a useful version and a frustrating one is almost entirely in what happens in the first few seconds, so here is the whole sequence, in order. 1. The photo is prepared on the device The picture is turned the right way up, scaled down to a sensible size and re-encoded before it leaves the phone. A page photographed at an angle in poor light is the normal case, not the exception, and doing this work on the device rather than on a server means the thing that travels is small and the thing that arrives is upright. A photo that is too large is refused on the device with a plain message rather than sent and rejected later. 2. It is screened before it is read Before any reading happens, the image is checked. A face, another child's name, a home address or a live examination paper comes back as a refusal, and nothing is kept, not even in memory on the device. That is a deliberate cost. It means an innocent photo occasionally gets refused, and we would rather explain a refusal than store a photograph of somebody's child. 3. The reading is shown back before any answer Vision misreads. A 3 becomes an 8. A minus sign vanishes. An exponent lands on the wrong term. So the page comes back as a list of lines, each one editable in place, with the question stated as it was understood: this is what I read, is that right, fix anything I got wrong first. Nothing is computed until that is settled, and the code will not let it be: the state machine simply does not accept an instruction to explain until a reading exists and has been shown. This is the step people expect to be able to skip, and it is the step that decides whether the rest is worth anything. Correcting one character here is quicker than discovering, four lines into a confident solution, that the whole thing was answering a different question. 4. The explanation happens on your page Once the reading is confirmed, the working is explained on the photograph itself. The ink lands on the line it is talking about, at the moment it is being talked about, and it circles a line rather than pointing at a pixel, because a line is a thing you can find again and a pixel is not. The rule underneath this is small and it is enforced in the code: every mark made on the photo has to fall inside the window of the sentence that explains it. Stroke by sentence. A drawing that arrives before or after its explanation is decoration, and it is exactly the failure that makes annotated answers feel like something being performed at you. If the idea needs more than a mark on the page, it opens somewhere with more room, which is the only time that happens. 5. It joins the rest of the learning A solved photo that leaves no trace is a missed lesson. So the doubt is placed on the topic it belongs to, the topic moves to started on the learner's own map, and it is scheduled to come back later to see whether it stuck. What it does not do is record it as mastered. A doubt explained is not a topic learnt, and there is no answer from the learner to be right or wrong about, so nothing is claimed. The map moves forward and never backwards, and never all the way. Under the surface it also counts as a miss on that concept, so if the same idea comes up again the next explanation changes its method rather than repeating the one that has already failed once. Where this still fails Handwriting that is genuinely hard to read is genuinely hard to read, and no amount of asking politely changes that. A page with several questions on it will be read as several questions and the useful move is to photograph one. A diagram-heavy page in dim light is the hardest case there is. The honest behaviour in all of those is the same: say the page could not be read, say why, and ask for another photograph. A guess at an unreadable page is the one outcome that wastes a child's evening, because it looks like an answer. Why the boring step is the whole thing If you take one idea from this: the reading is shown before the answer, and it is a rule rather than a courtesy. Every other part of this can be rebuilt. That one cannot be skipped without turning a tutor into a machine that is confidently wrong on your child's homework, which is worse than nothing at all."
+    },
+    {
+      "slug": "what-an-ai-tutor-cannot-do",
+      "title": "What an AI tutor cannot do, said plainly",
+      "summary": "Eight things a machine tutor cannot do for your child, what we build instead of pretending otherwise, and the one thing it is genuinely good at.",
+      "published": "2026-09-09",
+      "updated": null,
+      "author": "teaching-desk",
+      "tags": [
+        "for-parents",
+        "how-wobo-teaches"
+      ],
+      "aiAssisted": true,
+      "lead": [
+        {
+          "t": "strong",
+          "v": "A machine tutor can explain the same thing a fourth time without ever getting tired of you, and that is a real thing, but it cannot want it for your child, cannot be certain it is right, and cannot be the person in the room."
+        }
+      ],
+      "blocks": [
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "We build one, so this is an odd page to publish. It is here because every claim we make elsewhere is worth exactly as much as our willingness to write this one down, and because a parent deciding whether to pay for something deserves the limits in the same font as the promises."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "It cannot want it for them"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Motivation is not a feature and nobody has built one. A tutor that is available whenever it is wanted removes an obstacle, which is a genuine and underrated thing: a child who is stuck with nobody to ask usually stops, and stopping is where most of the damage happens. Removing that obstacle is not the same as creating the wish to continue."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "What follows from this is what we refuse to build. No streaks to lose. No countdowns. No message engineered to pull a child back to an app. No reminder after hours. Those things work, which is precisely the objection: they manufacture the appearance of motivation and spend a child's attention to do it."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "It cannot be certain"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A language model can produce a wrong answer in a completely convincing voice, and this will remain true for the foreseeable future. Anybody selling you certainty is selling you the voice."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "What can be done is narrower and worth doing: check the parts that can be checked. Numbers get computed with code rather than predicted, before anything is drawn. Explanations are grounded in the syllabus document rather than in a general memory of the subject. And when nothing can be grounded, the honest output is that it does not know, and a person to write to."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "That last one costs conversions and we keep it anyway, because a tutor that never says it does not know is a tutor you cannot trust when it does answer."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "It cannot see your child's face"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A teacher who has taught for fifteen years knows when a child has stopped following three sentences before the child does. That signal is in a face, in a shoulder, in a pause of the wrong length. A screen has almost none of it."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A machine gets a weaker signal, later: what was asked, what was missed, what had to be explained twice. It is not nothing, and it accumulates usefully. It is not a person noticing."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "It cannot replace the teacher who knows them"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A class teacher has context nothing else has: a year of a child's work, the other children, the school, what happened last term. That relationship is the most valuable thing in a child's education and no product should be positioned against it."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "The useful role is the narrow one. What a tutor covers is the stretch when nobody is available, and that stretch is genuinely bad: the homework is due, the doubt is small, and there is nobody to ask."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "It should not be a friend"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "It could be. Making something a child wants to talk to is not technically hard, and a lonely child will form an attachment to anything that is reliably kind."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "We think building that deliberately is wrong, so the product is warm and it does not perform affection, does not fish for another conversation, and does not present itself as a relationship a child has to maintain. It is a good teacher who is glad to see you and does not need you."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "It cannot handle a crisis"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "If a child says something that suggests they are in real distress, the right behaviour is not a clever reply. It is a soft, brief line and a real person, immediately, and no attempt to hold the conversation."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "A product that tries to counsel a child in trouble is doing the most harmful thing available to it. Getting out of the way fast is the design."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "It cannot teach a syllabus nobody published"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Several state boards do not publish a machine-readable syllabus, or will not serve their documents to anything but a browser. We store those as an honest negative, so choosing one today gets you nothing and the product says so."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Filling the gap by guessing would be easy, would look complete, and would be the single most damaging thing we could ship, because a wrong chapter list costs a term."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "It cannot promise a mark"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "There is no evidence base for a claim about grades and we have not run a study. So we do not make one, and any number offered to you about examination results, by anyone, is worth the study behind it and nothing more."
+            }
+          ]
+        },
+        {
+          "k": "h",
+          "level": 2,
+          "text": [
+            {
+              "t": "text",
+              "v": "What it is actually good at"
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "Being there. Not getting bored on the fourth explanation. Never making a child feel slow for asking again. Explaining the same idea four different ways without any of the impatience a tired adult cannot always hide at the end of a long day."
+            }
+          ]
+        },
+        {
+          "k": "p",
+          "text": [
+            {
+              "t": "text",
+              "v": "That is a smaller claim than the category usually makes, and it is the one we can stand behind. If it turns out to be enough for your evening, that is the product. If your child needs something a person has to give, no app is the answer, and we would rather say so here than let you find out in March."
+            }
+          ]
+        }
+      ],
+      "words": 914,
+      "minutes": 5,
+      "plain": "A machine tutor can explain the same thing a fourth time without ever getting tired of you, and that is a real thing, but it cannot want it for your child, cannot be certain it is right, and cannot be the person in the room. We build one, so this is an odd page to publish. It is here because every claim we make elsewhere is worth exactly as much as our willingness to write this one down, and because a parent deciding whether to pay for something deserves the limits in the same font as the promises. It cannot want it for them Motivation is not a feature and nobody has built one. A tutor that is available whenever it is wanted removes an obstacle, which is a genuine and underrated thing: a child who is stuck with nobody to ask usually stops, and stopping is where most of the damage happens. Removing that obstacle is not the same as creating the wish to continue. What follows from this is what we refuse to build. No streaks to lose. No countdowns. No message engineered to pull a child back to an app. No reminder after hours. Those things work, which is precisely the objection: they manufacture the appearance of motivation and spend a child's attention to do it. It cannot be certain A language model can produce a wrong answer in a completely convincing voice, and this will remain true for the foreseeable future. Anybody selling you certainty is selling you the voice. What can be done is narrower and worth doing: check the parts that can be checked. Numbers get computed with code rather than predicted, before anything is drawn. Explanations are grounded in the syllabus document rather than in a general memory of the subject. And when nothing can be grounded, the honest output is that it does not know, and a person to write to. That last one costs conversions and we keep it anyway, because a tutor that never says it does not know is a tutor you cannot trust when it does answer. It cannot see your child's face A teacher who has taught for fifteen years knows when a child has stopped following three sentences before the child does. That signal is in a face, in a shoulder, in a pause of the wrong length. A screen has almost none of it. A machine gets a weaker signal, later: what was asked, what was missed, what had to be explained twice. It is not nothing, and it accumulates usefully. It is not a person noticing. It cannot replace the teacher who knows them A class teacher has context nothing else has: a year of a child's work, the other children, the school, what happened last term. That relationship is the most valuable thing in a child's education and no product should be positioned against it. The useful role is the narrow one. What a tutor covers is the stretch when nobody is available, and that stretch is genuinely bad: the homework is due, the doubt is small, and there is nobody to ask. It should not be a friend It could be. Making something a child wants to talk to is not technically hard, and a lonely child will form an attachment to anything that is reliably kind. We think building that deliberately is wrong, so the product is warm and it does not perform affection, does not fish for another conversation, and does not present itself as a relationship a child has to maintain. It is a good teacher who is glad to see you and does not need you. It cannot handle a crisis If a child says something that suggests they are in real distress, the right behaviour is not a clever reply. It is a soft, brief line and a real person, immediately, and no attempt to hold the conversation. A product that tries to counsel a child in trouble is doing the most harmful thing available to it. Getting out of the way fast is the design. It cannot teach a syllabus nobody published Several state boards do not publish a machine-readable syllabus, or will not serve their documents to anything but a browser. We store those as an honest negative, so choosing one today gets you nothing and the product says so. Filling the gap by guessing would be easy, would look complete, and would be the single most damaging thing we could ship, because a wrong chapter list costs a term. It cannot promise a mark There is no evidence base for a claim about grades and we have not run a study. So we do not make one, and any number offered to you about examination results, by anyone, is worth the study behind it and nothing more. What it is actually good at Being there. Not getting bored on the fourth explanation. Never making a child feel slow for asking again. Explaining the same idea four different ways without any of the impatience a tired adult cannot always hide at the end of a long day. That is a smaller claim than the category usually makes, and it is the one we can stand behind. If it turns out to be enough for your evening, that is the product. If your child needs something a person has to give, no app is the answer, and we would rather say so here than let you find out in March."
+    }
+  ]
+}

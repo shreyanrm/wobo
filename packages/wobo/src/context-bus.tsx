@@ -11,21 +11,15 @@ import {
   useRef,
   useState,
 } from 'react';
-import {
-  type ActiveAnnotation,
-  type ActiveHighlight,
-  type ActiveNote,
-  type ConsequentialAction,
-  reduceActions,
-  type WoboAction,
-} from './actions';
+import { type ConsequentialAction, reduceActions, type WoboAction } from './actions';
+import { labelElement } from './glass/read';
 import type { WoboMood } from './identity';
 
 /**
  * The Wobo Context Bus. Every page publishes its full state into it, and registers the elements
  * Wobo may draw on — which turns each page into a canvas Wobo is directly plugged into. Wobo perceives
  * the app through this bus (the four-layer context assembler: turn, session, lifetime, curriculum),
- * never through a screen-share, and Wobo expresses back through it (highlights, annotations, mood,
+ * never through a screen-share, and Wobo expresses back through it (mood, a scene's state,
  * and offered actions). One store is both Wobo's eyes and Wobo's hands.
  */
 
@@ -197,68 +191,17 @@ export interface WoboBus {
   applyTutorAction(targetId: string, patch: Record<string, unknown>): boolean;
   // expression
   mood: WoboMood;
-  highlights: ActiveHighlight[];
-  annotations: ActiveAnnotation[];
-  notes: ActiveNote[];
-  /** performance.now() when the current marks were drawn; the overlay fades each by its own ttl. */
-  marksBornAt: number;
-  /** Bumped each time Wobo re-inks a faded mark set, so the overlay reseeds the strokes fresh. */
-  reinkNonce: number;
   pendingOffer: ConsequentialAction | null;
-  /** Where Wobo is inking now (viewport coords), for Wobo's body to lean/gaze toward. Null when idle. */
-  focusPoint: { x: number; y: number } | null;
+  /**
+   * Run a turn's actions: the mood, the spoken lines, a scene's setState, the hints, the facts to
+   * remember, and at most one consequential offer. Nothing here draws: a mark on the page is a
+   * plan traced by the one pen (docs/INK-FREEZE-PLAN-TRACE.md §3), never an action.
+   */
   dispatch(actions: WoboAction[]): void;
-  /**
-   * THE ACTION TIMELINE: paint one beat of a choreographed turn — accumulating onto the marks
-   * already on the board (unlike dispatch, which replaces). Each mark draws + fades on its own
-   * clock; pass noteDurationMs to pace a written note to the sentence's spoken length.
-   */
-  addBeat(actions: WoboAction[], opts?: { noteDurationMs?: number }): void;
-  /**
-   * Open a choreographed turn: the beats that follow accumulate onto a clean board. Without it the
-   * redrawable set ("draw it again") grows for the whole session and re-inks every mark Wobo has
-   * ever drawn. Called once per performance, before the first beat.
-   */
-  beginTurn(): void;
-  /**
-   * Re-ink the marks Wobo last drew (family M): Wobo's ink is transient and fades, so this brings the
-   * last set back — freshly drawn — when the learner refers to a drawing no longer on screen.
-   * Returns false when Wobo has drawn nothing to bring back.
-   */
-  redrawLastMarks(): boolean;
   acceptOffer(): void;
   dismissOffer(): void;
-  clearMarks(): void;
 }
 
-/** Default mark lifetime + fade window, when Wobo doesn't name a ttl. Marks are always transient. */
-const DEFAULT_MARK_TTL = 6000;
-const MARK_FADE_MS = 500;
-
-/** When (performance.now clock) the last of these marks, born at `born`, will have fully faded. */
-function deadlineOf(born: number, marks: { ttl?: number }[]): number {
-  if (marks.length === 0) return 0;
-  return born + Math.max(...marks.map((m) => m.ttl ?? DEFAULT_MARK_TTL)) + MARK_FADE_MS;
-}
-
-/** The ink Wobo can bring back ("draw it again") — one turn's worth, grown beat by beat. */
-export interface MarkSet {
-  highlights: ActiveHighlight[];
-  annotations: ActiveAnnotation[];
-  notes: ActiveNote[];
-}
-
-/** A clean board: what a turn starts from, so the redrawable set never spans the whole session. */
-export const emptyMarks = (): MarkSet => ({ highlights: [], annotations: [], notes: [] });
-
-/** Grow the redrawable set with one beat's marks — a worked example builds up stroke by stroke. */
-export const addMarks = (prev: MarkSet, add: MarkSet): MarkSet => ({
-  highlights: [...prev.highlights, ...add.highlights],
-  annotations: [...prev.annotations, ...add.annotations],
-  notes: [...prev.notes, ...add.notes],
-});
-
-/** The published working canvas and the surface that owns it. */
 export interface CanvasSlot {
   canvas?: CanvasWorking;
   owner?: string;
@@ -377,22 +320,6 @@ export function WoboProvider({ children, handlers }: WoboProviderProps) {
   }, []);
 
   const [mood, setMood] = useState<WoboMood>('idle');
-  const [highlights, setHighlights] = useState<ActiveHighlight[]>([]);
-  const [annotations, setAnnotations] = useState<ActiveAnnotation[]>([]);
-  const [notes, setNotes] = useState<ActiveNote[]>([]);
-  const [marksBornAt, setMarksBornAt] = useState(0);
-  const [reinkNonce, setReinkNonce] = useState(0);
-  // Where Wobo is inking right now (viewport coords of the active mark's centre) — Wobo's body leans and
-  // gazes toward it, like a tutor turning to the board. Null when nothing is inked.
-  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
-  const clearTimer = useRef<number | undefined>(undefined);
-  // Absolute (performance.now) time at which the last live mark dies — so an accumulating performance
-  // keeps the residue-clear timer alive across beats instead of each beat cutting the last short.
-  const clearAtRef = useRef(0);
-  // The last non-empty mark set Wobo drew — kept so Wobo can re-ink it after it has faded (family M).
-  // Scoped to one turn: beginTurn() wipes it, so "draw it again" brings back the drawing Wobo just
-  // made, not every mark of the session.
-  const lastMarksRef = useRef<MarkSet>(emptyMarks());
   const [pendingOffer, setPendingOffer] = useState<ConsequentialAction | null>(null);
 
   const storeRef = useRef<TargetStore | null>(null);
@@ -452,59 +379,7 @@ export function WoboProvider({ children, handlers }: WoboProviderProps) {
     [store],
   );
 
-  const clearMarks = useCallback(() => {
-    setHighlights([]);
-    setAnnotations([]);
-    setNotes([]);
-    setFocusPoint(null);
-    clearAtRef.current = 0;
-  }, []);
-
-  // Point Wobo's body at the target Wobo is inking so Wobo leans/gazes toward the board (realism detail).
-  const focusOnTarget = useCallback(
-    (targetId: string | undefined) => {
-      if (!targetId) return;
-      const rect = store.get(targetId)?.getRect();
-      if (rect) setFocusPoint({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-    },
-    [store],
-  );
-
-  // Arm the residue-clear timer to fire once the last live mark has died. Accumulating: a later
-  // beat only ever EXTENDS the deadline, never cuts an earlier beat's ink short.
-  const armClear = useCallback((deadline: number) => {
-    clearAtRef.current = Math.max(clearAtRef.current, deadline);
-    if (clearTimer.current !== undefined) window.clearTimeout(clearTimer.current);
-    const delay = Math.max(0, clearAtRef.current - performance.now());
-    clearTimer.current = window.setTimeout(() => {
-      setHighlights([]);
-      setAnnotations([]);
-      setNotes([]);
-      setFocusPoint(null);
-      clearAtRef.current = 0;
-    }, delay);
-  }, []);
-
-  const redrawLastMarks = useCallback((): boolean => {
-    const last = lastMarksRef.current;
-    const marks = [...last.highlights, ...last.annotations, ...last.notes];
-    if (marks.length === 0) return false;
-    const born = performance.now();
-    // Strip the original birth stamps so the re-ink draws fresh from one shared clock, not stale ages.
-    const strip = <T extends { bornAt?: number }>(m: T[]): T[] =>
-      m.map(({ bornAt: _b, ...r }) => r as T);
-    setHighlights(strip(last.highlights));
-    setAnnotations(strip(last.annotations));
-    setNotes(strip(last.notes.map(({ durationMs: _d, ...r }) => r as ActiveNote)));
-    setMarksBornAt(born);
-    setReinkNonce((n) => n + 1); // reseed the strokes so the re-ink is fresh, not a photocopy
-    clearAtRef.current = 0;
-    armClear(deadlineOf(born, marks));
-    return true;
-  }, [armClear]);
-
-  // The non-ink side-effects of a turn (mood, voice, setState, hints, remembers) — shared by the
-  // all-at-once dispatch and each choreographed beat.
+  // The side-effects of a turn (mood, voice, setState, hints, remembers).
   const fireSideEffects = useCallback(
     (effects: ReturnType<typeof reduceActions>) => {
       const h = handlersRef.current;
@@ -529,79 +404,12 @@ export function WoboProvider({ children, handlers }: WoboProviderProps) {
 
   const dispatch = useCallback(
     (actions: WoboAction[]) => {
-      // Each dispatch is Wobo's fresh focus: replace the marks, keep the mood unless Wobo changes it.
       const effects = reduceActions(actions);
-      const born = performance.now();
-      const stamp = <T extends { bornAt?: number }>(m: T[]): T[] =>
-        m.map((x) => ({ ...x, bornAt: born }));
-      const hs = stamp(effects.highlights);
-      const as = stamp(effects.annotations);
-      const ns = stamp(effects.notes);
-      setHighlights(hs);
-      setAnnotations(as);
-      setNotes(ns);
-      setMarksBornAt(born);
       setPendingOffer(effects.offer);
       fireSideEffects(effects);
-      focusOnTarget(as[0]?.targetId ?? hs[0]?.targetId ?? ns[0]?.targetId);
-
-      // Marks are ephemeral: clear the residue once the longest ttl elapses (each fades by its own ttl
-      // in the overlay). Wobo decides the ttl per mark; nothing lingers permanently.
-      const marks = [...hs, ...as, ...ns];
-      if (effects.redrawMarks && marks.length === 0) {
-        // Wobo asked to bring Wobo's last drawing back and drew nothing new this turn — re-ink it fresh
-        redrawLastMarks();
-      } else {
-        if (marks.length === 0) setFocusPoint(null);
-        else lastMarksRef.current = { highlights: hs, annotations: as, notes: ns };
-        clearAtRef.current = 0; // a fresh turn resets the accumulation deadline
-        armClear(deadlineOf(born, marks));
-      }
     },
-    [armClear, fireSideEffects, focusOnTarget, redrawLastMarks],
+    [fireSideEffects],
   );
-
-  // THE ACTION TIMELINE: paint one beat of a choreographed turn. Unlike dispatch (fresh focus,
-  // replace-all), a beat ACCUMULATES — earlier beats' ink stays on the board while this one lands,
-  // so a worked example builds up stroke by stroke. Each mark is born now (its own draw/fade clock),
-  // and notes are paced to the sentence that carries them (noteDurationMs = the sentence's audio).
-  const addBeat = useCallback(
-    (actions: WoboAction[], opts?: { noteDurationMs?: number }) => {
-      const effects = reduceActions(actions);
-      const born = performance.now();
-      const hs = effects.highlights.map((m) => ({ ...m, bornAt: born }));
-      const as = effects.annotations.map((m) => ({ ...m, bornAt: born }));
-      const ns = effects.notes.map((m) => ({
-        ...m,
-        bornAt: born,
-        ...(opts?.noteDurationMs !== undefined ? { durationMs: opts.noteDurationMs } : {}),
-      }));
-      if (hs.length) setHighlights((prev) => [...prev, ...hs]);
-      if (as.length) setAnnotations((prev) => [...prev, ...as]);
-      if (ns.length) setNotes((prev) => [...prev, ...ns]);
-      fireSideEffects(effects);
-      focusOnTarget(as[0]?.targetId ?? hs[0]?.targetId ?? ns[0]?.targetId);
-      const marks = [...hs, ...as, ...ns];
-      if (marks.length > 0) {
-        // grow the redrawable set so "draw it again" brings back the whole accumulated diagram
-        // (this turn's — beginTurn cleared the last one's)
-        lastMarksRef.current = addMarks(lastMarksRef.current, {
-          highlights: hs,
-          annotations: as,
-          notes: ns,
-        });
-        armClear(deadlineOf(born, marks));
-      }
-    },
-    [armClear, fireSideEffects, focusOnTarget],
-  );
-
-  // Open a performance: the beats that follow accumulate onto a clean redrawable board, so the set
-  // Wobo can re-ink is this turn's drawing and not every mark of the session.
-  const beginTurn = useCallback(() => {
-    lastMarksRef.current = emptyMarks();
-    clearAtRef.current = 0;
-  }, []);
 
   const acceptOffer = useCallback(() => {
     setPendingOffer((offer) => {
@@ -633,20 +441,10 @@ export function WoboProvider({ children, handlers }: WoboProviderProps) {
       getTargetsVersion,
       applyTutorAction,
       mood,
-      highlights,
-      annotations,
-      notes,
-      marksBornAt,
-      reinkNonce,
       pendingOffer,
-      focusPoint,
       dispatch,
-      addBeat,
-      beginTurn,
-      redrawLastMarks,
       acceptOffer,
       dismissOffer,
-      clearMarks,
     }),
     [
       registerTarget,
@@ -663,20 +461,10 @@ export function WoboProvider({ children, handlers }: WoboProviderProps) {
       getTargetsVersion,
       applyTutorAction,
       mood,
-      highlights,
-      annotations,
-      notes,
-      marksBornAt,
-      reinkNonce,
       pendingOffer,
-      focusPoint,
       dispatch,
-      addBeat,
-      beginTurn,
-      redrawLastMarks,
       acceptOffer,
       dismissOffer,
-      clearMarks,
     ],
   );
 
@@ -684,14 +472,26 @@ export function WoboProvider({ children, handlers }: WoboProviderProps) {
 }
 
 /**
- * Register a DOM element as a target Wobo can draw on. Attach the returned ref to the element:
+ * Label a DOM element as a thing Wobo can name. Attach the returned ref to the element:
  *   const ref = useRegisterTarget('step-1', { kind: 'step', label: 'the step you subtracted 3' });
  *   return <div ref={ref}>2x = 10</div>;
  *
- * Interactives may also pass the scene seams (getSceneState / getValidActions / applyTutorAction)
- * to become a scene Wobo reads and drives — inline closures are fine, they are held in a ref so
- * re-renders never re-register the target.
+ * A LABEL, NEVER A PRECONDITION (docs/INK-FREEZE-PLAN-TRACE.md §3): the glass map reads every
+ * rendered line and element off the page whether or not anything registered it. What this adds is
+ * the id the content model wants the thing known by, its role and its meaning, written on the
+ * element as `data-glass` attributes for the reader to keep; and, for interactives, the scene
+ * seams (getSceneState / getValidActions / applyTutorAction) on the bus, so Wobo can read and
+ * drive them. Inline closures are fine, they are held in a ref so re-renders never re-register.
  */
+/** A target is a scene when a component gave it any seam: state to read, moves to name, or a drive. */
+export function hasSceneSeam(seams: {
+  hasState: boolean;
+  hasValidActions: boolean;
+  hasDrive: boolean;
+}): boolean {
+  return seams.hasState || seams.hasValidActions || seams.hasDrive;
+}
+
 export function useRegisterTarget<T extends HTMLElement = HTMLElement>(
   id: string,
   meta: { kind: string; label: string; meaning?: string } & SceneSeams,
@@ -707,7 +507,12 @@ export function useRegisterTarget<T extends HTMLElement = HTMLElement>(
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    return registerTarget({
+    const unlabel = labelElement(el, { id, kind, label, meaning });
+    // Only a scene rides the bus: something Wobo reads the state of or drives. A plain thing on
+    // the page is on the glass map by being on the page, and a second list of it would be the
+    // second registry the law removed (docs/INK-FREEZE-PLAN-TRACE.md §4).
+    if (!hasSceneSeam({ hasState, hasValidActions, hasDrive })) return unlabel;
+    const unregister = registerTarget({
       id,
       kind,
       label,
@@ -721,6 +526,10 @@ export function useRegisterTarget<T extends HTMLElement = HTMLElement>(
         ? (patch: Record<string, unknown>) => seamsRef.current.applyTutorAction?.(patch)
         : undefined,
     });
+    return () => {
+      unlabel();
+      unregister();
+    };
   }, [id, kind, label, meaning, registerTarget, hasState, hasValidActions, hasDrive]);
   return ref;
 }

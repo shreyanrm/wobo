@@ -64,6 +64,11 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   use: {
     baseURL: `http://localhost:${PORT}`,
+    // A LAB IS SILENT (docs/INK-FOUR.md, 2026-09-09). A headless browser plays through the owner's
+    // speakers, and on the day that law was written several live-voice runs made noise on his
+    // machine while he was working. Every browser this suite launches starts with audio off; a
+    // voice timing is measured from the synthesis call and the wire, never from a speaker.
+    launchOptions: { args: ['--mute-audio'] },
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     actionTimeout: 15_000,

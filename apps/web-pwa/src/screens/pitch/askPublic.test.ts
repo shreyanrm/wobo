@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'bun:test';
 import { GATEWAY_COPY } from '@wobo/sdk';
-import { askPublic, cleanQuestion, replyFromBody } from './askPublic';
+import { ABOUT_MAX, askPublic, cleanQuestion, replyFromBody } from './askPublic';
 
 type Call = { url: string; init: RequestInit | undefined };
 
@@ -42,6 +42,39 @@ describe('the question', () => {
     });
     const headers = new Headers(calls[0]?.init?.headers);
     expect(headers.has('authorization')).toBe(false);
+  });
+
+  /**
+   * The syllabus pages send what the page is about, so the answer is about that page. Without it
+   * the door on a chapter page was the site-wide box with three chip labels swapped: the request
+   * said "learn" and nothing else, and a question typed under one chapter was searched over the
+   * whole syllabus corpus.
+   */
+  it('sends what the page is about, and only when a page gives one', async () => {
+    const calls: Call[] = [];
+    await askPublic(
+      'https://gw.example',
+      'What comes before this?',
+      'learn',
+      fakeFetch(200, { answer: 'x', sources: [] }, calls),
+      '  Arithmetic Progressions,   CBSE class 10 maths ',
+    );
+    expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({
+      question: 'What comes before this?',
+      page: 'learn',
+      about: 'Arithmetic Progressions, CBSE class 10 maths',
+    });
+
+    const bare: Call[] = [];
+    await askPublic('https://gw.example', 'q', 'meet', fakeFetch(200, {}, bare));
+    expect(JSON.parse(String(bare[0]?.init?.body))).toEqual({ question: 'q', page: 'meet' });
+  });
+
+  it('never lets the page subject grow into a second question box', async () => {
+    const calls: Call[] = [];
+    await askPublic('https://gw.example', 'q', 'learn', fakeFetch(200, {}, calls), 'x'.repeat(400));
+    const sent = JSON.parse(String(calls[0]?.init?.body)) as { about: string };
+    expect(sent.about.length).toBe(ABOUT_MAX);
   });
 });
 

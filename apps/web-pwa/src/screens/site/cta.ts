@@ -19,6 +19,8 @@
  */
 
 import type { Route } from '../../shell/router';
+import { useDoorsOpen } from './dial';
+import { LIST } from './invitation';
 
 /**
  * The words on the loud door, on every public surface.
@@ -72,3 +74,78 @@ export const PARENT_DOOR = { label: "I'm a parent", href: '/for-parents' } as co
  * rather than each page's test looking for it separately.
  */
 export const RETIRED_CTA = 'Get early access';
+
+// --- the door while the dial is off ---------------------------------------------------------
+
+/**
+ * THE SECOND DOOR, AND WHY THIS FILE NOW HOLDS TWO.
+ *
+ * Owner, 2026-09-09 (`docs/DOORS-CLOSED.md`): *"Block any account creations for now until further
+ * notice, because we have SEO, AEO and GEO but no product yet."* 438 public pages are about to
+ * start earning visitors from search, and a person who arrives, signs up and meets a tutor that is
+ * not ready is lost permanently.
+ *
+ * So the door above is not deleted, and nothing about it is edited. It stays exactly as it was and
+ * a second one is written beside it, and `ctaFor` picks between them from the dial. That is what
+ * makes reopening a switch rather than a rebuild: the day `doors_open` goes true, every one of the
+ * nineteen surfaces says "Start free" again, within a minute, with no release (§4).
+ */
+
+/** The words on the door while the door is closed. Plain, and exactly what pressing it does. */
+export const JOIN_LIST_LABEL = LIST.label;
+
+/**
+ * Where it goes: the sign-up address, which is where the door has always been. The invitation
+ * stands in its place, so every link a reader has bookmarked, and every pre-rendered file that
+ * names it, lands on the right thing without a redirect.
+ */
+export const JOIN_LIST_ROUTE: Route = { name: 'sign-up' };
+
+/** The same address as a path, for the surfaces that link by `href`. */
+export const JOIN_LIST_HREF = '/sign-up';
+
+/**
+ * The call to action while the dial is off, in the same shape as `CTA` so no surface has to know
+ * which one it is holding. `under` is the whole of what this door claims, and both halves of it
+ * are facts.
+ */
+export const LIST_DOOR = {
+  label: JOIN_LIST_LABEL,
+  to: JOIN_LIST_ROUTE,
+  under: LIST.under,
+} as const;
+
+/** The list door as an action, for `handoffs.ts` and anything else that closes on a pair. */
+export const JOIN_LIST: { label: string; to: Route } = {
+  label: LIST_DOOR.label,
+  to: LIST_DOOR.to,
+};
+
+/** The one call to action, for the dial as it stands. */
+export function ctaFor(open: boolean): { label: string; to: Route; under: string } {
+  return open ? CTA : LIST_DOOR;
+}
+
+/**
+ * Swap ONE action for the dial, and leave every other action untouched.
+ *
+ * A close panel's pair is a door and a next step (`docs/SELL.md` §6). Only the door changes when
+ * the dial turns: "See plans" is still "See plans" on a site that is not taking accounts, and a
+ * table that rewrote both would have quietly deleted the argument each page ends on.
+ */
+export function doorFor<T extends { label: string; to?: Route; href?: string }>(
+  action: T,
+  open: boolean,
+): T | { label: string; to: Route } {
+  if (open) return action;
+  const path = action.href ?? (action.to?.name === 'onboarding' ? START_FREE_HREF : null);
+  if (path !== START_FREE_HREF) return action;
+  return action.label.toLowerCase().includes('instead')
+    ? { label: `${LIST_DOOR.label} instead`, to: LIST_DOOR.to }
+    : JOIN_LIST;
+}
+
+/** The call to action, for a screen. Reads the dial, so the words follow the switch. */
+export function useCta(): { label: string; to: Route; under: string } {
+  return ctaFor(useDoorsOpen());
+}

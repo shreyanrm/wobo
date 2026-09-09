@@ -116,8 +116,7 @@ export function MindMemoryList({
                   nervous before mathsfrom your parent", gluing the provenance to the fact it is
                   there to qualify. The Remove button's own label already got this right. */}
               <span className="wm-text">
-                {o.body}{' '}
-                <em className="wm-tag">{MIND_MEMORY_COPY.parentTag}</em>
+                {o.body} <em className="wm-tag">{MIND_MEMORY_COPY.parentTag}</em>
               </span>
               <Button
                 size="sm"

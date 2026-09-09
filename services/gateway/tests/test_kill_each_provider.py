@@ -379,17 +379,20 @@ def test_kill_openai_the_safety_screen_answers_on_gemini_and_a_hang_never_reache
     assert verdict.category == "ok" and verdict.source == "model"
     assert lite.served == "gemini/gemini-2.5-flash"
 
-    # A hanging OpenAI: it gets half of the 1.5 s, Gemini gets the other half and answers, and
-    # the lesson goes on. The hang used to eat the whole deadline and hold the child on the
-    # plain line with Gemini never asked; the breaker then opened on a provider that was fine.
+    # A hanging OpenAI: it gets half of the screen's budget, Gemini gets the other half and
+    # answers, and the lesson goes on. The hang used to eat the whole deadline and hold the child
+    # on the plain line with Gemini never asked; the breaker then opened on a provider that was
+    # fine. The budget is the pace of the model that serves the screen (wave 40), not a number
+    # under it: at 1.5 s against a model that answers in four, every screen failed closed.
     health.reset()  # forget the credit mark: this is a fresh outage, OpenAI answering nothing
+    budget = safety_model.timeout_s()
     lite = kill(monkeypatch, "openai", how="hang", answer=SAFETY_OK)
     clf = _screen()
     gated = safety.screen_inbound({"context": {"turn": {"lastUserInput": CIVICS}}}, clf)
     assert gated is None, "Gemini's verdict was ok inside the deadline; nothing to hold"
     assert len(lite.calls_to("gemini")) == 1
-    assert lite.calls_to("openai")[0]["timeout"] == pytest.approx(0.75, abs=1e-3)
-    assert model_call._floor_s(1.5) <= lite.calls_to("gemini")[0]["timeout"] <= 1.5
+    assert lite.calls_to("openai")[0]["timeout"] == pytest.approx(budget / 2, abs=1e-3)
+    assert model_call._floor_s(budget) <= lite.calls_to("gemini")[0]["timeout"] <= budget
     assert safety_model.breaker_open() is False
     # And with Gemini hanging too, the child is HELD with the plain line, never the crisis
     # script (the wave-22 law holds), and the breaker opens on a real outage.

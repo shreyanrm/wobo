@@ -21,6 +21,9 @@ import type { Route } from '../shell/router';
 
 const load = {
   about: () => import('../screens/site/About'),
+  blog: () => import('../screens/site/blog/Blog'),
+  blogPost: () => import('../screens/site/blog/BlogPost'),
+  blogTag: () => import('../screens/site/blog/BlogTag'),
   contact: () => import('../screens/contact/Contact'),
   donate: () => import('../screens/donate/Donate'),
   forParents: () => import('../screens/pitch/ForParents'),
@@ -39,10 +42,18 @@ const load = {
   signIn: () => import('../screens/auth/Auth'),
   sitemap: () => import('../screens/site/Sitemap'),
   subjects: () => import('../screens/pitch/Subjects'),
+  subjectHub: () => import('../screens/syllabus/SubjectHub'),
+  compare: () => import('../screens/growth/Compare'),
+  exams: () => import('../screens/growth/Exams'),
+  glossary: () => import('../screens/growth/Glossary'),
+  syllabus: () => import('../screens/syllabus/Syllabus'),
   uiKit: () => import('../ui/UiKit'),
 } as const;
 
 const About = lazy(() => load.about().then((m) => ({ default: m.About })));
+const Blog = lazy(() => load.blog().then((m) => ({ default: m.Blog })));
+const BlogPostPage = lazy(() => load.blogPost().then((m) => ({ default: m.BlogPost })));
+const BlogTagPage = lazy(() => load.blogTag().then((m) => ({ default: m.BlogTag })));
 const Contact = lazy(() => load.contact().then((m) => ({ default: m.Contact })));
 const Donate = lazy(() => load.donate().then((m) => ({ default: m.Donate })));
 const ForParents = lazy(() => load.forParents().then((m) => ({ default: m.ForParents })));
@@ -62,6 +73,19 @@ const SignIn = lazy(() => load.signIn().then((m) => ({ default: m.SignIn })));
 const SignUp = lazy(() => load.signIn().then((m) => ({ default: m.SignUp })));
 const Sitemap = lazy(() => load.sitemap().then((m) => ({ default: m.Sitemap })));
 const Subjects = lazy(() => load.subjects().then((m) => ({ default: m.Subjects })));
+// The syllabus family — 1,111 addresses, one chunk. The syllabus itself travels with it (about
+// 32 kB over the wire) and nothing else on the site pays for it, which is why it is loaded here
+// and never from a shared module.
+const SubjectHubPage = lazy(() => load.subjectHub().then((m) => ({ default: m.SubjectHub })));
+const SyllabusPage = lazy(() => load.syllabus().then((m) => ({ default: m.Syllabus })));
+// The three growth families. Each index and its entries share one chunk, so a reader who walks
+// from the glossary index into an entry pays for the syllabus data once.
+const ComparePage = lazy(() => load.compare().then((m) => ({ default: m.Compare })));
+const CompareEntryPage = lazy(() => load.compare().then((m) => ({ default: m.CompareEntry })));
+const ExamsPage = lazy(() => load.exams().then((m) => ({ default: m.Exams })));
+const ExamBoardPage = lazy(() => load.exams().then((m) => ({ default: m.ExamBoard })));
+const GlossaryPage = lazy(() => load.glossary().then((m) => ({ default: m.Glossary })));
+const GlossaryEntryPage = lazy(() => load.glossary().then((m) => ({ default: m.GlossaryEntry })));
 // DEV ONLY: the kit gallery at /ui-kit — every primitive in both themes, for the design gate. A
 // production build has no chunk for it and the address answers with the 404.
 const UiKit = import.meta.env.DEV
@@ -75,6 +99,12 @@ function loaderFor(route: Route): (() => Promise<unknown>) | null {
       return load.landing;
     case 'about':
       return load.about;
+    case 'blog':
+      return load.blog;
+    case 'blogPost':
+      return load.blogPost;
+    case 'blogTag':
+      return load.blogTag;
     case 'help':
       return load.help;
     case 'helpArticle':
@@ -106,6 +136,19 @@ function loaderFor(route: Route): (() => Promise<unknown>) | null {
       return load.howItWorks;
     case 'subjects':
       return load.subjects;
+    case 'syllabus':
+      return load.syllabus;
+    case 'subjectHub':
+      return load.subjectHub;
+    case 'glossary':
+    case 'glossaryEntry':
+      return load.glossary;
+    case 'exams':
+    case 'examBoard':
+      return load.exams;
+    case 'compare':
+    case 'compareEntry':
+      return load.compare;
     case 'notfound':
       return load.notFound;
     case 'ui-kit':
@@ -134,6 +177,12 @@ export function publicScreen(route: Route): ReactNode {
       return <Landing />;
     case 'about':
       return <About />;
+    case 'blog':
+      return <Blog />;
+    case 'blogPost':
+      return <BlogPostPage slug={route.slug} />;
+    case 'blogTag':
+      return <BlogTagPage tag={route.tag} />;
     case 'help':
       return <Help />;
     case 'helpArticle':
@@ -166,6 +215,32 @@ export function publicScreen(route: Route): ReactNode {
       return <HowItWorks />;
     case 'subjects':
       return <Subjects />;
+    case 'syllabus':
+      return (
+        <SyllabusPage
+          address={{
+            board: route.board,
+            ...(route.level ? { level: route.level } : {}),
+            ...(route.subject ? { subject: route.subject } : {}),
+            ...(route.chapter ? { chapter: route.chapter } : {}),
+            ...(route.topic ? { topic: route.topic } : {}),
+          }}
+        />
+      );
+    case 'subjectHub':
+      return <SubjectHubPage subject={route.subject} />;
+    case 'glossary':
+      return <GlossaryPage />;
+    case 'glossaryEntry':
+      return <GlossaryEntryPage slug={route.slug} />;
+    case 'exams':
+      return <ExamsPage />;
+    case 'examBoard':
+      return <ExamBoardPage board={route.board} />;
+    case 'compare':
+      return <ComparePage />;
+    case 'compareEntry':
+      return <CompareEntryPage slug={route.slug} />;
     case 'notfound':
       return <NotFoundScreen />;
     case 'ui-kit':

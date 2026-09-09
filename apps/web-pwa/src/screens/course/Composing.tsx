@@ -13,7 +13,7 @@
  */
 
 import type { ImageSpec, Item as WireItem } from '@wobo/contracts/plexus';
-import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
+import { glassLabel, meaningSlug, useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type GroundReport, groundFor, subscribeGround } from '../../curriculum/placement';
@@ -70,7 +70,9 @@ import { hueForTopic } from '../../ui/hues';
 import { cascade, rise } from '../../ui/kit';
 import { type BridgeLesson, bridgeFor, bridgeFromReport } from '../../wobo/bridge';
 import { useWoboChat } from '../../wobo/chat';
+import { rememberCore } from '../../wobo/core-store';
 import { openCompanion } from '../../wobo/drawer';
+import type { CoreCard } from '../../wobo/instant';
 import {
   noteConceptCorrect,
   type ReteachTurn,
@@ -1001,6 +1003,10 @@ function GenCardView({
         initial="hidden"
         animate="show"
         style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+        // The card on the glass map, with its concept from the level (docs/INK-FREEZE-PLAN-TRACE.md
+        // §3): a label the reader keeps, never a registration the brain waits on.
+        {...glassLabel('card', `concept:${meaningSlug(card.title)}`, `card-${card.id}`)}
+        data-glass-text={card.title.toLowerCase()}
       >
         <motion.div variants={rise} style={whisper}>
           {card.kind === 'sim'
@@ -1009,7 +1015,7 @@ function GenCardView({
               ? 'the picture'
               : 'the idea'}
         </motion.div>
-        <motion.div variants={rise} style={cardTitle}>
+        <motion.div variants={rise} style={cardTitle} data-glass="heading">
           {card.title.toLowerCase()}
         </motion.div>
         <motion.div variants={rise} style={lead}>
@@ -1054,6 +1060,40 @@ function GenCardView({
 }
 
 // --- The composing ink screen (skeleton first, the real outline the moment it lands) ---------------
+
+/**
+ * THE LEVEL'S OWN CORE (docs/INK-FOUR.md, steps 3 and 4), read straight off the cards.
+ *
+ * Nothing here is composed and nothing is invented: a card's concept sentence is its own `idea`,
+ * a part's sentence is the caption of the discovery stage that draws it, and the parts are the
+ * named marks that stage puts on the canvas. What the learner sees on the glass is what the core
+ * has a true sentence about, because both come from the same card.
+ */
+export function coreCardsOf(cards: readonly GenCard[]): CoreCard[] {
+  return cards.map((card) => {
+    const parts: NonNullable<CoreCard['parts']> = [];
+    const seen = new Set<string>();
+    for (const stage of card.discovery?.stages ?? []) {
+      // The stage's caption is the one true sentence the architect wrote about what it shows.
+      const sentence = stage.caption?.trim() || stage.reveal?.trim() || '';
+      for (const mark of stage.visual.marks) {
+        const name = mark.text?.trim();
+        if (!name) continue;
+        const slug = meaningSlug(name);
+        if (!slug || seen.has(slug)) continue;
+        seen.add(slug);
+        parts.push({ slug, name, sentence });
+      }
+    }
+    return {
+      id: card.id,
+      title: card.title,
+      idea: card.idea,
+      reveal: card.reveal,
+      ...(parts.length > 0 ? { parts } : {}),
+    };
+  });
+}
 
 /**
  * The side column's steps. A placeholder course has none: its cards are the scaffold, and a
@@ -1467,6 +1507,11 @@ export function Composing({
       setBridge(lesson);
       const built = withBridge(parsed ?? seedCourse(title), lesson);
       setCourse(built);
+      // THE CONCEPT CORE, MADE ONCE WITH THE LEVEL (docs/INK-FOUR.md, steps 3 and 4). The cards
+      // already hold the true sentence about every concept and every part they declare; the store
+      // keeps them beside the level so Wobo can say the true thing about the hypotenuse before any
+      // model answers, and can answer the obvious asks with no model at all.
+      rememberCore(`${topicId}:${built.courseId}`, coreCardsOf(built.cards));
       setSettled(true);
       setMood('idle');
       // resume where they left off — a course never restarts (mission 1). The stored value is a

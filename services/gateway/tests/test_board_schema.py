@@ -16,7 +16,7 @@ CIRCLE: dict[str, Any] = {"id": "v1", "kind": "circle", "anchor": {"target": "ne
 
 
 def test_the_whole_vocabulary_crossed_over() -> None:
-    assert len(mirror.OBJECT_KINDS) == 28
+    assert len(mirror.OBJECT_KINDS) == 32  # 28, plus ring, tick, cross and note (docs/INK-FREEZE-PLAN-TRACE.md §3)
     assert set(mirror.MARK_KINDS) >= {"point", "circle", "underline", "arrow", "write", "wipe"}
     assert set(mirror.SHAPE_KINDS) >= {"axis", "tex", "bond", "atom", "region", "image"}
     assert set(mirror.CONTROL_KINDS) == {"slider", "toggle", "input", "drag"}

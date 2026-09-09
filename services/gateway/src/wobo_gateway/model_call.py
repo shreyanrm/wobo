@@ -401,7 +401,12 @@ def complete(**kwargs: Any) -> Any:
 
     litellm.drop_params = True
     chain = _models_in_play(kwargs)
-    base = {k: v for k, v in kwargs.items() if k not in ("fallbacks", "model")}
+    # ``short_deadline``: the caller's deadline is a policy choice well under the provider's own
+    # pace (the 1.5 s child-safety screen). A timeout under it says nothing about the provider,
+    # so it is not written to the weather: live on 2026-09-08 two such timeouts marked the turn
+    # tier's model out for a minute and a child's next two turns ran with no ink.
+    short_deadline = bool(kwargs.get("short_deadline"))
+    base = {k: v for k, v in kwargs.items() if k not in ("fallbacks", "model", "short_deadline")}
     budget = _budget(kwargs)
     share = primary_share()
     started = time.perf_counter()
@@ -452,7 +457,11 @@ def complete(**kwargs: Any) -> Any:
                 )
             else:
                 timed_out = _out_of_time(exc)
-                until = health.record_model(model, ok=False, error=reason, timed_out=timed_out)
+                until = (
+                    None
+                    if timed_out and short_deadline
+                    else health.record_model(model, ok=False, error=reason, timed_out=timed_out)
+                )
                 if until is not None:
                     telemetry.note_weather_out(
                         provider=provider, model=model, until=until, reason=reason

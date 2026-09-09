@@ -15,6 +15,7 @@
  */
 
 import type { ReactNode } from 'react';
+import { useDoorsOpen } from './dial';
 import { type CtaAction, handoff, type PublicPage } from './handoffs';
 import { hrefRoute, SiteLink } from './nav';
 
@@ -40,7 +41,9 @@ export function ClosePanel({
   /** A short honest note under the doors, where a page has one. */
   children?: ReactNode;
 }) {
-  const close = handoff(page);
+  // The door in the close follows the dial; the quiet second is the page's own argument and does
+  // not move (docs/DOORS-CLOSED.md §5).
+  const close = handoff(page, useDoorsOpen());
   return (
     <div className="st-close">
       <div className="st-wrap">
@@ -60,8 +63,8 @@ export function ClosePanel({
  * Every address either action in the table points at, for the walk that proves no page dead-ends.
  * An in-page anchor is left out: it is this page, not a way off it.
  */
-export function closeDestinations(page: PublicPage): string[] {
-  const close = handoff(page);
+export function closeDestinations(page: PublicPage, open = true): string[] {
+  const close = handoff(page, open);
   return [close.primary, close.quiet]
     .map((action) => (action.to ? action.to.name : (action.href ?? '')))
     .filter((address) => address !== '' && !address.startsWith('#'));

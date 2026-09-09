@@ -1,16 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import type { WoboAction, WoboBus, WoboMood } from '@wobo/wobo';
-import { planPerformance } from '@wobo/wobo';
-import {
-  beatOfMood,
-  beatOfTurn,
-  onceCallback,
-  performTurn,
-  sentenceBeats,
-  sentences,
-  speakLine,
-  withBeat,
-} from './speech';
+import type { WoboAction, WoboMood } from '@wobo/wobo';
+import { beatOfMood, beatOfTurn, onceCallback, sentences, speakLine, withBeat } from './speech';
 
 describe('the sentence splitter — where a period really ends a breath', () => {
   it('keeps decimals in one piece', () => {
@@ -78,44 +68,6 @@ describe('onDone is guaranteed, and guaranteed once', () => {
   });
 });
 
-/** A bus that just records what the performance asked for. */
-function recordingBus() {
-  const beats: { actions: WoboAction[]; opts?: { noteDurationMs?: number } }[] = [];
-  let turns = 0;
-  const bus: Pick<WoboBus, 'addBeat' | 'beginTurn'> = {
-    addBeat: (actions, opts) => {
-      beats.push({ actions, opts });
-    },
-    beginTurn: () => {
-      turns++;
-    },
-  };
-  return { bus, beats, turnCount: () => turns };
-}
-
-describe('performTurn — one performance, every beat once', () => {
-  it('fires each anchored beat exactly once and opens exactly one turn', async () => {
-    const { bus, beats, turnCount } = recordingBus();
-    const actions = [
-      { type: 'highlight', targetId: 'a', withSentence: 0 },
-      { type: 'annotate', targetId: 'b', mark: 'underline', afterSentence: 0 },
-      { type: 'say', text: 'and that is why', afterSentence: 1 },
-    ] as unknown as WoboAction[];
-    const moods: WoboMood[] = [];
-
-    await performTurn('Take three. Now double it.', actions, bus, {
-      onMood: (m) => moods.push(m),
-    });
-
-    expect(turnCount()).toBe(1);
-    // the finally-flush used to replay every afterSentence beat after a completed performance
-    expect(beats.length).toBe(3);
-    const targets = beats.flatMap((b) => b.actions.map((a) => JSON.stringify(a)));
-    expect(new Set(targets).size).toBe(3); // no duplicates
-    expect(moods).toEqual([]);
-  }, 30000);
-});
-
 // --- the beat (docs/copy/voice.md 10b): the tutor knows what a line is, and the voice is told ------
 
 describe('the beat travels with the line', () => {
@@ -145,41 +97,11 @@ describe('the beat travels with the line', () => {
     expect(beatOfTurn([], { category: 'moderation' })).toBe('step');
   });
 
-  it('gives each sentence of a choreographed turn its own beat, carried forward until the next', () => {
-    // The worked shape from the tutor's own prompt: thinking on the setup, waiting on the question.
-    const actions: WoboAction[] = [
-      { type: 'setMood', mood: 'thinking', withSentence: 0 },
-      { type: 'setMood', mood: 'waiting', withSentence: 2 },
-    ];
-    expect(sentenceBeats(planPerformance(actions, 3), 3, 'step')).toEqual(['step', 'step', 'ask']);
-    // a check mark on sentence 0 and "waiting" AFTER sentence 1: the win, then the question
-    const affirmed: WoboAction[] = [
-      { type: 'setMood', mood: 'correct', withSentence: 0 },
-      { type: 'setMood', mood: 'waiting', afterSentence: 0 },
-    ];
-    expect(sentenceBeats(planPerformance(affirmed, 2), 2, 'step')).toEqual(['win', 'ask']);
-    // no anchored mood at all: the turn's beat, every sentence
-    expect(sentenceBeats(planPerformance([], 2), 2, 'miss')).toEqual(['miss', 'miss']);
-  });
-
-  it('reads every sentence of a crisis turn as the crisis, whatever mood the model anchored', () => {
-    // The turn-level guarantee (beatOfTurn puts the crisis first) used to stop at the turn: a
-    // `celebrate` the model anchored to sentence 1 re-leaned sentences 1 and 2 to a win, so the
-    // softest line of all was read brightly by accident. The safety block is the gateway's own.
-    const cheered: WoboAction[] = [{ type: 'setMood', mood: 'celebrate', withSentence: 1 }];
-    expect(beatOfTurn(cheered, { category: 'crisis' })).toBe('crisis');
-    expect(sentenceBeats(planPerformance(cheered, 3), 3, 'crisis')).toEqual([
-      'crisis',
-      'crisis',
-      'crisis',
-    ]);
-    const after: WoboAction[] = [
-      { type: 'setMood', mood: 'correct', withSentence: 0 },
-      { type: 'setMood', mood: 'waiting', afterSentence: 0 },
-    ];
-    expect(sentenceBeats(planPerformance(after, 2), 2, 'crisis')).toEqual(['crisis', 'crisis']);
-    // and the same anchors on an ordinary turn still lean, so the guard is the crisis alone
-    expect(sentenceBeats(planPerformance(cheered, 3), 3, 'step')).toEqual(['step', 'win', 'win']);
+  it('has no choreography of its own: a turn is one beat, the board keeps time from the plan', () => {
+    // The overlay's per-sentence moods (withSentence / afterSentence) went with the overlay
+    // (docs/INK-FREEZE-PLAN-TRACE.md §4). A mood the model attaches to a sentence is not parsed.
+    const crisis = beatOfTurn([{ type: 'setMood', mood: 'celebrate' }], { category: 'crisis' });
+    expect(crisis).toBe('crisis');
   });
 
   it('carries the beat on the socket URL beside the token, never in the spoken frame', () => {

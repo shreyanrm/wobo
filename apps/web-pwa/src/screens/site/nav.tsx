@@ -17,8 +17,8 @@
  */
 
 import type { MouseEvent, ReactNode } from 'react';
-import { pathToRoute, type Route, routeToPath, useRouter } from '../../shell/router';
-import { CTA } from './cta';
+import { addressOf, pathToRoute, type Route, useRouter } from '../../shell/router';
+import { ctaFor } from './cta';
 
 /** True where a click is the browser's to handle rather than the router's. */
 export function browserOwnsClick(event: {
@@ -55,6 +55,7 @@ export type SiteSection =
   | 'help'
   | 'contact'
   | 'questions'
+  | 'blog'
   | 'about'
   | 'security'
   | 'legal'
@@ -102,7 +103,26 @@ export const NAV_LINKS: readonly PublicLink[] = [
  * "Get early access" on the plans page. We are open (DESIGN.md §0, owner 2026-09-04), so the door
  * invites rather than promotes.
  */
-export const DOORS = { signIn: 'Sign in', getStarted: CTA.label } as const;
+export const DOORS = { signIn: 'Sign in', getStarted: ctaFor(true).label } as const;
+
+/**
+ * The two doors, for the dial as it stands (`docs/DOORS-CLOSED.md` §4).
+ *
+ * The quiet one NEVER changes. Closing the door to new accounts is not locking anybody out, so
+ * "Sign in" stays exactly where it was, in the same words, at the same weight, on every page. The
+ * loud one becomes the invitation to the list while the dial is off, and is "Start free" again the
+ * minute the owner turns it on.
+ */
+export function headerDoors(open: boolean): {
+  signIn: { label: string; to: Route };
+  getStarted: { label: string; to: Route };
+} {
+  const door = ctaFor(open);
+  return {
+    signIn: { label: DOORS.signIn, to: { name: 'sign-in' } },
+    getStarted: { label: door.label, to: door.to },
+  };
+}
 
 export interface FooterColumn {
   title: string;
@@ -155,12 +175,15 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     title: 'Company',
     links: [
       { label: 'About', href: '/about', section: 'about' },
+      // The blog is the origin every syndicated post points back at, so it is reachable from every
+      // page rather than only from whatever linked to a post (docs/GROWTH-DESK.md §3).
+      { label: 'Blog', href: '/blog', section: 'blog' },
       { label: 'Security and trust', href: '/security', section: 'security' },
-      { label: 'Terms', href: '/legal/terms', section: 'terms' },
-      { label: 'Privacy', href: '/legal/privacy', section: 'privacy' },
-      { label: "Children's privacy", href: '/legal/children', section: 'children' },
+      { label: 'Terms', href: '/legal/terms-of-service', section: 'terms' },
+      { label: 'Privacy', href: '/legal/privacy-policy', section: 'privacy' },
+      { label: "Children's privacy", href: '/legal/childrens-privacy', section: 'children' },
       { label: 'Cookies', href: '/legal/cookies', section: 'cookies' },
-      { label: 'Accessibility', href: '/legal/accessibility', section: 'accessibility' },
+      { label: 'Accessibility', href: '/legal/accessibility-statement', section: 'accessibility' },
     ],
   },
 ];
@@ -220,7 +243,10 @@ export function SiteLink({
   'aria-label'?: string;
 }) {
   const router = useRouter();
-  const address = to ? routeToPath(to) : (href ?? '/');
+  // The ADDRESS OF RECORD, never a second address for the same page: `addressOf` sends the
+  // front page to `/`, which is what the sitemap publishes and what the build writes a file for.
+  // `routeToPath` answers `/landing` there, which is a wordless rewrite into the SPA shell.
+  const address = to ? addressOf(to) : (href ?? '/');
   const target = to ?? hrefRoute(address);
   const hash = address.split('#')[1] ?? '';
   const onClick = (event: MouseEvent<HTMLAnchorElement>) => {

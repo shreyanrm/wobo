@@ -347,7 +347,17 @@ export interface DocumentShape {
   version: string | null;
 }
 
-const DRAFTED = /Draft of ([^.]+)\./;
+/**
+ * THE DATE, AND ONLY THE DATE.
+ *
+ * This used to be `/Draft of ([^.]+)\./`, and `docs/legal/README.md` opens "Draft of 3 September
+ * 2026, with `refund-and-cancellation.md` revised on 7 September 2026 at version 0.3." — so the
+ * capture ran on to the full stop INSIDE the filename and `/legal` published "Drafted 3 September
+ * 2026, with `refund-and-cancellation.", a broken sentence carrying the only stray markdown
+ * backtick in visible text anywhere on the site, on a page a crawler indexes. A date ends at the
+ * first stop of any kind, so that is where the capture ends.
+ */
+const DRAFTED = /Draft of ([^.,;]+)/;
 const VERSION = /Version (\d+(?:\.\d+)*)/;
 
 /** Read the shape of a parsed document: its title, its sections, its summary box and its date. */

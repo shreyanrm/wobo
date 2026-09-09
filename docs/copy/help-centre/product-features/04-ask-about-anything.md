@@ -23,7 +23,7 @@ Wobo does not look at a picture of your screen and guess. Every diagram, slider 
 - "Say this in terms of football."
 - "Why is this wrong?" after a wrong answer.
 - "Read it aloud."
-- "Teach it back to me" — you explain, Wobo listens and finds the hole.
+- "Teach it back to me": you explain, Wobo listens and finds the hole.
 
 **Video and pictures**
 

@@ -308,10 +308,7 @@ describe('two identical rows are two rows', () => {
     // Rows were keyed on their joined cell text. Two identical rows — same minute, same handle,
     // same reason, no note — collided and React dropped one from the DOM: precisely the shape of a
     // duplicate submit, or of a script burying a real flag under repeats.
-    const twins = [
-      row({ id: 'first', note: null }),
-      row({ id: 'second', note: null }),
-    ];
+    const twins = [row({ id: 'first', note: null }), row({ id: 'second', note: null })];
     const panels = queuePanels('flag', summaryOf(), page(twins), null);
     const queue = panels.find((panel) => panel.id === 'flag-queue');
     const ids = queue?.kind === 'rows' ? queue.rows.map((entry) => entry.id) : [];

@@ -22,12 +22,25 @@ from typing import Any
 
 from wobo_verifier.gate import CheckResult
 
-from wobo_gateway.board.pipelines import Draft, accent, arrow_to, board, faint, on, wobo
+from wobo_gateway.board.pipelines import (
+    FIGURE,
+    FIGURE_MID,
+    MAX_NOTE_CHARS,
+    Draft,
+    accent,
+    arrow_to,
+    board,
+    faint,
+    on,
+    wobo,
+)
 from wobo_gateway.board.verify import Unverified, balance, equation_balances
 from wobo_gateway.plexus.chem import parse_formula, valid_smiles
 
-BOND_LENGTH = 70.0
-CENTRE = (500.0, 460.0)
+#: Sized to the figure box, not to the board: a molecule drawn 520 units across put its own atom
+#: labels at 6 px on a 1440 screen (see :data:`wobo_gateway.board.pipelines.FIGURE`).
+BOND_LENGTH = min(70.0, FIGURE[3] * 0.30)
+CENTRE = FIGURE_MID
 MAX_ATOMS = 40
 
 #: One coefficient ticks into place every this many milliseconds (BOARD.md §6: "coefficients that
@@ -40,12 +53,12 @@ _BRACKET_RE = re.compile(r"\[([A-Za-z][a-z]?)(?:@{1,2})?(?:H(\d*))?(?:([+-])(\d*
 _BOND_ORDER = {"-": 1, "=": 2, "#": 3, ":": 1}
 
 
-def build(intent: dict[str, Any], prefix: str) -> Draft:
+def build(intent: dict[str, Any], prefix: str, ask: str = "") -> Draft:
     op = str(intent.get("op") or "molecule")
     if op == "molecule":
-        return _molecule(intent, Draft(prefix))
+        return _molecule(intent, Draft(prefix, ask=ask))
     if op == "balance":
-        return _balance(intent, Draft(prefix))
+        return _balance(intent, Draft(prefix, ask=ask))
     raise Unverified(f"chemistry cannot draw {op!r}")
 
 
@@ -291,7 +304,7 @@ def _molecule(intent: dict[str, Any], draft: Draft) -> Draft:
     xs = [p[0] for p in coords]
     ys = [p[1] for p in coords]
     span = max(max(xs) - min(xs), max(ys) - min(ys), 1.0)
-    scale = min(BOND_LENGTH, 520.0 / span)
+    scale = min(BOND_LENGTH, min(FIGURE[2], FIGURE[3]) / span)
     mid_x, mid_y = (max(xs) + min(xs)) / 2, (max(ys) + min(ys)) / 2
 
     def place(index: int) -> dict[str, Any]:
@@ -340,7 +353,13 @@ def _molecule(intent: dict[str, Any], draft: Draft) -> Draft:
         )
     name = str(intent.get("name") or "").strip()[:40]
     if name:
-        draft.add("label", anchor=board(CENTRE[0], 780.0), text=name, style=faint(1), hint="name")
+        draft.add(
+            "label",
+            anchor=board(CENTRE[0], FIGURE[1] + FIGURE[3] + 26.0),
+            text=name[:MAX_NOTE_CHARS],
+            style=faint(1),
+            hint="name",
+        )
     return draft
 
 
@@ -366,19 +385,19 @@ def _balance(intent: dict[str, Any], draft: Draft) -> Draft:
     ).name
 
     left_count = len(reactants)
-    x = 180.0
-    y = 460.0
+    x = FIGURE[0]
+    y = FIGURE_MID[1]
     slots: list[tuple[str, str]] = []
     for i, formula in enumerate([*reactants, *products]):
         if i == left_count:
             tail = board(x, y)
-            x += 90.0
+            x += 54.0
             arrow_to(draft, tip=board(x, y), tail=tail, style=wobo(2), hint="yields")
-            x += 30.0
+            x += 20.0
         elif i:
             plus = draft.add("label", anchor=board(x, y), text="+", style=wobo(2), hint="plus")
             del plus
-            x += 46.0
+            x += 32.0
         slot = board(x, y)
         species = draft.add(
             "write",
@@ -389,7 +408,7 @@ def _balance(intent: dict[str, Any], draft: Draft) -> Draft:
             hint=formula.lower(),
         )
         slots.append((species, formula))
-        x += 34.0 + 20.0 * len(formula)
+        x += 22.0 + 13.0 * len(formula)
 
     # The coefficients are the answer, so they arrive last and one at a time.
     for tick, ((species, _formula), coefficient) in enumerate(
@@ -409,8 +428,8 @@ def _balance(intent: dict[str, Any], draft: Draft) -> Draft:
                 obj["t"] = {"start": tick * TICK_MS, "dur": 280}
     draft.add(
         "write",
-        anchor=board(500.0, 600.0),
-        text="same atoms on both sides",
+        anchor=board(FIGURE_MID[0], FIGURE[1] + FIGURE[3] + 26.0),
+        text="same atoms both sides",
         style=accent(1),
         hint="balancednote",
     )

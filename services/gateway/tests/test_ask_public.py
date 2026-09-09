@@ -190,7 +190,11 @@ def test_a_question_outside_the_articles_gets_the_honest_line(client: TestClient
 
 
 def test_an_empty_index_answers_everything_honestly(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Nothing to ground on, in EITHER corpus, is the honest line. The syllabus is the second
+    one now (ask_public.get_syllabus_index), so emptying only the help centre would leave the
+    chapters answering, which is not what "no corpus" means."""
     set_index(HelpIndex([]))
+    ask_public.set_syllabus_index(HelpIndex([]))
     client = _client()
     res = ask(client, "Where is my data stored?")
     assert res.status_code == 200 and res.json()["answer"] == HONEST_LINE
@@ -781,3 +785,47 @@ def test_the_mock_and_the_gateway_agree_on_the_shape() -> None:
     )
     assert set(out.output) == {"answer", "sources"} and out.output["sources"] == [PRIVACY]
     assert "model" not in out.served()
+
+
+# =================================================================================================
+# The door knows where it is standing
+# =================================================================================================
+
+
+def test_the_page_s_own_subject_scopes_the_syllabus_half_and_nothing_else() -> None:
+    """`about` biases the syllabus search, is scrubbed, and cannot smuggle a question past a cap.
+
+    The door on 400 chapter pages used to send the page key and nothing else, so a question typed
+    under one chapter was searched over the whole corpus and could be answered about a chapter of
+    the same name on another board. The scope goes in front of the question for the syllabus
+    corpus only; the help centre still sees the question exactly as it was typed.
+    """
+    assert ask_public.scoped("what comes before this", None) == "what comes before this"
+    assert ask_public.scoped("q", "") == "q"
+    assert ask_public.scoped("what comes before this", "Arithmetic Progressions, CBSE class 10 maths") == (
+        "Arithmetic Progressions, CBSE class 10 maths what comes before this"
+    )
+    # Scrubbed the same way the question is: nothing personal rides in on the scope either.
+    assert "[email]" in ask_public.scoped("q", "a@b.com")
+    # And capped, so the field is not a second question box.
+    long = "x" * 500
+    assert len(ask_public.scoped("q", long)) <= ask_public.ABOUT_CHARS + len("q") + 1
+
+
+def test_the_open_box_accepts_a_page_subject_and_still_answers_from_the_articles(
+    client: TestClient,
+) -> None:
+    ok = client.post(
+        "/v1/ask",
+        json={
+            "question": "Where is my data stored?",
+            "page": "learn",
+            "about": "Arithmetic Progressions, CBSE class 10 maths",
+        },
+    )
+    assert ok.status_code == 200
+    assert ok.json()["sources"], "the help centre answers first, scope or no scope"
+    # Anything the model is not meant to be handed is refused at the door, as before.
+    assert (
+        client.post("/v1/ask", json={"question": "q", "about": "x", "extra": 1}).status_code == 422
+    )

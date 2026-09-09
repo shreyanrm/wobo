@@ -1136,19 +1136,29 @@ def _seed_sim(concept: str) -> dict[str, Any]:
 
 
 def _seed_diagram(concept: str) -> str:
+    """The seed for the diagram modality: THE CONCEPT'S NAME, AND NOTHING ELSE.
+
+    THE PLACEHOLDER THAT CLAIMED A CAUSE (the adversary, 2026-09-09, finding 1). This used to draw
+    two circles labelled "idea" and "effect" with an arrow between them, for every concept there
+    is, at font-size 11. It reached a learner twice as the answer to "draw this for me", and it is
+    the art on the seeded course's own "Predict, then check" card. An arrow from one named thing to
+    another IS A CLAIM — that this causes that — and it was true of nothing it was ever drawn for.
+
+    A seed runs with no model and knows one fact: what the concept is called. So that is all it
+    draws. Nothing here is a relationship, a quantity, a part or an order, because none of those
+    are known here; a picture of the idea comes from a generation that was asked for one, or from
+    the board's pipelines, which compute geometry and prove it. INK-FOUR, Correctness at 4: every
+    relationship drawn is true, and true for the question asked.
+    """
     label = quoteattr(concept)
     text = concept if len(concept) <= 38 else concept[:37] + "…"
     return (
         # xmlns is load-bearing: browsers parse artifacts as image/svg+xml, where a
         # namespace-less <svg> is not an SVG element and the client refuses it.
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-label={label}>'
-        f'<text x="160" y="28" text-anchor="middle" font-size="13" fill="#111">{text}</text>'
-        '<circle cx="92" cy="106" r="34" fill="none" stroke="#111" stroke-width="1"/>'
-        '<text x="92" y="110" text-anchor="middle" font-size="11" fill="#111">idea</text>'
-        '<line x1="126" y1="106" x2="192" y2="106" stroke="#111" stroke-width="0.5"/>'
-        '<polygon points="192,102 200,106 192,110" fill="#111"/>'
-        '<circle cx="234" cy="106" r="34" fill="none" stroke="#111" stroke-width="1"/>'
-        '<text x="234" y="110" text-anchor="middle" font-size="11" fill="#111">effect</text>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120" role="img" aria-label={label}>'
+        '<rect x="12" y="12" width="296" height="96" rx="10" fill="none" '
+        'stroke="#E9E9EE" stroke-width="1"/>'
+        f'<text x="160" y="66" text-anchor="middle" font-size="18" fill="#111">{text}</text>'
         "</svg>"
     )
 

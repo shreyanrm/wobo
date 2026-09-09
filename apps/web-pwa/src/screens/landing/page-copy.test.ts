@@ -16,6 +16,7 @@
 import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { FOOTER_COLUMNS, hrefRoute } from '../site/nav';
 import {
   ASK,
   ASK_ELSEWHERE,
@@ -36,7 +37,6 @@ import {
   SUBJECTS,
   TEACHES,
 } from './page-copy';
-import { FOOTER_COLUMNS, hrefRoute } from '../site/nav';
 
 const PROTOTYPE = readFileSync(
   join(import.meta.dir, '../../../../../design/prototypes/landing-v8.html'),
@@ -113,6 +113,10 @@ const OURS: readonly string[] = [
   // prototype's footer predates: the donate page and the cookies document (wave 29, site-10).
   'Donate Wobo',
   'Cookies',
+  // And the blog, which the prototype's footer also predates. It is in the site's one footer list
+  // because it is the origin every syndicated post points back at, so it has to be reachable from
+  // every page rather than only from whatever linked to a post (docs/GROWTH-DESK.md §3).
+  'Blog',
   /*
     THREE SAFE CARDS THE PROTOTYPE PROMISES AND THE CODE DOES NOT KEEP. Verified against this
     repository on 2026-09-04; the reason is written beside each line in `page-copy.ts`.
@@ -305,13 +309,15 @@ describe('the landing copy', () => {
    * on the page's own source in `site/nav.test.ts`.
    */
   it('sends every nav and footer address to a route that exists', () => {
-    for (const link of NAV_LINKS) expect([link.href, hrefRoute(link.href)]).not.toEqual([link.href, null]);
+    for (const link of NAV_LINKS)
+      expect([link.href, hrefRoute(link.href)]).not.toEqual([link.href, null]);
     for (const column of FOOTER.columns) {
       for (const link of column.links) {
         expect([link.href, hrefRoute(link.href)]).not.toEqual([link.href, null]);
       }
     }
-    for (const item of SAFE.items) expect([item.href, hrefRoute(item.href)]).not.toEqual([item.href, null]);
+    for (const item of SAFE.items)
+      expect([item.href, hrefRoute(item.href)]).not.toEqual([item.href, null]);
   });
 
   /**

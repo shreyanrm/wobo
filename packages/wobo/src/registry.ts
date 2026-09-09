@@ -13,9 +13,11 @@
  * `toModelContextTools()` already emits that shape, so a `navigator.modelContext` adapter is one
  * small file the day Chrome ships it — no rewrite of a single screen.
  *
- * `snapshot()` is the "what is on screen" half of the context packet: deterministic JSON under a
- * byte budget (2 KB by default, docs/BOARD.md §10), trimmed by a fixed ladder so the same screen
- * always produces the same bytes. No screenshot of our own UI, ever.
+ * What the brain is told about the screen is no longer read from here: the glass map
+ * (`glass/`) reads every rendered line and element straight off the page, and a registration is a
+ * label on it, never a precondition (docs/INK-FREEZE-PLAN-TRACE.md §3). The registry keeps what
+ * only a component can say: a live rect for a thing with no element of its own (a photo's lines,
+ * a paused frame's parts), a scene's state, and the actions Wobo may run on it.
  */
 
 import { createElement, type ReactElement, useEffect, useRef, useSyncExternalStore } from 'react';
@@ -87,41 +89,10 @@ export interface ResolvedSurface {
   targets: SurfaceTarget[];
 }
 
-// --- The snapshot (the "what is on screen" half of the context packet) ----------------------------
+// --- Clamps (a scene value that rides the packet is never allowed to dominate it) ----------------
 
-export interface TargetSnapshot {
-  id: string;
-  kind: string;
-  label: string;
-  description?: string;
-  value?: unknown;
-  text?: string;
-  actions?: string[];
-}
-
-export interface SurfaceSnapshot {
-  id: string;
-  title: string;
-  description?: string;
-  targets: TargetSnapshot[];
-  /** How many of this surface's targets were dropped to fit the budget. */
-  more?: number;
-}
-
-export interface RegistrySnapshot {
-  v: 1;
-  route?: string;
-  surfaces: SurfaceSnapshot[];
-  /** How many whole surfaces were dropped to fit the budget. */
-  more?: number;
-  truncated?: boolean;
-}
-
-/** The screen snapshot's share of the context packet (docs/BOARD.md §10). */
-export const SNAPSHOT_BYTE_BUDGET = 2048;
-
-/** Field clamps, applied before the budget ladder so a single long label can never dominate. */
-const CLAMP = { label: 64, description: 120, text: 160, value: 80 } as const;
+/** Field clamps for a value read off a target. */
+const CLAMP = { value: 80 } as const;
 
 const encoder = typeof TextEncoder === 'function' ? new TextEncoder() : null;
 
@@ -130,11 +101,6 @@ export function byteLength(text: string): number {
   if (encoder) return encoder.encode(text).length;
   // No TextEncoder (an exotic runtime): assume the worst case rather than under-count.
   return text.length * 4;
-}
-
-/** Serialized byte size of a snapshot. */
-export function snapshotBytes(snapshot: RegistrySnapshot): number {
-  return byteLength(JSON.stringify(snapshot));
 }
 
 /** Deterministic clamp: never mid-surrogate, always the same output for the same input. */
@@ -154,162 +120,6 @@ export function clampValue(value: unknown): unknown {
   } catch {
     return undefined;
   }
-}
-
-/** Drop `undefined` fields so the serialized bytes are stable and free of noise. */
-function compact<T extends Record<string, unknown>>(object: T): T {
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(object)) {
-    if (value !== undefined) out[key] = value;
-  }
-  return out as T;
-}
-
-function readTarget(target: SurfaceTarget): TargetSnapshot {
-  let value: unknown;
-  let text: string | undefined;
-  try {
-    value = clampValue(target.value?.());
-  } catch {
-    value = undefined; // a target that throws while being read is simply quiet this turn
-  }
-  try {
-    const raw = target.text?.();
-    text = raw ? clampText(raw, CLAMP.text) : undefined;
-  } catch {
-    text = undefined;
-  }
-  const actions = target.actions?.map((a) => a.name);
-  return compact({
-    id: target.id,
-    kind: target.kind,
-    label: clampText(target.label, CLAMP.label),
-    description: target.description ? clampText(target.description, CLAMP.description) : undefined,
-    value,
-    text,
-    actions: actions && actions.length > 0 ? actions : undefined,
-  });
-}
-
-/**
- * The full, unbudgeted snapshot of a set of surfaces — pure, so it is unit-testable without a DOM.
- * Surfaces and targets keep the order they were given; `fitSnapshot` does the trimming.
- */
-export function buildSnapshot(surfaces: ResolvedSurface[], route?: string): RegistrySnapshot {
-  return compact({
-    v: 1 as const,
-    route,
-    surfaces: surfaces.map((surface) =>
-      compact({
-        id: surface.id,
-        title: clampText(surface.title, CLAMP.label),
-        description: surface.description
-          ? clampText(surface.description, CLAMP.description)
-          : undefined,
-        targets: surface.targets.map(readTarget),
-      }),
-    ),
-  });
-}
-
-/** A structural clone that keeps `undefined`-free shape (the snapshot is plain JSON by construction). */
-function cloneSnapshot(snapshot: RegistrySnapshot): RegistrySnapshot {
-  return JSON.parse(JSON.stringify(snapshot)) as RegistrySnapshot;
-}
-
-/**
- * Trim a snapshot to a byte budget by a fixed ladder, so the same screen always yields the same
- * bytes. Least useful information leaves first; a target's identity (id, kind, label) is the last
- * thing to go, because ink anchors to it.
- *
- *   1. surface descriptions
- *   2. target descriptions
- *   3. target text
- *   4. target action names
- *   5. trailing targets, from the last surface that still has more than one (counted in `more`)
- *   6. whole trailing surfaces (counted in the top-level `more`)
- */
-export function fitSnapshot(
-  snapshot: RegistrySnapshot,
-  budget: number = SNAPSHOT_BYTE_BUDGET,
-): RegistrySnapshot {
-  const out = cloneSnapshot(snapshot);
-  let truncated = false;
-  const fits = () => snapshotBytes(out) <= budget;
-  if (fits()) return out;
-
-  for (const surface of out.surfaces) {
-    if (surface.description !== undefined) {
-      surface.description = undefined;
-      truncated = true;
-    }
-  }
-  const stages: ((t: TargetSnapshot) => boolean)[] = [
-    (t) => {
-      if (t.description === undefined) return false;
-      t.description = undefined;
-      return true;
-    },
-    (t) => {
-      if (t.text === undefined) return false;
-      t.text = undefined;
-      return true;
-    },
-    (t) => {
-      if (t.actions === undefined) return false;
-      t.actions = undefined;
-      return true;
-    },
-  ];
-  for (const stage of stages) {
-    if (fits()) break;
-    for (const surface of out.surfaces) {
-      for (const target of surface.targets) {
-        if (stage(target)) truncated = true;
-      }
-    }
-  }
-
-  // Drop trailing targets, then trailing surfaces. Bounded so a pathological budget cannot spin.
-  let guard = 4000;
-  while (!fits() && guard > 0) {
-    guard -= 1;
-    const index = lastIndexWhere(out.surfaces, (s) => s.targets.length > 1);
-    if (index >= 0) {
-      const surface = out.surfaces[index] as SurfaceSnapshot;
-      surface.targets.pop();
-      surface.more = (surface.more ?? 0) + 1;
-      truncated = true;
-      continue;
-    }
-    if (out.surfaces.length > 1) {
-      out.surfaces.pop();
-      out.more = (out.more ?? 0) + 1;
-      truncated = true;
-      continue;
-    }
-    // One surface, one target: this is the floor. Drop its last remaining target rather than lie.
-    const only = out.surfaces[0];
-    if (only && only.targets.length > 0) {
-      only.targets.pop();
-      only.more = (only.more ?? 0) + 1;
-      truncated = true;
-      continue;
-    }
-    break;
-  }
-
-  if (truncated) out.truncated = true;
-  // Re-serialize through JSON so dropped fields leave the object rather than sit as `undefined`.
-  return JSON.parse(JSON.stringify(out)) as RegistrySnapshot;
-}
-
-function lastIndexWhere<T>(items: T[], predicate: (item: T) => boolean): number {
-  for (let i = items.length - 1; i >= 0; i -= 1) {
-    const item = items[i];
-    if (item !== undefined && predicate(item)) return i;
-  }
-  return -1;
 }
 
 // --- The registry --------------------------------------------------------------------------------
@@ -333,6 +143,21 @@ interface Entry {
 /** How long a burst of scroll events is coalesced before targets are treated as re-measured. */
 const SCROLL_THROTTLE_MS = 100;
 
+/**
+ * The glass read the registry lends out as the page's own targets (docs/INK-FREEZE-PLAN-TRACE.md
+ * §3, §4): every entry on the map, with its live measure and its element. The registry keeps by
+ * hand only what has no element of its own (a photo's lines, a paused frame's parts, the plane);
+ * everything else is read off the page, so nothing has to register to be pointed at.
+ */
+export interface GlassSource {
+  map: { entries: readonly { id: string; role: string; text: string; meaning?: string }[] };
+  rectOf(id: string): readonly [number, number, number, number] | null;
+  elementOf(id: string): Element | null;
+}
+
+/** The id of the surface the glass is lent under. Never registered by hand. */
+export const GLASS_SURFACE_ID = 'glass';
+
 export class SurfaceRegistry {
   private entries = new Map<string, Entry>();
   private listeners = new Set<() => void>();
@@ -342,6 +167,36 @@ export class SurfaceRegistry {
   private resizeObserver: ResizeObserver | null = null;
   private detachLayout: (() => void) | null = null;
   private scrollTimer: ReturnType<typeof setTimeout> | null = null;
+  private glass: (() => GlassSource | null) | null = null;
+
+  /**
+   * Read the page's targets off the glass from now on. The source is a getter, because the read
+   * is replaced on every turn and the registry must always lend the current one; pass null to
+   * stop (a test seam).
+   */
+  readGlass(source: (() => GlassSource | null) | null): void {
+    this.glass = source;
+    this.bump();
+  }
+
+  /** The glass as a surface: an entry is a target whose kind is its role and whose label is its words. */
+  private glassSurface(): ResolvedSurface | null {
+    const read = this.glass?.();
+    if (!read) return null;
+    const targets: SurfaceTarget[] = read.map.entries.map((entry) => ({
+      id: entry.id,
+      kind: entry.role,
+      label: entry.text,
+      ...(entry.meaning ? { description: entry.meaning } : {}),
+      rect: () => {
+        const box = read.rectOf(entry.id);
+        return box ? { x: box[0], y: box[1], width: box[2], height: box[3] } : null;
+      },
+      element: () => read.elementOf(entry.id),
+      text: () => entry.text,
+    }));
+    return { id: GLASS_SURFACE_ID, title: 'what is on the glass', priority: -1, targets };
+  }
 
   /** Register a whole screen. Returns the unregister; call it on unmount. */
   registerSurface(definition: SurfaceDefinition): () => void {
@@ -415,8 +270,18 @@ export class SurfaceRegistry {
     return this.route;
   }
 
-  /** Every registered surface, ordered by priority then registration. */
+  /** Every registered surface, ordered by priority then registration, then the glass. */
   getSurfaces(): ResolvedSurface[] {
+    const own = this.ownSurfaces();
+    const glass = this.glassSurface();
+    return glass ? [...own, glass] : own;
+  }
+
+  /**
+   * Only what was registered by hand, in order. Never asks the glass: a reader takes these as
+   * its `registered` while it reads, and a source that reads on demand would read again.
+   */
+  private ownSurfaces(): ResolvedSurface[] {
     const resolved = Array.from(this.entries.values()).map((entry) => {
       const declared = entry.definition.targets;
       const seen = new Set(declared.map((t) => t.id));
@@ -441,9 +306,14 @@ export class SurfaceRegistry {
     return resolved.map((r) => r.surface);
   }
 
-  /** Every registered target, across every surface, in snapshot order. */
+  /** Every target, registered by hand or read off the glass, in snapshot order. */
   getTargets(): SurfaceTarget[] {
     return this.getSurfaces().flatMap((s) => s.targets);
+  }
+
+  /** Only what was registered by hand: what a glass reader is lent, never the glass itself. */
+  ownTargets(): SurfaceTarget[] {
+    return this.ownSurfaces().flatMap((s) => s.targets);
   }
 
   getTarget(id: string): SurfaceTarget | undefined {
@@ -485,15 +355,6 @@ export class SurfaceRegistry {
       if (rect && rectsIntersect(rect, region)) out.push(target.id);
     }
     return out;
-  }
-
-  /** The screen snapshot, trimmed to the byte budget. */
-  snapshot(options?: { budget?: number; route?: string }): RegistrySnapshot {
-    const route = options?.route ?? this.route;
-    return fitSnapshot(
-      buildSnapshot(this.getSurfaces(), route),
-      options?.budget ?? SNAPSHOT_BYTE_BUDGET,
-    );
   }
 
   /** Run one target action by name. Rejects rather than guessing when it does not exist. */
@@ -554,6 +415,7 @@ export class SurfaceRegistry {
     this.entries.clear();
     this.nextOrder = 0;
     this.route = undefined;
+    this.glass = null;
     this.stopLayoutWatch();
     this.bump();
   }

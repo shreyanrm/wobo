@@ -42,6 +42,28 @@ export interface SceneAction {
   onSelect: () => void;
   /** The one primary door. Everything else is quiet — one intention per screen. */
   primary?: boolean;
+  /**
+   * WHERE IT GOES, when it goes somewhere, and then it is rendered as a real link.
+   *
+   * `dist/404.html` is written as this screen so that somebody who mistyped an address can read
+   * their way out of it with nothing running (scripts/notfound.ts). Both its doors were buttons,
+   * and a button does nothing with JavaScript off, so the one page written for that reader was the
+   * only page on the site with no way out of it: 27 words, no links in, no links out, against 34
+   * real hrefs on /about. A door to an address is an anchor with the address in it; the click is
+   * still the router's, so nothing about the running app changes.
+   */
+  href?: string;
+}
+
+/** The browser owns a click with a modifier on it: a new tab is the reader's decision, not ours. */
+function browserOwnsClick(event: {
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  button: number;
+}): boolean {
+  return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0;
 }
 
 /** The scene shell. `art` is the drawing; everything else is words. */
@@ -74,16 +96,27 @@ export function StateScene({
         <p className="ws-body">{body}</p>
         {actions.length > 0 ? (
           <div className="ws-row">
-            {actions.map((a) => (
-              <button
-                key={a.label}
-                type="button"
-                className={a.primary ? 'ws-btn' : 'ws-btn ws-btn--quiet'}
-                onClick={a.onSelect}
-              >
-                {a.label}
-              </button>
-            ))}
+            {actions.map((a) => {
+              const className = a.primary ? 'ws-btn' : 'ws-btn ws-btn--quiet';
+              return a.href ? (
+                <a
+                  key={a.label}
+                  href={a.href}
+                  className={className}
+                  onClick={(event) => {
+                    if (event.defaultPrevented || browserOwnsClick(event)) return;
+                    event.preventDefault();
+                    a.onSelect();
+                  }}
+                >
+                  {a.label}
+                </a>
+              ) : (
+                <button key={a.label} type="button" className={className} onClick={a.onSelect}>
+                  {a.label}
+                </button>
+              );
+            })}
           </div>
         ) : null}
         {note ? <p className="ws-tiny">{note}</p> : null}

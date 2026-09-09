@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from wobo_gateway.board import stream
+from wobo_gateway.board import naming, planner, stream
 from wobo_gateway.board.planner import Plan, plan_board
 
 
@@ -123,9 +123,13 @@ def test_ink_with_no_beat_is_spread_across_wobos_whole_line() -> None:
     # Evenly: no gap between consecutive marks is more than a shade off the average.
     gaps = [b - a for a, b in zip(starts, starts[1:], strict=False)]
     assert max(gaps) - min(gaps) <= 2
-    # And the hand is still drawing when Wobo stops speaking, rather than long finished.
+    # And the hand is still drawing as Wobo stops speaking, rather than long finished. It ends
+    # within one stroke of the last full stop: no stroke is longer than a hand's move
+    # (:data:`stream.MAX_INK_MS`, wave 46 finding 5), so "still drawing" is the last stroke's
+    # start, not a stroke stretched to cover the silence.
     last = ink[-1].data["object"]["t"]
-    assert last["start"] + last["dur"] >= spoken
+    assert last["start"] + last["dur"] >= spoken - stream.MAX_INK_MS
+    assert last["start"] < spoken
 
 
 def test_a_turn_with_no_words_still_paces_its_ink_by_the_plan() -> None:
@@ -206,3 +210,111 @@ def test_an_expired_turn_is_not_replayable(monkeypatch: pytest.MonkeyPatch) -> N
     turn = stream.new_turn("meter-1", stream.build_events(board("Look.", marks(1))))
     monkeypatch.setattr(stream, "TURN_TTL_S", -1.0)
     assert stream.recall(turn.id, "meter-1") is None
+
+
+# --- wave 46, finding 5: the ink keeps time with the sentence that names it ----------------------
+
+
+def _in_step(events: list[stream.Event]) -> list[str]:
+    """Every drawn thing whose stroke does not keep time with the sentence naming it.
+
+    THE CLAUSE (docs/INK-FOUR.md, Timing at 4): *each mark is drawn in step with the sentence that
+    names it, ahead of the word, never after the sentence ends.* Measured off the wire: the say
+    frames give each sentence its window, and every object whose name is in a sentence has to
+    start inside that sentence's window.
+    """
+    says = [(e.t, e.t + int(e.data["dur"]), e.data["text"]) for e in events if e.type == "say"]
+    broken: list[str] = []
+    for event in events:
+        if event.type != "ink":
+            continue
+        obj = event.data["object"]
+        name = naming.part_name(obj) or naming.mark_subject(obj)
+        if not name:
+            continue
+        windows = [(a, b) for a, b, text in says if naming.names(text, name)]
+        if not windows:
+            continue
+        if not any(a <= event.t < b for a, b in windows):
+            broken.append(f"{name!r} drawn at {event.t} ms, said at {windows}")
+    return broken
+
+
+def _pythagoras_events() -> list[stream.Event]:
+    plan = planner.plan_board(
+        {
+            "say": "The squares on the two legs add to the square on the hypotenuse.",
+            "intents": [
+                {
+                    "pipeline": "math",
+                    "op": "construction",
+                    "what": "right_triangle",
+                    "legs": [3, 4],
+                    "squares": True,
+                    "unit": "cm",
+                }
+            ],
+        },
+        context={"turn": {"lastUserInput": "prove pythagoras theorem"}},
+    )
+    assert len(plan.objects) == 10, len(plan.objects)
+    return stream.build_events(plan)
+
+
+def test_a_from_scratch_board_is_not_a_slideshow_that_outlives_the_words() -> None:
+    """Finding 5, 2026-09-09. Pythagoras scheduled its ten objects at 120, 1184, 2249 ... 9700 ms
+    with dur 1064 each: every stroke a full second long, the last one starting 9.7 s in, and not
+    one of them on the sentence that named it. The same shape on the projectile, the plant cell
+    and the timeline. Unbeaten ink was spread from the lead-in to Wobo's LAST full stop, which is
+    the whole utterance, so a from-scratch board could not keep this clause by construction.
+    """
+    events = _pythagoras_events()
+    assert _in_step(events) == []
+
+    ink = [e for e in events if e.type == "ink"]
+    # A hand does not take a second over a line. Nothing draws slower than this.
+    slow = [(e.data["object"].get("kind"), e.data["object"]["t"]["dur"]) for e in ink]
+    assert all(d <= stream.MAX_INK_MS for _k, d in slow), slow
+    # And the figure is on the glass early rather than a stroke a second for ten seconds.
+    assert ink[-1].t < 6000, [e.t for e in ink]
+
+
+def test_the_figure_is_drawn_before_the_parts_it_carries_are_named() -> None:
+    """The triangle and its right angle come first: a label lands on a thing that is there."""
+    events = _pythagoras_events()
+    ink = [e for e in events if e.type == "ink"]
+    order = [str(e.data["object"].get("id")) for e in ink]
+    assert order[0].endswith("triangle") and order[1].endswith("rightangle"), order
+    assert ink[0].t <= stream.INK_LEAD_MS
+    # drawing order is never shuffled by the beats
+    assert [e.t for e in ink] == sorted(e.t for e in ink), order
+
+
+def test_a_label_is_never_drawn_before_the_thing_it_hangs_off() -> None:
+    """BOARD.md §4: a reference always points backwards. Measured on a real screen at 1440 on
+    2026-09-09: the plant cell's five labels were all beaten to the sentence that NAMES them,
+    which the naming pass had put in front of the sentence that names the figure — so every label
+    was streamed before the leader it hangs off and the outline it sits on, and not one of them
+    painted. The board was five arrows pointing at nothing.
+    """
+    plan = planner.plan_board(
+        {
+            "say": "A plant cell, part by part.",
+            "intents": [{"pipeline": "bio_social", "op": "cell", "subject": "plant cell"}],
+        },
+        context={"turn": {"lastUserInput": "Draw a plant cell with five labels"}},
+    )
+    events = [e for e in stream.build_events(plan) if e.type == "ink"]
+    at = {str(e.data["object"]["id"]): e.t for e in events}
+    for event in events:
+        obj = event.data["object"]
+        anchor = obj.get("anchor") or {}
+        owner = anchor.get("object") if isinstance(anchor, dict) else None
+        if isinstance(owner, str) and owner in at:
+            assert at[owner] <= event.t, f"{obj['id']} is drawn before {owner}"
+    # and the figure itself is on the glass before anything is said about its parts
+    outline = next(e for e in events if str(e.data["object"]["id"]).endswith("outline"))
+    assert outline.t <= stream.INK_LEAD_MS, outline.t
+    said = [e for e in stream.build_events(plan) if e.type == "say"]
+    parts_named = next(i for i, e in enumerate(said) if "vacuole" in e.data["text"])
+    assert said[parts_named].t > outline.t

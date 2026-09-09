@@ -25,6 +25,18 @@ import {
   useRef,
   useState,
 } from 'react';
+// A leaf, like `syllabus/address` below it: pure functions and a table, with only type imports of
+// its own, so the router stays the cheap module every page load reaches for first.
+import { canonicalSlug } from '../screens/legal/catalog';
+import {
+  addressFrom,
+  addressPath,
+  HUB_ROOT,
+  hubPath,
+  isSlug,
+  ROOT as SYLLABUS_ROOT,
+} from '../screens/syllabus/address';
+import { BRAND_DESCRIPTION, DEFAULT_ORIGIN, type HeadTag, HOME_TITLE, headTags } from './head';
 
 export type Route =
   // The unauthenticated front door: the marketing page a visitor with no account lands on.
@@ -69,6 +81,45 @@ export type Route =
   | { name: 'for-students' }
   | { name: 'how-it-works' }
   | { name: 'subjects' }
+  /**
+   * The public syllabus pages: `/learn/<board>/<class>/<subject>/<chapter>/<topic>`, one address
+   * per layer, each a prefix of the next (docs/GROWTH-SEARCH.md §3). `/learn` on its own stays the
+   * app's own learn screen; this family starts one segment deeper. The route carries slugs and
+   * nothing else — whether we HOLD that syllabus is the page's question, not the router's, because
+   * answering it here would drag the whole syllabus into the entry chunk.
+   */
+  | {
+      name: 'syllabus';
+      board: string;
+      level?: string | undefined;
+      subject?: string | undefined;
+      chapter?: string | undefined;
+      topic?: string | undefined;
+    }
+  /** One subject across every board that sets it: `/subjects/<subject>`. */
+  | { name: 'subjectHub'; subject: string }
+  /**
+   * The blog: the index, one post, and one tag. `/blog` is the ORIGIN every syndicated copy of a
+   * post points its canonical back at (docs/GROWTH-DESK.md §3), so the address of a post is decided
+   * here and nowhere else. The router carries the slug and nothing else: whether a post exists at
+   * that slug is the page's question, because answering it here would drag the compiled blog into
+   * the entry chunk.
+   */
+  | { name: 'blog' }
+  | { name: 'blogPost'; slug: string }
+  | { name: 'blogTag'; tag: string }
+  /**
+   * The three page families that answer a search a stranger types (docs/GROWTH-SEARCH.md §4.5).
+   * Each has an index and one address per entry, and each carries the slug and nothing else:
+   * whether we hold an entry at that slug is the page's question, because answering it here would
+   * drag the compiled syllabus into the entry chunk.
+   */
+  | { name: 'glossary' }
+  | { name: 'glossaryEntry'; slug: string }
+  | { name: 'exams' }
+  | { name: 'examBoard'; board: string }
+  | { name: 'compare' }
+  | { name: 'compareEntry'; slug: string }
   // An address that is not ours. It keeps the path it was asked for, so the URL bar still shows
   // what the learner typed or followed and they can see the slip in it for themselves.
   | { name: 'notfound'; path?: string }
@@ -94,6 +145,22 @@ export function routeToPath(route: Route): string {
       return route.topicId ? `/sandbox/${encodeURIComponent(route.topicId)}` : '/sandbox';
     case 'helpArticle':
       return `/help/${encodeURIComponent(route.group)}/${encodeURIComponent(route.slug)}`;
+    case 'syllabus':
+      return addressPath(route);
+    case 'subjectHub':
+      return hubPath(route.subject);
+    case 'blog':
+      return BLOG_ROOT_PATH;
+    case 'blogPost':
+      return `${BLOG_ROOT_PATH}/${encodeURIComponent(route.slug)}`;
+    case 'blogTag':
+      return `${BLOG_ROOT_PATH}/${BLOG_TAG_SEGMENT}/${encodeURIComponent(route.tag)}`;
+    case 'glossaryEntry':
+      return `/glossary/${encodeURIComponent(route.slug)}`;
+    case 'examBoard':
+      return `/exams/${encodeURIComponent(route.board)}`;
+    case 'compareEntry':
+      return `/compare/${encodeURIComponent(route.slug)}`;
     case 'plans':
       return route.checkout ? '/plans/checkout' : '/plans';
     case 'legal':
@@ -110,17 +177,36 @@ export function routeToPath(route: Route): string {
 }
 
 /**
+ * THE ADDRESS OF RECORD for a route, relative: the one the sitemap publishes, the one the canonical
+ * declares, and therefore the one every href on the site has to carry.
+ *
+ * It is not the same thing as `routeToPath`, and the difference is the whole point of it.
+ * `routeToPath` is a bijection — every route has its own path and every path parses back to its own
+ * route — which is what the history and the back gesture are built on, so `landing` keeps
+ * `/landing` there. But the front page is PUBLISHED at `/`: that is the address in
+ * `public/sitemap.xml`, the address the pre-renderer writes a real file for, and the address every
+ * page's canonical points at. `/landing` is a rewrite into the SPA shell, with no words, no
+ * heading and a `noindex` on it.
+ *
+ * With the href taken from `routeToPath`, the wordmark in the header and the wordmark in the
+ * footer sent every reader and every crawler to that shell: 604 of the 605 published pages spent
+ * their most-repeated internal link on a wordless page, and only 3 pages linked the front page at
+ * all. `/landing` still resolves, so an old link never breaks; it simply is not what we link.
+ */
+export function addressOf(route: Route): string {
+  return route.name === 'landing' ? '/' : routeToPath(route);
+}
+
+/**
  * The one address a crawler should index this route at, absolute.
  *
  * `landing` and `home` are both the front door and both answer at `/`, which is the address
- * `public/sitemap.xml` publishes, so both canonicalise there. `/landing` still resolves — an old
- * link never breaks — it simply is not the address of record any more.
+ * `public/sitemap.xml` publishes, so both canonicalise there.
  */
 export function canonicalUrl(route: Route, origin?: string): string {
   const env = (import.meta as { env?: Record<string, string | undefined> }).env ?? {};
-  const base = (origin ?? env.VITE_APP_URL ?? 'https://heywobo.com').replace(/\/+$/, '');
-  const path = route.name === 'landing' ? '/' : routeToPath(route);
-  return `${base}${path}`;
+  const base = (origin ?? env.VITE_APP_URL ?? DEFAULT_ORIGIN).replace(/\/+$/, '');
+  return `${base}${addressOf(route)}`;
 }
 
 /** What the head says about a route: written by the provider on every route change. */
@@ -131,9 +217,49 @@ export interface Head {
   robots: 'noindex' | null;
   /** The one address a crawler should index this route at; null where nothing should be indexed. */
   canonical: string | null;
+  /**
+   * Every tag this page's head should carry, from `shell/head.ts` — the title, the description,
+   * the canonical, and the social tags a share card is drawn from. The RUNNING app writes only the
+   * first three (a crawler never sees a tag JavaScript wrote, and the entry chunk is a stranger's
+   * first download); `scripts/prerender.ts` writes all of them into the file it emits per address,
+   * asking THIS function for them, so the file and the app can never disagree.
+   */
+  tags: HeadTag[];
+}
+
+/** What the page's own render told the build about itself. Absent while the app is running. */
+export interface PageFacts {
+  title?: string;
+  description?: string;
+  /** The absolute address of the share card drawn for this page. */
+  image?: string | null;
 }
 
 const NOT_FOUND_TITLE = 'Page not found · Wobo';
+
+/**
+ * The two routes that do not write their own title, and what the ROUTER says for them.
+ *
+ * Every other public page sets its own title and opens with its own words, so its head is written
+ * from what it actually says. These two cannot: the 404 exists to say nothing is here, and the
+ * front page is a marketing screen whose tab read the bare product name, which tells an engine
+ * nothing about which Wobo this is (three products share the name — docs/GROWTH-ENTITY.md).
+ *
+ * The home page's description is the press kit's one line rather than its own opening paragraph,
+ * because that line is used verbatim on every listing, store and profile we own, and the sameness
+ * across sources is the entire lever (docs/copy/press-kit.md).
+ */
+const ROUTER_OWNED: Partial<Record<Route['name'], { title: string; description: string }>> = {
+  landing: { title: HOME_TITLE, description: BRAND_DESCRIPTION },
+  notfound: { title: NOT_FOUND_TITLE, description: '' },
+};
+
+/** Titles the router put there, and may therefore take back on the way to a page that sets one. */
+const ROUTER_TITLES = new Set(
+  Object.values(ROUTER_OWNED)
+    .map((owned) => owned.title)
+    .filter(Boolean),
+);
 
 /**
  * A 404 KEEPS ITS ADDRESS AND DISOWNS IT. The bar shows what the learner typed or followed (the
@@ -144,12 +270,34 @@ const NOT_FOUND_TITLE = 'Page not found · Wobo';
  * nothing exists there. Now the 404 carries a title that says so, asks not to be indexed, and
  * claims no canonical; every other route declares its own address and leaves the title to the page.
  */
-export function headFor(route: Route, origin?: string): Head {
-  if (route.name === 'notfound') return { title: NOT_FOUND_TITLE, robots: 'noindex', canonical: null };
-  return { title: null, robots: null, canonical: canonicalUrl(route, origin) };
+export function headFor(route: Route, origin?: string, facts?: PageFacts): Head {
+  const owned = ROUTER_OWNED[route.name];
+  const gone = route.name === 'notfound';
+  const canonical = gone ? null : canonicalUrl(route, origin);
+  const robots = gone ? ('noindex' as const) : null;
+  const title = (owned?.title ?? facts?.title ?? '').trim();
+  const description = (owned ? owned.description : (facts?.description ?? '')).trim();
+  return {
+    title: owned?.title ?? null,
+    robots,
+    canonical,
+    tags: headTags({
+      title,
+      description,
+      canonical,
+      robots,
+      image: gone ? null : (facts?.image ?? null),
+    }),
+  };
 }
 
-const PLAIN_ROUTES = new Set([
+/**
+ * Every route whose address is just its own name. Exported so `test/addresses.test.ts` can hold
+ * `vercel.json` to it: an address the router answers and the host serves nothing for is a 404 on a
+ * page that exists, and an address the host rewrites into the app shell that the router does NOT
+ * answer is a 200 on a page that does not.
+ */
+export const PLAIN_ROUTES = new Set([
   'landing',
   'onboarding',
   'building',
@@ -174,10 +322,23 @@ const PLAIN_ROUTES = new Set([
   'for-students',
   'how-it-works',
   'subjects',
+  // The three growth families' index pages. Their entry pages take a slug and are matched below.
+  'glossary',
+  'exams',
+  'compare',
   'ui-kit',
 ]);
 
 const INTENTS = new Set(['learn', 'practice']);
+/**
+ * The blog's root and the one segment under it that is not a post. They are spelled here rather
+ * than imported from `site/blog/post.ts` so this module stays a leaf: the router is loaded before
+ * anything else on the page, and it must not reach into a screen to answer an address.
+ * `blog/routes.test.ts` holds the two spellings to each other.
+ */
+const BLOG_ROOT = 'blog';
+const BLOG_ROOT_PATH = '/blog';
+const BLOG_TAG_SEGMENT = 'tag';
 // The A/B/C design prototypes are gone (Home is Concept B, productionised); the engine gallery is
 // the only /concept address left, and an old bookmark to /concept/a now falls through to home.
 const CONCEPTS = new Set(['engines']);
@@ -210,6 +371,29 @@ export function pathToRoute(path: string): Route | null {
     const topicId = decode(rest[0]);
     return topicId && rest.length === 1 ? { name: 'sandbox', topicId } : null;
   }
+  // The public syllabus family. `/learn` on its own is the app's learn screen and was matched
+  // above; one segment deeper is a board, and each segment after it is one layer down.
+  if (head === SYLLABUS_ROOT && rest.length > 0) {
+    const address = addressFrom(rest.map(decode));
+    return address ? { name: 'syllabus', ...address } : null;
+  }
+  // `/subjects` is the pitch page and was matched above; `/subjects/<subject>` is that subject
+  // across every board that sets it.
+  if (head === HUB_ROOT && rest.length === 1) {
+    const subject = decode(rest[0]);
+    return isSlug(subject) ? { name: 'subjectHub', subject } : null;
+  }
+  // The blog. `/blog` is the index, `/blog/tag/<tag>` a tag page, and anything else one segment
+  // deep is a post; a post may therefore never be called "tag", which the compiler's gate refuses.
+  if (head === BLOG_ROOT) {
+    if (rest.length === 0) return { name: 'blog' };
+    if (rest[0] === BLOG_TAG_SEGMENT) {
+      const tag = decode(rest[1]);
+      return tag && rest.length === 2 ? { name: 'blogTag', tag } : null;
+    }
+    const slug = decode(rest[0]);
+    return slug && rest.length === 1 ? { name: 'blogPost', slug } : null;
+  }
   if (head === 'help') {
     const group = decode(rest[0]);
     const slug = decode(rest[1]);
@@ -222,7 +406,28 @@ export function pathToRoute(path: string): Route | null {
   if (head === 'legal') {
     if (rest.length === 0) return { name: 'legal' };
     const slug = decode(rest[0]);
-    return slug && rest.length === 1 ? { name: 'legal', slug } : null;
+    // ONE ADDRESS PER DOCUMENT. The footer used to link `/legal/terms` while the sitemap published
+    // `/legal/terms-of-service`; both answered 200 and each declared ITSELF the original, so the
+    // same 2,610 words sat at two self-canonicalising URLs and the site's own links pointed at the
+    // one it did not publish (docs/GROWTH-SEARCH.md §2). The address of record is the document's
+    // own filename — what the sitemap publishes — so a short form is resolved to it here, before a
+    // route exists to write a canonical from. `vercel.json` 301s the alias at the edge as well, so
+    // a crawler is never served the second address at all.
+    return slug && rest.length === 1 ? { name: 'legal', slug: canonicalSlug(slug) } : null;
+  }
+  // The three growth families. One segment under the index is an entry; anything deeper is not an
+  // address of ours, so it falls through to the 404 rather than to a page with a name in it.
+  if (head === 'glossary') {
+    const slug = decode(rest[0]);
+    return slug && rest.length === 1 ? { name: 'glossaryEntry', slug } : null;
+  }
+  if (head === 'exams') {
+    const board = decode(rest[0]);
+    return board && rest.length === 1 ? { name: 'examBoard', board } : null;
+  }
+  if (head === 'compare') {
+    const slug = decode(rest[0]);
+    return slug && rest.length === 1 ? { name: 'compareEntry', slug } : null;
   }
   if (head === 'concept') {
     const which = rest[0];
@@ -377,7 +582,7 @@ export function RouterProvider({ initial, children }: { initial: Route; children
       robots?.remove();
     }
     if (head.title) document.title = head.title;
-    else if (document.title === NOT_FOUND_TITLE) document.title = baseTitle.current;
+    else if (ROUTER_TITLES.has(document.title)) document.title = baseTitle.current;
   }, [stack]);
 
   // The browser (or Android) moved through history — the stack follows it, never the other way.

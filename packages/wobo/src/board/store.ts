@@ -54,9 +54,15 @@ export interface BoardLogEntry {
 
 export type Listener = () => void;
 
-/** How long ink lives by default on each surface. Screen ink fades; a board keeps what it holds. */
+/**
+ * How long ink lives by default on each surface. None of them expire on their own any more: screen
+ * ink holds until the question it points at is answered, the learner interrupts, or the next turn
+ * begins, and the conductor releases it then (`release`). The six-second screen life used to fade
+ * a ring 234 ms before Wobo asked "what do you notice about it?" (docs/INK-FREEZE-PLAN-TRACE.md
+ * §4). An explicit `t.ttl` on an object is still honoured.
+ */
 export const DEFAULT_TTL: Record<Presentation, number | undefined> = {
-  screen: 6000,
+  screen: undefined,
   plane: undefined,
   full: undefined,
 };
@@ -308,6 +314,35 @@ export class BoardStore {
     this.pendingAsk = null;
     this.turnDone = false;
     this.emit();
+  }
+
+  /**
+   * Let the ink go: everything live begins to fade at `at` (now by default, or a moment later for
+   * the linger after a turn with no question). A fade already under way is left alone, so a second
+   * release never restarts one. The objects stay until `sweep` forgets what has finished fading.
+   */
+  release(at: number = this.clock()): void {
+    let changed = false;
+    for (const s of this.order) {
+      if (s.removed || s.object.kind === 'wipe') continue;
+      if (s.fadingAt !== undefined && s.fadingAt <= at) continue;
+      s.fadingAt = at;
+      changed = true;
+    }
+    if (changed) this.emit();
+  }
+
+  /** Forget ink whose fade finished before `now`, so a long session does not keep every turn. */
+  sweep(now: number = this.clock()): void {
+    let changed = false;
+    for (const s of this.order) {
+      if (s.removed || s.fadingAt === undefined) continue;
+      if (s.fadingAt + FADE_MS <= now) {
+        s.removed = true;
+        changed = true;
+      }
+    }
+    if (changed) this.emit();
   }
 
   /**

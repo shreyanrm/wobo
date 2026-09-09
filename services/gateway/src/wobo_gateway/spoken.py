@@ -182,6 +182,13 @@ def given_numbers(context: dict[str, Any]) -> set[float]:
     texts.extend(str(s) for s in (canvas.get("steps") or []))
     texts.append(str(learner.get("grade") or ""))
     texts.append(str(learner.get("age") or ""))
+    # What is on the glass is in front of the learner: a number on the map (a line of the lesson,
+    # a step of their working, the region they circled) is theirs to hear again.
+    from wobo_gateway.board import glass
+
+    for entry in glass.entries_of({"context": context}):
+        texts.append(entry.text)
+        texts.append(entry.meaning)
     found: set[float] = set()
     for text in texts:
         found.update(numerals_in(text))

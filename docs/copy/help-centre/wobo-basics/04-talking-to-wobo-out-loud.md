@@ -12,7 +12,7 @@ Anything you would say to a teacher beside you. Some that work especially well:
 - "Show me where I went wrong."
 - "Say it again in terms of cricket."
 - "Quiz me on this chapter."
-- "Board" — Wobo brings out the plane and starts drawing on it.
+- "Board": Wobo brings out the plane and starts drawing on it.
 - "Slow down", "stop", "go back".
 
 Interrupting is allowed. Tap, type or speak over Wobo and the pen stops mid-stroke, the same way a person would.

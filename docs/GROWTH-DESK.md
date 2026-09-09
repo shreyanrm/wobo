@@ -101,3 +101,32 @@ and a self-hosted scheduler.
 
 Search Console and Bing Webmaster take twenty minutes: a domain property verified by a DNS record
 that stays forever, the sitemap submitted, and IndexNow on the Bing side.
+
+## 6. The blog, and it is built
+
+`/blog` exists, and it is the origin section 3 requires: the index, one page per post, one page per
+tag, and a feed at `/blog/feed.xml`. Every post is a Markdown file in `docs/copy/blog/`, compiled at
+build time the way the help centre is, so a post is a file and needs no database.
+
+| Piece | Where |
+|---|---|
+| the posts, and the blog's own tags, writers and assistance note | `docs/copy/blog/**` |
+| the engine and the gate: front matter, reading time, addresses, feed, structured data | `apps/web-pwa/src/screens/site/blog/post.ts` |
+| the build step | `apps/web-pwa/src/screens/site/blog/compile.ts`, run as `bun run blog:content` |
+| the three pages | `blog/Blog.tsx`, `blog/BlogPost.tsx`, `blog/BlogTag.tsx` |
+| the compiled blog and the feed | `src/screens/site/content/blog.json`, `public/blog/feed.xml` |
+
+**The gate is the part that matters**, because section 3 is about not becoming the thing Google
+calls scaled content abuse. The build refuses to publish a post under 600 words, without an opening
+line that answers on its own, without at least three sections, without a real date, a declared
+author and a declared tag, without a summary a search result can show, with an em dash anywhere, or
+at an address that would collide with the tag pages. It refuses a tag page with fewer than two posts
+under it or with no words of its own, because a tag with one post is that post at a second address.
+A refused post fails the build with its name and the reason. The count on the index is
+`posts.length`, never a number anybody typed.
+
+**Two things are the owner's, and both are one line of a file.** The bylines name a desk rather than
+a person, because inventing a name is forbidden and nobody has been named: fill the `name` column in
+`docs/copy/blog/README.md` and every post's byline and its structured data name that person instead.
+And every post here says a machine helped write it, in the words of the same README's assistance
+note, which is the disclosure section 3 requires of the syndicated copies as well.

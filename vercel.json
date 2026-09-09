@@ -1,17 +1,165 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "bun install",
+  "installCommand": "bun install && bunx playwright install chromium",
   "buildCommand": "bun run --cwd apps/web-pwa build",
   "outputDirectory": "apps/web-pwa/dist",
   "framework": null,
+  "trailingSlash": false,
+  "redirects": [
+    {
+      "source": "/legal/terms",
+      "destination": "/legal/terms-of-service",
+      "statusCode": 301
+    },
+    {
+      "source": "/legal/privacy",
+      "destination": "/legal/privacy-policy",
+      "statusCode": 301
+    },
+    {
+      "source": "/legal/safety",
+      "destination": "/legal/safety-and-content",
+      "statusCode": 301
+    },
+    {
+      "source": "/legal/refunds",
+      "destination": "/legal/refund-and-cancellation",
+      "statusCode": 301
+    },
+    {
+      "source": "/legal/accessibility",
+      "destination": "/legal/accessibility-statement",
+      "statusCode": 301
+    },
+    {
+      "source": "/legal/children",
+      "destination": "/legal/childrens-privacy",
+      "statusCode": 301
+    },
+    {
+      "source": "/legal/consent",
+      "destination": "/legal/parental-consent",
+      "statusCode": 301
+    },
+    {
+      "source": "/legal/community",
+      "destination": "/legal/community-and-flags",
+      "statusCode": 301
+    },
+    {
+      "source": "/legal/use",
+      "destination": "/legal/acceptable-use",
+      "statusCode": 301
+    }
+  ],
   "rewrites": [
     {
       "source": "/db/:path*",
       "destination": "https://keepraxqagzgjrrweryt.supabase.co/:path*"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/landing",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/onboarding",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/plans/checkout",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/building",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/chat",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/learn",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/practice",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/progress",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/you",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/doubt",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/parent",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/sandbox",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/sitemap",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/ui-kit",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/subject/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/course/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/sandbox/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/concept/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/learn/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/subjects/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/glossary",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/glossary/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/exams",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/exams/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/compare",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/compare/:path*",
+      "destination": "/app.html"
     }
   ],
   "headers": [

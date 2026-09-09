@@ -112,3 +112,64 @@ describe('the drawing itself', () => {
     });
   }
 });
+
+/**
+ * THE MATHS FIGURE IS A FIGURE A CHILD CAN READ (the adversary, 2026-09-09, finding 13).
+ *
+ * It is the drawing "circle the hypotenuse" correctly rings, so it is looked at up close. Its
+ * "square on the hypotenuse" was an OPEN four-sided path, 113 long by 67 wide, with two corners
+ * above the frame at y = -2 and y = -38: not square, not closed, and cut off at the top.
+ */
+describe('the square on the hypotenuse is a square', () => {
+  const points = (d: string): [number, number][] =>
+    (d.match(/-?\d+(?:\.\d+)?\s+-?\d+(?:\.\d+)?/g) ?? []).map((pair) => {
+      const [x, y] = pair.split(/\s+/).map(Number);
+      return [x as number, y as number];
+    });
+  const marks = SUBJECT_ART.mathematics.marks;
+  const pathOf = (part: string) => {
+    const mark = marks.find((m) => m.part === part);
+    if (!mark || mark.el !== 'path') throw new Error(`no path for ${part}`);
+    return mark.d;
+  };
+
+  it('is closed, and its four sides are the same length', () => {
+    const d = pathOf('square on the hypotenuse');
+    expect(d.trim().endsWith('Z')).toBe(true);
+    const p = points(d);
+    expect(p).toHaveLength(4);
+    const side = (a: [number, number], b: [number, number]) => Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const sides = [
+      side(p[0] as [number, number], p[1] as [number, number]),
+      side(p[1] as [number, number], p[2] as [number, number]),
+      side(p[2] as [number, number], p[3] as [number, number]),
+      side(p[3] as [number, number], p[0] as [number, number]),
+    ];
+    for (const s of sides) expect(Math.abs(s - (sides[0] as number))).toBeLessThan(1.5);
+  });
+
+  it('sits on the triangle’s own hypotenuse, and inside the frame', () => {
+    const tri = points(pathOf('triangle'));
+    const sq = points(pathOf('square on the hypotenuse'));
+    // the square's first and last corners ARE the triangle's hypotenuse ends
+    const near = (a: [number, number], b: [number, number]) =>
+      Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.5;
+    expect(near(sq[0] as [number, number], tri[1] as [number, number])).toBe(true);
+    expect(near(sq[3] as [number, number], tri[2] as [number, number])).toBe(true);
+    const [, , w, h] = ART_VIEWBOX.split(' ').map(Number);
+    for (const [x, y] of [...tri, ...sq]) {
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(y).toBeGreaterThanOrEqual(0);
+      expect(x).toBeLessThanOrEqual(w as number);
+      expect(y).toBeLessThanOrEqual(h as number);
+    }
+  });
+
+  it('the right angle is marked ON the corner where the two legs meet', () => {
+    const tri = points(pathOf('triangle'));
+    const corner = tri[0] as [number, number];
+    const mark = points(pathOf('right angle'))[0] as [number, number];
+    expect(mark[0]).toBe(corner[0]);
+    expect(Math.abs(mark[1] - corner[1])).toBeLessThanOrEqual(16);
+  });
+});

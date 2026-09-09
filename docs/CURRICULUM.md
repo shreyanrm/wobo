@@ -91,3 +91,38 @@ Grades 4 to 13 wherever a framework has them; school level only. English first; 
 ## 12. What kills it
 
 A syllabus with no source. A node edited in place. A learner's edits lost on upgrade. Bulk generation. A second discovery for a framework that is already stored. A label that overstates what we know.
+
+## 13. The open door: the syllabus a stranger may read
+
+`GET /v1/syllabus` (`curriculum/public.py`). One open, cached, rate-limited read, and the only curriculum surface that takes no token. Every public chapter page on the site is built from it (docs/GROWTH-SEARCH.md §3), and it is what lets the ask box at the bottom of one of those pages answer about that chapter.
+
+**One path, four depths.** No query is the boards we publish; `?board=` is that board's classes; `&class=` its subjects; `&subject=` its chapters; `&chapter=` its topics. Naming a deeper part without the part above it is a 400, and a path we do not hold is a real 404, not a page that says nothing. Every layer is addressed by a slug derived from the board's own words, unique among its siblings, and stable, because a page keeps its address.
+
+**What every node carries.** The name, its children, and the provenance: the official document's URL, the page or section inside it, the hash of the bytes we read, when we read them, the named checks that passed, and the honest label from §5. It also carries `publishable`, which is true only when both the document and its hash are on file — the bar a page must clear to ship, said once here so no page family has to invent the rule. The extractor and the verifier never leave the brain (WOBO-PLAN §17).
+
+**What it will not serve.** A personal syllabus, a community one, or a framework we have not read: only `verified` and `provisional`, and only when there is a chapter under it. No subject, no overlay, no pin, no write. Objectives are not a page family and never leave the store.
+
+**Cached hard, bounded anyway.** The tree is built once per process and held for `SYLLABUS_TREE_TTL_S`; the answer carries a long `Cache-Control` and an `ETag`, and a matching `If-None-Match` is a 304. A syllabus changes when a version is published, which is rare. Open is still not free: the path is on the door's stranger dial, per address, exactly like the public ask box.
+
+**The corpus behind the ask box.** The same tree becomes one grounding entry per chapter and per topic (`ask_public.SyllabusIndex`): the name, where it sits, and the fact that we read it from an official document. Names and provenance only — the syllabus says what is taught, not what it says. The help centre answers first and always; a question no article covers reaches the syllabus; a question neither corpus covers still gets the honest line, and the screens on the way in and the way out are unchanged.
+
+## 14. The frozen copy the website is built from
+
+`uv run python -m wobo_gateway.curriculum.snapshot` writes the whole publishable tree to
+`apps/web-pwa/src/screens/syllabus/syllabus.json`, through the same `build_tree` §13 serves, from
+the seed under `content/curriculum/`. It is a committed artefact and
+`tests/test_syllabus_snapshot.py` re-derives it, so it cannot drift: when a board publishes a new
+edition, regenerate it in the same change as the seed.
+
+**Why a file and not a fetch.** The site is built, not served. One real HTML file is pre-rendered
+per public address and the sitemap is generated from the same list, so a build that read a thousand
+pages over the network would ship a thousand empty ones the first time the gateway was slow, and
+the count it published would be whatever the network returned rather than the count we can prove
+(WOBO-TASKS §10.21). The open door is still read at runtime by every page (`syllabus/door.ts`): the
+file renders the page and the door corrects it, which is what keeps a page already in front of a
+reader right when an edition changes between deploys.
+
+**The shape.** Provenance records are interned, and the lists of check names inside them are
+interned again: 1,044 nodes carry 678 distinct records naming 8 distinct check lists between them,
+so the file is about 290 kB and 33 kB over the wire. It travels in the syllabus pages' own chunk
+and nothing else on the site pays for it.

@@ -85,10 +85,15 @@ rather than by quoting the strings it forbids, so it passes its own scan.
 
 And three more, settled by the owner on 2026-09-04.
 
-6. **We are open, and the call is "Start free".** Anyone can sign up and use Wobo today, so no
-   surface may imply a waitlist and the promotional door is retired. Do not write the phrase into
-   copy at all: it lives in one constant, `screens/site/cta.ts`, and every surface reads it there,
-   so it can never drift apart across pages again.
+6. **The call to action is one constant, and it follows the dial.** Never write a door's
+   words into a page. They live in one place, `screens/site/cta.ts`, and every surface reads
+   them there, so the site can never say two things about its own state again. Which of the two
+   doors that constant hands back is not a writing decision at all: `docs/DOORS-CLOSED.md` is the
+   law, `ops.settings.doors_open` is the switch, and the whole site follows it within a minute
+   with nothing released. While it is off, every door is the invitation to the list and no
+   surface may imply the product is open; when the owner turns it on, every door is the open one
+   again and no surface may imply a wait. Both halves are wrong to write by hand, and this rule
+   changed once already because a writer took its previous wording as permanent.
 7. **Never name a late hour.** Not "10 pm", not "tonight", not "midnight", not "when everyone is
    asleep". Children go to bed early, and a page that pictures a child studying late describes the
    problem rather than the answer. Say availability and choice instead, and vary it: after school,
@@ -216,7 +221,7 @@ The left column quotes copy we do not ship, so it is the one place in this copy 
 | An invented learner's name in an example. | Your child finished the chapter. |
 | A raw allowance count, in digits or in words. | A daily allowance, free, and it refills once a day. |
 | Choose your country. | (Nothing. The time zone already said.) |
-| A door that asks the reader to wait for a product that is already open. | Start free. |
+| A door written by hand into a page, in either direction. | Whatever `cta.ts` hands back for the dial as it stands. |
 | A late hour, or a clock reading, in front of a stuck child. | You're stuck, and it's the weekend. |
 | Better than a tutor, and cheaper. | It draws the answer, changes method when one misses, and does not move on until it stays learnt. |
 

@@ -22,6 +22,7 @@ Four laws are enforced here, and each of them is a way the board dies if it is n
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -114,27 +115,16 @@ class Surface:
         # circled at `context.packet.focus`, and reading only `context.focus` meant the brain never
         # saw one — so every mark anchored to "the thing they circled" was refused as "no focus
         # region in this packet", which is the whole video case in BOARD.md §5.
-        packet = context.get("packet")
-        packet = packet if isinstance(packet, dict) else {}
+        #
+        # Since docs/INK-FREEZE-PLAN-TRACE.md the frozen glass sends a MAP (`context.packet.glass`,
+        # or `board.glass`), and `board.glass.entries_of` reads it and both older lists alike: one
+        # registry, however the client spells it.
+        from wobo_gateway.board import glass
 
-        raw_targets = list(context.get("targets") or [])
-        screen = packet.get("screen")
-        if isinstance(screen, dict):
-            for surface in screen.get("surfaces") or []:
-                if isinstance(surface, dict):
-                    raw_targets.extend(
-                        t for t in (surface.get("targets") or []) if isinstance(t, dict)
-                    )
-        targets = {
-            str(t.get("id"))
-            for t in raw_targets
-            if isinstance(t, dict) and str(t.get("id") or "").strip()
-        }
-
+        targets: set[str] = set()
         focuses: set[str] = set()
-        for focus in (context.get("focus"), packet.get("focus")):
-            if isinstance(focus, dict) and focus.get("id"):
-                focuses.add(str(focus["id"]))
+        for entry in glass.entries_of({"context": context, "board": boardctx}):
+            (focuses if entry.role == "focus" else targets).add(entry.id)
         for item in context.get("focuses") or []:
             if isinstance(item, dict) and item.get("id"):
                 focuses.add(str(item["id"]))
@@ -204,7 +194,7 @@ def _flatten_intent(intent: Any) -> dict[str, Any] | None:
     return None
 
 
-def _run_intents(intents: list[Any], plan: Plan) -> list[dict[str, Any]]:
+def _run_intents(intents: list[Any], plan: Plan, ask: str = "") -> list[dict[str, Any]]:
     objects: list[dict[str, Any]] = []
     for index, raw in enumerate(intents[:MAX_INTENTS]):
         intent = _flatten_intent(raw)
@@ -214,12 +204,12 @@ def _run_intents(intents: list[Any], plan: Plan) -> list[dict[str, Any]]:
         simpler = _simplify(intent)
 
         def build(current: dict[str, Any] = intent, i: int = index) -> Draft:
-            return run_intent(current, index=i)
+            return run_intent(current, index=i, ask=ask)
 
         def fallback(current: dict[str, Any] | None = simpler, i: int = index) -> Draft:
             if current is None:
                 raise Unverified("there is no simpler version of this to draw")
-            return run_intent(current, index=i)
+            return run_intent(current, index=i, ask=ask)
 
         from wobo_gateway.board.verify import redraw_once
 
@@ -395,6 +385,27 @@ def _schedule(objects: list[dict[str, Any]]) -> None:
         cursor = max(cursor, obj["t"]["start"]) + duration
 
 
+def _the_reason_in_words(reason: str) -> str:
+    """A refusal a learner reads: the reason as one sentence, and the move handed back to them.
+
+    The reasons the pipelines raise are already written for a person ("a timeline needs at least
+    two events with their years"), so nothing is invented here — the machine's tail is trimmed,
+    the sentence is closed, and the learner is told what would let it be drawn.
+    """
+    body = _MACHINE_TAIL.sub("", " ".join((reason or "").split())).strip(" ,;:.")
+    if not body:
+        return "I cannot draw that one yet. Tell me what it should show and we will start there."
+    body = f"{body[0].upper()}{body[1:]}"
+    return f"{body}. Give me those and I will draw it."
+
+
+#: What a refusal counts, which is a fact about the call and not about the lesson: "…and this one
+#: gives 0", "…and 7 were asked for". The learner needs what is MISSING, not the arithmetic of it.
+_MACHINE_TAIL = re.compile(
+    r"\s*,?\s*and (?:this one gives|there (?:is|are)) [^,.]*$", re.IGNORECASE
+)
+
+
 def plan_board(
     model_plan: dict[str, Any],
     *,
@@ -406,6 +417,11 @@ def plan_board(
     board_context = board_context or {}
     surface = Surface.from_context(context, board_context)
     plan = Plan(say=str(model_plan.get("say") or "").strip())
+    # What the plan grammar refused before a stroke was planned (`board.glass.validate`) rides
+    # to the `done` frame with everything refused here: one list of reasons, one place to read it.
+    plan.refusals.extend(
+        str(r) for r in (model_plan.get("refused") or []) if isinstance(r, str) and r.strip()
+    )
 
     intents = model_plan.get("intents") or []
     raw_objects = model_plan.get("objects") or []
@@ -416,7 +432,12 @@ def plan_board(
     if len(intents) + len(raw_objects) > MAX_OBJECTS:
         raise TooMuchAtOnce(len(intents) + len(raw_objects))
 
-    computed = _run_intents(intents, plan)
+    # The learner's own sentence rides down to the pipelines, because every GIVEN a from-scratch
+    # board draws is read out of it rather than taken from whoever wrote the intent
+    # (:meth:`wobo_gateway.board.pipelines.Draft.given`). Without it a lens asked for at 15 cm was
+    # drawn at 10 and signed verified (the evidence lab, 2026-09-09).
+    ask_text = str((context.get("turn") or {}).get("lastUserInput") or "")
+    computed = _run_intents(intents, plan, ask_text)
     # The model's own marks come after the computed geometry: Wobo points at the thing Wobo drew.
     objects = [*computed, *[o for o in raw_objects if isinstance(o, dict)]]
     if len(objects) > MAX_OBJECTS:
@@ -440,13 +461,25 @@ def plan_board(
     if isinstance(interrupted, str) and interrupted.strip():
         plan.resumes_from = interrupted.strip()
 
+    # NOTHING IS SAID ABOUT A DRAWING THAT WAS NEVER DRAWN. The live timeline refused honestly —
+    # "a timeline needs at least two events with their years, and this one gives 0" — and the
+    # sentence beside the empty board still read "The non-cooperation movement, left to right.
+    # Which part is new to you?" (the adversary, 2026-09-09, finding 7). A learner was shown
+    # nothing and asked what was new about it. When a drawing was asked for and every piece of it
+    # was refused, the REASON is the whole of what there is to say, and the turn asks nothing.
+    if intents and not plan.objects and plan.refusals:
+        plan.say = _the_reason_in_words(plan.refusals[0])
+        return plan
+
     ask = model_plan.get("ask")
     if isinstance(ask, dict) and str(ask.get("prompt") or "").strip():
         targets = [str(t) for t in (ask.get("targets") or []) if isinstance(t, str)]
         plan.ask = {
             "prompt": str(ask["prompt"]).strip()[:240],
             "targets": [
-                t for t in targets if t in {o["id"] for o in objects} or t in surface.targets
+                t
+                for t in targets
+                if t in {o["id"] for o in objects} or t in surface.targets or t in surface.focuses
             ],
         }
     return plan

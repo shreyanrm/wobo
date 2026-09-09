@@ -53,12 +53,19 @@ describe('the production domain', () => {
     expect(csp).not.toContain('supabase.co');
   });
 
-  it('forwards our /db path to the project, ahead of the SPA catch-all', () => {
-    const [db, spa] = vercel.rewrites;
+  it('forwards our /db path to the project, ahead of every address the app answers', () => {
+    const [db, ...app] = vercel.rewrites;
     expect(db?.source).toBe('/db/:path*');
     expect(db?.destination).toBe(`${envValue('VITE_SUPABASE_URL')}/:path*`);
-    // Order is the rule: the catch-all would otherwise swallow /db into index.html.
-    expect(spa?.source).toBe('/(.*)');
+    // Order is the rule: a rewrite that reached /db first would swallow the database into the app
+    // shell. There is no catch-all any more — the shell is served for the addresses the APP owns
+    // and nothing else, so a path nobody owns is a real 404 rather than a page that says nothing
+    // (docs/GROWTH-SEARCH.md §2, and test/addresses.test.ts holds the list to the router).
+    expect(app.length).toBeGreaterThan(0);
+    for (const rule of app) {
+      expect(rule.destination).toBe('/app.html');
+      expect(rule.source.startsWith('/db')).toBe(false);
+    }
   });
 
   it('points crawlers at our sitemap and keeps them out of the database proxy', () => {

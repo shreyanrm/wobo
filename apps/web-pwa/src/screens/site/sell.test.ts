@@ -15,6 +15,7 @@
 import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { BRAND_DESCRIPTION } from '../../shell/head';
 import { canonicalUrl } from '../../shell/router';
 import { GIFT_PAGE } from '../gift/copy';
 import { FORMS_END } from '../landing/engine/choreography';
@@ -311,10 +312,13 @@ describe('the copy law has no exception for a character', () => {
       ['site/nav.ts', shipped('screens', 'site', 'nav.tsx')],
       ['plans/copy.ts', shipped('screens', 'plans', 'copy.ts')],
       ['plans/Plans.tsx', shipped('screens', 'plans', 'Plans.tsx')],
-      ['landing/sections', readdirSync(join(SRC, 'screens', 'landing', 'sections'))
-        .filter((n) => n.endsWith('.tsx'))
-        .map((n) => shipped('screens', 'landing', 'sections', n))
-        .join('\n')],
+      [
+        'landing/sections',
+        readdirSync(join(SRC, 'screens', 'landing', 'sections'))
+          .filter((n) => n.endsWith('.tsx'))
+          .map((n) => shipped('screens', 'landing', 'sections', n))
+          .join('\n'),
+      ],
     ];
     const guilty = pages
       .filter(([, source]) => source.includes('—'))
@@ -323,13 +327,22 @@ describe('the copy law has no exception for a character', () => {
         return `${name}: …${source.slice(Math.max(0, at - 40), at + 20).replace(/\s+/g, ' ')}…`;
       });
     expect(guilty).toEqual([]);
-    // the one line of copy every published address carries
+    // THE ONE LINE OF COPY EVERY PUBLISHED ADDRESS CARRIES, and there is now exactly one of it:
+    // `src/shell/head.ts` holds it, vite.config.ts takes the shell's and the install manifest's
+    // description from there, and `scripts/prerender.ts` writes it as the front page's own. It is
+    // the press kit's line word for word (docs/copy/press-kit.md), because an answer engine decides
+    // what a name means by what independent sources agree on and sameness is the whole lever.
+    //
+    // It says "an AI tutor" on purpose. §17 forbids naming what is UNDERNEATH — a provider, a
+    // model, a framework — and docs/copy/voice.md forbids "AI-powered" as marketing. Neither
+    // forbids the category a parent searches for, and docs/GROWTH-ENTITY.md §4 requires the
+    // qualifier on every surface until the engines stop answering "Wobo" with a job-search app.
     const vite = repoFile('apps', 'web-pwa', 'vite.config.ts');
-    const description = /DEFAULT_APP_DESCRIPTION =\s*'([^']*)'/.exec(vite)?.[1] ?? '';
-    expect(description.length).toBeGreaterThan(20);
-    expect(description).not.toContain('—');
+    expect(vite).toContain('DEFAULT_APP_DESCRIPTION = BRAND_DESCRIPTION');
+    expect(BRAND_DESCRIPTION.length).toBeGreaterThan(20);
+    expect(BRAND_DESCRIPTION).not.toContain('—');
     // and it is written in the site's own register, not a feature list
-    expect(description).not.toMatch(/mastery-first|wobot|AI/);
+    expect(BRAND_DESCRIPTION).not.toMatch(/mastery-first|wobot|AI-powered|powered by AI/i);
   });
 });
 
@@ -396,7 +409,7 @@ describe('every close hands the reader forward', () => {
    * forward move off the trust page was the primary.
    */
   it('never sends the reader back up the page they have just read', () => {
-    expect(handoff('security').quiet.href).toBe('/legal');
+    expect(handoff('security', true).quiet.href).toBe('/legal');
   });
 
   /**

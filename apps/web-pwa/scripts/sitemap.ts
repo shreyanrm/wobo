@@ -1,7 +1,9 @@
 /**
  * Build step: `public/sitemap.xml` and `public/robots.txt`.
  *
- * Both files are GENERATED, from the one list of addresses a crawler is allowed to know about
+ * Also `public/llms.txt`, the short honest file an answer engine looks for first.
+ *
+ * All three are GENERATED, from the one list of addresses a crawler is allowed to know about
  * (`src/screens/states/routes.ts`). Hand-kept versions of these drift the moment a route is
  * renamed, and a sitemap that promises a page which 404s is worse for a site than no sitemap at
  * all — so the list lives beside the router, a unit test asserts every entry is an address the
@@ -25,10 +27,12 @@ import { fileURLToPath } from 'node:url';
 import help from '../src/screens/site/content/help.json' with { type: 'json' };
 import {
   expandPublicRoutes,
+  llmsTxt,
   robotsTxt,
   sitemapXml,
   siteOrigin,
 } from '../src/screens/states/routes';
+import { BRAND_DESCRIPTION } from '../src/shell/head';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(HERE, '..', 'public');
@@ -55,8 +59,12 @@ function main(): void {
   mkdirSync(PUBLIC_DIR, { recursive: true });
   writeFileSync(join(PUBLIC_DIR, 'sitemap.xml'), sitemapXml(origin, routes), 'utf8');
   writeFileSync(join(PUBLIC_DIR, 'robots.txt'), robotsTxt(origin), 'utf8');
+  // `/llms.txt` used to answer 200 with the app shell, so a crawler probing for it was told the
+  // file was there and handed a page with no words in it. It is a real file now, generated from
+  // the same route table, so it cannot promise an address the site does not serve.
+  writeFileSync(join(PUBLIC_DIR, 'llms.txt'), llmsTxt(origin, BRAND_DESCRIPTION), 'utf8');
   console.log(
-    `sitemap: ${routes.length} public ${routes.length === 1 ? 'address' : 'addresses'} at ${origin}`,
+    `sitemap: ${routes.length} public ${routes.length === 1 ? 'address' : 'addresses'} at ${origin}, plus robots.txt and llms.txt`,
   );
 }
 

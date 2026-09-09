@@ -23,6 +23,7 @@ import { useViewport } from '../../shell/useViewport';
 import { useSdk } from '../../store/sdk';
 import { AskBox, Chip, Label, WoboHead } from '../../ui/primitives';
 import { useWoboChat } from '../../wobo/chat';
+import { useCta } from '../site/cta';
 import { type AskPage, askPublic, TYPE_STEP, TYPE_TICK_MS } from './askPublic';
 
 export interface PitchAskProps {
@@ -36,6 +37,12 @@ export interface PitchAskProps {
   placeholder: string;
   /** Questions people ask, as chips. */
   chips: readonly string[];
+  /**
+   * What this page is about, in the page's own words, so the answer is about this page. The
+   * syllabus pages send their own subject and where it sits; every other page sends nothing and
+   * the door behaves exactly as it did.
+   */
+  about?: string;
 }
 
 export function PitchAsk({
@@ -44,9 +51,11 @@ export function PitchAsk({
   heading,
   placeholder,
   chips,
+  about,
 }: PitchAskProps) {
   const router = useRouter();
   const sdk = useSdk();
+  const door = useCta();
   const chat = useWoboChat();
   const reduced = useReducedMotion();
   const { width } = useViewport();
@@ -92,13 +101,14 @@ export function PitchAsk({
       return;
     }
     if (!gateway) {
-      router.navigate({ name: 'onboarding' });
+      // No brain to ask, so the visitor is handed the one door this site has open right now.
+      router.navigate(door.to);
       return;
     }
     if (busy) return;
     setBusy(true);
     setReply(null);
-    void askPublic(gateway, text, page).then((answer) => {
+    void askPublic(gateway, text, page, fetch, about).then((answer) => {
       if (!alive.current) return;
       setBusy(false);
       setReply(answer.answer);

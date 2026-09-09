@@ -20,7 +20,10 @@
  * all follow from which of the two are live — see `field.ts`.
  */
 
+import type { Route } from '../../shell/router';
+import { LIST } from '../site/invitation';
 import type { MethodName, MethodState } from './client';
+import { SIGN_IN, SIGN_UP } from './copy';
 
 /** A door that is open, or one that is coming. There is no third state on this screen. */
 export type DoorStatus = 'open' | 'soon';
@@ -106,4 +109,42 @@ export function waysIn(states: readonly MethodState[]): WaysIn {
     divider: identifier !== 'none' && providers.length > 0,
     anyOpen: identifier !== 'none' || providers.some((door) => door.status === 'open'),
   };
+}
+
+// --- the OTHER door, in the bar --------------------------------------------------------------
+
+/** Which of the two doors a person is standing at. */
+export type DoorMode = 'sign-in' | 'sign-up';
+
+/** The one link in the bar: what it says, where it goes, and the words that lead into it. */
+export interface OtherDoor {
+  prompt: string | null;
+  label: string;
+  to: Route;
+}
+
+/**
+ * THE ONE DOOR ON THIS WAVE THAT DID NOT READ THE DIAL, AND THE ONE EVERY CLOSED PAGE LINKS TO.
+ *
+ * The sign-in page drew its own opposite door by hand: "Create an account", in the markup, with
+ * JavaScript off, on the page all 438 pre-rendered files send a reader to. So a person read
+ * "Wobo is not open yet" on a chapter page, pressed "Sign in", and the top right of the very next
+ * page invited them to make an account. The destination already showed the invitation, so the
+ * label was a promise its own address broke.
+ *
+ * Now it reads the dial like everything else. The sign-in door itself never changes: closing the
+ * door to new accounts is not locking anybody out (`docs/DOORS-CLOSED.md` §2), so from the
+ * sign-up side the other door is "Sign in" whatever the dial says.
+ */
+export function otherDoor(mode: DoorMode, open: boolean): OtherDoor {
+  if (mode === 'sign-up') {
+    return { prompt: SIGN_UP.switchPrompt, label: SIGN_UP.switchAction, to: { name: 'sign-in' } };
+  }
+  if (open) {
+    return { prompt: SIGN_IN.switchPrompt, label: SIGN_IN.switchAction, to: { name: 'sign-up' } };
+  }
+  // The same address, which is where the invitation now stands, and the same words every other
+  // surface uses for it. No prompt: "New here? Join the list" reads as a queue for a product,
+  // and the line under the panel it lands on already says what is true.
+  return { prompt: null, label: LIST.label, to: { name: 'sign-up' } };
 }

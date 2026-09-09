@@ -56,7 +56,15 @@ export function AskBox({
     if (value === undefined) setOwn('');
   };
   return (
-    <form className={className ? `wk-ask ${className}` : 'wk-ask'} onSubmit={submit}>
+    // WOBO'S OWN SURFACES ARE NEVER ON THE GLASS (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze). This
+    // box is Wobo's front door on every screen it appears on, so the mark lives HERE rather than
+    // on each screen that mounts one: a new screen cannot forget it. The adversary, 2026-09-09,
+    // findings 1 and 11: the /chat ask row and the "Hold to talk to Wobo" chip were on the map.
+    <form
+      className={className ? `wk-ask ${className}` : 'wk-ask'}
+      onSubmit={submit}
+      data-wobo-surface=""
+    >
       <input
         value={text}
         onChange={(e) => {

@@ -61,6 +61,8 @@ import {
   readAllowance,
   resetTime,
 } from './plans/allowance';
+import { useDoorsOpen } from './site/dial';
+import { JoinList } from './site/JoinList';
 import { classLine } from './You';
 import { boardOf, type ChosenBoard, levelsFor } from './you/GradeBoardPicker';
 import { ParentInvite } from './you/ParentInvite';
@@ -149,6 +151,8 @@ export function Onboarding() {
 
   const account = sdk.account;
   const canAuth = !!account;
+  // The dial the whole product reads: while it is off, no path here creates an account.
+  const doorsAreOpen = useDoorsOpen();
   const [authed, setAuthed] = useState(() => signedIn(account));
   const [step, setStepState] = useState<Step>(() =>
     restoreStep(readSavedStep(stepStore()), {
@@ -412,8 +416,21 @@ export function Onboarding() {
 
   // THE DOOR. The same component `/sign-up` is, with the run telling it where to come back to and
   // what happens once somebody is in. Nothing here is drawn twice.
+  //
+  // AND THE SAME DIAL. `/onboarding` is the first run, so it is a path that creates an account,
+  // and while the door is closed no path does (docs/DOORS-CLOSED.md §1). Somebody who types this
+  // address, or follows an old link into it, meets the invitation rather than a door the gateway
+  // is going to refuse at. The four steps after this one are untouched: a learner already signed
+  // in walks straight past this beat, as they always did.
   if (step === 1) {
     const origin = typeof window === 'undefined' ? '' : window.location.origin;
+    if (!doorsAreOpen) {
+      return (
+        <div ref={stageRef}>
+          <JoinList source="onboarding" />
+        </div>
+      );
+    }
     return (
       <div ref={stageRef}>
         <Auth

@@ -15,11 +15,10 @@ import {
   buildPacket,
   type ContextPacket,
   type FocusObject,
+  type GlassMap,
   type MindSummary,
   type PacketBudget,
   type PacketTurn,
-  type SurfaceRegistry,
-  surfaceRegistry,
   type TaskState,
   type WoboAssembledContext,
 } from '@wobo/wobo';
@@ -29,6 +28,7 @@ import type { Topic } from '../data/model';
 import type { Router } from '../shell/router';
 import { clearMind, eraseFromBrain, preferredAnalogy } from '../store/mind';
 import { scoped } from '../store/scope';
+import { currentGlass } from './glass';
 import type { ActionAttachment } from './paths/types';
 import { resetReteach } from './reteach';
 
@@ -256,7 +256,8 @@ export interface TurnPacketOptions {
   /** Overrides the mind summary derived from the assembled context. */
   mind?: MindSummary | null;
   budget?: PacketBudget;
-  registry?: SurfaceRegistry;
+  /** The glass map for this turn. Defaults to the last read (`wobo/glass.ts`). */
+  glass?: GlassMap | null;
 }
 
 const isRecordValue = (v: unknown): v is Record<string, unknown> =>
@@ -364,14 +365,15 @@ export function buildTurnPacket(
   context: Partial<WoboAssembledContext>,
   options: TurnPacketOptions = {},
 ): ContextPacket {
-  const registry = options.registry ?? surfaceRegistry;
   // The screen's own account of where the learner is, with whatever the caller knows on top of it.
   // Derived here rather than left to callers: a turn that forgets to say which beat it is on is a
   // turn the brain has to guess about, and every caller forgot.
   const task = options.task === null ? {} : { ...taskFrom(context), ...(options.task ?? {}) };
   return buildPacket({
     focus: options.focus === undefined ? currentFocus : options.focus,
-    registrySnapshot: registry.snapshot({ route: context.page?.route }),
+    // What is in front of them, read off the page (docs/INK-FREEZE-PLAN-TRACE.md §3): the glass map,
+    // at most sixty entries chosen by visibility and relevance, never a trimmed registry snapshot.
+    glass: options.glass === undefined ? currentGlass() : options.glass,
     route: context.page?.route,
     task: Object.keys(task).length > 0 ? task : null,
     mind: options.mind === undefined ? (mindFrom(context) ?? null) : options.mind,

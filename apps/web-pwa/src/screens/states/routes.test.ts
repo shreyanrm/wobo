@@ -90,8 +90,14 @@ describe('the generated sub-addresses', () => {
     expect(new Set(twice.map((r) => r.path)).size).toBe(twice.length);
   });
 
-  it('carries the checkout page, which is a page with words on it', () => {
-    expect(PUBLIC_ROUTES.some((r) => r.path === '/plans/checkout')).toBe(true);
+  it('does not ask an engine to index the checkout, whose words are that it does not work yet', () => {
+    // It was in the sitemap with a canonical of its own and no `noindex`, and its 237 words are
+    // "Paying is not open yet. The prices are set and printed on the plans page, but the payment
+    // page is not open yet, so nothing can be charged." That is a page to walk a buyer through,
+    // not a page to win a search on, and asking Google to index it teaches an engine that Wobo is
+    // a thing that cannot be bought. It is a door the app answers, like /onboarding: `vercel.json`
+    // rewrites it to the shell, so /gift's "Choose a gift" still opens it.
+    expect(PUBLIC_ROUTES.some((r) => r.path === '/plans/checkout')).toBe(false);
   });
 
   it('does not list /legal/contact, which is now an alias of /contact', () => {

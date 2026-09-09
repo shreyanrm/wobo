@@ -13,10 +13,10 @@
  * would be tells the truth about which of the four reasons there is no list.
  */
 
-import type { CurriculumFramework, CurriculumFrameworkView } from '@wobo/sdk';
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { CurriculumFramework, CurriculumFrameworkView } from '@wobo/sdk';
 import { chosenBoard, classesEmptyLine, levelsFor, unlistedBoard } from './GradeBoardPicker';
 
 const CBSE: CurriculumFramework = {
@@ -74,7 +74,10 @@ describe('the line where a class list would be', () => {
     const board = chosenBoard(WORLD, null);
     for (const loading of [true, false]) {
       const line = classesEmptyLine(board, loading);
-      expect([loading, line]).not.toEqual([loading, 'Pick your board and I will bring its classes.']);
+      expect([loading, line]).not.toEqual([
+        loading,
+        'Pick your board and I will bring its classes.',
+      ]);
       expect(line).toContain('cbse');
     }
   });

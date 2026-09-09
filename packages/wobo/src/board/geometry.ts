@@ -9,10 +9,13 @@
 
 import {
   type AnchorContext,
+  type BoardFrame,
   type BoardRect,
+  boxesOverlap,
   padBox,
   pointBox,
   pointOn,
+  pxPerUnit,
   resolveAnchorBox,
   unionBox,
 } from './anchors';
@@ -28,9 +31,9 @@ import {
   writeScripted,
   writeText,
 } from './handwriting';
-import { LABEL_MARGIN, placeLabel, placeLabelAt } from './layout';
+import { LABEL_MARGIN, placeLabel, placeLabelAt, placeNote } from './layout';
 import { fillStroke, penRng, penStroke, polylineLength, ruledStroke, type Stroke } from './pen';
-import { BOARD_UNITS, type AnchorAt, type BoardObject, type BoardPoint } from './schema';
+import { type AnchorAt, BOARD_UNITS, type BoardObject, type BoardPoint } from './schema';
 
 /** Everything the renderer needs to paint one object. */
 export interface ObjectGeometry {
@@ -76,10 +79,56 @@ export function formatQuantity(value: number, precision?: number, unit?: string)
 export const WRITE_SIZE = 30;
 export const LABEL_SIZE = 22;
 
+/**
+ * THE FLOOR TYPE LANDS ON, IN SCREEN PIXELS (docs/INK-FOUR.md, craft; the adversary, wave 47,
+ * finding 3).
+ *
+ * "Labels at least 12 px on the glass." `WRITE_SIZE` and `LABEL_SIZE` are BOARD UNITS, and a
+ * board's units are scaled to the surface and then again by the camera, while strokes already
+ * render in screen pixels (`vectorEffect="non-scaling-stroke"`). So the hand's weight held while
+ * its writing shrank: 37 of 78 written objects across 9 of the 16 from-scratch boards measured
+ * under 12 px — 7.0 px for 'image' on the lens board at 390, 7.2 px for 'apex' on the projectile
+ * at 1440, 9.3 px for every plant-cell label at 390, 9.9 px for every written Punnett cell at
+ * 1440.
+ */
+export const MIN_TYPE_PX = 12;
+
+/**
+ * The board-unit type size that renders at least `MIN_TYPE_PX` on this frame.
+ *
+ * NOT WIRED INTO `geometryOf`, AND HERE IS WHY (measured, wave 47). Applying it to every written
+ * size closes a loop: the type grows, the ink box grows with it, the camera fits the bigger box by
+ * zooming OUT, `pxPerUnit` falls, and the floor demands more units again. The geometry cache is
+ * keyed on `frame.zoom`, so the loop runs once per camera frame and settles wherever the glide
+ * happens to leave it — at 390 the Punnett square came out with its cells overflowing their own
+ * grid and the same board measured 230 units wide on one path and 288 on another. A floor that
+ * depends on the camera cannot live inside the geometry the camera is fitted to.
+ *
+ * The law is right and stays written down with its tests. Whoever closes finding 3 has to break
+ * the loop, not tighten it: either the floor reads the surface at zoom 1 (`frame.scale`, or
+ * `frame.width / BOARD_UNITS`) and never the live camera, or the camera carries a minimum zoom
+ * derived from the smallest type and the pipelines size their drawings to the board.
+ */
+export function typeUnits(base: number, frame: BoardFrame): number {
+  const k = pxPerUnit(frame);
+  if (!(k > 0)) return base;
+  return Math.max(base, MIN_TYPE_PX / k);
+}
+
 interface BuildContext extends AnchorContext {
   font: HandFont | null;
   /** Boxes already placed this frame, so a written label lands in free space. */
   occupied?: BoardRect[];
+  /**
+   * The surface's own area in units. A board is 1000 wide by its aspect; the glass is its own px.
+   * Placement never leaves it. Unset, the 1000-unit board is assumed.
+   */
+  area?: BoardRect;
+  /**
+   * Boxes on the glass a note must not land on (the page's own text lines, from the glass map),
+   * asked for lazily and only for the neighbourhood of a subject, in units.
+   */
+  avoid?: (near: BoardRect) => BoardRect[];
 }
 
 /** The relative-points convention: a shape's `points` are offsets from its resolved anchor point. */
@@ -148,7 +197,13 @@ function unit(from: BoardPoint, to: BoardPoint): BoardPoint {
   return len > 0 ? [dx / len, dy / len] : [1, 0];
 }
 
-/** A circle around a box, drawn as a hand does it: a loop and a bit, not a compass arc. */
+/**
+ * A circle around a box, drawn as a hand does it: a loop and a bit, not a compass arc.
+ *
+ * A wide short box (one row of text) gets a LOZENGE: two half-circles joined by nearly flat runs,
+ * so the ring hugs the line instead of an ellipse whose top and bottom strike through the rows
+ * either side of it (the scorecard's 72 to 83 px ellipse on a 36 px pitch).
+ */
 function loopAround(box: BoardRect, rng: () => number): Stroke {
   const cx = box.x + box.w / 2;
   const cy = box.y + box.h / 2;
@@ -156,14 +211,26 @@ function loopAround(box: BoardRect, rng: () => number): Stroke {
   const ry = Math.max(box.h / 2, 10);
   const start = rng() * Math.PI * 2;
   const turns = 1.12;
-  const steps = 40;
+  const steps = 48;
   const pts: BoardPoint[] = [];
+  const lozenge = rx > ry * 2.5;
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
     const a = start + t * turns * Math.PI * 2;
-    pts.push([cx + Math.cos(a) * rx * (1 + t * 0.03), cy + Math.sin(a) * ry * (1 + t * 0.03)]);
+    const grow = 1 + t * 0.03;
+    if (lozenge) {
+      // Round ends of radius ry, flat runs between them: the loop stays inside the row's own pitch.
+      const flat = rx - ry;
+      const c = Math.cos(a);
+      const sn = Math.sin(a);
+      const x = cx + (c >= 0 ? flat : -flat) * grow + c * ry * grow;
+      const y = cy + sn * ry * (1 + t * 0.02);
+      pts.push([x, y]);
+    } else {
+      pts.push([cx + Math.cos(a) * rx * grow, cy + Math.sin(a) * ry * grow]);
+    }
   }
-  return penStroke(pts, rng, { wobble: 1.6, anticipation: 0.004, overshoot: 0 });
+  return penStroke(pts, rng, { wobble: lozenge ? 1.1 : 1.6, anticipation: 0.004, overshoot: 0 });
 }
 
 /**
@@ -240,10 +307,29 @@ function notePlacement(
     ? Math.min(measureText(ctx.font, text, size), maxWidth ?? Number.POSITIVE_INFINITY)
     : text.length * size * 0.42;
   const box = { w: width, h: size * 1.22 };
-  const asked = placeLabelAt(anchorBox, box, at, ctx.occupied ?? [], LABEL_MARGIN);
+  const asked = placeLabelAt(anchorBox, box, at, ctx.occupied ?? [], LABEL_MARGIN, ctx.area);
   if (asked) return [asked.x, asked.y];
-  const placed = placeLabel(anchorBox, box, ctx.occupied ?? [], undefined, LABEL_MARGIN);
+  const placed = placeLabel(anchorBox, box, ctx.occupied ?? [], ctx.area, LABEL_MARGIN);
   return [placed.x, placed.y];
+}
+
+/** The size a written note takes, measured without placing it. */
+function noteSize(ctx: BuildContext, text: string, size: number, maxWidth?: number) {
+  const width = ctx.font
+    ? Math.min(measureText(ctx.font, text, size), maxWidth ?? Number.POSITIVE_INFINITY)
+    : text.length * size * 0.42;
+  return { w: width, h: size * 1.22 };
+}
+
+/** A check mark: a short stroke down and a longer one up, the way a hand ticks. */
+function tickStrokes(at: BoardPoint, size: number, rng: () => number): Stroke[] {
+  const s = size;
+  const pts: BoardPoint[] = [
+    [at[0] - s * 0.45, at[1] + s * 0.05],
+    [at[0] - s * 0.12, at[1] + s * 0.42],
+    [at[0] + s * 0.55, at[1] - s * 0.45],
+  ];
+  return [penStroke(pts, rng, { wobble: 0.6, overshoot: 0.03 })];
 }
 
 /**
@@ -291,6 +377,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         length: totalLength(strokes, []),
       };
     }
+    case 'ring':
     case 'circle': {
       const target = padBox(
         anchorBox.w + anchorBox.h > 0 ? anchorBox : padBox(pointBox(p), 34),
@@ -298,6 +385,87 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       );
       const stroke = loopAround(target, rng);
       return { strokes: [stroke], glyphs: [], box: padBox(target, 6), length: stroke.length };
+    }
+    case 'tick': {
+      // Beside the thing, on its line, clear of its text: a tutor ticks in the margin. Clear of
+      // any mark already beside the row too (a note, a bracket): it steps right past them.
+      const size = Math.max(14, Math.min(28, anchorBox.h > 0 ? anchorBox.h * 0.9 : 20));
+      const centre: BoardPoint =
+        anchorBox.w + anchorBox.h > 0
+          ? [anchorBox.x + anchorBox.w + 8 + size * 0.5, anchorBox.y + anchorBox.h / 2]
+          : p;
+      const tickBox = (): BoardRect => ({
+        x: centre[0] - size * 0.5,
+        y: centre[1] - size * 0.5,
+        w: size * 1.1,
+        h: size,
+      });
+      // Only what is genuinely beside the row moves it along: a mark on its own line. The padded
+      // box of a ring round the row BELOW grazes this row's band, and stepping away from that
+      // would take the tick off the line it is about.
+      const onThisLine = (o: BoardRect): boolean =>
+        Math.abs(o.y + o.h / 2 - centre[1]) < size * 0.75 && boxesOverlap(o, tickBox());
+      let guard = 0;
+      while ((ctx.occupied ?? []).some(onThisLine) && guard++ < 8) {
+        centre[0] += size * 0.8;
+      }
+      const strokes = tickStrokes(centre, size, rng);
+      return { strokes, glyphs: [], box: tickBox(), length: totalLength(strokes, []) };
+    }
+    case 'cross': {
+      // Through the thing, corner to corner: two strokes, the second a beat after the first.
+      const b = anchorBox.w + anchorBox.h > 0 ? padBox(anchorBox, 3) : padBox(pointBox(p), 12);
+      const one = penStroke(
+        [
+          [b.x, b.y],
+          [b.x + b.w, b.y + b.h],
+        ],
+        rng,
+        { wobble: 0.9 },
+      );
+      const two = penStroke(
+        [
+          [b.x + b.w, b.y],
+          [b.x, b.y + b.h],
+        ],
+        rng,
+        { wobble: 0.9 },
+      );
+      const strokes = [one, two];
+      return { strokes, glyphs: [], box: padBox(b, 4), length: totalLength(strokes, []) };
+    }
+    case 'note': {
+      // In the margin, dodging the page's own text, within reach of its subject. A mark already
+      // on the subject (a ring round it, a cross through it) is part of what the note is beside:
+      // the note sits beside the ring on the ring's own line, rather than sliding up a row to
+      // dodge the ring's box and reading as a note on the line above.
+      const size = object.size ?? LABEL_SIZE;
+      const measured = noteSize(ctx, object.text, size, object.maxWidth);
+      const around = padBox(anchorBox, 12);
+      const hugging = (ctx.occupied ?? []).filter((o) => boxesOverlap(o, around));
+      const subject = unionBox([anchorBox, ...hugging]) ?? anchorBox;
+      const rest = (ctx.occupied ?? []).filter((o) => !hugging.includes(o));
+      const pageText = ctx.avoid ? ctx.avoid(padBox(subject, 160)) : [];
+      const occupied = [...rest, ...pageText];
+      const frame = ctx.frame;
+      // Beside a ring the ring's own pad is the air; the note keeps within reach of the row itself.
+      const placed = placeNote(
+        subject,
+        measured,
+        occupied,
+        frame,
+        hugging.length > 0 ? 4 : undefined,
+      );
+      const origin: BoardPoint = [placed.x, placed.y];
+      const w = written(ctx, object.text, origin, size, object.maxWidth);
+      return {
+        strokes: w.strokes,
+        glyphs: w.glyphs,
+        size,
+        text: { lines: w.lines, x: origin[0], y: origin[1], size, lineHeight: w.lineHeight },
+        box: w.box,
+        length: totalLength(w.strokes, w.glyphs),
+      };
     }
     case 'underline': {
       const w = anchorBox.w > 0 ? anchorBox.w : 90;

@@ -1,19 +1,14 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import {
-  buildSnapshot,
   byteLength,
   clampText,
   clampValue,
-  fitSnapshot,
   inspectorEnabled,
   pointInRect,
   type Rect,
-  type ResolvedSurface,
   rectsIntersect,
-  SNAPSHOT_BYTE_BUDGET,
   SurfaceRegistry,
   type SurfaceTarget,
-  snapshotBytes,
 } from '../src/registry';
 
 const rect = (x: number, y: number, w = 10, h = 10): Rect => ({ x, y, width: w, height: h });
@@ -45,147 +40,6 @@ describe('clamping', () => {
     expect(clampValue(undefined)).toBeUndefined();
     expect(clampValue({ a: 1 })).toBe('{"a":1}');
     expect(String(clampValue('x'.repeat(200))).length).toBe(80);
-  });
-});
-
-describe('the snapshot serialiser', () => {
-  const surfaces: ResolvedSurface[] = [
-    {
-      id: 'course',
-      title: 'The atom',
-      description: 'a course card stack',
-      priority: 0,
-      targets: [
-        target('card-1', { text: () => 'protons weigh 1 amu', value: () => 3 }),
-        target('card-2', { description: 'the second card' }),
-      ],
-    },
-  ];
-
-  it('reads label, value, text and action names off each target', () => {
-    const snap = buildSnapshot(surfaces, 'course');
-    expect(snap.route).toBe('course');
-    expect(snap.surfaces[0]?.targets[0]).toEqual({
-      id: 'card-1',
-      kind: 'control',
-      label: 'the card-1',
-      value: 3,
-      text: 'protons weigh 1 amu',
-    });
-  });
-
-  it('is byte-identical for the same input — the packet never churns', () => {
-    expect(JSON.stringify(buildSnapshot(surfaces))).toBe(JSON.stringify(buildSnapshot(surfaces)));
-  });
-
-  it('stays quiet when a target throws while being read', () => {
-    const snap = buildSnapshot([
-      {
-        ...(surfaces[0] as ResolvedSurface),
-        targets: [
-          target('boom', {
-            value: () => {
-              throw new Error('mid-render');
-            },
-            text: () => {
-              throw new Error('mid-render');
-            },
-          }),
-        ],
-      },
-    ]);
-    expect(snap.surfaces[0]?.targets[0]).toEqual({
-      id: 'boom',
-      kind: 'control',
-      label: 'the boom',
-    });
-  });
-
-  it('names the action vocabulary without shipping the schemas', () => {
-    const snap = buildSnapshot([
-      {
-        ...(surfaces[0] as ResolvedSurface),
-        targets: [
-          target('slider', {
-            actions: [
-              {
-                name: 'setValue',
-                description: 'move it',
-                inputSchema: { type: 'object' },
-                run: () => 1,
-              },
-            ],
-          }),
-        ],
-      },
-    ]);
-    expect(snap.surfaces[0]?.targets[0]?.actions).toEqual(['setValue']);
-  });
-});
-
-describe('the truncation ladder', () => {
-  const big = (surfaceCount: number, targetCount: number): ResolvedSurface[] =>
-    Array.from({ length: surfaceCount }, (_, s) => ({
-      id: `surface-${s}`,
-      title: `Surface number ${s}`,
-      description: 'a long description that exists only to eat the budget'.repeat(2),
-      priority: 0,
-      targets: Array.from({ length: targetCount }, (_, t) =>
-        target(`s${s}-t${t}`, {
-          description: 'a target description that also eats the budget',
-          text: () => 'some text content on the screen with 42 in it'.repeat(2),
-        }),
-      ),
-    }));
-
-  it('fits the 2 KB screen budget for a genuinely crowded screen', () => {
-    const snap = fitSnapshot(buildSnapshot(big(8, 12)));
-    expect(snapshotBytes(snap)).toBeLessThanOrEqual(SNAPSHOT_BYTE_BUDGET);
-    expect(snap.truncated).toBe(true);
-  });
-
-  it('leaves a snapshot that already fits completely untouched', () => {
-    const full = buildSnapshot(big(1, 1));
-    const fitted = fitSnapshot(full, 10_000);
-    expect(fitted).toEqual(full);
-    expect(fitted.truncated).toBeUndefined();
-  });
-
-  it('drops descriptions before it drops targets', () => {
-    const full = buildSnapshot(big(2, 2));
-    const budget = snapshotBytes(full) - 40;
-    const fitted = fitSnapshot(full, budget);
-    expect(fitted.surfaces).toHaveLength(2);
-    expect(fitted.surfaces.every((s) => s.description === undefined)).toBe(true);
-    expect(fitted.surfaces.flatMap((s) => s.targets)).toHaveLength(4);
-  });
-
-  it('keeps ids and labels last — ink anchors to them', () => {
-    const fitted = fitSnapshot(buildSnapshot(big(4, 6)), 400);
-    for (const surface of fitted.surfaces) {
-      for (const t of surface.targets) {
-        expect(t.id).toBeTruthy();
-        expect(t.label).toBeTruthy();
-      }
-    }
-  });
-
-  it('counts what it dropped, per surface and overall', () => {
-    const fitted = fitSnapshot(buildSnapshot(big(6, 6)), 500);
-    const dropped = (fitted.more ?? 0) + fitted.surfaces.reduce((n, s) => n + (s.more ?? 0), 0);
-    expect(dropped).toBeGreaterThan(0);
-  });
-
-  it('terminates on an impossible budget instead of spinning', () => {
-    const fitted = fitSnapshot(buildSnapshot(big(3, 3)), 1);
-    expect(fitted.surfaces).toHaveLength(1);
-    expect(snapshotBytes(fitted)).toBeGreaterThan(0);
-  });
-
-  it('is deterministic — the same screen twice is the same bytes', () => {
-    const a = fitSnapshot(buildSnapshot(big(5, 5)), 900);
-    const b = fitSnapshot(buildSnapshot(big(5, 5)), 900);
-    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 });
 
@@ -365,21 +219,7 @@ describe('the byte ruler', () => {
   });
 });
 
-describe('the live registry snapshot', () => {
-  it('carries the route it was told about and honours a budget', () => {
-    const registry = new SurfaceRegistry();
-    registry.setRoute('course');
-    registry.registerSurface({
-      id: 'course',
-      title: 'The atom',
-      description: 'a course player',
-      targets: [target('card-1', { text: () => 'protons weigh 1 amu' })],
-    });
-    expect(registry.snapshot().route).toBe('course');
-    expect(registry.snapshot({ route: 'practice' }).route).toBe('practice');
-    expect(snapshotBytes(registry.snapshot({ budget: 120 }))).toBeLessThanOrEqual(120);
-  });
-
+describe('the live registry', () => {
   it('forgets everything on reset', () => {
     const registry = new SurfaceRegistry();
     registry.setRoute('home');
@@ -399,5 +239,62 @@ describe('the dev inspector', () => {
     flags.__WOBO_INSPECT__ = true;
     expect(inspectorEnabled()).toBe(true);
     flags.__WOBO_INSPECT__ = before;
+  });
+});
+
+// --- The glass is the registry of the page (docs/INK-FREEZE-PLAN-TRACE.md §3, §4) ---------------
+
+describe('the registry reads the page off the glass, never a bridge', () => {
+  const read = () => ({
+    map: {
+      v: 1 as const,
+      viewport: { w: 390, h: 844, scrollY: 0 },
+      entries: [
+        { id: 's-1', role: 'step' as const, text: '3x = 15', box: [20, 100, 120, 24] as const },
+        {
+          id: 'p-eff',
+          role: 'figure-part' as const,
+          text: 'effect',
+          meaning: 'part:effect',
+          box: [200, 300, 60, 60] as const,
+        },
+      ],
+    },
+    rectOf: (id: string): [number, number, number, number] | null =>
+      id === 's-1' ? [20, 100, 120, 24] : id === 'p-eff' ? [200, 300, 60, 60] : null,
+    elementOf: () => null,
+  });
+
+  it('lends every entry as a target with a live rect, after what the page registered by hand', () => {
+    const registry = new SurfaceRegistry();
+    registry.registerSurface({ id: 'photo', title: 'the photo', targets: [target('r1')] });
+    registry.readGlass(read);
+    expect(registry.getTargets().map((t) => t.id)).toEqual(['r1', 's-1', 'p-eff']);
+    const part = registry.getTarget('p-eff');
+    expect(part?.kind).toBe('figure-part');
+    expect(part?.label).toBe('effect');
+    expect(part?.description).toBe('part:effect');
+    expect(part?.rect()).toEqual({ x: 200, y: 300, width: 60, height: 60 });
+    // the lasso and the long press hit the page's own lines
+    expect(registry.targetIdsIn(rect(0, 90, 400, 40))).toEqual(['s-1']);
+    expect(registry.targetIdsAt(230, 330)).toEqual(['p-eff']);
+  });
+
+  it('keeps what it registered by hand apart from what it read, so the reader is never lent the glass back', () => {
+    const registry = new SurfaceRegistry();
+    registry.registerSurface({ id: 'photo', title: 'the photo', targets: [target('r1')] });
+    registry.readGlass(read);
+    expect(registry.ownTargets().map((t) => t.id)).toEqual(['r1']);
+    expect(registry.getSurfaces().map((s) => s.id)).toEqual(['photo', 'glass']);
+  });
+
+  it('is only what it registered once the glass is gone', () => {
+    const registry = new SurfaceRegistry();
+    registry.readGlass(read);
+    expect(registry.getTargets()).toHaveLength(2);
+    registry.readGlass(() => null);
+    expect(registry.getTargets()).toHaveLength(0);
+    registry.readGlass(null);
+    expect(registry.getSurfaces()).toEqual([]);
   });
 });

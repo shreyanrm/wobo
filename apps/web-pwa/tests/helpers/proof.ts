@@ -169,8 +169,12 @@ export const PUBLIC_ROUTE_CASES: readonly RouteCase[] = [
   { id: 'for-parents', path: '/for-parents', ready: 'Safe by design, not by promise.' },
   {
     id: 'for-students',
+    // NOT the hero's note under the door. That line follows the dial now (docs/DOORS-CLOSED.md
+    // §5: while new accounts are closed, "free every day, no card" describes a product the reader
+    // cannot have), so a route-ready probe pinned to it would pass or fail on a switch rather
+    // than on the page. The headline is the page's own and does not move.
     path: '/for-students',
-    ready: 'Free every day. No card. No trial that ends.',
+    ready: "You're stuck on one thing,",
   },
   { id: 'subjects', path: '/subjects', ready: 'Every proof drawn, every number computed.' },
   {
@@ -184,6 +188,15 @@ export const PUBLIC_ROUTE_CASES: readonly RouteCase[] = [
     path: '/help/wobo-basics/what-is-wobo',
     ready: /More in wobo basics/i,
   },
+  // The blog: the index, one post and one tag page. The three shapes of the family, so a change to
+  // the article column or the card is measured at 360px like every other public page.
+  { id: 'blog', path: '/blog', ready: /posts, newest first/i },
+  {
+    id: 'blog-post',
+    path: '/blog/read-a-syllabus-document',
+    ready: /minute read/i,
+  },
+  { id: 'blog-tag', path: '/blog/tag/syllabus', ready: /under this tag/i },
   { id: 'legal', path: '/legal', ready: 'The legal set.' },
   {
     id: 'legal-document',

@@ -96,24 +96,78 @@ const COUNTS = ['no', 'one', 'two', 'three', 'four', 'five', 'six'];
 
 /** The commands a school board writes, in the words a teacher says for them. */
 const TEX_SPOKEN: Record<string, string> = {
-  times: 'times', cdot: 'times', div: 'divided by', pm: 'plus or minus', mp: 'minus or plus',
-  leq: 'is at most', le: 'is at most', geq: 'is at least', ge: 'is at least',
-  neq: 'is not equal to', ne: 'is not equal to', approx: 'is about', equiv: 'is equivalent to',
-  propto: 'is proportional to', infty: 'infinity', degree: 'degrees', circ: 'degrees',
-  sin: 'sine', cos: 'cosine', tan: 'tan', sec: 'secant', cosec: 'cosec', cot: 'cot',
-  log: 'log', ln: 'natural log', exp: 'e to the power', sum: 'the sum of', int: 'the integral of',
-  alpha: 'alpha', beta: 'beta', gamma: 'gamma', delta: 'delta', epsilon: 'epsilon', eta: 'eta',
-  theta: 'theta', lambda: 'lambda', mu: 'mu', nu: 'nu', pi: 'pi', rho: 'rho', sigma: 'sigma',
-  tau: 'tau', phi: 'phi', omega: 'omega', Delta: 'delta', Sigma: 'sigma', Omega: 'omega',
-  Theta: 'theta', Phi: 'phi', Lambda: 'lambda',
-  to: 'goes to', rightarrow: 'gives', Rightarrow: 'so', leftrightarrow: 'is the same as',
-  left: '', right: '', quad: ' ', qquad: ' ',
+  times: 'times',
+  cdot: 'times',
+  div: 'divided by',
+  pm: 'plus or minus',
+  mp: 'minus or plus',
+  leq: 'is at most',
+  le: 'is at most',
+  geq: 'is at least',
+  ge: 'is at least',
+  neq: 'is not equal to',
+  ne: 'is not equal to',
+  approx: 'is about',
+  equiv: 'is equivalent to',
+  propto: 'is proportional to',
+  infty: 'infinity',
+  degree: 'degrees',
+  circ: 'degrees',
+  sin: 'sine',
+  cos: 'cosine',
+  tan: 'tan',
+  sec: 'secant',
+  cosec: 'cosec',
+  cot: 'cot',
+  log: 'log',
+  ln: 'natural log',
+  exp: 'e to the power',
+  sum: 'the sum of',
+  int: 'the integral of',
+  alpha: 'alpha',
+  beta: 'beta',
+  gamma: 'gamma',
+  delta: 'delta',
+  epsilon: 'epsilon',
+  eta: 'eta',
+  theta: 'theta',
+  lambda: 'lambda',
+  mu: 'mu',
+  nu: 'nu',
+  pi: 'pi',
+  rho: 'rho',
+  sigma: 'sigma',
+  tau: 'tau',
+  phi: 'phi',
+  omega: 'omega',
+  Delta: 'delta',
+  Sigma: 'sigma',
+  Omega: 'omega',
+  Theta: 'theta',
+  Phi: 'phi',
+  Lambda: 'lambda',
+  to: 'goes to',
+  rightarrow: 'gives',
+  Rightarrow: 'so',
+  leftrightarrow: 'is the same as',
+  left: '',
+  right: '',
+  quad: ' ',
+  qquad: ' ',
 }; // fmt: skip
 
 /** The symbols a keyboard writes, in the same words. */
 const TEX_OPERATORS: Record<string, string> = {
-  '=': 'equals', '+': 'plus', '-': 'minus', '*': 'times', '/': 'over',
-  '<': 'is less than', '>': 'is greater than', '±': 'plus or minus', '×': 'times', '÷': 'divided by',
+  '=': 'equals',
+  '+': 'plus',
+  '-': 'minus',
+  '*': 'times',
+  '/': 'over',
+  '<': 'is less than',
+  '>': 'is greater than',
+  '±': 'plus or minus',
+  '×': 'times',
+  '÷': 'divided by',
 }; // fmt: skip
 
 /** The balanced `{...}` starting at `start`, or null when there is not one. */
@@ -240,7 +294,7 @@ export function spokenTex(tex: string): string {
       continue;
     }
     // A run of ordinary characters — a name, a numeral — travels as one word.
-    const run = /^[^\\^_(){}\[\]&\s=+\-*/<>±×÷]+/.exec(tex.slice(i));
+    const run = /^[^\\^_(){}[\]&\s=+\-*/<>±×÷]+/.exec(tex.slice(i));
     const token = run ? run[0] : char;
     words.push(token);
     i += token.length;
@@ -416,6 +470,13 @@ export function describe(object: BoardObject, look?: LookUp): string {
     // --- marks: a mark is about something, so it names it ---
     case 'point':
       return about ? `a dot on ${about}` : 'a dot';
+    case 'tick':
+      return about ? `a tick beside ${about}` : 'a tick';
+    case 'cross':
+      return about ? `a cross through ${about}` : 'a cross';
+    case 'note':
+      return about ? `${object.text}, beside ${about}` : object.text;
+    case 'ring':
     case 'circle':
       return about ? `a ring around ${about}` : 'a ring';
     case 'underline':

@@ -38,6 +38,7 @@ import {
   dayLabel,
   initialModel,
   isConfirming,
+  NO_RESUME,
   type PlanModel,
   panelControls,
   panelLines,
@@ -46,10 +47,9 @@ import {
   planControls,
   planName,
   planReducer,
+  STOP_ANY_TIME,
   STORE_LINES,
   stateWord,
-  NO_RESUME,
-  STOP_ANY_TIME,
   UNREADABLE,
   WORK_STAYS,
 } from './plan';
@@ -175,7 +175,7 @@ describe('two taps', () => {
    * not even paid yet, so the one screen where the decision is made was the only surface that
    * left it out. These two hold it there, and hold it to the server's own words.
    */
-  it('says the tap is final, in the gateway\'s own words', () => {
+  it("says the tap is final, in the gateway's own words", () => {
     const gateway = readFileSync(
       new URL(
         '../../../../../services/gateway/src/wobo_gateway/billing/__init__.py',
@@ -199,7 +199,9 @@ describe('two taps', () => {
     // A provider-backed cancel cannot be undone (the gateway refuses a resume, 409
     // `cannot_resume`), so `panelControls` draws nothing here. The panel went silent about it:
     // a cancelled plan, no Resume, and no reason given. Now the absence has a sentence.
-    const gone = settled(subscription({ status: 'cancelling', can_cancel: false, can_resume: false }));
+    const gone = settled(
+      subscription({ status: 'cancelling', can_cancel: false, can_resume: false }),
+    );
     expect(panelControls(gone, NOW)).toEqual([]);
     expect(panelLines(gone, NOW)).toContain(NO_RESUME);
     // Where a resume IS possible the sentence would be a lie, so it is not said.
@@ -466,7 +468,9 @@ describe('dates', () => {
     const noDate = settled(
       subscription({ status: 'cancelling', can_cancel: false, can_resume: true, period_end: null }),
     );
-    expect(panelLines(noDate, NOW)[0]).toBe('Pro until the end of the period you have paid for, then free.');
+    expect(panelLines(noDate, NOW)[0]).toBe(
+      'Pro until the end of the period you have paid for, then free.',
+    );
     expect(confirmationLines(subscription({ period_end: null }))[0]).toContain(
       'until the end of the period you have paid for',
     );
@@ -635,7 +639,9 @@ describe('a plan that renews says so, and one that does not never does', () => {
   });
 
   it('and a cancelled plan never renews, whatever the row said before the cancel', () => {
-    const stopped = settled(subscription({ status: 'cancelling', can_cancel: false, renews: false }));
+    const stopped = settled(
+      subscription({ status: 'cancelling', can_cancel: false, renews: false }),
+    );
     for (const line of panelLines(stopped, NOW))
       expect([line, /renew/i.test(line)]).toEqual([line, false]);
   });

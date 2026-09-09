@@ -208,6 +208,7 @@ export const SITE_CSS = `
 .pl-hero h1{font:700 clamp(38px,5.4vw,64px)/1.0 var(--sans);letter-spacing:-.035em;margin:var(--s2) auto 0;max-width:18ch}
 .pl-hero h1 em{font-style:normal;color:var(--pig)}
 .pl-hero p.pl-sub{font-size:19px;color:var(--ink-2);max-width:52ch;margin:var(--s3) auto 0}
+.pl-hero p.pl-when{font-size:17px;color:var(--ink);max-width:52ch;margin:var(--s2) auto 0}
 .pl-hero .st-row{display:flex;gap:var(--s2);justify-content:center;margin-top:var(--s4);flex-wrap:wrap}
 /* law v5: where someone reads from is inferred from the browser's time zone, never asked. There is no country switch on this page. */
 .pl-allow{margin:var(--s4) auto 0;max-width:560px;background:var(--paper-2);border-radius:24px;padding:var(--s3);text-align:left;display:grid;gap:12px;position:relative}
@@ -423,6 +424,25 @@ export const SITE_CSS = `
   .ct-grid{grid-template-columns:1fr}
   .sm-grid{grid-template-columns:1fr}
 }
+/* --- the invitation, where the door was (docs/DOORS-CLOSED.md §3) ---------------------------- */
+/* One column, narrow enough to read in one line of sight, and nothing on it but the words, two
+   fields and the door. No card, no wash, no panel: law v5's white ground, with the one saturated
+   thing on the page being the action, exactly as every other site page is built. */
+.jl{padding:var(--s5) 0 var(--s6)}
+.jl-wrap{width:min(560px,calc(100% - 48px))}
+.jl-title{font:700 clamp(32px,5vw,52px)/1.04 var(--sans);letter-spacing:-.035em}
+.jl-what{color:var(--ink-2);font-size:19px;margin-top:var(--s3)}
+.jl-promise{color:var(--ink);font-size:17px;margin-top:var(--s2)}
+.jl-form{margin-top:var(--s4)}
+.jl-lab{display:block;font:500 15px/1.2 var(--sans);color:var(--ink);margin-top:var(--s3)}
+.jl-field{display:block;width:100%;margin-top:10px;min-height:52px;padding:14px 16px;border:0;border-radius:12px;background:var(--paper-2);color:var(--ink);font:400 17px/1.4 var(--sans)}
+.jl-hint{color:var(--ink-3);font-size:15px;margin-top:8px}
+.jl-go{margin-top:var(--s3);width:100%;min-height:52px}
+.jl-said{margin-top:var(--s3);color:var(--ink-2);font-size:16px}
+.jl-done{font-size:20px;color:var(--ink);margin-top:var(--s4)}
+.jl-quiet{margin-top:var(--s4);font-size:15px;color:var(--ink-2)}
+.jl-quiet a{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+
 @media (prefers-reduced-motion:reduce){
   .st-skip,.pl-allow .pl-bar i,.hp-result,.lg-row{transition:none}
 }

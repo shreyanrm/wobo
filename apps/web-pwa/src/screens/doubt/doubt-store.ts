@@ -116,6 +116,8 @@ export function reconcileDoubts(fromServer: readonly StoredDoubt[]): StoredDoubt
           ...d,
           ...(mine.topicId ? { topicId: mine.topicId } : {}),
           ...(mine.topicName ? { topicName: mine.topicName } : {}),
+          // The device is the witness: it watched the say frames land and the ink go down. The
+          // server only knows that a plan was shaped (the adversary, 2026-09-09, finding 9).
           explained: d.explained || mine.explained,
         }
       : d;

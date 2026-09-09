@@ -28,7 +28,7 @@ import { extname, join, relative } from 'node:path';
 import { pathToRoute } from '../../shell/router';
 import { PLANS_PAGE } from '../plans/copy';
 import { CTA, RETIRED_CTA } from './cta';
-import { type Handoff, HANDOFFS, type PublicPage } from './handoffs';
+import { HANDOFFS, type Handoff, type PublicPage } from './handoffs';
 import { FOOTER_COLUMNS, NAV_LINKS } from './nav';
 
 const SCREENS = join(import.meta.dir, '..');
@@ -122,12 +122,27 @@ describe('one phrase, one place', () => {
     expect(RETIRED_CTA).not.toBe(CTA.label);
   });
 
-  it('leaves no waitlist behind it — no list to join, no address to leave', () => {
+  /**
+   * SUPERSEDED IN PART, owner 2026-09-09 (`docs/DOORS-CLOSED.md`). This used to forbid a list
+   * outright, because we were open and a page that asked a reader to wait described a product we
+   * did not sell. New accounts are now closed until the owner says otherwise, and an address left
+   * with us is the honest thing to ask for while they are.
+   *
+   * What the rule was actually protecting SURVIVES WORD FOR WORD: no queue, no position in it, no
+   * scarcity invented out of nothing (`docs/SELL.md` §9, DOORS-CLOSED §3). A list you are told
+   * you are 412th on is theatre; a list that gets one mail the day it opens is a fact.
+   */
+  it('runs no queue and invents no scarcity, on any public page', () => {
     expect(
-      hits(/waitlist|first group|first in line|on the list|leave an address/i),
+      hits(/first group|first in line|position in the queue|spots? left|places? left/i),
       'nothing on a public page may suggest a queue',
     ).toEqual([]);
-    // the landing's email capture, gone with the waitlist it fed
+    expect(
+      hits(/coming soon|countdown|only \d+ (?:left|remaining)|last chance|hurry/i),
+      'no invented urgency, ever, on a product used by children',
+    ).toEqual([]);
+    // the landing's own email capture, gone with the waitlist it fed: the one form on the site is
+    // the invitation panel, and it posts to the gateway rather than to this browser
     expect(hits(/EARLY_ACCESS_KEY|keepAddress|earlyAccessHandler/)).toEqual([]);
   });
 });
@@ -136,7 +151,7 @@ describe('one page, one job, one primary', () => {
   const entries = Object.entries(HANDOFFS) as [PublicPage, (typeof HANDOFFS)[PublicPage]][];
 
   it('covers every public page that closes', () => {
-    expect(entries.length).toBe(17);
+    expect(entries.length).toBe(22);
   });
 
   it('gives each page one primary and one quiet second, never two of equal weight', () => {
@@ -203,6 +218,10 @@ describe('one page, one job, one primary', () => {
       contact: '/contact',
       legal: '/legal',
       sitemap: '/sitemap',
+      blog: '/blog',
+      glossary: '/glossary',
+      exams: '/exams',
+      compare: '/compare',
       notfound: '/404',
     };
     for (const [page, close] of entries) {

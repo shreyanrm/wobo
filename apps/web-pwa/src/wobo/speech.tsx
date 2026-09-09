@@ -8,14 +8,7 @@
  */
 
 import { gatewayFetch, mintVoiceToken, voiceSocketUrl } from '@wobo/sdk';
-import {
-  type PerformancePlan,
-  planPerformance,
-  useWoboBus,
-  type WoboAction,
-  type WoboBus,
-  type WoboMood,
-} from '@wobo/wobo';
+import type { WoboAction, WoboMood } from '@wobo/wobo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { currentFidelity, isOffline } from '../shell/resilience';
 import { type ChatTurn, useWoboChat } from './chat';
@@ -93,6 +86,9 @@ if (typeof window !== 'undefined') {
 export function stopSpeaking(): void {
   speechGen++; // abort any in-flight sentence sequence
   stopDeviceVoice(); // the device voice, when it was the one reading
+  // A sentence being read on the clock (muted, low-fi) ends now: an interruption is one tick,
+  // and the turn's promise used to wait out the sentence's whole reading time.
+  for (const wake of [...readingWaits]) wake();
   // Cut off any streamed chunks scheduled ahead on the shared context.
   for (const node of streamSources) {
     try {
@@ -238,28 +234,6 @@ export function beatOfTurn(actions: WoboAction[], safety?: { category?: string }
     if (b) beat = b;
   }
   return beat;
-}
-
-/**
- * The beat of each sentence in a choreographed turn: a mood anchored `withSentence` i leans that
- * sentence, one anchored `afterSentence` i leans the next, and a lean carries forward until the
- * next one. Sentences before any anchored mood take the turn's beat.
- *
- * A crisis turn is the crisis beat on every sentence. The anchored moods on such a turn come from
- * the model's own actions, and a `celebrate` anchored to sentence one used to flip the rest of the
- * turn to a win: the one accident the beat exists to rule out. The safety block is the gateway's,
- * and it outranks anything the model anchored.
- */
-export function sentenceBeats(plan: PerformancePlan, count: number, turnBeat: VoiceBeat): VoiceBeat[] {
-  if (turnBeat === 'crisis') return Array.from({ length: count }, (): VoiceBeat => 'crisis');
-  const out: VoiceBeat[] = [];
-  let current: VoiceBeat = turnBeat;
-  for (let i = 0; i < count; i++) {
-    current = beatOfMood(moodOfBeat(plan.atStart.get(i) ?? [])) ?? current;
-    out.push(current);
-    current = beatOfMood(moodOfBeat(plan.atEnd.get(i) ?? [])) ?? current;
-  }
-  return out;
 }
 
 /** The beat rides the socket URL beside the token. The first frame stays the line itself. */
@@ -526,17 +500,27 @@ export async function speakLine(
   }
 }
 
-// --- THE CONDUCTOR: one continuous performance, voice and hand together ---------------------------
+// --- THE VOICE'S CLOCK: what the hand waits on ------------------------------------------------
 //
-// A choreographed turn's ink no longer lands all at once. Wobo speaks their line sentence by sentence,
-// and each action's sync anchor (withSentence / afterSentence, set by the gateway) fires its ink on
-// that exact beat — the underline lands as Wobo says the term, the arrow arrives as Wobo references it,
-// and a written note is paced to the audio length of the sentence carrying it, so the hand keeps up
-// with the voice. Unanchored actions were already dispatched at once by the caller (backward compat).
+// A board turn's ink lands on sentence boundaries (wobo/beat.ts): the utterance below reports each
+// sentence's start, and the conductor lets the mark that names it go on that beat. There is no
+// second choreography beside it; the overlay's per-action beats went with the overlay
+// (docs/INK-FREEZE-PLAN-TRACE.md §4).
 
 /** Hold a beat on the reading clock (muted / keyless / a sentence that failed to synth). */
+/** The reading clock's waits, so an interruption ends them now rather than at the full stop. */
+const readingWaits = new Set<() => void>();
+
 function waitMs(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      readingWaits.delete(done);
+      resolve();
+    };
+    const timer = setTimeout(done, ms);
+    readingWaits.add(done);
+  });
 }
 
 /**
@@ -553,36 +537,6 @@ async function lastResort(sentence: string, gen: number): Promise<void> {
   if (!spoke && gen === speechGen) await waitMs(estimateReadMs(sentence));
 }
 
-/**
- * Speak a line sentence by sentence, calling back on each sentence's start (with its measured audio
- * length when voiced) and end. The first sentence plays while the next synthesizes. Muted/keyless/
- * low-fi still run the callbacks on the reading clock so the ink stays paced.
- */
-async function speakSentences(
-  segs: string[],
-  gen: number,
-  hooks?: { onStart?: (i: number, voicedMs?: number) => void; onEnd?: (i: number) => void },
-  beats: VoiceBeat[] = [],
-): Promise<void> {
-  const canVoice = Boolean(GATEWAY_URL) && !isMuted();
-  const voiceCount = currentFidelity() === 'low' ? Math.min(2, segs.length) : segs.length;
-  const beatAt = (i: number): VoiceBeat => beats[i] ?? 'step';
-  let pending = canVoice && segs.length > 0 ? synth(segs[0] as string, beatAt(0)) : null;
-  for (let i = 0; i < segs.length; i++) {
-    const cur = pending ? await pending : null;
-    if (gen !== speechGen) return;
-    pending =
-      canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string, beatAt(i + 1)) : null;
-    const voicedMs = cur ? (cur.samples.length / cur.rate) * 1000 : undefined;
-    hooks?.onStart?.(i, voicedMs);
-    if (cur && !isMuted()) await playSamples(cur.samples, cur.rate, gen);
-    else if (canVoice && i < voiceCount) await lastResort(segs[i] as string, gen);
-    else await waitMs(estimateReadMs(segs[i] as string));
-    if (gen !== speechGen) return;
-    hooks?.onEnd?.(i);
-  }
-}
-
 /** A tiny timing trail the live verifier reads off `window` — proves ink lands on its beat. */
 function traceBeat(kind: string, i: number, count: number, voicedMs?: number): void {
   if (typeof window === 'undefined') return;
@@ -595,71 +549,6 @@ function traceBeat(kind: string, i: number, count: number, voicedMs?: number): v
     marks: count,
     voicedMs,
   });
-}
-
-function moodOfBeat(beat: WoboAction[]): WoboMood | undefined {
-  const m = beat.find((a) => a.type === 'setMood');
-  return m && 'mood' in m ? (m.mood as WoboMood) : undefined;
-}
-
-/**
- * Perform one choreographed turn: speak `text` and land each anchored action on its sentence beat.
- * The caller has already dispatched the unanchored (immediate) actions. Mood follows content —
- * anchored setMood beats drive Wobo's body as Wobo writes (thinking on the setup, bright on the reveal).
- */
-export async function performTurn(
-  text: string,
-  actions: WoboAction[],
-  bus: Pick<WoboBus, 'addBeat' | 'beginTurn'>,
-  opts?: { onMood?: (m: WoboMood) => void; beat?: VoiceBeat },
-): Promise<void> {
-  const segs = sentences(text);
-  const plan = planPerformance(actions, segs.length);
-  // The voice leans with the mood on each sentence (10b): brighter on the check mark, curious on
-  // the question. The turn's own beat holds until the first anchored mood.
-  const beats = sentenceBeats(plan, segs.length, opts?.beat ?? 'step');
-  stopSpeaking();
-  const gen = ++speechGen;
-  bus.beginTurn(); // this turn's ink starts a fresh redrawable set
-  // Every beat fires exactly once, keyed by its slot: `s${i}` for withSentence, `e${i}` for
-  // afterSentence. The end-of-turn flush replays the same runBeat, so a beat that already landed is
-  // a no-op — without this the flush re-fired every afterSentence beat (doubled ink, doubled say
-  // lines, doubled setState) on every completed performance.
-  const fired = new Set<string>();
-  const runBeat = (
-    beat: WoboAction[] | undefined,
-    i: number,
-    voicedMs: number | undefined,
-    kind: string,
-    slot: 's' | 'e',
-  ) => {
-    if (!beat?.length) return;
-    const key = `${slot}${i}`;
-    if (fired.has(key)) return;
-    fired.add(key);
-    const mood = moodOfBeat(beat);
-    if (mood) opts?.onMood?.(mood);
-    bus.addBeat(beat, voicedMs !== undefined ? { noteDurationMs: voicedMs } : undefined);
-    traceBeat(kind, i, beat.length, voicedMs);
-  };
-  try {
-    await speakSentences(
-      segs,
-      gen,
-      {
-        onStart: (i, voicedMs) => runBeat(plan.atStart.get(i), i, voicedMs, 'withSentence', 's'),
-        onEnd: (i) => runBeat(plan.atEnd.get(i), i, undefined, 'afterSentence', 'e'),
-      },
-      beats,
-    );
-  } finally {
-    // Never strand ink: if the performance was cut short, land the beats that never fired — through
-    // runBeat, so their mood and trace are honoured too.
-    if (gen === speechGen) {
-      for (const [i, beat] of plan.atStart) runBeat(beat, i, undefined, 'flush', 's');
-      for (const [i, beat] of plan.atEnd) runBeat(beat, i, undefined, 'flush', 'e');
-    }
-  }
 }
 
 // --- THE UTTERANCE CLOCK: what the board's hand is timed against ---------------------------------
@@ -680,6 +569,15 @@ export interface UtteranceClock {
   beginUtterance: (at?: number) => void;
 }
 
+export interface UtteranceHooks {
+  /**
+   * Sentence `index` (counted across every line queued to this utterance) is beginning: the
+   * audio is about to play, or the reading clock has started on it. The board's hand waits on
+   * exactly this beat (wobo/beat.ts), so a mark lands with the word that names it.
+   */
+  onSentence?: (index: number, voicedMs?: number) => void;
+}
+
 export interface Utterance {
   /** Queue a line of Wobo's, with what kind of line it is (10b). Safe to call mid-speech. */
   say: (text: string, beat?: VoiceBeat) => void;
@@ -695,11 +593,16 @@ export interface Utterance {
  * Open one utterance. `clock` is read at the moment the performance opens (the board Wobo is drawing
  * on can be chosen on the first object, so it is a getter, not a value).
  */
-export function startUtterance(clock?: () => UtteranceClock | null | undefined): Utterance {
+export function startUtterance(
+  clock?: () => UtteranceClock | null | undefined,
+  hooks?: UtteranceHooks,
+): Utterance {
   stopSpeaking();
   const gen = ++speechGen;
   clock?.()?.beginUtterance();
   const queue: { text: string; beat: VoiceBeat }[] = [];
+  /** Sentences begun so far, across every line: the index the hand's gate waits on. */
+  let spoken = 0;
   let ended = false;
   let wake: (() => void) | null = null;
   const nudge = () => {
@@ -728,8 +631,11 @@ export function startUtterance(clock?: () => UtteranceClock | null | undefined):
       for (let i = 0; i < segs.length; i++) {
         const cur = pending ? await pending : null;
         if (gen !== speechGen) return;
-        pending =
-          canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string, next.beat) : null;
+        pending = canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string, next.beat) : null;
+        // The beat the ink waits on: this sentence is starting now, voiced or read.
+        const voicedMs = cur ? (cur.samples.length / cur.rate) * 1000 : undefined;
+        traceBeat('sentence', spoken, 0, voicedMs);
+        hooks?.onSentence?.(spoken++, voicedMs);
         if (cur && !isMuted()) await playSamples(cur.samples, cur.rate, gen);
         else if (canVoice && i < voiceCount) await lastResort(segs[i] as string, gen);
         else await waitMs(estimateReadMs(segs[i] as string));
@@ -758,34 +664,25 @@ export function startUtterance(clock?: () => UtteranceClock | null | undefined):
   };
 }
 
-// A turn's anchored actions and its beat, handed from App's ask() to the conductor and consumed
+// A turn's beat (docs/copy/voice.md 10b), handed from App's ask() to the narrator and consumed
 // once, keyed by the wobo turn's id (so it never mis-fires on an identical-looking line).
-interface Performance {
-  anchored: WoboAction[];
-  beat: VoiceBeat;
+const pendingBeats = new Map<string, VoiceBeat>();
+export function registerBeat(turnId: string, beat: VoiceBeat = 'step'): void {
+  if (beat !== 'step') pendingBeats.set(turnId, beat);
 }
-const pendingPerformances = new Map<string, Performance>();
-export function registerPerformance(
-  turnId: string,
-  anchored: WoboAction[],
-  beat: VoiceBeat = 'step',
-): void {
-  if (anchored.length > 0 || beat !== 'step') pendingPerformances.set(turnId, { anchored, beat });
-}
-function takePerformance(turnId: string): Performance | undefined {
-  const p = pendingPerformances.get(turnId);
-  if (p) pendingPerformances.delete(turnId);
-  return p;
+function takeBeat(turnId: string): VoiceBeat | undefined {
+  const beat = pendingBeats.get(turnId);
+  if (beat !== undefined) pendingBeats.delete(turnId);
+  return beat;
 }
 
 /**
- * Always-mounted: the conductor. It watches the one conversation and, as each new line of Wobo's
- * lands, either performs it (speak + choreographed ink beats, when App registered anchors) or simply
- * speaks it. Sound and hand move together — one continuous performance, like a tutor at a whiteboard.
+ * Always-mounted: the narrator. It watches the one conversation and speaks each new line of
+ * Wobo's as it lands, on the beat the turn was given. A board turn's voice is not this: the
+ * conductor (wobo/board-turn.ts) opens its own utterance, and the hand waits on its sentences.
  */
 export function SpeechNarrator() {
-  const { turns, setMood } = useWoboChat();
-  const bus = useWoboBus();
+  const { turns } = useWoboChat();
   // Mark everything already said before this mount as spoken — Wobo only voices NEW lines.
   // Initialized synchronously (not in the effect) so a mount that happens mid-exchange, while
   // the newest turn is the learner's, can never swallow the reply that follows it.
@@ -801,23 +698,8 @@ export function SpeechNarrator() {
     if (last?.role !== 'wobo' || last.id === 'seed') return;
     if (spokenUpTo.current === last.id) return;
     spokenUpTo.current = last.id;
-    const perf = takePerformance(last.id);
-    if (perf && perf.anchored.length > 0) {
-      void performTurn(last.text, perf.anchored, bus, { onMood: setMood, beat: perf.beat });
-    } else {
-      void speakLine(last.text, { beat: perf?.beat ?? 'step' });
-    }
-  }, [turns, bus, setMood]);
-  // Dev-only verification seam: lets a live check drive a controlled choreographed turn against the
-  // real app and measure the beats. Never compiled into a production build (import.meta.env.DEV).
-  useEffect(() => {
-    if (!import.meta.env.DEV || typeof window === 'undefined') return;
-    (window as unknown as { __woboConductor?: unknown }).__woboConductor = {
-      performTurn,
-      bus,
-      setMood,
-    };
-  }, [bus, setMood]);
+    void speakLine(last.text, { beat: takeBeat(last.id) ?? 'step' });
+  }, [turns]);
   return null;
 }
 

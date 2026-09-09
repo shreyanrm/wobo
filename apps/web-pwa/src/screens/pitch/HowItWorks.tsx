@@ -38,7 +38,7 @@ import {
 } from 'react';
 import { Label, Sticker, WoboHead } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
-import { CTA } from '../site/cta';
+import { useCta } from '../site/cta';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
 import { PitchAsk } from './Ask';
@@ -219,6 +219,7 @@ function TurnMark() {
 }
 
 export function HowItWorks() {
+  const door = useCta();
   return (
     <SiteShell current="how" title="How Wobo works">
       <div className="pt">
@@ -233,8 +234,8 @@ export function HowItWorks() {
               Sunday. That's the whole loop. Here it is, step by step, with a bit you can try.
             </p>
             <div className="pt-row">
-              <SiteLink className="st-btn st-pig" to={CTA.to}>
-                {CTA.label}
+              <SiteLink className="st-btn st-pig" to={door.to}>
+                {door.label}
               </SiteLink>
               <a className="st-btn st-quiet" href="#try">
                 Skip to the bit you can try

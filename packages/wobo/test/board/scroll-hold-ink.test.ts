@@ -8,7 +8,6 @@ import { frameOf } from '../../src/board/anchors';
 import { geometryOf } from '../../src/board/geometry';
 import { strokesInFlight } from '../../src/board/renderer';
 import type { BoardObject } from '../../src/board/schema';
-import { overlayInFlight } from '../../src/highlight-overlay';
 import { SurfaceRegistry } from '../../src/registry';
 import { scrollHold } from '../../src/scroll-hold';
 
@@ -80,23 +79,6 @@ describe('the board holds the page only while a page-anchored stroke is mid-flig
 
   it('never holds under reduced motion, where every stroke lands at once', () => {
     expect(strokesInFlight(built(1000, 300), onPage, 1100, true)).toBe(false);
-  });
-});
-
-describe('the overlay holds the page only while a ring or a stroke is drawing on', () => {
-  it('holds for a ring for its draw time and for a stroke for its own', () => {
-    const marks = { highlights: [{ bornAt: 1000 }], annotations: [] };
-    expect(overlayInFlight(marks, 1100, 0, false)).toBe(true);
-    expect(overlayInFlight(marks, 1000 + 320, 0, false)).toBe(false);
-    const stroke = { highlights: [], annotations: [{ bornAt: 1000, durationMs: 500 }] };
-    expect(overlayInFlight(stroke, 1499, 0, false)).toBe(true);
-    expect(overlayInFlight(stroke, 1500, 0, false)).toBe(false);
-  });
-
-  it('a pre-timeline turn ages from the dispatch clock', () => {
-    const marks = { highlights: [{}], annotations: [] };
-    expect(overlayInFlight(marks, 2100, 2000, false)).toBe(true);
-    expect(overlayInFlight(marks, 2400, 2000, false)).toBe(false);
   });
 });
 

@@ -3,19 +3,89 @@
  * the rows, `line` only as the separator between rows, no accent doing decoration. Every class is
  * `wm-` (trap 1) and used nowhere else.
  */
-.wm-mem{display:grid;gap:10px}
-.wm-list{list-style:none;margin:0;padding:0;display:grid;background:var(--paper-2);border-radius:14px}
-.wm-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 14px;min-height:56px}
-.wm-row + .wm-row{border-top:1px solid var(--line)}
-.wm-text{color:var(--ink);font-size:15px;line-height:1.35;overflow-wrap:anywhere}
-.wm-tag{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--paper-3);color:var(--ink-2);font-style:normal;font-size:12px;font-weight:600;white-space:nowrap}
-.wm-note{margin:0;font-size:14px;color:var(--ink-3);line-height:1.45}
-.wm-owed{color:var(--ink-2)}
-.wm-retry{background:none;border:0;padding:0;font:inherit;color:var(--pig);text-decoration:underline;text-underline-offset:3px;cursor:pointer;min-height:24px}
-.wm-retry:disabled{opacity:.6;cursor:default}
-.wm-noticed{display:grid;gap:6px}
-.wm-quiet{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:14px;color:var(--ink-2)}
-@media (max-width:900px){
-  .wm-row{grid-template-columns:minmax(0,1fr)}
-  .wm-row > .wk-btn{justify-self:start}
+.wm-mem {
+  display: grid;
+  gap: 10px;
+}
+.wm-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  background: var(--paper-2);
+  border-radius: 14px;
+}
+.wm-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 14px;
+  min-height: 56px;
+}
+.wm-row + .wm-row {
+  border-top: 1px solid var(--line);
+}
+.wm-text {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.wm-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--paper-3);
+  color: var(--ink-2);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wm-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink-3);
+  line-height: 1.45;
+}
+.wm-owed {
+  color: var(--ink-2);
+}
+.wm-retry {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--pig);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  min-height: 24px;
+}
+.wm-retry:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.wm-noticed {
+  display: grid;
+  gap: 6px;
+}
+.wm-quiet {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+@media (max-width: 900px) {
+  .wm-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .wm-row > .wk-btn {
+    justify-self: start;
+  }
 }

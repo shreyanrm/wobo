@@ -8,7 +8,9 @@
  * typed, so the table reads the same in a screen reader as it does on screen.
  */
 
-import { CTA } from '../site/cta';
+import type { Route } from '../../shell/router';
+import { ctaFor } from '../site/cta';
+import { LIST } from '../site/invitation';
 import { DEFAULT_PERIOD, type Period, PLAN_TIERS, type PlanTier, tierById } from './prices';
 
 /** A cell: included, not included, the same on every plan, or a figure in words. */
@@ -59,6 +61,16 @@ export const PLANS_PAGE = {
   title: 'Free every day.',
   titleEm: 'More when exams get close.',
   lead: 'Every learner gets a daily allowance of questions, forever, with no card and no trial that ends. Pro and Max raise it for the weeks that need it. Cancelling takes as many taps as subscribing.',
+  /**
+   * WHEN, on the page that says what it costs (`docs/DOORS-CLOSED.md` §5: "the plans page keeps
+   * its prices and says the same thing about when").
+   *
+   * The prices are real, settled and printed. What is not open is the door, and a reader who is
+   * about to compare three numbers is entitled to know that before they compare them rather than
+   * after they press the button. It is the same sentence every other surface uses, word for word,
+   * so the site says one thing about its own state.
+   */
+  when: LIST.under,
   allowance: {
     sticker: 'free, every day',
     title: "Today's allowance",
@@ -196,7 +208,7 @@ export const PLANS_PAGE = {
     title: 'Free every day, from the first day.',
     hand: 'No card now. No card later.',
     primary: 'Choose a plan',
-    quiet: `${CTA.label} instead`,
+    quiet: `${ctaFor(true).label} instead`,
   },
 } as const;
 
@@ -283,7 +295,7 @@ export const CHECKOUT_PAGE = {
   title: 'Paying is not open yet.',
   lead: 'The prices are set and printed on the plans page, but the payment page is not open yet, so nothing can be charged. When it opens, this is where the amount, the day it is taken, the day it comes round again and the two consent boxes will sit, together, above the payment control.',
   /** What a visitor can actually do today, in the site's one phrase. */
-  cta: CTA.label,
+  cta: ctaFor(true).label,
   back: 'Back to plans',
   /*
     WHAT THE CHECKOUT ACTUALLY DOES, and nothing else. This list used to promise a tax line and a
@@ -320,11 +332,22 @@ export const CHECKOUT_PAGE = {
 export interface CheckoutPageWords {
   title: string;
   lead: string;
-  cta: { label: string; href?: string; to?: { name: 'onboarding' } };
+  cta: { label: string; href?: string; to?: Route };
 }
 
-/** What `/plans/checkout` says, given whether the gateway can take money. Unknown reads as off. */
-export function checkoutPageWords(paymentsOn: boolean | null): CheckoutPageWords {
+/**
+ * What `/plans/checkout` says, given whether the gateway can take money and whether the door to
+ * new accounts is open. Unknown payments read as off, and the door reads as closed by default
+ * everywhere in this app (`docs/DOORS-CLOSED.md` §4).
+ *
+ * The two are separate switches on purpose. Paying has never been open; the door is closed for a
+ * different reason and on a different dial, and the page must not tell a reader that one of them
+ * explains the other.
+ */
+export function checkoutPageWords(
+  paymentsOn: boolean | null,
+  doorsOpen: boolean,
+): CheckoutPageWords {
   if (paymentsOn === true) {
     return {
       title: CHECKOUT_PAGE.open.title,
@@ -332,9 +355,36 @@ export function checkoutPageWords(paymentsOn: boolean | null): CheckoutPageWords
       cta: { label: CHECKOUT_PAGE.open.cta, href: '/plans#checkout' },
     };
   }
+  const door = ctaFor(doorsOpen);
   return {
     title: CHECKOUT_PAGE.title,
     lead: CHECKOUT_PAGE.lead,
-    cta: { label: CHECKOUT_PAGE.cta, to: { name: 'onboarding' } },
+    cta: { label: door.label, to: door.to },
   };
+}
+
+// --- the door on each card ---------------------------------------------------------------------
+
+/** What the control at the foot of a plan card is: a choice on this page, or the way to the list. */
+export type PlanDoor =
+  | { kind: 'choose'; label: string }
+  | { kind: 'list'; label: string; to: Route };
+
+/**
+ * THE DOOR ON EVERY CARD, not only on the free one.
+ *
+ * The first cut swapped the free tier's door for the invitation and left "Choose Pro" and
+ * "Choose Max" beside it, so the page said "Wobo is not open yet" in the hero and offered two
+ * plans three cards down. That is the page arguing with itself, which is the exact thing the
+ * handoff swap exists to prevent (`docs/DOORS-CLOSED.md` §5), applied to one card out of three.
+ *
+ * The prices do not move. `docs/PRICING.md` and the law both keep every number on the page while
+ * the door is shut: what changes is the door, and only the door.
+ */
+export function planDoor(tier: PlanTier, open: boolean): PlanDoor {
+  const door = ctaFor(open);
+  if (!open) return { kind: 'list', label: door.label, to: door.to };
+  return tier.price
+    ? { kind: 'choose', label: tier.cta }
+    : { kind: 'list', label: door.label, to: door.to };
 }

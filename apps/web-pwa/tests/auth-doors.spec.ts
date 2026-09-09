@@ -26,6 +26,22 @@ const THEMES = ['light', 'dark'] as const;
 
 test.describe.configure({ mode: 'serial' });
 
+/**
+ * THE DOOR THIS FILE PROVES IS THE OPEN ONE, AND SINCE 2026-09-09 THAT IS A CHOICE.
+ *
+ * `docs/DOORS-CLOSED.md`: while `doors_open` is false, `/sign-up` renders the invitation to the
+ * list instead of the sign-up door, and no path creates an account. The door itself is not
+ * deleted, it is behind the dial, so this suite seeds the dial open — the same seed
+ * `scripts/prerender.ts` writes — and goes on proving the craft of the thing that comes back the
+ * day the owner turns it on. The CLOSED state is proved by `join-list.spec.ts`, on the suite's own
+ * server, and by the last test in this file.
+ */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as Record<string, unknown>).__WOBO_DOORS_OPEN__ = true;
+  });
+});
+
 /** Stamp a theme the way a reader's own choice does, and let the sheet settle. */
 async function wear(page: Page, theme: (typeof THEMES)[number]): Promise<void> {
   await page.evaluate((t) => document.documentElement.setAttribute('data-theme', t), theme);
@@ -231,3 +247,30 @@ for (const size of WIDTHS) {
     });
   }
 }
+
+/**
+ * And the same address with the dial off. One page, two states, and the state a stranger meets
+ * today is the second one (docs/DOORS-CLOSED.md §1: no account is created by any path).
+ */
+test('with the dial off, the sign-up door is the invitation and the sign-in door is untouched', async ({
+  browser,
+}) => {
+  const context = await browser.newContext();
+  const shut = await context.newPage();
+  await shut.goto('/sign-up', { waitUntil: 'networkidle' });
+  await expect(shut.locator('.jl-form')).toBeVisible({ timeout: 45_000 });
+  await expect(shut.locator('.au-field')).toHaveCount(0);
+  await expect(shut.locator('input[type="password"]')).toHaveCount(0);
+
+  await shut.goto('/sign-in', { waitUntil: 'networkidle' });
+  await expect(shut.locator('.au-field').first()).toBeVisible();
+  await expect(shut.locator('#au-who')).toBeVisible();
+  await expect(shut.locator('.au-btn.au-go')).toBeVisible();
+  // AND THE OTHER DOOR IN ITS BAR IS THE INVITATION. This is the most linked-to control on the
+  // site while the door is shut: all 438 pre-rendered pages send a reader to /sign-in, and the
+  // top right of this page used to offer them an account, two inches from a page that had just
+  // said Wobo is not open yet (DOORS-CLOSED §5).
+  await expect(shut.locator('.au-other')).toHaveText('Join the list');
+  await expect(shut.locator('.au-other')).toHaveAttribute('href', '/sign-up');
+  await context.close();
+});

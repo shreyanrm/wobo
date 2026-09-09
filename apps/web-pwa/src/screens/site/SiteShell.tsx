@@ -18,7 +18,15 @@
 import { type ReactNode, useEffect } from 'react';
 import type { Route } from '../../shell/router';
 import { Wordmark } from '../../ui/primitives';
-import { DOORS, FOOTER_COLUMNS, FOOTER_LINE, NAV_LINKS, SiteLink, type SiteSection } from './nav';
+import { useDoorsOpen } from './dial';
+import {
+  FOOTER_COLUMNS,
+  FOOTER_LINE,
+  headerDoors,
+  NAV_LINKS,
+  SiteLink,
+  type SiteSection,
+} from './nav';
 import { ensureSiteStyles } from './styles';
 
 // The chunk arriving IS the page being opened, so the stylesheet goes in at import time — an
@@ -58,6 +66,10 @@ export function SiteShell({
 }) {
   useTitle(title);
 
+  // The two doors follow the dial: while new accounts are closed the loud one is the invitation
+  // to the list, and the quiet one is untouched (docs/DOORS-CLOSED.md §2).
+  const doors = headerDoors(useDoorsOpen());
+
   // A fresh document starts at its top. Without this, arriving from halfway down one page leaves
   // the reader halfway down the page they just opened.
   useEffect(() => {
@@ -95,11 +107,11 @@ export function SiteShell({
                 ))}
               </nav>
               <div className="st-cta">
-                <SiteLink to={{ name: 'sign-in' }} className="st-btn st-quiet">
-                  {DOORS.signIn}
+                <SiteLink to={doors.signIn.to} className="st-btn st-quiet">
+                  {doors.signIn.label}
                 </SiteLink>
-                <SiteLink to={{ name: 'onboarding' }} className="st-btn st-pig">
-                  {DOORS.getStarted}
+                <SiteLink to={doors.getStarted.to} className="st-btn st-pig">
+                  {doors.getStarted.label}
                 </SiteLink>
               </div>
             </>

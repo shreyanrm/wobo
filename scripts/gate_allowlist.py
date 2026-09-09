@@ -342,6 +342,20 @@ WHITE_LABEL: tuple[Allowed, ...] = (
             "https://gemini.google.com/app?q=",
         )
     ),
+    # THE SAME ROW, NOW THAT THE SITE IS PRE-RENDERED. `apps/web-pwa/scripts/prerender.ts` writes
+    # the landing page's real markup into dist/index.html, so a label that reads `'Claude'` in the
+    # source reads `>Claude</a>` in the shipped file, and the quoted needles above no longer contain
+    # the match. These two are the rendered form of those very labels and nothing else: a provider
+    # name that ends up minified beside them is still a violation, because the needle has to contain
+    # the match.
+    *(
+        Allowed(
+            "apps/web-pwa/dist/**",
+            needle,
+            "the reader's own assistant, in the landing page's outbound row, as pre-rendered.",
+        )
+        for needle in ("></svg>Claude</a>", "></svg>Gemini</a>")
+    ),
     # The landing copy suite's own §17 assertion has to spell what the copy may never say.
     Allowed(
         "apps/web-pwa/src/screens/landing/page-copy.test.ts",

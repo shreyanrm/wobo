@@ -424,3 +424,44 @@ def test_a_label_hung_on_a_chip_is_on_the_screen_with_the_chip() -> None:
         context=TARGETS,
     )
     assert plan.presentation == "screen"
+
+
+# --- wave 45, finding 7: a refused drawing is never narrated as if it were on the board ----------
+
+
+def test_a_say_never_narrates_a_drawing_that_was_refused() -> None:
+    """The live timeline refused honestly — "a timeline needs at least two events with their
+    years, and this one gives 0" — and the say beside the empty board still read "The
+    non-cooperation movement, left to right. Which part is new to you?" Nothing was drawn and the
+    learner was asked what was new about it (the adversary, 2026-09-09, finding 7).
+    """
+    plan = plan_board(
+        {
+            "say": "The non-cooperation movement, left to right. Which part is new to you?",
+            "intents": [{"pipeline": "bio_social", "op": "timeline", "events": []}],
+        },
+        context={"turn": {"lastUserInput": "Draw a timeline of the non-cooperation movement"}},
+    )
+    assert plan.objects == []
+    assert plan.refusals
+    assert "left to right" not in plan.say
+    # what IS said is the reason, in Wobo's voice, and it hands the next move back
+    assert plan.say.startswith("A timeline needs at least two events with their years")
+    assert plan.ask is None
+
+
+def test_a_say_stands_when_something_was_drawn_beside_the_refusal() -> None:
+    """One intent refused out of two is not an empty board, and the say still names the rest."""
+    plan = plan_board(
+        {
+            "say": "Two cycles of it, left to right.",
+            "intents": [
+                {"pipeline": "bio_social", "op": "timeline", "events": []},
+                {"pipeline": "physics", "op": "wave", "wavelength": 2.0, "frequency": 3.0},
+            ],
+        },
+        context={"turn": {"lastUserInput": "draw a wave and a timeline"}},
+    )
+    assert plan.objects
+    assert plan.refusals
+    assert plan.say == "Two cycles of it, left to right."

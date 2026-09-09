@@ -21,7 +21,7 @@
 
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
-import { CTA, RETIRED_CTA, START_FREE_LABEL } from '../site/cta';
+import { CTA, ctaFor, RETIRED_CTA, START_FREE_LABEL } from '../site/cta';
 import { handoff, type PublicPage } from '../site/handoffs';
 
 const HERE = new URL('.', import.meta.url).pathname;
@@ -85,7 +85,7 @@ it('has all five surfaces, and reads them from the shipped source', () => {
 const RUNNING_SOMETHING_DOWN: readonly (readonly [RegExp, string])[] = [
   [
     /\b(?:tutors?|teachers?|tuition|coaching|classes)\b[^.\n]{0,40}\b(?:expensive|costly|pricey|unaffordable|out of reach)\b/i,
-    'a price put on somebody else\'s work is still a comparison',
+    "a price put on somebody else's work is still a comparison",
   ],
   [
     /\b(?:expensive|unaffordable|out of reach)\b[^.\n]{0,30}\b(?:tutors?|teachers?|tuition|coaching)\b/i,
@@ -125,7 +125,8 @@ describe('nothing on the five is sold by running something down', () => {
       const hits: string[] = [];
       for (const s of SURFACES) {
         for (const line of s.copy.split('\n')) {
-          if (pattern.test(line) && !PRAISE.test(line)) hits.push(`${s.name}: ${line.trim().slice(0, 110)}`);
+          if (pattern.test(line) && !PRAISE.test(line))
+            hits.push(`${s.name}: ${line.trim().slice(0, 110)}`);
         }
       }
       expect(hits, why).toEqual([]);
@@ -147,7 +148,9 @@ describe('every door reads its words from cta.ts', () => {
   });
 
   it('never types the call to action as a literal', () => {
-    const guilty = SURFACES.filter((s) => s.copy.includes(`>${START_FREE_LABEL}<`)).map((s) => s.name);
+    const guilty = SURFACES.filter((s) => s.copy.includes(`>${START_FREE_LABEL}<`)).map(
+      (s) => s.name,
+    );
     expect(guilty, 'read CTA.label, so the phrase can never drift apart again').toEqual([]);
   });
 
@@ -158,11 +161,19 @@ describe('every door reads its words from cta.ts', () => {
     }
   });
 
-  it('sends every loud door to the one destination', () => {
+  /**
+   * The destination is now the DIAL's, not a constant's (`docs/DOORS-CLOSED.md` §4): each page
+   * reads `useCta()` and renders whatever the switch says, so the day the owner opens the door
+   * every one of these buttons points at the first run again, within a minute, with no release.
+   * A page that named a destination of its own could not follow the switch at all.
+   */
+  it('sends every loud door wherever the dial says, and nowhere of its own', () => {
     for (const s of SURFACES.filter((x) => x.loud > 0)) {
-      expect(s.copy, `${s.name} points its door somewhere of its own`).toContain('to={CTA.to}');
+      expect(s.copy, `${s.name} points its door somewhere of its own`).toContain('to={door.to}');
+      expect(s.copy, `${s.name} must read the dial`).toContain('useCta()');
     }
-    expect(CTA.to).toEqual({ name: 'onboarding' });
+    expect(ctaFor(true).to).toEqual({ name: 'onboarding' });
+    expect(ctaFor(false).to).toEqual({ name: 'sign-up' });
   });
 });
 
@@ -178,18 +189,18 @@ describe('each page closes on its own argument, not on a template', () => {
   });
 
   it('gives the five five different closes', () => {
-    const titles = SURFACES.map((s) => handoff(s.page).title);
+    const titles = SURFACES.map((s) => handoff(s.page, true).title);
     expect(new Set(titles).size).toBe(SURFACES.length);
-    const quiets = SURFACES.map((s) => handoff(s.page).quiet.label);
+    const quiets = SURFACES.map((s) => handoff(s.page, true).quiet.label);
     expect(new Set(quiets).size).toBe(SURFACES.length);
   });
 
   it('keeps every one of the five jobs the one docs/SELL.md §6 gave it', () => {
-    expect(handoff('subjects').job).toContain('does it cover mine');
-    expect(handoff('how').job).toContain('why this will work');
-    expect(handoff('meet').job).toContain('make the tutor real');
-    expect(handoff('security').job).toContain('remove the fear');
-    expect(handoff('about').job).toContain('belief');
+    expect(handoff('subjects', true).job).toContain('does it cover mine');
+    expect(handoff('how', true).job).toContain('why this will work');
+    expect(handoff('meet', true).job).toContain('make the tutor real');
+    expect(handoff('security', true).job).toContain('remove the fear');
+    expect(handoff('about', true).job).toContain('belief');
   });
 });
 
@@ -203,7 +214,7 @@ describe('/subjects answers "does it cover mine" rather than illustrating it', (
 
   it('puts the door inside the finder, so "found yours" and "start" are one move', () => {
     const finder = SUBJECTS.copy.slice(SUBJECTS.copy.indexOf('<BoardFinder'));
-    expect(finder.slice(0, 300)).toContain('CTA.label');
+    expect(finder.slice(0, 300)).toContain('door.label');
   });
 });
 
@@ -249,12 +260,18 @@ describe('the mechanism page says both modes, and does not blur them', () => {
 const VAGUE: readonly (readonly [RegExp, string])[] = [
   [/\bcomprehensive\b/i, 'name what is covered instead'],
   [/\bworld[- ]class\b|\bcutting[- ]edge\b|\bstate[- ]of[- ]the[- ]art\b/i, 'puffery'],
-  [/\bindustry[- ]leading\b|\bbest[- ]in[- ]class\b|\bunparalleled\b/i, 'an unprovable superlative'],
+  [
+    /\bindustry[- ]leading\b|\bbest[- ]in[- ]class\b|\bunparalleled\b/i,
+    'an unprovable superlative',
+  ],
   [/\bseamless(?:ly)?\b|\brevolutionary\b|\bgame[- ]chang/i, 'a word that says nothing'],
   [/\b(?:bank|military|enterprise)[- ]grade\b/i, 'a security claim nobody audited'],
   [/\b100% (?:secure|safe|accurate|private)\b/i, 'an absolute we cannot show'],
   [/\btrusted by (?:thousands|millions|families everywhere)\b/i, 'a user count we do not have'],
-  [/\b(?:thousands|millions) of (?:families|students|learners|parents)\b/i, 'the same count, spelled out'],
+  [
+    /\b(?:thousands|millions) of (?:families|students|learners|parents)\b/i,
+    'the same count, spelled out',
+  ],
   [
     /\b(?:trusted|used|loved|chosen) by (?:[\d,]+|a |an )?(?:hundred|thousand|million|lakh|crore)/i,
     'a number of families, even as a turn of phrase, reads as a count we do not have',

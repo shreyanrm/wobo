@@ -1,32 +1,34 @@
 import { describe, expect, it } from 'bun:test';
-import {
-  hasSyncAnchor,
-  isConsequential,
-  parseActions,
-  planPerformance,
-  reduceActions,
-  syncAnchorOf,
-  type WoboAction,
-} from '../src/actions';
+import { isConsequential, parseActions, reduceActions, type WoboAction } from '../src/actions';
 
 describe('parseActions', () => {
   it('keeps valid actions and drops malformed ones', () => {
     const raw = [
       { type: 'say', text: 'try taking 3 from both sides' },
-      { type: 'highlight', targetId: 'step-1', level: 'secondary' },
+      { type: 'setMood', mood: 'hint' },
       { type: 'nope' }, // invalid
-      { type: 'annotate', targetId: 'step-1' }, // missing mark -> invalid
+      { type: 'setMood' }, // missing mood -> invalid
     ];
     const actions = parseActions(raw);
-    expect(actions.map((a) => a.type)).toEqual(['say', 'highlight']);
+    expect(actions.map((a) => a.type)).toEqual(['say', 'setMood']);
   });
 
-  it('normalizes a mark shorthand into a real annotate', () => {
-    // The model sometimes emits {type:'circle'} instead of {type:'annotate',mark:'circle'}.
-    const actions = parseActions([{ type: 'circle', targetId: 'eq', level: 'primary' }]);
-    expect(actions).toEqual([
-      { type: 'annotate', targetId: 'eq', mark: 'circle', level: 'primary' },
-    ]);
+  it('has no mark in its grammar: a drawing is a plan by glass id, never an action (INK §4)', () => {
+    const raw = [
+      { type: 'highlight', targetId: 'step-1', level: 'secondary' },
+      { type: 'annotate', targetId: 'step-1', mark: 'circle' },
+      { type: 'circle', targetId: 'eq' },
+      { type: 'write', targetId: 'step-1', text: 'undo the +3' },
+      { type: 'point', targetId: 'step-1' },
+      { type: 'redrawMarks' },
+      { type: 'say', text: 'kept' },
+    ];
+    expect(parseActions(raw)).toEqual([{ type: 'say', text: 'kept' }]);
+  });
+
+  it('carries no sentence beat: the hand keeps time from the plan, not from an action', () => {
+    const [action] = parseActions([{ type: 'say', text: 'x', withSentence: 1 }]);
+    expect(action).toEqual({ type: 'say', text: 'x' });
   });
 
   it('keeps forget actions and drops ones with an unknown scope', () => {
@@ -68,42 +70,32 @@ describe('isConsequential', () => {
     expect(isConsequential({ type: 'navigate', route: '/practice' })).toBe(true);
     expect(isConsequential({ type: 'startPractice', nodeId: 'n' })).toBe(true);
     expect(isConsequential({ type: 'say', text: 'hello' })).toBe(false);
-    expect(isConsequential({ type: 'highlight', targetId: 't' })).toBe(false);
+    expect(isConsequential({ type: 'setMood', mood: 'hint' })).toBe(false);
   });
 });
 
 describe('reduceActions', () => {
-  it('folds a turn into marks, mood, says, and a single offer', () => {
+  it('folds a turn into mood, says, and a single offer', () => {
     const actions: WoboAction[] = [
       { type: 'setMood', mood: 'thinking' },
       { type: 'say', text: 'look at this step' },
-      { type: 'highlight', targetId: 'step-1', level: 'primary' },
-      { type: 'annotate', targetId: 'step-1', mark: 'circle', level: 'secondary' },
-      { type: 'point', targetId: 'step-2' },
-      { type: 'startPractice', nodeId: 'atom', reason: 'ready for a check?' },
+      { type: 'navigate', route: '/practice' },
+      { type: 'startPractice', nodeId: 'n1' },
+      { type: 'revealHint', level: 1 },
+      { type: 'escalateHint' },
+      { type: 'remember', text: 'exam on Friday' },
     ];
     const e = reduceActions(actions);
     expect(e.mood).toBe('thinking');
     expect(e.says).toEqual(['look at this step']);
-    // point adds a primary highlight + a lookHere annotation on step-2, plus the explicit ones
-    expect(e.highlights).toContainEqual({ targetId: 'step-1', level: 'primary' });
-    expect(e.highlights).toContainEqual({ targetId: 'step-2', level: 'primary' });
-    expect(e.annotations).toContainEqual({
-      targetId: 'step-1',
-      mark: 'circle',
-      level: 'secondary',
-    });
-    expect(e.annotations).toContainEqual({
-      targetId: 'step-2',
-      mark: 'lookHere',
-      level: 'primary',
-    });
+    expect(e.revealHints).toEqual([1]);
+    expect(e.escalateHints).toBe(1);
+    expect(e.remembers).toEqual(['exam on Friday']);
+    // the last consequential action is the one offer
     expect(e.offer?.type).toBe('startPractice');
-  });
-
-  it('defaults highlight level to primary (Molten leads)', () => {
-    const e = reduceActions([{ type: 'highlight', targetId: 't' }]);
-    expect(e.highlights[0]?.level).toBe('primary');
+    expect(e).not.toHaveProperty('highlights');
+    expect(e).not.toHaveProperty('annotations');
+    expect(e).not.toHaveProperty('notes');
   });
 
   it('folds forget actions into forgets, carrying scope and target — never an offer', () => {
@@ -137,77 +129,5 @@ describe('reduceActions', () => {
     expect(e.offer).toBeNull();
     expect(e.says).toEqual([]); // speak is the voice-locked channel, not say
     expect(isConsequential(actions[1] as WoboAction)).toBe(false);
-  });
-
-  it('parses redrawMarks and folds it into the redrawMarks flag (family M re-ink)', () => {
-    const parsed = parseActions([
-      { type: 'redrawMarks' },
-      { type: 'say', text: 'it faded — here it is again' },
-    ]);
-    expect(parsed.map((a) => a.type)).toEqual(['redrawMarks', 'say']);
-    const e = reduceActions(parsed);
-    expect(e.redrawMarks).toBe(true);
-    expect(e.says).toEqual(['it faded — here it is again']);
-    // default is false when Wobo draws normally
-    expect(reduceActions([{ type: 'say', text: 'x' }]).redrawMarks).toBe(false);
-  });
-});
-
-// --- THE ACTION TIMELINE: sync anchors + performance planning ------------------------------------
-
-describe('sync anchors', () => {
-  it('parseActions preserves withSentence / afterSentence on drawing actions', () => {
-    const actions = parseActions([
-      { type: 'highlight', targetId: 't', withSentence: 2 },
-      { type: 'annotate', targetId: 't', mark: 'circle', afterSentence: 1 },
-      { type: 'write', targetId: 't', text: 'undo the +3', withSentence: 0 },
-    ]);
-    expect(syncAnchorOf(actions[0] as WoboAction)).toEqual({ withSentence: 2 });
-    expect(syncAnchorOf(actions[1] as WoboAction)).toEqual({ afterSentence: 1 });
-    expect(syncAnchorOf(actions[2] as WoboAction)).toEqual({ withSentence: 0 });
-  });
-
-  it('hasSyncAnchor is true only when an anchor is present', () => {
-    expect(hasSyncAnchor({ type: 'point', targetId: 't', withSentence: 1 } as WoboAction)).toBe(
-      true,
-    );
-    expect(hasSyncAnchor({ type: 'point', targetId: 't', afterSentence: 0 } as WoboAction)).toBe(
-      true,
-    );
-    expect(hasSyncAnchor({ type: 'point', targetId: 't' } as WoboAction)).toBe(false);
-    expect(hasSyncAnchor({ type: 'say', text: 'x' } as WoboAction)).toBe(false);
-  });
-});
-
-describe('planPerformance', () => {
-  it('buckets actions onto their beats; unanchored ride immediate', () => {
-    const actions = parseActions([
-      { type: 'setMood', mood: 'thinking' }, // no anchor -> immediate
-      { type: 'annotate', targetId: 'a', mark: 'circle', withSentence: 1 },
-      { type: 'write', targetId: 'a', text: 'undo the +3', withSentence: 1 },
-      { type: 'annotate', targetId: 'b', mark: 'check', afterSentence: 2 },
-    ]);
-    const plan = planPerformance(actions, 3);
-    expect(plan.immediate.map((a) => a.type)).toEqual(['setMood']);
-    expect(plan.atStart.get(1)?.map((a) => a.type)).toEqual(['annotate', 'write']);
-    expect(plan.atEnd.get(2)?.map((a) => a.type)).toEqual(['annotate']);
-  });
-
-  it('clamps an out-of-range anchor to the last sentence (ink still lands)', () => {
-    const actions = parseActions([{ type: 'point', targetId: 'a', withSentence: 9 }]);
-    const plan = planPerformance(actions, 3);
-    expect(plan.atStart.get(2)?.length).toBe(1); // clamped to sentence index 2
-    expect(plan.immediate).toEqual([]);
-  });
-
-  it('with no sentences, everything is immediate (backward compatible)', () => {
-    const actions = parseActions([
-      { type: 'annotate', targetId: 'a', mark: 'circle', withSentence: 1 },
-      { type: 'say', text: 'x' },
-    ]);
-    const plan = planPerformance(actions, 0);
-    expect(plan.immediate.length).toBe(2);
-    expect(plan.atStart.size).toBe(0);
-    expect(plan.atEnd.size).toBe(0);
   });
 });

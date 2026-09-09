@@ -179,7 +179,10 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
             <div className="stage" id="heroStage">
               {(
                 [
-                  ['draw', <HeroDrawn key="draw" label="Wobo draws the leaf and where the light goes" />],
+                  [
+                    'draw',
+                    <HeroDrawn key="draw" label="Wobo draws the leaf and where the light goes" />,
+                  ],
                   [
                     'video',
                     <HeroFilmed
@@ -189,7 +192,10 @@ export function Hero({ sectionRef }: { sectionRef: RefObject<HTMLElement | null>
                     />,
                   ],
                   ['try', <HeroTried key="try" label="Now you try one" copy={HERO.tried} />],
-                  ['say', <HeroSpoken key="say" label="Wobo says it out loud" line={HERO.spoken.line} />],
+                  [
+                    'say',
+                    <HeroSpoken key="say" label="Wobo says it out loud" line={HERO.spoken.line} />,
+                  ],
                 ] as const
               ).map(([key, art], i) => (
                 <div

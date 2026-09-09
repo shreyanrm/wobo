@@ -62,6 +62,23 @@ time, which is where every key belongs. The SDK fails fast at boot if
 `VITE_DEV_AUTH=false` without the Supabase env, so a misconfigured prod build shows
 an error instead of silently shipping dev mode.
 
+### Proving the domain to the two search consoles (build-time only, no `VITE_` prefix)
+
+Neither of these reaches the browser and neither is a secret. They exist so the owner can verify
+ownership of the domain without shipping a commit: set the variable on the host, redeploy, and the
+file appears at the root of the site. Unset means no file written, which is the right answer on a
+laptop and on a preview build.
+
+| Var | Where it lives | What the build writes |
+|---|---|---|
+| `GOOGLE_SITE_VERIFICATION` | Vercel project env (optional) | `/google<token>.html`, the file Search Console asks for. Paste either the bare token or the whole `google<token>.html` filename the console offers; both are accepted |
+| `BING_SITE_VERIFICATION` | Vercel project env (optional) | `/BingSiteAuth.xml`, the file Bing Webmaster Tools asks for. Bing is the index ChatGPT's browsing reads, so it is worth having as well as Google |
+
+A value carrying anything but letters, digits, `_` and `-` FAILS THE BUILD with the variable named,
+rather than being skipped: a malformed token means somebody is waiting on a verification that will
+never pass. The rules and the file contents are `apps/web-pwa/src/shell/verification.ts`, and
+`apps/web-pwa/scripts/prerender.ts` writes them.
+
 ### Gateway (Railway service variables — nothing committed).
 
 Every value below is read from the environment; none is hardcoded in service code. Secrets

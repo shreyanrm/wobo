@@ -78,3 +78,11 @@ describe('design tokens (DESIGN.md §2 is law)', () => {
     expect(css).not.toContain('--wobo-highlight-primary');
   });
 });
+
+describe("Wobo's ink on the screen (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace)", () => {
+  it('sits above the companion panel and below a modal, so a ring at x >= 1020 is never under the chat', async () => {
+    const { zIndex } = await import('../src/index');
+    expect(zIndex.ink).toBeGreaterThan(zIndex.panel);
+    expect(zIndex.ink).toBeLessThan(zIndex.modal);
+  });
+});

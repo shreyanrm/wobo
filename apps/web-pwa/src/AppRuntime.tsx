@@ -15,16 +15,14 @@
 import type { Sdk } from '@wobo/sdk';
 import {
   type FocusObject,
-  hasSyncAnchor,
+  glassHold,
   isTypingTarget,
   parseActions,
-  plane,
   scrollHold,
   surfaceRegistry,
   useWoboBus,
   type WoboHandlers,
   type WoboMood,
-  WoboOverlay,
   WoboProvider,
 } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -77,10 +75,13 @@ import {
   type ChatTurn,
   mintTurnId,
   readArchive,
+  removeArchiveTurn,
   updateArchiveTurn,
   WoboChatProvider,
   writeArchive,
 } from './wobo/chat';
+import { currentCore } from './wobo/core-store';
+import { bringOntoGlass, nextLayout, takeGlass } from './wobo/glass';
 import { takeHandedQuestion } from './wobo/handoff';
 import {
   armDoIt,
@@ -93,14 +94,16 @@ import {
   showMe,
 } from './wobo/hands';
 import { holdToTalkEnd, holdToTalkStart } from './wobo/hold';
+import { resolveInstant } from './wobo/instant';
 import { lookingAt } from './wobo/looking';
 import { modeDraws, modeFromText, modePrompt } from './wobo/modes';
 import { resolveTurnExtras, type TurnExtras } from './wobo/paths';
 import { useLifeSignals } from './wobo/presence';
-import { boardShapeOf, isLessonRoute } from './wobo/presentation';
+import { asksForADrawing, boardShapeOf, isLessonRoute } from './wobo/presentation';
 import { refusalLine } from './wobo/refusals';
 import { WoboStage } from './wobo/Stage';
-import { beatOfTurn, registerPerformance, SpeechNarrator, speakLine } from './wobo/speech';
+import { beatOfTurn, registerBeat, SpeechNarrator, speakLine } from './wobo/speech';
+import { linePrinted, newTurnLine } from './wobo/transcript';
 import { changeVariable, gatewayBrain } from './wobo/variables';
 
 // LAZY: one chunk per screen, fetched on the navigation that needs it. Each of these pulls its own
@@ -304,12 +307,12 @@ function Screen() {
   // Leaving a screen mid-stroke: the hold lets go on the spot and the ink that was about the old
   // page goes with it. Measured on 2026-09-05: for ~200 ms after a navigation the previous page's
   // ring was still drawing itself over the new page, with the page held.
-  const { clearMarks } = useWoboBus();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the route is the trigger
   useEffect(() => {
     if (prevRef.current === null) return;
+    // A route change during a trace is an interruption (docs/INK-FREEZE-PLAN-TRACE.md §3): the
+    // pen lifts, the voice stops, the ink about the page that was left fades, the glass is let go.
+    boardTurn.routeChanged(route.name);
     scrollHold.releaseAll();
-    clearMarks();
   }, [route.name]);
   return (
     <AnimatePresence mode="popLayout" initial={false} custom={dir}>
@@ -492,6 +495,17 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     return turn;
   };
 
+  /**
+   * A turn is over and Wobo's line is still empty: take it out (the adversary, wave 47, finding 9).
+   * The bubble is minted at the ask so it can grow sentence by sentence; when the learner cuts Wobo
+   * off before the first one it is not a turn Wobo had, and the transcript must not keep it as one.
+   */
+  const dropEmptyLine = (id: string) => {
+    setTurns((prev) => prev.filter((t) => t.id !== id || linePrinted(t)));
+    const archived = readArchive().find((t) => t.id === id);
+    if (archived && !linePrinted(archived)) removeArchiveTurn(id);
+  };
+
   /** Wobo's line grows as the plan streams: the written words keep up with the spoken ones. */
   const growTurn = (id: string, text: string) => {
     const grow = (t: ChatTurn): ChatTurn =>
@@ -524,10 +538,50 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     doubt?: AskOptions['doubt'],
   ) => {
     const line = say({ role: 'wobo', text: '' });
+    // The one account of what Wobo has said this turn (wobo/transcript.ts): the say frames as the
+    // voice reaches them, and the question printed once however often the wire names it.
+    const spoken = newTurnLine();
     const title = doubt
       ? 'your doubt'
       : (context.curriculum?.nodeName ?? (context.page.state.title as string | undefined));
     if (doubt) doubtCaption.begin();
+    // Freeze (docs/INK-FREEZE-PLAN-TRACE.md §3): the glass is held BEFORE it is read, so the phone
+    // sheet has folded to its strip and the layout is still by the time the map is taken. The map
+    // is what the brain plans from and what the hand traces from; the hold keeps it true.
+    glassHold.hold('turn');
+    await nextLayout();
+    const read = () =>
+      takeGlass({
+        question: text,
+        route: route.name,
+        focusId: turnFocus()?.id ?? null,
+      });
+    let glass = read();
+    // The thing the words name may be off the glass (the effect circle above the fold at 390):
+    // it is brought into view before the map is taken, so the ring lands where the learner can
+    // see it rather than 143 px above the page.
+    const named = doubt ? null : lookingAt(text, glass);
+    if (named && bringOntoGlass(named)) {
+      await nextLayout();
+      glass = read();
+    }
+    // THE INSTANT MARK (docs/INK-FOUR.md). The map is taken and the glass is held; if the words
+    // name something the content model declared, the target is known NOW, with no model call, and
+    // the pen starts on it while the request is in flight. `resolveInstant` aims at nothing when
+    // nothing is named, and then no ink starts.
+    const aim = resolveInstant({
+      question: text,
+      map: glass,
+      core: currentCore(),
+      focusId: turnFocus()?.id ?? null,
+    });
+    // THE READ IS DONE (docs/INK-FOUR.md, timing; the adversary, wave 47, finding 7). The freeze
+    // was taken for the read, and the read has just finished. With no local aim nothing will be
+    // drawn on this tick, so the page goes straight back rather than sitting frozen for the whole
+    // opening beat: nine keyless turns that drew nothing recorded `hold@24 release:cap@1226`.
+    // It lets go as the turn's own end, so the answer still on the wire is not aborted, and ink
+    // that arrives later takes the glass again for itself (`holdGlass`, wobo/board-turn.ts).
+    if (!aim) glassHold.read();
     try {
       const outcome = await boardTurn.run({
         gatewayUrl: GATEWAY_URL as string,
@@ -535,7 +589,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         // `payload.context.turn.lastUserInput` — both to plan the board and, before that, to
         // run the inbound safety screen. Unwrapping it here handed the brain an empty turn,
         // so a board turn planned nothing and was screened against nothing.
-        payload: boardTurnPayload(context, mode ? { task: { mode } } : {}),
+        payload: boardTurnPayload(context, { glass, ...(mode ? { task: { mode } } : {}) }),
         // The doubt's answer streams the same frames from its own door, with the learner's
         // corrections as the body (services/gateway doubt.py composes the packet from the photo).
         ...(doubt
@@ -543,15 +597,34 @@ function AppInner({ sdk }: { sdk: Sdk }) {
           : {}),
         route: route.name,
         ...(shape.override ? { override: shape.override } : {}),
+        ...(shape.word?.fresh ? { fresh: true } : {}),
         origin: orbOrigin(),
         ...(title ? { title } : {}),
+        ...(aim
+          ? {
+              instant: {
+                target: aim.target,
+                kind: aim.kind,
+                words: aim.words,
+                // The core's own sentence opens the turn only when the whole answer was made in
+                // advance with the level; otherwise the words ride with the mark and the model
+                // does the talking, so there is never a second voice.
+                ...(aim.fromCache && aim.say ? { say: aim.say } : {}),
+              },
+            }
+          : {}),
         onSay: (said, t, dur) => {
-          growTurn(line.id, said);
+          if (spoken.say(said)) growTurn(line.id, said);
           // The doubt screen prints the caption sentence by sentence ON THE BEAT (law 5 for the
           // sound-off learner), so it takes the say frame with its time, not the joined text.
           if (doubt) doubtCaption.say(said, t ?? 0, dur);
         },
-        onAsk: (prompt) => growTurn(line.id, prompt),
+        // The plan's last sentence usually IS its question, and the ask frame names it again so the
+        // wire can pause the turn on it. Printed as it arrives, every turn with a question said it
+        // twice (the lab, 2026-09-08). It is printed once, by whichever frame carried it first.
+        onAsk: (prompt) => {
+          if (spoken.ask(prompt)) growTurn(line.id, prompt);
+        },
         onAction: (action) => bus.dispatch(parseActions([action])),
         onCard: (card) => {
           const extras = resolveTurnExtras(
@@ -570,10 +643,9 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       // Wobo never asked for is not silence, it is Wobo talking over their own interruption.
       // What lands is the honest thing (voice.md §6), never a filler that pretends to begin.
       if (outcome.completed && !outcome.said.trim() && outcome.objects === 0) {
-        growTurn(
-          line.id,
-          'That one did not come out. Ask it once more, or say which part is the sticking point.',
-        );
+        const honest =
+          'That one did not come out. Ask it once more, or say which part is the sticking point.';
+        if (spoken.say(honest)) growTurn(line.id, honest);
       }
       sdk.events.record('wobo.turn.assistant.v1', {
         turn_id: crypto.randomUUID(),
@@ -587,13 +659,18 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     } catch (err) {
       const refusal = refusalLine(err);
       // An empty line is a barge-in: Wobo stops where Wobo is and says nothing about it.
-      if (refusal.text) growTurn(line.id, refusal.text);
+      if (refusal.text && spoken.say(refusal.text)) growTurn(line.id, refusal.text);
       if (refusal.signIn && sdk.account) {
         window.setTimeout(() => router.navigate({ name: 'onboarding' }), 900);
       }
       setMood('idle');
     } finally {
       if (doubt) doubtCaption.end();
+      // NO EMPTY BUBBLE (the adversary, wave 47, finding 9). Wobo's line is minted at the ask,
+      // empty, so it can grow as the voice reaches each sentence. Escape mid-stroke stops it
+      // before the first one, and `{"role":"wobo","text":""}` stood in the transcript live and
+      // keyless. A line with nothing said and nothing to act on is taken back out.
+      dropEmptyLine(line.id);
       setBusy(false);
     }
   };
@@ -613,14 +690,11 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     const userTurn = options.silent
       ? { id: mintTurnId(), role: 'user' as const, text }
       : say({ role: 'user', text });
+    // The learner answered, or asked something else: the ink that was holding for their answer
+    // lets go, whatever shape this turn takes (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace).
+    if (!options.silent) boardTurn.answered();
     setBusy(true);
     setMood('thinking');
-    // Optimistic ink: Wobo reacts in <100ms with a point at the thing the learner's words are
-    // about, before the model returns. Only that thing (wobo/looking.ts): ringing the first target
-    // on the screen for every turn put a ring round the download toast for "hello", and held the
-    // page for it. The real actions replace this the moment they land.
-    const looking = lookingAt(text, surfaceRegistry);
-    if (looking) bus.dispatch([{ type: 'point', targetId: looking, ttl: 2200 }]);
     // Wobo remembers what matters, not the transcript: a short recent window, with Wobo's own long
     // explanations clipped — the archive is for the learner to scroll, never re-fed to the model.
     const recent = [...turns.slice(-7), userTurn].map((t) => ({
@@ -698,6 +772,29 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         await askBoard(text, { board: true }, context, 'explain_this', options.doubt);
         return;
       }
+      // THE DECIDING READ IS TAKEN UNDER THE FREEZE (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze;
+      // the adversary, 2026-09-09, finding 5).
+      //
+      // What the words are about is read off the glass before anything is asked (wobo/looking.ts):
+      // a question about a thing on this screen is answered on it, in place, so it is a drawing
+      // turn. On a phone the only way to ask is the companion sheet, which is
+      // `[role=dialog][aria-modal=true]` covering [23,64,367,780] of a 390x844 screen — a correct
+      // occluder — so this read used to see ONE entry, the breadcrumb, on a course page that
+      // reads 21 entries at 1440. Nothing was named, so the turn was not a drawing turn, so it
+      // never froze, so the sheet never folded: the fold was gated on a hold that only a drawing
+      // turn ever took, and only a folded read could have made it one. "Circle the hypotenuse"
+      // at 390 drew nothing and answered with a canned line.
+      //
+      // So the freeze comes FIRST and unconditionally: hold, let the sheet fold to its strip and
+      // settle, then read. A turn that turns out not to draw hands the page straight back in the
+      // `finally` below — the hold is never left to the cap.
+      if (!options.silent) {
+        glassHold.hold('turn');
+        await nextLayout();
+      }
+      const looking = options.silent
+        ? null
+        : lookingAt(text, takeGlass({ question: text, route: route.name }));
       // The learner's word about the surface is obeyed before anything is asked of the brain:
       // "close the board" is not a question, and "fresh board" has to be true before Wobo draws.
       const mode = modeFromText(text);
@@ -712,6 +809,12 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         // The screen said it would draw (onboarding step three); keep the promise.
         draw: options.draw === true,
       });
+      // AND A TURN THAT WILL NOT DRAW HANDS THE PAGE STRAIGHT BACK. The freeze above was taken for
+      // the READ — to fold the phone sheet off the page and settle the layout — and the read is
+      // done. Holding it through the whole round trip would lock a child's scroll for every plain
+      // question, which is exactly what wave 33 fixed. A drawing turn keeps it: `askBoard` takes
+      // it again below and the conductor owns its release (board-turn.ts).
+      if (!(shape.board && GATEWAY_URL)) glassHold.release('end');
       // ONLY THE LEARNER'S OWN WORD MOVES THE BOARD. A silent ask is Wobo's own sentence — the
       // re-teach ladder asking for a second explanation on the learner's behalf — and the learner
       // never typed it and never sees it (wobo/chat.tsx `AskOptions.silent`). Read as a surface
@@ -744,7 +847,8 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         setMood('idle');
         return;
       }
-      if (word?.fresh) plane.fresh(orbOrigin());
+      // "Fresh board" is kept for the board turn (`fresh` on the run): the plane opens as a new
+      // board on its first object, never empty over the page ahead of the brain.
 
       // The hands (WOBO-PLAN §3). "Show me" is not a description: a visible cursor glides to the
       // real control on the real screen and taps it, resolved through the registry so it works on
@@ -764,10 +868,21 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         setMood('idle');
         return;
       }
-      if (mode === 'show_me' || mode === 'do_it') {
+      // A DRAWING ASK IS NOT A POINTING ASK (the adversary, 2026-09-09, finding 1). "show me a
+      // number line" is `show_me`, and the hand ran first: it can only point at what is already
+      // on the page, so it pointed at whatever the registry matched and Wobo's whole spoken and
+      // printed answer was "here: 1meet a square and a cube" — no ink, no gateway turn, and the
+      // number-line pipeline never reached. Words that ask to be shown something NEW go to the
+      // board that can build it. A region in hand still belongs to the hand: "show me this bit"
+      // names a thing on the glass, and that is exactly what a hand is for.
+      const wantsInk = asksForADrawing(text);
+      if ((mode === 'show_me' || mode === 'do_it') && !(wantsInk && turnFocus() === null)) {
         const inHand = turnFocus();
         const named = text.replace(/\b(show me|do it|for me|please|where is|how to)\b/gi, ' ');
-        const targetId = inHand?.targetIds[0] ?? findTargetId(named);
+        // The learner's WHOLE words ride along, so the refusal that keeps the hand off
+        // their own question still lines up after "show me" has been stripped out of it
+        // (wobo/hands.ts `aimableTargets`; the adversary, 2026-09-09, finding 2).
+        const targetId = inHand?.targetIds[0] ?? findTargetId(named, surfaceRegistry, text);
         const target = targetId ? surfaceRegistry.getTarget(targetId) : undefined;
         if (target) {
           // The permission ladder: anything that communicates, buys, submits or deletes asks
@@ -819,7 +934,9 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         });
         if ('route' in nav) {
           setMood('explaining');
-          window.setTimeout(() => router.navigate(nav.route), 650);
+          // Wobo's own navigation waits for the glass: a route change is deferred to the end of
+          // a turn that is still drawing (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze).
+          window.setTimeout(() => glassHold.defer(() => router.navigate(nav.route)), 650);
         } else {
           setMood('idle');
         }
@@ -828,7 +945,14 @@ function AppInner({ sdk }: { sdk: Sdk }) {
 
       // The rung Wobo is on rides the packet's task state; the beat, the attempt and the score come
       // off the screen itself (`taskFrom`), so the brain always knows where in the work this is.
-      const onRung = mode ? { task: { mode } } : {};
+      // A plain turn reads the glass too (no hold: nothing draws), so the brain sees the page
+      // the learner is asking about rather than a registry's list of what happened to register.
+      const glass = takeGlass({
+        question: text,
+        route: route.name,
+        focusId: turnFocus()?.id ?? null,
+      });
+      const onRung = { glass, ...(mode ? { task: { mode } } : {}) };
       const result = await sdk.llm.invoke('wobo.turn', woboTurnPayload(context, onRung), {
         consentTier: 'un_elevated',
       });
@@ -922,7 +1046,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         // the route path: Wobo walks you there, docked — after Wobo's line lands
         if (extras.route) {
           const dest = NAV_ROUTES[extras.route.to];
-          if (dest) window.setTimeout(() => router.navigate(dest), 650);
+          if (dest) window.setTimeout(() => glassHold.defer(() => router.navigate(dest)), 650);
         }
       }
       // Wobo's turn on the event backbone — attributed, grounded, accountable
@@ -934,17 +1058,12 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         track: result.track,
         handed_answer: false,
       });
-      // THE ACTION TIMELINE: anchored ink rides Wobo's speech beats (the conductor plays it as Wobo
-      // speaks the line just said); the rest dispatches at once for an instant reaction. A turn
-      // with no anchors keeps the original all-at-once behavior.
-      const anchored = actions.filter(hasSyncAnchor);
-      const immediate = actions.filter((a) => !hasSyncAnchor(a));
       // What kind of line this is (voice.md 10b): the crisis line, the mood the tutor set, or a
       // step. Read off the tutor's own output here and told to the voice; never guessed from words.
-      if (spokenTurnId) {
-        registerPerformance(spokenTurnId, anchored, beatOfTurn(actions, output.safety));
-      }
-      bus.dispatch(immediate);
+      // A plain turn draws nothing: its actions are the mood, a scene's state, the hints and the
+      // facts to keep. Anything to show on the page is a board turn's plan, above.
+      if (spokenTurnId) registerBeat(spokenTurnId, beatOfTurn(actions, output.safety));
+      bus.dispatch(actions);
       setMood(actions.length > 0 ? 'explaining' : 'idle');
     } catch (err) {
       // The brain's refusals reach the learner as Wobo's line, never a status code and never a
@@ -958,6 +1077,11 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       }
       setMood('idle');
     } finally {
+      // The page is the learner's again. A drawing turn has already let go inside the conductor
+      // (board-turn.ts `releaseGlass`), and a release on a glass nobody is holding only runs the
+      // route changes that were waiting — so this is the one line that guarantees the freeze taken
+      // for the deciding read is never left for the cap to clean up.
+      glassHold.release('end');
       setBusy(false);
     }
   };
@@ -1131,8 +1255,6 @@ function AppInner({ sdk }: { sdk: Sdk }) {
           <Screen />
         )}
       </StateLayer>
-      {/* Wobo's ink over the current screen — annotations anchored to real elements. */}
-      <WoboOverlay />
       {/* The nervous system above the app: the gesture sense, Wobo's ink on the screen, the plane, the
           full board a lesson becomes, the cursor Wobo shows things with. Wobo's own full-screen flows
           (onboarding, the frame theatre, a design concept) keep the stage but not the gestures —

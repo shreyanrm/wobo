@@ -27,7 +27,8 @@
  */
 
 import type { Route } from '../../shell/router';
-import { CTA, START_FREE } from './cta';
+import { CTA, doorFor, START_FREE } from './cta';
+import { LIST } from './invitation';
 
 /** A control on a public page: a label, and either a route or a path/in-page anchor. */
 export interface CtaAction {
@@ -63,12 +64,17 @@ export type PublicPage =
   | 'parents'
   | 'students'
   | 'subjects'
+  | 'syllabus'
+  | 'glossary'
+  | 'exams'
+  | 'compare'
   | 'security'
   | 'plans'
   | 'checkout'
   | 'gift'
   | 'donate'
   | 'about'
+  | 'blog'
   | 'help'
   | 'contact'
   | 'legal'
@@ -139,6 +145,57 @@ export const HANDOFFS: Readonly<Record<PublicPage, Handoff>> = {
     quiet: { label: 'Ask about your subject', href: '#ask' },
   },
   /**
+   * The syllabus pages — a board, a class, a subject, a chapter, a topic. A reader here arrived
+   * from a search on their own chapter, has just read what it covers and where we got it, and has
+   * an ask box on the page they can use with no account. The forward step is therefore the product
+   * itself; the quiet second is the page that answers the objection they have not raised yet ("is
+   * MY board in here"), which is the one page that lists all four.
+   */
+  syllabus: {
+    job: 'turn a reader who found their own chapter into someone who asks Wobo about it',
+    title: 'That is the chapter. Wobo can teach it.',
+    hand: 'Your board, your book, your words.',
+    primary: START_FREE,
+    quiet: { label: 'See every board we hold', href: '/subjects' },
+  },
+  /**
+   * The glossary. A reader here came for one idea, has just seen it on four boards with the
+   * document behind each, and the honest thing this page does NOT have is the explanation. So the
+   * forward step is the product, where the explanation is; the quiet second is their own chapter,
+   * which is the same idea in the words their exam will use.
+   */
+  glossary: {
+    job: 'turn a reader who came for one idea into someone who watches Wobo explain it',
+    title: 'That is where it sits. Wobo can explain it.',
+    hand: 'Drawn, spoken, or as a thing to drag.',
+    primary: START_FREE,
+    quiet: { label: 'Find it on your board', href: '/exams' },
+  },
+  /**
+   * The exam-cycle pages. A reader here is checking whether we really hold their board, and has
+   * just read the documents and the dates. The next doubt is whether their SUBJECT is in there,
+   * which is the page that lists every board we hold and opens the finder.
+   */
+  exams: {
+    job: "prove the syllabus is the board's own, then open it",
+    title: 'That is the syllabus. Open it with Wobo beside you.',
+    hand: 'Your board, from the board.',
+    primary: START_FREE,
+    quiet: { label: 'See every subject', href: '/subjects' },
+  },
+  /**
+   * The side-by-side pages. A reader here is deciding where money goes, so the honest second is
+   * the price, in full, on our own page. Nothing in this close refers to the other product: a
+   * page that reports on somebody else must not close by selling against them.
+   */
+  compare: {
+    job: 'let somebody deciding read four sourced facts and go and check them',
+    title: 'Read both, then decide.',
+    hand: null,
+    primary: START_FREE,
+    quiet: { label: 'See what it costs', href: '/plans' },
+  },
+  /**
    * The quiet second used to be `#collect`, an anchor back up the page the reader has just
    * finished, so the only forward move off the trust page was the primary. docs/SELL.md §6 gives
    * this page "read what we hold" as its second, and what we hold in full is the legal set — which
@@ -191,6 +248,19 @@ export const HANDOFFS: Readonly<Record<PublicPage, Handoff>> = {
     primary: START_FREE,
     quiet: { label: 'Read the security page', href: '/security' },
   },
+  /**
+   * The blog's reader arrived from a search, on a page about how a syllabus is read or what a
+   * machine cannot do. They have not been sold anything and should not be: the forward move is
+   * the product itself, and the quiet second is the evidence behind whatever they just read, which
+   * is the syllabus the pages are built on.
+   */
+  blog: {
+    job: 'turn a reader who arrived from a search into someone who tries it',
+    title: 'That is how it works. Try it on something you are stuck on.',
+    hand: 'Free every day, and no card to start.',
+    primary: START_FREE,
+    quiet: { label: 'See the subjects', href: '/subjects' },
+  },
   help: {
     job: 'get a stuck reader unstuck, then back into the product',
     title: 'Wobo answers this sort of question inside the app too.',
@@ -234,6 +304,53 @@ export const HANDOFFS: Readonly<Record<PublicPage, Handoff>> = {
 };
 
 /** The close a page shows. A lookup, so a page names itself rather than inventing its own words. */
-export function handoff(page: PublicPage): Handoff {
-  return HANDOFFS[page];
+/**
+ * THE CLOSE ON A SYLLABUS PAGE KNOWS WHICH PAGE IT IS ON.
+ *
+ * One line, "That is the chapter. Wobo can teach it.", used to end all 409 of them, and 76 were
+ * not chapters: four boards, thirteen classes, fifty subjects and nine subject hubs all closed by
+ * calling themselves a chapter. On a page whose own lead two paragraphs earlier says "is a unit of
+ * the ICSE class 9 history and civics syllabus", it is the exact tell of a template with a name
+ * swapped, at the point of the page where a reader is deciding.
+ *
+ * The table stays in this file and the page passes only its layer, so the words are still owned
+ * here and a page still cannot type its own door.
+ */
+export const SYLLABUS_CLOSE: Readonly<Record<string, string>> = {
+  board: 'That is the board. Wobo can teach it.',
+  class: 'That is the year. Wobo can teach it.',
+  subject: 'That is the subject. Wobo can teach it.',
+  chapter: 'That is the chapter. Wobo can teach it.',
+  topic: 'That is the topic. Wobo can teach it.',
+  hub: 'That is where it is taught. Wobo can teach it.',
+};
+
+/** The close headline for one layer of the syllabus family, or the family's own where unknown. */
+export function syllabusClose(layer: string): string {
+  return SYLLABUS_CLOSE[layer] ?? HANDOFFS.syllabus.title;
+}
+
+/**
+ * A page's close, for the dial as it stands.
+ *
+ * The table above is the OPEN site and is never edited to close it (`docs/DOORS-CLOSED.md` §4:
+ * a dial, not a deploy). While the dial is off, `doorFor` swaps the one action that is a door and
+ * leaves the quiet second alone, so each page still hands the reader the next step in its own
+ * argument rather than collapsing every close onto the same one.
+ */
+export function handoff(page: PublicPage, open: boolean): Handoff {
+  const close = HANDOFFS[page];
+  if (open) return close;
+  const primary = doorFor(close.primary, open);
+  // The handwritten line under a door says what the door does. Where the door has become the
+  // invitation, "free every day, and no card to start" is a sentence about a product the reader
+  // cannot have yet, so the one true sentence about when takes its place (DOORS-CLOSED §5).
+  // A page whose primary is a TRANSACTION keeps its own line: the price has not changed.
+  const swapped = primary !== close.primary;
+  return {
+    ...close,
+    hand: swapped ? LIST.under : close.hand,
+    primary,
+    quiet: doorFor(close.quiet, open),
+  };
 }

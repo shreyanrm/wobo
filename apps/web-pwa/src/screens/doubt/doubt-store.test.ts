@@ -9,6 +9,7 @@
  */
 
 import { afterAll, beforeEach, describe, expect, it } from 'bun:test';
+import { readFileSync } from 'node:fs';
 
 class FakeStorage {
   readonly map = new Map<string, string>();
@@ -181,5 +182,27 @@ describe('removing a doubt reaches the server', () => {
     saveDoubt(doubt('a/../b'));
     await removeDoubt('a/../b', { gatewayUrl: 'http://brain.test' });
     expect(calls[0]?.url).toBe('http://brain.test/v1/doubt/a%2F..%2Fb');
+  });
+});
+
+/**
+ * A DOUBT IS EXPLAINED ONLY IF WOBO EXPLAINED IT (the adversary, 2026-09-09, finding 9).
+ *
+ * The memory page filed `d.status === 'answered'` as explained. The server's status says a plan
+ * was SHAPED, not that an explanation reached the child: live, a doubt whose page was read
+ * correctly never got an explanation at all and was still filed explained.
+ */
+describe('what the memory page may claim about a doubt', () => {
+  it('never reads the server status as an explanation', () => {
+    const memory = readFileSync(new URL('./DoubtMemory.tsx', import.meta.url).pathname, 'utf8');
+    expect(memory).not.toContain("explained: d.status === 'answered'");
+    expect(memory).toContain('explained: false');
+  });
+
+  it("keeps the device's own word when the server sends a doubt back unexplained", () => {
+    saveDoubt(doubt('a'));
+    updateDoubt('a', { explained: true });
+    const list = reconcileDoubts([{ ...doubt('a'), explained: false }]);
+    expect(list[0]?.explained).toBe(true);
   });
 });

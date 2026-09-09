@@ -32,11 +32,12 @@ import re
 import secrets
 import threading
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
+from wobo_gateway.board import naming
 from wobo_gateway.board.planner import Plan
 from wobo_gateway.telemetry import MetricsSink, TelemetryEvent, emit
 
@@ -60,6 +61,10 @@ INK_LEAD_MS = 120
 DEFAULT_INK_MS = 240
 #: However crowded the board, a mark never draws faster than a hand can move.
 MIN_INK_MS = 240
+#: Nor slower. A stroke stretched to a second and a half is not a hand, it is a slide changing:
+#: pythagoras drew ten objects at 1064 ms each and took 10.8 s over a figure a teacher draws in
+#: three (the adversary, 2026-09-09, finding 5).
+MAX_INK_MS = 900
 
 MAX_SENTENCES = 10
 #: A finished turn is kept this long so a dropped connection can resume it without paying again.
@@ -102,6 +107,22 @@ class Turn:
 
     def after(self, seq: int) -> list[Event]:
         return [e for e in self.events if e.seq > seq]
+
+    def extend(self, events: list[Event]) -> list[Event]:
+        """Append a later phase of the same turn, numbering it on from the last frame.
+
+        A turn reaches the wire in two phases when its drawing was resolved without the model
+        (``board.scaffold``): the scaffold goes out at once and the model's words follow. Both
+        halves are ONE turn — one id, one sequence that only ever grows — so a reconnect resumes
+        a two-phase turn exactly as it resumes a one-phase one.
+        """
+        next_seq = (self.events[-1].seq + 1) if self.events else 0
+        added = [
+            Event(seq=next_seq + i, type=e.type, t=e.t, data=e.data)
+            for i, e in enumerate(events)
+        ]
+        self.events.extend(added)
+        return added
 
 
 _turns: dict[str, Turn] = {}
@@ -228,10 +249,75 @@ def _beat_slot(obj: dict[str, Any], clock: list[tuple[int, int]]) -> tuple[int, 
     own = int((obj.get("t") or {}).get("dur") or DEFAULT_INK_MS)
     if isinstance(beat.get("with"), int):
         index = max(0, min(len(clock) - 1, beat["with"]))
-        return clock[index][0], own
+        start, length = clock[index]
+        lag = beat.get("lag")
+        if isinstance(lag, (int, float)) and not isinstance(lag, bool):
+            # The plan of marks on the glass (board.glass): two marks in one sentence are drawn
+            # one after the other by one pen, the second lagging the first by its duration, and
+            # every stroke of a sentence ENDS inside that sentence. A mark that cannot fit after
+            # the first is pulled forward, never pushed past the full stop.
+            own = min(own, length)
+            return max(start, min(start + int(lag), start + length - own)), own
+        # AHEAD OF THE WORD (INK-FOUR, Timing at 4). ``board.naming.keep_time`` records WHERE in
+        # the sentence the name falls; the pace lives here, so this is where a word becomes a
+        # millisecond. The stroke lands so that it is finishing as the word is said, and never
+        # after the sentence it belongs to has ended.
+        word, words = beat.get("word"), beat.get("words")
+        if isinstance(word, int) and isinstance(words, int) and words > 0:
+            own = min(own, length)
+            at = int(length * max(0, min(word, words - 1)) / words)
+            return max(start, min(start + at - own, start + length - own)), own
+        return start, own
     if isinstance(beat.get("after"), int):
         index = max(0, min(len(clock) - 1, beat["after"]))
         return clock[index][0], max(own, clock[index][1])
+    return None
+
+
+def _runs(slots: list[tuple[int, int] | None]) -> list[tuple[int, int]]:
+    """The half-open spans of consecutive unbeaten objects, in drawing order."""
+    out: list[tuple[int, int]] = []
+    start: int | None = None
+    for index, slot in enumerate(slots):
+        if slot is None and start is None:
+            start = index
+        elif slot is not None and start is not None:
+            out.append((start, index))
+            start = None
+    if start is not None:
+        out.append((start, len(slots)))
+    return out
+
+
+def _end_of(slot: tuple[int, int] | None) -> int:
+    return 0 if slot is None else slot[0] + slot[1]
+
+
+def _authored(obj: dict[str, Any]) -> bool:
+    """Was this beat CHOSEN — by the plan, or by the glass planner — rather than derived here?
+
+    ``board.naming.keep_time`` records the word a name falls on and stamps ``words`` with it. A
+    beat without that stamp came from somebody who meant it, and is placed exactly as written.
+    """
+    for holder in (obj, obj.get("meta") if isinstance(obj.get("meta"), dict) else {}):
+        beat = holder.get("beat") if isinstance(holder, dict) else None
+        if isinstance(beat, dict) and (
+            isinstance(beat.get("with"), int) or isinstance(beat.get("after"), int)
+        ):
+            return not isinstance(beat.get("words"), int)
+    return False
+
+
+def _sentence_of(obj: dict[str, Any], clock: list[tuple[int, int]]) -> tuple[int, int] | None:
+    """The window of the sentence this object keeps time with, or None when it keeps time with
+    none of them."""
+    for holder in (obj, obj.get("meta") if isinstance(obj.get("meta"), dict) else {}):
+        beat = holder.get("beat") if isinstance(holder, dict) else None
+        if not isinstance(beat, dict) or not clock:
+            continue
+        for key in ("with", "after"):
+            if isinstance(beat.get(key), int):
+                return clock[max(0, min(len(clock) - 1, beat[key]))]
     return None
 
 
@@ -249,7 +335,10 @@ def _ink_clock(
     if not objects:
         return []
     starts = [int((o.get("t") or {}).get("start") or 0) for o in objects]
-    durations = [int((o.get("t") or {}).get("dur") or DEFAULT_INK_MS) for o in objects]
+    durations = [
+        max(MIN_INK_MS, min(MAX_INK_MS, int((o.get("t") or {}).get("dur") or DEFAULT_INK_MS)))
+        for o in objects
+    ]
     origin = min(starts)
     first_end = (clock[0][0] + clock[0][1]) if clock else INK_LEAD_MS + 1
     lead = min(INK_LEAD_MS, max(0, first_end - 1))
@@ -257,18 +346,62 @@ def _ink_clock(
 
     slots: list[tuple[int, int] | None] = [_beat_slot(o, clock) for o in objects]
     free = [i for i, slot in enumerate(slots) if slot is None]
-    span = spoken - lead
-    if clock and free and span > 0:
-        # Evenly across what is left of Wobo's line — one slice each, in the planner's order.
-        step = span / len(free)
+    if not clock or not free:
+        pass
+    elif all(slot is None for slot in slots):
+        # Nothing on this board is named by a sentence, so there is no word to keep time with.
+        # The hand draws through the utterance, evenly, at a hand's pace.
+        span = max(0, spoken - lead)
+        step = span / len(free) if span > 0 else 0.0
         for place, index in enumerate(free):
             start = lead + int(round(place * step))
-            slots[index] = (start, max(durations[index], MIN_INK_MS, int(round(step))))
+            slots[index] = (start, min(MAX_INK_MS, max(durations[index], int(round(step)))))
     else:
-        for index in free:
+        # THE FREE INK FILLS THE GAPS BETWEEN THE BEATS, IN DRAWING ORDER. A construction stroke
+        # is not named by anything — the triangle's two legs, a leader, a pointer — so it belongs
+        # in the space before the first thing that IS named, and between one named thing and the
+        # next. Spreading it across the whole utterance instead is what made the board a
+        # slideshow, and what drew the figure after the labels hanging off it.
+        for run_start, run_end in _runs(slots):
+            window_start = lead if run_start == 0 else _end_of(slots[run_start - 1])
+            after = slots[run_end] if run_end < len(slots) else None
+            window_end = after[0] if after is not None else spoken
+            count = run_end - run_start
+            room = max(0, window_end - window_start)
+            step = room / count if room > 0 else 0.0
+            for place in range(count):
+                index = run_start + place
+                start = window_start + int(round(place * step))
+                slots[index] = (start, min(durations[index], max(MIN_INK_MS, int(round(step)))))
+
+    for index in free:
+        if slots[index] is None:
             slots[index] = (lead + (starts[index] - origin), durations[index])
 
     out = [slot for slot in slots if slot is not None]
+    # DRAWING ORDER IS THE PEN'S ORDER. A beat says which word a mark keeps time with; it never
+    # says the label may be drawn before the thing it labels. One forward pass over the ink this
+    # module placed — a stroke is delayed rather than moved off its sentence, and never pushed
+    # past that sentence's own full stop.
+    #
+    # A beat the PLAN wrote is not touched by it. `{"with": n}`, `{"after": n}` and `lag` are
+    # choreography somebody chose, two marks may legitimately land on one beat, and the cursor
+    # only reads past them (:func:`_authored`).
+    cursor = lead
+    for index, (start, dur) in enumerate(out):
+        if _authored(objects[index]):
+            cursor = max(cursor, start + dur)
+            continue
+        begin = max(start, cursor)
+        window = _sentence_of(objects[index], clock)
+        if window is not None:
+            # Inside its own sentence where it fits. THE CURSOR STILL WINS: a label pulled back
+            # behind the leader it hangs off paints nothing at all (BOARD.md §4, a reference
+            # always points backwards; measured on the plant cell at 1440, 2026-09-09). Late is a
+            # blemish; before the thing it is about is not a mark.
+            begin = max(cursor, min(begin, max(start, window[0] + window[1] - dur)))
+        out[index] = (begin, dur)
+        cursor = begin + dur
     # The law, enforced rather than assumed: something is on the board before Wobo finishes the
     # first sentence, whatever the plan or the beats asked for. Only the EARLIEST stroke is pulled
     # forward — shifting the whole plan would drag every other mark off the word it belongs to,
@@ -288,15 +421,25 @@ def build_events(
     """The whole turn as an ordered, timestamped event list (BOARD.md §4).
 
     Ordered by timestamp, so the hand can play it straight through, and ``done`` is always last.
+
+    THE SAY NAMES WHAT IT DRAWS. This is the one place a turn's words and its ink are both in hand,
+    so it is where the law is kept (``board/naming.py``): every drawn mark the say never named gets
+    a sentence from its own words, every beat after an inserted sentence moves with it, and a line
+    that came back as machinery rather than words is not spoken at all.
     """
-    parts = sentences(plan.say)
+    said, objects = naming.name_what_is_drawn(
+        plan.say,
+        plan.objects,
+        ask=str((plan.ask or {}).get("prompt") or "") or None,
+    )
+    parts = sentences(said)
     clock = sentence_clock(parts)
-    paced = _ink_clock(plan.objects, clock)
+    paced = _ink_clock(objects, clock)
 
     staged: list[tuple[int, int, str, dict[str, Any]]] = []
     for order, (part, (start, duration)) in enumerate(zip(parts, clock, strict=True)):
         staged.append((start, order, "say", {"text": part, "dur": duration}))
-    for order, (obj, (start, dur)) in enumerate(zip(plan.objects, paced, strict=True)):
+    for order, (obj, (start, dur)) in enumerate(zip(objects, paced, strict=True)):
         drawn = {**obj, "t": {"start": start, "dur": dur}}
         staged.append((start, 1000 + order, "ink", {"object": drawn}))
 
@@ -470,11 +613,20 @@ def acknowledgement(turn: Turn, seq: int, t: int) -> Event:
     )
 
 
-def iter_sse(turn: Turn, *, after: int = -1) -> Iterator[str]:
+def iter_sse(
+    turn: Turn, *, after: int = -1, then: Callable[[Turn], None] | None = None
+) -> Iterator[str]:
     """The turn as an SSE body, from the event after ``after``.
 
     A comment frame goes first so a proxy flushes headers immediately — that is the difference
     between the pen starting in a second and the pen starting when the whole plan is done.
+
+    ``then`` is the second phase of a turn whose drawing was resolved without the model
+    (``board.scaffold``): everything already planned goes out FIRST, and only then is the model
+    asked, its frames appended to this same turn and streamed on. The learner sees the figure
+    while the model is still reading the question, which is the whole of docs/INK-FOUR.md's
+    Timing at 4. It is skipped for a learner who has already stopped Wobo: a turn nobody is
+    waiting for does not go on to spend a model call.
 
     The interrupt is checked BETWEEN frames rather than once at the top: the learner stops Wobo
     while the turn is on the wire, not before it starts. The first frame after the interrupt is
@@ -482,12 +634,18 @@ def iter_sse(turn: Turn, *, after: int = -1) -> Iterator[str]:
     """
     yield ": open\n\n"
     last_seq, last_t = after, 0
-    for event in turn.after(after):
-        if turn.interrupted:
-            yield frame(turn.id, acknowledgement(turn, max(last_seq, 0), last_t))
-            return
-        last_seq, last_t = event.seq, event.t
-        yield frame(turn.id, event)
+    phases = 0
+    while True:
+        for event in turn.after(last_seq):
+            if turn.interrupted:
+                yield frame(turn.id, acknowledgement(turn, max(last_seq, 0), last_t))
+                return
+            last_seq, last_t = event.seq, event.t
+            yield frame(turn.id, event)
+        phases += 1
+        if then is None or phases > 1 or turn.interrupted:
+            break
+        then(turn)
     if turn.interrupted:
         # Interrupted after the last frame was written: still acknowledged, so the learner's stop
         # is never silently swallowed by a turn that happened to be nearly over.

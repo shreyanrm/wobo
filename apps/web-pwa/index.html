@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-IN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -19,6 +19,13 @@
     <title>{{APP_NAME}}</title>
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      The .ico is the one address a browser (and a crawler probing a site) asks for whether it is
+      declared or not. It used to answer with the app shell and a 200, because the catch-all
+      rewrite swallowed every missing file; it is a real file now, the same orb as the SVG above,
+      rasterised at 16, 32 and 48 (docs/GROWTH-SEARCH.md §2).
+    -->
+    <link rel="icon" type="image/x-icon" sizes="16x16 32x32 48x48" href="/favicon.ico" />
     <!--
       First paint, before any JS: the app's own paper, so a dark-mode learner on a slow phone never
       gets a white flash while the bundle downloads. Two declarations, nothing else — the real

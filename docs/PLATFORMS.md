@@ -88,7 +88,26 @@ What that means in practice:
   name Wobo in both stores**, which is a form rather than a build, protects a first-come namespace, and
   is a strong entity signal on its own. That is the owner's call, and everything else holds.
 
-## 7. The order, in one line
+## 7. What a store build changes about the money, and it is not the price
+
+This survived from the earlier version of this page because it is a standing owner ruling rather
+than a plan, and the rewrite above dropped it: it belongs wherever store apps are described.
+
+- The web terms describe our own billing and our own cancellation, which lives on the You screen,
+  on the card called Your plan. There is no goodwill refund policy to describe: the owner's ruling
+  of 4 September 2026 is **cancel, never refund**, and the only refunds left are the ones the law
+  requires, listed in `docs/legal/refund-and-cancellation.md` section 5.
+- The iOS terms must say the subscription is billed by the App Store, that it renews unless
+  cancelled before the period ends, that cancellation is managed in the device's account settings,
+  and that refunds there are handled by the store rather than by us. Apple's own model text for an
+  auto-renewing subscription is required near the purchase control.
+- The Android terms say the same with the Play billing equivalents.
+- The price is the same on every platform. A store takes its cut out of what we receive, never out
+  of what a family pays.
+- One privacy policy serves all platforms, and it names recipients only as "third-party AI and
+  infrastructure providers".
+
+## 8. The order, in one line
 
 Build the web version until the owner walks it and is satisfied. Then Android. Then iOS. No desktop.
 Reserve the two store names whenever the owner chooses, since that is a namespace rather than a build.

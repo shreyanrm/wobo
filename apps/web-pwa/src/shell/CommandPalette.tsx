@@ -21,6 +21,7 @@ import { boardTurn } from '../wobo/board-turn';
 import { useWoboChat } from '../wobo/chat';
 import { availableModes, modePrompt } from '../wobo/modes';
 import { isMuted, setMuted } from '../wobo/speech';
+import { asksRather } from './palette-ask';
 import { type Route, useRouter } from './router';
 
 type Section = 'go' | 'subjects' | 'library' | 'actions';
@@ -387,6 +388,15 @@ export function CommandPalette() {
   }, [groups, hasQuery]);
   const noMatches = hasQuery && groups.length === 0;
 
+  // A QUESTION IS NOT A DESTINATION (shell/palette-ask.ts). "draw me a graph of y = x squared"
+  // ranks a chapter called Graphs above everything, and Enter would walk the learner off the page
+  // the question was about. When the words read as a question, the ask row is the stop Enter
+  // takes; every other row is still one arrow key away.
+  useEffect(() => {
+    const top = groups[0]?.items[0]?.label;
+    setIndex(asksRather(query, top) ? Math.max(navItems.length - 1, 0) : 0);
+  }, [query, navItems.length, groups]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -426,21 +436,34 @@ export function CommandPalette() {
     listRef.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' });
   }, [index]);
 
+  /**
+   * WHAT THE ROW DOES HAPPENS ONCE THE PALETTE IS GONE.
+   *
+   * The palette is a modal dialog over the whole viewport, so while it is on screen it occludes the
+   * page: a question asked from inside it is read against a glass with nothing on it but the
+   * palette's own rows, so nothing on the lesson is named and the turn is answered as words. It is
+   * also plainly wrong for a learner — the ink would be drawn behind the panel they are looking at.
+   * `onExitComplete` on the AnimatePresence below runs this the moment the panel has left.
+   */
+  const afterClose = useRef<(() => void) | null>(null);
+
   const runAt = (i: number) => {
     const it = navItems[i];
     if (!it) return;
     if (it.id === '__ask__') {
       const q = query.trim();
+      // Asked where the learner is: the ink lands on the page they are looking at. Navigating
+      // to the chat first drew the graph, the derivation and the free body under /chat with
+      // nothing visible (the lab's 09-sync turns, unchanged from wave 33).
+      afterClose.current = () => void chat.ask(q);
       setOpen(false);
-      router.navigate({ name: 'chat' });
-      void chat.ask(q);
       return;
     }
     const item = byId.get(it.id);
     if (!item) return;
     pushRecent(item.id);
+    afterClose.current = item.run;
     setOpen(false);
-    item.run();
   };
 
   const activeId = navItems[index] ? `cmdk-opt-${navItems[index].id}` : undefined;
@@ -531,7 +554,13 @@ export function CommandPalette() {
   let navCursor = 0;
 
   return (
-    <AnimatePresence>
+    <AnimatePresence
+      onExitComplete={() => {
+        const run = afterClose.current;
+        afterClose.current = null;
+        run?.();
+      }}
+    >
       {open && (
         <motion.div
           initial={{ opacity: 0 }}

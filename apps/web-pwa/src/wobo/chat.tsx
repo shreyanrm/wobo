@@ -132,6 +132,14 @@ export function updateArchiveTurn(id: string, patch: (turn: ChatTurn) => ChatTur
   writeArchive(readArchive().map((t) => (t.id === id ? patch(t) : t)));
 }
 
+/**
+ * Take one turn out of the archive (the adversary, wave 47, finding 9): the empty Wobo bubble an
+ * interrupted turn left behind is not a turn Wobo had, so it is not kept as one.
+ */
+export function removeArchiveTurn(id: string): void {
+  writeArchive(readArchive().filter((t) => t.id !== id));
+}
+
 const Ctx = createContext<WoboChat | null>(null);
 export const WoboChatProvider = Ctx.Provider;
 

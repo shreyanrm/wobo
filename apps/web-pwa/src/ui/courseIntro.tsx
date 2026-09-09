@@ -19,6 +19,7 @@
  */
 
 import { useReducedMotion } from '@wobo/motion';
+import { glassLabel } from '@wobo/wobo';
 import { motion } from 'framer-motion';
 import { chapterById, topicById } from '../curriculum/registry';
 import { subjectFamily } from '../curriculum/subjects';
@@ -31,12 +32,22 @@ export type SubjectArtKey = 'mathematics' | 'science' | 'social' | 'english';
 /** Ink is the drawing; accent is the drawing's one pigment; paper is a marked surface under it. */
 type MarkInk = 'ink' | 'thin' | 'accent' | 'accent-thin';
 
+/** What a mark IS, named so the glass map can hand it to Wobo as a part: "the right angle". */
+type Named = { part?: string };
+
 export type Mark =
-  | { el: 'path'; ink: MarkInk; d: string }
-  | { el: 'circle'; ink: MarkInk; cx: number; cy: number; r: number }
-  | { el: 'dot'; cx: number; cy: number; r: number }
-  | { el: 'mark'; x: number; y: number; w: number; h: number; rx: number }
-  | { el: 'text'; ink: 'ink' | 'accent'; x: number; y: number; size: number; text: string };
+  | ({ el: 'path'; ink: MarkInk; d: string } & Named)
+  | ({ el: 'circle'; ink: MarkInk; cx: number; cy: number; r: number } & Named)
+  | ({ el: 'dot'; cx: number; cy: number; r: number } & Named)
+  | ({ el: 'mark'; x: number; y: number; w: number; h: number; rx: number } & Named)
+  | ({
+      el: 'text';
+      ink: 'ink' | 'accent';
+      x: number;
+      y: number;
+      size: number;
+      text: string;
+    } & Named);
 
 export interface SubjectArt {
   /**
@@ -61,16 +72,33 @@ export const ART_THIN = 2.5;
 export const ART_VIEWBOX = '0 0 200 150';
 
 export const SUBJECT_ART: Record<SubjectArtKey, SubjectArt> = {
-  // the 3-4-5 triangle, its right angle, and the square on the hypotenuse
+  // THE 3-4-5 TRIANGLE AND THE SQUARE ON ITS HYPOTENUSE, drawn to scale and inside the frame.
+  //
+  // The adversary, 2026-09-09, finding 13: this is the figure "circle the hypotenuse" correctly
+  // rings, and it was not a right triangle a child could read. The square on the hypotenuse was
+  // an OPEN four-sided path (no Z) and not square at all — 113 long by 67 wide, because its two
+  // side vectors were (40,-54) where the perpendicular of the hypotenuse is (68,-90) — and two of
+  // its corners sat above the frame at y = -2 and y = -38, so the top of it was simply cut off.
+  //
+  // Now: the right angle is at A(46,124), the legs are 60 across and 45 up (a 3-4-5 triangle,
+  // hypotenuse 75), and the square is the real square on that hypotenuse — B(106,124),
+  // B'(151,64), C'(91,19), C(46,79), closed — every corner inside the 200x150 frame.
   mathematics: {
     tint: 'var(--pig-w)',
     accent: 'var(--pig)',
     marker: 'var(--marigold)',
     marks: [
-      { el: 'path', ink: 'ink', d: 'M50 120 L140 120 L50 52 Z' },
-      { el: 'path', ink: 'thin', d: 'M50 104 h16 v16' },
-      { el: 'path', ink: 'accent', d: 'M140 120 L180 66 L90 -2 L50 52' },
-      { el: 'text', ink: 'accent', x: 118, y: 60, size: 22, text: 'c²' },
+      { el: 'path', ink: 'ink', d: 'M46 124 L106 124 L46 79 Z', part: 'triangle' },
+      // the corner mark sits IN the right angle, on both legs
+      { el: 'path', ink: 'thin', d: 'M46 112 h12 v12', part: 'right angle' },
+      {
+        el: 'path',
+        ink: 'accent',
+        d: 'M106 124 L151 64 L91 19 L46 79 Z',
+        part: 'square on the hypotenuse',
+      },
+      // c² sits in the middle of the square it names, not floating beside it
+      { el: 'text', ink: 'accent', x: 86, y: 80, size: 22, text: 'c²', part: 'c²' },
     ],
   },
   // the benzene ring: the hexagon, and the ring of shared electrons inside it
@@ -79,9 +107,14 @@ export const SUBJECT_ART: Record<SubjectArtKey, SubjectArt> = {
     accent: 'var(--mint)',
     marker: 'var(--marigold)',
     marks: [
-      { el: 'path', ink: 'ink', d: 'M100 20 L152 50 L152 110 L100 140 L48 110 L48 50 Z' },
-      { el: 'circle', ink: 'accent-thin', cx: 100, cy: 80, r: 30 },
-      { el: 'text', ink: 'ink', x: 160, y: 44, size: 20, text: 'C₆H₆' },
+      {
+        el: 'path',
+        ink: 'ink',
+        d: 'M100 20 L152 50 L152 110 L100 140 L48 110 L48 50 Z',
+        part: 'hexagon',
+      },
+      { el: 'circle', ink: 'accent-thin', cx: 100, cy: 80, r: 30, part: 'shared electrons' },
+      { el: 'text', ink: 'ink', x: 160, y: 44, size: 20, text: 'C₆H₆', part: 'C₆H₆' },
     ],
   },
   // the river, the plateau above it, and the route that ends at the port
@@ -168,10 +201,12 @@ function Drawing({ art, reduced }: { art: SubjectArt; reduced: boolean }) {
     >
       {art.marks.map((mark, i) => {
         const key = `${mark.el}-${i}`;
+        const part = mark.part ? { 'data-glass-part': mark.part } : {};
         if (mark.el === 'mark') {
           return (
             <motion.rect
               key={key}
+              {...part}
               x={mark.x}
               y={mark.y}
               width={mark.w}
@@ -188,6 +223,7 @@ function Drawing({ art, reduced }: { art: SubjectArt; reduced: boolean }) {
           return (
             <motion.circle
               key={key}
+              {...part}
               cx={mark.cx}
               cy={mark.cy}
               r={mark.r}
@@ -203,6 +239,7 @@ function Drawing({ art, reduced }: { art: SubjectArt; reduced: boolean }) {
           return (
             <motion.text
               key={key}
+              {...part}
               x={mark.x}
               y={mark.y}
               fontSize={mark.size}
@@ -230,6 +267,7 @@ function Drawing({ art, reduced }: { art: SubjectArt; reduced: boolean }) {
           return (
             <motion.circle
               key={key}
+              {...part}
               cx={mark.cx}
               cy={mark.cy}
               r={mark.r}
@@ -238,7 +276,7 @@ function Drawing({ art, reduced }: { art: SubjectArt; reduced: boolean }) {
             />
           );
         }
-        return <motion.path key={key} d={mark.d} {...common} {...drawn(i, reduced)} />;
+        return <motion.path key={key} {...part} d={mark.d} {...common} {...drawn(i, reduced)} />;
       })}
     </svg>
   );
@@ -285,7 +323,13 @@ export function CourseIntroScene({ topicId, subject, minHeight = 300 }: CourseIn
         placeItems: 'center',
       }}
     >
-      <div style={{ width: '100%', maxWidth: 420 }}>
+      {/* The drawing is a figure on the glass map, its parts by name (the triangle, the right
+          angle, the square on the hypotenuse), so "circle the hypotenuse" has a box to land on. */}
+      <div
+        style={{ width: '100%', maxWidth: 420 }}
+        {...glassLabel('figure', undefined, `course-intro-${key}`)}
+        data-glass-text={`the ${key} drawing`}
+      >
         <Drawing art={art} reduced={reduced} />
       </div>
     </motion.div>

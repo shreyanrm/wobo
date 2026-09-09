@@ -4,7 +4,14 @@ import { join } from 'node:path';
 import { frameOf } from '../../src/board/anchors';
 import type { ObjectGeometry } from '../../src/board/geometry';
 import type { Stroke } from '../../src/board/pen';
-import { inkLength, spokenLabel, strokeSlots, surfaceArea } from '../../src/board/renderer';
+import {
+  glyphSlots,
+  inkLength,
+  penMaskId,
+  spokenLabel,
+  strokeSlots,
+  surfaceArea,
+} from '../../src/board/renderer';
 import { type BoardObject, CONTROL_KINDS, MARK_KINDS, SHAPE_KINDS } from '../../src/board/schema';
 import { BoardStore } from '../../src/board/store';
 
@@ -319,6 +326,10 @@ describe('what a screen reader is told about a board', () => {
     const one: Record<string, Record<string, unknown>> = {
       point: {},
       circle: {},
+      ring: {},
+      tick: {},
+      cross: {},
+      note: { text: 'x' },
       underline: {},
       arrow: {},
       bracket: {},
@@ -480,5 +491,83 @@ describe('a real board, read aloud in order', () => {
       const objects = golden(name).plan.filter((e) => e.type === 'ink').length;
       expect(readAloud(name).length, name).toBe(objects);
     }
+  });
+});
+
+describe('the pen mask id is a legal fragment (the adversary, wave 47, finding 1)', () => {
+  // The renderer keys every node `<object id>#<generation>`, and that key is handed down as the
+  // node's `id`. Chromium still resolves `url(#wobo-pen-b0_1square#0-g3)`, so this was not what
+  // lost the Punnett square's row-3 't' — `glyphSlots` below was. It is still not an id:
+  // `querySelector('#…')` cannot address it and engines are free to disagree about it.
+  it('carries no # from the object key into the fragment', () => {
+    const id = penMaskId('b0_1square#0', 'g3');
+    expect(id.includes('#')).toBe(false);
+    // The reference has exactly one #: the one that opens the fragment.
+    expect(`url(#${id})`.split('#').length).toBe(2);
+    // And it is addressable as a selector, which an id carrying a # is not.
+    expect(/^[A-Za-z][A-Za-z0-9_-]*$/.test(id)).toBe(true);
+  });
+
+  it('keeps two generations of the same object apart', () => {
+    expect(penMaskId('b0_1square#0', 'g3')).not.toBe(penMaskId('b0_1square#1', 'g3'));
+  });
+
+  it('keeps two glyphs of the same object apart', () => {
+    expect(penMaskId('b0_1square#0', 'g3')).not.toBe(penMaskId('b0_1square#0', 'g4'));
+  });
+
+  it('survives every other character a board id can carry', () => {
+    const id = penMaskId('p0_10flabel#2 (up-speed)', 'g0');
+    expect(/^[A-Za-z0-9_-]+$/.test(id)).toBe(true);
+  });
+});
+
+describe('a finished glyph is painted, never left under its mask (the adversary, wave 47, finding 1)', () => {
+  // The Punnett square's row-3 header 't' was in the DOM with a real box at [1003,622,5,10] and
+  // painted NOTHING at 390 and at 1440, and the same signature sat on the projectile's ground and
+  // the lens's label. The glyph clock divided each glyph's travel by `geometry.length`, which is
+  // the same sum taken in a different association order — so the LAST glyph's slot ended a
+  // floating-point hair past 1, `within(1, slot)` never reached 1, and the glyph stayed in the
+  // half-drawn branch behind a mask for the life of the board. The clock is the pen's own travel,
+  // summed the way the pen spends it.
+  const geo = (strokes: number[], glyphs: number[][], length: number): ObjectGeometry => ({
+    strokes: strokes.map((n) => stroke(n)),
+    glyphs: glyphs.map((traces) => ({
+      trace: traces.map((n) => ({ d: 'M 0 0', length: n })),
+      box: { x: 0, y: 0, w: 1, h: 1 },
+    })),
+    box: { x: 0, y: 0, w: 1, h: 1 },
+    length,
+  });
+
+  it('ends the last glyph exactly at 1, whatever the recorded length says', () => {
+    // A table: eight ruled strokes, then four written glyphs. `length` is a hair short.
+    const g = geo([12.7, 12.7, 12.7, 12.7, 40.3, 40.3, 40.3, 40.3], [[9.1], [7.3], [9.1], [7.3]], 244.79999999999998);
+    const slots = glyphSlots(g);
+    expect(slots).toHaveLength(4);
+    expect((slots[3] as { to: number }).to).toBe(1);
+  });
+
+  it('leaves the earlier glyphs in their own order and shares', () => {
+    const g = geo([10], [[10], [10]], 30);
+    const slots = glyphSlots(g);
+    expect(slots[0]).toEqual({ from: 1 / 3, to: 2 / 3 });
+    expect(slots[1]).toEqual({ from: 2 / 3, to: 1 });
+  });
+
+  it('gives a wholly written object the whole clock', () => {
+    const slots = glyphSlots(geo([], [[5], [5]], 10));
+    expect(slots[0]?.from).toBe(0);
+    expect((slots[1] as { to: number }).to).toBe(1);
+  });
+
+  it('does not divide by zero on an object with nothing to draw', () => {
+    expect(glyphSlots(geo([], [], 0))).toEqual([]);
+  });
+
+  it('agrees with the stroke clock: strokes finish where the writing starts', () => {
+    const g = geo([30], [[10]], 40);
+    expect(strokeSlots(g)[0]).toEqual({ from: 0, to: 0.75 });
+    expect(glyphSlots(g)[0]).toEqual({ from: 0.75, to: 1 });
   });
 });

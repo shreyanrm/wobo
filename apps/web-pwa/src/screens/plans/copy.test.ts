@@ -15,7 +15,7 @@ import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GIFT_FOR, GIFT_PAGE } from '../gift/copy';
-import { CTA, RETIRED_CTA } from '../site/cta';
+import { CTA, LIST_DOOR, RETIRED_CTA } from '../site/cta';
 import {
   BENEFITS,
   CHECKOUT_PAGE,
@@ -408,14 +408,26 @@ describe('cancel, never refund', () => {
   it('tells a reader who came to pay where the checkout is, in both states', () => {
     // Off: paying is not open. On: the checkout is the card on the plans page, and this page
     // says so rather than denying a door that is open.
-    expect(checkoutPageWords(false).title).toBe(CHECKOUT_PAGE.title);
-    expect(checkoutPageWords(false).lead).toContain('nothing can be charged');
-    const on = checkoutPageWords(true);
+    expect(checkoutPageWords(false, true).title).toBe(CHECKOUT_PAGE.title);
+    expect(checkoutPageWords(false, true).lead).toContain('nothing can be charged');
+    const on = checkoutPageWords(true, true);
     expect(on.title).not.toMatch(/not open/i);
     expect(on.lead).not.toMatch(/not open|nothing can be charged/i);
     expect(on.lead).toMatch(/plans page/i);
     expect(on.cta.href).toBe('/plans#checkout');
-    expect(checkoutPageWords(null)).toEqual(checkoutPageWords(false));
+    expect(checkoutPageWords(null, true)).toEqual(checkoutPageWords(false, true));
+  });
+
+  /**
+   * The two switches are separate (docs/DOORS-CLOSED.md §4). Paying has never been open; the door
+   * to new accounts is closed for a different reason and on a different dial, and this page must
+   * not offer a reader who came to pay a way to create an account while it is off.
+   */
+  it('offers the list, not the first run, while the door is closed', () => {
+    const shut = checkoutPageWords(false, false);
+    expect(shut.title).toBe(CHECKOUT_PAGE.title);
+    expect(shut.cta.label).toBe(LIST_DOOR.label);
+    expect(shut.cta.to).toEqual(LIST_DOOR.to);
   });
 
   it('offers nothing on the way out', () => {

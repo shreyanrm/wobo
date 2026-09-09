@@ -39,3 +39,14 @@
      and the bar above it already says whose page this is */
   .ch-say>.wk-head{display:none}
 }
+
+/* THE SHEET NEVER TAKES THE SENTENCE IT IS EXPLAINING (docs/INK-FOUR.md, experience; the
+   adversary, wave 47, finding 10).
+
+   On a phone Wobo's board is a sheet across the lower 62vh, and the say sits above it in the
+   transcript. It was cut in half mid-line: on the Punnett turn the learner read 'Dominant 3,
+   recessive 1. Read the' and then the sheet edge. The plane publishes its own height on the root
+   while it is up (`sheetReserve`, board/plane.tsx); the thread keeps that much clear at its foot,
+   so scrolling to the end lands the last line above the edge. Nothing is hidden and nothing
+   shrinks — the reading line simply moves up, and comes back down the moment the sheet goes. */
+[data-wobo-sheet] .ch-thread{padding-bottom:calc(var(--wobo-sheet-h, 62vh) + 24px)}

@@ -67,9 +67,19 @@ The page families, in the order they become honest:
 | topic pages | 711 | with tier 2 |
 | glossary pages | up to 3,948 | with the cores; board-agnostic, so one core serves every board |
 
-Two honest limits stay honest: **ICSE and ISC have no topics under their chapters**, so their chapter
-pages carry the unit and the provenance and nothing invented; and the concept cores that make tier 2
-possible are designed and not yet built.
+Two honest limits stay honest: **ICSE and ISC have no topics under their chapters**, and the concept
+cores that make tier 2 possible are designed and not yet built.
+
+**What the first limit turned out to mean, once the pages were built and measured (2026-09-09).**
+A chapter page for a unit with no topic list carries its own name and nothing else: every other
+string on it, including the sentence explaining that there is no list, is word for word the same on
+the other 151. So those 152 do not ship, and ten more chapters whose only named topic repeats the
+chapter's own name do not ship either. The units are all still published, with the document, the
+page inside it and the hash, on the SUBJECT page above them, which is where a reader was going to
+end up anyway. **The chapter family therefore publishes 171, not 333**, and the count in the table
+below is the count of addresses that could be computed rather than the count that passed the gate.
+The honest-count law (WOBO-TASKS §10.21) governs which of the two we print anywhere a person reads
+it: 247 syllabus pages ship, of 409 addresses.
 
 The tutor door needed for these pages already exists and is open: the public ask endpoint, grounded,
 screened both ways, rate limited. Widening its corpus to the syllabus turns every chapter page into a
@@ -108,6 +118,15 @@ and designed one at a time, with their own opening, their own art and their own 
 a parent is actually asking on that page. These are the pages someone lands on while deciding, and
 there are few enough to do properly. They are never generated from a template with a name swapped, and
 a test asserts that no two of them share a paragraph.
+
+**Where that stands, 2026-09-09.** The writing is done and it is stricter than the ruling asks: all
+67 carry their own opening and their own answer to the one question a parent is really asking there,
+in `apps/web-pwa/src/screens/syllabus/handmade.ts`, and `handmade.test.ts` fails if two of them share
+a paragraph, a sentence, or even a run of six words. **The art is not done**, and it is owed rather
+than dropped: the figure that would go on one of these pages is drawn per concept by the same
+pipeline that draws for a learner, and the concept cores it needs are designed and not built. Sixty
+seven decorations chosen by hand instead would be the swapped-name template this ruling forbids,
+wearing a picture.
 
 **One template per large family, with content and artwork unique per page.** 333 chapters, 711 topics,
 the glossary. A shared frame is right here: it is what makes a site navigable and it is what every

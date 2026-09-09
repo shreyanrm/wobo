@@ -15,6 +15,7 @@ import { useViewport } from '../../shell/useViewport';
 import { useSdk } from '../../store/sdk';
 import { AskBox, Chip, Label, WoboHead } from '../../ui/primitives';
 import { useWoboChat } from '../../wobo/chat';
+import { useCta } from './cta';
 
 export interface AskWoboProps {
   /** The small pigment label. The prototypes say "Still wondering?". */
@@ -39,13 +40,15 @@ export function AskWobo({
   className,
 }: AskWoboProps) {
   const router = useRouter();
+  const door = useCta();
   const sdk = useSdk();
   const chat = useWoboChat();
   const { width } = useViewport();
   const signedIn = sdk.config.devAuth || sdk.identity.isAuthenticated();
   const ask = (text: string) => {
     if (!signedIn) {
-      router.navigate({ name: 'onboarding' });
+      // Wherever the dial says the way in is today (docs/DOORS-CLOSED.md §4).
+      router.navigate(door.to);
       return;
     }
     void chat.ask(text);

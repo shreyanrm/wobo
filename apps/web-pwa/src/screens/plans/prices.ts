@@ -29,7 +29,7 @@
  * Everything that draws a price reads it from here, so a change to a number is one edit.
  */
 
-import { CTA } from '../site/cta';
+import { ctaFor } from '../site/cta';
 
 /** The two currency regions §14 names. Not a segment: it is the country the money is in. */
 export type Market = 'IN' | 'INTL';
@@ -153,7 +153,7 @@ export const PLAN_TIERS: readonly PlanTier[] = [
       'Practice, the week, the Sunday note',
       'One linked parent',
     ],
-    cta: CTA.label,
+    cta: ctaFor(true).label,
     // The same line on both periods: the free plan has no period, so nothing about it changes.
     fine: { yearly: 'No card. No trial that ends.', monthly: 'No card. No trial that ends.' },
     recommended: false,

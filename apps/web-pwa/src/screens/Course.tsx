@@ -253,14 +253,22 @@ export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?
         className="ls-topbar"
         crumb={crumb}
         right={VIEWS.map((v) => (
-          <Chip key={v.id} on={view === v.id} onClick={() => lessonView.view(v.id)}>
+          <Chip
+            key={v.id}
+            on={view === v.id}
+            onClick={() => lessonView.view(v.id)}
+            // Wobo's own control of where Wobo's board shows: never on the glass map
+            // (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze).
+            data-wobo-surface=""
+          >
             {v.label}
           </Chip>
         ))}
       />
       <div className="ls-lesson">
         <section className="ls-plane" aria-label={title} aria-busy={drawing || undefined}>
-          <div className="ls-bar">
+          {/* Wobo's own name and voice controls: never on the glass map. */}
+          <div className="ls-bar" data-wobo-surface="">
             <b>Wobo</b>
             {/* on-stage voice controls: mute Wobo's narration, or replay the current card */}
             <span className="ls-voice">
@@ -339,7 +347,8 @@ export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?
             <p style={{ color: 'var(--ink)' }}>
               Circle any part of the board and ask why. Or just say it.
             </p>
-            <div className="ls-tools">
+            {/* the tools are Wobo's own; the card's words above them are the lesson's */}
+            <div className="ls-tools" data-wobo-surface="">
               <Chip onClick={() => armLasso(true)}>Circle</Chip>
               <Chip>Type</Chip>
               <TalkChip />
@@ -436,6 +445,10 @@ function HoldToTalk() {
       type="button"
       className="wk-talk ls-hold"
       aria-label="Hold to talk to Wobo"
+      // Wobo's own control of Wobo's own microphone: never on the glass map. The adversary,
+      // 2026-09-09, finding 11: this chip sat at [20,757,200,71] among the lesson's lines on
+      // every 1440 course turn, which is exactly what the construction set was meant to prevent.
+      data-wobo-surface=""
       onPointerDown={start}
       onPointerUp={end}
       onPointerCancel={end}

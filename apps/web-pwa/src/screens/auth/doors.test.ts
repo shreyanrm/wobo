@@ -7,8 +7,13 @@
  */
 
 import { describe, expect, it } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { routeToPath } from '../../shell/router';
+import { LIST } from '../site/invitation';
 import { mergeSeams, methodStates } from './client';
-import { PROVIDER_ORDER, waysIn } from './doors';
+import { SIGN_IN, SIGN_UP } from './copy';
+import { otherDoor, PROVIDER_ORDER, waysIn } from './doors';
 
 /** The ways in this build has, given a client that exposes exactly these seams. */
 function ways(...names: string[]) {
@@ -111,5 +116,46 @@ describe('how a parent can be reached, on the branch that needs one', () => {
     expect(ways('signInWithGoogle').parentWay).toBeNull();
     // and a password is the learner's own way in, not a way to reach anybody
     expect(ways('signInWithPassword').parentWay).toBeNull();
+  });
+});
+
+/**
+ * THE OTHER DOOR IN THE BAR, which is the one door of this wave that did not read the dial.
+ *
+ * It is the most load-bearing link on the site while the door is shut: all 438 pre-rendered pages
+ * link to /sign-in, and the top right of that page said "Create an account" in the markup, with
+ * JavaScript off, pointing at an address that shows the invitation instead.
+ */
+describe('the other door, while the dial is off', () => {
+  it('is the invitation, and never an offer to create an account', () => {
+    const door = otherDoor('sign-in', false);
+    expect(door.label).toBe(LIST.label);
+    expect(door.label).not.toBe(SIGN_IN.switchAction);
+    expect(routeToPath(door.to)).toBe('/sign-up');
+    expect(door.prompt).toBeNull();
+  });
+
+  it('leaves the sign-in door itself exactly where it was', () => {
+    const door = otherDoor('sign-up', false);
+    expect(door.label).toBe(SIGN_UP.switchAction);
+    expect(routeToPath(door.to)).toBe('/sign-in');
+    expect(otherDoor('sign-up', true)).toEqual(door);
+  });
+
+  it('is the door it always was the minute the owner turns the dial on', () => {
+    const door = otherDoor('sign-in', true);
+    expect(door.label).toBe(SIGN_IN.switchAction);
+    expect(door.prompt).toBe(SIGN_IN.switchPrompt);
+    expect(routeToPath(door.to)).toBe('/sign-up');
+  });
+
+  it('leaves nobody free to draw that door by hand again', () => {
+    // The break was a label written straight into the page, so the rule is scanned in the page.
+    const page = readFileSync(join(import.meta.dir, 'Auth.tsx'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^\s*\/\/.*$/gm, ' ');
+    expect(page).toContain('otherDoor(');
+    expect(page).not.toContain('words.switchAction');
+    expect(page).not.toContain('words.switchPrompt');
   });
 });

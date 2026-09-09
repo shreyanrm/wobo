@@ -1,14 +1,11 @@
 import { describe, expect, it } from 'bun:test';
-import type { ActiveHighlight } from '../src/actions';
 import {
   type AnnotatableTarget,
-  addMarks,
   createTargetStore,
-  emptyMarks,
+  hasSceneSeam,
   resolveCanvasSlot,
 } from '../src/context-bus';
 
-const mark = (id: string) => ({ targetId: id, level: 'primary' }) as unknown as ActiveHighlight;
 const t = (id: string): AnnotatableTarget => ({
   id,
   kind: 'step',
@@ -16,22 +13,14 @@ const t = (id: string): AnnotatableTarget => ({
   getRect: () => null,
 });
 
-describe('the redrawable mark set is scoped to one turn', () => {
-  it('accumulates across the beats of a turn', () => {
-    let marks = emptyMarks();
-    marks = addMarks(marks, { ...emptyMarks(), highlights: [mark('step-1')] });
-    marks = addMarks(marks, { ...emptyMarks(), highlights: [mark('step-2')] });
-    expect(marks.highlights.map((h) => h.targetId)).toEqual(['step-1', 'step-2']);
+describe('the bus carries scenes, and the glass carries the page (INK §4)', () => {
+  it('a thing with no seam is a label on the element, never a bus registration', () => {
+    expect(hasSceneSeam({ hasState: false, hasValidActions: false, hasDrive: false })).toBe(false);
   });
-
-  it('starts empty again at a turn boundary, so "draw it again" is this turn, not the session', () => {
-    const previous = addMarks(emptyMarks(), { ...emptyMarks(), highlights: [mark('old')] });
-    expect(previous.highlights.length).toBe(1);
-    const fresh = emptyMarks(); // what beginTurn() installs
-    expect(fresh).toEqual({ highlights: [], annotations: [], notes: [] });
-    expect(addMarks(fresh, { ...emptyMarks(), highlights: [mark('new')] }).highlights).toHaveLength(
-      1,
-    );
+  it('any seam makes it a scene Wobo reads or drives', () => {
+    expect(hasSceneSeam({ hasState: true, hasValidActions: false, hasDrive: false })).toBe(true);
+    expect(hasSceneSeam({ hasState: false, hasValidActions: true, hasDrive: false })).toBe(true);
+    expect(hasSceneSeam({ hasState: false, hasValidActions: false, hasDrive: true })).toBe(true);
   });
 });
 

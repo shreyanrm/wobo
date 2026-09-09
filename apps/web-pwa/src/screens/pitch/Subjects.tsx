@@ -37,18 +37,20 @@
 
 import { Label, Sticker } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
-import { CTA } from '../site/cta';
+import { useCta } from '../site/cta';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
 import { PitchAsk } from './Ask';
 import { BoardFinder } from './BoardFinder';
 import { reachLine } from './boardFind';
+import { SubjectPages } from './hubs';
 import { Reveal } from './Reveal';
 import { ensurePitchStyles } from './styles';
 
 ensurePitchStyles();
 
 export function Subjects() {
+  const door = useCta();
   return (
     <SiteShell current="subjects" title="Wobo subjects">
       <div className="pt">
@@ -76,8 +78,8 @@ export function Subjects() {
               </div>
               <BoardFinder
                 door={
-                  <SiteLink className="st-btn st-pig" to={CTA.to}>
-                    {CTA.label}
+                  <SiteLink className="st-btn st-pig" to={door.to}>
+                    {door.label}
                   </SiteLink>
                 }
               />
@@ -488,6 +490,9 @@ export function Subjects() {
                 <b>Accountancy</b>
                 <b>Business studies</b>
               </div>
+            </Reveal>
+            <Reveal>
+              <SubjectPages />
             </Reveal>
             <Reveal className="st-grid2">
               <div className="st-tile">

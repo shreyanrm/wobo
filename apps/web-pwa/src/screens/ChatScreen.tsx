@@ -11,8 +11,16 @@
  * Wobo's ink belongs on the other screens; here Wobo speaks in regular type, person to person.
  */
 
-import { armLasso, useRegisterTarget, useWoboBus } from '@wobo/wobo';
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { armLasso, PHONE_SHEET_VH, plane, useRegisterTarget, useWoboBus } from '@wobo/wobo';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { AppFrame } from '../shell/AppFrame';
 import { OFFLINE_LINE } from '../shell/resilience';
 import { AskBox, Avatar, Card, Chip, Tag, TopBar, WoboHead } from '../ui/primitives';
@@ -36,6 +44,8 @@ export function ChatScreen() {
   const [draft, setDraft] = useState('');
   const [voiceNote, setVoiceNote] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  /** The last line's own text, so a say that grows sentence by sentence is followed as it grows. */
+  const lastSaid = useRef('');
   const sayRef = useRef<HTMLDivElement | null>(null);
   const learner = useMemo(() => loadProfile().name.trim(), []);
   const initial = learner.charAt(0).toUpperCase();
@@ -61,6 +71,11 @@ export function ChatScreen() {
   // scroll bookkeeping: keep the reader's place when the past prepends, follow the newest line
   const restore = useRef<{ height: number; top: number } | null>(null);
   const lastLen = useRef(turns.length);
+  // What the last line says right now, and whether Wobo's board is a sheet over the page. Both are
+  // reasons to follow the thread down (see the layout effect below).
+  const said = turns.length > 0 ? (turns[turns.length - 1]?.text ?? '') : '';
+  const board = useSyncExternalStore(plane.subscribe, plane.get, plane.get);
+  const sheet = board.open && !board.minimized;
   const voice = useWoboVoice({ setMood });
   const voiceOn =
     voice.status === 'listening' || voice.status === 'speaking' || voice.status === 'connecting';
@@ -71,20 +86,63 @@ export function ChatScreen() {
     if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
+  /**
+   * THE NEWEST LINE STAYS IN VIEW, WHATEVER IS OVER THE PAGE (docs/INK-FOUR.md, experience; the
+   * adversary, wave 47, finding 10).
+   *
+   * Two things were wrong. The follow ran only when the NUMBER of turns grew, and Wobo's line
+   * grows in TEXT, sentence by sentence, so a say that ran past the fold was never followed. And
+   * "near the bottom" was measured against the scroll height, which the phone sheet's reserve
+   * (`sheetReserve`, board/plane.tsx) legitimately adds 62vh to — so the moment the board opened,
+   * the reader was judged to have scrolled away and the follow stopped, leaving the sentence cut
+   * in half by the sheet edge. Both are measured against the last line itself now.
+   */
+  /**
+   * Bring Wobo's last line above the sheet, in the page's own scroll. The sheet is fixed to the
+   * bottom of a phone screen, so "the bottom of the page" is under it; the line the learner is
+   * meant to read is put just above its edge. Nothing is hidden, and on a wide screen — where the
+   * plane is a panel beside the page — there is no sheet and nothing moves.
+   */
+  const followInPage = () => {
+    if (typeof window === 'undefined') return;
+    const last = (threadRef.current?.lastElementChild as HTMLElement | null) ?? null;
+    if (!last) return;
+    const reserve = sheet ? window.innerHeight * (PHONE_SHEET_VH / 100) : 0;
+    const floor = window.innerHeight - reserve - 16;
+    const over = last.getBoundingClientRect().bottom - floor;
+    if (over > 1) window.scrollBy(0, over);
+  };
+
+  const endOfThread = (el: HTMLDivElement): { last: HTMLElement | null; bottom: number } => {
+    const last = (threadRef.current?.lastElementChild as HTMLElement | null) ?? null;
+    return { last, bottom: last ? last.offsetTop + last.offsetHeight : el.scrollHeight };
+  };
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const { bottom } = endOfThread(el);
     if (restore.current) {
       // older turns prepended — hold the exact line the reader was on
       el.scrollTop = el.scrollHeight - restore.current.height + restore.current.top;
       restore.current = null;
-    } else if (turns.length > lastLen.current) {
-      // a new turn arrived — follow it down only if the reader is already near the bottom
-      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 240;
-      if (nearBottom) el.scrollTop = el.scrollHeight;
+    } else if (turns.length > lastLen.current || said !== lastSaid.current) {
+      // a new turn, or the line Wobo is speaking grew — follow it down only if the reader is
+      // already near it. The reserve under the thread is not content and never counts as distance.
+      const near = bottom - (el.scrollTop + el.clientHeight) < 240;
+      if (near) {
+        el.scrollTop = Math.max(
+          0,
+          Math.min(bottom + 24 - el.clientHeight, el.scrollHeight - el.clientHeight),
+        );
+        // On a phone this column is not a scroller — the PAGE is — so the line has to be brought
+        // above the sheet in the page's own scroll. The thread already keeps the sheet's height
+        // clear at its foot, so there is somewhere to scroll to.
+        if (el.scrollHeight <= el.clientHeight) followInPage();
+      }
     }
     lastLen.current = turns.length;
-  }, [turns]);
+    lastSaid.current = said;
+  }, [turns, said, sheet]);
 
   const onScroll = () => {
     const el = scrollRef.current;
@@ -138,7 +196,8 @@ export function ChatScreen() {
           aria-label="Your conversation with Wobo"
           aria-busy={busy || undefined}
         >
-          <div className="ls-bar">
+          {/* Wobo's own name and voice controls: never on the glass map. */}
+          <div className="ls-bar" data-wobo-surface="">
             <b>Wobo</b>
             <span className="ls-voice">
               <MuteButton />
@@ -152,8 +211,20 @@ export function ChatScreen() {
           </div>
           <div className="ls-canvas">
             <div ref={scrollRef} onScroll={onScroll} className="ls-stage wobo-scroll-quiet">
-              {/* the thread is a log: every answer Wobo lands is announced where it lands */}
-              <div className="ch-thread" ref={threadRef} role="log" aria-label="The conversation">
+              {/* the thread is a log: every answer Wobo lands is announced where it lands.
+                  WOBO'S OWN SURFACES ARE NEVER ON THE GLASS (docs/INK-FREEZE-PLAN-TRACE.md §3):
+                  the mark is on the root of the transcript, so every learner bubble and every
+                  reply is skipped by the read. The adversary, 2026-09-09: this screen was the one
+                  Wobo's own transcript was left on, and on /chat at 390 "draw a labelled map of
+                  India" made Wobo ring the learner's OWN question and say "The line that says
+                  Draw a labelled map of India is this one." */}
+              <div
+                className="ch-thread"
+                ref={threadRef}
+                role="log"
+                aria-label="The conversation"
+                data-wobo-surface=""
+              >
                 {!hasOlder && <div className="ch-began">Where we began</div>}
                 {turns.map((t) =>
                   t.role === 'user' ? (
@@ -190,7 +261,8 @@ export function ChatScreen() {
               </div>
             </div>
           </div>
-          <div className="ls-say ch-say" ref={sayRef}>
+          {/* Wobo's own ask row — the input, the mic, Wobo's head: never on the glass map. */}
+          <div className="ls-say ch-say" ref={sayRef} data-wobo-surface="">
             <WoboHead size={44} mood={busy ? 'thinking' : 'idle'} />
             <AskBox
               placeholder="Talk to Wobo…"
@@ -212,7 +284,8 @@ export function ChatScreen() {
             <p style={{ color: 'var(--ink)' }}>
               Circle any part of the board and ask why. Or just say it.
             </p>
-            <div className="ls-tools">
+            {/* the tools are Wobo's own; the card's words above them are the page's */}
+            <div className="ls-tools" data-wobo-surface="">
               <Chip onClick={() => armLasso(true)}>Circle</Chip>
               <Chip onClick={focusAsk}>Type</Chip>
               <TalkChip />

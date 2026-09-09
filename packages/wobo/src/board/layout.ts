@@ -9,7 +9,15 @@
  * All pure, all in board units.
  */
 
-import { type BoardFrame, type BoardRect, boardHeight, boxesOverlap, unionBox } from './anchors';
+import {
+  type BoardFrame,
+  type BoardRect,
+  boardHeight,
+  boxesOverlap,
+  unionBox,
+  unitsHigh,
+  unitsWide,
+} from './anchors';
 import { type AnchorAt, BOARD_UNITS } from './schema';
 
 /** The clear space a label keeps from what it names, in board units. */
@@ -47,8 +55,10 @@ export function blocksLayout(kind: string): boolean {
  * March" on the live run of 2026-09-05. Whatever moves a box has to move before the search, or the
  * search is answering a question about a position the box does not end up in.
  */
-function withinBoard(box: BoardRect): BoardRect {
-  return { ...box, x: Math.max(0, Math.min(box.x, BOARD_UNITS - box.w)) };
+function withinBoard(box: BoardRect, area?: BoardRect): BoardRect {
+  const left = area?.x ?? 0;
+  const right = area ? area.x + area.w : BOARD_UNITS;
+  return { ...box, x: Math.max(left, Math.min(box.x, right - box.w)) };
 }
 
 /**
@@ -58,8 +68,10 @@ function withinBoard(box: BoardRect): BoardRect {
  * other — so a crowded board did not produce a tight fit, it produced a note nobody can read
  * because it is past the edge. Off the board is worse than beside something.
  */
-function keepOnBoard(box: BoardRect): BoardRect {
-  return { ...box, y: Math.max(0, Math.min(box.y, BOARD_UNITS - box.h)) };
+function keepOnBoard(box: BoardRect, area?: BoardRect): BoardRect {
+  const top = area?.y ?? 0;
+  const bottom = area && Number.isFinite(area.h) ? area.y + area.h : BOARD_UNITS;
+  return { ...box, y: Math.max(top, Math.min(box.y, bottom - box.h)) };
 }
 
 export interface Size {
@@ -121,15 +133,106 @@ export function placeLabel(
     y: anchor.y,
     ...size,
   };
+  const floor = Number.isFinite(bounds.h) ? bounds.y + bounds.h : BOARD_UNITS;
   let guard = 0;
   while (
     clashes(fallback, occupied, margin * 0.5) &&
-    fallback.y + size.h + margin <= BOARD_UNITS &&
+    fallback.y + size.h + margin <= floor &&
     guard++ < 200
   ) {
     fallback.y += size.h + margin;
   }
-  return keepOnBoard(fallback);
+  return keepOnBoard(fallback, area);
+}
+
+/**
+ * Where a NOTE goes: in the margin beside the thing it is about, never on the page's own text,
+ * and never more than `reach` px from its subject (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace).
+ *
+ * The scorecard's "start here" landed 87 to 196 px from its row, over other rows and once in the
+ * footer, because a label's search only dodged DRAWN boxes and could walk down the page until it
+ * found air. A note on the glass has the glass map's text lines in `occupied` too, and its search
+ * is bounded: right of the subject on its own line, then left, then under it, then over it, each
+ * at `gap`; the first that fits the glass and clears everything wins. If nothing clears, the side
+ * with the least overlap is taken, still within reach, rather than a note nobody can pair with
+ * its subject.
+ */
+export function placeNote(
+  subject: BoardRect,
+  size: Size,
+  occupied: BoardRect[],
+  frame: BoardFrame,
+  gap = NOTE_GAP,
+  reach = NOTE_REACH,
+): BoardRect {
+  const area: BoardRect = {
+    x: frame.panX,
+    y: frame.panY,
+    w: unitsWide(frame),
+    h: unitsHigh(frame),
+  };
+  const near = Math.min(gap, reach);
+  const midY = subject.y + subject.h / 2 - size.h / 2;
+  const candidates: BoardRect[] = [
+    { x: subject.x + subject.w + near, y: midY, ...size },
+    { x: subject.x - near - size.w, y: midY, ...size },
+    { x: subject.x, y: subject.y + subject.h + near, ...size },
+    { x: subject.x, y: subject.y - near - size.h, ...size },
+    { x: subject.x + subject.w + near, y: subject.y - near - size.h, ...size },
+    { x: subject.x + subject.w + near, y: subject.y + subject.h + near, ...size },
+  ];
+  const onGlass = candidates.filter((c) => contains(area, c));
+  for (const c of onGlass) if (!clashes(c, occupied, 2)) return c;
+  // Nothing is clear. A note slid along its side within reach may still find air.
+  for (const c of onGlass) {
+    for (const dy of [size.h + near, -(size.h + near)]) {
+      const slid = { ...c, y: c.y + dy };
+      if (
+        contains(area, slid) &&
+        gapBetween(slid, subject) <= reach &&
+        !clashes(slid, occupied, 2)
+      ) {
+        return slid;
+      }
+    }
+  }
+  // Take the least crowded spot rather than leaving the page.
+  const pool = onGlass.length > 0 ? onGlass : candidates.map((c) => clampInto(c, area));
+  let best = pool[0] as BoardRect;
+  let least = Number.POSITIVE_INFINITY;
+  for (const c of pool) {
+    const crowd = occupied.reduce((sum, o) => sum + overlapArea(c, o), 0);
+    if (crowd < least) {
+      least = crowd;
+      best = c;
+    }
+  }
+  return best;
+}
+
+/** The clear air between a note and its subject, in units. */
+export const NOTE_GAP = 8;
+/** The farthest a note may sit from what it is about, in units (px on the glass). */
+export const NOTE_REACH = 24;
+
+function gapBetween(a: BoardRect, b: BoardRect): number {
+  const dx = Math.max(0, a.x - (b.x + b.w), b.x - (a.x + a.w));
+  const dy = Math.max(0, a.y - (b.y + b.h), b.y - (a.y + a.h));
+  return Math.hypot(dx, dy);
+}
+
+function overlapArea(a: BoardRect, b: BoardRect): number {
+  const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+  const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+  return w > 0 && h > 0 ? w * h : 0;
+}
+
+function clampInto(box: BoardRect, area: BoardRect): BoardRect {
+  return {
+    ...box,
+    x: Math.max(area.x, Math.min(box.x, area.x + area.w - box.w)),
+    y: Math.max(area.y, Math.min(box.y, area.y + area.h - box.h)),
+  };
 }
 
 /**
@@ -148,6 +251,7 @@ export function placeLabelAt(
   at: AnchorAt | undefined,
   occupied: BoardRect[] = [],
   margin = LABEL_MARGIN,
+  area?: BoardRect,
 ): BoardRect | null {
   if (at === undefined || at === 'center') return null;
   if (Array.isArray(at)) {
@@ -173,18 +277,20 @@ export function placeLabelAt(
   if (!asked) return null;
   // Horizontally first, so the collision search below answers a question about where this label
   // is actually going to sit.
-  const box = withinBoard(asked);
+  const box = withinBoard(asked, area);
   // Clear of anything already down, moving along the side it was asked for.
   const step = at.startsWith('top') ? -(size.h + margin) : size.h + margin;
   const out = { ...box };
+  const top = area?.y ?? 0;
+  const bottom = area && Number.isFinite(area.h) ? area.y + area.h : BOARD_UNITS;
   let guard = 0;
   while (clashes(out, occupied, margin * 0.5) && guard++ < 60) {
     const next = out.y + step;
     // Never off the board: a note past the edge is not a tighter fit, it is a note nobody reads.
-    if (next < 0 || next + size.h > BOARD_UNITS) break;
+    if (next < top || next + size.h > bottom) break;
     out.y = next;
   }
-  return keepOnBoard(out);
+  return keepOnBoard(out, area);
 }
 
 /**
@@ -302,6 +408,28 @@ export function fitCamera(
     panX: bounds.x - (shownW - bounds.w) / 2,
     panY: bounds.y - (shownH - bounds.h) / 2,
   };
+}
+
+/**
+ * THE FIT IS MEASURED AGAINST THE INK (the adversary, wave 47, finding 4).
+ *
+ * The law above is stated of the drawing: the ink fills `CAMERA_FILL` of the limiting dimension.
+ * The board measured it against `contentBounds` WITH its 28-unit layout padding on the settled
+ * half, so the margin was charged twice and the camera stopped short of its own law. At 1440 the
+ * Pythagoras ink (198 x 240 units) filled 27.9% of the visible width and 59.5% of its height, and
+ * landed as 138 x 168 px on a 1440 screen; every 1440 board measured the same way.
+ *
+ * The two halves come in separately because the settled half is memoised across frames — a board
+ * of two thousand strokes is not re-measured sixty times a second — but they are ONE box to the
+ * camera, and it is the raw box, unpadded. The margin the fill already leaves is the margin.
+ */
+export function autoCameraTarget(
+  settled: readonly BoardRect[],
+  floating: readonly BoardRect[],
+  frame: BoardFrame,
+  opts?: { minZoom?: number; maxZoom?: number; fill?: number },
+): Camera {
+  return fitCamera(contentBounds([...settled, ...floating], 0), frame, opts);
 }
 
 /** How much of the remaining distance the camera closes each frame — a glide, not a cut. */

@@ -11,7 +11,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { boardBook, plane } from '@wobo/wobo';
+import { boardBook, glassHold, plane } from '@wobo/wobo';
 import { boardTurn, dismissBoard, isAbort, screenStore } from './board-turn';
 
 type Frame = { id?: string; data: Record<string, unknown> };
@@ -180,6 +180,62 @@ describe('barging in', () => {
     controller.abort();
     expect(isAbort(controller.signal.reason)).toBe(true);
     expect(isAbort(new Error('something else'))).toBe(false);
+  });
+});
+
+/**
+ * THE CAP IS NOT THE LEARNER (the adversary, 2026-09-09, findings 3 and 10).
+ *
+ * Wave 40 counted a flat six seconds from the moment the glass was held — before the request had
+ * even left — and the wire's first byte lives at 6.0-8.5 s. Every live course turn recorded
+ * `release:cap` at 6032 ms, the conductor read it as a barge-in, and the answer the gateway had
+ * already been paid for was aborted: empty transcript, no ink, voice billed for words never
+ * written. A cap hands the PAGE back to the learner; it never takes the ANSWER away.
+ */
+describe('the glass cap while the wire is still silent', () => {
+  it('does not abort the turn, and the ink that finally arrives still lands', async () => {
+    let push: ((frames: Frame[]) => void) | null = null;
+    globalThis.fetch = (async () => {
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          push = (frames) => {
+            controller.enqueue(new TextEncoder().encode(encode(frames)));
+            controller.close();
+          };
+        },
+      });
+      return new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      });
+    }) as unknown as typeof globalThis.fetch;
+
+    const running = run();
+    await Promise.resolve();
+    // Six seconds of silence: the cap lets the page go while the turn is still waiting.
+    glassHold.hold('turn');
+    glassHold.release('cap');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(boardTurn.get().active).toBe(true);
+
+    // ...and then the gateway finally speaks.
+    (push as ((frames: Frame[]) => void) | null)?.([
+      ink(RING),
+      { data: { type: 'done', objects: 1 } },
+    ]);
+    const outcome = await running;
+    expect(outcome.objects).toBe(1);
+    expect(screenStore.snapshot().map((s) => s.object.id)).toEqual(['ring']);
+  });
+
+  it("the learner's own hand still cuts the turn off in one tick", async () => {
+    serve(hangs());
+    const running = run();
+    await Promise.resolve();
+    glassHold.hold('turn');
+    glassHold.release('tap');
+    const outcome = await running;
+    expect(outcome.completed).toBe(false);
   });
 });
 

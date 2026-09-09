@@ -62,11 +62,17 @@ export interface ScrollHoldOptions {
   /** Where scroll events arrive. `window` in the app; a plain `EventTarget` in a test. */
   target?: HoldTarget | null;
   clock?: () => number;
+  /**
+   * The cap. `MAX_HOLD_MS` for a stroke; the glass hold (glass/hold.ts) makes its own instance
+   * with a turn's cap, because it holds for a turn, not a stroke.
+   */
+  maxHoldMs?: number;
 }
 
 export class ScrollHold {
   private readonly target: HoldTarget | null;
   private readonly clock: () => number;
+  private readonly maxHoldMs: number;
   /** Who is holding, and since when — a surface per in-flight stroke set. */
   private readonly holders = new Map<string, number>();
   private readonly listeners = new Set<(held: boolean) => void>();
@@ -87,6 +93,7 @@ export class ScrollHold {
     this.clock =
       options.clock ??
       (() => (typeof performance !== 'undefined' ? performance.now() : Date.now()));
+    this.maxHoldMs = options.maxHoldMs ?? MAX_HOLD_MS;
     this.track();
   }
 
@@ -142,7 +149,7 @@ export class ScrollHold {
 
   hold(token: string): void {
     const now = this.clock();
-    if (this.heldSince !== null && now - this.heldSince >= MAX_HOLD_MS) {
+    if (this.heldSince !== null && now - this.heldSince >= this.maxHoldMs) {
       // The cap: whatever is still holding has held long enough. Start over honestly.
       this.releaseAll();
     }
@@ -201,13 +208,13 @@ export class ScrollHold {
     this.timer = setTimeout(() => {
       this.timer = null;
       this.releaseAll();
-    }, MAX_HOLD_MS);
+    }, this.maxHoldMs);
   }
 
   /** True when the cap has passed — the hold lets go rather than refuse one more event. */
   private expired(): boolean {
     if (this.heldSince === null) return true;
-    if (this.clock() - this.heldSince < MAX_HOLD_MS) return false;
+    if (this.clock() - this.heldSince < this.maxHoldMs) return false;
     this.releaseAll();
     return true;
   }

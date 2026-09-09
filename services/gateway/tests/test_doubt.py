@@ -1056,3 +1056,88 @@ def test_the_bucket_count_is_what_the_bucket_confirmed() -> None:
     assert store.forget_all(ME) == (1, 1005)
     listed = [json.loads(c[2]) for c in calls if c[1].endswith("/object/list/doubt-photos")]
     assert [call.get("offset", 0) for call in listed] == [0, 1000]
+
+
+# --- wave 45, finding 8: keyless eyes never speak a stage direction ------------------------------
+
+
+def test_keyless_eyes_read_the_learners_own_words_and_never_a_stage_direction() -> None:
+    """Keyless, the doubt read spoke a placeholder to the learner: "I read this as: (the page, as
+    far as I could read it without my eyes). Is that right? Fix anything I got wrong first." — a
+    parenthetical stage direction, read aloud, at both widths (the adversary, 2026-09-09, finding
+    8). With no eyes there is nothing on the page Wobo may claim to have read. What it DOES have
+    is what the learner typed beside the photo, and that is what it reads back.
+    """
+    eyes = doubt.MockEyes()
+    reading = eyes.read(image=b"", media_type="image/jpeg", words="solve 2x + 5 = 15")
+    said = reading.say()
+    assert "without my eyes" not in said
+    assert "(" not in said and ")" not in said
+    assert "solve 2x + 5 = 15" in said
+    # A LINE WITH NO BOX IS NEVER AN ANCHOR. The one region it used to return covered 80% of the
+    # photo, so the single ring Wobo drew went round the whole page.
+    assert reading.lines and all(line.box is None for line in reading.lines)
+    assert reading.targets == ()
+
+
+def test_keyless_eyes_with_no_words_say_they_cannot_see_rather_than_blame_the_photo() -> None:
+    eyes = doubt.MockEyes()
+    reading = eyes.read(image=b"", media_type="image/jpeg", words="")
+    assert reading.lines == ()
+    assert reading.say() == doubt.NO_EYES_SAY
+    assert "brighter photo" not in reading.say()
+
+
+# --- wave 46, finding 4: a learner never waits ninety seconds for a refusal ----------------------
+
+
+def test_the_whole_read_has_a_wall_clock_and_says_so_when_it_runs_out() -> None:
+    """Finding 4, 2026-09-09. Live, the doubt door was one photo in three: the maths page read
+    correctly in 15 949 ms, the diagram photo refused with a 503 after 5 849 ms, and the history
+    photo returned 422 after the learner had waited 90 021 ms.
+
+    Every model call on this path carries its own deadline. THE DOOR CARRIES NONE, so the screen,
+    the re-screen and the read each spend their own and the learner pays the sum. INK-FOUR does not
+    have a clause for a minute and a half; nothing in this product does.
+    """
+
+    class Passes:
+        def screen(self, *, image: bytes, media_type: str) -> doubt.ImageVerdict:
+            return doubt.ImageVerdict(allowed=True)
+
+    class NeverReached:
+        def read(self, *, image: bytes, media_type: str, words: str):  # noqa: ANN202
+            raise AssertionError("the read must not be started with no time left")
+
+    with pytest.raises(doubt.DoubtRefused) as caught:
+        doubt.read_doubt(
+            subject="learner-1",
+            raw=photo_bytes(),
+            media_type="image/jpeg",
+            words="",
+            framework_id=None,
+            eyes=doubt.Eyes(screen=Passes(), reader=NeverReached()),
+            store=doubt.InMemoryDoubtStore(),
+            budget_s=0.0,
+        )
+    assert caught.value.code == "photo_slow"
+    assert caught.value.status == 503
+    # a line a learner can act on, in the register: no machinery, no blame on the photograph
+    assert "?" in caught.value.message or caught.value.message.endswith(".")
+    for machinery in ("timeout", "deadline", "budget", "503"):
+        assert machinery not in caught.value.message.lower()
+
+
+def test_each_call_is_given_only_the_time_that_is_left() -> None:
+    """The budget is not a stopwatch the door reads after the fact: what is left is handed to the
+    next call, so a chain of fallbacks cannot spend more than the door has."""
+    reader = doubt.LiveReader()
+    assert reader.timeout_s > 5.0
+    assert reader.with_seconds(5.0).timeout_s == 5.0
+    # and it only ever narrows: a door with time to spare does not lengthen a call's own deadline
+    assert reader.with_seconds(10_000.0).timeout_s == reader.timeout_s
+    screen = doubt.LiveImageScreen()
+    assert screen.with_seconds(3.0).timeout_s == 3.0
+
+    # the whole door fits inside its own wall clock, worst case
+    assert doubt.LiveImageScreen().timeout_s * 2 + doubt.LiveReader().timeout_s >= doubt.DOUBT_BUDGET_S

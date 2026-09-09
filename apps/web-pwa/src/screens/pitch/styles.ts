@@ -645,6 +645,8 @@ a.st-tile:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(20,20,43,.
 .sb-list>.sb-lk{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
 .sb-list>div{display:flex;flex-wrap:wrap;gap:10px}
 .sb-list>div>b{font:500 15px/1 var(--sans);color:var(--ink);background:var(--paper-2);padding:11px 16px;border-radius:999px}
+.sb-pages>div>a{font:500 15px/1 var(--sans);color:var(--ink);background:var(--paper-2);padding:11px 16px;border-radius:999px}
+.sb-pages>div>a:hover{background:color-mix(in srgb,var(--pig) 10%,var(--paper-2));color:var(--pig)}
 @media (max-width:900px){
   .sb-tiles{grid-template-columns:1fr 1fr}
   .sb-boards{grid-template-columns:1fr}

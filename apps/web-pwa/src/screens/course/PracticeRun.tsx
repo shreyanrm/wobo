@@ -16,6 +16,7 @@ import { useProgress, XP_AWARDS } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { ComboMeter, comboBreak, comboHit, XpTick } from '../../ui/combo';
 import { sfx } from '../../ui/sound';
+import { hintNote, screenStore } from '../../wobo/board-turn';
 import { useWoboChat } from '../../wobo/chat';
 import { openCompanion } from '../../wobo/drawer';
 import { noteConceptCorrect, reteachOnMiss, seedFromEvidence } from '../../wobo/reteach';
@@ -333,10 +334,10 @@ export function PracticeRun({
       { node_id: nodeId, from_level: hintLevel, to_level: next, reason: 'explicit_request' },
       { ontologyNodeId: nodeId },
     );
-    bus.dispatch([
-      { type: 'setMood', mood: 'hint' },
-      { type: 'write', targetId: 'course-practice-equation', text, ttl: 9000 },
-    ]);
+    bus.dispatch([{ type: 'setMood', mood: 'hint' }]);
+    // One pen (docs/INK-FREEZE-PLAN-TRACE.md §4): the clue is a note beside the equation, traced
+    // from the equation's real box by the same hand that draws every other mark.
+    screenStore.applyEvent(hintNote('course-practice-equation', text, next));
   }, [item, hintLevel, mode, sdk, nodeId, bus]);
 
   /**
@@ -592,7 +593,7 @@ export function PracticeRun({
         {item.equation}
       </div>
 
-      {/* one hint, one surface: Wobo's handwritten ink beside the equation (WoboOverlay 'write'). */}
+      {/* one hint, one surface: Wobo's note beside the equation, from the one pen (board-turn hintNote). */}
 
       <AnimatePresence mode="wait" initial={false}>
         {phase === 'detonate' ? (

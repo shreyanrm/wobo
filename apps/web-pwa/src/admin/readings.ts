@@ -284,11 +284,7 @@ export function rollupNote(usage: UsageWindow | null): string | undefined {
 /** The caveats a rollup panel always carries: dropped rows, unreadable values, staleness. */
 function ledgerCaveat(usage: UsageWindow | null, sums?: Totals): string | undefined {
   return (
-    [
-      ledgerState(usage) ?? '',
-      sums ? unreadableCaveat(sums) : '',
-      rollupNote(usage) ?? '',
-    ]
+    [ledgerState(usage) ?? '', sums ? unreadableCaveat(sums) : '', rollupNote(usage) ?? '']
       .filter(Boolean)
       .join(' ') || undefined
   );
@@ -494,23 +490,22 @@ export function modelPanels(usage: UsageWindow | null, at: string | null): Panel
         // A model whose every call is a fallback is a model standing in for a broken one. A model
         // with no priced call at all is not fine and not alarming: it is unknown.
         tone:
-          entry.calls === 0
-            ? ('unknown' as Tone)
-            : toneOfFallback(entry.fallbacks / entry.calls),
+          entry.calls === 0 ? ('unknown' as Tone) : toneOfFallback(entry.fallbacks / entry.calls),
       })),
       provenance: {
         source: LEDGER_SOURCE,
         at,
-        caveat: [
-          delivery.length > 0
-            ? `${count(delivery.length)} model(s) here carry delivery rows only — seconds of video ` +
-              'a learner received, which no provider bills per second. Their money sits on the ' +
-              'calls that produced them, so a cost of $0.00 would have read as "this is free".'
-            : '',
-          ledgerCaveat(usage, sums) ?? '',
-        ]
-          .filter(Boolean)
-          .join(' ') || undefined,
+        caveat:
+          [
+            delivery.length > 0
+              ? `${count(delivery.length)} model(s) here carry delivery rows only — seconds of video ` +
+                'a learner received, which no provider bills per second. Their money sits on the ' +
+                'calls that produced them, so a cost of $0.00 would have read as "this is free".'
+              : '',
+            ledgerCaveat(usage, sums) ?? '',
+          ]
+            .filter(Boolean)
+            .join(' ') || undefined,
       },
     },
   ];

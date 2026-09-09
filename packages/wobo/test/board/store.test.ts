@@ -161,10 +161,12 @@ describe('erase and wipe', () => {
 });
 
 describe('the ttl each surface gives its ink', () => {
-  it('screen ink fades after the utterance; a board keeps what it holds', () => {
+  it('screen ink holds until the conductor releases it; a board keeps what it holds', () => {
+    // docs/INK-FREEZE-PLAN-TRACE.md §4: no six-second screen life while a question is open. The
+    // conductor fades screen ink when the learner answers, interrupts, or the next turn begins.
     const screen = clocked('screen');
     screen.store.ink(circle('a'));
-    expect(screen.store.get('a')?.ttl).toBe(6000);
+    expect(screen.store.get('a')?.ttl).toBeUndefined();
 
     const plane = clocked('plane');
     plane.store.ink(circle('a'));

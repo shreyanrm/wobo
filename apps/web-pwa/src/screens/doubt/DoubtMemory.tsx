@@ -62,7 +62,16 @@ export function DoubtMemory() {
             width: d.reading.width,
             height: d.reading.height,
             ...(d.climb.nodeName ? { topicName: d.climb.nodeName } : {}),
-            explained: d.status === 'answered',
+            // NOT `d.status === 'answered'` (the adversary, 2026-09-09, finding 9). The server's
+            // status says a plan was SHAPED for this doubt, which is not the same as an
+            // explanation reaching the child: live, a doubt whose page was read correctly got no
+            // explanation at all — the driver waited thirty seconds and gave up — and it was
+            // still filed here as explained. The device's own record is the one that watched the
+            // say frames land and the ink go down (`doubt/flow.ts`, the placing phase), so it is
+            // the one that decides, and `reconcileDoubts` carries it over this. A doubt explained
+            // on another device reads as unexplained here, which is the honest way round: telling
+            // a child their doubt is answered when nothing was ever drawn is the harm.
+            explained: false,
           })),
         );
       } catch {

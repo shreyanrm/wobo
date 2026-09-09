@@ -16,6 +16,10 @@ describe('the board grammar', () => {
     expect([...MARK_KINDS]).toEqual([
       'point',
       'circle',
+      'ring',
+      'tick',
+      'cross',
+      'note',
       'underline',
       'arrow',
       'bracket',

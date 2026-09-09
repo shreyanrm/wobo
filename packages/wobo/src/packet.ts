@@ -6,14 +6,18 @@
  * up through the one seam (`wobo.turn`). The client holds no key, no model id and no limit; this
  * file only decides what is worth saying and what has to be left out.
  *
- * The budget is real (docs/BOARD.md §10: 2 KB for the screen, 6 KB in total). When the packet does
- * not fit, it is trimmed by a fixed priority ladder — the focus is the last thing to go, because it
- * is the thing the learner actually asked about. Pure and deterministic: same input, same bytes.
+ * The budget is real (docs/BOARD.md §10: 6 KB in total). When the packet does not fit, the
+ * conversation and the mind's digest are trimmed by a fixed priority ladder. Two things are never
+ * trimmed here: the focus, because it is what the learner asked about, and the glass, because it
+ * is already a choice (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze: at most sixty entries and about
+ * two kilobytes, chosen by visibility and relevance, never a trimming ladder). Pure and
+ * deterministic: same input, same bytes.
  */
 
 import type { FocusObject } from './focus';
 import { normaliseText } from './focus';
-import { byteLength, fitSnapshot, type RegistrySnapshot, SNAPSHOT_BYTE_BUDGET } from './registry';
+import type { GlassEntry, GlassMap, GlassViewport } from './glass/map';
+import { byteLength } from './registry';
 
 /** One line of the recent conversation. */
 export interface PacketTurn {
@@ -51,13 +55,12 @@ export interface PacketBudget {
   maxTokens?: number;
   /** Characters per token for the estimate. Default 4. */
   charsPerToken?: number;
-  /** Byte ceiling for the screen snapshot inside the packet. Default 2048. */
-  screenBytes?: number;
 }
 
 export interface PacketInput {
   focus?: FocusObject | null;
-  registrySnapshot?: RegistrySnapshot | null;
+  /** The glass map, as the reader chose it. */
+  glass?: GlassMap | null;
   route?: string;
   task?: TaskState | null;
   mind?: MindSummary | null;
@@ -85,7 +88,10 @@ export interface ContextPacket {
   focus?: PacketFocus;
   task?: TaskState;
   mind?: MindSummary;
-  screen?: RegistrySnapshot;
+  /** What is on the glass: every entry the reader chose, whole, id for id. */
+  glass?: GlassEntry[];
+  /** The glass's own size and state, so a box is read in the right frame. */
+  viewport?: GlassViewport;
   turns?: PacketTurn[];
   /** Which sections were trimmed to fit — honest, so the brain knows what it is not seeing. */
   truncated?: string[];
@@ -95,14 +101,12 @@ export interface ContextPacket {
 
 export const DEFAULT_MAX_TOKENS = 1500;
 export const DEFAULT_CHARS_PER_TOKEN = 4;
-/** The recent conversation never crowds out the screen: this many turns at most, newest last. */
+/** The recent conversation never crowds out the glass: this many turns at most, newest last. */
 export const MAX_TURNS = 6;
 /** Below this the conversation is dropped rather than shaved further. */
 const MIN_TURNS = 2;
 /** Turn text is shaved to this before turns start being dropped wholesale. */
 const TURN_TEXT_CLAMP = 160;
-/** The smallest screen snapshot worth sending; below it, drop the screen instead. */
-const MIN_SCREEN_BYTES = 256;
 
 /** Rough token count of a serialised value — 4 characters a token, as the plan estimates. */
 export function estimateTokens(value: unknown, charsPerToken = DEFAULT_CHARS_PER_TOKEN): number {
@@ -180,27 +184,6 @@ const LADDER: Reduction[] = [
     apply: (p) => {
       if (!p.turns) return false;
       p.turns = undefined;
-      return true;
-    },
-  },
-  {
-    label: 'screen',
-    apply: (p) => {
-      if (!p.screen) return false;
-      const current = byteLength(JSON.stringify(p.screen));
-      const next = Math.floor(current / 2);
-      if (next < MIN_SCREEN_BYTES) return false;
-      const fitted = fitSnapshot(p.screen, next);
-      if (byteLength(JSON.stringify(fitted)) >= current) return false;
-      p.screen = fitted;
-      return true;
-    },
-  },
-  {
-    label: 'screen',
-    apply: (p) => {
-      if (!p.screen) return false;
-      p.screen = undefined;
       return true;
     },
   },
@@ -293,19 +276,17 @@ const LADDER: Reduction[] = [
 /**
  * Build the packet for one turn, under the budget.
  *
- * Priority, highest first: the focus (what they pointed at), the task, the mind, the screen, the
- * recent turns. `truncated` names every section that lost something, in the order it happened, so
- * the brain is never guessing about what it cannot see.
+ * Priority, highest first: the focus (what they pointed at) and the glass (what is in front of
+ * them), which are never trimmed; then the task, the mind, the recent turns. `truncated` names
+ * every section that lost something, in the order it happened, so the brain is never guessing
+ * about what it cannot see.
  */
 export function buildPacket(input: PacketInput): ContextPacket {
   const charsPerToken = input.budget?.charsPerToken ?? DEFAULT_CHARS_PER_TOKEN;
   const maxTokens = input.budget?.maxTokens ?? DEFAULT_MAX_TOKENS;
-  const screenBytes = input.budget?.screenBytes ?? SNAPSHOT_BYTE_BUDGET;
 
   const turns = input.turns ? input.turns.slice(-MAX_TURNS).map((t) => ({ ...t })) : undefined;
-  const screen = input.registrySnapshot
-    ? fitSnapshot(input.registrySnapshot, screenBytes)
-    : undefined;
+  const glass = input.glass && input.glass.entries.length > 0 ? input.glass : undefined;
 
   const packet: ContextPacket = compact({
     v: 1 as const,
@@ -313,7 +294,8 @@ export function buildPacket(input: PacketInput): ContextPacket {
     focus: input.focus ? toPacketFocus(input.focus) : undefined,
     task: input.task ? compact({ ...input.task }) : undefined,
     mind: input.mind ? compact({ ...input.mind }) : undefined,
-    screen,
+    glass: glass ? glass.entries.map((e) => ({ ...e })) : undefined,
+    viewport: glass ? { ...glass.viewport } : undefined,
     turns: turns && turns.length > 0 ? turns : undefined,
     tokens: 0,
   });
@@ -330,8 +312,8 @@ export function buildPacket(input: PacketInput): ContextPacket {
     if (fits()) break;
     if (!step.apply(packet)) continue;
     note(step.label);
-    // `turns` and `screen` shave one slice at a time; stay on this rung while it still helps.
-    while (!fits() && (step.label === 'turns' || step.label === 'screen') && step.apply(packet)) {
+    // `turns` shaves one slice at a time; stay on this rung while it still helps.
+    while (!fits() && step.label === 'turns' && step.apply(packet)) {
       // each pass drops one more slice
     }
   }

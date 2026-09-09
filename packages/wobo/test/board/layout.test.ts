@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
-import { boxesOverlap, frameOf } from '../../src/board/anchors';
+import { type BoardRect, boxesOverlap, frameOf } from '../../src/board/anchors';
 import {
+  autoCameraTarget,
   avoidCollisions,
   boardArea,
   CAMERA_FILL_MAX,
@@ -14,6 +15,7 @@ import {
   LABEL_MARGIN,
   needsCamera,
   placeLabel,
+  RESTING_CAMERA,
 } from '../../src/board/layout';
 
 const frame = frameOf({ x: 0, y: 0, width: 1000, height: 620 });
@@ -145,5 +147,52 @@ describe('the camera follows the ink', () => {
 
   it('the board area is 1000 wide by the surface’s own aspect', () => {
     expect(boardArea(frame)).toEqual({ x: 0, y: 0, w: 1000, h: 620 });
+  });
+});
+
+describe('the camera fits the INK, not the padding round it (the adversary, wave 47, finding 4)', () => {
+  // layout.ts states the law of the ink: "it fills CAMERA_FILL of the limiting dimension, which
+  // leaves an eighth of the box clear on each side". The renderer measured it against
+  // `contentBounds(...)` WITH its default 28-unit padding on the settled half, so the margin was
+  // charged twice. At 1440 the Pythagoras ink (198 x 240 units) filled 27.9% of the visible width
+  // and 59.5% of its height against a law of 78%, and landed as 138 x 168 px on the screen.
+  const PLANE_1440 = frameOf({ x: 0, y: 0, width: 496, height: 282 }, { zoom: 1 });
+  const fill = (boxes: BoardRect[], frame = PLANE_1440) => {
+    const view = cameraBox(autoCameraTarget(boxes, [], frame), frame);
+    const ink = contentBounds(boxes, 0) as BoardRect;
+    return Math.max(ink.w / view.w, ink.h / view.h);
+  };
+
+  it('puts the pythagoras ink inside the fill band at 1440', () => {
+    const ink: BoardRect[] = [{ x: 400, y: 180, w: 198, h: 240 }];
+    expect(fill(ink)).toBeGreaterThanOrEqual(CAMERA_FILL_MIN);
+    expect(fill(ink)).toBeLessThanOrEqual(CAMERA_FILL_MAX);
+  });
+
+  it('does the same for a wide board where width is the limiting side', () => {
+    const ink: BoardRect[] = [{ x: 0, y: 0, w: 620, h: 120 }];
+    expect(fill(ink)).toBeGreaterThanOrEqual(CAMERA_FILL_MIN);
+  });
+
+  it('fits ink still being drawn together with the ink already settled', () => {
+    const settled: BoardRect[] = [{ x: 400, y: 180, w: 198, h: 140 }];
+    const floating: BoardRect[] = [{ x: 400, y: 320, w: 198, h: 100 }];
+    const view = cameraBox(autoCameraTarget(settled, floating, PLANE_1440), PLANE_1440);
+    const all = contentBounds([...settled, ...floating], 0) as BoardRect;
+    expect(Math.max(all.w / view.w, all.h / view.h)).toBeGreaterThanOrEqual(CAMERA_FILL_MIN);
+  });
+
+  it('leaves a clear margin on every side — the fit is never a crop', () => {
+    const ink: BoardRect[] = [{ x: 400, y: 180, w: 198, h: 240 }];
+    const view = cameraBox(autoCameraTarget(ink, [], PLANE_1440), PLANE_1440);
+    const box = ink[0] as BoardRect;
+    expect(box.x).toBeGreaterThan(view.x);
+    expect(box.y).toBeGreaterThan(view.y);
+    expect(box.x + box.w).toBeLessThan(view.x + view.w);
+    expect(box.y + box.h).toBeLessThan(view.y + view.h);
+  });
+
+  it('rests when there is nothing drawn at all', () => {
+    expect(autoCameraTarget([], [], PLANE_1440)).toEqual(RESTING_CAMERA);
   });
 });

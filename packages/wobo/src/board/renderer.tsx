@@ -39,23 +39,28 @@ import {
   anchorSignature,
   type BoardFrame,
   type BoardRect,
+  boardToRect,
   frameOf,
   isScreenAnchored,
+  offGlass,
   pxPerUnit,
   type RectLike,
+  rectToBoard,
   resolveAnchorBox,
+  unitsHigh,
+  unitsWide,
   viewportToBoard,
 } from './anchors';
 import { geometryOf, type ObjectGeometry } from './geometry';
 import { HAND_MASK_FACTOR, type HandFont, handFont, loadHandFont } from './handwriting';
 import {
+  autoCameraTarget,
   blocksLayout,
   boardArea,
   type Camera,
   cameraArrived,
   contentBounds,
   easeCamera,
-  fitCamera,
   RESTING_CAMERA,
 } from './layout';
 import {
@@ -68,6 +73,7 @@ import {
   sequenceStrokes,
   smoothPath,
   strokeDurationMs,
+  traceDurationMs,
 } from './pen';
 import {
   BOARD_UNITS,
@@ -135,6 +141,52 @@ const INK_VAR: Record<InkRole, string> = {
 
 const inkOf = (role: InkRole | undefined): string => INK_VAR[role ?? 'wobo'];
 
+/**
+ * EACH WRITTEN GLYPH'S SHARE OF THE OBJECT'S CLOCK (the adversary, wave 47, finding 1).
+ *
+ * The glyph clock used to divide the running travel by `geometry.length` — the same sum, taken in
+ * a different association order. A hair of floating point put the LAST glyph's slot past 1, so
+ * `within(1, slot)` never reached 1 and the glyph stayed forever in the half-drawn branch, behind
+ * a mask, in the DOM with a real box and painting nothing. The Punnett square's row-3 header 't'
+ * was missing at both widths on a board signed `numbers_agree:punnett cells` verified, and the
+ * projectile's ground and the lens's label went the same way.
+ *
+ * The clock is now the pen's OWN travel, summed exactly as the pen spends it: strokes first, then
+ * each glyph in order. The last glyph therefore ends at 1 by construction, and a glyph that has
+ * finished is painted as a fill.
+ */
+export function glyphSlots(geometry: ObjectGeometry): { from: number; to: number }[] {
+  if (geometry.glyphs.length === 0) return [];
+  const lengths = geometry.glyphs.map((g) => g.trace.reduce((s, t) => s + t.length, 0));
+  const start = geometry.strokes.reduce((s, x) => s + x.length, 0);
+  let travelled = start;
+  for (const n of lengths) travelled += n;
+  const total = travelled > 0 ? travelled : 1;
+  const slots: { from: number; to: number }[] = [];
+  let at = start;
+  lengths.forEach((n, i) => {
+    const from = at / total;
+    at += n;
+    // The last glyph closes the clock: no residue is left for a rounding error to hide in.
+    slots.push({ from, to: i === lengths.length - 1 ? 1 : at / total });
+  });
+  return slots;
+}
+
+/**
+ * THE FRAGMENT A HALF-DRAWN GLYPH IS MASKED THROUGH.
+ *
+ * Every node is keyed `<object id>#<generation>`, and that key is the node's `id`, so a mask id
+ * used to read `wobo-pen-b0_1square#0-g3`. Measured in Chromium, `url(#…)` still resolves that —
+ * the fragment is everything after the first `#` — so this was NOT what lost the Punnett square's
+ * row-3 't' (`glyphSlots` was). It is still not an id: `querySelector('#…')` cannot address it,
+ * `getElementById` and the URL parser disagree about it, and other engines are free to differ. The
+ * fragment alphabet is enforced here so nothing downstream has to know.
+ */
+export function penMaskId(id: string, glyphKey: string): string {
+  return `wobo-pen-${id.replace(/[^A-Za-z0-9_-]/g, '_')}-${glyphKey}`;
+}
+
 // --- Geometry cache ----------------------------------------------------------------------------------
 
 interface CacheEntry {
@@ -147,9 +199,22 @@ interface CacheEntry {
   slots: { from: number; to: number }[];
 }
 
-function drawTimeOf(state: BoardObjectState, geometry: ObjectGeometry | null): number {
+/**
+ * How long the pen takes over an object. The plan's own `dur` wins. On the glass (a px frame) the
+ * trace's clock rules: a ring 300 to 600 ms, an underline by its length, in screen px
+ * (docs/INK-FREEZE-PLAN-TRACE.md §3). On a board the hand's units-per-ms pace is unchanged.
+ */
+function drawTimeOf(
+  state: BoardObjectState,
+  geometry: ObjectGeometry | null,
+  frame: BoardFrame,
+): number {
   if (state.durMs !== undefined) return state.durMs;
-  return strokeDurationMs(geometry?.length ?? 0);
+  const length = geometry?.length ?? 0;
+  if (frame.scale !== undefined) {
+    return traceDurationMs(String(state.object.kind), length * pxPerUnit(frame));
+  }
+  return strokeDurationMs(length);
 }
 
 /**
@@ -235,16 +300,14 @@ const BoardObjectNode = memo(function BoardObjectNode(props: NodeProps) {
   });
 
   // Written glyphs: the fill appears under a fat round nib travelling its own contour.
-  const glyphStart = geometry.strokes.reduce((s, x) => s + x.length, 0);
-  const totalLength = Math.max(geometry.length, 0.0001);
-  let travelled = glyphStart;
+  const gslots = glyphSlots(geometry);
   geometry.glyphs.forEach((glyph, gi) => {
     const glyphKey = `g${gi}`;
-    const glyphLength = glyph.trace.reduce((s, t) => s + t.length, 0);
-    const from = travelled / totalLength;
-    const to = (travelled + glyphLength) / totalLength;
-    travelled += glyphLength;
-    const p = reduced ? (progress >= 1 ? 1 : 0) : within(progress, { from, to });
+    const p = reduced
+      ? progress >= 1
+        ? 1
+        : 0
+      : within(progress, gslots[gi] ?? { from: 0, to: 1 });
     if (p <= 0) return;
     if (glyph.drawn || !glyph.fill) {
       // A symbol Wobo draws by hand — the trace IS the ink.
@@ -271,7 +334,7 @@ const BoardObjectNode = memo(function BoardObjectNode(props: NodeProps) {
       nodes.push(<path key={glyphKey} d={glyph.fill} fill={colour} stroke="none" />);
       return;
     }
-    const maskId = `wobo-pen-${props.id}-${glyphKey}`;
+    const maskId = penMaskId(props.id, glyphKey);
     const maskWidth = (props.geometry.size ?? 30) * HAND_MASK_FACTOR;
     const inner = sequenceStrokes(glyph.trace.map((t) => ({ d: t.d, length: t.length })));
     nodes.push(
@@ -468,6 +531,12 @@ interface Built {
   durMs: number;
   slots: { from: number; to: number }[];
   sig: string;
+  /**
+   * The thing this mark is about has left the glass (its rect is gone, or wholly outside the
+   * viewport). The last geometry is kept so the mark FADES where it was, rather than being dropped
+   * on the frame the rect went or floating somewhere else.
+   */
+  gone: boolean;
 }
 
 const NO_BUILD: Built[] = [];
@@ -483,6 +552,8 @@ interface BuildContext {
   boxes: Map<string, BoardRect>;
   /** Boxes already taken, so a label can step out of the way of one. Appended as it goes. */
   occupied: BoardRect[];
+  /** The page's own text near a subject, in viewport px, for a note to dodge. */
+  avoid?: (near: RectLike) => readonly RectLike[];
 }
 
 /**
@@ -496,6 +567,8 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
   for (const t of build.targets()) targetMap.set(t.id, t);
   const focusMap = new Map<string, RectLike | (() => RectLike | null)>();
   for (const f of build.focus()) focusMap.set(f.id, f.rect);
+  const onGlass = frame.scale !== undefined;
+  const avoid = build.avoid;
   const ctx = {
     frame,
     targetRect: (id: string) => targetMap.get(id)?.getRect() ?? null,
@@ -507,14 +580,49 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
     objectBox: (id: string) => boxes.get(id) ?? null,
     font,
     occupied,
+    // On the glass, placement is bounded by the glass itself, in px.
+    ...(onGlass
+      ? {
+          area: {
+            x: frame.panX,
+            y: frame.panY,
+            w: unitsWide(frame) / frame.zoom,
+            h: unitsHigh(frame) / frame.zoom,
+          },
+        }
+      : {}),
+    ...(avoid
+      ? {
+          avoid: (near: BoardRect) =>
+            avoid(boardToRect(frame, near)).map((r) => rectToBoard(frame, r)),
+        }
+      : {}),
   };
   const out: Built[] = [];
   for (const state of states) {
     const anchor = store.anchorOf(state);
-    const sigBox = anchor ? resolveAnchorBox(anchor, ctx) : null;
-    const sig = `${anchorSignature(sigBox)}|${frame.zoom}`;
     const key = state.object.id;
     const hit = cache.get(key);
+    // Has the thing this mark is about left the glass? A missing rect, or one wholly outside the
+    // viewport on a glass surface. The mark then keeps its last geometry and fades in place.
+    let gone = false;
+    if (anchor && ('target' in anchor || 'focus' in anchor)) {
+      const rect = 'target' in anchor ? ctx.targetRect(anchor.target) : ctx.focusRect(anchor.focus);
+      gone = rect === null || (onGlass && offGlass(rect, frame));
+    }
+    if (gone && hit?.geometry) {
+      out.push({
+        state,
+        geometry: hit.geometry,
+        durMs: hit.durMs,
+        slots: hit.slots,
+        sig: hit.sig,
+        gone: true,
+      });
+      continue;
+    }
+    const sigBox = anchor ? resolveAnchorBox(anchor, ctx) : null;
+    const sig = `${anchorSignature(sigBox)}|${frame.zoom}`;
     let entry: CacheEntry;
     if (hit && hit.sig === sig && hit.generation === state.generation && hit.font === font) {
       entry = hit;
@@ -528,10 +636,11 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
         generation: state.generation,
         font,
         geometry,
-        durMs: drawTimeOf(state, geometry),
+        durMs: drawTimeOf(state, geometry, frame),
         slots: geometry ? strokeSlots(geometry) : [],
       };
-      cache.set(key, entry);
+      // A mark whose box came back null keeps whatever it last drew: the fade above needs it.
+      if (geometry || !hit?.geometry) cache.set(key, entry);
     }
     if (entry.geometry) {
       boxes.set(key, entry.geometry.box);
@@ -545,6 +654,7 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
       durMs: entry.durMs,
       slots: entry.slots,
       sig: entry.sig,
+      gone,
     });
   }
   return out;
@@ -656,6 +766,12 @@ export interface BoardSurfaceProps {
   /** Render budget override — the newest N objects are painted, the rest are virtualised out. */
   budget?: number;
   label?: string;
+  /**
+   * The page's own text lines near a subject, in viewport px (the glass map's lines), so a `note`
+   * lands in the margin and never on the words it is about. Asked lazily, only when a note is
+   * placed. Glass surfaces only.
+   */
+  avoid?: (near: RectLike) => readonly RectLike[];
 }
 
 const noTargets = (): readonly BoardTarget[] => [];
@@ -672,9 +788,9 @@ const NIB_PX = 3;
 /** How far one arrow press moves the keyboard's pen, in board units. */
 const CARET_STEP_UNITS = 16;
 
-/** The board-unit height a surface shows, at its current camera. */
+/** The unit height a surface shows at zoom 1: 1000 wide by its aspect, or its own px on the glass. */
 function boardHeightOf(frame: BoardFrame): number {
-  return frame.width > 0 ? (frame.height / frame.width) * BOARD_UNITS : BOARD_UNITS;
+  return frame.width > 0 ? unitsHigh(frame) : BOARD_UNITS;
 }
 
 /**
@@ -731,9 +847,12 @@ export function BoardSurface(props: BoardSurfaceProps) {
   const settledSeen = useRef(0);
   const settledVersion = useRef(0);
   const [font, setFont] = useState<HandFont | null>(() => handFont());
+  // The glass is measured in CSS px (one unit is one pixel); a board is 1000 units across itself.
   const [frame, setFrame] = useState<BoardFrame>(() =>
-    frameOf({ x: 0, y: 0, width: 1000, height: 620 }),
+    frameOf({ x: 0, y: 0, width: 1000, height: 620 }, fixed ? { scale: 1 } : undefined),
   );
+  /** When each gone mark's fade began, by key, so it fades once and comes back when its target does. */
+  const goneSince = useRef(new Map<string, number>());
   const [paint, setPaint] = useState(0);
   const [drawing, setDrawing] = useState<{ points: BoardPoint[]; pressure: number[] } | null>(null);
   /** Where the keyboard's pen is, in board units. Null until the arrows are used. */
@@ -835,6 +954,8 @@ export function BoardSurface(props: BoardSurfaceProps) {
   targetsRef.current = targets;
   const focusRef = useRef(focusRegions);
   focusRef.current = focusRegions;
+  const avoidRef = useRef(props.avoid);
+  avoidRef.current = props.avoid;
 
   /**
    * The objects whose geometry can move without this surface moving: a mark hanging off the page
@@ -883,6 +1004,7 @@ export function BoardSurface(props: BoardSurfaceProps) {
       focus: focusRef.current,
       boxes,
       occupied,
+      ...(avoidRef.current ? { avoid: avoidRef.current } : {}),
     });
     return { objects, boxes, occupied };
     // `rendered` identity changes whenever the store emits, which is the correct trigger.
@@ -904,6 +1026,7 @@ export function BoardSurface(props: BoardSurfaceProps) {
       // Seeded with the settled half's boxes so an object anchored across the two still resolves.
       boxes: new Map(settledBuild.boxes),
       occupied: [...settledBuild.occupied],
+      ...(avoidRef.current ? { avoid: avoidRef.current } : {}),
     });
   }, [floating, liveFrame, font, store, settledBuild, screenTick]);
 
@@ -925,27 +1048,45 @@ export function BoardSurface(props: BoardSurfaceProps) {
   // --- Camera -----------------------------------------------------------------------------------------
   // Bounds are taken from the two halves separately: the settled half is a memo that survives a
   // frame, so a board of two thousand strokes is not re-measured sixty times a second.
+  // THE FIT IS MEASURED AGAINST THE INK, UNPADDED (the adversary, wave 47, finding 4). The
+  // settled half used to carry `contentBounds`'s 28-unit layout padding into the camera, so the
+  // margin the fill already leaves was charged twice: at 1440 the Pythagoras ink filled 0.63 of
+  // the limiting side against a law of 0.78 and landed as 147 x 178 px. Both halves are raw boxes
+  // now, and `autoCameraTarget` is the one place the fit is composed.
   const settledBounds = useMemo(
     () =>
       autoCamera
-        ? contentBounds(settledBuild.objects.flatMap((b) => (b.geometry ? [b.geometry.box] : [])))
+        ? contentBounds(
+            settledBuild.objects.flatMap((b) => (b.geometry ? [b.geometry.box] : [])),
+            0,
+          )
         : null,
     [autoCamera, settledBuild],
   );
   const autoTarget = useMemo(() => {
     if (!autoCamera) return null;
     const boxes = floatingBuilt.flatMap((b) => (b.geometry ? [b.geometry.box] : []));
-    if (settledBounds) boxes.push(settledBounds);
-    return fitCamera(contentBounds(boxes, 0), frame);
+    return autoCameraTarget(settledBounds ? [...boxes, settledBounds] : boxes, [], frame);
   }, [autoCamera, settledBounds, floatingBuilt, frame]);
   // The camera GLIDES to the fit rather than snapping to it: every new object changes the box the
   // ink has to fit into, and a hard cut on each stroke would read as the board flinching. Reduced
   // motion goes straight there, which is the same rule the ink itself follows.
   const shownCam = useRef<Camera | null>(null);
+  /**
+   * Whether the board has shown ink yet. The camera glides between fits, but the FIRST fit is a
+   * cut: an empty board has nothing on it to glide from, and gliding from the resting camera put
+   * the first stroke of a tall board below the fold for its first frames (the food-web golden at
+   * 1280 by 720, caught by the first-stroke bench once it required the stroke on the glass).
+   */
+  const inkSeen = useRef(false);
   let cameraSettling = false;
   if (autoTarget) {
+    const hasInk = built.some((b) => b.geometry !== null);
+    const firstInk = hasInk && !inkSeen.current;
+    if (hasInk) inkSeen.current = true;
+    else inkSeen.current = false;
     const from = shownCam.current;
-    const next = from && !reduced ? easeCamera(from, autoTarget) : autoTarget;
+    const next = from && !reduced && !firstInk ? easeCamera(from, autoTarget) : autoTarget;
     cameraSettling = Boolean(from) && !cameraArrived(next, autoTarget);
     shownCam.current = next;
   } else if (shownCam.current) {
@@ -1007,6 +1148,7 @@ export function BoardSurface(props: BoardSurfaceProps) {
   const nodes = settledNodes.current;
   let settledCount = 0;
   let settledChanged = false;
+  const gone = goneSince.current;
   for (const b of built) {
     const { state, geometry, durMs, sig } = b;
     if (!geometry) continue;
@@ -1018,13 +1160,21 @@ export function BoardSurface(props: BoardSurfaceProps) {
     if (state.fadingAt !== undefined) {
       opacity *= Math.max(0, Math.min(1, 1 - (now - state.fadingAt) / FADE_MS));
     }
-    if (opacity <= 0) continue;
     const key = `${state.object.id}#${state.generation}`;
+    // The thing it is about has left the glass: fade where it was, and come back if it does.
+    if (b.gone) {
+      const since = gone.get(key) ?? now;
+      if (!gone.has(key)) gone.set(key, since);
+      opacity *= Math.max(0, Math.min(1, 1 - (now - since) / FADE_MS));
+    } else if (gone.has(key)) {
+      gone.delete(key);
+    }
+    if (opacity <= 0) continue;
     if (!ticked.current.has(key)) {
       ticked.current.add(key);
       penTick(geometry.length > 60 ? 1 : 0.6);
     }
-    const isSettled = progress >= 1 && opacity >= 1 && state.fadingAt === undefined;
+    const isSettled = progress >= 1 && opacity >= 1 && state.fadingAt === undefined && !b.gone;
     if (isSettled) {
       const held = nodes.get(key);
       if (held && held.sig === sig) {
@@ -1091,7 +1241,7 @@ export function BoardSurface(props: BoardSurfaceProps) {
       h: Math.max(...ys) - Math.min(...ys),
     };
     const id = `learner-${++strokeId.current}`;
-    const k = viewFrame.width > 0 ? viewFrame.width / BOARD_UNITS : 1;
+    const k = pxPerUnit({ ...viewFrame, zoom: 1 });
     const rect: RectLike = {
       x: (box.x - viewFrame.panX) * k * viewFrame.zoom + viewFrame.left,
       y: (box.y - viewFrame.panY) * k * viewFrame.zoom + viewFrame.top,
@@ -1139,7 +1289,7 @@ export function BoardSurface(props: BoardSurfaceProps) {
    */
   const onSurfaceKeyDown = (e: React.KeyboardEvent<SVGSVGElement>) => {
     if (!capture) return;
-    const here = caret ?? ([BOARD_UNITS / 2, boardHeightOf(viewFrame) / 2] as BoardPoint);
+    const here = caret ?? ([unitsWide(viewFrame) / 2, boardHeightOf(viewFrame) / 2] as BoardPoint);
     const step = CARET_STEP_UNITS * (e.shiftKey ? 4 : 1);
     const moves: Record<string, BoardPoint> = {
       ArrowLeft: [-step, 0],
@@ -1200,8 +1350,8 @@ export function BoardSurface(props: BoardSurfaceProps) {
     return [bx - originX, by - originY];
   };
 
-  const height = viewFrame.height > 0 ? (viewFrame.height / viewFrame.width) * BOARD_UNITS : 620;
-  const shownW = BOARD_UNITS / (effective.zoom || 1);
+  const height = viewFrame.height > 0 ? unitsHigh(viewFrame) : 620;
+  const shownW = unitsWide(viewFrame) / (effective.zoom || 1);
   const shownH = height / (effective.zoom || 1);
   const learnerPath = drawing && drawing.points.length > 1 ? smoothPath(drawing.points) : null;
 

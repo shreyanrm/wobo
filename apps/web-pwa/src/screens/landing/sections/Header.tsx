@@ -13,12 +13,14 @@
  */
 
 import { routeToPath } from '../../../shell/router';
-import { CTA } from '../../site/cta';
+import { SIGN_IN, useCta } from '../../site/cta';
 import { Wordmark } from '../art';
 import { LandingLink } from '../link';
-import { AUTH, NAV_LINKS } from '../page-copy';
+import { NAV_LINKS } from '../page-copy';
 
 export function Header() {
+  // The loud door follows the dial; the quiet one never moves (docs/DOORS-CLOSED.md §2).
+  const door = useCta();
   return (
     <header>
       <div className="wrap bar">
@@ -34,10 +36,10 @@ export function Header() {
         </nav>
         <div className="right">
           <LandingLink className="sign" href="/sign-in">
-            {AUTH.signIn}
+            {SIGN_IN}
           </LandingLink>
-          <LandingLink className="btn pig" href={routeToPath(CTA.to)}>
-            <span>{AUTH.start}</span>
+          <LandingLink className="btn pig" href={routeToPath(door.to)}>
+            <span>{door.label}</span>
           </LandingLink>
         </div>
       </div>

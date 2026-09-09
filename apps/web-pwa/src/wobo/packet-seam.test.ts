@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { createFocus, resetFocusIds, SurfaceRegistry } from '@wobo/wobo';
+import { chooseGlass, createFocus, type GlassMap, resetFocusIds } from '@wobo/wobo';
 
 /** A localStorage stand-in, installed before the mind store is imported (it reads through it). */
 class FakeStorage {
@@ -36,24 +36,22 @@ const {
 } = await import('./capabilities');
 const { rememberInterests } = await import('../store/mind');
 
-const registry = () => {
-  const r = new SurfaceRegistry();
-  r.registerSurface({
-    id: 'course',
-    title: 'The atom',
-    description: 'the course player',
-    targets: [
+/** The glass as the reader chose it: the one card on the course screen, with its step. */
+const glass = (): GlassMap =>
+  chooseGlass(
+    [
       {
         id: 'card-3',
-        kind: 'card',
-        label: 'the step where 3 was moved across',
-        rect: () => ({ x: 0, y: 0, width: 200, height: 40 }),
-        text: () => '2x + 3 = 11',
+        role: 'step',
+        text: '2x + 3 = 11',
+        box: [0, 0, 200, 40],
+        order: 0,
+        visible: 1,
+        meaning: 'step:3',
       },
     ],
-  });
-  return r;
-};
+    { w: 390, h: 844, scrollY: 0 },
+  );
 
 const context = () => ({
   page: { route: 'course', state: { topicId: 'm2-1', mode: 'story' } },
@@ -81,10 +79,11 @@ beforeEach(() => {
 
 describe('the turn packet', () => {
   it('carries the route, the screen, the mind digest and the recent turns', () => {
-    const packet = buildTurnPacket(context(), { registry: registry() });
+    const packet = buildTurnPacket(context(), { glass: glass() });
     expect(packet.v).toBe(1);
     expect(packet.route).toBe('course');
-    expect(packet.screen?.surfaces[0]?.targets[0]?.id).toBe('card-3');
+    expect(packet.glass?.[0]?.id).toBe('card-3');
+    expect(packet.glass?.[0]?.meaning).toBe('step:3');
     expect(packet.mind).toMatchObject({
       band: 'developing',
       topic: 'Linear equations',
@@ -114,7 +113,7 @@ describe('the turn packet', () => {
   it('carries the world the learner asked for and the door the brain opened, on the real feed', () => {
     rememberInterests(['cricket', 'space']);
     noteAccount({ plan: 'free', consentTier: 'un_elevated' });
-    const packet = buildTurnPacket(context(), { registry: registry() });
+    const packet = buildTurnPacket(context(), { glass: glass() });
     expect(packet.mind?.analogy).toBe('cricket');
     expect(packet.mind?.consentTier).toBe('un_elevated');
     expect(packet.mind?.plan).toBe('free');
@@ -122,7 +121,7 @@ describe('the turn packet', () => {
 
   it('tells the brain where in the task they are — the beat, the attempt and the score', () => {
     expect(taskFrom(context())).toEqual({ beat: '3 of 7', attempt: 2, score: 4, mode: 'story' });
-    expect(buildTurnPacket(context(), { registry: registry() }).task).toEqual({
+    expect(buildTurnPacket(context(), { glass: glass() }).task).toEqual({
       beat: '3 of 7',
       attempt: 2,
       score: 4,
@@ -132,7 +131,7 @@ describe('the turn packet', () => {
 
   it("lets a caller's own rung win over the screen's, without losing the beat", () => {
     const packet = buildTurnPacket(context(), {
-      registry: registry(),
+      glass: glass(),
       task: { mode: 'say_it_in_my_world' },
     });
     expect(packet.task).toEqual({
@@ -144,7 +143,7 @@ describe('the turn packet', () => {
   });
 
   it('sends no task state at all where the screen has none', () => {
-    expect(buildTurnPacket({}, { registry: new SurfaceRegistry() }).task).toBeUndefined();
+    expect(buildTurnPacket({}, { glass: null }).task).toBeUndefined();
   });
 
   it('picks up the focus the gesture layer last made', () => {
@@ -156,17 +155,17 @@ describe('the turn packet', () => {
     });
     setTurnFocus(focus);
     expect(turnFocus()).toBe(focus);
-    const packet = buildTurnPacket(context(), { registry: registry() });
+    const packet = buildTurnPacket(context(), { glass: glass() });
     expect(packet.focus?.targetIds).toEqual(['card-3']);
     expect(packet.focus?.numbers).toEqual([2, 3, 11]);
   });
 
   it('sends no focus when the learner has pointed at nothing', () => {
-    expect(buildTurnPacket(context(), { registry: registry() }).focus).toBeUndefined();
+    expect(buildTurnPacket(context(), { glass: glass() }).focus).toBeUndefined();
   });
 
   it('stays inside the token budget', () => {
-    const packet = buildTurnPacket(context(), { registry: registry(), budget: { maxTokens: 120 } });
+    const packet = buildTurnPacket(context(), { glass: glass(), budget: { maxTokens: 120 } });
     expect(packet.tokens).toBeLessThanOrEqual(120);
   });
 });
@@ -174,7 +173,7 @@ describe('the turn packet', () => {
 describe('the wobo.turn payload', () => {
   it('adds the packet without disturbing a single existing context field', () => {
     const assembled = context();
-    const payload = woboTurnPayload(assembled, { registry: registry() });
+    const payload = woboTurnPayload(assembled, { glass: glass() });
     for (const key of Object.keys(assembled)) {
       expect(payload.context[key as keyof typeof assembled]).toEqual(
         assembled[key as keyof typeof assembled],
@@ -185,12 +184,12 @@ describe('the wobo.turn payload', () => {
 
   it('does not mutate the context it was given', () => {
     const assembled = context();
-    woboTurnPayload(assembled, { registry: registry() });
+    woboTurnPayload(assembled, { glass: glass() });
     expect('packet' in assembled).toBe(false);
   });
 
   it('survives an empty context — the first turn on a bare screen', () => {
-    const payload = woboTurnPayload({}, { registry: new SurfaceRegistry() });
+    const payload = woboTurnPayload({}, { glass: null });
     expect(payload.context.packet.v).toBe(1);
     expect(payload.context.packet.route).toBeUndefined();
   });

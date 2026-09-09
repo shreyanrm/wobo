@@ -39,7 +39,12 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from '../../shell/router';
 import { useSdk } from '../../store/sdk';
 import { WoboHead, Wordmark } from '../../ui/primitives';
+import { SIGN_IN as SITE_SIGN_IN } from '../site/cta';
+import { useDoorsOpen } from '../site/dial';
+import { LIST } from '../site/invitation';
+import { JoinList } from '../site/JoinList';
 import { SiteLink } from '../site/nav';
+import { SiteShell } from '../site/SiteShell';
 import { failureFromAuthReturn, reportFailure } from '../states/select';
 import { ageOn, blockedBy, consentBranch, looksLikeEmail, type SignUpFields } from './age';
 import { callSeam, liveSeams, type MethodName, methodStates } from './client';
@@ -59,7 +64,7 @@ import {
   SOON,
   TEEN,
 } from './copy';
-import { type ProviderName, waysIn } from './doors';
+import { otherDoor, type ProviderName, waysIn } from './doors';
 import { fieldProblem, fieldShape, type Glyph, phoneProblem } from './field';
 import { controlOf, marks, type Problem, type Where, whereBlocked, whereField } from './problem';
 import { rememberSignUp } from './record';
@@ -204,7 +209,10 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
   const router = useRouter();
   const sdk = useSdk();
   const words = mode === 'sign-in' ? SIGN_IN : SIGN_UP;
-  const other: Mode = mode === 'sign-in' ? 'sign-up' : 'sign-in';
+  // THE OTHER DOOR READS THE DIAL. It is the most linked-to control on the site while the door is
+  // shut: every one of the 438 pre-rendered pages sends a reader to /sign-in, and this used to
+  // offer them an account two inches from a page saying Wobo is not open yet (DOORS-CLOSED §5).
+  const other = otherDoor(mode, useDoorsOpen());
 
   // The ONE auth client the app already built, read as a bag of seams. No second client is made
   // here and none may ever be — two places minting sessions is two places to get refresh wrong.
@@ -515,7 +523,11 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
         return;
       }
       if (parentWay === 'code') void askForCode(seam, value, true);
-      else void attempt(() => callSeam(seams, seam, value), () => setStage('parent-sent'));
+      else
+        void attempt(
+          () => callSeam(seams, seam, value),
+          () => setStage('parent-sent'),
+        );
       return;
     }
     sendIdentifier();
@@ -562,17 +574,14 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
             <Wordmark />
           </SiteLink>
           {mode === 'sign-up' ? <Steps current={1} /> : null}
-          <SiteLink
-            to={{ name: other }}
-            className={mode === 'sign-up' ? 'au-other' : 'au-other au-doorbtn'}
-          >
-            {mode === 'sign-up' ? (
+          <SiteLink to={other.to} className={other.prompt ? 'au-other' : 'au-other au-doorbtn'}>
+            {other.prompt ? (
               <>
-                <span className="au-lead">{words.switchPrompt}</span>
-                <b>{words.switchAction}</b>
+                <span className="au-lead">{other.prompt}</span>
+                <b>{other.label}</b>
               </>
             ) : (
-              words.switchAction
+              other.label
             )}
           </SiteLink>
         </div>
@@ -693,7 +702,9 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
                                     {parentWay === 'code' ? FIELDS.parentPhone : FIELDS.parentEmail}
                                   </label>
                                   <div className="au-field" {...wrong('parent-contact')}>
-                                    <FieldGlyph glyph={parentWay === 'code' ? 'phone' : 'envelope'} />
+                                    <FieldGlyph
+                                      glyph={parentWay === 'code' ? 'phone' : 'envelope'}
+                                    />
                                     <input
                                       id="au-parent"
                                       type={parentWay === 'code' ? 'tel' : 'email'}
@@ -706,7 +717,10 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
                                       }
                                       value={fields.parentContact}
                                       {...invalid('parent-contact')}
-                                      aria-describedby={describedBy('parent-contact', 'au-parent-hint')}
+                                      aria-describedby={describedBy(
+                                        'parent-contact',
+                                        'au-parent-hint',
+                                      )}
                                       onChange={(e) =>
                                         setFields((f) => ({ ...f, parentContact: e.target.value }))
                                       }
@@ -900,6 +914,27 @@ export function SignIn() {
   return <Auth mode="sign-in" />;
 }
 
+/**
+ * THE SIGN-UP ADDRESS, WHICH IS NOT ALWAYS A SIGN-UP.
+ *
+ * Owner, 2026-09-09 (`docs/DOORS-CLOSED.md`): no account is created by any path until the dial is
+ * turned back on. So `/sign-up` keeps its address, its place in every link and every pre-rendered
+ * file, and changes what it opens onto: the invitation to the list stands where the door was, and
+ * the door itself comes back the minute `doors_open` goes true, with no release (§4).
+ *
+ * The SIGN-IN door below is untouched, and that is the point of doing it here rather than by
+ * hiding a route: closing the door to new accounts is not locking anybody out.
+ */
 export function SignUp() {
-  return <Auth mode="sign-up" />;
+  const open = useDoorsOpen();
+  if (open) return <Auth mode="sign-up" />;
+  return (
+    <SiteShell
+      title="Join the list · Wobo"
+      label={LIST.title}
+      door={{ label: SITE_SIGN_IN, to: { name: 'sign-in' } }}
+    >
+      <JoinList source="sign-up" />
+    </SiteShell>
+  );
 }

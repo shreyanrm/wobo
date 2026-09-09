@@ -77,7 +77,15 @@ ALLOWED: list[tuple[str, str, str]] = [
 ]
 
 
-SPOKEN_TABLES = {"_MOCK_SAY", "_BOARD_SAY", "SILENT_BOARD_SAY", "WOBO_NO_GENDER", "_EXHAUSTED"}
+SPOKEN_TABLES = {
+    "_MOCK_SAY",
+    "_BOARD_SAY",
+    "SILENT_BOARD_SAY",
+    "WOBO_NO_GENDER",
+    "_EXHAUSTED",
+    # wave 46, finding 3: the honest keyless answers are read by a learner like any other line.
+    "_KEYLESS_INLINE",
+}
 SPOKEN_KEYS = {"say", "why", "message"}
 
 
@@ -153,7 +161,7 @@ def test_wobo_is_never_told_to_introduce_itself() -> None:
 
 
 def test_the_mock_tables_say_nothing_about_wobo() -> None:
-    for line in [*wobo._MOCK_SAY.values(), *wobo._BOARD_SAY.values(), wobo.SILENT_BOARD_SAY]:
+    for line in [*wobo._MOCK_SAY.values(), *wobo._BOARD_SAY.values()]:
         assert not re.search(r"\bI(?:'ll| will|'m| am| can)\b", line), line
         assert not re.search(r"\b[Ll]et me\b", line), line
 

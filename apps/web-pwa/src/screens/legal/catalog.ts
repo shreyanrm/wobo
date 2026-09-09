@@ -1,11 +1,10 @@
 /**
  * The addresses of the legal set, and the index rows, derived from the documents themselves.
  *
- * Nothing here restates the copy. The slugs come from the filenames in `docs/legal/`, the short
- * aliases are the ones the landing page's footer already links to (`/legal/terms`, `/legal/privacy`,
- * `/legal/safety`), and the one-line description of each document is read out of the table in
- * `docs/legal/README.md` rather than written again here — so a change to that table changes this
- * index, and the two can never drift apart.
+ * Nothing here restates the copy. The slugs come from the filenames in `docs/legal/`, and the
+ * one-line description of each document is read out of the table in `docs/legal/README.md` rather
+ * than written again here — so a change to that table changes this index, and the two can never
+ * drift apart.
  *
  * Pure and unit-tested; the file loading lives in `docs.ts`, which is the only Vite-specific module
  * in this folder.
@@ -13,7 +12,18 @@
 
 import type { Block, Inline } from './markdown';
 
-/** The short addresses the rest of the product links to, mapped to the document's own slug. */
+/**
+ * THE OLD SHORT ADDRESSES, each mapped to the document's own slug.
+ *
+ * These were once what the footer linked, and that was the bug: `/legal/terms` and
+ * `/legal/terms-of-service` both answered 200 with the same 2,610 words and each declared ITSELF
+ * the original, so the site's links and the site's sitemap pointed at two different addresses for
+ * one document (docs/GROWTH-SEARCH.md §2). The address of record is now the document's own
+ * filename, which is what `public/sitemap.xml` publishes; every entry below is a nickname that
+ * resolves to it (`pathToRoute`) and 301s to it at the edge (`vercel.json`). Nothing in the
+ * product links one any more, and `test/addresses.test.ts` keeps it that way — but they are kept
+ * forever, because an address that was once published is a link somebody still holds.
+ */
 export const SLUG_ALIASES: Readonly<Record<string, string>> = {
   terms: 'terms-of-service',
   privacy: 'privacy-policy',

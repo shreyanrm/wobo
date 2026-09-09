@@ -59,6 +59,24 @@ async function timeToFirstStroke(
   );
   const ms = await page.evaluate(() => window.__woboBench?.firstStrokeMs ?? Number.NaN);
   expect(Number.isFinite(ms)).toBe(true);
+  // A stroke nobody could see is not a first stroke: the scorecard's 33 to 40 ms figure was
+  // measured on ink at x = 2069 on a 1440 viewport (docs/INK-FREEZE-PLAN-TRACE.md §5).
+  await page
+    .waitForFunction(() => window.__woboBench?.firstStrokeBox !== null, undefined, {
+      timeout: 2_000,
+    })
+    .catch(() => undefined);
+  const box = await page.evaluate(() => window.__woboBench?.firstStrokeBox ?? null);
+  const viewport = page.viewportSize() ?? { width: 0, height: 0 };
+  expect(box, `${name}: the first stroke has no box`).not.toBeNull();
+  if (box) {
+    const inside =
+      box.x + box.w > 0 && box.x < viewport.width && box.y + box.h > 0 && box.y < viewport.height;
+    expect(
+      inside,
+      `${name}: the first stroke landed outside the viewport at ${JSON.stringify(box)}`,
+    ).toBe(true);
+  }
   return ms;
 }
 

@@ -8,7 +8,7 @@
  */
 
 import type { PracticeItem } from '@wobo/sdk';
-import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
+import { glassLabel, useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { motion } from 'framer-motion';
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { useSdk } from '../../store/sdk';
@@ -402,22 +402,33 @@ export function Boss({
             <div style={whisper}>{ORDINALS[2]} · one line below is wrong — tap it</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {error.lines.map((line, i) => (
-                <ChoiceButton
+                // Each line is a step on the glass map, and the slip rides the step it lives on
+                // (docs/INK-FREEZE-PLAN-TRACE.md §3): "which step is wrong" has a box to land on.
+                <div
                   key={line}
-                  chosen={errorChoice === i}
-                  evaluated={evaluated}
-                  isAnswer={i === error.errorIndex}
-                  blockWrong={!!results && !results[2]}
-                  disabled={evaluated}
-                  onClick={() => setErrorChoice(i)}
-                  style={{
-                    fontVariantNumeric: 'tabular-nums',
-                    fontSize: '1.05rem',
-                    fontWeight: 550,
-                  }}
+                  {...glassLabel(
+                    'step',
+                    i === error.errorIndex
+                      ? `step:${i + 1};misconception:moves-term-without-sign`
+                      : `step:${i + 1}`,
+                  )}
                 >
-                  {line}
-                </ChoiceButton>
+                  <ChoiceButton
+                    chosen={errorChoice === i}
+                    evaluated={evaluated}
+                    isAnswer={i === error.errorIndex}
+                    blockWrong={!!results && !results[2]}
+                    disabled={evaluated}
+                    onClick={() => setErrorChoice(i)}
+                    style={{
+                      fontVariantNumeric: 'tabular-nums',
+                      fontSize: '1.05rem',
+                      fontWeight: 550,
+                    }}
+                  >
+                    {line}
+                  </ChoiceButton>
+                </div>
               ))}
             </div>
             {evaluated && results && !results[2] && (

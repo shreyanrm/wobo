@@ -5,6 +5,7 @@ import {
   type MasterySnapshot,
 } from '@wobo/kgtopg-contract-seed';
 import { resolveConfig, type SdkConfig } from './config';
+import { mayCreateAccount } from './doors';
 import { type EventProvider, InMemoryEventProvider, SupabaseOutboxEventProvider } from './events';
 import { configureGatewayAuth, fetchMe, type Me } from './gateway';
 import {
@@ -252,12 +253,19 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   // One anonymous sign-in per device, at most one in flight: the boot effect asks for it, and any
   // gateway call that arrives first asks for it too, so a turn taken in the first second of a
   // learner's life still carries a real JWT instead of meeting a sign-in wall.
+  //
+  // AND IT ASKS THE DOOR FIRST (`doors.ts`, `docs/DOORS-CLOSED.md` §1 and §4). An anonymous
+  // subject IS a freshly minted account: it costs one public call to the auth server, which the
+  // gateway never sees and therefore cannot refuse. So while `doors_open` is false nothing is
+  // minted here at all. A session that already exists is untouched, because the line above returns
+  // before any of this: closing the door to new accounts is not locking anybody out (§2).
   let establishing: Promise<void> | null = null;
   const establishSession = async (): Promise<void> => {
     if (!supabaseAuth || supabaseAuth.isAuthenticated()) return;
-    establishing ??= supabaseAuth.auth
-      .signInAnonymously()
-      .then(() => {
+    establishing ??= mayCreateAccount(config.gatewayUrl)
+      .then(async (may) => {
+        if (!may) return;
+        await supabaseAuth.auth.signInAnonymously();
         // THE CACHES FOLLOW. Built before the session existed, they were keyed to nobody and
         // writing the plain keys; from here on they are this learner's, and what was written
         // plain moves under them (state.ts adoptPlainKeys).

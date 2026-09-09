@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 
 import pytest
+from wobo_gateway import wobo
 from wobo_gateway.providers import MockProvider
 from wobo_gateway.wobo import (
     WOBO_PERSONA,
@@ -248,21 +249,32 @@ def test_system_prompt_carries_truth_and_warmth_tier() -> None:
     assert "draw me a dragon" in p  # play-and-make create widening
 
 
-def test_system_prompt_carries_the_choreography() -> None:
+def test_system_prompt_carries_the_guidance_loop_and_no_overlay_grammar() -> None:
+    """The plain turn speaks and drives scenes; it never draws. A mark on the page is a plan by
+    glass id on the board path, traced by the one hand (docs/INK-FREEZE-PLAN-TRACE.md §3, §4), so
+    the overlay's verbs and its per-sentence beats are gone from the prompt."""
     from wobo_gateway.wobo import WOBO_SYSTEM
 
     p = WOBO_SYSTEM
-    # THE SYNCED HAND + THE ACTION TIMELINE — ink rides the beats of Wobo's spoken line
-    assert "withSentence" in p
-    assert "afterSentence" in p
-    assert "Your voice and your hand are ONE performance" in p
-    # a write note is Wobo's hand ON THE PAGE, never in the chat bubble (owner addendum)
-    assert "your hand ON THE PAGE" in p
+    for gone in (
+        "withSentence",
+        "afterSentence",
+        '"type":"annotate"',
+        '"type":"highlight"',
+        '"type":"point"',
+        '"type":"write"',
+        "lookHere",
+        "target registry",
+    ):
+        assert gone not in p, gone
+    # what is on the screen is the glass map, and it is named by its words, never its id
+    assert "glass map" in p
+    assert "never by its id" in p
     # THE GUIDANCE LOOP — one step, check, wait, react, then advance
     assert "one step at a time" in p
     assert "never dump the whole solution" in p
     assert "your turn" in p.lower()
-    # a concrete worked choreography the model can pattern-match against
+    # a concrete worked shape the model can pattern-match against
     assert "2x + 3 = 7" in p
 
 
@@ -435,11 +447,9 @@ def test_a_question_with_a_region_in_hand_is_answered_with_a_mark_on_it() -> Non
         }
     )
     assert plan is not None
-    assert [o["anchor"] for o in plan["objects"]] == [
-        {"focus": "f7"},
-        {"focus": "f7", "at": "bottom"},
-    ]
-    assert {o["kind"] for o in plan["objects"]} == {"circle", "write"}
+    assert [o["anchor"] for o in plan["objects"]] == [{"focus": "f7"}, {"focus": "f7"}]
+    assert [o["kind"] for o in plan["objects"]] == ["ring", "underline"]
+    assert plan["ask"]["targets"] == ["f7"]
     # Every object Wobo plans has to survive the grammar Wobo is held to.
     from wobo_gateway.board import schema
 
@@ -585,7 +595,7 @@ def test_an_equation_in_any_letter_is_solved_for_that_letter(
 
 
 def test_a_trailing_constant_is_the_learner_maths_not_their_sentence() -> None:
-    """"solve 2x + 3 = 7 pi" reads as 7π: nothing English follows, so the constant stays and the
+    """ "solve 2x + 3 = 7 pi" reads as 7π: nothing English follows, so the constant stays and the
     board draws the solution of exactly that equation. "C = 2 pi r" is written the same way."""
     from wobo_gateway.wobo import board_intents
 
@@ -593,24 +603,49 @@ def test_a_trailing_constant_is_the_learner_maths_not_their_sentence() -> None:
     assert intents and intents[0]["equation"] == "2x + 3 = 7 pi"
 
 
-def test_a_keyless_plan_that_would_draw_nothing_is_not_a_board_turn() -> None:
+def test_a_keyless_plan_that_would_draw_nothing_is_not_a_board_turn(
+    auth, monkeypatch, tmp_path
+) -> None:
     """board-6 end to end: the keyless plan spoke "Look at this. I'll draw it a piece at a time"
     and the route streamed it over ``ink=[]`` whenever the pipelines refused every object (a
-    solution set the CAS cannot write down, a name the parser does not read). A plan that cannot
-    draw returns None here so the route falls to the spoken answer instead of a promise."""
-    from wobo_gateway.wobo import board_plan_for, mock_board_plan
+    solution set the CAS cannot write down, a name the parser does not read).
+
+    The plan is planned ONCE (docs/INK-FREEZE-PLAN-TRACE.md section 4: the double planning of
+    silent turns goes). The route runs the pipelines, sees nothing survive, and falls to the
+    spoken answer with the reasons on the ``done`` frame, instead of a promise over an empty board.
+    """
+    import json
+
+    from fastapi.testclient import TestClient
+    from wobo_gateway.app import build_gateway, create_app
+    from wobo_gateway.wobo import _BOARD_SAY, mock_board_plan
 
     def payload(text: str) -> dict:
         return {"context": {"turn": {"lastUserInput": text, "recentTurns": []}}}
 
-    # sin(x) = 0 has infinitely many solutions; the derivation pipeline refuses to write one line
-    assert mock_board_plan(payload("solve sin(x) = 0 between 0 and pi")) is None
-    assert board_plan_for(payload("solve sin(x) = 0 between 0 and pi"), live=False) is None
-    # abs is not a name the verifier reads, so the equation is refused by name, and honestly so
-    assert mock_board_plan(payload("solve abs(x - 2) = 3 for me")) is None
+    # the keyless plan still reads the words as a derivation; what survives is the route's to see
+    assert mock_board_plan(payload("solve sin(x) = 0 between 0 and pi"))["intents"]
+    monkeypatch.setenv("LLM_MODE", "mock")
+    monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path))
+    client = TestClient(create_app(build_gateway()))
+    for ask in ("solve sin(x) = 0 between 0 and pi", "solve abs(x - 2) = 3 for me"):
+        response = client.post(
+            "/v1/capability/wobo.turn",
+            json={"payload": payload(ask)},
+            headers={"Accept": "text/event-stream", **auth()},
+        )
+        assert response.status_code == 200, response.text
+        frames = [
+            json.loads(block.split("data: ", 1)[1].splitlines()[0])
+            for block in response.text.split("\n\n")
+            if "data: " in block
+        ]
+        assert not any(isinstance(f.get("object"), dict) for f in frames), ask
+        done = next(f for f in frames if "verified" in f)
+        assert done["objects"] == 0 and done["refused"], ask
+        said = " ".join(f["text"] for f in frames if "text" in f and "dur" in f)
+        assert said and said not in set(_BOARD_SAY.values()), ask
     # and a plan that draws keeps its say
-    from wobo_gateway.wobo import _BOARD_SAY
-
     plan = mock_board_plan(payload("solve 2x + 3 = 7"))
     assert plan is not None and plan["say"] == _BOARD_SAY["math"]
 
@@ -638,39 +673,141 @@ def _board_plan_with_model_json(monkeypatch, text: str, ask: str) -> dict:
     return plan
 
 
-def test_a_silent_plan_whose_ink_is_refused_does_not_claim_a_board(monkeypatch) -> None:
-    """``SILENT_BOARD_SAY`` asserts "what I have put on the board". It was applied at plan time,
-    before the pipelines and the verifier decided what survives, so on a turn where every object
-    was refused the learner heard Wobo claim a drawing that never appeared (wave 29, board-6: four
-    of seventeen live cases). The floor goes under ink that exists; a silent plan that draws
-    nothing is not a board turn at all."""
-    from wobo_gateway.wobo import SILENT_BOARD_SAY
+def test_a_silent_plan_is_refused_never_floored(monkeypatch) -> None:
+    """A silent plan used to get a floor sentence ("what I have put on the board") whatever the
+    pipelines then made of it, so on a turn where every object was refused the learner heard
+    Wobo claim a drawing that never appeared (wave 29, board-6). There is no floor now: a plan
+    with no words is not a board turn (docs/INK-FREEZE-PLAN-TRACE.md section 3, Plan), whether
+    or not its drawing would have survived, and the keyless twin answers in its place."""
+    from wobo_gateway import wobo
 
+    assert not hasattr(wobo, "SILENT_BOARD_SAY")
     unreadable = (
-        '{"intents": [{"pipeline": "math", "op": "derivation", '
+        '{"open": {"kind": "derivation", "intent": {"pipeline": "math", "op": "derivation", '
         '"equation": "x**2 - 5x + 6 = 0 and show me on the board how the factors work", '
-        '"steps": []}]}'
+        '"steps": []}}}'
     )
-    plan = _board_plan_with_model_json(monkeypatch, unreadable, "hmm")
-    assert str(plan.get("say") or "") != SILENT_BOARD_SAY
-    assert not plan, "nothing to say and nothing that survives the verifier is not a board"
-
-    # The same for a plan that was empty to begin with, on words the keyword table does not read.
-    plan = _board_plan_with_model_json(
-        monkeypatch, '{"say": "", "intents": [], "objects": []}', "hmm"
-    )
-    assert not plan
-
-
-def test_a_silent_plan_that_draws_still_gets_the_floor(monkeypatch) -> None:
-    """The other half of the law: ink with no words is Wobo drawing in silence, so the floor stays
-    under a plan whose objects survive."""
-    from wobo_gateway.wobo import SILENT_BOARD_SAY
-
+    assert not _board_plan_with_model_json(monkeypatch, unreadable, "hmm")
+    assert not _board_plan_with_model_json(monkeypatch, '{"sentences": []}', "hmm")
     drawable = (
-        '{"intents": [{"pipeline": "math", "op": "graph", "expr": "x**2", "var": "x", '
-        '"domain": [-3, 3]}]}'
+        '{"open": {"kind": "graph", "intent": {"pipeline": "math", "op": "graph", "expr": "x**2", '
+        '"var": "x", "domain": [-3, 3]}}}'
     )
-    plan = _board_plan_with_model_json(monkeypatch, drawable, "graph y = x^2")
-    assert plan["intents"]
-    assert plan["say"] == SILENT_BOARD_SAY
+    assert not _board_plan_with_model_json(monkeypatch, drawable, "graph y = x^2")
+
+
+# --- the fixer, wave 34: a truncated envelope is never read aloud ---------------------------------
+
+
+def test_a_cut_off_json_envelope_with_no_say_is_never_spoken(monkeypatch) -> None:
+    """Live on Luna, the fallback spoken answer for a Pythagoras ask was the model's raw JSON,
+    cut at the token cap: the say frame carried '{"path":"visualization", "viz":{...', the voice
+    read it aloud and the transcript printed it. JSON is never Wobo's line."""
+    raw = '{"path":"visualization",\n "viz":{"kind":"diagram","concept":"Pythag'
+    out = _turn_with_model_text(monkeypatch, raw)
+    assert out["say"] == CANNED
+    assert "{" not in out["say"] and "path" not in out["say"]
+
+
+def test_a_cut_off_envelope_that_still_carries_its_say_speaks_the_say_only(monkeypatch) -> None:
+    raw = '{"path":"inline", "say": "Start with the square on the longest side.", "actions": [{"ty'
+    out = _turn_with_model_text(monkeypatch, raw)
+    assert out["say"] == "Start with the square on the longest side."
+
+
+# --- wave 46, finding 3: the keyless learner meets the same tutor --------------------------------
+
+
+def _keyless(question: str, **context: object) -> dict:
+    return wobo.mock_wobo_turn(
+        {"context": {"turn": {"lastUserInput": question}, "curriculum": {}, **context}}
+    )
+
+
+def test_one_line_does_not_answer_nine_different_questions() -> None:
+    """Finding 3, 2026-09-09. `_MOCK_SAY["inline"]` — "Which step feels shaky? Start there." —
+    answered nine of the twenty-three course turns keyless: "which step is wrong here?" five
+    times, "why does that step work?" twice, "show me why" twice, "fresh board" twice, the same
+    words at 390 and at 1440 and in dark, naming nothing on the page and answering a different
+    question every time. Live the same asks are answered honestly, so the learner without a key
+    met a worse tutor than the one who pays.
+    """
+    asks = [
+        "which step is wrong here?",
+        "why does that step work?",
+        "show me why",
+        "fresh board",
+    ]
+    said = [_keyless(q)["say"] for q in asks]
+    assert len(set(said)) == len(asks), dict(zip(asks, said, strict=True))
+    for line in said:
+        assert "Which step feels shaky? Start there." != line
+
+
+def test_a_keyless_turn_that_cannot_see_the_working_says_so_and_asks_for_it() -> None:
+    """Honesty (voice.md §6): say what we do not know. "Which step is wrong here?" over a page
+    Wobo cannot read is not answered with a nudge that pretends to have read it."""
+    say = _keyless("which step is wrong here?")["say"]
+    assert "can't see" in say or "cannot see" in say, say
+    assert "?" in say, say
+    # and it never narrates itself or reads a mark back it did not make
+    assert "I'll" in say or "I will" in say or "Type" in say, say
+
+
+def test_the_keyless_line_carries_the_card_it_is_on_when_there_is_one() -> None:
+    """Specific beats general (voice.md §4): the node is on the context, so it is in the line."""
+    say = _keyless("why does that step work?", curriculum={"nodeName": "quadratic equations"})[
+        "say"
+    ]
+    assert "quadratic equations" in say.lower(), say
+
+
+# --- wave 46, finding 1: a pointer is not a subject, and no picture is invented -------------------
+
+
+def test_draw_this_names_nothing_so_nothing_is_drawn() -> None:
+    """Finding 1, 2026-09-09. "draw this for me" on a course card drew no board object at all.
+    It became a VISUALIZATION whose concept was the word "this", served the generic seed diagram
+    — two circles reading "idea" and "effect" with an arrow between them, at font-size 11 — and
+    Wobo read it out as "This, left to right. Which part is new to you?". Two turns, unchanged
+    since wave 44.
+
+    INK-FOUR, Relevance at 4: *a question that names nothing on the glass gets no ink and a useful
+    sentence instead.* "this" is a pointer, and a pointer with nothing under it names nothing.
+    """
+    for pointer in ("draw this for me", "draw it", "diagram this", "show me this"):
+        out = _keyless(pointer)
+        assert out["path"] == "inline", (pointer, out)
+        assert "viz" not in out, (pointer, out.get("viz"))
+        assert not out["say"].lower().startswith("this,"), (pointer, out["say"])
+        assert "left to right" not in out["say"].lower(), (pointer, out["say"])
+        assert out["say"].endswith("?") or "?" in out["say"], (pointer, out["say"])
+
+
+def test_a_pointer_is_never_the_concept_a_drawing_is_captioned_with() -> None:
+    from wobo_gateway.wobo import _concept_from, classify_intent
+
+    for pointer in ("this", "it", "that", "these", "the thing", "this thing"):
+        assert _concept_from(f"draw {pointer}", "") == "", pointer
+        # with a card open, the card is the subject, never the pointer
+        assert _concept_from(f"draw {pointer}", "quadratic equations") == "quadratic equations"
+    # a real subject still survives untouched
+    assert _concept_from("draw a triangle for me", "") == "triangle"
+    assert classify_intent("draw a triangle for me")["viz"]["concept"] == "triangle"
+
+
+def test_the_seed_diagram_never_invents_a_relationship() -> None:
+    """The seed drew a cause and an effect for every concept there is: two named circles and an
+    arrow from one to the other. That is a CLAIM, and it is true of nothing. A seed knows the
+    concept's name and nothing else, so the name is all it may draw."""
+    from wobo_gateway.plexus.engines import _seed_diagram
+
+    svg = _seed_diagram("photosynthesis")
+    assert "photosynthesis" in svg
+    for invented in (">idea<", ">effect<", ">cause<", "polygon"):
+        assert invented not in svg, invented
+    # and nothing a learner reads is under the 12 px floor
+    import re as _re
+
+    sizes = [float(v) for v in _re.findall(r'font-size="([\d.]+)"', svg)]
+    assert sizes and min(sizes) >= 12.0, sizes

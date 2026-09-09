@@ -119,8 +119,8 @@ export const CONSENT = {
   terms: 'terms of service',
   and: 'and the',
   privacy: 'privacy policy',
-  termsHref: '/legal/terms',
-  privacyHref: '/legal/privacy',
+  termsHref: '/legal/terms-of-service',
+  privacyHref: '/legal/privacy-policy',
 } as const;
 
 /**
@@ -157,7 +157,8 @@ export const DOOR_LEGAL = {
 export const PARENT = {
   title: 'A parent or guardian holds this account',
   /** The lead sentence, for whichever way this build can actually reach a parent. */
-  sendLink: 'I send one link to that address, and a parent or guardian opens it on their own device.',
+  sendLink:
+    'I send one link to that address, and a parent or guardian opens it on their own device.',
   sendCode:
     'I send one code to that number. A parent or guardian reads it on their own phone and types it in here.',
   body: 'The account is then theirs, held with you. Nothing is ticked already: memory, voice, photographs and sharing are each asked about on their own, later.',

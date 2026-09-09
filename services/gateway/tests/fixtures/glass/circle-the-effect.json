@@ -1,0 +1,106 @@
+{
+  "question": "circle the effect circle in the diagram",
+  "context": {
+    "page": {
+      "route": "course",
+      "state": {
+        "card": "diagram"
+      }
+    },
+    "curriculum": {
+      "nodeName": "cause and effect"
+    },
+    "packet": {
+      "v": 1,
+      "content": {
+        "kind": "diagram",
+        "concept": "cause-and-effect"
+      },
+      "glass": [
+        {
+          "id": "d1",
+          "role": "figure",
+          "text": "diagram: Predict, then check",
+          "box": [
+            40,
+            200,
+            300,
+            169
+          ]
+        },
+        {
+          "id": "d1.cause",
+          "role": "figure-part",
+          "meaning": "part:cause",
+          "text": "cause",
+          "box": [
+            50,
+            250,
+            56,
+            63
+          ]
+        },
+        {
+          "id": "d1.arrow",
+          "role": "figure-part",
+          "meaning": "part:arrow",
+          "text": "",
+          "box": [
+            120,
+            270,
+            60,
+            20
+          ]
+        },
+        {
+          "id": "d1.effect",
+          "role": "figure-part",
+          "meaning": "part:effect",
+          "text": "effect",
+          "box": [
+            200,
+            250,
+            56,
+            63
+          ]
+        }
+      ]
+    }
+  },
+  "plan": {
+    "say": "The effect is this one. What is the effect for?",
+    "intents": [],
+    "objects": [
+      {
+        "id": "s0m0",
+        "kind": "ring",
+        "anchor": {
+          "target": "d1.effect"
+        },
+        "words": "the effect",
+        "style": {
+          "ink": "accent",
+          "weight": 2
+        },
+        "t": {
+          "dur": 450
+        },
+        "meta": {
+          "beat": {
+            "with": 0,
+            "lag": 0
+          },
+          "mark": "ring"
+        },
+        "pad": 8
+      }
+    ],
+    "presentation": "screen",
+    "ask": {
+      "prompt": "What is the effect for?",
+      "targets": [
+        "d1.effect"
+      ]
+    }
+  }
+}

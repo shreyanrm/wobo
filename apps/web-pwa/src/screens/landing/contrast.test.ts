@@ -124,9 +124,7 @@ const SHEET = rules(LANDING_CSS);
 
 /** One declaration off a rule, e.g. `color`. */
 function decl(selector: string, property: string): string | null {
-  const found = (SHEET.get(`.${ROOT} ${selector}`) ?? []).find((d) =>
-    d.startsWith(`${property}:`),
-  );
+  const found = (SHEET.get(`.${ROOT} ${selector}`) ?? []).find((d) => d.startsWith(`${property}:`));
   return found ? found.slice(property.length + 1).trim() : null;
 }
 
@@ -168,12 +166,25 @@ const TEXT: { name: string; selector: string; ground: Ground; paint?: string }[]
   { name: "the subjects stage's who line", selector: '.stage .who > span', ground: 'paper-2' },
   { name: 'the teaching-modes note', selector: '.tmodes-note', ground: 'paper' },
   { name: 'an unpressed climb switch', selector: '.climb .switch button', ground: 'paper' },
-  { name: "a price card's amount suffix", selector: '.prices .plan > .pl-amount span', ground: 'paper-2' },
+  {
+    name: "a price card's amount suffix",
+    selector: '.prices .plan > .pl-amount span',
+    ground: 'paper-2',
+  },
   { name: "a price card's fine print", selector: '.prices .plan > .pl-fine', ground: 'paper-2' },
   { name: "the lead card's name", selector: '.prices .plan.lead > .pl-name', ground: 'ink' },
-  { name: "the lead card's tag", selector: '.prices .plan > .pl-name em', ground: 'marigold', paint: 'var(--marigold)' },
+  {
+    name: "the lead card's tag",
+    selector: '.prices .plan > .pl-name em',
+    ground: 'marigold',
+    paint: 'var(--marigold)',
+  },
   { name: "the lead card's amount", selector: '.prices .plan.lead > .pl-amount', ground: 'ink' },
-  { name: "the lead card's amount suffix", selector: '.prices .plan.lead > .pl-amount span', ground: 'ink' },
+  {
+    name: "the lead card's amount suffix",
+    selector: '.prices .plan.lead > .pl-amount span',
+    ground: 'ink',
+  },
   { name: "the lead card's blurb", selector: '.prices .plan.lead > .pl-said', ground: 'ink' },
   { name: "the lead card's fine print", selector: '.prices .plan.lead > .pl-fine', ground: 'ink' },
   { name: "the footer's tagline", selector: 'footer', ground: 'paper' },
@@ -184,7 +195,17 @@ const AA_NORMAL = 4.5;
 describe('the palette this is measured against is the law', () => {
   it('reads both themes off the sheet, whole', () => {
     for (const theme of ['light', 'night'] as Theme[]) {
-      for (const name of ['paper', 'paper-2', 'paper-3', 'ink', 'ink-2', 'ink-3', 'rose', 'mint', 'marigold']) {
+      for (const name of [
+        'paper',
+        'paper-2',
+        'paper-3',
+        'ink',
+        'ink-2',
+        'ink-3',
+        'rose',
+        'mint',
+        'marigold',
+      ]) {
         expect([theme, name, PALETTE[theme][name]]).not.toEqual([theme, name, undefined]);
       }
     }

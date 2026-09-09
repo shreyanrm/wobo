@@ -1,0 +1,5040 @@
+{
+  "note": "Compiled from content/curriculum/syllabi by content/curriculum/syllabi/tools/build_growth_data.py. Do not edit by hand.",
+  "minPlacements": 2,
+  "boards": {
+    "cbse": {
+      "short": "CBSE",
+      "name": "Central Board of Secondary Education"
+    },
+    "icse": {
+      "short": "ICSE",
+      "name": "Indian Certificate of Secondary Education (CISCE)"
+    },
+    "isc": {
+      "short": "ISC",
+      "name": "Indian School Certificate (CISCE)"
+    },
+    "nios": {
+      "short": "NIOS",
+      "name": "National Institute of Open Schooling"
+    }
+  },
+  "documents": {
+    "cbse-10-maths": {
+      "id": "cbse-10-maths",
+      "title": "Mathematics, Class X, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/Maths_SecP1X_2026-27.pdf",
+      "pages": 10,
+      "fetchedAt": "2026-09-03T07:03:44Z",
+      "sha256": "d773e7c12b99e0bd498067e2b8268c76d0496bf9cad1c9e41c8652ab68b412a5",
+      "board": "cbse"
+    },
+    "cbse-10-science": {
+      "id": "cbse-10-science",
+      "title": "Science, Class X, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/Science_SecP1_2026-27.pdf",
+      "pages": 9,
+      "fetchedAt": "2026-09-03T07:03:45Z",
+      "sha256": "1bec4a9e44452b22c9d422d8cb528b4de30598f56c243461845165771df7bc37",
+      "board": "cbse"
+    },
+    "cbse-10-social": {
+      "id": "cbse-10-social",
+      "title": "Social Science (087), Class X, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/SocialScience_SecP1X_2026-27.pdf",
+      "pages": 17,
+      "fetchedAt": "2026-09-03T07:03:50Z",
+      "sha256": "99d21fd5e2fdddb990797eec5450c31098438c6a7ecc4406fce401e5e88083eb",
+      "board": "cbse"
+    },
+    "cbse-1112-biology": {
+      "id": "cbse-1112-biology",
+      "title": "Biology, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Biology_SecP2_2026-27.pdf",
+      "pages": 15,
+      "fetchedAt": "2026-09-03T07:03:56Z",
+      "sha256": "3a5767515b41b12b9356151e759beba48bb15a1b711b96c321fa273a7fa7a6ee",
+      "board": "cbse"
+    },
+    "cbse-1112-chemistry": {
+      "id": "cbse-1112-chemistry",
+      "title": "Chemistry, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Chemistry_SecP2_2026-27.pdf",
+      "pages": 15,
+      "fetchedAt": "2026-09-03T07:03:55Z",
+      "sha256": "5610f09d357d3ccc9a7b39fc29cb7b1f4530847753783b16c72fff691acd2418",
+      "board": "cbse"
+    },
+    "cbse-1112-maths": {
+      "id": "cbse-1112-maths",
+      "title": "Mathematics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Maths_SecP2_2026-27.pdf",
+      "pages": 12,
+      "fetchedAt": "2026-09-03T07:03:57Z",
+      "sha256": "5bf4105d4076189fe00b879fd6d41ffadec87a894a078a7fb912b2f219769572",
+      "board": "cbse"
+    },
+    "cbse-1112-physics": {
+      "id": "cbse-1112-physics",
+      "title": "Physics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Physics_SecP2_2026-27.pdf",
+      "pages": 23,
+      "fetchedAt": "2026-09-03T07:03:52Z",
+      "sha256": "9e32271cf5a86caa605cffe2a4b5e19710abc3d3a8715ef725ba78cd94caf1f7",
+      "board": "cbse"
+    },
+    "cbse-9-maths": {
+      "id": "cbse-9-maths",
+      "title": "Mathematics, Class IX, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/Maths_SecP1IX_2026-27.pdf",
+      "pages": 13,
+      "fetchedAt": "2026-09-03T07:03:39Z",
+      "sha256": "932ea66d6fbfcefce8182f28ab921c886187f5dea674321088b5c7230bbe6c32",
+      "board": "cbse"
+    },
+    "cbse-9-science": {
+      "id": "cbse-9-science",
+      "title": "Science, Class IX, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/ScienceSt_SecP1_2026-27.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:03:41Z",
+      "sha256": "ab19589aede5ad8b0b2f87964914c1a55a987f39032903871baa973c02ed6e24",
+      "board": "cbse"
+    },
+    "cbse-9-social": {
+      "id": "cbse-9-social",
+      "title": "Social Science, Class IX, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/SocialScience_SecP1IX_2026-27.pdf",
+      "pages": 14,
+      "fetchedAt": "2026-09-03T07:03:42Z",
+      "sha256": "c81d9237b8e74d462e57776e162d534ff04feff27ed72eb236621361a9061735",
+      "board": "cbse"
+    },
+    "ncert-6-curiosity": {
+      "id": "ncert-6-curiosity",
+      "title": "Curiosity, textbook of Science for Grade 6 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/fecu1ps.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:05:10Z",
+      "sha256": "0f143518474320c83059c0ca2036cf292e7a3f8a460c1c1c22719de193a0a058",
+      "board": "cbse"
+    },
+    "ncert-6-ganita": {
+      "id": "ncert-6-ganita",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 6 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/fegp1ps.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:05:07Z",
+      "sha256": "902147cff853df0023b4e13293711573562bf42abf91253e5045e877c76d51df",
+      "board": "cbse"
+    },
+    "ncert-6-society": {
+      "id": "ncert-6-society",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 6 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/fees1ps.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:05:47Z",
+      "sha256": "7605e63efa73bf1748d866c843217473b1a4826f39309525540a3a058bd6e310",
+      "board": "cbse"
+    },
+    "ncert-7-curiosity": {
+      "id": "ncert-7-curiosity",
+      "title": "Curiosity, textbook of Science for Grade 7 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gecu1ps.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:06:07Z",
+      "sha256": "1c3d49d5609cf52ac4c007bd42d0810d2449f08cb8870c535f8fe6246811b56d",
+      "board": "cbse"
+    },
+    "ncert-7-ganita1": {
+      "id": "ncert-7-ganita1",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 7, Part 1 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gegp1ps.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:05:53Z",
+      "sha256": "d05d0fe3524eaa7727683387787f04c84f3d444e9f6b4b44819b97a6ee023d2c",
+      "board": "cbse"
+    },
+    "ncert-7-ganita2": {
+      "id": "ncert-7-ganita2",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 7, Part 2 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gegp2ps.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:05:58Z",
+      "sha256": "59a3b897ce08f71605805ee73ecbfeef126a930bc0d9a3716d15e9dcf2c430aa",
+      "board": "cbse"
+    },
+    "ncert-7-society1": {
+      "id": "ncert-7-society1",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 7, Part 1 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gees1ps.pdf",
+      "pages": 22,
+      "fetchedAt": "2026-09-03T07:06:37Z",
+      "sha256": "7701947726d2dcc9890bce3e36669cd8388fe5bea2cf3cd55082b2a409fdb7da",
+      "board": "cbse"
+    },
+    "ncert-7-society2": {
+      "id": "ncert-7-society2",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 7, Part 2 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gees2ps.pdf",
+      "pages": 16,
+      "fetchedAt": "2026-09-03T07:07:03Z",
+      "sha256": "f673f0474ebf9d8f5b383ef255ef5630ff967a67db30204bc20e84fe5121ed16",
+      "board": "cbse"
+    },
+    "ncert-8-curiosity": {
+      "id": "ncert-8-curiosity",
+      "title": "Curiosity, textbook of Science for Grade 8 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hecu1ps.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:07:29Z",
+      "sha256": "cf752771b28a3328bf37ec768907ed0f46d2a2507a77803222b435c651830955",
+      "board": "cbse"
+    },
+    "ncert-8-ganita1": {
+      "id": "ncert-8-ganita1",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 8, Part 1 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hegp1ps.pdf",
+      "pages": 16,
+      "fetchedAt": "2026-09-03T07:07:09Z",
+      "sha256": "e08bdb82e719ba12a1b2482c94629a4f35df91852539b4413f2a26e9eaab3dfd",
+      "board": "cbse"
+    },
+    "ncert-8-ganita2": {
+      "id": "ncert-8-ganita2",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 8, Part 2 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hegp2ps.pdf",
+      "pages": 16,
+      "fetchedAt": "2026-09-03T07:07:21Z",
+      "sha256": "c5f4d86252edb391401831f279ab5f2065ecb2f2d0631607aa4044e5a0d74cc8",
+      "board": "cbse"
+    },
+    "ncert-8-society1": {
+      "id": "ncert-8-society1",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 8, Part 1 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hees1ps.pdf",
+      "pages": 22,
+      "fetchedAt": "2026-09-03T07:07:44Z",
+      "sha256": "70408aa655e5273cc98dc717bce61290d06313b12136d89b932c985dc3f1248b",
+      "board": "cbse"
+    },
+    "ncert-8-society2": {
+      "id": "ncert-8-society2",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 8, Part 2 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hees2ps.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:07:54Z",
+      "sha256": "a15fbefbd6b55383b7b7a0cd2731c3ccedf7bd7584efafe2640ecfc48aa380ad",
+      "board": "cbse"
+    },
+    "icse-biology": {
+      "id": "icse-biology",
+      "title": "Biology (52), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/12.-Biology.pdf",
+      "pages": 13,
+      "fetchedAt": "2026-09-03T07:29:50Z",
+      "sha256": "f804154ed40b35394d85cc25ca59fb2d47089a5e3ba5fe6cfc74759173ab694f",
+      "board": "icse"
+    },
+    "icse-chemistry": {
+      "id": "icse-chemistry",
+      "title": "Chemistry (52), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/11.-Chemistry.pdf",
+      "pages": 14,
+      "fetchedAt": "2026-09-03T07:29:49Z",
+      "sha256": "18026d7b758953978288418a3dd1a70abf9e502680b41608ee29d30e100120be",
+      "board": "icse"
+    },
+    "icse-geography": {
+      "id": "icse-geography",
+      "title": "Geography (53), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/ICSE-Geography.pdf",
+      "pages": 11,
+      "fetchedAt": "2026-09-03T07:29:52Z",
+      "sha256": "d4fa4d4fc971aa3d7386161e86b6414b1850992b3357bc4514fc03e12786221f",
+      "board": "icse"
+    },
+    "icse-history-civics": {
+      "id": "icse-history-civics",
+      "title": "History & Civics (53), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/ICSE-History-Civics.pdf",
+      "pages": 9,
+      "fetchedAt": "2026-09-03T07:29:51Z",
+      "sha256": "f7dcdfe81603436b4fd34a01cfc817010bbb0a931487951beb915597b9c14dac",
+      "board": "icse"
+    },
+    "icse-maths": {
+      "id": "icse-maths",
+      "title": "Mathematics (51), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/9.-Mathematics.pdf",
+      "pages": 13,
+      "fetchedAt": "2026-09-03T07:29:47Z",
+      "sha256": "08b64aa3b4a5ff2b818bb2a92d4459c0a64c99622e2422fec6f26d90d97c7d16",
+      "board": "icse"
+    },
+    "icse-physics": {
+      "id": "icse-physics",
+      "title": "Physics (52), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/10.-Physics.pdf",
+      "pages": 13,
+      "fetchedAt": "2026-09-03T07:29:48Z",
+      "sha256": "2acfb898c5377a15c7e89770dba64597a5760bbb4683b3c2c2c47651b9003cac",
+      "board": "icse"
+    },
+    "isc-biology": {
+      "id": "isc-biology",
+      "title": "Biology, ISC examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/04/20.-ISC-Biology.pdf",
+      "pages": 22,
+      "fetchedAt": "2026-09-03T07:29:56Z",
+      "sha256": "8419f94fea206eb5b3978908d1a44e3ed0eae325872814e444672a68175cc0af",
+      "board": "isc"
+    },
+    "isc-chemistry": {
+      "id": "isc-chemistry",
+      "title": "Chemistry, ISC examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/04/19.-ISC-Chemistry-1.pdf",
+      "pages": 24,
+      "fetchedAt": "2026-09-03T07:29:55Z",
+      "sha256": "8cc033031b12f40db02390719ab8606106ee318597c133fd71e5fc66ff12ce1d",
+      "board": "isc"
+    },
+    "isc-maths": {
+      "id": "isc-maths",
+      "title": "Mathematics, ISC examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/04/17.-ISC-Mathematics.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:29:54Z",
+      "sha256": "fe272b0fbf5e1ef1df1a5a8ae269bc3ffad18905107c3e9678143a6754e8d9a5",
+      "board": "isc"
+    },
+    "isc-physics": {
+      "id": "isc-physics",
+      "title": "Physics, ISC examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2026/02/ISC-2027-Physics.pdf",
+      "pages": 27,
+      "fetchedAt": "2026-09-03T07:29:54Z",
+      "sha256": "18d4fc0f33ff9b5a5cdb575ec92190f3a32bbd4d69931566adff3de32792a6d2",
+      "board": "isc"
+    },
+    "nios-bif-211": {
+      "id": "nios-bif-211",
+      "title": "Bifurcation of syllabus, Mathematics (211), NIOS secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/10th/211.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:41:08Z",
+      "sha256": "d1556c2957c7b95496ef00ba6eefd7fe513dc5499ecbdb4902bc0c646bc4ec4e",
+      "board": "nios"
+    },
+    "nios-bif-212": {
+      "id": "nios-bif-212",
+      "title": "Bifurcation of syllabus, Science and Technology (212), NIOS secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/10th/212.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:41:10Z",
+      "sha256": "ff502cfc85e0e30f68163088f3af9cb4cfacd1ad61cad022a96ce88cb1ee0725",
+      "board": "nios"
+    },
+    "nios-bif-213": {
+      "id": "nios-bif-213",
+      "title": "Bifurcation of syllabus, Social Science (213), NIOS secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/10th/213.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:41:11Z",
+      "sha256": "fec5b97caa0d1f1aefbe70dcdb32e95122ca9aa47e5e086f20e58356d3ffd183",
+      "board": "nios"
+    },
+    "nios-bif-311": {
+      "id": "nios-bif-311",
+      "title": "Bifurcation of syllabus, Mathematics (311), NIOS senior secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/311Bifurcation.pdf",
+      "pages": 2,
+      "fetchedAt": "2026-09-03T07:40:33Z",
+      "sha256": "9277951767337f561e8bf72ec9aa2479ab8341b50a93f98531b286ab35dca1c9",
+      "board": "nios"
+    },
+    "nios-bif-312": {
+      "id": "nios-bif-312",
+      "title": "Bifurcation of syllabus, Physics (312), NIOS senior secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/312Bifurcation.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:40:35Z",
+      "sha256": "99a62227af7f661f95119e89ed2d24cff737292e0d753fcaceab2ea2e076ae46",
+      "board": "nios"
+    },
+    "nios-bif-313": {
+      "id": "nios-bif-313",
+      "title": "Bifurcation of syllabus, Chemistry (313), NIOS senior secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/313Bifurcation.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:40:37Z",
+      "sha256": "794120e04fb20498567022d720304a3c04060e0c86d6650bd2b50c1e9db1acd7",
+      "board": "nios"
+    },
+    "nios-bif-314": {
+      "id": "nios-bif-314",
+      "title": "Bifurcation of syllabus, Biology (314), NIOS senior secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/314Bifurcation.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:40:39Z",
+      "sha256": "0804d1e2432a9c78dc733e2f55a39a67bcb117ffea62bc278b4a5218b3a4c5db",
+      "board": "nios"
+    }
+  },
+  "concepts": [
+    {
+      "slug": "acids-bases-and-salts",
+      "name": "Acids, Bases and Salts",
+      "subjects": ["Chemistry", "Science", "Science and Technology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Acids, Bases and Salts",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "unit": "Chemical Substances - Nature and Behaviour",
+          "doc": "cbse-10-science",
+          "page": 4,
+          "section": "Unit 1: Chemical Substances - Nature and Behaviour"
+        },
+        {
+          "name": "Acids, Bases and Salts",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "unit": "Equilibrium",
+          "doc": "cbse-1112-chemistry",
+          "page": 3,
+          "section": "Unit 6: Equilibrium"
+        },
+        {
+          "name": "Acids, Bases and Salts",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "Matter in our Surroundings",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module II: Matter in our Surroundings"
+        }
+      ]
+    },
+    {
+      "slug": "agriculture",
+      "name": "Agriculture",
+      "subjects": ["Geography", "Social Science"],
+      "boards": ["CBSE", "ICSE"],
+      "places": [
+        {
+          "name": "Agriculture",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Social Science",
+          "unit": "Geography (Contemporary India-II)",
+          "doc": "cbse-10-social",
+          "page": 1,
+          "section": "Course structure, Geography (Contemporary India-II)"
+        },
+        {
+          "name": "Agriculture",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Geography",
+          "doc": "icse-geography",
+          "page": 9,
+          "section": "Class X, section 8"
+        }
+      ]
+    },
+    {
+      "slug": "alcohols-phenols-and-ethers",
+      "name": "Alcohols, Phenols and Ethers",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Alcohols, Phenols and Ethers",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 9,
+          "section": "Unit 7"
+        },
+        {
+          "name": "Alcohols, Phenols and Ethers",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 19,
+          "section": "Class XII, section 7"
+        },
+        {
+          "name": "Alcohols, Phenols and Ethers",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Chemistry of Organic Compounds",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module VII: Chemistry of Organic Compounds"
+        }
+      ]
+    },
+    {
+      "slug": "aldehydes-ketones-and-carboxylic-acids",
+      "name": "Aldehydes, Ketones and Carboxylic Acids",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Aldehydes, Ketones and Carboxylic Acids",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 9,
+          "section": "Unit 8"
+        },
+        {
+          "name": "Aldehydes, Ketones and Carboxylic Acids",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 20,
+          "section": "Class XII, section 8"
+        },
+        {
+          "name": "Aldehydes, Ketones and Carboxylic Acids",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Chemistry of Organic Compounds",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module VII: Chemistry of Organic Compounds"
+        }
+      ]
+    },
+    {
+      "slug": "algebra",
+      "name": "Algebra",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ICSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "cbse-9-maths",
+          "page": 4,
+          "section": "Course structure Class IX, unit 2"
+        },
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "cbse-10-maths",
+          "page": 2,
+          "section": "Course structure Class X, unit 2"
+        },
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 3,
+          "section": "Unit II"
+        },
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 7,
+          "section": "Unit II"
+        },
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 4,
+          "section": "Class IX, section 3"
+        },
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 8,
+          "section": "Class X, section 2"
+        },
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 6,
+          "section": "Class XI, section 2"
+        },
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 12,
+          "section": "Class XII, section 2"
+        },
+        {
+          "name": "Algebra",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module I"
+        }
+      ]
+    },
+    {
+      "slug": "atomic-structure",
+      "name": "Atomic Structure",
+      "subjects": ["Chemistry", "Science and Technology"],
+      "boards": ["NIOS"],
+      "places": [
+        {
+          "name": "Atomic Structure",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "Matter in our Surroundings",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module II: Matter in our Surroundings"
+        },
+        {
+          "name": "Atomic Structure",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Atomic Structure and Chemical Bonding",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module II: Atomic Structure and Chemical Bonding"
+        }
+      ]
+    },
+    {
+      "slug": "atomic-structure-and-chemical-bonding",
+      "name": "Atomic Structure and Chemical Bonding",
+      "subjects": ["Chemistry"],
+      "boards": ["ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Atomic Structure and Chemical bonding",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Chemistry",
+          "doc": "icse-chemistry",
+          "page": 5,
+          "section": "Class IX, section 4"
+        },
+        {
+          "name": "Atomic Structure and Chemical Bonding",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module II"
+        }
+      ]
+    },
+    {
+      "slug": "atoms-and-nuclei",
+      "name": "Atoms and Nuclei",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Atoms and Nuclei",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit VIII"
+        },
+        {
+          "name": "Atoms and Nuclei",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 23,
+          "section": "Class XII, section 8"
+        },
+        {
+          "name": "Atoms and Nuclei",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 7"
+        }
+      ]
+    },
+    {
+      "slug": "basic-biology",
+      "name": "Basic Biology",
+      "subjects": ["Biology"],
+      "boards": ["ICSE"],
+      "places": [
+        {
+          "name": "Basic Biology",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Biology",
+          "doc": "icse-biology",
+          "page": 4,
+          "section": "Class IX, section 1"
+        },
+        {
+          "name": "Basic Biology",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Biology",
+          "doc": "icse-biology",
+          "page": 8,
+          "section": "Class X, section 1"
+        }
+      ]
+    },
+    {
+      "slug": "behaviour-of-perfect-gases-and-kinetic-theory-of-gases",
+      "name": "Behaviour of Perfect Gases and Kinetic Theory of Gases",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Behaviour of Perfect Gases and Kinetic Theory of Gases",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit IX"
+        },
+        {
+          "name": "Behaviour of Perfect Gases and Kinetic Theory of Gases",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 10,
+          "section": "Class XI, section 9"
+        }
+      ]
+    },
+    {
+      "slug": "binomial-theorem",
+      "name": "Binomial Theorem",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Binomial Theorem",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "unit": "Algebra",
+          "doc": "cbse-1112-maths",
+          "page": 3,
+          "section": "Unit II: Algebra, chapter 4"
+        },
+        {
+          "name": "Binomial Theorem",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Algebra-I",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module III: Algebra-I"
+        }
+      ]
+    },
+    {
+      "slug": "biology-and-human-welfare",
+      "name": "Biology and Human Welfare",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Biology and Human Welfare",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 10,
+          "section": "Unit VIII"
+        },
+        {
+          "name": "Biology and Human Welfare",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 16,
+          "section": "Class XII, section 3"
+        }
+      ]
+    },
+    {
+      "slug": "biomolecules",
+      "name": "Biomolecules",
+      "subjects": ["Biology", "Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Biomolecules",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "unit": "Cell: Structure and Function",
+          "doc": "cbse-1112-biology",
+          "page": 4,
+          "section": "Unit III: Cell: Structure and Function, chapter 9"
+        },
+        {
+          "name": "Biomolecules",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 9,
+          "section": "Unit 10"
+        },
+        {
+          "name": "Biomolecules",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 21,
+          "section": "Class XII, section 10"
+        },
+        {
+          "name": "Biomolecules",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Chemistry of Organic Compounds",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module VII: Chemistry of Organic Compounds"
+        }
+      ]
+    },
+    {
+      "slug": "biotechnology-and-its-applications",
+      "name": "Biotechnology and its Applications",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Biotechnology and its Applications",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 10,
+          "section": "Unit IX"
+        },
+        {
+          "name": "Biotechnology and its Applications",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "unit": "Biotechnology and its Applications",
+          "doc": "cbse-1112-biology",
+          "page": 10,
+          "section": "Unit IX: Biotechnology and its Applications, chapter 10"
+        },
+        {
+          "name": "Biotechnology and its Applications",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 16,
+          "section": "Class XII, section 4"
+        }
+      ]
+    },
+    {
+      "slug": "calculus",
+      "name": "Calculus",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Calculus",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 4,
+          "section": "Unit IV"
+        },
+        {
+          "name": "Calculus",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 7,
+          "section": "Unit III"
+        },
+        {
+          "name": "Calculus",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 9,
+          "section": "Class XI, section 4"
+        },
+        {
+          "name": "Calculus",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 13,
+          "section": "Class XII, section 3"
+        },
+        {
+          "name": "Calculus",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module VIII"
+        }
+      ]
+    },
+    {
+      "slug": "carbon-and-its-compounds",
+      "name": "Carbon and Its Compounds",
+      "subjects": ["Science", "Science and Technology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Carbon and its Compounds",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "unit": "Chemical Substances - Nature and Behaviour",
+          "doc": "cbse-10-science",
+          "page": 5,
+          "section": "Unit 1: Chemical Substances - Nature and Behaviour"
+        },
+        {
+          "name": "Carbon and Its Compounds",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "Natural Resources",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module VI: Natural Resources"
+        }
+      ]
+    },
+    {
+      "slug": "cell-structure-and-function",
+      "name": "Cell: Structure and Function",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Cell: Structure and Function",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 4,
+          "section": "Unit III"
+        },
+        {
+          "name": "Cell: Structure and Function",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 7,
+          "section": "Class XI, section 3"
+        },
+        {
+          "name": "Cell Structure and Function",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "unit": "Diversity and Evolution of Life",
+          "doc": "nios-bif-314",
+          "page": 1,
+          "section": "Module I: Diversity and Evolution of Life"
+        }
+      ]
+    },
+    {
+      "slug": "chemical-bonding",
+      "name": "Chemical Bonding",
+      "subjects": ["Chemistry", "Science and Technology"],
+      "boards": ["ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Chemical Bonding",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Chemistry",
+          "doc": "icse-chemistry",
+          "page": 8,
+          "section": "Class X, section 2"
+        },
+        {
+          "name": "Chemical Bonding",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "Matter in our Surroundings",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module II: Matter in our Surroundings"
+        },
+        {
+          "name": "Chemical Bonding",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Atomic Structure and Chemical Bonding",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module II: Atomic Structure and Chemical Bonding"
+        }
+      ]
+    },
+    {
+      "slug": "chemical-bonding-and-molecular-structure",
+      "name": "Chemical Bonding and Molecular Structure",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Chemical Bonding and Molecular Structure",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 2,
+          "section": "Unit 4"
+        },
+        {
+          "name": "Chemical Bonding and Molecular structure",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 7,
+          "section": "Class XI, section 4"
+        }
+      ]
+    },
+    {
+      "slug": "chemical-kinetics",
+      "name": "Chemical Kinetics",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Chemical Kinetics",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 8,
+          "section": "Unit 3"
+        },
+        {
+          "name": "Chemical Kinetics",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 16,
+          "section": "Class XII, section 3"
+        },
+        {
+          "name": "Chemical Kinetics",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Chemical Dynamics",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module V: Chemical Dynamics"
+        }
+      ]
+    },
+    {
+      "slug": "chemical-thermodynamics",
+      "name": "Chemical Thermodynamics",
+      "subjects": ["Chemistry"],
+      "boards": ["ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Chemical Thermodynamics",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 8,
+          "section": "Class XI, section 5"
+        },
+        {
+          "name": "Chemical Thermodynamics",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Chemical Energetics",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module VI: Chemical Energetics"
+        }
+      ]
+    },
+    {
+      "slug": "circles",
+      "name": "Circles",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Circles",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "unit": "Geometry",
+          "objectives": [
+            "State the definition of a circle",
+            "Explain the meanings of the terms ‘chord’, ‘diameter’, ‘radius’, ‘arc’, ‘segment’, and ‘sector’",
+            "Explain why there exists a unique circle through three non-collinear points"
+          ],
+          "doc": "cbse-9-maths",
+          "page": 9,
+          "section": "Unit 4, chapter Circles"
+        },
+        {
+          "name": "Circles",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Geometry",
+          "objectives": ["Derives proofs of theorems related to the tangents of circles"],
+          "doc": "cbse-10-maths",
+          "page": 5,
+          "section": "Unit 4: GEOMETRY"
+        },
+        {
+          "name": "Circles",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Co-ordinate Geometry",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module IV: Co-ordinate Geometry"
+        }
+      ]
+    },
+    {
+      "slug": "classification-of-elements-and-periodicity-in-properties",
+      "name": "Classification of Elements and Periodicity in Properties",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Classification of Elements and Periodicity in Properties",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 2,
+          "section": "Unit 3"
+        },
+        {
+          "name": "Classification of Elements and Periodicity in Properties",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 6,
+          "section": "Class XI, section 3"
+        }
+      ]
+    },
+    {
+      "slug": "climate",
+      "name": "Climate",
+      "subjects": ["Geography", "Social Science"],
+      "boards": ["ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Climate",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Geography",
+          "doc": "icse-geography",
+          "page": 9,
+          "section": "Class X, section 3"
+        },
+        {
+          "name": "Climate",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Social Science",
+          "unit": "India: Natural Environment, Resources and Development",
+          "doc": "nios-bif-213",
+          "page": 1,
+          "section": "Module 2: India: Natural Environment, Resources and Development"
+        }
+      ]
+    },
+    {
+      "slug": "co-ordinate-geometry",
+      "name": "Co-ordinate Geometry",
+      "subjects": ["Mathematics"],
+      "boards": ["NIOS"],
+      "places": [
+        {
+          "name": "Co-ordinate Geometry",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Geometry",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module III: Geometry"
+        },
+        {
+          "name": "Co-ordinate Geometry",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module IV"
+        }
+      ]
+    },
+    {
+      "slug": "commercial-mathematics",
+      "name": "Commercial Mathematics",
+      "subjects": ["Mathematics"],
+      "boards": ["ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Commercial Mathematics",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 4,
+          "section": "Class IX, section 2"
+        },
+        {
+          "name": "Commercial Mathematics",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 8,
+          "section": "Class X, section 1"
+        },
+        {
+          "name": "Commercial Mathematics",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module II"
+        }
+      ]
+    },
+    {
+      "slug": "conic-sections",
+      "name": "Conic sections",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Conic Sections",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "unit": "Coordinate Geometry",
+          "doc": "cbse-1112-maths",
+          "page": 3,
+          "section": "Unit III: Coordinate Geometry, chapter 2"
+        },
+        {
+          "name": "Conic Sections",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Co-ordinate Geometry",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module IV: Co-ordinate Geometry"
+        }
+      ]
+    },
+    {
+      "slug": "coordinate-geometry",
+      "name": "Coordinate Geometry",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ICSE", "ISC"],
+      "places": [
+        {
+          "name": "Coordinate Geometry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "cbse-9-maths",
+          "page": 4,
+          "section": "Course structure Class IX, unit 3"
+        },
+        {
+          "name": "Coordinate Geometry",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "unit": "Coordinate Geometry",
+          "objectives": [
+            "Specify locations and the position of one point relative to another point using coordinates",
+            "Represent a floor plan on a grid using coordinates",
+            "Compute the distance between two points using coordinates"
+          ],
+          "doc": "cbse-9-maths",
+          "page": 7,
+          "section": "Unit 3, chapter Coordinate Geometry"
+        },
+        {
+          "name": "Coordinate Geometry",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Coordinate geometry",
+          "objectives": [
+            "Derives formulae to establish relations for geometrical shapes in the context of a coordinate plane, such as, finding the distance between two given points, to determine the coordinates of a point between any two given points"
+          ],
+          "doc": "cbse-10-maths",
+          "page": 5,
+          "section": "Unit 3: COORDINATE GEOMETRY"
+        },
+        {
+          "name": "Coordinate geometry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "cbse-10-maths",
+          "page": 2,
+          "section": "Course structure Class X, unit 3"
+        },
+        {
+          "name": "Coordinate Geometry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 3,
+          "section": "Unit III"
+        },
+        {
+          "name": "Coordinate Geometry",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 6,
+          "section": "Class IX, section 8"
+        },
+        {
+          "name": "Coordinate Geometry",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 7,
+          "section": "Class XI, section 3"
+        }
+      ]
+    },
+    {
+      "slug": "coordination-compounds",
+      "name": "Coordination Compounds",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Coordination Compounds",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 8,
+          "section": "Unit 5"
+        },
+        {
+          "name": "Coordination Compounds",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 17,
+          "section": "Class XII, section 5"
+        },
+        {
+          "name": "Coordination Compounds",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Chemistry of Elements",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module VI: Chemistry of Elements"
+        }
+      ]
+    },
+    {
+      "slug": "current-electricity",
+      "name": "Current Electricity",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Current Electricity",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit II"
+        },
+        {
+          "name": "Current Electricity",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Current Electricity",
+          "doc": "cbse-1112-physics",
+          "page": 13,
+          "section": "Unit II: Current Electricity, chapter 3"
+        },
+        {
+          "name": "Current Electricity",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 17,
+          "section": "Class XII, section 2"
+        }
+      ]
+    },
+    {
+      "slug": "d-and-f-block-elements",
+      "name": "d and f Block Elements",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "d and f Block Elements",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 8,
+          "section": "Unit 4"
+        },
+        {
+          "name": "d-and f- Block Elements",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 17,
+          "section": "Class XII, section 4"
+        }
+      ]
+    },
+    {
+      "slug": "determinants",
+      "name": "Determinants",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Determinants",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Algebra",
+          "doc": "cbse-1112-maths",
+          "page": 7,
+          "section": "Unit II: Algebra, chapter 2"
+        },
+        {
+          "name": "Determinants",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Algebra-II",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module VI: Algebra-II"
+        }
+      ]
+    },
+    {
+      "slug": "differential-equations",
+      "name": "Differential equations",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Differential Equations",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Calculus",
+          "doc": "cbse-1112-maths",
+          "page": 8,
+          "section": "Unit III: Calculus, chapter 5"
+        },
+        {
+          "name": "Differential Equations",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Calculus",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module VIII: Calculus"
+        }
+      ]
+    },
+    {
+      "slug": "diversity-of-living-organisms",
+      "name": "Diversity of Living Organisms",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Diversity of Living Organisms",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 3,
+          "section": "Unit I"
+        },
+        {
+          "name": "Diversity of Living Organisms",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 5,
+          "section": "Class XI, section 1"
+        }
+      ]
+    },
+    {
+      "slug": "dual-nature-of-radiation-and-matter",
+      "name": "Dual Nature of Radiation and Matter",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Dual Nature of Radiation and Matter",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit VII"
+        },
+        {
+          "name": "Dual Nature of Radiation and Matter",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Dual Nature of Radiation and Matter",
+          "doc": "cbse-1112-physics",
+          "page": 15,
+          "section": "Unit VII: Dual Nature of Radiation and Matter, chapter 11"
+        },
+        {
+          "name": "Dual Nature of Radiation and Matter",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 23,
+          "section": "Class XII, section 7"
+        },
+        {
+          "name": "Dual Nature of Radiation and Matter",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Atoms and Nuclei",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 7: Atoms and Nuclei"
+        }
+      ]
+    },
+    {
+      "slug": "ecology-and-environment",
+      "name": "Ecology and Environment",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Ecology and Environment",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 11,
+          "section": "Unit X"
+        },
+        {
+          "name": "Ecology and Environment",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 18,
+          "section": "Class XII, section 5"
+        }
+      ]
+    },
+    {
+      "slug": "electric-current",
+      "name": "Electric current",
+      "subjects": ["Physics", "Science"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Electric current",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "unit": "Effects of Current",
+          "doc": "cbse-10-science",
+          "page": 6,
+          "section": "Unit 4: Effects of Current"
+        },
+        {
+          "name": "Electric Current",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Electricity and Magnetism",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 5: Electricity and Magnetism"
+        }
+      ]
+    },
+    {
+      "slug": "electricity-and-magnetism",
+      "name": "Electricity and Magnetism",
+      "subjects": ["Physics"],
+      "boards": ["ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Electricity and Magnetism",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Physics",
+          "doc": "icse-physics",
+          "page": 6,
+          "section": "Class IX, section 8"
+        },
+        {
+          "name": "Electricity and Magnetism",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Physics",
+          "doc": "icse-physics",
+          "page": 11,
+          "section": "Class X, section 4"
+        },
+        {
+          "name": "Electricity and Magnetism",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 5"
+        }
+      ]
+    },
+    {
+      "slug": "electrochemistry",
+      "name": "Electrochemistry",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Electrochemistry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 8,
+          "section": "Unit 2"
+        },
+        {
+          "name": "Electrochemistry",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 15,
+          "section": "Class XII, section 2"
+        },
+        {
+          "name": "Electrochemistry",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Chemical Dynamics",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module V: Chemical Dynamics"
+        }
+      ]
+    },
+    {
+      "slug": "electromagnetic-induction-and-alternating-currents",
+      "name": "Electromagnetic Induction and Alternating Currents",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Electromagnetic Induction and Alternating Currents",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit IV"
+        },
+        {
+          "name": "Electromagnetic Induction and Alternating Currents",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 20,
+          "section": "Class XII, section 4"
+        }
+      ]
+    },
+    {
+      "slug": "electromagnetic-waves",
+      "name": "Electromagnetic Waves",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Electromagnetic Waves",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit V"
+        },
+        {
+          "name": "Electromagnetic Waves",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Electromagnetic Waves",
+          "doc": "cbse-1112-physics",
+          "page": 14,
+          "section": "Unit V: Electromagnetic Waves, chapter 8"
+        },
+        {
+          "name": "Electromagnetic Waves",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 20,
+          "section": "Class XII, section 5"
+        }
+      ]
+    },
+    {
+      "slug": "electronic-devices",
+      "name": "Electronic Devices",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Electronic Devices",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit IX"
+        },
+        {
+          "name": "Electronic Devices",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 24,
+          "section": "Class XII, section 9"
+        }
+      ]
+    },
+    {
+      "slug": "electrostatics",
+      "name": "Electrostatics",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Electrostatics",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit I"
+        },
+        {
+          "name": "Electrostatics",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 16,
+          "section": "Class XII, section 1"
+        }
+      ]
+    },
+    {
+      "slug": "equilibrium",
+      "name": "Equilibrium",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Equilibrium",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 3,
+          "section": "Unit 6"
+        },
+        {
+          "name": "Equilibrium",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 9,
+          "section": "Class XI, section 6"
+        }
+      ]
+    },
+    {
+      "slug": "evolution",
+      "name": "Evolution",
+      "subjects": ["Biology", "Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Evolution",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "unit": "World of Living",
+          "doc": "cbse-10-science",
+          "page": 5,
+          "section": "Unit 2: World of Living"
+        },
+        {
+          "name": "Evolution",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "unit": "Genetics and Evolution",
+          "doc": "cbse-1112-biology",
+          "page": 10,
+          "section": "Unit VII: Genetics and Evolution, chapter 6"
+        }
+      ]
+    },
+    {
+      "slug": "genetics-and-evolution",
+      "name": "Genetics and Evolution",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Genetics and Evolution",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 9,
+          "section": "Unit VII"
+        },
+        {
+          "name": "Genetics and Evolution",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 15,
+          "section": "Class XII, section 2"
+        }
+      ]
+    },
+    {
+      "slug": "geometry",
+      "name": "Geometry",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Geometry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "cbse-9-maths",
+          "page": 4,
+          "section": "Course structure Class IX, unit 4"
+        },
+        {
+          "name": "Geometry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "cbse-10-maths",
+          "page": 2,
+          "section": "Course structure Class X, unit 4"
+        },
+        {
+          "name": "Geometry",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 5,
+          "section": "Class IX, section 4"
+        },
+        {
+          "name": "Geometry",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 9,
+          "section": "Class X, section 3"
+        },
+        {
+          "name": "Geometry",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module III"
+        }
+      ]
+    },
+    {
+      "slug": "gravitation",
+      "name": "Gravitation",
+      "subjects": ["Physics", "Science and Technology"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Gravitation",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit VI"
+        },
+        {
+          "name": "Gravitation",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "unit": "Gravitation",
+          "doc": "cbse-1112-physics",
+          "page": 4,
+          "section": "Unit VI: Gravitation, chapter 7"
+        },
+        {
+          "name": "Gravitation",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 8,
+          "section": "Class XI, section 6"
+        },
+        {
+          "name": "Gravitation",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "Moving Things",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module III: Moving Things"
+        },
+        {
+          "name": "Gravitation",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Force and Energy",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 1: Force and Energy"
+        }
+      ]
+    },
+    {
+      "slug": "haloalkanes-and-haloarenes",
+      "name": "Haloalkanes and Haloarenes",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Haloalkanes and Haloarenes",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 8,
+          "section": "Unit 6"
+        },
+        {
+          "name": "Haloalkanes and Haloarenes",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 18,
+          "section": "Class XII, section 6"
+        }
+      ]
+    },
+    {
+      "slug": "health-and-hygiene",
+      "name": "Health and hygiene",
+      "subjects": ["Biology", "Science and Technology"],
+      "boards": ["ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Health and Hygiene",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Biology",
+          "doc": "icse-biology",
+          "page": 5,
+          "section": "Class IX, section 6"
+        },
+        {
+          "name": "Health and Hygiene",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "Human Environment",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module VII: Human Environment"
+        }
+      ]
+    },
+    {
+      "slug": "heredity",
+      "name": "Heredity",
+      "subjects": ["Science", "Science and Technology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Heredity",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "unit": "World of Living",
+          "doc": "cbse-10-science",
+          "page": 5,
+          "section": "Unit 2: World of Living"
+        },
+        {
+          "name": "Heredity",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "The Living World",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module V: The Living World"
+        }
+      ]
+    },
+    {
+      "slug": "human-anatomy-and-physiology",
+      "name": "Human Anatomy and Physiology",
+      "subjects": ["Biology"],
+      "boards": ["ICSE"],
+      "places": [
+        {
+          "name": "Human Anatomy and Physiology",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Biology",
+          "doc": "icse-biology",
+          "page": 5,
+          "section": "Class IX, section 5"
+        },
+        {
+          "name": "Human Anatomy and Physiology",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Biology",
+          "doc": "icse-biology",
+          "page": 8,
+          "section": "Class X, section 3"
+        }
+      ]
+    },
+    {
+      "slug": "human-physiology",
+      "name": "Human Physiology",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Human Physiology",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 4,
+          "section": "Unit V"
+        },
+        {
+          "name": "Human Physiology",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 8,
+          "section": "Class XI, section 5"
+        }
+      ]
+    },
+    {
+      "slug": "hydrocarbons",
+      "name": "Hydrocarbons",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Hydrocarbons",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 3,
+          "section": "Unit 9"
+        },
+        {
+          "name": "Hydrocarbons",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 11,
+          "section": "Class XI, section 9"
+        },
+        {
+          "name": "Hydrocarbons",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "Chemistry of Organic Compounds",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module VII: Chemistry of Organic Compounds"
+        }
+      ]
+    },
+    {
+      "slug": "introduction-to-probability",
+      "name": "Introduction to Probability",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Introduction to Probability",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "unit": "Statistics and Probability",
+          "objectives": [
+            "Understand the concept of randomness",
+            "Describe the likelihood of an event using the probability scale",
+            "Estimate the empirical probability of the occurrence of an event by analysing statistical data"
+          ],
+          "doc": "cbse-9-maths",
+          "page": 12,
+          "section": "Unit 6, chapter Introduction to Probability"
+        },
+        {
+          "name": "Introduction to Probability",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Statistics",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module VI: Statistics"
+        }
+      ]
+    },
+    {
+      "slug": "introduction-to-trigonometry",
+      "name": "Introduction to Trigonometry",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Introduction to trigonometry",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Trigonometry",
+          "objectives": [
+            "Understands the definitions of the basic trigonometric functions (including the introduction of the sine and cosine functions)"
+          ],
+          "doc": "cbse-10-maths",
+          "page": 6,
+          "section": "Unit 5: TRIGONOMETRY"
+        },
+        {
+          "name": "Introduction to Trigonometry",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Trigonometry",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module V: Trigonometry"
+        }
+      ]
+    },
+    {
+      "slug": "inverse-trigonometric-functions",
+      "name": "Inverse trigonometric functions",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Inverse Trigonometric Functions",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Relations and Functions",
+          "doc": "cbse-1112-maths",
+          "page": 7,
+          "section": "Unit I: Relations and Functions, chapter 2"
+        },
+        {
+          "name": "Inverse Trigonometric Functions",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Relations and Functions",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module VII: Relations and Functions"
+        }
+      ]
+    },
+    {
+      "slug": "kinematics",
+      "name": "Kinematics",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Kinematics",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit II"
+        },
+        {
+          "name": "Kinematics",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 5,
+          "section": "Class XI, section 2"
+        }
+      ]
+    },
+    {
+      "slug": "laws-of-motion",
+      "name": "Laws of Motion",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ICSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Laws of Motion",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit III"
+        },
+        {
+          "name": "Laws of Motion",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "unit": "Laws of Motion",
+          "doc": "cbse-1112-physics",
+          "page": 3,
+          "section": "Unit III: Laws of Motion, chapter 4"
+        },
+        {
+          "name": "Laws of Motion",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Physics",
+          "doc": "icse-physics",
+          "page": 4,
+          "section": "Class IX, section 3"
+        },
+        {
+          "name": "Laws of Motion",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 6,
+          "section": "Class XI, section 3"
+        },
+        {
+          "name": "Laws of Motion",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Force and Energy",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 1: Force and Energy"
+        }
+      ]
+    },
+    {
+      "slug": "light",
+      "name": "Light",
+      "subjects": ["Physics"],
+      "boards": ["ICSE"],
+      "places": [
+        {
+          "name": "Light",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Physics",
+          "doc": "icse-physics",
+          "page": 6,
+          "section": "Class IX, section 6"
+        },
+        {
+          "name": "Light",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Physics",
+          "doc": "icse-physics",
+          "page": 9,
+          "section": "Class X, section 2"
+        }
+      ]
+    },
+    {
+      "slug": "linear-programming",
+      "name": "Linear Programming",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Linear Programming",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Linear Programming Problem",
+          "doc": "cbse-1112-maths",
+          "page": 9,
+          "section": "Unit V: Linear Programming Problem, chapter 1"
+        },
+        {
+          "name": "Linear Programming",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 16,
+          "section": "Class XII, section 6"
+        },
+        {
+          "name": "Linear Programming",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Linear Programming and Mathematical Reasoning",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module X: Linear Programming and Mathematical Reasoning"
+        }
+      ]
+    },
+    {
+      "slug": "lines-and-angles",
+      "name": "Lines and angles",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Lines and Angles",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Mathematics",
+          "unit": "Ganita Prakash, Grade 6",
+          "doc": "ncert-6-ganita",
+          "page": 19,
+          "section": "Contents, chapter 2"
+        },
+        {
+          "name": "Lines and Angles",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "unit": "Geometry",
+          "objectives": [
+            "Explain the notion of an angle",
+            "Explain the notion of a ray",
+            "Explain that angles are formed between two rays with a common starting point"
+          ],
+          "doc": "cbse-9-maths",
+          "page": 7,
+          "section": "Unit 4, chapter Lines and Angles"
+        }
+      ]
+    },
+    {
+      "slug": "locomotion-and-movement",
+      "name": "Locomotion and Movement",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Locomotion and Movement",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "unit": "Human Physiology",
+          "doc": "cbse-1112-biology",
+          "page": 5,
+          "section": "Unit V: Human Physiology, chapter 17"
+        },
+        {
+          "name": "Locomotion and Movement",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "unit": "Forms and Functions of Plants and Animals",
+          "doc": "nios-bif-314",
+          "page": 1,
+          "section": "Module II: Forms and Functions of Plants and Animals"
+        }
+      ]
+    },
+    {
+      "slug": "magnetic-effects-of-current-and-magnetism",
+      "name": "Magnetic Effects of Current and Magnetism",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Magnetic Effects of Current and Magnetism",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit III"
+        },
+        {
+          "name": "Magnetic Effects of Current and Magnetism",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 18,
+          "section": "Class XII, section 3"
+        }
+      ]
+    },
+    {
+      "slug": "manufacturing-industries",
+      "name": "Manufacturing Industries",
+      "subjects": ["Geography", "Social Science"],
+      "boards": ["CBSE", "ICSE"],
+      "places": [
+        {
+          "name": "Manufacturing Industries",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Social Science",
+          "unit": "Geography (Contemporary India-II)",
+          "doc": "cbse-10-social",
+          "page": 1,
+          "section": "Course structure, Geography (Contemporary India-II)"
+        },
+        {
+          "name": "Manufacturing Industries",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Geography",
+          "doc": "icse-geography",
+          "page": 9,
+          "section": "Class X, section 9"
+        }
+      ]
+    },
+    {
+      "slug": "matrices",
+      "name": "Matrices",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Matrices",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Algebra",
+          "doc": "cbse-1112-maths",
+          "page": 7,
+          "section": "Unit II: Algebra, chapter 1"
+        },
+        {
+          "name": "Matrices",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Algebra-II",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module VI: Algebra-II"
+        }
+      ]
+    },
+    {
+      "slug": "mensuration",
+      "name": "Mensuration",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Mensuration",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "cbse-9-maths",
+          "page": 4,
+          "section": "Course structure Class IX, unit 5"
+        },
+        {
+          "name": "Mensuration",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "cbse-10-maths",
+          "page": 2,
+          "section": "Course structure Class X, unit 6"
+        },
+        {
+          "name": "Mensuration",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 5,
+          "section": "Class IX, section 6"
+        },
+        {
+          "name": "Mensuration",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 10,
+          "section": "Class X, section 4"
+        },
+        {
+          "name": "Mensuration",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module IV"
+        }
+      ]
+    },
+    {
+      "slug": "metals-and-non-metals",
+      "name": "Metals and non-metals",
+      "subjects": ["Science", "Science and Technology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Metals and Non-metals",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "unit": "Chemical Substances - Nature and Behaviour",
+          "doc": "cbse-10-science",
+          "page": 5,
+          "section": "Unit 1: Chemical Substances - Nature and Behaviour"
+        },
+        {
+          "name": "Metals and Non-metals",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "Natural Resources",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module VI: Natural Resources"
+        }
+      ]
+    },
+    {
+      "slug": "motion-in-a-plane",
+      "name": "Motion in a plane",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Motion in a Plane",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "unit": "Kinematics",
+          "doc": "cbse-1112-physics",
+          "page": 3,
+          "section": "Unit II: Kinematics, chapter 3"
+        },
+        {
+          "name": "Motion in a Plane",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Force and Energy",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 1: Force and Energy"
+        }
+      ]
+    },
+    {
+      "slug": "motion-in-a-straight-line",
+      "name": "Motion in a straight line",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Motion in a Straight Line",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "unit": "Kinematics",
+          "doc": "cbse-1112-physics",
+          "page": 3,
+          "section": "Unit II: Kinematics, chapter 2"
+        },
+        {
+          "name": "Motion in a Straight Line",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Force and Energy",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 1: Force and Energy"
+        }
+      ]
+    },
+    {
+      "slug": "motion-of-system-of-particles-and-rigid-body",
+      "name": "Motion of System of Particles and Rigid Body",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Motion of System of Particles and Rigid Body",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit V"
+        },
+        {
+          "name": "Motion of System of Particles and Rigid Body",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 8,
+          "section": "Class XI, section 5"
+        }
+      ]
+    },
+    {
+      "slug": "natural-resources",
+      "name": "Natural resources",
+      "subjects": ["Science", "Science and Technology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Natural Resources",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "doc": "cbse-10-science",
+          "page": 4,
+          "section": "Course structure Class X, unit 5"
+        },
+        {
+          "name": "Natural Resources",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module VI"
+        }
+      ]
+    },
+    {
+      "slug": "number-play",
+      "name": "Number Play",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Number Play",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Mathematics",
+          "unit": "Ganita Prakash, Grade 6",
+          "doc": "ncert-6-ganita",
+          "page": 19,
+          "section": "Contents, chapter 3"
+        },
+        {
+          "name": "Number Play",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Mathematics",
+          "unit": "Ganita Prakash, Grade 7, Part 1",
+          "doc": "ncert-7-ganita1",
+          "page": 17,
+          "section": "Contents, chapter 6"
+        },
+        {
+          "name": "Number Play",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Mathematics",
+          "unit": "Ganita Prakash, Grade 8, Part 1",
+          "doc": "ncert-8-ganita1",
+          "page": 15,
+          "section": "Contents, chapter 5"
+        }
+      ]
+    },
+    {
+      "slug": "number-system",
+      "name": "Number System",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Number System",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "cbse-9-maths",
+          "page": 4,
+          "section": "Course structure Class IX, unit 1"
+        },
+        {
+          "name": "Number System",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "unit": "Number System",
+          "objectives": [
+            "Understand the concept of a rational number",
+            "Represent rational numbers on the number line",
+            "Understand the properties of rational numbers"
+          ],
+          "doc": "cbse-9-maths",
+          "page": 4,
+          "section": "Unit 1, chapter Number System"
+        },
+        {
+          "name": "Number system",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Algebra",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module I: Algebra"
+        }
+      ]
+    },
+    {
+      "slug": "optics",
+      "name": "Optics",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Optics",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 12,
+          "section": "Course structure Class 12, Unit VI"
+        },
+        {
+          "name": "Optics",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 21,
+          "section": "Class XII, section 6"
+        }
+      ]
+    },
+    {
+      "slug": "organic-chemistry-some-basic-principles-and-techniques",
+      "name": "Organic Chemistry - Some Basic Principles and Techniques",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Organic Chemistry – Some Basic Principles and Techniques",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 3,
+          "section": "Unit 8"
+        },
+        {
+          "name": "Organic Chemistry - Some Basic Principles and Techniques",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 9,
+          "section": "Class XI, section 8"
+        }
+      ]
+    },
+    {
+      "slug": "oscillations-and-waves",
+      "name": "Oscillations and Waves",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Oscillations and Waves",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit X"
+        },
+        {
+          "name": "Oscillations and Waves",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 12,
+          "section": "Class XI, section 10"
+        },
+        {
+          "name": "Oscillations and Waves",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 4"
+        }
+      ]
+    },
+    {
+      "slug": "periodic-classification-of-elements",
+      "name": "Periodic Classification of Elements",
+      "subjects": ["Science", "Science and Technology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Periodic Classification of Elements",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "unit": "Chemical Substances - Nature and Behaviour",
+          "doc": "cbse-10-science",
+          "page": 4,
+          "section": "Unit 1: Chemical Substances - Nature and Behaviour"
+        },
+        {
+          "name": "Periodic Classification of Elements",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "unit": "Matter in our Surroundings",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module II: Matter in our Surroundings"
+        }
+      ]
+    },
+    {
+      "slug": "permutations-and-combinations",
+      "name": "Permutations and combinations",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Permutations and Combinations",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "unit": "Algebra",
+          "doc": "cbse-1112-maths",
+          "page": 3,
+          "section": "Unit II: Algebra, chapter 3"
+        },
+        {
+          "name": "Permutations and Combinations",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Algebra-I",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module III: Algebra-I"
+        }
+      ]
+    },
+    {
+      "slug": "physical-world-and-measurement",
+      "name": "Physical World and Measurement",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Physical World and Measurement",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit I"
+        },
+        {
+          "name": "Physical World and Measurement",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 5,
+          "section": "Class XI, section 1"
+        }
+      ]
+    },
+    {
+      "slug": "plant-physiology",
+      "name": "Plant Physiology",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "ICSE", "ISC"],
+      "places": [
+        {
+          "name": "Plant Physiology",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 4,
+          "section": "Unit IV"
+        },
+        {
+          "name": "Plant Physiology",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Biology",
+          "doc": "icse-biology",
+          "page": 5,
+          "section": "Class IX, section 3"
+        },
+        {
+          "name": "Plant Physiology",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Biology",
+          "doc": "icse-biology",
+          "page": 8,
+          "section": "Class X, section 2"
+        },
+        {
+          "name": "Plant Physiology",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 7,
+          "section": "Class XI, section 4"
+        }
+      ]
+    },
+    {
+      "slug": "pollution",
+      "name": "Pollution",
+      "subjects": ["Biology", "Geography"],
+      "boards": ["ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Pollution",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Geography",
+          "doc": "icse-geography",
+          "page": 5,
+          "section": "Class IX, section 5"
+        },
+        {
+          "name": "Pollution",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Biology",
+          "doc": "icse-biology",
+          "page": 10,
+          "section": "Class X, section 6"
+        },
+        {
+          "name": "Pollution",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "unit": "Environment and Health",
+          "doc": "nios-bif-314",
+          "page": 1,
+          "section": "Module IV: Environment and Health"
+        }
+      ]
+    },
+    {
+      "slug": "probability",
+      "name": "Probability",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ICSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Probability",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Statistics and probability",
+          "objectives": [
+            "Applies concepts from probability to solve problems on the likelihood of everyday events"
+          ],
+          "doc": "cbse-10-maths",
+          "page": 7,
+          "section": "Unit 7: STATISTICS AND PROBABILITY"
+        },
+        {
+          "name": "Probability",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "unit": "Statistics and Probability",
+          "doc": "cbse-1112-maths",
+          "page": 4,
+          "section": "Unit V: Statistics and Probability, chapter 2"
+        },
+        {
+          "name": "Probability",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 9,
+          "section": "Unit VI"
+        },
+        {
+          "name": "Probability",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Probability",
+          "doc": "cbse-1112-maths",
+          "page": 9,
+          "section": "Unit VI: Probability, chapter 1"
+        },
+        {
+          "name": "Probability",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 10,
+          "section": "Class X, section 7"
+        },
+        {
+          "name": "Probability",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 16,
+          "section": "Class XII, section 7"
+        },
+        {
+          "name": "Probability",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Statistics and Probability",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module V: Statistics and Probability"
+        }
+      ]
+    },
+    {
+      "slug": "properties-of-bulk-matter",
+      "name": "Properties of Bulk Matter",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Properties of Bulk Matter",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit VII"
+        },
+        {
+          "name": "Properties of Bulk Matter",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "isc-physics",
+          "page": 9,
+          "section": "Class XI, section 7"
+        }
+      ]
+    },
+    {
+      "slug": "quadrilaterals",
+      "name": "Quadrilaterals",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Quadrilaterals",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Mathematics",
+          "unit": "Ganita Prakash, Grade 8, Part 1",
+          "doc": "ncert-8-ganita1",
+          "page": 15,
+          "section": "Contents, chapter 4"
+        },
+        {
+          "name": "Quadrilaterals",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Geometry",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module III: Geometry"
+        }
+      ]
+    },
+    {
+      "slug": "redox-reactions",
+      "name": "Redox Reactions",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Redox Reactions",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 3,
+          "section": "Unit 7"
+        },
+        {
+          "name": "Redox Reactions",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 10,
+          "section": "Class XI, section 7"
+        }
+      ]
+    },
+    {
+      "slug": "relations-and-functions",
+      "name": "Relations and functions",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Relations and Functions",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 7,
+          "section": "Unit I"
+        },
+        {
+          "name": "Relations and Functions",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Relations and Functions",
+          "doc": "cbse-1112-maths",
+          "page": 7,
+          "section": "Unit I: Relations and Functions, chapter 1"
+        },
+        {
+          "name": "Relations and Functions",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 11,
+          "section": "Class XII, section 1"
+        },
+        {
+          "name": "Relations and Functions",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module VII"
+        }
+      ]
+    },
+    {
+      "slug": "reproduction",
+      "name": "Reproduction",
+      "subjects": ["Biology", "Science"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Reproduction",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Science",
+          "unit": "World of Living",
+          "objectives": [
+            "Analyse the interactions between members of different groups of organisms, such as plants and pollinators",
+            "Compare asexual and sexual reproduction",
+            "Describe male and female reproductive organs in plants and animals"
+          ],
+          "doc": "cbse-9-science",
+          "page": 6,
+          "section": "Reproduction"
+        },
+        {
+          "name": "Reproduction",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "unit": "World of Living",
+          "doc": "cbse-10-science",
+          "page": 5,
+          "section": "Unit 2: World of Living"
+        },
+        {
+          "name": "Reproduction",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "cbse-1112-biology",
+          "page": 9,
+          "section": "Unit VI"
+        },
+        {
+          "name": "Reproduction",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "doc": "isc-biology",
+          "page": 14,
+          "section": "Class XII, section 1"
+        }
+      ]
+    },
+    {
+      "slug": "respiration-in-plants",
+      "name": "Respiration in plants",
+      "subjects": ["Biology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Respiration in Plants",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "unit": "Plant Physiology",
+          "doc": "cbse-1112-biology",
+          "page": 4,
+          "section": "Unit IV: Plant Physiology, chapter 12"
+        },
+        {
+          "name": "Respiration in Plants",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "unit": "Forms and Functions of Plants and Animals",
+          "doc": "nios-bif-314",
+          "page": 1,
+          "section": "Module II: Forms and Functions of Plants and Animals"
+        }
+      ]
+    },
+    {
+      "slug": "sets",
+      "name": "Sets",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Sets",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "unit": "Sets and Functions",
+          "doc": "cbse-1112-maths",
+          "page": 2,
+          "section": "Unit I: Sets and Functions, chapter 1"
+        },
+        {
+          "name": "Sets",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Sets, Relations and Functions",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module I: Sets, Relations and Functions"
+        }
+      ]
+    },
+    {
+      "slug": "sets-and-functions",
+      "name": "Sets and Functions",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Sets and Functions",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 2,
+          "section": "Unit I"
+        },
+        {
+          "name": "Sets and Functions",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 4,
+          "section": "Class XI, section 1"
+        }
+      ]
+    },
+    {
+      "slug": "solutions",
+      "name": "Solutions",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Solutions",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 8,
+          "section": "Unit 1"
+        },
+        {
+          "name": "Solutions",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 15,
+          "section": "Class XII, section 1"
+        },
+        {
+          "name": "Solutions",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "unit": "States of Matter",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module III: States of Matter"
+        }
+      ]
+    },
+    {
+      "slug": "some-basic-concepts-of-chemistry",
+      "name": "Some Basic Concepts of Chemistry",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Some Basic Concepts of Chemistry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 2,
+          "section": "Unit 1"
+        },
+        {
+          "name": "Some Basic Concepts of Chemistry",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 5,
+          "section": "Class XI, section 1"
+        },
+        {
+          "name": "Some Basic concepts of Chemistry",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "doc": "nios-bif-313",
+          "page": 1,
+          "section": "Module I"
+        }
+      ]
+    },
+    {
+      "slug": "sound",
+      "name": "Sound",
+      "subjects": ["Physics", "Science"],
+      "boards": ["CBSE", "ICSE"],
+      "places": [
+        {
+          "name": "Sound",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Science",
+          "unit": "Motion, Force, Work and Sound",
+          "objectives": [
+            "Demonstrate the production of sound in multiple ways (through vibration of strings, membranes, air columns) using materials in surroundings",
+            "Explain that sound is produced by vibrations",
+            "Demonstrate that sound can travel through different mediums (air, solid and liquid)"
+          ],
+          "doc": "cbse-9-science",
+          "page": 17,
+          "section": "Sound"
+        },
+        {
+          "name": "Sound",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Physics",
+          "doc": "icse-physics",
+          "page": 6,
+          "section": "Class IX, section 7"
+        },
+        {
+          "name": "Sound",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Physics",
+          "doc": "icse-physics",
+          "page": 10,
+          "section": "Class X, section 3"
+        }
+      ]
+    },
+    {
+      "slug": "statistics",
+      "name": "Statistics",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Statistics",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "unit": "Statistics and Probability",
+          "objectives": [
+            "Collect, organise, visualise and interpret data to answer a statistical investigative question",
+            "Compute and apply weighted average in different settings",
+            "Read and interpret stacked bar graphs and 100% stacked bar graphs"
+          ],
+          "doc": "cbse-9-maths",
+          "page": 12,
+          "section": "Unit 6, chapter Statistics"
+        },
+        {
+          "name": "Statistics",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Statistics and probability",
+          "objectives": [
+            "Calculates mean, median and mode for different sets of data related with real life contexts"
+          ],
+          "doc": "cbse-10-maths",
+          "page": 7,
+          "section": "Unit 7: STATISTICS AND PROBABILITY"
+        },
+        {
+          "name": "Statistics",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "unit": "Statistics and Probability",
+          "doc": "cbse-1112-maths",
+          "page": 4,
+          "section": "Unit V: Statistics and Probability, chapter 1"
+        },
+        {
+          "name": "Statistics",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 6,
+          "section": "Class IX, section 5"
+        },
+        {
+          "name": "Statistics",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 10,
+          "section": "Class X, section 6"
+        },
+        {
+          "name": "Statistics",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module VI"
+        }
+      ]
+    },
+    {
+      "slug": "statistics-and-probability",
+      "name": "Statistics and Probability",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ISC", "NIOS"],
+      "places": [
+        {
+          "name": "Statistics and Probability",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "cbse-9-maths",
+          "page": 4,
+          "section": "Course structure Class IX, unit 6"
+        },
+        {
+          "name": "Statistics and probability",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "cbse-10-maths",
+          "page": 2,
+          "section": "Course structure Class X, unit 7"
+        },
+        {
+          "name": "Statistics and Probability",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 4,
+          "section": "Unit V"
+        },
+        {
+          "name": "Statistics and Probability",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 9,
+          "section": "Class XI, section 5"
+        },
+        {
+          "name": "Statistics and Probability",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module V"
+        }
+      ]
+    },
+    {
+      "slug": "straight-lines",
+      "name": "Straight lines",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Straight Lines",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "unit": "Coordinate Geometry",
+          "doc": "cbse-1112-maths",
+          "page": 3,
+          "section": "Unit III: Coordinate Geometry, chapter 1"
+        },
+        {
+          "name": "Straight Lines",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Co-ordinate Geometry",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module IV: Co-ordinate Geometry"
+        }
+      ]
+    },
+    {
+      "slug": "structure-of-atom",
+      "name": "Structure of Atom",
+      "subjects": ["Chemistry"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Structure of Atom",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 2,
+          "section": "Unit 2"
+        },
+        {
+          "name": "Structure of Atom",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "isc-chemistry",
+          "page": 5,
+          "section": "Class XI, section 2"
+        }
+      ]
+    },
+    {
+      "slug": "surface-area-and-volume",
+      "name": "Surface area and volume",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Surface Area and Volume",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "unit": "Mensuration",
+          "objectives": [
+            "Recognise cuboids and cubes in real-life situations",
+            "Compute the surface area and volume of a cuboid",
+            "Explain how a cube is a ‘special case’ of a cuboid"
+          ],
+          "doc": "cbse-9-maths",
+          "page": 11,
+          "section": "Unit 5, chapter Surface Area and Volume"
+        },
+        {
+          "name": "Surface Area and Volume",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "unit": "Mensuration",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module IV: Mensuration"
+        }
+      ]
+    },
+    {
+      "slug": "the-living-world",
+      "name": "The living world",
+      "subjects": ["Biology", "Science and Technology"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "The Living World",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "unit": "Diversity of Living Organisms",
+          "doc": "cbse-1112-biology",
+          "page": 3,
+          "section": "Unit I: Diversity of Living Organisms, chapter 1"
+        },
+        {
+          "name": "The Living World",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "doc": "nios-bif-212",
+          "page": 1,
+          "section": "Module V"
+        }
+      ]
+    },
+    {
+      "slug": "theme-a-india-and-the-world-land-and-the-people",
+      "name": "Theme A - India and the World: Land and the People",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme A - India and the World: Land and the People",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Social Science",
+          "doc": "ncert-6-society",
+          "page": 19,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme A - India and the World: Land and the People",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme A - India and the World: Land and the People",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-a-india-and-the-world-land-and-the-people-part-2",
+      "name": "Theme A - India and the World: Land and the People (Part 2)",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme A - India and the World: Land and the People (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society2",
+          "page": 15,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme A - India and the World: Land and the People (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society2",
+          "page": 17,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-b-tapestry-of-the-past",
+      "name": "Theme B - Tapestry of the Past",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme B - Tapestry of the Past",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Social Science",
+          "doc": "ncert-6-society",
+          "page": 19,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme B - Tapestry of the Past",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme B - Tapestry of the Past",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-b-tapestry-of-the-past-part-2",
+      "name": "Theme B - Tapestry of the Past (Part 2)",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme B - Tapestry of the Past (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society2",
+          "page": 15,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme B - Tapestry of the Past (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society2",
+          "page": 17,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-c-our-cultural-heritage-and-knowledge-traditions",
+      "name": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Social Science",
+          "doc": "ncert-6-society",
+          "page": 19,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-c-our-cultural-heritage-and-knowledge-traditions-part-",
+      "name": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society2",
+          "page": 15,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society2",
+          "page": 17,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-d-governance-and-democracy",
+      "name": "Theme D - Governance and Democracy",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme D - Governance and Democracy",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Social Science",
+          "doc": "ncert-6-society",
+          "page": 19,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme D - Governance and Democracy",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme D - Governance and Democracy",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-d-governance-and-democracy-part-2",
+      "name": "Theme D - Governance and Democracy (Part 2)",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme D - Governance and Democracy (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society2",
+          "page": 15,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme D - Governance and Democracy (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society2",
+          "page": 17,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-e-economic-life-around-us",
+      "name": "Theme E - Economic Life Around Us",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme E - Economic Life Around Us",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Social Science",
+          "doc": "ncert-6-society",
+          "page": 19,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme E - Economic Life Around Us",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme E - Economic Life Around Us",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society1",
+          "page": 21,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "theme-e-economic-life-around-us-part-2",
+      "name": "Theme E - Economic Life Around Us (Part 2)",
+      "subjects": ["Social Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "Theme E - Economic Life Around Us (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "doc": "ncert-7-society2",
+          "page": 15,
+          "section": "Contents, theme heading"
+        },
+        {
+          "name": "Theme E - Economic Life Around Us (Part 2)",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "doc": "ncert-8-society2",
+          "page": 17,
+          "section": "Contents, theme heading"
+        }
+      ]
+    },
+    {
+      "slug": "thermodynamics",
+      "name": "Thermodynamics",
+      "subjects": ["Chemistry", "Physics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Thermodynamics",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "doc": "cbse-1112-chemistry",
+          "page": 2,
+          "section": "Unit 5"
+        },
+        {
+          "name": "Thermodynamics",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit VIII"
+        },
+        {
+          "name": "Thermodynamics",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "unit": "Thermodynamics",
+          "doc": "cbse-1112-physics",
+          "page": 5,
+          "section": "Unit VIII: Thermodynamics, chapter 11"
+        },
+        {
+          "name": "Thermodynamics",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Thermal Physics",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 3: Thermal Physics"
+        }
+      ]
+    },
+    {
+      "slug": "three-dimensional-geometry",
+      "name": "Three - dimensional Geometry",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ISC"],
+      "places": [
+        {
+          "name": "Three-dimensional Geometry",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Vectors and Three-dimensional Geometry",
+          "doc": "cbse-1112-maths",
+          "page": 9,
+          "section": "Unit IV: Vectors and Three-dimensional Geometry, chapter 2"
+        },
+        {
+          "name": "Three - dimensional Geometry",
+          "kind": "chapter",
+          "board": "isc",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "isc-maths",
+          "page": 15,
+          "section": "Class XII, section 5"
+        }
+      ]
+    },
+    {
+      "slug": "trigonometry",
+      "name": "Trigonometry",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "ICSE", "NIOS"],
+      "places": [
+        {
+          "name": "Trigonometry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "cbse-10-maths",
+          "page": 2,
+          "section": "Course structure Class X, unit 5"
+        },
+        {
+          "name": "Trigonometry",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 6,
+          "section": "Class IX, section 7"
+        },
+        {
+          "name": "Trigonometry",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "icse-maths",
+          "page": 9,
+          "section": "Class X, section 5"
+        },
+        {
+          "name": "Trigonometry",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "doc": "nios-bif-211",
+          "page": 1,
+          "section": "Module V"
+        }
+      ]
+    },
+    {
+      "slug": "vectors",
+      "name": "Vectors",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Vectors",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Vectors and Three-dimensional Geometry",
+          "doc": "cbse-1112-maths",
+          "page": 9,
+          "section": "Unit IV: Vectors and Three-dimensional Geometry, chapter 1"
+        },
+        {
+          "name": "Vectors",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "unit": "Vectors and Three Dimensional Geometry",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module IX: Vectors and Three Dimensional Geometry"
+        }
+      ]
+    },
+    {
+      "slug": "vectors-and-three-dimensional-geometry",
+      "name": "Vectors and Three Dimensional Geometry",
+      "subjects": ["Mathematics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Vectors and Three-dimensional Geometry",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "cbse-1112-maths",
+          "page": 8,
+          "section": "Unit IV"
+        },
+        {
+          "name": "Vectors and Three Dimensional Geometry",
+          "kind": "chapter",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "doc": "nios-bif-311",
+          "page": 1,
+          "section": "Module IX"
+        }
+      ]
+    },
+    {
+      "slug": "water-resources",
+      "name": "Water Resources",
+      "subjects": ["Geography", "Social Science"],
+      "boards": ["CBSE", "ICSE"],
+      "places": [
+        {
+          "name": "Water resources",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Social Science",
+          "unit": "Geography (Contemporary India-II)",
+          "doc": "cbse-10-social",
+          "page": 1,
+          "section": "Course structure, Geography (Contemporary India-II)"
+        },
+        {
+          "name": "Water Resources",
+          "kind": "chapter",
+          "board": "icse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Geography",
+          "doc": "icse-geography",
+          "page": 9,
+          "section": "Class X, section 6"
+        }
+      ]
+    },
+    {
+      "slug": "work-energy-and-power",
+      "name": "Work, energy and power",
+      "subjects": ["Physics"],
+      "boards": ["CBSE", "NIOS"],
+      "places": [
+        {
+          "name": "Work, Energy and Power",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "doc": "cbse-1112-physics",
+          "page": 2,
+          "section": "Course structure Class 11, Unit IV"
+        },
+        {
+          "name": "Work, Energy and Power",
+          "kind": "topic",
+          "board": "cbse",
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "unit": "Work, Energy and Power",
+          "doc": "cbse-1112-physics",
+          "page": 4,
+          "section": "Unit IV: Work, Energy and Power, chapter 5"
+        },
+        {
+          "name": "Work, Energy and Power",
+          "kind": "topic",
+          "board": "nios",
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "unit": "Force and Energy",
+          "doc": "nios-bif-312",
+          "page": 1,
+          "section": "Module 1: Force and Energy"
+        }
+      ]
+    },
+    {
+      "slug": "world-of-living",
+      "name": "World of Living",
+      "subjects": ["Science"],
+      "boards": ["CBSE"],
+      "places": [
+        {
+          "name": "World of Living",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Science",
+          "doc": "cbse-9-science",
+          "page": 4,
+          "section": "Course structure Class IX, unit 1"
+        },
+        {
+          "name": "World of Living",
+          "kind": "chapter",
+          "board": "cbse",
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "doc": "cbse-10-science",
+          "page": 4,
+          "section": "Course structure Class X, unit 2"
+        }
+      ]
+    }
+  ]
+}

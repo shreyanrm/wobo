@@ -17,6 +17,9 @@ node_modules/
 .bun/
 bun.lockb.bak
 dist/
+# The pre-render's record of what it wrote: build bookkeeping, kept beside dist rather than
+# inside it, because everything in the output directory is served (scripts/prerender-manifest.ts).
+.prerender.json
 # The operator console's own build output. Never part of the public deploy.
 dist-admin/
 build/

@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { resetFocusIds } from '../src/focus';
 import {
   armLasso,
@@ -7,6 +9,7 @@ import {
   FOCUS_FROST,
   FOCUS_RING_FADE_MS,
   FOCUS_RING_WIDTH,
+  firstPageElement,
   focusRingPath,
   isTypingTarget,
   lassoArmed,
@@ -14,6 +17,7 @@ import {
   pathD,
   resolveFocus,
   targetIdsInPath,
+  textOfRuns,
 } from '../src/gesture';
 import { type Rect, SurfaceRegistry, type SurfaceTarget } from '../src/registry';
 
@@ -249,5 +253,98 @@ describe("the focus region is drawn as Wobo's own line round it", () => {
 
   it('fades after the turn rather than vanishing with it', () => {
     expect(FOCUS_RING_FADE_MS).toBeGreaterThan(200);
+  });
+});
+
+// --- the lasso never resolves to Wobo's own words -------------------------------------------------
+
+describe('what the learner circled, never what Wobo drew over it', () => {
+  /** An element stack as `document.elementsFromPoint` returns it, topmost first. */
+  const stack = (...marks: (string | null)[]) =>
+    marks.map((own, i) => ({
+      id: i,
+      own,
+      closest(selector: string) {
+        return own && selector.includes(own) ? this : null;
+      },
+    }));
+
+  it("skips Wobo's own layer and takes the page under it", () => {
+    const nodes = stack('[data-wobo-surface]', '[data-glass-ignore]', null);
+    expect(firstPageElement(nodes)?.id).toBe(2);
+  });
+
+  it("takes the topmost element when none of it is Wobo's", () => {
+    expect(firstPageElement(stack(null, null))?.id).toBe(0);
+  });
+
+  it("answers nothing when every layer under the point is Wobo's own", () => {
+    expect(firstPageElement(stack('[data-wobo-surface]', '[aria-live]'))).toBeNull();
+  });
+});
+
+describe('the learner’s printed ask, on the repeat as on the first ask (the adversary, wave 47, finding 6)', () => {
+  // 05-escape-mid-stroke-then-ask-again/again printed `explain this: “2feel the rule”` while the
+  // first turn of the same session printed `explain this: “2 feel the rule”`. The first ask reads
+  // the glass, which joins text runs across a markup boundary; the repeat fell through to
+  // `textUnder`, which read `element.textContent` and glued the marker to the line.
+  const run = (text: string, left: number, right: number, breaks: boolean) => ({
+    text,
+    box: { left, right, top: 651, bottom: 665 },
+    breaks,
+  });
+
+  it('puts the word break back between a marker and the line it numbers', () => {
+    // <span class="marker">2</span><p>feel the rule</p> — textContent is "2feel the rule".
+    const runs = [run('2', 40, 47, false), run('feel the rule', 52, 160, true)];
+    expect(textOfRuns(runs, '2feel the rule')).toBe('2 feel the rule');
+  });
+
+  it('does not invent a break inside a word split across two elements', () => {
+    // <span>c</span><sup>2</sup> sitting flush: no gap, no break.
+    const runs = [run('c', 40, 47, false), run('²', 47, 51, true)];
+    expect(textOfRuns(runs, 'c²')).toBe('c²');
+  });
+
+  it('falls back to the element’s own text when the page gave no runs', () => {
+    expect(textOfRuns([], 'feel the rule')).toBe('feel the rule');
+  });
+
+  it('still clips to the focus text budget', () => {
+    const long = 'x'.repeat(400);
+    expect(textOfRuns([], long).length).toBeLessThanOrEqual(200);
+  });
+});
+
+describe('no side effect rides inside a React state updater (the adversary, wave 47, finding 9)', () => {
+  // Escape mid-stroke logged, keyless and live: 'Cannot update a component while rendering a
+  // different component. WoboStage GestureLayer GestureLayer'. `clear` called
+  // `handlers.current.onClear?.()` from INSIDE `setFocus((current) => …)`, and React runs an
+  // updater during another component's render — so the surface's own setState landed in the
+  // middle of that render. A state updater is a pure function of the state it is given.
+  it('keeps every setState updater free of the surface handlers', () => {
+    const src = readFileSync(join(import.meta.dir, '../src/gesture.tsx'), 'utf8');
+    // Every `setX(…)` call, read to its own balanced close paren.
+    const calls: string[] = [];
+    const re = /set(?:Focus|Ring|Trace|LayoutTick)\(/g;
+    for (let m = re.exec(src); m; m = re.exec(src)) {
+      let depth = 0;
+      let i = m.index + m[0].length - 1;
+      for (; i < src.length; i += 1) {
+        if (src[i] === '(') depth += 1;
+        else if (src[i] === ')') {
+          depth -= 1;
+          if (depth === 0) break;
+        }
+      }
+      calls.push(src.slice(m.index, i + 1));
+    }
+    expect(calls.length).toBeGreaterThan(3);
+    // An updater — `setX((current) => …)` — must not reach the surface. A plain value may.
+    const updaters = calls.filter((c) => /^set\w+\(\s*\(?\w*\)?\s*=>/.test(c));
+    expect(updaters.length).toBeGreaterThan(0);
+    for (const updater of updaters) {
+      expect(updater.includes('handlers.current.')).toBe(false);
+    }
   });
 });

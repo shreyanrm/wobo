@@ -17,6 +17,7 @@
       "!**/*.workflow.js",
       "!design/prototypes",
       "!content/curriculum/**/*.json",
+      "!apps/web-pwa/src/screens/syllabus/syllabus.json",
       "!content/hospitality/**/*.json",
       "!tools/progress/progress-*.json"
     ]

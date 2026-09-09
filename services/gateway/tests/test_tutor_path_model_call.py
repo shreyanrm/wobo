@@ -107,9 +107,9 @@ def test_a_board_plan_survives_a_model_that_refuses_the_temperature(fussy) -> No
     from wobo_gateway.wobo import run_board_plan
 
     plan_json = (
-        '{"say": "Here is the curve.", "presentation": "plane", '
-        '"intents": [{"pipeline": "math", "op": "graph", "expr": "x**2", "var": "x", '
-        '"domain": [-3, 3]}]}'
+        '{"sentences": [{"say": "Here is the curve.", "marks": []}], "open": {"kind": "graph", '
+        '"intent": {"pipeline": "math", "op": "graph", "expr": "x**2", "var": "x", '
+        '"domain": [-3, 3]}}}'
     )
     provider = fussy(plan_json)
     plan, _tokens = run_board_plan(
@@ -132,8 +132,8 @@ def test_the_keyless_plan_is_not_quietly_served_in_place_of_a_live_one(fussy) ->
     from wobo_gateway.wobo import _BOARD_SAY, board_plan_for
 
     fussy(
-        '{"say": "Watch the curve first.", "intents": '
-        '[{"pipeline": "math", "op": "graph", "expr": "x**2", "var": "x", "domain": [-3, 3]}]}'
+        '{"sentences": [{"say": "Watch the curve first.", "marks": []}], "open": {"kind": "graph", '
+        '"intent": {"pipeline": "math", "op": "graph", "expr": "x**2", "var": "x", "domain": [-3, 3]}}}'
     )
     plan = board_plan_for(
         {"context": {"turn": {"lastUserInput": "graph y = x^2 with the tangent at x = 1"}}},
@@ -156,12 +156,11 @@ def test_a_board_is_never_drawn_in_silence(fussy) -> None:
     from wobo_gateway.wobo import run_board_plan
 
     fussy(
-        '{"presentation": "plane", "intents": '
-        '[{"pipeline": "math", "op": "graph", "expr": "x**2", "var": "x", "domain": [-3, 3]}]}'
+        '{"sentences": [], "open": {"kind": "graph", "intent": '
+        '{"pipeline": "math", "op": "graph", "expr": "x**2", "var": "x", "domain": [-3, 3]}}}'
     )
     plan, _tokens = run_board_plan(
         provider_model="a-model",
         payload={"context": {"turn": {"lastUserInput": "graph y = x^2"}}},
     )
-    assert plan["intents"]
-    assert str(plan.get("say") or "").strip(), "ink with no words is Wobo drawing in silence"
+    assert plan == {}, "ink with no words is Wobo drawing in silence: refused, never floored"

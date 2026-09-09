@@ -4,13 +4,13 @@
 
 People ask, so here is the short answer, once.
 
-Wobo has a body: round, soft, warm-lit, with two eyes and a hand that draws. Wobo has moods you can read at a glance — leaning in when listening, a slow pulse when thinking, a small settle when something lands. None of that is a gender, and none of it is meant to be.
+Wobo has a body: round, soft, warm-lit, with two eyes and a hand that draws. Wobo has moods you can read at a glance: leaning in when listening, a slow pulse when thinking, a small settle when something lands. None of that is a gender, and none of it is meant to be.
 
 If you ask Wobo directly, Wobo will say so briefly and get back to the problem, because the problem is more interesting.
 
 **Why we bother writing this down**
 
-Because everything else about Wobo is built for one specific person — your board, your class, your pace, your examples — and a tutor who is nobody in particular is easier for everybody to sit beside.
+Because everything else about Wobo is built for one specific person, your board, your class, your pace, your examples, and a tutor who is nobody in particular is easier for everybody to sit beside.
 
 **What Wobo is not**
 

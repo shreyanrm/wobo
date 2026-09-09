@@ -9,19 +9,21 @@
 
 import { fontFamily } from '@wobo/config';
 import { useReducedMotion } from '@wobo/motion';
-import { plane, useWoboBus, WoboBody } from '@wobo/wobo';
+import { glassHold, plane, useWoboBus, WoboBody } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
 import { type FormEvent, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from '../shell/router';
+import { useViewport } from '../shell/useViewport';
 import { useProgress } from '../store/progress';
 import { useSdk } from '../store/sdk';
 import { CloseIcon, SendIcon, WaveformIcon } from '../ui/icons';
 import { useShellMounted } from '../ui/shellPresence';
 import { sfx } from '../ui/sound';
-import { boardTurn } from './board-turn';
+import { boardTurn, screenInkHolding, screenStore } from './board-turn';
 import { appendToArchive, type ChatTurn, useWoboChat } from './chat';
 import { subscribeCompanionOpen } from './drawer';
 import { FlyingWobo } from './Flight';
+import { sheetFolded, sheetParts } from './fold';
 import { withHelplines } from './helplines';
 import { registerHoldToTalk } from './hold';
 import {
@@ -299,6 +301,18 @@ export function WoboCompanion() {
   // thinking is a plan actually streaming; the aha is a real award crossing. Nothing here is a
   // timer and nothing is canned.
   const board = useSyncExternalStore(boardTurn.subscribe, boardTurn.get, boardTurn.get);
+  // The freeze (docs/INK-FREEZE-PLAN-TRACE.md §3): while the glass is held on a phone, the sheet
+  // folds to a strip along the bottom so the page Wobo is drawing on is in front of the learner,
+  // not behind a modal. It unfolds on the same tick the glass is released.
+  const glass = useSyncExternalStore(glassHold.subscribe, glassHold.get, glassHold.get);
+  // And while Wobo's ink is still on the page, holding for an answer: unfolding then put the
+  // modal over the very marks the question was about (wobo/fold.ts).
+  const inkHolding = useSyncExternalStore(screenStore.subscribe, screenInkHolding, () => false);
+  const { width: viewportWidth } = useViewport();
+  const folded = sheetFolded({ open, held: glass.held, inkHolding, width: viewportWidth });
+  // A strip is the ask row and nothing else, so the ask row cannot be pushed off the bottom
+  // of the phone (wobo/fold.ts `sheetParts`; the adversary, 2026-09-09, finding 4).
+  const parts = sheetParts(folded);
   const idleSince = useIdleSince();
   const [aha, setAha] = useState(false);
   const lastXp = useRef(xp);
@@ -440,6 +454,7 @@ export function WoboCompanion() {
       {ptt && !shelled && (
         <motion.div
           aria-hidden
+          data-wobo-surface=""
           animate={reduced ? undefined : { scale: [1, 1.16, 1], opacity: [0.55, 0.3, 0.55] }}
           transition={
             reduced
@@ -462,7 +477,7 @@ export function WoboCompanion() {
           }}
         />
       )}
-      <div style={{ visibility: open || shelled ? 'hidden' : 'visible' }}>
+      <div data-wobo-surface="" style={{ visibility: open || shelled ? 'hidden' : 'visible' }}>
         <FlyingWobo
           routeKey={route.name}
           mood={expression}
@@ -471,16 +486,6 @@ export function WoboCompanion() {
           idleSince={idleSince}
           behaviour={offer ? 'lean' : null}
           behaviourKey={leanKey}
-          // Realism: while Wobo is inking, Wobo's body turns toward the mark on the page (the bus reports
-          // where). The docked orb sits bottom-right; the angle runs from Wobo to the ink.
-          gestureAngle={
-            bus.focusPoint && typeof window !== 'undefined'
-              ? Math.atan2(
-                  bus.focusPoint.y - (window.innerHeight - 60),
-                  bus.focusPoint.x - (window.innerWidth - 56),
-                )
-              : undefined
-          }
           onTap={() => {
             sfx.breath(true); // a soft breath as Wobo's drawer slides open
             setOpen(true);
@@ -493,6 +498,7 @@ export function WoboCompanion() {
           walking away is an answer too — it retires on its own. */}
       {offer && !open && !shelled && (
         <div
+          data-wobo-surface=""
           style={{
             position: 'fixed',
             right: 18,
@@ -531,6 +537,7 @@ export function WoboCompanion() {
       )}
       {pttNote && !shelled && (
         <div
+          data-wobo-surface=""
           style={{
             position: 'fixed',
             right: 18,
@@ -556,8 +563,19 @@ export function WoboCompanion() {
         {open && (
           <motion.aside
             role="dialog"
-            aria-modal="true"
+            aria-modal={folded ? undefined : 'true'}
             aria-label="Wobo"
+            // WOBO'S OWN SURFACES ARE NEVER ON THE GLASS (docs/INK-FREEZE-PLAN-TRACE.md §3): the
+            // mark is on the root of the sheet, so the whole transcript — every learner bubble,
+            // every reply, the ask input — is skipped by the read, by construction and not by a
+            // list of Wobo's own copy (wobo/glass.ts IGNORE, packages/wobo/src/glass/read.ts).
+            data-wobo-surface=""
+            data-glass-ignore=""
+            // The read waits on THIS element's box to stop moving before it takes the map
+            // (wobo/glass.ts nextLayout): the fold is a motion style on its own frame loop, so a
+            // map taken two frames after the hold was a map of a half-folded page.
+            data-wobo-sheet=""
+            data-glass-strip={folded ? '' : undefined}
             initial={{ x: '104%' }}
             animate={{ x: 0 }}
             exit={{ x: '104%' }}
@@ -565,10 +583,15 @@ export function WoboCompanion() {
             style={{
               // starts below the 64px header so it never overlaps the profile/xp/streak cluster
               position: 'fixed',
-              top: 64,
+              top: folded ? 'auto' : 64,
+              left: folded ? 0 : undefined,
               right: 0,
               bottom: 0,
-              width: 'min(420px, 94vw)',
+              // FOLDED, THE BOX IS WHAT THE ASK ROW NEEDS. Wave 40 pinned it to a fixed 128 px
+              // with the whole sheet still mounted inside, and the ask row was pushed 60 px below
+              // the bottom of a 390x844 phone (the adversary, 2026-09-09, finding 4).
+              maxHeight: folded ? '40vh' : undefined,
+              width: folded ? '100%' : 'min(420px, 94vw)',
               zIndex: 'var(--wobo-z-panel)' as unknown as number,
               background: 'var(--wobo-frost-on-paper)',
               backdropFilter: 'blur(var(--wobo-frost-blur))',
@@ -577,12 +600,14 @@ export function WoboCompanion() {
               borderTop: '0.5px solid var(--wobo-hairline-on-paper)',
               display: 'flex',
               flexDirection: 'column',
+              // the phone's home bar is not a place to put an input
+              paddingBottom: folded ? 'env(safe-area-inset-bottom, 0px)' : undefined,
             }}
           >
             <div
               style={{
                 padding: '14px 18px',
-                display: 'flex',
+                display: parts.head ? 'flex' : 'none',
                 alignItems: 'center',
                 gap: 12,
                 borderBottom: '0.5px solid var(--wobo-hairline-on-paper)',
@@ -678,9 +703,9 @@ export function WoboCompanion() {
               ref={scrollRef}
               aria-busy={busy || undefined}
               style={{
+                display: parts.thread ? 'flex' : 'none',
                 overflowY: 'auto',
                 padding: 18,
-                display: 'flex',
                 flexDirection: 'column',
                 gap: 12,
                 flex: 1,
@@ -748,7 +773,7 @@ export function WoboCompanion() {
             </div>
 
             {/* the teach-back door — only where there is a topic to teach */}
-            {!tb && topicName && (
+            {parts.teachBack && !tb && topicName && (
               <button
                 type="button"
                 onClick={startTeachBack}
@@ -771,7 +796,7 @@ export function WoboCompanion() {
 
             {/* Wobo's modes, at hand (WOBO-PLAN §3). The ones that need something in hand appear only
                 once there is something in hand — the same list the palette and voice reach. */}
-            {!tb && (
+            {parts.modes && !tb && (
               <div
                 style={{
                   display: 'flex',

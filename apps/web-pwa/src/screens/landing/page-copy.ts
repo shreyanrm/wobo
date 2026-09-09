@@ -25,8 +25,10 @@
  * second half as it scrolls into view; the two run together as one sentence.
  */
 
-import { CTA } from '../site/cta';
-import { HANDOFFS } from '../site/handoffs';
+import type { Route } from '../../shell/router';
+import { ctaFor } from '../site/cta';
+import { HANDOFFS, handoff } from '../site/handoffs';
+import { LIST } from '../site/invitation';
 import { FOOTER_COLUMNS } from '../site/nav';
 
 export interface NavLink {
@@ -53,10 +55,12 @@ export const NAV_LINKS: readonly NavLink[] = [
  * The two doors. The loud one is THE call to action and it is read from `site/cta.ts`, never typed
  * here: this page and the plans page once said different things about whether we were open.
  */
-export const AUTH = {
-  signIn: 'Sign in',
-  start: CTA.label,
-} as const;
+export function authDoors(open: boolean): { signIn: string; start: string } {
+  return { signIn: 'Sign in', start: ctaFor(open).label };
+}
+
+/** The doors as they read with the dial ON, which is what `page-copy.test.ts` holds them to. */
+export const AUTH = authDoors(true);
 
 // --- The hero -----------------------------------------------------------------------------------
 
@@ -728,15 +732,45 @@ export function assistants(question: string = ASK_ELSEWHERE): readonly Assistant
  * The words are `site/handoffs.ts`'s `home` entry, so the front page closes on the same one phrase
  * every other public page closes on and cannot drift from it.
  */
-export const CLOSE = {
-  title: HANDOFFS.home.title,
-  sub: 'Every subject your board sets, drawn out line by line, as many times as you need. Free every day, and no card to start.',
-  hand: HANDOFFS.home.hand,
-  primary: HANDOFFS.home.primary.label,
-  quiet: HANDOFFS.home.quiet.label,
-  quietHref: HANDOFFS.home.quiet.href ?? '/for-parents',
-  fine: 'Free to use every day, not just the first · every subject · every major board',
-} as const;
+export interface CloseCopy {
+  title: string;
+  sub: string;
+  hand: string | null;
+  primary: string;
+  primaryTo: Route;
+  quiet: string;
+  quietHref: string;
+  fine: string;
+}
+
+/**
+ * The front page's close, for the dial as it stands (`docs/DOORS-CLOSED.md` §5).
+ *
+ * Not only the button. While new accounts are closed, "free every day, and no card to start" is a
+ * sentence about a product a reader cannot have, and a page whose last three lines describe an
+ * open product under a button that says otherwise is a page arguing with itself. So the two lines
+ * either side of the door change with it, and the argument stays honest at both settings.
+ */
+export function closeCopy(open: boolean): CloseCopy {
+  const close = handoff('home', open);
+  return {
+    title: close.title,
+    sub: open
+      ? 'Every subject your board sets, drawn out line by line, as many times as you need. Free every day, and no card to start.'
+      : LIST.what,
+    hand: open ? close.hand : LIST.under,
+    primary: close.primary.label,
+    primaryTo: close.primary.to as Route,
+    quiet: close.quiet.label,
+    quietHref: close.quiet.href ?? '/for-parents',
+    fine: open
+      ? 'Free to use every day, not just the first · every subject · every major board'
+      : LIST.promise,
+  };
+}
+
+/** The close as it reads with the dial ON, which is what `page-copy.test.ts` holds it to. */
+export const CLOSE = closeCopy(true);
 
 // --- The footer -----------------------------------------------------------------------------------
 

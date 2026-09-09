@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated from docs/copy/blog/** by src/screens/site/blog/compile.ts. Do not edit by hand. -->
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>The Wobo blog</title>
+    <link>https://heywobo.com/blog</link>
+    <description>What we learn while building a tutor, written down: how to read a syllabus document, what a board actually changed this year, and what a machine can and cannot do for a learner.</description>
+    <language>en-in</language>
+    <atom:link href="https://heywobo.com/blog/feed.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>How to read a syllabus document and know it is current</title>
+      <link>https://heywobo.com/blog/read-a-syllabus-document</link>
+      <guid isPermaLink="true">https://heywobo.com/blog/read-a-syllabus-document</guid>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
+      <description>Four checks tell you whether the syllabus in front of you is the one your board is actually setting this year, and all four take about five minutes.</description>
+      <category>Syllabus</category>
+      <category>For parents</category>
+    </item>
+    <item>
+      <title>What changed in the CBSE syllabus this year, with the document for each change</title>
+      <link>https://heywobo.com/blog/what-changed-in-the-cbse-syllabus</link>
+      <guid isPermaLink="true">https://heywobo.com/blog/what-changed-in-the-cbse-syllabus</guid>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
+      <description>The middle stage is being taught out of new books with new chapter names, and two reading traps sit in the secondary documents. Each one cited to its page.</description>
+      <category>Syllabus</category>
+    </item>
+    <item>
+      <title>Why a drawn explanation lands where a finished diagram does not</title>
+      <link>https://heywobo.com/blog/why-a-drawn-explanation-lands</link>
+      <guid isPermaLink="true">https://heywobo.com/blog/why-a-drawn-explanation-lands</guid>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
+      <description>A drawing carries the order the thinking happened in, and the order is most of the explanation. A finished picture has already thrown that away.</description>
+      <category>How Wobo teaches</category>
+    </item>
+    <item>
+      <title>What to look for in a tutoring app, as the person paying for it</title>
+      <link>https://heywobo.com/blog/what-to-look-for-in-a-tutoring-app</link>
+      <guid isPermaLink="true">https://heywobo.com/blog/what-to-look-for-in-a-tutoring-app</guid>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
+      <description>Seven questions worth asking of any tutoring app, why each one matters, and our own answers to all seven, including the ones that are not finished.</description>
+      <category>For parents</category>
+    </item>
+    <item>
+      <title>How a doubt gets solved from a photograph, step by step</title>
+      <link>https://heywobo.com/blog/how-a-doubt-is-solved-from-a-photograph</link>
+      <guid isPermaLink="true">https://heywobo.com/blog/how-a-doubt-is-solved-from-a-photograph</guid>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
+      <description>What happens between photographing a page and understanding it, why the reading is shown back before any answer, and where this still fails.</description>
+      <category>How Wobo teaches</category>
+    </item>
+    <item>
+      <title>What an AI tutor cannot do, said plainly</title>
+      <link>https://heywobo.com/blog/what-an-ai-tutor-cannot-do</link>
+      <guid isPermaLink="true">https://heywobo.com/blog/what-an-ai-tutor-cannot-do</guid>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 +0000</pubDate>
+      <description>Eight things a machine tutor cannot do for your child, what we build instead of pretending otherwise, and the one thing it is genuinely good at.</description>
+      <category>How Wobo teaches</category>
+      <category>For parents</category>
+    </item>
+  </channel>
+</rss>

@@ -42,6 +42,24 @@ export function isPublicSite(name: Route['name']): boolean {
     name === 'for-students' ||
     name === 'how-it-works' ||
     name === 'subjects' ||
+    // The syllabus family: readable with no account, and the whole point of it is that a stranger
+    // who arrived from a search can read the chapter and ask a question about it before they
+    // decide anything (docs/GROWTH-SEARCH.md §3).
+    name === 'syllabus' ||
+    name === 'subjectHub' ||
+    // The three growth families (docs/GROWTH-SEARCH.md §4.5): the glossary, the exam-cycle pages
+    // and the side-by-side pages. All readable with no account, for the same reason.
+    name === 'glossary' ||
+    name === 'glossaryEntry' ||
+    name === 'exams' ||
+    name === 'examBoard' ||
+    name === 'compare' ||
+    name === 'compareEntry' ||
+    // The blog, its posts and its tag pages. Read by a stranger who arrived from a search, so it
+    // must cost them the site and nothing behind the door (docs/GROWTH-DESK.md).
+    name === 'blog' ||
+    name === 'blogPost' ||
+    name === 'blogTag' ||
     name === 'notfound' ||
     name === 'ui-kit'
   );

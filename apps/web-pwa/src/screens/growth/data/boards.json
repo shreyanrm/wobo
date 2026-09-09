@@ -1,0 +1,1051 @@
+{
+  "note": "Compiled from content/curriculum/syllabi by content/curriculum/syllabi/tools/build_growth_data.py. Do not edit by hand.",
+  "documents": {
+    "cbse-10-maths": {
+      "id": "cbse-10-maths",
+      "title": "Mathematics, Class X, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/Maths_SecP1X_2026-27.pdf",
+      "pages": 10,
+      "fetchedAt": "2026-09-03T07:03:44Z",
+      "sha256": "d773e7c12b99e0bd498067e2b8268c76d0496bf9cad1c9e41c8652ab68b412a5",
+      "board": "cbse"
+    },
+    "cbse-10-science": {
+      "id": "cbse-10-science",
+      "title": "Science, Class X, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/Science_SecP1_2026-27.pdf",
+      "pages": 9,
+      "fetchedAt": "2026-09-03T07:03:45Z",
+      "sha256": "1bec4a9e44452b22c9d422d8cb528b4de30598f56c243461845165771df7bc37",
+      "board": "cbse"
+    },
+    "cbse-10-social": {
+      "id": "cbse-10-social",
+      "title": "Social Science (087), Class X, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/SocialScience_SecP1X_2026-27.pdf",
+      "pages": 17,
+      "fetchedAt": "2026-09-03T07:03:50Z",
+      "sha256": "99d21fd5e2fdddb990797eec5450c31098438c6a7ecc4406fce401e5e88083eb",
+      "board": "cbse"
+    },
+    "cbse-1112-biology": {
+      "id": "cbse-1112-biology",
+      "title": "Biology, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Biology_SecP2_2026-27.pdf",
+      "pages": 15,
+      "fetchedAt": "2026-09-03T07:03:56Z",
+      "sha256": "3a5767515b41b12b9356151e759beba48bb15a1b711b96c321fa273a7fa7a6ee",
+      "board": "cbse"
+    },
+    "cbse-1112-chemistry": {
+      "id": "cbse-1112-chemistry",
+      "title": "Chemistry, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Chemistry_SecP2_2026-27.pdf",
+      "pages": 15,
+      "fetchedAt": "2026-09-03T07:03:55Z",
+      "sha256": "5610f09d357d3ccc9a7b39fc29cb7b1f4530847753783b16c72fff691acd2418",
+      "board": "cbse"
+    },
+    "cbse-1112-maths": {
+      "id": "cbse-1112-maths",
+      "title": "Mathematics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Maths_SecP2_2026-27.pdf",
+      "pages": 12,
+      "fetchedAt": "2026-09-03T07:03:57Z",
+      "sha256": "5bf4105d4076189fe00b879fd6d41ffadec87a894a078a7fb912b2f219769572",
+      "board": "cbse"
+    },
+    "cbse-1112-physics": {
+      "id": "cbse-1112-physics",
+      "title": "Physics, Classes XI and XII, Secondary Curriculum Part 2, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart2/Physics_SecP2_2026-27.pdf",
+      "pages": 23,
+      "fetchedAt": "2026-09-03T07:03:52Z",
+      "sha256": "9e32271cf5a86caa605cffe2a4b5e19710abc3d3a8715ef725ba78cd94caf1f7",
+      "board": "cbse"
+    },
+    "cbse-9-maths": {
+      "id": "cbse-9-maths",
+      "title": "Mathematics, Class IX, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/Maths_SecP1IX_2026-27.pdf",
+      "pages": 13,
+      "fetchedAt": "2026-09-03T07:03:39Z",
+      "sha256": "932ea66d6fbfcefce8182f28ab921c886187f5dea674321088b5c7230bbe6c32",
+      "board": "cbse"
+    },
+    "cbse-9-science": {
+      "id": "cbse-9-science",
+      "title": "Science, Class IX, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/ScienceSt_SecP1_2026-27.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:03:41Z",
+      "sha256": "ab19589aede5ad8b0b2f87964914c1a55a987f39032903871baa973c02ed6e24",
+      "board": "cbse"
+    },
+    "cbse-9-social": {
+      "id": "cbse-9-social",
+      "title": "Social Science, Class IX, Secondary Curriculum Part 1, 2026-27",
+      "publisher": "Central Board of Secondary Education",
+      "url": "https://cbseacademic.nic.in/web_material/CurriculumMain27/SecPart1/SocialScience_SecP1IX_2026-27.pdf",
+      "pages": 14,
+      "fetchedAt": "2026-09-03T07:03:42Z",
+      "sha256": "c81d9237b8e74d462e57776e162d534ff04feff27ed72eb236621361a9061735",
+      "board": "cbse"
+    },
+    "ncert-6-curiosity": {
+      "id": "ncert-6-curiosity",
+      "title": "Curiosity, textbook of Science for Grade 6 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/fecu1ps.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:05:10Z",
+      "sha256": "0f143518474320c83059c0ca2036cf292e7a3f8a460c1c1c22719de193a0a058",
+      "board": "cbse"
+    },
+    "ncert-6-ganita": {
+      "id": "ncert-6-ganita",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 6 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/fegp1ps.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:05:07Z",
+      "sha256": "902147cff853df0023b4e13293711573562bf42abf91253e5045e877c76d51df",
+      "board": "cbse"
+    },
+    "ncert-6-society": {
+      "id": "ncert-6-society",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 6 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/fees1ps.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:05:47Z",
+      "sha256": "7605e63efa73bf1748d866c843217473b1a4826f39309525540a3a058bd6e310",
+      "board": "cbse"
+    },
+    "ncert-7-curiosity": {
+      "id": "ncert-7-curiosity",
+      "title": "Curiosity, textbook of Science for Grade 7 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gecu1ps.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:06:07Z",
+      "sha256": "1c3d49d5609cf52ac4c007bd42d0810d2449f08cb8870c535f8fe6246811b56d",
+      "board": "cbse"
+    },
+    "ncert-7-ganita1": {
+      "id": "ncert-7-ganita1",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 7, Part 1 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gegp1ps.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:05:53Z",
+      "sha256": "d05d0fe3524eaa7727683387787f04c84f3d444e9f6b4b44819b97a6ee023d2c",
+      "board": "cbse"
+    },
+    "ncert-7-ganita2": {
+      "id": "ncert-7-ganita2",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 7, Part 2 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gegp2ps.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:05:58Z",
+      "sha256": "59a3b897ce08f71605805ee73ecbfeef126a930bc0d9a3716d15e9dcf2c430aa",
+      "board": "cbse"
+    },
+    "ncert-7-society1": {
+      "id": "ncert-7-society1",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 7, Part 1 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gees1ps.pdf",
+      "pages": 22,
+      "fetchedAt": "2026-09-03T07:06:37Z",
+      "sha256": "7701947726d2dcc9890bce3e36669cd8388fe5bea2cf3cd55082b2a409fdb7da",
+      "board": "cbse"
+    },
+    "ncert-7-society2": {
+      "id": "ncert-7-society2",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 7, Part 2 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/gees2ps.pdf",
+      "pages": 16,
+      "fetchedAt": "2026-09-03T07:07:03Z",
+      "sha256": "f673f0474ebf9d8f5b383ef255ef5630ff967a67db30204bc20e84fe5121ed16",
+      "board": "cbse"
+    },
+    "ncert-8-curiosity": {
+      "id": "ncert-8-curiosity",
+      "title": "Curiosity, textbook of Science for Grade 8 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hecu1ps.pdf",
+      "pages": 20,
+      "fetchedAt": "2026-09-03T07:07:29Z",
+      "sha256": "cf752771b28a3328bf37ec768907ed0f46d2a2507a77803222b435c651830955",
+      "board": "cbse"
+    },
+    "ncert-8-ganita1": {
+      "id": "ncert-8-ganita1",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 8, Part 1 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hegp1ps.pdf",
+      "pages": 16,
+      "fetchedAt": "2026-09-03T07:07:09Z",
+      "sha256": "e08bdb82e719ba12a1b2482c94629a4f35df91852539b4413f2a26e9eaab3dfd",
+      "board": "cbse"
+    },
+    "ncert-8-ganita2": {
+      "id": "ncert-8-ganita2",
+      "title": "Ganita Prakash, textbook of Mathematics for Grade 8, Part 2 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hegp2ps.pdf",
+      "pages": 16,
+      "fetchedAt": "2026-09-03T07:07:21Z",
+      "sha256": "c5f4d86252edb391401831f279ab5f2065ecb2f2d0631607aa4044e5a0d74cc8",
+      "board": "cbse"
+    },
+    "ncert-8-society1": {
+      "id": "ncert-8-society1",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 8, Part 1 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hees1ps.pdf",
+      "pages": 22,
+      "fetchedAt": "2026-09-03T07:07:44Z",
+      "sha256": "70408aa655e5273cc98dc717bce61290d06313b12136d89b932c985dc3f1248b",
+      "board": "cbse"
+    },
+    "ncert-8-society2": {
+      "id": "ncert-8-society2",
+      "title": "Exploring Society: India and Beyond, Social Science for Grade 8, Part 2 (prelims)",
+      "publisher": "National Council of Educational Research and Training",
+      "url": "https://ncert.nic.in/textbook/pdf/hees2ps.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:07:54Z",
+      "sha256": "a15fbefbd6b55383b7b7a0cd2731c3ccedf7bd7584efafe2640ecfc48aa380ad",
+      "board": "cbse"
+    },
+    "icse-biology": {
+      "id": "icse-biology",
+      "title": "Biology (52), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/12.-Biology.pdf",
+      "pages": 13,
+      "fetchedAt": "2026-09-03T07:29:50Z",
+      "sha256": "f804154ed40b35394d85cc25ca59fb2d47089a5e3ba5fe6cfc74759173ab694f",
+      "board": "icse"
+    },
+    "icse-chemistry": {
+      "id": "icse-chemistry",
+      "title": "Chemistry (52), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/11.-Chemistry.pdf",
+      "pages": 14,
+      "fetchedAt": "2026-09-03T07:29:49Z",
+      "sha256": "18026d7b758953978288418a3dd1a70abf9e502680b41608ee29d30e100120be",
+      "board": "icse"
+    },
+    "icse-geography": {
+      "id": "icse-geography",
+      "title": "Geography (53), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/ICSE-Geography.pdf",
+      "pages": 11,
+      "fetchedAt": "2026-09-03T07:29:52Z",
+      "sha256": "d4fa4d4fc971aa3d7386161e86b6414b1850992b3357bc4514fc03e12786221f",
+      "board": "icse"
+    },
+    "icse-history-civics": {
+      "id": "icse-history-civics",
+      "title": "History & Civics (53), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/ICSE-History-Civics.pdf",
+      "pages": 9,
+      "fetchedAt": "2026-09-03T07:29:51Z",
+      "sha256": "f7dcdfe81603436b4fd34a01cfc817010bbb0a931487951beb915597b9c14dac",
+      "board": "icse"
+    },
+    "icse-maths": {
+      "id": "icse-maths",
+      "title": "Mathematics (51), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/9.-Mathematics.pdf",
+      "pages": 13,
+      "fetchedAt": "2026-09-03T07:29:47Z",
+      "sha256": "08b64aa3b4a5ff2b818bb2a92d4459c0a64c99622e2422fec6f26d90d97c7d16",
+      "board": "icse"
+    },
+    "icse-physics": {
+      "id": "icse-physics",
+      "title": "Physics (52), ICSE examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/03/10.-Physics.pdf",
+      "pages": 13,
+      "fetchedAt": "2026-09-03T07:29:48Z",
+      "sha256": "2acfb898c5377a15c7e89770dba64597a5760bbb4683b3c2c2c47651b9003cac",
+      "board": "icse"
+    },
+    "isc-biology": {
+      "id": "isc-biology",
+      "title": "Biology, ISC examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/04/20.-ISC-Biology.pdf",
+      "pages": 22,
+      "fetchedAt": "2026-09-03T07:29:56Z",
+      "sha256": "8419f94fea206eb5b3978908d1a44e3ed0eae325872814e444672a68175cc0af",
+      "board": "isc"
+    },
+    "isc-chemistry": {
+      "id": "isc-chemistry",
+      "title": "Chemistry, ISC examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/04/19.-ISC-Chemistry-1.pdf",
+      "pages": 24,
+      "fetchedAt": "2026-09-03T07:29:55Z",
+      "sha256": "8cc033031b12f40db02390719ab8606106ee318597c133fd71e5fc66ff12ce1d",
+      "board": "isc"
+    },
+    "isc-maths": {
+      "id": "isc-maths",
+      "title": "Mathematics, ISC examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2025/04/17.-ISC-Mathematics.pdf",
+      "pages": 18,
+      "fetchedAt": "2026-09-03T07:29:54Z",
+      "sha256": "fe272b0fbf5e1ef1df1a5a8ae269bc3ffad18905107c3e9678143a6754e8d9a5",
+      "board": "isc"
+    },
+    "isc-physics": {
+      "id": "isc-physics",
+      "title": "Physics, ISC examination year 2027",
+      "publisher": "Council for the Indian School Certificate Examinations",
+      "url": "https://cisce.org/wp-content/uploads/2026/02/ISC-2027-Physics.pdf",
+      "pages": 27,
+      "fetchedAt": "2026-09-03T07:29:54Z",
+      "sha256": "18d4fc0f33ff9b5a5cdb575ec92190f3a32bbd4d69931566adff3de32792a6d2",
+      "board": "isc"
+    },
+    "nios-bif-211": {
+      "id": "nios-bif-211",
+      "title": "Bifurcation of syllabus, Mathematics (211), NIOS secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/10th/211.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:41:08Z",
+      "sha256": "d1556c2957c7b95496ef00ba6eefd7fe513dc5499ecbdb4902bc0c646bc4ec4e",
+      "board": "nios"
+    },
+    "nios-bif-212": {
+      "id": "nios-bif-212",
+      "title": "Bifurcation of syllabus, Science and Technology (212), NIOS secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/10th/212.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:41:10Z",
+      "sha256": "ff502cfc85e0e30f68163088f3af9cb4cfacd1ad61cad022a96ce88cb1ee0725",
+      "board": "nios"
+    },
+    "nios-bif-213": {
+      "id": "nios-bif-213",
+      "title": "Bifurcation of syllabus, Social Science (213), NIOS secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/10th/213.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:41:11Z",
+      "sha256": "fec5b97caa0d1f1aefbe70dcdb32e95122ca9aa47e5e086f20e58356d3ffd183",
+      "board": "nios"
+    },
+    "nios-bif-311": {
+      "id": "nios-bif-311",
+      "title": "Bifurcation of syllabus, Mathematics (311), NIOS senior secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/311Bifurcation.pdf",
+      "pages": 2,
+      "fetchedAt": "2026-09-03T07:40:33Z",
+      "sha256": "9277951767337f561e8bf72ec9aa2479ab8341b50a93f98531b286ab35dca1c9",
+      "board": "nios"
+    },
+    "nios-bif-312": {
+      "id": "nios-bif-312",
+      "title": "Bifurcation of syllabus, Physics (312), NIOS senior secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/312Bifurcation.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:40:35Z",
+      "sha256": "99a62227af7f661f95119e89ed2d24cff737292e0d753fcaceab2ea2e076ae46",
+      "board": "nios"
+    },
+    "nios-bif-313": {
+      "id": "nios-bif-313",
+      "title": "Bifurcation of syllabus, Chemistry (313), NIOS senior secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/313Bifurcation.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:40:37Z",
+      "sha256": "794120e04fb20498567022d720304a3c04060e0c86d6650bd2b50c1e9db1acd7",
+      "board": "nios"
+    },
+    "nios-bif-314": {
+      "id": "nios-bif-314",
+      "title": "Bifurcation of syllabus, Biology (314), NIOS senior secondary course",
+      "publisher": "National Institute of Open Schooling",
+      "url": "https://nios.ac.in/media/documents/Course_Bifurcation_2023/12th/314Bifurcation.pdf",
+      "pages": 1,
+      "fetchedAt": "2026-09-03T07:40:39Z",
+      "sha256": "0804d1e2432a9c78dc733e2f55a39a67bcb117ffea62bc278b4a5218b3a4c5db",
+      "board": "nios"
+    }
+  },
+  "boards": [
+    {
+      "id": "cbse",
+      "name": "Central Board of Secondary Education",
+      "short": "CBSE",
+      "officialSite": "https://cbseacademic.nic.in/",
+      "version": "2026-27",
+      "chapters": 133,
+      "topics": 494,
+      "verifiedSubjects": 10,
+      "subjects": [
+        {
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Mathematics",
+          "status": "provisional",
+          "chapters": 1,
+          "topics": 10,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-6-ganita"]
+        },
+        {
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Science",
+          "status": "provisional",
+          "chapters": 1,
+          "topics": 12,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-6-curiosity"]
+        },
+        {
+          "level": "Class 6",
+          "levelOrder": 6,
+          "subject": "Social Science",
+          "status": "provisional",
+          "chapters": 5,
+          "topics": 14,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-6-society"]
+        },
+        {
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Mathematics",
+          "status": "provisional",
+          "chapters": 2,
+          "topics": 15,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-7-ganita1", "ncert-7-ganita2"]
+        },
+        {
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Science",
+          "status": "provisional",
+          "chapters": 1,
+          "topics": 12,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-7-curiosity"]
+        },
+        {
+          "level": "Class 7",
+          "levelOrder": 7,
+          "subject": "Social Science",
+          "status": "provisional",
+          "chapters": 10,
+          "topics": 20,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-7-society1", "ncert-7-society2"]
+        },
+        {
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Mathematics",
+          "status": "provisional",
+          "chapters": 2,
+          "topics": 14,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-8-ganita1", "ncert-8-ganita2"]
+        },
+        {
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Science",
+          "status": "provisional",
+          "chapters": 1,
+          "topics": 13,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-8-curiosity"]
+        },
+        {
+          "level": "Class 8",
+          "levelOrder": 8,
+          "subject": "Social Science",
+          "status": "provisional",
+          "chapters": 9,
+          "topics": 15,
+          "checksPassed": 19,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["ncert-8-society1", "ncert-8-society2"]
+        },
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "status": "verified",
+          "chapters": 6,
+          "topics": 15,
+          "checksPassed": 18,
+          "checksFailed": ["every_name_is_on_its_cited_page"],
+          "documents": ["cbse-9-maths"]
+        },
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Science",
+          "status": "verified",
+          "chapters": 4,
+          "topics": 12,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-9-science"]
+        },
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Social Science",
+          "status": "provisional",
+          "chapters": 16,
+          "topics": 74,
+          "checksPassed": 18,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["cbse-9-social"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "status": "verified",
+          "chapters": 7,
+          "topics": 15,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-10-maths"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science",
+          "status": "verified",
+          "chapters": 5,
+          "topics": 19,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-10-science"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Social Science",
+          "status": "provisional",
+          "chapters": 4,
+          "topics": 21,
+          "checksPassed": 18,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["cbse-10-social"]
+        },
+        {
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "status": "verified",
+          "chapters": 5,
+          "topics": 19,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-1112-biology"]
+        },
+        {
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "status": "verified",
+          "chapters": 9,
+          "topics": 66,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-1112-chemistry"]
+        },
+        {
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "status": "provisional",
+          "chapters": 5,
+          "topics": 13,
+          "checksPassed": 18,
+          "checksFailed": ["coverage_matches_the_documents_numbering"],
+          "documents": ["cbse-1112-maths"]
+        },
+        {
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "status": "verified",
+          "chapters": 10,
+          "topics": 14,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-1112-physics"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "status": "verified",
+          "chapters": 5,
+          "topics": 13,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-1112-biology"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "status": "provisional",
+          "chapters": 10,
+          "topics": 61,
+          "checksPassed": 17,
+          "checksFailed": [
+            "no_duplicate_topic_name_within_a_unit",
+            "no_duplicate_name_within_a_unit"
+          ],
+          "documents": ["cbse-1112-chemistry"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "status": "verified",
+          "chapters": 6,
+          "topics": 13,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-1112-maths"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "status": "verified",
+          "chapters": 9,
+          "topics": 14,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["cbse-1112-physics"]
+        }
+      ],
+      "documents": [
+        "cbse-10-maths",
+        "cbse-10-science",
+        "cbse-10-social",
+        "cbse-1112-biology",
+        "cbse-1112-chemistry",
+        "cbse-1112-maths",
+        "cbse-1112-physics",
+        "cbse-9-maths",
+        "cbse-9-science",
+        "cbse-9-social",
+        "ncert-6-curiosity",
+        "ncert-6-ganita",
+        "ncert-6-society",
+        "ncert-7-curiosity",
+        "ncert-7-ganita1",
+        "ncert-7-ganita2",
+        "ncert-7-society1",
+        "ncert-7-society2",
+        "ncert-8-curiosity",
+        "ncert-8-ganita1",
+        "ncert-8-ganita2",
+        "ncert-8-society1",
+        "ncert-8-society2"
+      ]
+    },
+    {
+      "id": "icse",
+      "name": "Indian Certificate of Secondary Education (CISCE)",
+      "short": "ICSE",
+      "officialSite": "https://cisce.org/",
+      "version": "2026-27",
+      "chapters": 92,
+      "topics": 0,
+      "verifiedSubjects": 0,
+      "subjects": [
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Biology",
+          "status": "provisional",
+          "chapters": 7,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-biology"]
+        },
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Chemistry",
+          "status": "provisional",
+          "chapters": 8,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-chemistry"]
+        },
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Geography",
+          "status": "provisional",
+          "chapters": 5,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-geography"]
+        },
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "History and Civics",
+          "status": "provisional",
+          "chapters": 11,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-history-civics"]
+        },
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Mathematics",
+          "status": "provisional",
+          "chapters": 8,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-maths"]
+        },
+        {
+          "level": "Class 9",
+          "levelOrder": 9,
+          "subject": "Physics",
+          "status": "provisional",
+          "chapters": 8,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-physics"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Biology",
+          "status": "provisional",
+          "chapters": 6,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-biology"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Chemistry",
+          "status": "provisional",
+          "chapters": 9,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-chemistry"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Geography",
+          "status": "provisional",
+          "chapters": 11,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-geography"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "History and Civics",
+          "status": "provisional",
+          "chapters": 6,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-history-civics"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "status": "provisional",
+          "chapters": 7,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-maths"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Physics",
+          "status": "provisional",
+          "chapters": 6,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["icse-physics"]
+        }
+      ],
+      "documents": [
+        "icse-biology",
+        "icse-chemistry",
+        "icse-geography",
+        "icse-history-civics",
+        "icse-maths",
+        "icse-physics"
+      ]
+    },
+    {
+      "id": "isc",
+      "name": "Indian School Certificate (CISCE)",
+      "short": "ISC",
+      "officialSite": "https://cisce.org/",
+      "version": "2026-27",
+      "chapters": 60,
+      "topics": 0,
+      "verifiedSubjects": 0,
+      "subjects": [
+        {
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Biology",
+          "status": "provisional",
+          "chapters": 5,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["isc-biology"]
+        },
+        {
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Chemistry",
+          "status": "provisional",
+          "chapters": 9,
+          "topics": 0,
+          "checksPassed": 12,
+          "checksFailed": ["every_unit_has_a_topic_layer", "every_name_is_on_its_cited_page"],
+          "documents": ["isc-chemistry"]
+        },
+        {
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Mathematics",
+          "status": "provisional",
+          "chapters": 5,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["isc-maths"]
+        },
+        {
+          "level": "Class 11",
+          "levelOrder": 11,
+          "subject": "Physics",
+          "status": "provisional",
+          "chapters": 10,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["isc-physics"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "status": "provisional",
+          "chapters": 5,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["isc-biology"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "status": "provisional",
+          "chapters": 10,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["isc-chemistry"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "status": "provisional",
+          "chapters": 7,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["isc-maths"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "status": "provisional",
+          "chapters": 9,
+          "topics": 0,
+          "checksPassed": 13,
+          "checksFailed": ["every_unit_has_a_topic_layer"],
+          "documents": ["isc-physics"]
+        }
+      ],
+      "documents": ["isc-biology", "isc-chemistry", "isc-maths", "isc-physics"]
+    },
+    {
+      "id": "nios",
+      "name": "National Institute of Open Schooling",
+      "short": "NIOS",
+      "officialSite": "https://nios.ac.in/",
+      "version": "2023",
+      "chapters": 48,
+      "topics": 217,
+      "verifiedSubjects": 5,
+      "subjects": [
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Mathematics",
+          "status": "verified",
+          "chapters": 6,
+          "topics": 26,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["nios-bif-211"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Science and Technology",
+          "status": "provisional",
+          "chapters": 7,
+          "topics": 32,
+          "checksPassed": 18,
+          "checksFailed": ["every_name_is_in_the_source"],
+          "documents": ["nios-bif-212"]
+        },
+        {
+          "level": "Class 10",
+          "levelOrder": 10,
+          "subject": "Social Science",
+          "status": "verified",
+          "chapters": 4,
+          "topics": 28,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["nios-bif-213"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Biology",
+          "status": "verified",
+          "chapters": 5,
+          "topics": 31,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["nios-bif-314"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Chemistry",
+          "status": "provisional",
+          "chapters": 8,
+          "topics": 32,
+          "checksPassed": 18,
+          "checksFailed": ["second_reader_agrees"],
+          "documents": ["nios-bif-313"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Mathematics",
+          "status": "verified",
+          "chapters": 10,
+          "topics": 38,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["nios-bif-311"]
+        },
+        {
+          "level": "Class 12",
+          "levelOrder": 12,
+          "subject": "Physics",
+          "status": "verified",
+          "chapters": 8,
+          "topics": 30,
+          "checksPassed": 19,
+          "checksFailed": [],
+          "documents": ["nios-bif-312"]
+        }
+      ],
+      "documents": [
+        "nios-bif-211",
+        "nios-bif-212",
+        "nios-bif-213",
+        "nios-bif-311",
+        "nios-bif-312",
+        "nios-bif-313",
+        "nios-bif-314"
+      ]
+    }
+  ]
+}

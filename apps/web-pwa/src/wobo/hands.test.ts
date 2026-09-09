@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'bun:test';
 import { SurfaceRegistry } from '@wobo/wobo';
 import {
   ARMED_TTL_MS,
+  aimableTargets,
   armDoIt,
   armedAction,
   disarm,
@@ -198,5 +199,209 @@ describe('showing the learner a control', () => {
     const result = await showMe('gone', { registry: empty, reduced: true });
     expect(result.ok).toBe(false);
     expect(result.say).toContain('not on screen');
+  });
+});
+
+/**
+ * "Show me" glides to a thing on the LEARNER'S page. The registry lends the glass as the page's
+ * targets (docs/INK-FREEZE-PLAN-TRACE.md §4), and the lab of 2026-09-08 found the cursor gliding
+ * to the conversation instead: "show me why" landed on the learner's own bubble, "here: why does
+ * that step work?". A line of prose is not a control, and the question read back is not a subject.
+ */
+describe('the hand aims at the page, never at the conversation', () => {
+  const onGlass = (
+    entries: { id: string; role: string; text: string; meaning?: string }[],
+  ): SurfaceRegistry => {
+    const r = new SurfaceRegistry();
+    r.registerSurface({
+      id: 'course',
+      title: 'the course player',
+      targets: [
+        {
+          id: 'course-advance',
+          kind: 'control',
+          label: 'the continue button — it moves the lesson on',
+          rect: () => ({ x: 0, y: 0, width: 10, height: 10 }),
+        },
+      ],
+    });
+    r.readGlass(() => ({
+      map: { entries },
+      rectOf: () => [0, 0, 10, 10] as const,
+      elementOf: () => null,
+    }));
+    return r;
+  };
+
+  const CONVERSATION = [
+    { id: 'l-bubble', role: 'line', text: 'show me why that step works' },
+    { id: 'l-reply', role: 'line', text: 'The line that says show me why that step works.' },
+    { id: 's-3', role: 'step', text: '3x = 15', meaning: 'step:3' },
+    { id: 'k-begin', role: 'chip', text: 'Begin' },
+  ];
+
+  it('never lands on a line of prose, whatever it shares with the words', () => {
+    const found = findTargetId('why that step works', onGlass(CONVERSATION));
+    expect(found).not.toBe('l-bubble');
+    expect(found).not.toBe('l-reply');
+  });
+
+  it('still points at the things that are really on the page', () => {
+    expect(findTargetId('the begin chip', onGlass(CONVERSATION))).toBe('k-begin');
+    expect(findTargetId('step 3', onGlass(CONVERSATION))).toBe('s-3');
+    expect(findTargetId('the continue button', onGlass(CONVERSATION))).toBe('course-advance');
+  });
+
+  /**
+   * THE CALLER STRIPS "SHOW ME" OUT BEFORE IT RESOLVES (the adversary, 2026-09-09, finding 2).
+   *
+   * AppRuntime asks for a target with the mode words removed, so the echo refusal was run against
+   * " a number line" while the bubble said "show me a number line" — which does not BEGIN as the
+   * stripped words begin, so the bubble came through and won on every word. Wobo's entire spoken
+   * and printed answer to "show me a number line" was "here: show me a number line": no ink, no
+   * gateway turn, no answer. The learner's whole words ride along now.
+   */
+  it('never aims at the question itself, however the caller trimmed the words', () => {
+    const said = 'show me a number line';
+    const trimmed = said.replace(/\b(show me|do it|for me|please|where is|how to)\b/gi, ' ');
+    // An ask box that reached the map carries the words the learner just typed, and `input` is a
+    // kind a hand may aim at — which is how "here: show me a number line" was Wobo's whole answer.
+    const glass = onGlass([
+      { id: 'ask-input', role: 'input', text: said },
+      { id: 'k-begin', role: 'chip', text: 'Begin' },
+    ]);
+    expect(findTargetId(trimmed, glass, said)).not.toBe('ask-input');
+    expect(aimableTargets(glass, trimmed, said).map((t) => t.id)).not.toContain('ask-input');
+  });
+
+  it('a hand-registered control whose label is the question back is refused too', () => {
+    const r = new SurfaceRegistry();
+    r.registerSurface({
+      id: 'course',
+      title: 'the course player',
+      targets: [
+        {
+          id: 'echo',
+          kind: 'control',
+          label: 'show me a number line',
+          rect: () => ({ x: 0, y: 0, width: 10, height: 10 }),
+        },
+      ],
+    });
+    expect(aimableTargets(r, ' a number line', 'show me a number line')).toEqual([]);
+  });
+});
+
+/**
+ * THE ID IS NOT WORDS (the adversary, 2026-09-09, finding 1).
+ *
+ * `findTargetId` scored the target's own id in the same haystack as its label, so the course
+ * outline's `course-outline-1` matched the word "line" — out-LINE — and "show me a number line"
+ * was answered by gliding to the page's first lesson card. Live at 1440 on 2026-09-09 Wobo's
+ * whole spoken and printed reply was "here: 1meet a square and a cube": no ink, no gateway turn,
+ * and the number-line pipeline never reached. An id is ours; only the words a learner can read
+ * are matched against the words a learner typed.
+ */
+describe('the hand matches words, never our own identifiers', () => {
+  const outline = (): SurfaceRegistry => {
+    const r = new SurfaceRegistry();
+    r.registerSurface({
+      id: 'course',
+      title: 'the course player',
+      targets: [
+        {
+          id: 'course-outline-1',
+          kind: 'step',
+          label: 'step 1 of the course: meet a square and a cube',
+          rect: () => ({ x: 0, y: 0, width: 10, height: 10 }),
+        },
+        {
+          id: 'course-outline-2',
+          kind: 'step',
+          label: 'step 2 of the course: feel the rule',
+          rect: () => ({ x: 0, y: 20, width: 10, height: 10 }),
+        },
+      ],
+    });
+    return r;
+  };
+
+  it('never lands on a lesson card because its id spells "outline"', () => {
+    expect(findTargetId(' a number line', outline(), 'show me a number line')).toBeNull();
+  });
+
+  it('never lands on a target because its id spells the ask', () => {
+    const r = new SurfaceRegistry();
+    r.registerSurface({
+      id: 'course',
+      title: 'the course player',
+      targets: [
+        {
+          id: 'lesson-graph-card',
+          kind: 'card',
+          label: 'meet a square and a cube',
+          rect: () => ({ x: 0, y: 0, width: 10, height: 10 }),
+        },
+      ],
+    });
+    expect(findTargetId(' y = x^2 on a graph', r, 'graph y = x^2')).toBeNull();
+  });
+
+  it('still finds a control by the words on it', () => {
+    expect(findTargetId('the step about the rule', outline())).toBe('course-outline-2');
+  });
+
+  it('matches a word, not a fragment of a longer one', () => {
+    const r = new SurfaceRegistry();
+    r.registerSurface({
+      id: 'you',
+      title: 'your page',
+      targets: [
+        {
+          id: 'a',
+          kind: 'control',
+          label: 'your subscription',
+          rect: () => ({ x: 0, y: 0, width: 10, height: 10 }),
+        },
+      ],
+    });
+    // "script" is inside "subscription"; a learner asking for a script is not asking for billing.
+    expect(findTargetId('the script', r)).toBeNull();
+  });
+});
+
+/**
+ * A NUMBER IS THE WHOLE OF WHAT "STEP 3" NAMES (measured at 1440, 2026-09-09).
+ *
+ * The words shorter than three letters are dropped as noise, which threw the number away: "show
+ * me step 3 of the course" scored `step` against all seven outline lines and answered with the
+ * first — "here: 1 meet a square and a cube". On the real page those lines carry no `meaning`,
+ * only their own words, and the number IS the words.
+ */
+describe('the hand hears a number', () => {
+  const outline = (): SurfaceRegistry => {
+    const r = new SurfaceRegistry();
+    r.readGlass(() => ({
+      map: {
+        entries: [
+          { id: 'course-outline-1', role: 'step', text: '1 meet a square and a cube' },
+          { id: 'course-outline-2', role: 'step', text: '2 feel the rule' },
+          { id: 'course-outline-3', role: 'step', text: '3 make a move' },
+        ],
+      },
+      rectOf: () => [0, 0, 10, 10] as const,
+      elementOf: () => null,
+    }));
+    return r;
+  };
+
+  it('lands on the step the number names, not the first one that says "step"', () => {
+    expect(findTargetId(' step 3 of the course', outline(), 'show me step 3 of the course')).toBe(
+      'course-outline-3',
+    );
+  });
+
+  it('still answers with the first when no number is given', () => {
+    expect(findTargetId('the step about the move', outline())).toBe('course-outline-3');
   });
 });

@@ -100,7 +100,11 @@ export interface HandOverParts {
  * Returns the refusal line when the device still owes the account something, in which case
  * nothing is swept and nobody is signed out; null when the hand-over went through.
  */
-export async function handOverDevice({ sdk, account, leave }: HandOverParts): Promise<string | null> {
+export async function handOverDevice({
+  sdk,
+  account,
+  leave,
+}: HandOverParts): Promise<string | null> {
   const verdict = await settleBeforeSignOut(sdk);
   if (verdict.line) return verdict.line;
   const subject = account.subjectId();

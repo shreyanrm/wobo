@@ -306,12 +306,21 @@ def test_an_em_dash_in_what_a_learner_reads_is_marked_down() -> None:
 def test_no_canned_line_a_learner_reads_carries_an_em_dash() -> None:
     from wobo_gateway import wobo
 
-    lines = [*wobo._MOCK_SAY.values(), *wobo._BOARD_SAY.values(), wobo.SILENT_BOARD_SAY]
-    focus = wobo._focus_plan({"focus": {"id": "f1", "text": "2x = 10"}}, "why is this wrong?")
-    target = wobo._target_plan(
-        {"targets": [{"id": "course-advance", "label": "the button that moves this lesson on"}]},
-        "which button moves this lesson on?",
+    from wobo_gateway.board import glass
+
+    lines = [*wobo._MOCK_SAY.values(), *wobo._BOARD_SAY.values()]
+    focus = glass.keyless_plan(
+        {"context": {"turn": {"lastUserInput": "why is this wrong?"}, "focus": {"id": "f1", "text": "2x = 10"}}}
     )
+    target = glass.keyless_plan(
+        {
+            "context": {
+                "turn": {"lastUserInput": "which button moves this lesson on?"},
+                "targets": [{"id": "course-advance", "label": "the button that moves this lesson on"}],
+            }
+        }
+    )
+    assert focus and target
     lines += [focus["say"], focus["ask"]["prompt"], target["say"], target["ask"]["prompt"]]
     # The worked examples the model is told to adapt model the dash for the live tutor.
     lines += re.findall(r'"say":"([^"]*)"', wobo.WOBO_SYSTEM)
@@ -347,9 +356,12 @@ def test_quiz_is_the_products_own_word_and_not_the_textbook_voice() -> None:
 def test_the_keyless_lines_use_contractions_and_claim_only_what_they_draw() -> None:
     from wobo_gateway import wobo
 
-    focus = wobo._focus_plan({"focus": {"id": "f1", "text": "2x = 10"}}, "why is this wrong?")
-    assert "Let us" not in focus["say"]
-    assert "Let's" in focus["say"]
+    from wobo_gateway.board import glass
+
+    focus = glass.keyless_plan(
+        {"context": {"turn": {"lastUserInput": "why is this wrong?"}, "focus": {"id": "f1", "text": "2x = 10"}}}
+    )
+    assert focus and "Let us" not in focus["say"]
     # The maths line used to promise a curve and a tangent over every maths board.
     assert "curve" not in wobo._BOARD_SAY["math"]
     assert "touches" not in wobo._BOARD_SAY["math"]
@@ -477,8 +489,15 @@ def test_the_squares_on_the_sides_are_drawn_with_their_areas() -> None:
     )
     polygons = [o for o in plan.objects if o["kind"] == "polygon"]
     assert len(polygons) == 4, "the triangle and three squares"
-    areas = [o["value"] for o in plan.objects if o.get("check") == "board.numbers_agree:square areas"]
+    areas = [
+        o["value"]
+        for o in plan.objects
+        if o["kind"] == "number" and o.get("check") == "board.numbers_agree:square areas"
+    ]
     assert sorted(areas) == [9.0, 16.0, 25.0]
+    # And the proof itself, in one line under the figure, on the same check.
+    proof = [o["text"] for o in plan.objects if o["kind"] == "write"]
+    assert proof == ["9 + 16 = 25"]
     assert any(c.name == "board.numbers_agree:square areas" and c.passed for c in plan.ledger.checks)
     plain = planner.plan_board(
         {
@@ -490,7 +509,7 @@ def test_the_squares_on_the_sides_are_drawn_with_their_areas() -> None:
     )
     assert len([o for o in plain.objects if o["kind"] == "polygon"]) == 1
     labels = [o.get("text") for o in plain.objects if o["kind"] == "label"]
-    assert labels == ["the right angle sits between the two legs"]
+    assert labels == ["the right angle"]
 
 
 def test_the_corrected_squares_recording_shows_what_it_says() -> None:

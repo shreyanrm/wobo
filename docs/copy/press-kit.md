@@ -11,10 +11,10 @@ job-search app (wobo.ai). Sameness is the lever. Nothing here is a draft to be i
 
 ## The hundred words (Crunchbase, Product Hunt, LinkedIn, press kit)
 
-> Wobo is an AI tutor for Indian school students, from class 6 to class 12, across CBSE, ICSE and the
-> state boards. It teaches the way a good teacher does: it draws. Ask a question and Wobo marks the
-> page in front of you, circles the step that went wrong, builds the diagram stroke by stroke, and
-> explains as it goes. Photograph a page of homework and it reads the page and works on it with you.
+> Wobo is an AI tutor for Indian school students, across CBSE, ICSE and the state boards, for every
+> subject their board sets. It teaches the way a good teacher does: it draws. Ask a question and
+> Wobo marks the page in front of you, circles the step that went wrong, builds the diagram stroke
+> by stroke, and explains as it goes. Photograph a page of homework and it reads the page and works on it with you.
 > It is free every day, it never judges, and it does not stop at one explanation: when one way does
 > not land, it tries another. Wobo is made by Dot eVentures Pvt Ltd in Hyderabad.
 
@@ -29,7 +29,7 @@ job-search app (wobo.ai). Sameness is the lever. Nothing here is a draft to be i
 > page, marks the line that went wrong, and works through it with the learner rather than handing
 > over an answer.
 >
-> It follows the syllabus the learner's board actually sets, from class 6 to class 12, across CBSE,
+> It follows the syllabus the learner's board actually sets, whatever that board is, across CBSE,
 > ICSE and the state boards, and it adapts: no two learners get the same lesson, and when one
 > explanation does not land it tries another, and another, until the topic is theirs.
 >
@@ -47,7 +47,7 @@ job-search app (wobo.ai). Sameness is the lever. Nothing here is a draft to be i
 | | |
 |---|---|
 | What | An AI tutor that draws its explanations live on the learner's page |
-| For | School students in India, classes 6 to 12, and their parents |
+| For | School students in India, and their parents |
 | Boards | CBSE, ICSE, and state boards |
 | Price | Free every day; paid plans buy more time, not better teaching |
 | Made by | Dot eVentures Pvt Ltd, Hyderabad, India |
@@ -55,6 +55,12 @@ job-search app (wobo.ai). Sameness is the lever. Nothing here is a draft to be i
 | Founded | 2026 |
 
 ## What we never say
+
+Any class, grade or age range, in any direction. The copy law forbids a range on every public
+surface and a listing is the most public surface there is (docs/copy/voice.md §8.2), so the words
+here say **every subject their board sets** and let anyone who reads them sign up and look. This
+file named a floor and a ceiling in three places until 2026-09-09; the gateway's own copy test
+failed on it, and the range came out rather than the law bending for a press release.
 
 Any number we cannot show. Any claim of exam results or marks improved. "Personalised" as a claim on
 its own. The names of the models behind it (the white-label rule). A comparison naming a competitor

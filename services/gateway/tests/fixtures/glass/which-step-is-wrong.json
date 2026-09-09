@@ -1,0 +1,150 @@
+{
+  "question": "which step is wrong here?",
+  "context": {
+    "page": {
+      "route": "course",
+      "state": {
+        "card": "worked-example"
+      }
+    },
+    "curriculum": {
+      "nodeName": "linear equations in one variable"
+    },
+    "canvas": {
+      "equation": "2x + 5 = 15",
+      "steps": [
+        "2x = 15 + 5",
+        "2x = 20",
+        "x = 10"
+      ]
+    },
+    "packet": {
+      "v": 1,
+      "content": {
+        "kind": "worked-example",
+        "concept": "sign-flip",
+        "misconception": "moves-term-without-sign"
+      },
+      "glass": [
+        {
+          "id": "h1",
+          "role": "heading",
+          "text": "Solve 2x + 5 = 15",
+          "box": [
+            24,
+            80,
+            300,
+            28
+          ]
+        },
+        {
+          "id": "w1",
+          "role": "step",
+          "meaning": "step:1",
+          "text": "2x + 5 = 15",
+          "box": [
+            40,
+            130,
+            160,
+            26
+          ]
+        },
+        {
+          "id": "w2",
+          "role": "step",
+          "meaning": "step:2 misconception:moves-term-without-sign",
+          "text": "2x = 15 + 5",
+          "box": [
+            40,
+            166,
+            160,
+            26
+          ]
+        },
+        {
+          "id": "w3",
+          "role": "step",
+          "meaning": "step:3",
+          "text": "2x = 20",
+          "box": [
+            40,
+            202,
+            160,
+            26
+          ]
+        },
+        {
+          "id": "w4",
+          "role": "step",
+          "meaning": "step:4",
+          "text": "x = 10",
+          "box": [
+            40,
+            238,
+            160,
+            26
+          ]
+        }
+      ]
+    }
+  },
+  "plan": {
+    "say": "Step 2 is the first line that does not follow from the one above it. Compare it with step 1, the line just above. What changed between step 1 and step 2?",
+    "intents": [],
+    "objects": [
+      {
+        "id": "s0m0",
+        "kind": "ring",
+        "anchor": {
+          "target": "w2"
+        },
+        "words": "step 2",
+        "style": {
+          "ink": "accent",
+          "weight": 2
+        },
+        "t": {
+          "dur": 450
+        },
+        "meta": {
+          "beat": {
+            "with": 0,
+            "lag": 0
+          },
+          "mark": "ring"
+        },
+        "pad": 8
+      },
+      {
+        "id": "s1m0",
+        "kind": "underline",
+        "anchor": {
+          "target": "w1"
+        },
+        "words": "step 1",
+        "style": {
+          "ink": "accent",
+          "weight": 2
+        },
+        "t": {
+          "dur": 350
+        },
+        "meta": {
+          "beat": {
+            "with": 1,
+            "lag": 0
+          },
+          "mark": "underline"
+        }
+      }
+    ],
+    "presentation": "screen",
+    "ask": {
+      "prompt": "What changed between step 1 and step 2?",
+      "targets": [
+        "w2",
+        "w1"
+      ]
+    }
+  }
+}

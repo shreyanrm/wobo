@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useViewport } from '../../shell/useViewport';
 import { Label, Sticker, WoboHead } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
-import { CTA } from '../site/cta';
+import { useCta } from '../site/cta';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
 import { PitchAsk } from './Ask';
@@ -156,6 +156,7 @@ const Mic = () => (
 );
 
 export function MeetWobo() {
+  const door = useCta();
   const typed = useTypedLine(FIRST_LINE);
   const { width } = useViewport();
   // The prototype's head: 460px of drawing on a desktop, 300 on a phone, the head 104/120 of it.
@@ -179,8 +180,8 @@ export function MeetWobo() {
                 part of this you talk to. It is not the whole of what is going on.
               </p>
               <div className="pt-row">
-                <SiteLink className="st-btn st-pig" to={CTA.to}>
-                  {CTA.label}
+                <SiteLink className="st-btn st-pig" to={door.to}>
+                  {door.label}
                 </SiteLink>
                 <a className="st-btn st-quiet" href="#say">
                   Say hey to Wobo

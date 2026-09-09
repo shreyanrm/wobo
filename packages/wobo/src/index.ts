@@ -18,7 +18,8 @@ export * from './body/WoboWordmark';
 export * from './context-bus';
 export * from './focus';
 export * from './gesture';
-export * from './highlight-overlay';
+// The glass — the map the brain plans from and the hold that keeps it still (docs/INK-FREEZE-PLAN-TRACE.md).
+export * from './glass';
 export * from './identity';
 export * from './packet';
 export * from './registry';

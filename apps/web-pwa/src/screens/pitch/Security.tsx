@@ -187,7 +187,7 @@ const PROTECTIONS: readonly { title: string; line: string }[] = [
   */
   {
     title: 'Storage we do not run ourselves.',
-    line: 'The database is a managed service and its encryption at rest is the provider\'s, not ours. We have not audited that configuration, so we describe it rather than certify it.',
+    line: "The database is a managed service and its encryption at rest is the provider's, not ours. We have not audited that configuration, so we describe it rather than certify it.",
   },
   {
     title: 'TLS 1.2 or newer in transit.',
@@ -284,9 +284,17 @@ const DOCS_NOTE =
   'These are drafts. We wrote them ourselves and a lawyer has not reviewed them yet, and each one says so at the top with the questions still open on it. We would rather you read that from us than find it.';
 
 const DOCS: readonly { title: string; line: string; href: string }[] = [
-  { title: 'Privacy policy', line: 'in plain words, then the full text', href: '/legal/privacy' },
-  { title: "Children's privacy", line: "what's different for under-18s", href: '/legal/children' },
-  { title: 'Terms of service', line: 'the deal, both ways', href: '/legal/terms' },
+  {
+    title: 'Privacy policy',
+    line: 'in plain words, then the full text',
+    href: '/legal/privacy-policy',
+  },
+  {
+    title: "Children's privacy",
+    line: "what's different for under-18s",
+    href: '/legal/childrens-privacy',
+  },
+  { title: 'Terms of service', line: 'the deal, both ways', href: '/legal/terms-of-service' },
   // A "Data processing agreement — for schools, on request" row stood here. We do not deal with
   // schools at this stage (DESIGN.md §0), so a document offered TO schools describes a
   // relationship we do not have, and design/prototypes/site-security.html does not list it either.
@@ -443,8 +451,8 @@ export function Security() {
                   <div>
                     <b>How to delete it</b>
                     <span>
-                      On You, under Settings, any time. Gone from live systems at once, and out of the
-                      backups behind them as those roll over.
+                      On You, under Settings, any time. Gone from live systems at once, and out of
+                      the backups behind them as those roll over.
                     </span>
                   </div>
                 </div>
@@ -683,8 +691,8 @@ export function Security() {
                         Sunday note's link there has been removed and the note now carries the
                         week itself. The bullet says what a parent actually receives. */}
                     <b>What a parent gets.</b> A weekly note by email with the week's lessons and
-                    what to nudge. A parent has no login of their own yet, so that note is the
-                    whole picture, and it never carries a child's typed questions word for word.
+                    what to nudge. A parent has no login of their own yet, so that note is the whole
+                    picture, and it never carries a child's typed questions word for word.
                   </div>
                 </li>
                 <li>
@@ -693,9 +701,9 @@ export function Security() {
                     {/* "It deletes memory, progress and the account." It does not delete the
                         account: POST /v1/me/erase clears six things and nothing anywhere calls the
                         auth admin API. Verified live against the running gateway. */}
-                    <b>The erase button.</b> On You, under Settings. It clears what Wobo remembers about you,
-                    your saved boards and threads, and the parent link. Deleting the account itself
-                    is done by a person when you write to support@heywobo.com.
+                    <b>The erase button.</b> On You, under Settings. It clears what Wobo remembers
+                    about you, your saved boards and threads, and the parent link. Deleting the
+                    account itself is done by a person when you write to support@heywobo.com.
                   </div>
                 </li>
                 <li>

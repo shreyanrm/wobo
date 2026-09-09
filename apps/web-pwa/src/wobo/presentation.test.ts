@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { type BoardObject, parseBoardObject } from '@wobo/wobo';
 import {
+  asksForADrawing,
   boardShapeOf,
   isLessonRoute,
   needsBoard,
@@ -176,7 +177,9 @@ describe('which turns Wobo answers by drawing', () => {
     // `modeDraws`): demanding a focus here as well locked out `quiz_me`, the one drawing mode
     // offered with an empty hand (wave 29, board-7). So `modeDraws: true` is the caller's verdict.
     expect(boardShapeOf('why is this wrong', { hasFocus: true, modeDraws: true }).board).toBe(true);
-    expect(boardShapeOf('why is this wrong', { hasFocus: false, modeDraws: true }).board).toBe(true);
+    expect(boardShapeOf('why is this wrong', { hasFocus: false, modeDraws: true }).board).toBe(
+      true,
+    );
     expect(boardShapeOf('why is this wrong', { hasFocus: false, modeDraws: false }).board).toBe(
       false,
     );
@@ -244,5 +247,46 @@ describe('a screen that promised a drawing (onboarding step three, 2026-09-05)',
   it("the learner's word about the surface still wins", () => {
     expect(boardShapeOf('close the board', { draw: true }).board).toBe(false);
     expect(boardShapeOf('close the board', { draw: true }).word?.dismiss).toBe(true);
+  });
+});
+
+/**
+ * A DRAWING ASK IS NOT A POINTING ASK (the adversary, 2026-09-09, finding 1).
+ *
+ * "show me a number line" is `show_me` mode, and the hand ran first and answered it by gliding to
+ * whatever the registry matched — live, the page's first lesson card, and Wobo's whole reply was
+ * "here: 1meet a square and a cube". The words themselves ask to be SHOWN SOMETHING NEW, which the
+ * hand cannot do: there is no number line on the page to point at. AppRuntime asks this before it
+ * reaches for the hand, so a drawing ask with nothing in hand goes to the board that can answer it.
+ */
+describe('a drawing ask, by the words alone', () => {
+  it('knows the asks that are answered by ink built from scratch', () => {
+    for (const text of [
+      'show me a number line',
+      'graph y = x^2 from -3 to 3',
+      'draw the forces on the block',
+      'solve 2x + 3 = 7 step by step',
+      'show me the working',
+      'sketch a plant cell',
+      'prove it',
+    ]) {
+      expect(asksForADrawing(text)).toBe(true);
+    }
+  });
+
+  it('leaves a pointing ask to the hand', () => {
+    for (const text of [
+      'show me the continue button',
+      'where is my streak',
+      'show me my plan',
+      'open the atom course',
+      'do it',
+    ]) {
+      expect(asksForADrawing(text)).toBe(false);
+    }
+  });
+
+  it('a named surface is a drawing ask: the learner asked for the board', () => {
+    expect(asksForADrawing('put it on the board')).toBe(true);
   });
 });

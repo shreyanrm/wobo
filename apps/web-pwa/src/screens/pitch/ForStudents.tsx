@@ -68,9 +68,11 @@
  */
 
 import { useState } from 'react';
+import type { Route } from '../../shell/router';
 import { Label, Sticker } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
-import { START_FREE_HREF } from '../site/cta';
+import { ctaFor } from '../site/cta';
+import { useDoorsOpen } from '../site/dial';
 import { handoff } from '../site/handoffs';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
@@ -94,7 +96,7 @@ ensurePitchStyles();
  * (`site/handoffs.ts`), which reads the words from `site/cta.ts`. The page never types a call to
  * action, so the top and the bottom of it cannot drift apart.
  */
-const STUDENTS = handoff('students');
+const STUDENTS = 'students' as const;
 
 const CELLS = ['cell 1', 'cell 2', 'cell 3', 'cell 4'] as const;
 
@@ -217,6 +219,9 @@ const DAYS: readonly { day: string; kind: 'lit' | 'rest' }[] = [
 ];
 
 export function ForStudents() {
+  const open = useDoorsOpen();
+  const door = ctaFor(open);
+  const close = handoff(STUDENTS, open);
   return (
     <SiteShell current="students" title="Wobo for students">
       <div className="pt">
@@ -243,13 +248,15 @@ export function ForStudents() {
                 patiently.
               </p>
               <div className="pt-row">
-                <SiteLink className="st-btn st-pig" href={START_FREE_HREF}>
-                  {STUDENTS.primary.label}
+                <SiteLink className="st-btn st-pig" to={close.primary.to as Route}>
+                  {close.primary.label}
                 </SiteLink>
-                <SiteLink className="st-btn st-quiet" href={STUDENTS.quiet.href ?? '/subjects'}>
-                  {STUDENTS.quiet.label}
+                <SiteLink className="st-btn st-quiet" href={close.quiet.href ?? '/subjects'}>
+                  {close.quiet.label}
                 </SiteLink>
-                <span className="pt-note">Free every day. No card. No trial that ends.</span>
+                <span className="pt-note">
+                  {open ? 'Free every day. No card. No trial that ends.' : door.under}
+                </span>
               </div>
             </div>
             <div className="su-film">

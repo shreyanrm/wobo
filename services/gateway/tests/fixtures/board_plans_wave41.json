@@ -1,0 +1,3885 @@
+[
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c0/01-which-step-is-wrong-here"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c0/03-circle-the-hypotenuse"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5-dark/01-which-step-is-wrong-here"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5-dark/03-circle-the-effect-circle-in-the-"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5-dark/05-draw-this-for-me"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5-dark/08-fresh-board"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/01-which-step-is-wrong-here"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/02-why-does-that-step-work"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/03-circle-the-effect-circle-in-the-"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/04-show-me-why"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/05-draw-this-for-me"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/06-close-the-board"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/07-wipe-the-board"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/08-fresh-board"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/09-what-is-2-to-the-power-5"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/1440-c5/10-which-step-is-wrong-here"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/390-c0-reduced/03-circle-the-hypotenuse"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/390-c0/03-circle-the-hypotenuse"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/390-c5-dark/01-which-step-is-wrong-here"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/390-c5-dark/03-circle-the-effect-circle-in-the-"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/390-c5/01-which-step-is-wrong-here"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/390-c5/02-why-does-that-step-work"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/390-c5/03-circle-the-effect-circle-in-the-"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "course/390-probe/03-circle-the-effect-circle-in-the-"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "doubt/live-diagram-390"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "doubt/live-history-1440"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "doubt/mock-history-1440"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "doubt/mock-math-390"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "live/course/1440-live-c0/03-circle-the-hypotenuse"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "live/course/1440-live-c0/05-draw-this-for-me"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "live/course/390-live-c7/03-which-step-is-wrong-here"
+ },
+ {
+  "ask": "Which genotype appears most often?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      360,
+      340
+     ]
+    },
+    "id": "b0_1square",
+    "kind": "table",
+    "rows": [
+     [
+      "T",
+      "t"
+     ],
+     [
+      "T",
+      "TT"
+     ],
+     [
+      "t",
+      "Tt"
+     ]
+    ],
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 922,
+     "start": 120
+    },
+    "w": 280
+   },
+   {
+    "anchor": {
+     "at": [
+      0.25,
+      0.25
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_2cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 922,
+     "start": 1042
+    },
+    "text": "TT"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.75,
+      0.25
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_3cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 922,
+     "start": 1963
+    },
+    "text": "Tt"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.25,
+      0.75
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_4cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 922,
+     "start": 2884
+    },
+    "text": "Tt"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.75,
+      0.75
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_5cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 922,
+     "start": 3806
+    },
+    "text": "tt"
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "b0_1square"
+    },
+    "check": "board.numbers_agree:punnett cells",
+    "id": "b0_6num",
+    "kind": "number",
+    "label": "dominant",
+    "precision": 0,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 922,
+     "start": 4728
+    },
+    "value": 3,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_1square"
+    },
+    "check": "board.numbers_agree:punnett cells",
+    "id": "b0_7num",
+    "kind": "number",
+    "label": "recessive",
+    "precision": 0,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 922,
+     "start": 5649
+    },
+    "value": 1,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "b0_6num"
+    },
+    "check": "board.numbers_agree:genotype counts",
+    "id": "b0_8genotypes",
+    "kind": "write",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 1540,
+     "start": 6570
+    },
+    "text": "genotypes 1 TT : 2 Tt : 1 tt"
+   }
+  ],
+  "question": "Draw a Punnett square for Tt x Tt",
+  "say": "The square pairs one allele from each parent, so it shows the possible offspring genotypes. Which genotype appears most often?",
+  "turn": "live/scratch/bio-punnett-390"
+ },
+ {
+  "objects": [],
+  "question": "Prove Pythagoras theorem with squares on the sides of a right triangle with legs 3 cm and 4 cm",
+  "say": "",
+  "turn": "live/scratch/maths-pythagoras-1440"
+ },
+ {
+  "objects": [],
+  "question": "Draw a ray diagram of a ray through a convex lens of focal length 15 cm with the object 30 cm away",
+  "say": "",
+  "turn": "live/scratch/physics-lens-1440"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "live/world/05-escape-mid-stroke-then-ask-again"
+ },
+ {
+  "objects": [],
+  "question": "chip",
+  "say": "",
+  "turn": "live/world/09-sync-1-chip-explain-this"
+ },
+ {
+  "ask": "At x = 2, what is y?",
+  "objects": [],
+  "question": "graph y = x^2 from -3 to 3",
+  "say": "A U-shaped curve. It curves upward because squaring makes matching positive and negative x-values give the same y-value. At x = 2, what is y?",
+  "turn": "live/world/09-sync-2-graph"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      480,
+      460
+     ]
+    },
+    "id": "b0_1outline",
+    "kind": "ellipse",
+    "rx": 260,
+    "ry": 200,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 260,
+     "start": 120
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      200,
+      240
+     ]
+    },
+    "id": "b0_2wall",
+    "kind": "polygon",
+    "points": [
+     [
+      0,
+      0
+     ],
+     [
+      560,
+      0
+     ],
+     [
+      560,
+      440
+     ],
+     [
+      0,
+      440
+     ]
+    ],
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 998,
+     "start": 370
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      480,
+      440
+     ]
+    },
+    "id": "b0_3nucleus",
+    "kind": "ellipse",
+    "rx": 70,
+    "ry": 60,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 260,
+     "start": 619
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      780,
+      460
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_4pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 869
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_4pointer"
+    },
+    "id": "b0_5part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 495,
+     "start": 1118
+    },
+    "text": "cell wall"
+   },
+   {
+    "anchor": {
+     "board": [
+      667.05,
+      639.82
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_6pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 1368
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_6pointer"
+    },
+    "id": "b0_7part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 715,
+     "start": 1618
+    },
+    "text": "cell membrane"
+   },
+   {
+    "anchor": {
+     "board": [
+      413.24,
+      684.23
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_8pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 1867
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_8pointer"
+    },
+    "id": "b0_9part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 495,
+     "start": 2117
+    },
+    "text": "cytoplasm"
+   },
+   {
+    "anchor": {
+     "board": [
+      209.71,
+      559.79
+     ]
+    },
+    "from": {
+     "object": "b0_3nucleus"
+    },
+    "id": "b0_10pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 2366
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_10pointer"
+    },
+    "id": "b0_11part",
+    "kind": "label",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 385,
+     "start": 2616
+    },
+    "text": "nucleus"
+   },
+   {
+    "anchor": {
+     "board": [
+      209.71,
+      360.21
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_12pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 2865
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_12pointer"
+    },
+    "id": "b0_13part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 605,
+     "start": 3115
+    },
+    "text": "chloroplast"
+   },
+   {
+    "anchor": {
+     "board": [
+      413.24,
+      235.77
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_14pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 3365
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_14pointer"
+    },
+    "id": "b0_15part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 385,
+     "start": 3614
+    },
+    "text": "vacuole"
+   },
+   {
+    "anchor": {
+     "board": [
+      667.05,
+      280.18
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_16pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 3864
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_16pointer"
+    },
+    "id": "b0_17part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 715,
+     "start": 4113
+    },
+    "text": "mitochondrion"
+   }
+  ],
+  "question": "Draw a plant cell with five labels",
+  "say": "Read the labels as they land, and say which one is missing.",
+  "turn": "scratch/bio-plant-cell-1440"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      480,
+      460
+     ]
+    },
+    "id": "b0_1outline",
+    "kind": "ellipse",
+    "rx": 260,
+    "ry": 200,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 260,
+     "start": 120
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      200,
+      240
+     ]
+    },
+    "id": "b0_2wall",
+    "kind": "polygon",
+    "points": [
+     [
+      0,
+      0
+     ],
+     [
+      560,
+      0
+     ],
+     [
+      560,
+      440
+     ],
+     [
+      0,
+      440
+     ]
+    ],
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 998,
+     "start": 370
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      480,
+      440
+     ]
+    },
+    "id": "b0_3nucleus",
+    "kind": "ellipse",
+    "rx": 70,
+    "ry": 60,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 260,
+     "start": 619
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      780,
+      460
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_4pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 869
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_4pointer"
+    },
+    "id": "b0_5part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 495,
+     "start": 1118
+    },
+    "text": "cell wall"
+   },
+   {
+    "anchor": {
+     "board": [
+      667.05,
+      639.82
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_6pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 1368
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_6pointer"
+    },
+    "id": "b0_7part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 715,
+     "start": 1618
+    },
+    "text": "cell membrane"
+   },
+   {
+    "anchor": {
+     "board": [
+      413.24,
+      684.23
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_8pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 1867
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_8pointer"
+    },
+    "id": "b0_9part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 495,
+     "start": 2117
+    },
+    "text": "cytoplasm"
+   },
+   {
+    "anchor": {
+     "board": [
+      209.71,
+      559.79
+     ]
+    },
+    "from": {
+     "object": "b0_3nucleus"
+    },
+    "id": "b0_10pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 2366
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_10pointer"
+    },
+    "id": "b0_11part",
+    "kind": "label",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 385,
+     "start": 2616
+    },
+    "text": "nucleus"
+   },
+   {
+    "anchor": {
+     "board": [
+      209.71,
+      360.21
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_12pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 2865
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_12pointer"
+    },
+    "id": "b0_13part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 605,
+     "start": 3115
+    },
+    "text": "chloroplast"
+   },
+   {
+    "anchor": {
+     "board": [
+      413.24,
+      235.77
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_14pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 3365
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_14pointer"
+    },
+    "id": "b0_15part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 385,
+     "start": 3614
+    },
+    "text": "vacuole"
+   },
+   {
+    "anchor": {
+     "board": [
+      667.05,
+      280.18
+     ]
+    },
+    "from": {
+     "object": "b0_1outline"
+    },
+    "id": "b0_16pointer",
+    "kind": "arrow",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 260,
+     "start": 3864
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_16pointer"
+    },
+    "id": "b0_17part",
+    "kind": "label",
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 715,
+     "start": 4113
+    },
+    "text": "mitochondrion"
+   }
+  ],
+  "question": "Draw a plant cell with five labels",
+  "say": "Read the labels as they land, and say which one is missing.",
+  "turn": "scratch/bio-plant-cell-390"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      360,
+      340
+     ]
+    },
+    "id": "b0_1square",
+    "kind": "table",
+    "rows": [
+     [
+      "T",
+      "t"
+     ],
+     [
+      "T",
+      "TT"
+     ],
+     [
+      "t",
+      "Tt"
+     ]
+    ],
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 120
+    },
+    "w": 280
+   },
+   {
+    "anchor": {
+     "at": [
+      0.25,
+      0.25
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_2cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 650
+    },
+    "text": "TT"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.75,
+      0.25
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_3cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 1181
+    },
+    "text": "Tt"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.25,
+      0.75
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_4cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 1711
+    },
+    "text": "Tt"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.75,
+      0.75
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_5cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 2242
+    },
+    "text": "tt"
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "b0_1square"
+    },
+    "check": "board.numbers_agree:punnett cells",
+    "id": "b0_6num",
+    "kind": "number",
+    "label": "dominant",
+    "precision": 0,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 2772
+    },
+    "value": 3,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_1square"
+    },
+    "check": "board.numbers_agree:punnett cells",
+    "id": "b0_7num",
+    "kind": "number",
+    "label": "recessive",
+    "precision": 0,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 3302
+    },
+    "value": 1,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "b0_6num"
+    },
+    "check": "board.numbers_agree:genotype counts",
+    "id": "b0_8genotypes",
+    "kind": "write",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 1540,
+     "start": 3833
+    },
+    "text": "genotypes 1 TT : 2 Tt : 1 tt"
+   }
+  ],
+  "question": "Draw a Punnett square for Tt x Tt",
+  "say": "Read the labels as they land, and say which one is missing.",
+  "turn": "scratch/bio-punnett-1440"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      360,
+      340
+     ]
+    },
+    "id": "b0_1square",
+    "kind": "table",
+    "rows": [
+     [
+      "T",
+      "t"
+     ],
+     [
+      "T",
+      "TT"
+     ],
+     [
+      "t",
+      "Tt"
+     ]
+    ],
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 120
+    },
+    "w": 280
+   },
+   {
+    "anchor": {
+     "at": [
+      0.25,
+      0.25
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_2cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 650
+    },
+    "text": "TT"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.75,
+      0.25
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_3cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 1181
+    },
+    "text": "Tt"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.25,
+      0.75
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_4cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 1711
+    },
+    "text": "Tt"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.75,
+      0.75
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_5cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 2242
+    },
+    "text": "tt"
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "b0_1square"
+    },
+    "check": "board.numbers_agree:punnett cells",
+    "id": "b0_6num",
+    "kind": "number",
+    "label": "dominant",
+    "precision": 0,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 2772
+    },
+    "value": 3,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_1square"
+    },
+    "check": "board.numbers_agree:punnett cells",
+    "id": "b0_7num",
+    "kind": "number",
+    "label": "recessive",
+    "precision": 0,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 3302
+    },
+    "value": 1,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "b0_6num"
+    },
+    "check": "board.numbers_agree:genotype counts",
+    "id": "b0_8genotypes",
+    "kind": "write",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 1540,
+     "start": 3833
+    },
+    "text": "genotypes 1 TT : 2 Tt : 1 tt"
+   }
+  ],
+  "question": "Draw a Punnett square for Tt x Tt",
+  "say": "Read the labels as they land, and say which one is missing.",
+  "turn": "scratch/bio-punnett-390-dark"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      360,
+      340
+     ]
+    },
+    "id": "b0_1square",
+    "kind": "table",
+    "rows": [
+     [
+      "T",
+      "t"
+     ],
+     [
+      "T",
+      "TT"
+     ],
+     [
+      "t",
+      "Tt"
+     ]
+    ],
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 120
+    },
+    "w": 280
+   },
+   {
+    "anchor": {
+     "at": [
+      0.25,
+      0.25
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_2cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 650
+    },
+    "text": "TT"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.75,
+      0.25
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_3cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 1181
+    },
+    "text": "Tt"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.25,
+      0.75
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_4cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 1711
+    },
+    "text": "Tt"
+   },
+   {
+    "anchor": {
+     "at": [
+      0.75,
+      0.75
+     ],
+     "object": "b0_1square"
+    },
+    "id": "b0_5cell",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 2242
+    },
+    "text": "tt"
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "b0_1square"
+    },
+    "check": "board.numbers_agree:punnett cells",
+    "id": "b0_6num",
+    "kind": "number",
+    "label": "dominant",
+    "precision": 0,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 2772
+    },
+    "value": 3,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "b0_1square"
+    },
+    "check": "board.numbers_agree:punnett cells",
+    "id": "b0_7num",
+    "kind": "number",
+    "label": "recessive",
+    "precision": 0,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 530,
+     "start": 3302
+    },
+    "value": 1,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "b0_6num"
+    },
+    "check": "board.numbers_agree:genotype counts",
+    "id": "b0_8genotypes",
+    "kind": "write",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 1540,
+     "start": 3833
+    },
+    "text": "genotypes 1 TT : 2 Tt : 1 tt"
+   }
+  ],
+  "question": "Draw a Punnett square for Tt x Tt",
+  "say": "Read the labels as they land, and say which one is missing.",
+  "turn": "scratch/bio-punnett-390"
+ },
+ {
+  "objects": [],
+  "question": "Prove Pythagoras theorem with squares on the sides of a right triangle with legs 3 cm and 4 cm",
+  "say": "Which step feels shaky? Start there.",
+  "turn": "scratch/maths-pythagoras-1440"
+ },
+ {
+  "objects": [],
+  "question": "Prove Pythagoras theorem with squares on the sides of a right triangle with legs 3 cm and 4 cm",
+  "say": "Which step feels shaky? Start there.",
+  "turn": "scratch/maths-pythagoras-390-dark"
+ },
+ {
+  "objects": [],
+  "question": "Prove Pythagoras theorem with squares on the sides of a right triangle with legs 3 cm and 4 cm",
+  "say": "Which step feels shaky? Start there.",
+  "turn": "scratch/maths-pythagoras-390"
+ },
+ {
+  "objects": [],
+  "question": "Derive the first step of the quadratic formula from ax^2 + bx + c = 0 on the board",
+  "say": "Which step feels shaky? Start there.",
+  "turn": "scratch/maths-quadratic-1440"
+ },
+ {
+  "objects": [],
+  "question": "Derive the first step of the quadratic formula from ax^2 + bx + c = 0 on the board",
+  "say": "Which step feels shaky? Start there.",
+  "turn": "scratch/maths-quadratic-390"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      120,
+      470
+     ]
+    },
+    "id": "p0_1axis",
+    "kind": "line",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 120
+    },
+    "to": {
+     "board": [
+      880,
+      470
+     ]
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      500,
+      470
+     ]
+    },
+    "id": "p0_2lens",
+    "kind": "ellipse",
+    "rx": 14,
+    "ry": 120,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 407
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      228.57,
+      344
+     ]
+    },
+    "from": {
+     "board": [
+      228.57,
+      470
+     ]
+    },
+    "id": "p0_3object",
+    "kind": "arrow",
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 693
+    }
+   },
+   {
+    "anchor": {
+     "at": "top",
+     "object": "p0_3object"
+    },
+    "id": "p0_4objlabel",
+    "kind": "label",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 330,
+     "start": 980
+    },
+    "text": "object"
+   },
+   {
+    "anchor": {
+     "board": [
+      635.71,
+      533
+     ]
+    },
+    "from": {
+     "board": [
+      635.71,
+      470
+     ]
+    },
+    "id": "p0_5image",
+    "kind": "arrow",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 1266
+    }
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "p0_5image"
+    },
+    "id": "p0_6imglabel",
+    "kind": "label",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 1553
+    },
+    "text": "image"
+   },
+   {
+    "anchor": {
+     "board": [
+      590.48,
+      470
+     ]
+    },
+    "id": "p0_7focus",
+    "kind": "point",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 1839
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      409.52,
+      470
+     ]
+    },
+    "id": "p0_8focus",
+    "kind": "point",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2126
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      228.57,
+      344
+     ]
+    },
+    "id": "p0_9ray",
+    "kind": "line",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2412
+    },
+    "to": {
+     "board": [
+      635.71,
+      533
+     ]
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "p0_1axis"
+    },
+    "check": "cas.solution_satisfies",
+    "id": "p0_10num",
+    "kind": "number",
+    "precision": 2,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 2699
+    },
+    "value": 15,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "p0_5image"
+    },
+    "check": "cas.solution_satisfies",
+    "id": "p0_11num",
+    "kind": "number",
+    "precision": 2,
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2985
+    },
+    "value": -0.5,
+    "verified": true
+   }
+  ],
+  "question": "Draw a ray diagram of a ray through a convex lens of focal length 15 cm with the object 30 cm away",
+  "say": "Watch what happens to each piece as it moves.",
+  "turn": "scratch/physics-lens-1440"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      120,
+      470
+     ]
+    },
+    "id": "p0_1axis",
+    "kind": "line",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 120
+    },
+    "to": {
+     "board": [
+      880,
+      470
+     ]
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      500,
+      470
+     ]
+    },
+    "id": "p0_2lens",
+    "kind": "ellipse",
+    "rx": 14,
+    "ry": 120,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 407
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      228.57,
+      344
+     ]
+    },
+    "from": {
+     "board": [
+      228.57,
+      470
+     ]
+    },
+    "id": "p0_3object",
+    "kind": "arrow",
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 693
+    }
+   },
+   {
+    "anchor": {
+     "at": "top",
+     "object": "p0_3object"
+    },
+    "id": "p0_4objlabel",
+    "kind": "label",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 330,
+     "start": 980
+    },
+    "text": "object"
+   },
+   {
+    "anchor": {
+     "board": [
+      635.71,
+      533
+     ]
+    },
+    "from": {
+     "board": [
+      635.71,
+      470
+     ]
+    },
+    "id": "p0_5image",
+    "kind": "arrow",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 1266
+    }
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "p0_5image"
+    },
+    "id": "p0_6imglabel",
+    "kind": "label",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 1553
+    },
+    "text": "image"
+   },
+   {
+    "anchor": {
+     "board": [
+      590.48,
+      470
+     ]
+    },
+    "id": "p0_7focus",
+    "kind": "point",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 1839
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      409.52,
+      470
+     ]
+    },
+    "id": "p0_8focus",
+    "kind": "point",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2126
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      228.57,
+      344
+     ]
+    },
+    "id": "p0_9ray",
+    "kind": "line",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2412
+    },
+    "to": {
+     "board": [
+      635.71,
+      533
+     ]
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "p0_1axis"
+    },
+    "check": "cas.solution_satisfies",
+    "id": "p0_10num",
+    "kind": "number",
+    "precision": 2,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 2699
+    },
+    "value": 15,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "p0_5image"
+    },
+    "check": "cas.solution_satisfies",
+    "id": "p0_11num",
+    "kind": "number",
+    "precision": 2,
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2985
+    },
+    "value": -0.5,
+    "verified": true
+   }
+  ],
+  "question": "Draw a ray diagram of a ray through a convex lens of focal length 15 cm with the object 30 cm away",
+  "say": "Watch what happens to each piece as it moves.",
+  "turn": "scratch/physics-lens-390-dark"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      120,
+      470
+     ]
+    },
+    "id": "p0_1axis",
+    "kind": "line",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 120
+    },
+    "to": {
+     "board": [
+      880,
+      470
+     ]
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      500,
+      470
+     ]
+    },
+    "id": "p0_2lens",
+    "kind": "ellipse",
+    "rx": 14,
+    "ry": 120,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 407
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      228.57,
+      344
+     ]
+    },
+    "from": {
+     "board": [
+      228.57,
+      470
+     ]
+    },
+    "id": "p0_3object",
+    "kind": "arrow",
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 693
+    }
+   },
+   {
+    "anchor": {
+     "at": "top",
+     "object": "p0_3object"
+    },
+    "id": "p0_4objlabel",
+    "kind": "label",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 330,
+     "start": 980
+    },
+    "text": "object"
+   },
+   {
+    "anchor": {
+     "board": [
+      635.71,
+      533
+     ]
+    },
+    "from": {
+     "board": [
+      635.71,
+      470
+     ]
+    },
+    "id": "p0_5image",
+    "kind": "arrow",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 1266
+    }
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "p0_5image"
+    },
+    "id": "p0_6imglabel",
+    "kind": "label",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 1553
+    },
+    "text": "image"
+   },
+   {
+    "anchor": {
+     "board": [
+      590.48,
+      470
+     ]
+    },
+    "id": "p0_7focus",
+    "kind": "point",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 1839
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      409.52,
+      470
+     ]
+    },
+    "id": "p0_8focus",
+    "kind": "point",
+    "style": {
+     "ink": "faint",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2126
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      228.57,
+      344
+     ]
+    },
+    "id": "p0_9ray",
+    "kind": "line",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2412
+    },
+    "to": {
+     "board": [
+      635.71,
+      533
+     ]
+    }
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "p0_1axis"
+    },
+    "check": "cas.solution_satisfies",
+    "id": "p0_10num",
+    "kind": "number",
+    "precision": 2,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 287,
+     "start": 2699
+    },
+    "value": 15,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "right",
+     "object": "p0_5image"
+    },
+    "check": "cas.solution_satisfies",
+    "id": "p0_11num",
+    "kind": "number",
+    "precision": 2,
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 287,
+     "start": 2985
+    },
+    "value": -0.5,
+    "verified": true
+   }
+  ],
+  "question": "Draw a ray diagram of a ray through a convex lens of focal length 15 cm with the object 30 cm away",
+  "say": "Watch what happens to each piece as it moves.",
+  "turn": "scratch/physics-lens-390"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      120,
+      820
+     ]
+    },
+    "id": "p0_1ground",
+    "kind": "axis",
+    "label": "distance in metres",
+    "length": 760,
+    "max": 42.8281,
+    "min": 0,
+    "orientation": "x",
+    "step": 7.138,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 394,
+     "start": 120
+    },
+    "ticks": true
+   },
+   {
+    "anchor": {
+     "board": [
+      120,
+      820
+     ]
+    },
+    "id": "p0_2path",
+    "kind": "curve",
+    "points": [
+     [
+      0,
+      0
+     ],
+     [
+      6.03,
+      -17.14
+     ],
+     [
+      12.06,
+      -33.99
+     ],
+     [
+      18.1,
+      -50.56
+     ],
+     [
+      24.13,
+      -66.83
+     ],
+     [
+      30.16,
+      -82.82
+     ],
+     [
+      36.19,
+      -98.52
+     ],
+     [
+      42.22,
+      -113.93
+     ],
+     [
+      48.25,
+      -129.05
+     ],
+     [
+      54.29,
+      -143.89
+     ],
+     [
+      60.32,
+      -158.44
+     ],
+     [
+      66.35,
+      -172.7
+     ],
+     [
+      72.38,
+      -186.67
+     ],
+     [
+      78.41,
+      -200.35
+     ],
+     [
+      84.44,
+      -213.74
+     ],
+     [
+      90.48,
+      -226.85
+     ],
+     [
+      96.51,
+      -239.67
+     ],
+     [
+      102.54,
+      -252.2
+     ],
+     [
+      108.57,
+      -264.44
+     ],
+     [
+      114.6,
+      -276.4
+     ],
+     [
+      120.63,
+      -288.07
+     ],
+     [
+      126.67,
+      -299.44
+     ],
+     [
+      132.7,
+      -310.53
+     ],
+     [
+      138.73,
+      -321.34
+     ],
+     [
+      144.76,
+      -331.85
+     ],
+     [
+      150.79,
+      -342.08
+     ],
+     [
+      156.83,
+      -352.02
+     ],
+     [
+      162.86,
+      -361.67
+     ],
+     [
+      168.89,
+      -371.03
+     ],
+     [
+      174.92,
+      -380.1
+     ],
+     [
+      180.95,
+      -388.89
+     ],
+     [
+      186.98,
+      -397.39
+     ],
+     [
+      193.02,
+      -405.6
+     ],
+     [
+      199.05,
+      -413.52
+     ],
+     [
+      205.08,
+      -421.15
+     ],
+     [
+      211.11,
+      -428.5
+     ],
+     [
+      217.14,
+      -435.56
+     ],
+     [
+      223.17,
+      -442.33
+     ],
+     [
+      229.21,
+      -448.81
+     ],
+     [
+      235.24,
+      -455
+     ],
+     [
+      241.27,
+      -460.91
+     ],
+     [
+      247.3,
+      -466.52
+     ],
+     [
+      253.33,
+      -471.85
+     ],
+     [
+      259.37,
+      -476.89
+     ],
+     [
+      265.4,
+      -481.65
+     ],
+     [
+      271.43,
+      -486.11
+     ],
+     [
+      277.46,
+      -490.29
+     ],
+     [
+      283.49,
+      -494.18
+     ],
+     [
+      289.52,
+      -497.78
+     ],
+     [
+      295.56,
+      -501.09
+     ],
+     [
+      301.59,
+      -504.12
+     ],
+     [
+      307.62,
+      -506.85
+     ],
+     [
+      313.65,
+      -509.3
+     ],
+     [
+      319.68,
+      -511.46
+     ],
+     [
+      325.71,
+      -513.33
+     ],
+     [
+      331.75,
+      -514.92
+     ],
+     [
+      337.78,
+      -516.21
+     ],
+     [
+      343.81,
+      -517.22
+     ],
+     [
+      349.84,
+      -517.94
+     ],
+     [
+      355.87,
+      -518.37
+     ],
+     [
+      361.9,
+      -518.52
+     ],
+     [
+      367.94,
+      -518.37
+     ],
+     [
+      373.97,
+      -517.94
+     ],
+     [
+      380,
+      -517.22
+     ],
+     [
+      386.03,
+      -516.21
+     ],
+     [
+      392.06,
+      -514.92
+     ],
+     [
+      398.1,
+      -513.33
+     ],
+     [
+      404.13,
+      -511.46
+     ],
+     [
+      410.16,
+      -509.3
+     ],
+     [
+      416.19,
+      -506.85
+     ],
+     [
+      422.22,
+      -504.12
+     ],
+     [
+      428.25,
+      -501.09
+     ],
+     [
+      434.29,
+      -497.78
+     ],
+     [
+      440.32,
+      -494.18
+     ],
+     [
+      446.35,
+      -490.29
+     ],
+     [
+      452.38,
+      -486.11
+     ],
+     [
+      458.41,
+      -481.65
+     ],
+     [
+      464.44,
+      -476.89
+     ],
+     [
+      470.48,
+      -471.85
+     ],
+     [
+      476.51,
+      -466.52
+     ],
+     [
+      482.54,
+      -460.91
+     ],
+     [
+      488.57,
+      -455
+     ],
+     [
+      494.6,
+      -448.81
+     ],
+     [
+      500.63,
+      -442.33
+     ],
+     [
+      506.67,
+      -435.56
+     ],
+     [
+      512.7,
+      -428.5
+     ],
+     [
+      518.73,
+      -421.15
+     ],
+     [
+      524.76,
+      -413.52
+     ],
+     [
+      530.79,
+      -405.6
+     ],
+     [
+      536.83,
+      -397.39
+     ],
+     [
+      542.86,
+      -388.89
+     ],
+     [
+      548.89,
+      -380.1
+     ],
+     [
+      554.92,
+      -371.03
+     ],
+     [
+      560.95,
+      -361.67
+     ],
+     [
+      566.98,
+      -352.02
+     ],
+     [
+      573.02,
+      -342.08
+     ],
+     [
+      579.05,
+      -331.85
+     ],
+     [
+      585.08,
+      -321.34
+     ],
+     [
+      591.11,
+      -310.53
+     ],
+     [
+      597.14,
+      -299.44
+     ],
+     [
+      603.17,
+      -288.07
+     ],
+     [
+      609.21,
+      -276.4
+     ],
+     [
+      615.24,
+      -264.44
+     ],
+     [
+      621.27,
+      -252.2
+     ],
+     [
+      627.3,
+      -239.67
+     ],
+     [
+      633.33,
+      -226.85
+     ],
+     [
+      639.37,
+      -213.74
+     ],
+     [
+      645.4,
+      -200.35
+     ],
+     [
+      651.43,
+      -186.67
+     ],
+     [
+      657.46,
+      -172.7
+     ],
+     [
+      663.49,
+      -158.44
+     ],
+     [
+      669.52,
+      -143.89
+     ],
+     [
+      675.56,
+      -129.05
+     ],
+     [
+      681.59,
+      -113.93
+     ],
+     [
+      687.62,
+      -98.52
+     ],
+     [
+      693.65,
+      -82.82
+     ],
+     [
+      699.68,
+      -66.83
+     ],
+     [
+      705.71,
+      -50.56
+     ],
+     [
+      711.75,
+      -33.99
+     ],
+     [
+      717.78,
+      -17.14
+     ],
+     [
+      723.81,
+      0
+     ]
+    ],
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 867,
+     "start": 514
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      481.9,
+      301.48
+     ]
+    },
+    "id": "p0_3apex",
+    "kind": "point",
+    "style": {
+     "ink": "accent",
+     "weight": 3
+    },
+    "t": {
+     "dur": 394,
+     "start": 908
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      597.71,
+      301.48
+     ]
+    },
+    "from": {
+     "object": "p0_3apex"
+    },
+    "id": "p0_4vx",
+    "kind": "arrow",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 394,
+     "start": 1302
+    }
+   },
+   {
+    "anchor": {
+     "at": "top",
+     "object": "p0_3apex"
+    },
+    "check": "board.units_agree",
+    "id": "p0_5num",
+    "kind": "number",
+    "label": "across-speed",
+    "precision": 2,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 394,
+     "start": 1696
+    },
+    "unit": "m/s",
+    "value": 14.142136,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "p0_3apex"
+    },
+    "id": "p0_6apexnote",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 2310,
+     "start": 2090
+    },
+    "text": "up-speed is zero here, across-speed is not"
+   },
+   {
+    "anchor": {
+     "at": "left",
+     "object": "p0_3apex"
+    },
+    "check": "board.numbers_agree:apex height",
+    "id": "p0_7num",
+    "kind": "number",
+    "label": "how high",
+    "precision": 2,
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 394,
+     "start": 2484
+    },
+    "unit": "m",
+    "value": 10.197162,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "p0_2path"
+    },
+    "check": "board.numbers_agree:range",
+    "id": "p0_8num",
+    "kind": "number",
+    "precision": 2,
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 394,
+     "start": 2878
+    },
+    "unit": "m",
+    "value": 40.788649,
+    "verified": true
+   }
+  ],
+  "question": "Draw the path of a ball thrown at 20 m/s at 45 degrees and label the apex",
+  "say": "Watch what happens to each piece as it moves.",
+  "turn": "scratch/physics-projectile-1440"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "board": [
+      120,
+      820
+     ]
+    },
+    "id": "p0_1ground",
+    "kind": "axis",
+    "label": "distance in metres",
+    "length": 760,
+    "max": 42.8281,
+    "min": 0,
+    "orientation": "x",
+    "step": 7.138,
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 394,
+     "start": 120
+    },
+    "ticks": true
+   },
+   {
+    "anchor": {
+     "board": [
+      120,
+      820
+     ]
+    },
+    "id": "p0_2path",
+    "kind": "curve",
+    "points": [
+     [
+      0,
+      0
+     ],
+     [
+      6.03,
+      -17.14
+     ],
+     [
+      12.06,
+      -33.99
+     ],
+     [
+      18.1,
+      -50.56
+     ],
+     [
+      24.13,
+      -66.83
+     ],
+     [
+      30.16,
+      -82.82
+     ],
+     [
+      36.19,
+      -98.52
+     ],
+     [
+      42.22,
+      -113.93
+     ],
+     [
+      48.25,
+      -129.05
+     ],
+     [
+      54.29,
+      -143.89
+     ],
+     [
+      60.32,
+      -158.44
+     ],
+     [
+      66.35,
+      -172.7
+     ],
+     [
+      72.38,
+      -186.67
+     ],
+     [
+      78.41,
+      -200.35
+     ],
+     [
+      84.44,
+      -213.74
+     ],
+     [
+      90.48,
+      -226.85
+     ],
+     [
+      96.51,
+      -239.67
+     ],
+     [
+      102.54,
+      -252.2
+     ],
+     [
+      108.57,
+      -264.44
+     ],
+     [
+      114.6,
+      -276.4
+     ],
+     [
+      120.63,
+      -288.07
+     ],
+     [
+      126.67,
+      -299.44
+     ],
+     [
+      132.7,
+      -310.53
+     ],
+     [
+      138.73,
+      -321.34
+     ],
+     [
+      144.76,
+      -331.85
+     ],
+     [
+      150.79,
+      -342.08
+     ],
+     [
+      156.83,
+      -352.02
+     ],
+     [
+      162.86,
+      -361.67
+     ],
+     [
+      168.89,
+      -371.03
+     ],
+     [
+      174.92,
+      -380.1
+     ],
+     [
+      180.95,
+      -388.89
+     ],
+     [
+      186.98,
+      -397.39
+     ],
+     [
+      193.02,
+      -405.6
+     ],
+     [
+      199.05,
+      -413.52
+     ],
+     [
+      205.08,
+      -421.15
+     ],
+     [
+      211.11,
+      -428.5
+     ],
+     [
+      217.14,
+      -435.56
+     ],
+     [
+      223.17,
+      -442.33
+     ],
+     [
+      229.21,
+      -448.81
+     ],
+     [
+      235.24,
+      -455
+     ],
+     [
+      241.27,
+      -460.91
+     ],
+     [
+      247.3,
+      -466.52
+     ],
+     [
+      253.33,
+      -471.85
+     ],
+     [
+      259.37,
+      -476.89
+     ],
+     [
+      265.4,
+      -481.65
+     ],
+     [
+      271.43,
+      -486.11
+     ],
+     [
+      277.46,
+      -490.29
+     ],
+     [
+      283.49,
+      -494.18
+     ],
+     [
+      289.52,
+      -497.78
+     ],
+     [
+      295.56,
+      -501.09
+     ],
+     [
+      301.59,
+      -504.12
+     ],
+     [
+      307.62,
+      -506.85
+     ],
+     [
+      313.65,
+      -509.3
+     ],
+     [
+      319.68,
+      -511.46
+     ],
+     [
+      325.71,
+      -513.33
+     ],
+     [
+      331.75,
+      -514.92
+     ],
+     [
+      337.78,
+      -516.21
+     ],
+     [
+      343.81,
+      -517.22
+     ],
+     [
+      349.84,
+      -517.94
+     ],
+     [
+      355.87,
+      -518.37
+     ],
+     [
+      361.9,
+      -518.52
+     ],
+     [
+      367.94,
+      -518.37
+     ],
+     [
+      373.97,
+      -517.94
+     ],
+     [
+      380,
+      -517.22
+     ],
+     [
+      386.03,
+      -516.21
+     ],
+     [
+      392.06,
+      -514.92
+     ],
+     [
+      398.1,
+      -513.33
+     ],
+     [
+      404.13,
+      -511.46
+     ],
+     [
+      410.16,
+      -509.3
+     ],
+     [
+      416.19,
+      -506.85
+     ],
+     [
+      422.22,
+      -504.12
+     ],
+     [
+      428.25,
+      -501.09
+     ],
+     [
+      434.29,
+      -497.78
+     ],
+     [
+      440.32,
+      -494.18
+     ],
+     [
+      446.35,
+      -490.29
+     ],
+     [
+      452.38,
+      -486.11
+     ],
+     [
+      458.41,
+      -481.65
+     ],
+     [
+      464.44,
+      -476.89
+     ],
+     [
+      470.48,
+      -471.85
+     ],
+     [
+      476.51,
+      -466.52
+     ],
+     [
+      482.54,
+      -460.91
+     ],
+     [
+      488.57,
+      -455
+     ],
+     [
+      494.6,
+      -448.81
+     ],
+     [
+      500.63,
+      -442.33
+     ],
+     [
+      506.67,
+      -435.56
+     ],
+     [
+      512.7,
+      -428.5
+     ],
+     [
+      518.73,
+      -421.15
+     ],
+     [
+      524.76,
+      -413.52
+     ],
+     [
+      530.79,
+      -405.6
+     ],
+     [
+      536.83,
+      -397.39
+     ],
+     [
+      542.86,
+      -388.89
+     ],
+     [
+      548.89,
+      -380.1
+     ],
+     [
+      554.92,
+      -371.03
+     ],
+     [
+      560.95,
+      -361.67
+     ],
+     [
+      566.98,
+      -352.02
+     ],
+     [
+      573.02,
+      -342.08
+     ],
+     [
+      579.05,
+      -331.85
+     ],
+     [
+      585.08,
+      -321.34
+     ],
+     [
+      591.11,
+      -310.53
+     ],
+     [
+      597.14,
+      -299.44
+     ],
+     [
+      603.17,
+      -288.07
+     ],
+     [
+      609.21,
+      -276.4
+     ],
+     [
+      615.24,
+      -264.44
+     ],
+     [
+      621.27,
+      -252.2
+     ],
+     [
+      627.3,
+      -239.67
+     ],
+     [
+      633.33,
+      -226.85
+     ],
+     [
+      639.37,
+      -213.74
+     ],
+     [
+      645.4,
+      -200.35
+     ],
+     [
+      651.43,
+      -186.67
+     ],
+     [
+      657.46,
+      -172.7
+     ],
+     [
+      663.49,
+      -158.44
+     ],
+     [
+      669.52,
+      -143.89
+     ],
+     [
+      675.56,
+      -129.05
+     ],
+     [
+      681.59,
+      -113.93
+     ],
+     [
+      687.62,
+      -98.52
+     ],
+     [
+      693.65,
+      -82.82
+     ],
+     [
+      699.68,
+      -66.83
+     ],
+     [
+      705.71,
+      -50.56
+     ],
+     [
+      711.75,
+      -33.99
+     ],
+     [
+      717.78,
+      -17.14
+     ],
+     [
+      723.81,
+      0
+     ]
+    ],
+    "style": {
+     "ink": "wobo",
+     "weight": 2
+    },
+    "t": {
+     "dur": 867,
+     "start": 514
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      481.9,
+      301.48
+     ]
+    },
+    "id": "p0_3apex",
+    "kind": "point",
+    "style": {
+     "ink": "accent",
+     "weight": 3
+    },
+    "t": {
+     "dur": 394,
+     "start": 908
+    }
+   },
+   {
+    "anchor": {
+     "board": [
+      597.71,
+      301.48
+     ]
+    },
+    "from": {
+     "object": "p0_3apex"
+    },
+    "id": "p0_4vx",
+    "kind": "arrow",
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 394,
+     "start": 1302
+    }
+   },
+   {
+    "anchor": {
+     "at": "top",
+     "object": "p0_3apex"
+    },
+    "check": "board.units_agree",
+    "id": "p0_5num",
+    "kind": "number",
+    "label": "across-speed",
+    "precision": 2,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 394,
+     "start": 1696
+    },
+    "unit": "m/s",
+    "value": 14.142136,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "p0_3apex"
+    },
+    "id": "p0_6apexnote",
+    "kind": "write",
+    "style": {
+     "ink": "accent",
+     "weight": 1
+    },
+    "t": {
+     "dur": 2310,
+     "start": 2090
+    },
+    "text": "up-speed is zero here, across-speed is not"
+   },
+   {
+    "anchor": {
+     "at": "left",
+     "object": "p0_3apex"
+    },
+    "check": "board.numbers_agree:apex height",
+    "id": "p0_7num",
+    "kind": "number",
+    "label": "how high",
+    "precision": 2,
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 394,
+     "start": 2484
+    },
+    "unit": "m",
+    "value": 10.197162,
+    "verified": true
+   },
+   {
+    "anchor": {
+     "at": "bottom",
+     "object": "p0_2path"
+    },
+    "check": "board.numbers_agree:range",
+    "id": "p0_8num",
+    "kind": "number",
+    "precision": 2,
+    "style": {
+     "ink": "wobo",
+     "weight": 1
+    },
+    "t": {
+     "dur": 394,
+     "start": 2878
+    },
+    "unit": "m",
+    "value": 40.788649,
+    "verified": true
+   }
+  ],
+  "question": "Draw the path of a ball thrown at 20 m/s at 45 degrees and label the apex",
+  "say": "Watch what happens to each piece as it moves.",
+  "turn": "scratch/physics-projectile-390"
+ },
+ {
+  "objects": [],
+  "question": "Draw a labelled map of India and mark Maharashtra",
+  "say": "India and mark maharashtra, left to right. Which part is new to you?",
+  "turn": "scratch/social-map-1440"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [
+   {
+    "anchor": {
+     "target": "l-ceilpw-0"
+    },
+    "id": "s0m0",
+    "kind": "ring",
+    "meta": {
+     "beat": {
+      "lag": 0,
+      "with": 0
+     },
+     "mark": "ring"
+    },
+    "pad": 8,
+    "style": {
+     "ink": "accent",
+     "weight": 2
+    },
+    "t": {
+     "dur": 450,
+     "start": 0
+    },
+    "words": "the line"
+   }
+  ],
+  "question": "Draw a labelled map of India and mark Maharashtra",
+  "say": "The line that says Draw a labelled map of India is this one. What do you notice about it?",
+  "turn": "scratch/social-map-390"
+ },
+ {
+  "objects": [],
+  "question": "Draw a timeline of the non-cooperation movement",
+  "say": "The non-cooperation movement, left to right. Which part is new to you?",
+  "turn": "scratch/social-timeline-1440"
+ },
+ {
+  "objects": [],
+  "question": "Draw a timeline of the non-cooperation movement",
+  "say": "The non-cooperation movement, left to right. Which part is new to you?",
+  "turn": "scratch/social-timeline-390"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "world/00b-route-change-without-a-turn"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/01-scroll-mid-stroke"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/01b-hover-another-line-mid-stroke"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/02-resize-1440-to-390"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/03-dark-mid-answer-dark"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/03-dark-mid-answer"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/04-navigate-away-and-back"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/04b-tap-learn-and-return"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/05-escape-mid-stroke-then-ask-again-dark"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/05-escape-mid-stroke-then-ask-again/again-dark"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/05-escape-mid-stroke-then-ask-again/again"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/05-escape-mid-stroke-then-ask-again"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/06-slow-network-4x-cpu"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/07-gateway-503-once/again"
+ },
+ {
+  "objects": [],
+  "question": "",
+  "say": "",
+  "turn": "world/07-gateway-503-once"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/08-reduced-motion"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "chip",
+  "say": "The line that says 2feel the rule is this one. What do you notice about it?",
+  "turn": "world/09-sync-1-chip-explain-this"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "graph y = x^2 from -3 to 3",
+  "say": "Read it a piece at a time, and say which part looks off.",
+  "turn": "world/09-sync-2-graph"
+ },
+ {
+  "objects": [],
+  "question": "show me a number line",
+  "say": "",
+  "turn": "world/09-sync-3-number-line"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "solve 2x + 3 = 7 step by step",
+  "say": "Read it a piece at a time, and say which part looks off.",
+  "turn": "world/09-sync-4-derivation"
+ },
+ {
+  "ask": "What do you notice about it?",
+  "objects": [],
+  "question": "draw the forces on the block",
+  "say": "Watch what happens to each piece as it moves.",
+  "turn": "world/09-sync-5-free-body"
+ }
+]

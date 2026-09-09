@@ -214,6 +214,7 @@ export function DownloadCenter() {
     <div
       ref={centreRef}
       aria-live="polite"
+      data-wobo-toast=""
       style={{
         position: 'fixed',
         left: '50%',

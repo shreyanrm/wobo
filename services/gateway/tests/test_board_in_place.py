@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import json
 
-from wobo_gateway.wobo import mock_board_plan, target_named_by
+from wobo_gateway.board import glass
+from wobo_gateway.wobo import mock_board_plan
 
 TRIANGLE = [
     {"id": "tri-leg-a", "kind": "side", "label": "the base, 3 cm"},
@@ -39,15 +40,20 @@ def test_a_question_about_something_on_the_screen_is_answered_on_the_screen() ->
     assert plan["ask"]["targets"] == ["tri-hyp"]
 
 
+def _named(text: str) -> str | None:
+    entry = glass.named_entry(text, glass.entries_of(_payload(text)))
+    return entry.id if entry else None
+
+
 def test_the_ring_lands_on_the_target_the_words_name_not_the_first_one() -> None:
-    assert target_named_by("what is the right angle for?", TRIANGLE)["id"] == "tri-right"
-    assert target_named_by("why is the height 4 cm", TRIANGLE)["id"] == "tri-leg-b"
+    assert _named("what is the right angle for?") == "tri-right"
+    assert _named("why is the height 4 cm") == "tri-leg-b"
 
 
 def test_a_question_that_names_nothing_on_the_screen_marks_nothing() -> None:
     """A ring round the nearest chip because the sentence had the word "the" in it would be a
     pointer at nothing — the failure BOARD.md §11 names. Stopwords never name a target."""
-    assert target_named_by("what is this about?", TRIANGLE) is None
+    assert _named("what is this about?") is None
     assert mock_board_plan(_payload("what is this about?")) is None
 
 
@@ -90,5 +96,8 @@ def test_through_the_real_door_the_board_never_opens_for_a_mark_on_the_screen(
     inked = [f["object"] for f in frames if isinstance(f.get("object"), dict)]
     done = next(f for f in frames if f.get("presentation") is not None and "verified" in f)
     assert done["presentation"] == "screen"
-    assert done["objects"] == len(inked) == 2
+    assert done["objects"] == len(inked) == 1
     assert {o["anchor"]["target"] for o in inked} == {"tri-hyp"}
+    # the say names what it draws, and never reads the chip's label back
+    said = " ".join(f["text"] for f in frames if "text" in f and "dur" in f)
+    assert "hypotenuse" in said and said.strip() != "the hypotenuse"

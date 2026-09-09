@@ -279,6 +279,11 @@ export const zIndex = {
   canvas: 10,
   woboPresence: 800,
   panel: 900,
+  /**
+   * Wobo's ink on the screen: above the companion panel, so a ring on the page is never drawn
+   * under the chat (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace), below a modal.
+   */
+  ink: 950,
   modal: 1000,
   toast: 1100,
 } as const;

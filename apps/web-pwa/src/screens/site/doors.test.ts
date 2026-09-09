@@ -48,7 +48,8 @@ function markdown(dir: string): [string, string][] {
   for (const entry of readdirSync(dir)) {
     const path = join(dir, entry);
     if (statSync(path).isDirectory()) out.push(...markdown(path));
-    else if (entry.endsWith('.md')) out.push([path.slice(REPO.length + 1), readFileSync(path, 'utf8')]);
+    else if (entry.endsWith('.md'))
+      out.push([path.slice(REPO.length + 1), readFileSync(path, 'utf8')]);
   }
   return out;
 }

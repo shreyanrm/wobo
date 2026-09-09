@@ -130,7 +130,15 @@ describe('"Go to the checkout" arrives at the checkout', () => {
 
 describe('a price is read as two words', () => {
   it('separates the amount from its unit on the cards, as the checkout row already did', () => {
-    expect(PAGE).toContain('<span>{priceLabel(tier, market, period)}</span>{\' \'}');
+    /**
+     * Two spellings mean the same thing to React, and the formatter picks between them by line
+     * length: `</span>{' '}` on its own line, and a literal space where both elements fit on one.
+     * What matters is that SOMETHING separates them, because a line break between two JSX
+     * elements is dropped and the cards were read out as one word.
+     */
+    expect(PAGE).toMatch(
+      /<span>\{priceLabel\(tier, market, period\)\}<\/span>(?:\{' '\}| <small>)/,
+    );
     expect(PAGE).not.toContain('</span>\n                  <small>{priceUnit(tier)}</small>');
     // the row that always got it right
     expect(PAGE).toContain('{priceLabel(preview, market, period)} {c.perMonth}');

@@ -38,11 +38,12 @@ import {
   readMarket,
 } from '../plans/prices';
 import { ClosePanel } from '../site/ClosePanel';
+import { useDoorsOpen } from '../site/dial';
 import { SiteLink } from '../site/nav';
 import { Reveal } from '../site/Reveal';
 import { SiteShell } from '../site/SiteShell';
 import { fillTemplate, giftSections, isButtonLine, sectionText } from './content';
-import { GIFT_FOR, GIFT_PAGE } from './copy';
+import { GIFT_FOR, GIFT_PAGE, giftDoor, giftNote } from './copy';
 
 const SECTIONS = giftSections(parseBlocks(fillTemplate(source)));
 
@@ -67,8 +68,33 @@ function Tick() {
 export function Gift() {
   const router = useRouter();
   const give = () => router.navigate({ name: 'plans', checkout: true });
+  /**
+   * THE DIAL. This page is public, linked from the footer of every built file, and it shipped
+   * three live purchase doors under a header that already said "Join the list"
+   * (`docs/DOORS-CLOSED.md` §1 names a gift by hand, §5 forbids a public page implying we are
+   * open). Closed, each of those doors is the invitation and the note under the hero is the one
+   * sentence every other surface uses about when.
+   */
+  const open = useDoorsOpen();
   // Read once per mount: the market is the device's, and a price must not change under a reader.
   const market = useMemo(() => readMarket(), []);
+
+  /** One card's or one hero's control, given the words it would carry if we were open. */
+  const Door = ({ label, pig }: { label: string; pig?: boolean }) => {
+    const door = giftDoor(open, label);
+    if (!door.to) {
+      return (
+        <button type="button" className={pig ? 'st-btn st-pig' : 'st-btn'} onClick={give}>
+          {door.label}
+        </button>
+      );
+    }
+    return (
+      <SiteLink to={door.to} className={pig ? 'st-btn st-pig' : 'st-btn'}>
+        {door.label}
+      </SiteLink>
+    );
+  };
 
   return (
     <SiteShell current="gift" title="Gift · Wobo">
@@ -78,10 +104,8 @@ export function Gift() {
           <h1>{sectionText(SECTIONS.Heading)}</h1>
           <p className="st-sub">{sectionText(SECTIONS.Sub)}</p>
           <div className="st-row">
-            <button type="button" className="st-btn st-pig" onClick={give}>
-              {GIFT_PAGE.cta}
-            </button>
-            <span className="st-fine">{GIFT_PAGE.ctaNote}</span>
+            <Door label={GIFT_PAGE.cta} pig />
+            <span className="st-fine">{giftNote(open)}</span>
           </div>
         </div>
       </section>
@@ -122,9 +146,7 @@ export function Gift() {
                       You never see their work unless they show you
                     </li>
                   </ul>
-                  <button type="button" className="st-btn" onClick={give}>
-                    {GIFT_PAGE.cardCta(option.name)}
-                  </button>
+                  <Door label={GIFT_PAGE.cardCta(option.name)} />
                   <div className="pl-fine">{GIFT_CADENCE}</div>
                 </div>
               );

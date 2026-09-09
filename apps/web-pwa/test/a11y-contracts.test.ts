@@ -39,7 +39,9 @@ describe('the global focus ring is never cancelled on an input', () => {
 describe('the Wobo drawer is a real dialog', () => {
   it('announces itself as a modal dialog with a name', () => {
     expect(companion).toContain('role="dialog"');
-    expect(companion).toContain('aria-modal="true"');
+    // modal, except while the glass is held and the sheet has folded to a strip beside the page
+    // Wobo is drawing on (docs/INK-FREEZE-PLAN-TRACE.md §3)
+    expect(companion).toContain("aria-modal={folded ? undefined : 'true'}");
     expect(companion).toContain('aria-label="Wobo"');
   });
 

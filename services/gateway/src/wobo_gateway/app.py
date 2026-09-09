@@ -50,6 +50,7 @@ from wobo_gateway import (
     billing,
     budget,
     consent,
+    doors,
     health,
     ledger,
     safety_model,
@@ -76,7 +77,13 @@ from wobo_gateway.billing.payments import OPEN_PATHS as PAYMENTS_OPEN_PATHS
 from wobo_gateway.billing.payments import register_billing_desk, register_payments
 from wobo_gateway.cache import CacheBackend, CacheEntry, InMemoryCache, cache_key
 from wobo_gateway.console_api import register_console
+from wobo_gateway.curriculum.public import LIMITED_PATHS as SYLLABUS_LIMITED_PATHS
+from wobo_gateway.curriculum.public import OPEN_PATHS as SYLLABUS_OPEN_PATHS
+from wobo_gateway.curriculum.public import register_public_syllabus
 from wobo_gateway.desks_api import register_desks
+from wobo_gateway.doors import LIMITED_PATHS as DOORS_LIMITED_PATHS
+from wobo_gateway.doors import OPEN_PATHS as DOORS_OPEN_PATHS
+from wobo_gateway.doors import register_doors
 from wobo_gateway.doubt import register_doubt
 from wobo_gateway.email import register_email
 from wobo_gateway.hospitality.api import register_mail_preferences
@@ -112,6 +119,9 @@ from wobo_gateway.safety import (
 )
 from wobo_gateway.telemetry import MetricsSink, TelemetryEvent, emit
 from wobo_gateway.voice import register_voice
+from wobo_gateway.waiting_list import LIMITED_PATHS as WAITING_LIST_LIMITED_PATHS
+from wobo_gateway.waiting_list import OPEN_PATHS as WAITING_LIST_OPEN_PATHS
+from wobo_gateway.waiting_list import register_waiting_list
 from wobo_gateway.wobo import is_first_meeting
 
 logger = logging.getLogger("wobo.gateway")
@@ -531,7 +541,21 @@ def build_gateway() -> Gateway:
 # The payment provider's webhook is open because the provider holds no learner token; its door
 # is the HMAC over the raw body (billing/payments.py), checked before a byte of it is parsed.
 _OPEN_PATHS = frozenset(
-    {"/healthz", "/v1/mail/stop", *ASK_OPEN_PATHS, *PARENT_OPEN_PATHS, *PAYMENTS_OPEN_PATHS}
+    {
+        "/healthz",
+        "/v1/mail/stop",
+        *ASK_OPEN_PATHS,
+        # The syllabus read (curriculum/public.py). No learner data behind it, nothing personal
+        # in it, and every public chapter page is built from it.
+        *SYLLABUS_OPEN_PATHS,
+        *PARENT_OPEN_PATHS,
+        *PAYMENTS_OPEN_PATHS,
+        # The dial the site reads so its copy follows the switch without a release, and the list
+        # that stands where the door was (doors.py, waiting_list.py). Neither has a token to
+        # offer: the whole point of both is that the person at them cannot get an account yet.
+        *DOORS_OPEN_PATHS,
+        *WAITING_LIST_OPEN_PATHS,
+    }
 )
 # Authenticated when we can, never refused here: the route itself is the door (internal key).
 # The two cron doors (hospitality/jobs.py: the Sunday note, the festival wishes) share that key
@@ -769,11 +793,16 @@ def wants_event_stream(request: Request) -> bool:
     return "text/event-stream" in (request.headers.get("accept") or "").lower()
 
 
-def _stream(turn: Any, after: int, headers: dict[str, str]) -> StreamingResponse:
+def _stream(
+    turn: Any,
+    after: int,
+    headers: dict[str, str],
+    then: Any | None = None,
+) -> StreamingResponse:
     from wobo_gateway.board import stream as board_stream
 
     return StreamingResponse(
-        board_stream.iter_sse(turn, after=after),
+        board_stream.iter_sse(turn, after=after, then=then),
         media_type="text/event-stream",
         headers={**_SSE_HEADERS, **headers},
     )
@@ -803,6 +832,66 @@ class TurnShaper(Protocol):
     def shape_model_plan(self, plan: dict[str, Any]) -> dict[str, Any]: ...
 
     def shape_plan(self, plan: Any) -> Any: ...
+
+
+def _scaffolded_words(
+    gw: Gateway,
+    request: CapabilityRequest,
+    scaffold: Any,
+) -> Any:
+    """Phase two of a scaffolded turn: the model's words, over a drawing already on the board.
+
+    It runs INSIDE the response body, after the scaffold's frames have gone out, so it can never
+    answer with a status code — the learner is already watching Wobo draw. Everything that would
+    have been an error before the first byte is therefore the same thing here: what was drawn
+    stands, the question held in reserve is asked, and the turn closes honestly. A provider that
+    falls over used to cost the whole turn; now it costs the words.
+    """
+
+    def _words(turn: Any) -> None:
+        from wobo_gateway.board import scaffold as board_scaffold
+        from wobo_gateway.board.planner import plan_board
+        from wobo_gateway.wobo import board_plan_for
+
+        context = request.payload.get("context") or {}
+        board_context = request.payload.get("board") or {}
+        # The model may anchor a mark to something the scaffold drew — it is on the board, so it
+        # is in the surface the planner resolves anchors against.
+        drawn = [*(board_context.get("drawn") or []), *scaffold.ids()]
+        try:
+            model_plan = board_plan_for(request.payload, live=True)
+            if model_plan is None:
+                turn.extend(board_scaffold.alone(scaffold))
+                return
+            planned = plan_board(
+                model_plan,
+                context=context,
+                board_context={**board_context, "drawn": drawn},
+            )
+            # The spoken-number law reads the WHOLE drawing, so it runs before the marks the
+            # scaffold already laid are dropped from this phase.
+            spoken.enforce_board(planned, context)
+            screened = screen_wobo_outbound(
+                {
+                    "say": planned.say,
+                    "actions": [],
+                    "objects": planned.objects,
+                    "ask": planned.ask,
+                },
+                gw.classifier,
+            )
+            planned.say = str(screened.get("say") or planned.say)
+            planned.objects = list(screened.get("objects") or [])
+            planned.ask = screened.get("ask") if isinstance(screened.get("ask"), dict) else None
+            turn.extend(board_scaffold.resume(scaffold, planned))
+        except Exception:
+            logger.warning(
+                "the model never finished a scaffolded turn; what was drawn stands",
+                exc_info=True,
+            )
+            turn.extend(board_scaffold.alone(scaffold))
+
+    return _words
 
 
 def stream_board_turn(
@@ -892,6 +981,41 @@ def stream_board_turn(
         )
 
     live = os.getenv("LLM_MODE", "mock").lower() == "live"
+
+    # THE INSTANT MARK ON A DRAWING FROM SCRATCH (docs/INK-FOUR.md, Timing at 4; board/scaffold.py).
+    #
+    # The geometry of a drawing built from scratch never came from the model — a plan says
+    # ``open: {kind, intent}`` and a pipeline builds it — yet the ink waited on the model anyway,
+    # so the first stroke of "prove Pythagoras with squares on the sides" landed 13.7 SECONDS
+    # after the learner asked. When the deterministic reading resolves the ask, its ink goes on
+    # the wire NOW and the model's words follow on the same turn, the same door and the same
+    # meter. Keyless the turn is already deterministic and already inside the budget, so nothing
+    # is drawn twice there; degraded, no plane opens at all; and a turn the doubt solver is
+    # composing over a photo is its own shape and is left alone.
+    scaffold = None
+    if live and verdict is not spend.Verdict.DEGRADE and shaper is None:
+        from wobo_gateway.board import scaffold as board_scaffold
+
+        board_stream.mark_turn_start()
+        try:
+            scaffold = board_scaffold.prepare(
+                request.payload,
+                context=request.payload.get("context") or {},
+                board_context=request.payload.get("board") or {},
+            )
+        except Exception:  # a scaffold that cannot be built is a turn that waits, never a 500
+            logger.warning("board scaffold failed; the turn waits on the model", exc_info=True)
+            scaffold = None
+
+    if scaffold is not None:
+        turn = board_stream.new_turn(owner, list(scaffold.events))
+        return _stream(
+            turn,
+            -1,
+            headers,
+            _scaffolded_words(gw, request, scaffold),
+        )
+
     try:
         from wobo_gateway.wobo import board_plan_for
 
@@ -912,6 +1036,26 @@ def stream_board_turn(
         context = request.payload.get("context") or {}
         board_context = request.payload.get("board") or {}
 
+        refusals: list[str] = []
+        if model_plan is not None:
+            plan = plan_board(model_plan, context=context, board_context=board_context)
+            # THE SPOKEN-NUMBER LAW (``spoken``): the verifier has now signed every number on the
+            # board, so this is the first moment the line Wobo says OVER it can be held to the
+            # same standard. A number in the say that the learner did not give, the verifier did
+            # not draw and no written-out sum confirms is not spoken; the ink choreographed to
+            # later sentences is re-anchored so it still lands on words.
+            if not plan.objects and (model_plan.get("objects") or model_plan.get("intents")):
+                # EVERY STROKE WAS REFUSED. The plan's words went with its ink: a sentence
+                # written over a ring that is not there is a promise over an empty board
+                # (BOARD.md §11), and the plane never opens empty (INK-FREEZE-PLAN-TRACE §3).
+                # The turn falls to the spoken answer below, ONE planning later, not two: the
+                # dry run that used to plan every silent turn twice is gone, and the reasons
+                # ride to the ``done`` frame so the harness can read what was refused.
+                refusals = list(plan.refusals)
+                model_plan = None
+            else:
+                spoken.enforce_board(plan, context)
+
         if model_plan is None:
             # Nothing to draw: fall back to the ordinary five-path turn, which carries its own
             # safety screens, cache and telemetry, and stream Wobo's line over the same wire.
@@ -919,17 +1063,10 @@ def stream_board_turn(
                 name, request, profile.tier, subject=principal.subject, priority=priority
             )
             output = result.output
-            plan = Plan(say=str(output.get("say") or ""), presentation="screen")
+            plan = Plan(say=str(output.get("say") or ""), presentation="screen", refusals=refusals)
             card = output.get("component") or output.get("viz")
             actions = [a for a in (output.get("actions") or []) if isinstance(a, dict)]
         else:
-            plan = plan_board(model_plan, context=context, board_context=board_context)
-            # THE SPOKEN-NUMBER LAW (``spoken``): the verifier has now signed every number on the
-            # board, so this is the first moment the line Wobo says OVER it can be held to the
-            # same standard. A number in the say that the learner did not give, the verifier did
-            # not draw and no written-out sum confirms is not spoken; the ink choreographed to
-            # later sentences is re-anchored so it still lands on words.
-            spoken.enforce_board(plan, context)
             # THE WHOLE PLAN, not the spoken line. This used to hand the screen
             # ``{"say": plan.say, "actions": []}`` and pass ``plan.objects`` and ``plan.ask``
             # straight to ``build_events``, which emits every object as an ``ink`` event and the
@@ -1122,6 +1259,9 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             # The public Ask Wobo box: open, and bounded per address on the stranger's dial before
             # its own per-browser allowance (ask_public.py) is even consulted.
             or path in ASK_LIMITED_PATHS
+            # The open syllabus read: a whole curriculum behind one GET is exactly the door a
+            # crawler would hammer, so it is bounded per address like every other open path.
+            or path in SYLLABUS_LIMITED_PATHS
             # The parent link: an invite sends mail, the parent's pages are unauthenticated.
             or path in PARENT_LIMITED_PATHS
             # The parent account surface (parent_api.py). Every route writes to the parent plane
@@ -1145,6 +1285,11 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             # The operator console. Behind its own door (admin_auth.guard) and its own stricter
             # bucket, and in the shared limiter too: the door itself must not be free to knock on.
             or path.startswith(ADMIN_PREFIX)
+            # The door's own two open paths: the dial the site polls, and the list it opens onto
+            # (doors.py, waiting_list.py). Open, and bounded per address on the stranger's dial
+            # before the list's own per-browser allowance is even consulted.
+            or path in DOORS_LIMITED_PATHS
+            or path in WAITING_LIST_LIMITED_PATHS
             or path in _SOFT_AUTH_PATHS
         )
         # Wobo's memory of the learner, on its OWN bucket. Free — a learner is never charged for
@@ -1201,6 +1346,15 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                     ip_hash=ip_hash,
                 )
             response = JSONResponse(status_code=refused.status, content=refused.body())
+        # The door (docs/DOORS-CLOSED.md). While ``doors_open`` is false no path creates an
+        # account: the named account doors are refused by path, an anonymous principal is refused
+        # outright, and a verified subject the product has never seen is refused on its first
+        # call. Everything else is untouched, which is the half that matters: an existing account
+        # signs in and works exactly as before. Placed AFTER the token check so an unverified
+        # caller is still told to sign in rather than told the door is shut, and BEFORE the route
+        # so no account-shaped side effect can happen on the way to the refusal.
+        elif (closed := doors.refusal_for(path, principal)) is not None:
+            response = doors.refuse(closed, path=path, ip_hash=ip_hash)
         else:
             try:
                 response = await call_next(request)
@@ -1678,7 +1832,16 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     # factory as the other desks and for the same reason placed after register_admin.
     register_billing_desk(app)
     register_reports(app)
+    # The door and the list it opens onto (doors.py, waiting_list.py). The refusal itself lives
+    # in the middleware above; these two are only what a visitor can still reach: the dial, so
+    # the site's copy follows the switch, and the box that takes an address.
+    register_doors(app)
+    register_waiting_list(app)
     register_public_ask(app, gw)
+    # The open syllabus read (curriculum/public.py). Registered beside the public ask because
+    # they are the two doors a visitor with no account may knock on, and the chapter pages need
+    # both: the tree to render, and the ask box at the bottom of it to answer.
+    register_public_syllabus(app)
     # Wobo's eyes (doubt.py): the photo door, its answer over the existing board turn, and the
     # memory page's list and delete. Behind the one door and the one limiter like everything else.
     register_doubt(app, gw)

@@ -274,8 +274,8 @@ describe('step one is the door, and there is no second door', () => {
   });
 });
 
-describe("the aha keeps its promise (2026-09-05)", () => {
-  it("step three asks for the hand outright, because the headline says \"I'll draw it\"", () => {
+describe('the aha keeps its promise (2026-09-05)', () => {
+  it('step three asks for the hand outright, because the headline says "I\'ll draw it"', () => {
     // The three sample questions are prose; read as words alone they came back as handwriting
     // under a headline that promised ink. The screen that made the promise asks for the drawing.
     const raw = readFileSync(join(HERE, '..', 'Onboarding.tsx'), 'utf8');

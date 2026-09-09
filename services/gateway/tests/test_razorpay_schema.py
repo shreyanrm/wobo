@@ -25,11 +25,18 @@ def sql() -> str:
     return MIGRATION.read_text(encoding="utf-8")
 
 
-def test_the_migration_exists_at_the_next_free_number() -> None:
+def test_the_migration_exists_and_its_number_is_its_own() -> None:
+    """0023 was the next free number when this landed and it is still 0023's alone.
+
+    It used to assert that 0023 was the HIGHEST number in the directory, which said "nobody may
+    ever add a migration after this one" rather than what it meant. 0024 and 0025 (the door and
+    the list it opens onto) are after it and neither touches billing. The sequence itself is held
+    by test_migration_sequence.py, which is the file whose job that is.
+    """
     assert MIGRATION.is_file()
     numbers = sorted(int(p.name[:4]) for p in MIGRATIONS.glob("*.sql"))
-    assert numbers[-1] == 23
     assert numbers.count(23) == 1
+    assert max(numbers) >= 23
 
 
 def test_the_subscription_row_can_name_its_provider_ids(sql: str) -> None:

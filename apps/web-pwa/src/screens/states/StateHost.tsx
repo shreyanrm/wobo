@@ -17,13 +17,14 @@
 import { Component, type ReactNode, useCallback, useEffect, useState } from 'react';
 import { ONBOARDED_KEY } from '../../shell/public-routes';
 import { useConnectivity } from '../../shell/resilience';
-import { type Route, useRouter } from '../../shell/router';
+import { addressOf, type Route, useRouter } from '../../shell/router';
 import { useProgress } from '../../store/progress';
 import { scoped } from '../../store/scope';
 import { readNotes } from '../../wobo/board-notes';
 import { lessonView } from '../../wobo/lesson-view';
 import { todayPlan } from '../home/today';
-import { HANDOFFS } from '../site/handoffs';
+import { useDoorsOpen } from '../site/dial';
+import { handoff } from '../site/handoffs';
 import { hrefRoute } from '../site/nav';
 import { DailyLimit, ExpiredLink, Maintenance, NotFound, Offline, ServerError } from './pages';
 import { clearFailure, type Failure, reportFailure, selectState, useFailure } from './select';
@@ -167,24 +168,40 @@ export function NotFoundScreen() {
     ensureStateStyles();
   }, []);
   const started = hasStarted();
-  const close = HANDOFFS.notfound;
+  // The lost visitor's door follows the dial like every other public close (DOORS-CLOSED.md §5).
+  const close = handoff('notfound', useDoorsOpen());
   // `hrefRoute`, not `pathToRoute`: on the public site "/" is the FRONT DOOR, not a signed-in
   // learner's home screen, and this is the branch for somebody who has never signed in.
   const go = (action: { to?: Route; href?: string }) => () => {
     router.navigate(action.to ?? (action.href ? (hrefRoute(action.href) ?? LANDING) : LANDING));
   };
+  // The ADDRESS each door goes to, so it is written as a real link and not only as a click. This
+  // page is `dist/404.html`, read by people whose bundle has not run and by every crawler that
+  // probes a path we do not own; a door that is only a button is a dead end for both of them.
+  const where = (action: { to?: Route; href?: string }): string =>
+    action.to ? addressOf(action.to) : (action.href ?? '/');
   const actions = started
     ? [
         {
           label: 'Back to learning',
           onSelect: () => router.navigate({ name: 'home' }),
+          href: addressOf({ name: 'home' }),
           primary: true,
         },
-        { label: 'Ask Wobo', onSelect: () => router.navigate({ name: 'chat' }) },
+        {
+          label: 'Ask Wobo',
+          onSelect: () => router.navigate({ name: 'chat' }),
+          href: addressOf({ name: 'chat' }),
+        },
       ]
     : [
-        { label: close.primary.label, onSelect: go(close.primary), primary: true },
-        { label: close.quiet.label, onSelect: go(close.quiet) },
+        {
+          label: close.primary.label,
+          onSelect: go(close.primary),
+          href: where(close.primary),
+          primary: true,
+        },
+        { label: close.quiet.label, onSelect: go(close.quiet), href: where(close.quiet) },
       ];
   return <NotFound actions={actions} />;
 }

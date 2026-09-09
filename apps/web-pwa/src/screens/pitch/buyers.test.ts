@@ -61,11 +61,18 @@ const SURFACES: readonly [name: string, text: string][] = [
 // --- A. one door, never typed --------------------------------------------------------------------
 
 describe('the buyer pages read the one call to action rather than typing one', () => {
-  it('neither page carries the retired phrase, or any waitlist of its own', () => {
+  /**
+   * SUPERSEDED IN PART, owner 2026-09-09 (`docs/DOORS-CLOSED.md`): the door is closed to new
+   * accounts and the invitation to the list stands in its place, so "join the list" is now the
+   * site's own phrase and is read from `cta.ts` like every other door. What neither page may do,
+   * closed or open, is type a door of its own or promise early access to anybody.
+   */
+  it('neither page carries the retired phrase, and neither types a door of its own', () => {
     for (const [name, text] of SURFACES) {
-      expect([name, /get early access|waitlist|join the list|when wobo opens/i.test(text)]).toEqual(
-        [name, false],
-      );
+      expect([name, /get early access|early access|jump the queue/i.test(text)]).toEqual([
+        name,
+        false,
+      ]);
     }
   });
 
@@ -73,10 +80,10 @@ describe('the buyer pages read the one call to action rather than typing one', (
     // typed nowhere: the words appear in neither page's source, only the lookup does
     expect(PARENTS).not.toContain(`'${CTA.label}'`);
     expect(STUDENTS).not.toContain(`'${CTA.label}'`);
-    expect(PARENTS).toContain("handoff('parents')");
-    expect(STUDENTS).toContain("handoff('students')");
-    expect(PARENTS).toContain('PARENTS.primary.label');
-    expect(STUDENTS).toContain('STUDENTS.primary.label');
+    expect(PARENTS).toContain('handoff(PARENTS, open)');
+    expect(STUDENTS).toContain('handoff(STUDENTS, open)');
+    expect(PARENTS).toContain('close.primary.label');
+    expect(STUDENTS).toContain('close.primary.label');
     // and the table says the open phrase for both, from the constant
     expect(HANDOFFS.parents.primary.label).toBe(CTA.label);
     expect(HANDOFFS.students.primary.label).toBe(CTA.label);
@@ -155,8 +162,8 @@ describe('one primary action, and a second that is never at equal weight', () =>
     expect(HANDOFFS.students.job).toBe('close the user');
     expect(HANDOFFS.students.quiet).toEqual({ label: 'See subjects', href: '/subjects' });
     // and each hero's quiet second is that same second, read from the same row
-    expect(PARENTS).toContain('PARENTS.quiet.label');
-    expect(STUDENTS).toContain('STUDENTS.quiet.label');
+    expect(PARENTS).toContain('close.quiet.label');
+    expect(STUDENTS).toContain('close.quiet.label');
   });
 
   it('opens the payer on what changes rather than on their child struggling', () => {

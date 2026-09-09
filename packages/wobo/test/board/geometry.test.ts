@@ -1,6 +1,15 @@
 import { beforeAll, describe, expect, it } from 'bun:test';
 import { type AnchorContext, type BoardRect, frameOf } from '../../src/board/anchors';
-import { ARROW_GAP, edgePoint, formatQuantity, geometryOf } from '../../src/board/geometry';
+import {
+  ARROW_GAP,
+  edgePoint,
+  formatQuantity,
+  geometryOf,
+  LABEL_SIZE,
+  MIN_TYPE_PX,
+  typeUnits,
+  WRITE_SIZE,
+} from '../../src/board/geometry';
 import { type HandFont, parseHandFont } from '../../src/board/handwriting';
 import type { BoardObject } from '../../src/board/schema';
 
@@ -424,3 +433,46 @@ function firstPointOf(d: string): [number, number] {
   const nums = d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
   return [nums[0] ?? 0, nums[1] ?? 0];
 }
+
+describe('type is legible on the glass, whatever the camera does (the adversary, wave 47, finding 3)', () => {
+  // INK-FOUR, craft: "labels at least 12 px on the glass". LABEL_SIZE and WRITE_SIZE are BOARD
+  // UNITS, and the camera scales them down while strokes already render in screen pixels — so 37
+  // of 78 written objects across 9 of the 16 from-scratch boards measured under 12 px: 7.0 px
+  // ('image', lens 390), 7.2 px ('apex', projectile 1440), 9.3 px (the plant-cell labels at 390),
+  // 9.9 px (every written Punnett cell at 1440). The floor is on the glass, not on the board.
+  const frameAt = (pxPer: number) =>
+    frameOf({ x: 0, y: 0, width: pxPer * 1000, height: pxPer * 600 }, { zoom: 1 });
+
+  it('leaves the size alone where the board already renders it big enough', () => {
+    // A plane 1000 px wide at zoom 1: one unit is one px, so 22 units is 22 px.
+    expect(typeUnits(LABEL_SIZE, frameAt(1))).toBe(LABEL_SIZE);
+  });
+
+  it('grows the units so a label clears the floor when the camera is far out', () => {
+    // The Punnett at 1440 rendered 22 units at 0.45 px per unit — 9.9 px.
+    const units = typeUnits(LABEL_SIZE, frameAt(0.45));
+    expect(units * 0.45).toBeGreaterThanOrEqual(MIN_TYPE_PX);
+  });
+
+  it('carries the worst case in the lab over the floor', () => {
+    // 'image' on the lens board at 390 measured 7.0 px.
+    const k = 7 / LABEL_SIZE;
+    expect(typeUnits(LABEL_SIZE, frameAt(k)) * k).toBeGreaterThanOrEqual(MIN_TYPE_PX);
+  });
+
+  it('never shrinks a size the plan asked for', () => {
+    expect(typeUnits(60, frameAt(1))).toBe(60);
+    expect(typeUnits(60, frameAt(0.3))).toBeGreaterThanOrEqual(60);
+  });
+
+  it('is a no-op on the glass, where a unit is already a px', () => {
+    const glass = frameOf({ x: 0, y: 0, width: 390, height: 844 }, { zoom: 1, scale: 1 });
+    expect(typeUnits(LABEL_SIZE, glass)).toBe(LABEL_SIZE);
+    expect(typeUnits(WRITE_SIZE, glass)).toBe(WRITE_SIZE);
+  });
+
+  it('degrades to the base size on a frame with no width at all', () => {
+    const nothing = frameOf({ x: 0, y: 0, width: 0, height: 0 }, { zoom: 1 });
+    expect(typeUnits(LABEL_SIZE, nothing)).toBeGreaterThanOrEqual(LABEL_SIZE);
+  });
+});

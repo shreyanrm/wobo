@@ -13,7 +13,7 @@ This is the smallest of the three ways Wobo draws. A ring around the term you as
 
 **When Wobo uses it**
 
-For a pointer, a correction, one short line. If the answer needs more than a few strokes — a derivation, a diagram from nothing — Wobo brings out the plane instead.
+For a pointer, a correction, one short line. If the answer needs more than a few strokes, a derivation or a diagram from nothing, Wobo brings out the plane instead.
 
 **Asking for it**
 

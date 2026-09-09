@@ -13,8 +13,15 @@
  * the action would otherwise sit on. That rule lives here as code, not as a prompt.
  */
 
-import { type Rect, type SurfaceRegistry, surfaceRegistry } from '@wobo/wobo';
+import {
+  GLASS_SURFACE_ID,
+  type Rect,
+  type SurfaceRegistry,
+  type SurfaceTarget,
+  surfaceRegistry,
+} from '@wobo/wobo';
 import type { PermissionRung } from './capabilities';
+import { echoesQuestion } from './looking';
 
 // --- The permission ladder ------------------------------------------------------------------------
 
@@ -276,30 +283,133 @@ export async function showMe(targetId: string, options: ShowMeOptions = {}): Pro
 }
 
 /**
+ * What the glass lends that a hand can aim at. The registry lends every entry on the map as a
+ * target (docs/INK-FREEZE-PLAN-TRACE.md §4), and a line of prose is not a control: "show me" points
+ * at a thing to look at or press. The lab of 2026-09-08 found the cursor gliding to the learner's
+ * own bubble in Wobo's transcript — "here: why does that step work?" — because a line scores on
+ * every word of the question it repeats.
+ */
+const AIMABLE_ON_GLASS = new Set([
+  'heading',
+  'step',
+  'figure',
+  'figure-part',
+  'chip',
+  'input',
+  'cell',
+  'photo-line',
+  'target',
+]);
+
+/**
+ * The targets a hand may aim at: everything registered by hand, and the glass's own subjects.
+ *
+ * `said` is the LEARNER'S OWN WORDS, whole. It is a separate argument from `query` on purpose (the
+ * adversary, 2026-09-09, finding 2): the caller strips "show me" out of the words before it
+ * resolves a target, and the echo test run against the STRIPPED words no longer lined up with the
+ * bubble. "show me a number line" became " a number line", which does not begin as the bubble
+ * "show me a number line" begins, so the bubble came through, won on every word, and Wobo's whole
+ * spoken and printed answer was "here: show me a number line" — no ink, no gateway turn, nothing.
+ *
+ * The refusal is applied to EVERY surface, not only the glass: a target whose label reads the
+ * learner's question back is never what they meant, wherever it was registered.
+ */
+export function aimableTargets(
+  registry: SurfaceRegistry,
+  query: string,
+  said: string = query,
+): SurfaceTarget[] {
+  // On the glass, a target whose words BEGIN as the learner's words begin is the question read
+  // back: a bubble in a transcript, an announcement, a heading that quotes the ask.
+  const echoesOnGlass = (t: SurfaceTarget): boolean =>
+    echoesQuestion(t.label ?? '', said) ||
+    echoesQuestion(t.label ?? '', query) ||
+    echoesQuestion(t.text?.() ?? '', said);
+  // A hand-registered control's label is OURS, and it often is exactly what a learner types ("the
+  // continue button"), so only a label that is the whole of what they said, word for word, is a
+  // readback rather than a control.
+  const isTheQuestion = (t: SurfaceTarget): boolean => {
+    const label = (t.label ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]+/g, '');
+    const words = said
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]+/g, '');
+    return label.length > 0 && label === words;
+  };
+  return registry
+    .getSurfaces()
+    .flatMap((surface) =>
+      surface.id === GLASS_SURFACE_ID
+        ? surface.targets.filter((t) => AIMABLE_ON_GLASS.has(t.kind) && !echoesOnGlass(t))
+        : surface.targets.filter((t) => !isTheQuestion(t)),
+    );
+}
+
+/**
  * The target "show me" should aim at, given what the learner asked for. The registry's labels are
  * written for a person, so a plain-words match against label, kind and id is the right resolver.
  */
+/**
+ * THE ID IS NOT WORDS, AND A FRAGMENT IS NOT A WORD (the adversary, 2026-09-09, finding 1).
+ *
+ * The haystack used to be `id kind label description`, matched with `includes`. Both halves of
+ * that were wrong, and together they cost a whole turn: the course outline registers its lines as
+ * `course-outline-1`, which CONTAINS "line", so "show me a number line" scored on the page's
+ * first lesson card and Wobo's entire spoken and printed answer was "here: 1meet a square and a
+ * cube" — no ink, no gateway turn, and the number-line pipeline never reached (live at 1440,
+ * 2026-09-09). "the script" would have found "your subscription" the same way.
+ *
+ * An id is OURS. What a learner typed is matched against what a learner can READ: the label, the
+ * description, and the kind as the plain word it is ("chip", "step", "figure"). And it is matched
+ * word for word, with only a plural's s forgiven, so no word is ever found inside a longer one.
+ */
+function readableWords(target: SurfaceTarget): { phrase: string; words: Set<string> } {
+  const phrase = `${target.kind} ${target.label} ${target.description ?? ''}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+  return { phrase, words: new Set(phrase.split(' ').filter(Boolean)) };
+}
+
+/** One word of the ask against the words on the thing: the same word, or the same word pluralised. */
+function matchesWord(words: Set<string>, word: string): boolean {
+  if (words.has(word)) return true;
+  if (words.has(`${word}s`)) return true;
+  return word.endsWith('s') && words.has(word.slice(0, -1));
+}
+
 export function findTargetId(
   query: string,
   registry: SurfaceRegistry = surfaceRegistry,
+  /** What the learner actually said, before the caller stripped "show me" out of it. */
+  said: string = query,
 ): string | null {
   const q = query.trim().toLowerCase();
   if (!q) return null;
-  const targets = registry.getTargets();
+  const targets = aimableTargets(registry, query, said);
   const exact = targets.find((t) => t.id.toLowerCase() === q);
   if (exact) return exact.id;
   // Words that appear in every label carry no signal. Without this, "the microscope" matches the
   // first control on the screen through the word "the" — and pointing at the wrong thing is worse
   // than saying Wobo cannot find it.
   const words = q.split(/\s+/).filter((w) => w.length > 2 && !STOP_WORDS.has(w));
-  if (words.length === 0) return null;
+  // A NUMBER IS THE WHOLE OF WHAT "STEP 3" NAMES. It is one or two characters, so the noise filter
+  // above threw it away: "show me step 3 of the course" scored `step` against all seven outline
+  // lines and answered with the first, "here: 1 meet a square and a cube" (measured at 1440,
+  // 2026-09-09). It counts for more than a word, because a word like "step" is on every line and
+  // the number is on one.
+  const numbers = q.match(/\b\d+\b/g) ?? [];
+  if (words.length === 0 && numbers.length === 0) return null;
   let best: { id: string; score: number } | null = null;
   for (const target of targets) {
-    const hay =
-      `${target.id} ${target.kind} ${target.label} ${target.description ?? ''}`.toLowerCase();
+    const hay = readableWords(target);
     let score = 0;
-    if (hay.includes(q)) score += 10;
-    for (const w of words) if (hay.includes(w)) score += 2;
+    if (hay.phrase.includes(q)) score += 10;
+    for (const w of words) if (matchesWord(hay.words, w)) score += 2;
+    for (const n of numbers) if (hay.words.has(n)) score += 3;
     if (score > 0 && (!best || score > best.score)) best = { id: target.id, score };
   }
   return best?.id ?? null;

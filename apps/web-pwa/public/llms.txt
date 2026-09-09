@@ -1,0 +1,30 @@
+# Wobo
+
+> Wobo is an AI tutor for Indian school students that draws every explanation live on the page, for every subject their board sets.
+
+Wobo is made by Dot eVentures Pvt Ltd in Hyderabad, India. Every page listed below is public
+and readable without an account. Everything else on this site is a signed-in learner’s own
+work and is not published.
+
+## Pages
+
+- [Wobo](https://heywobo.com/): What Wobo is, and one question answered four ways.
+- [Meet Wobo](https://heywobo.com/meet-wobo): The tutor itself: how it draws, speaks and reads a page.
+- [How Wobo works](https://heywobo.com/how-it-works): What happens in a lesson, step by step.
+- [Subjects](https://heywobo.com/subjects): The boards, the classes and the subjects Wobo covers.
+- [For parents](https://heywobo.com/for-parents): What a parent sees, and what Wobo will not do.
+- [For students](https://heywobo.com/for-students): What a learner gets, and what it costs them.
+- [Plans](https://heywobo.com/plans): Free every day, and what a paid plan buys.
+- [Security and trust](https://heywobo.com/security): How the product is built, and what it does with data.
+- [Help centre](https://heywobo.com/help): One article per question a learner or a parent asks.
+- [Legal](https://heywobo.com/legal): Every legal document, each in plain words first.
+- [Blog](https://heywobo.com/blog): What we are building, and what we are learning.
+- [About](https://heywobo.com/about): Who makes Wobo, and why.
+- [Contact](https://heywobo.com/contact): How to reach a person here.
+- [Gift](https://heywobo.com/gift): Buying a place for someone else.
+- [Donate](https://heywobo.com/donate): Paying for a place for a family who cannot.
+
+## More
+
+- [Sitemap](https://heywobo.com/sitemap.xml): every published address on this site.
+- [Robots](https://heywobo.com/robots.txt): what a crawler may read.

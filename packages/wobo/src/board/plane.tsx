@@ -208,6 +208,56 @@ class PlaneController {
   }
 }
 
+/** How much of a phone screen the sheet takes, in vh. Its frame and its reserve are one number. */
+export const PHONE_SHEET_VH = 62;
+
+/** The attribute the root carries while the sheet is up, so a scroll surface can reserve room. */
+export const SHEET_ATTRIBUTE = 'data-wobo-sheet';
+/** The custom property that carries the reserve to CSS. */
+export const SHEET_VAR = '--wobo-sheet-h';
+
+/**
+ * HOW MUCH ROOM THE SHEET NEEDS RESERVED (docs/INK-FOUR.md, experience; the adversary, wave 47,
+ * finding 10).
+ *
+ * "The page the learner is looking at is never taken away to make room for the answer." On a phone
+ * the plane is a sheet across the lower 62vh of the screen, and Wobo's own say sits above it in
+ * the transcript. It was cut in half mid-line: on the Punnett turn the learner read 'Dominant 3,
+ * recessive 1. Read the' and then the sheet edge; on the lens turn the say was off the screen
+ * altogether. Nothing is hidden and nothing shrinks — the reading surface simply keeps the sheet's
+ * height clear at its foot, so scrolling to the end lands the last line above the edge.
+ *
+ * Null wherever the sheet is not taking the screen: on a wide screen the plane is a panel beside
+ * the page, and a minimised board is a thumbnail.
+ */
+export function sheetReserve(state: {
+  open: boolean;
+  minimized: boolean;
+  phone: boolean;
+}): string | null {
+  if (!state.open || state.minimized || !state.phone) return null;
+  return `${PHONE_SHEET_VH}vh`;
+}
+
+/** Publish the reserve on the document root, and take it back the moment the sheet goes. */
+function useSheetReserve(reserve: string | null): void {
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const root = document.documentElement;
+    if (reserve === null) {
+      root.removeAttribute(SHEET_ATTRIBUTE);
+      root.style.removeProperty(SHEET_VAR);
+      return;
+    }
+    root.setAttribute(SHEET_ATTRIBUTE, 'phone');
+    root.style.setProperty(SHEET_VAR, reserve);
+    return () => {
+      root.removeAttribute(SHEET_ATTRIBUTE);
+      root.style.removeProperty(SHEET_VAR);
+    };
+  }, [reserve]);
+}
+
 /** The one plane. Summon it from anywhere: `plane.summon()`, `plane.fresh()`. */
 export const plane = new PlaneController();
 
@@ -404,8 +454,13 @@ export function WoboPlane(props: WoboPlaneProps) {
     : ({ type: 'spring', stiffness: 320, damping: 32, mass: 0.9 } as const);
 
   const frame: React.CSSProperties = phone
-    ? { left: 0, right: 0, bottom: 0, width: '100%', height: '62vh' }
+    ? { left: 0, right: 0, bottom: 0, width: '100%', height: `${PHONE_SHEET_VH}vh` }
     : { left: state.rect.x, top: state.rect.y, width: state.rect.w, height: state.rect.h };
+
+  // THE SHEET NEVER TAKES THE SENTENCE IT IS EXPLAINING (the adversary, wave 47, finding 10).
+  // While it is up, the reading surfaces are told how much of the screen it holds, so the last
+  // line of Wobo's say stays above its edge instead of being cut in half mid-word.
+  useSheetReserve(sheetReserve({ open: state.open, minimized: state.minimized, phone }));
 
   const from = state.origin
     ? {
@@ -421,6 +476,9 @@ export function WoboPlane(props: WoboPlaneProps) {
           key="plane"
           role="dialog"
           aria-label={`${state.title}, Wobo's board`}
+          // Wobo's own board is never on the glass map: the mark is on its root, and the read
+          // skips the subtree (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze).
+          data-wobo-surface=""
           className={`wobo-chrome wobo-chrome-plane${phone ? ' wobo-chrome-sheet' : ''}`}
           initial={reduced ? false : { opacity: 0, scale: 0.86, x: from.x, y: from.y }}
           animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}

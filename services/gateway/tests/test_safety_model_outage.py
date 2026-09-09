@@ -127,14 +127,10 @@ def test_the_breaker_closes_again_when_the_provider_answers() -> None:
 # --- the latency policy the call is supposed to obey ------------------------------------------
 
 
-def test_the_moderation_call_obeys_its_own_latency_policy() -> None:
-    """``registry.py`` gives ``safety.classify`` max_latency_ms=1500. The call used 4.0 s."""
-    from wobo_gateway.registry import policy
-
-    ceiling = policy(safety_model.CAPABILITY).max_latency_ms / 1000.0
-    assert safety_model.timeout_s() <= ceiling, (
-        f"the safety call may take {safety_model.timeout_s()}s against a {ceiling}s policy"
-    )
+def test_the_moderation_call_is_never_open_ended() -> None:
+    """It has a deadline, and the deadline is bounded: past :data:`MAX_BUDGET_S` the offline layer
+    is the better answer, because it is instant and it is already the floor under every verdict."""
+    assert 0 < safety_model.timeout_s() <= safety_model.MAX_BUDGET_S
 
 
 def test_an_explicit_timeout_still_wins(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -142,8 +138,85 @@ def test_an_explicit_timeout_still_wins(monkeypatch: pytest.MonkeyPatch) -> None
     assert safety_model.timeout_s() == 0.8
 
 
+# --- the fixer, wave 40: the screen's budget is the pace of the model that serves it ------------
+
+
+def test_the_budget_fits_the_model_that_serves_the_screen() -> None:
+    """Live on 2026-09-08 the policy's 1500 ms ran out on a model that answers in about four
+    seconds, EVERY time: three doubt turns were screened as moderation, nothing was explained,
+    and the child waited the full budget to be told "I couldn't check that one just now"."""
+    primary, _fallbacks = safety_model._chain()
+    assert safety_model.timeout_s() >= safety_model.pace_of(primary), (
+        f"the screen has {safety_model.timeout_s()}s for a model that takes "
+        f"{safety_model.pace_of(primary)}s: it can only ever fail closed"
+    )
+    # and it is still the policy's number when the policy asks for MORE than the model needs
+    assert safety_model.timeout_s() >= safety_model._policy_timeout_s()
+
+
+def test_a_model_slower_than_its_own_budget_still_screens_the_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The budget is not a promise the model keeps. One that overruns it is still fail-closed,
+    still not written to the weather, and never the crisis script."""
+    import litellm
+    from wobo_gateway import health
+
+    class Timeout(Exception):
+        pass
+
+    Timeout.__name__ = "Timeout"
+    slept: list[float] = []
+
+    def too_slow(**kw: Any) -> Any:
+        slept.append(float(kw.get("timeout") or 0))
+        raise Timeout("deadline")
+
+    monkeypatch.setattr(litellm, "completion", too_slow)
+    monkeypatch.setattr(health, "hang_streak", lambda: 1)
+    primary, _fallbacks = safety_model._chain()
+    verdict = safety_model.ModelClassifier().adjudicate(CIVICS, screen(CIVICS))
+    assert verdict.category == CATEGORY_MODERATION
+    assert verdict.source == safety_model.SOURCE_FAIL_SAFE
+    assert health.provider_available(primary)
+    assert slept and slept[0] >= safety_model.pace_of(primary) * 0.5, slept
+
+
 def test_the_civics_question_is_a_candidate_and_not_a_rule_flag() -> None:
     """The premise of every test above: the rules do not settle it, so the model layer is asked."""
     outcome = screen(CIVICS)
     assert outcome.needs_model is True
     assert outcome.certain is False
+
+
+# --- the fixer, wave 34: a short deadline is not the provider's weather ----------------------------
+
+
+def test_a_moderation_timeout_under_its_own_short_deadline_never_marks_the_provider_out(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Live, the 1.5 s safety deadline ran out on a model that answers in about four seconds. The
+    turn was screened (fail-closed, right) AND the provider was marked out for a minute, so the
+    next two turns of a child's doubt ran on another model with no ink. A deadline the policy set
+    below the model's own pace is a fact about the policy, never about the provider."""
+    import litellm
+    from wobo_gateway import health
+
+    class Timeout(Exception):
+        pass
+
+    Timeout.__name__ = "Timeout"
+
+    def slow(**_kw: Any) -> Any:
+        raise Timeout("deadline")
+
+    monkeypatch.setattr(litellm, "completion", slow)
+    monkeypatch.setattr(health, "hang_streak", lambda: 1)
+    health.reset() if hasattr(health, "reset") else None
+    model = safety_model.ModelClassifier()
+    primary, _fallbacks = safety_model._chain()
+    outcome = screen(CIVICS)
+    for _ in range(3):
+        verdict = model.adjudicate(f"{CIVICS} {_}", outcome)
+        assert verdict.category != safety.CATEGORY_OK  # still screened, fail-closed
+    assert health.provider_available(primary), "a safety deadline marked the provider out"

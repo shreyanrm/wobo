@@ -11,6 +11,7 @@ Everything Wobo writes to a person, and the rules that govern it. Written agains
 | [`help-centre/`](help-centre/) | Three groups, 34 articles. Wobo basics, product features, boards and curriculum. Each article answers in its first line, then explains. |
 | [`emails/`](emails/) | 25 specs: transactional, hospitality, parent, billing, win-back, flags. Subject lines, preview text, body copy, variables, rules. |
 | [`growth/`](growth/) | The three growth surfaces WOBO-PLAN §14 and §16 name and that had no copy: the cancel flow, the gifted week, the gift page. |
+| [`blog/`](blog/) | The blog at `/blog`, one Markdown file per post with front matter, plus the README that holds its tags, its writers and its assistance note. It is the ORIGIN: every syndicated copy of a post points its canonical back here (docs/GROWTH-DESK.md §3). A post is compiled by `apps/web-pwa/src/screens/site/blog/compile.ts` and refused by that file's gate if it is thin, undated, unattributed, untagged, or carries an em dash. |
 
 ## The rules that apply to every file here
 

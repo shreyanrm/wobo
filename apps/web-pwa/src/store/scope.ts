@@ -102,6 +102,9 @@ export const SCOPED_PREFIXES = [
   // The offline copy of the syllabus they are pinned to (curriculum/cache.ts): one row per unit
   // list, per chapter list, per overlay, plus the index of them.
   'wobo-curriculum-v1:',
+  // The concept core beside each level (wobo/core-store.ts): the true sentence for every part the
+  // level declares, and the handful of questions its misconceptions say a learner will ask.
+  'wobo-core-v1:',
 ] as const;
 
 /**

@@ -26,6 +26,7 @@ export {
 export * from './client';
 export * from './config';
 export * from './curriculum';
+export * from './doors';
 export * from './events';
 export * from './fsrs';
 export * from './gateway';

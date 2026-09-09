@@ -77,9 +77,11 @@
  */
 
 import { useId } from 'react';
+import type { Route } from '../../shell/router';
 import { Label, WoboHead } from '../../ui/primitives';
 import { ClosePanel } from '../site/ClosePanel';
-import { START_FREE_HREF } from '../site/cta';
+import { ctaFor } from '../site/cta';
+import { useDoorsOpen } from '../site/dial';
 import { handoff } from '../site/handoffs';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
@@ -96,7 +98,7 @@ ensurePitchStyles();
  * the owner wants the payer's own words on this button ("Set it up for my child") it is one line in
  * the table rather than a grep across the site.
  */
-const PARENTS = handoff('parents');
+const PARENTS = 'parents' as const;
 
 /**
  * The six things, in the order a parent can follow: what a lesson does, what it does when the
@@ -302,6 +304,9 @@ function ReportPanel() {
 }
 
 export function ForParents() {
+  const open = useDoorsOpen();
+  const door = ctaFor(open);
+  const close = handoff(PARENTS, open);
   return (
     <SiteShell current="parents" title="Wobo for parents">
       <div className="pt">
@@ -319,13 +324,15 @@ export function ForParents() {
                 that.
               </p>
               <div className="pt-row">
-                <SiteLink className="st-btn st-pig" href={START_FREE_HREF}>
-                  {PARENTS.primary.label}
+                <SiteLink className="st-btn st-pig" to={close.primary.to as Route}>
+                  {close.primary.label}
                 </SiteLink>
-                <SiteLink className="st-btn st-quiet" href={PARENTS.quiet.href ?? '/plans'}>
-                  {PARENTS.quiet.label}
+                <SiteLink className="st-btn st-quiet" href={close.quiet.href ?? '/plans'}>
+                  {close.quiet.label}
                 </SiteLink>
-                <span className="pt-note">Free every day. No card to start.</span>
+                <span className="pt-note">
+                  {open ? 'Free every day. No card to start.' : door.under}
+                </span>
               </div>
             </div>
             <div className="pa-env">

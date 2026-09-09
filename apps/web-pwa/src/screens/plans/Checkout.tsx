@@ -15,8 +15,10 @@
  */
 
 import { useEffect, useState } from 'react';
+import type { Route } from '../../shell/router';
 import { legalPath } from '../legal/catalog';
 import { ClosePanel } from '../site/ClosePanel';
+import { useDoorsOpen } from '../site/dial';
 import { SiteLink } from '../site/nav';
 import { SiteShell } from '../site/SiteShell';
 import { type PaymentsConfig, readPaymentsConfig } from './checkout-flow';
@@ -62,7 +64,9 @@ export function Checkout() {
       live = false;
     };
   }, []);
-  const words = checkoutPageWords(pay?.on ?? null);
+  // Two switches, read separately: whether money can be taken, and whether the door to new
+  // accounts is open (docs/DOORS-CLOSED.md §4).
+  const words = checkoutPageWords(pay?.on ?? null, useDoorsOpen());
   return (
     <SiteShell current="plans" title="Checkout · Wobo">
       <section className="st-page-hero">
@@ -91,7 +95,7 @@ export function Checkout() {
                 {words.cta.label}
               </SiteLink>
             ) : (
-              <SiteLink to={{ name: 'onboarding' }} className="st-btn st-pig">
+              <SiteLink to={words.cta.to as Route} className="st-btn st-pig">
                 {words.cta.label}
               </SiteLink>
             )}

@@ -246,6 +246,23 @@ const MARKS = /\b(ring|circle|mark|highlight|underline|point\s+(at|to))\b/i;
 const ASKS_ABOUT_IT =
   /^\s*(why|how|what|explain|tell\s+me|huh|i\s+don'?t\s+(get|understand))\b|\bwhat\s+(is|are|does)\s+(this|that|it)\b|\?\s*$/i;
 
+/**
+ * DOES THE ASK ITSELF WANT INK? (the adversary, 2026-09-09, finding 1.)
+ *
+ * "show me a number line" is `show_me` mode, so the hand took it before anything else could — and
+ * a hand can only point at what is already on the page. There is no number line on a course card,
+ * so the registry matched whatever it could and Wobo's entire spoken and printed reply was
+ * "here: 1meet a square and a cube": no ink, no gateway turn, the number-line pipeline never
+ * reached. These words ask to be shown something NEW, which is the board's verb, not the hand's.
+ *
+ * This reads the WORDS only — no glass, no focus, no mode — because it runs before the hand, and
+ * a learner with a region in hand ("show me this bit") is still the hand's, which is why
+ * AppRuntime keeps a focus ahead of it.
+ */
+export function asksForADrawing(text: string): boolean {
+  return Boolean(presentationWord(text)?.presentation) || DRAWS.test(text);
+}
+
 export interface BoardShape {
   /** True when this turn should stream a plan and use the hand. */
   board: boolean;
@@ -278,7 +295,8 @@ export function boardShapeOf(
   // (docs/BOARD.md §5). That is a planner turn too: it streams, and the ink lands on the
   // registered target. "which button starts the course?" used to go to the plain conversation,
   // and the learner got words about a button they were looking at (the 2026-09-05 review).
-  const aboutTheScreen = Boolean(opts.namesTarget) && (ASKS_ABOUT_IT.test(text) || MARKS.test(text));
+  const aboutTheScreen =
+    Boolean(opts.namesTarget) && (ASKS_ABOUT_IT.test(text) || MARKS.test(text));
   // THE SCREEN PROMISED A DRAWING. Onboarding step three says "I'll draw it" over three sample
   // questions that are plain prose ("Why is the sky blue?"): no draw word, no mode, no target.
   // Read as words alone they went to the conversation and came back as handwriting under a

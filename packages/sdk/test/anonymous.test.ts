@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from 'bun:test';
 import {
   configureGatewayAuth,
   createSdk,
+  DOORS_KEY,
+  DOORS_PATH,
   type KVStorage,
+  resetDoors,
   SupabaseAuthIdentity,
 } from '../src/index';
 
@@ -36,6 +39,7 @@ function mockFetch(handler: (url: string, init?: RequestInit) => Response) {
 afterEach(() => {
   globalThis.fetch = realFetch;
   configureGatewayAuth({}); // the auth binding is a module singleton — never leak it between tests
+  resetDoors(); // so is the door's held answer (doors.ts)
 });
 
 const cfg = (storage: KVStorage) => ({
@@ -128,6 +132,11 @@ describe('the assembled SDK signs the device in before it ever asks the brain', 
     globalThis.fetch = ((url: string | URL | Request, init?: RequestInit) => {
       calls.push(String(url));
       headers.push(new Headers(init?.headers).get('authorization'));
+      // The door is open in this test, and nothing is minted anywhere while it is not
+      // (`doors.ts`, docs/DOORS-CLOSED.md §1). The SDK asks before it signs anybody in.
+      if (String(url).endsWith(DOORS_PATH)) {
+        return Promise.resolve(Response.json({ [DOORS_KEY]: true }));
+      }
       if (String(url).endsWith('/auth/v1/signup')) {
         return Promise.resolve(
           Response.json({
@@ -153,9 +162,10 @@ describe('the assembled SDK signs the device in before it ever asks the brain', 
 
     await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
 
-    expect(calls[0]).toBe('https://project.supabase.co/auth/v1/signup');
-    expect(calls[1]).toBe('https://brain.test/v1/capability/wobo.turn');
-    expect(headers[1]).toBe(`Bearer ${fakeJwt(ANON, { is_anonymous: true })}`);
+    expect(calls[0]).toBe(`https://brain.test${DOORS_PATH}`);
+    expect(calls[1]).toBe('https://project.supabase.co/auth/v1/signup');
+    expect(calls[2]).toBe('https://brain.test/v1/capability/wobo.turn');
+    expect(headers[2]).toBe(`Bearer ${fakeJwt(ANON, { is_anonymous: true })}`);
     expect(sdk.account?.isAnonymous()).toBe(true);
     expect(await sdk.account?.ensureSession()).toBe(ANON); // idempotent — no second signup
     expect(calls.filter((c) => c.endsWith('/auth/v1/signup'))).toHaveLength(1);

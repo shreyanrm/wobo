@@ -28,6 +28,7 @@ import { BENEFITS, PLANS_PAGE } from '../plans/copy';
 import { PLAN_TIERS } from '../plans/prices';
 import { CTA } from './cta';
 import { HANDOFFS } from './handoffs';
+import { LIST } from './invitation';
 import { DOORS } from './nav';
 
 const SCREENS = join(import.meta.dir, '..');
@@ -131,18 +132,34 @@ describe('law v5 — the copy law, over every public page', () => {
    * Anyone can sign up and use Wobo today, so a surface that asks a reader to wait is describing
    * a product we do not sell. The phrase lives in `cta.ts` and every door reads it from there.
    */
-  it('is open, and asks nobody to wait', () => {
+  /**
+   * AND SUPERSEDED IN PART ON 2026-09-09 (`docs/DOORS-CLOSED.md`). New accounts are closed until
+   * the owner turns the dial back on, and the invitation to the list stands where the door was.
+   *
+   * What is asserted here is the half that did not change: the OPEN door is still the one phrase,
+   * still in one file, still read by every surface, so the day the dial goes true the site says
+   * "Start free" everywhere again within a minute and with no release. The closed half is held by
+   * `site/doors-closed.test.ts`, and the two files together are the whole law.
+   *
+   * "Early access" stays retired at both settings. A list you will be written to on the day it
+   * opens is not a privilege being sold, and nothing on this site may suggest that it is.
+   */
+  it('keeps the open door in one place, and promises early access to nobody', () => {
     expect(CTA.label).toBe('Start free');
     expect(DOORS.getStarted).toBe(CTA.label);
-    nowhere(/get early access|waitlist|opens to families|early access/i, 'we are open today', [
-      'site/cta.ts',
-    ]);
+    nowhere(
+      /get early access|opens to families|early access|jump the queue/i,
+      'a list is not a privilege, at either setting of the dial',
+      ['site/cta.ts'],
+    );
   });
 
   it('closes every page on its own job, and never types the door by hand', () => {
     // the plans page sells a plan; every page that is not a transaction says the one phrase
     expect(PLANS_PAGE.close.primary).toBe('Choose a plan');
     expect(PLANS_PAGE.close.quiet).toBe('Start free instead');
+    // and it says the same thing about WHEN that every other surface says (DOORS-CLOSED §5)
+    expect(PLANS_PAGE.when).toBe(LIST.under);
     const transactions = new Set(['Choose a plan', 'Choose a gift', 'Fund a place']);
     for (const [page, close] of Object.entries(HANDOFFS)) {
       const label = close.primary.label;

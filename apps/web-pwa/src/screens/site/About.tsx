@@ -14,7 +14,7 @@ import { Label, WoboHead } from '../../ui/primitives';
 import { reachLine } from '../pitch/boardFind';
 import { AskWobo } from './AskWobo';
 import { ClosePanel } from './ClosePanel';
-import { CTA } from './cta';
+import { useCta } from './cta';
 import { SiteLink } from './nav';
 import { Reveal } from './Reveal';
 import { SiteShell } from './SiteShell';
@@ -47,6 +47,7 @@ const PROMISES: readonly { title: string; line: string }[] = [
 ];
 
 export function About() {
+  const door = useCta();
   return (
     <SiteShell current="about" title="About Wobo">
       <section className="ab-hero">
@@ -69,10 +70,10 @@ export function About() {
               from cta.ts so this page cannot drift from the rest of the site (SELL.md §7).
             */}
             <div className="st-row">
-              <SiteLink className="st-btn st-pig" to={CTA.to}>
-                {CTA.label}
+              <SiteLink className="st-btn st-pig" to={door.to}>
+                {door.label}
               </SiteLink>
-              <span className="ab-under">{CTA.under}</span>
+              <span className="ab-under">{door.under}</span>
             </div>
           </div>
           <div className="ab-mission">

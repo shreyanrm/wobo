@@ -98,7 +98,11 @@ describe('the shell says what the prototype says', () => {
     };
     for (const link of [...NAV_LINKS, ...FOOTER_COLUMNS.flatMap((c) => c.links)]) {
       const route = hrefRoute(link.href);
-      expect([link.label, link.href, route?.name ?? null]).not.toEqual([link.label, link.href, null]);
+      expect([link.label, link.href, route?.name ?? null]).not.toEqual([
+        link.label,
+        link.href,
+        null,
+      ]);
       const hash = link.href.split('#')[1];
       if (!hash || !route) continue;
       const file = PAGE_SOURCE[route.name];
@@ -122,7 +126,7 @@ describe('the shell says what the prototype says', () => {
     expect(doors).toHaveLength(2);
     // the WORDS are the law's, and each page's are its own: the front page's close invites, and
     // neither of its two doors asks anybody to wait for a product that is already open
-    const home = handoff('home');
+    const home = handoff('home', true);
     expect(home.primary.label).toBe(CTA.label);
     expect(`${home.title} ${home.hand ?? ''} ${home.quiet.label}`).not.toMatch(
       /early access|waitlist|tonight/i,

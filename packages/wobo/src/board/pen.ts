@@ -196,6 +196,28 @@ export function strokeDurationMs(length: number, rng?: Rng): number {
   return Math.max(MIN_STROKE_MS, Math.min(MAX_STROKE_MS, raw));
 }
 
+/**
+ * The trace's clock, in screen px (docs/INK-FREEZE-PLAN-TRACE.md §3, Trace): a ring closes in 300
+ * to 600 ms whatever its size; an underline, a bracket and an arrow take their length; a tick, a
+ * cross and a point are a flick of the wrist. `lengthPx` is the pen's travel in CSS px, which on
+ * the glass is the geometry's own length. Every answer sits inside the hand's floor and ceiling.
+ */
+export const TRACE_PX_PER_MS = 0.75;
+const TRACE_MS: Partial<Record<string, [min: number, max: number]>> = {
+  circle: [300, 600],
+  ring: [300, 600],
+  tick: [220, 320],
+  cross: [240, 380],
+  point: [220, 340],
+};
+
+export function traceDurationMs(kind: string, lengthPx: number): number {
+  const raw = Math.max(0, lengthPx) / TRACE_PX_PER_MS;
+  const band = TRACE_MS[kind];
+  const [lo, hi] = band ?? [MIN_STROKE_MS, MAX_STROKE_MS];
+  return Math.round(Math.max(lo, Math.min(hi, raw)));
+}
+
 export interface StrokeSlot {
   /** Fraction of the object's draw time when this stroke starts. */
   from: number;
@@ -299,6 +321,24 @@ let audio: AudioContext | null = null;
 let lastTick = 0;
 /** Never more than one tick per this many ms — reduced motion lands a whole plan at once. */
 const TICK_THROTTLE_MS = 55;
+
+/**
+ * Open the pen's audio before the first stroke needs it. Creating the context is the one slow
+ * thing the tick does: on a fresh browser process it can block the main thread for the better
+ * part of a second (887 ms measured in headless Chromium on macOS), and when that happened on the
+ * render path of the first mark the stroke landed 900 ms after the word that named it. The
+ * conductor calls this as a turn opens, so the cost is paid while the brain is still being waited
+ * on. Idempotent, and silent when the pen is muted.
+ */
+export function warmPen(): void {
+  if (isPenMuted()) return;
+  penAudio();
+}
+
+/** True once the pen's audio is open, so a bench can wait for it the way it waits for the font. */
+export function penReady(): boolean {
+  return audio !== null || isPenMuted() || typeof window === 'undefined';
+}
 
 function penAudio(): AudioContext | null {
   if (typeof window === 'undefined') return null;

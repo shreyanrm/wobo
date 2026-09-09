@@ -129,6 +129,21 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     doubt_mod.set_store(None)
     doubt_mod.set_eyes(None)
     doubt_mod.OFF_PAGE["count"] = 0
+    # The door (doors.py). Its own dial per test, and never a project one: one test closing the
+    # door must never be another test's 403. The memory store starts OPEN, which is what every
+    # other test in this suite is written against; test_doors.py is the one that shuts it, and it
+    # also holds the property that matters in production — an UNCONFIGURED gateway is closed.
+    from wobo_gateway import doors, waiting_list
+
+    monkeypatch.setenv("DOORS_STORE", "memory")
+    doors.set_clock(None)
+    doors.set_store(None)
+    # The list the closed door opens onto. In process, fresh per test, and its allowance zeroed
+    # for the same reason the meters above are.
+    monkeypatch.setenv("WAITING_LIST_STORE", "memory")
+    waiting_list.set_clock(None)
+    waiting_list.set_store(None)
+    waiting_list.reset_meter()
     auth.reset_jwks_cache()
     voice.reset_tokens()
     # Mail: console transport, an empty in-memory send log, and background sends run inline so

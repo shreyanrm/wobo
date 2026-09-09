@@ -16,6 +16,7 @@ import { cssVariables } from '@wobo/config/css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BoardBench } from './board-bench';
+import { GlassBench, wantsGlassBench } from './glass-bench';
 
 const STYLE_ID = 'wobo-tokens';
 if (!document.getElementById(STYLE_ID)) {
@@ -36,8 +37,9 @@ if (theme === 'dark' || theme === 'light') document.documentElement.dataset.them
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root');
 
+// `#glass/<scene>` is the other bench: the same hand on a real page, over the glass (glass-bench.tsx).
 createRoot(root).render(
   <StrictMode>
-    <BoardBench />
+    {wantsGlassBench(window.location.hash) ? <GlassBench /> : <BoardBench />}
   </StrictMode>,
 );

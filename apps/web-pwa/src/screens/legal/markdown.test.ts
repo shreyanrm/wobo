@@ -139,6 +139,28 @@ We are [Company legal name].
     expect(shape.plainWords?.length).toBe(2);
   });
 
+  it('reads a date as a date when the line goes on to name a file', () => {
+    // docs/legal/README.md opens: "Draft of 3 September 2026, with `refund-and-cancellation.md`
+    // revised on 7 September 2026 at version 0.3." Stopping at the first full stop stopped inside
+    // "refund-and-cancellation.md", so /legal published "Drafted 3 September 2026, with
+    // `refund-and-cancellation." — a broken sentence with a markdown backtick in it, frozen into
+    // static HTML on an indexed page.
+    const readme =
+      '# The legal set\n\nDraft of 3 September 2026, with `refund-and-cancellation.md` revised on 7 September 2026 at version 0.3. Ten documents.\n';
+    const shape = documentShape(parseBlocks(readme), readme);
+    expect(shape.drafted).toBe('3 September 2026');
+  });
+
+  it('never lets markdown of any kind into a date a reader sees', () => {
+    for (const line of [
+      'Draft of 3 September 2026, with `a.md` revised later.',
+      'Draft of 3 September 2026. Version 0.1.',
+      'Draft of 3 September 2026; revised since.',
+    ]) {
+      expect(documentShape([], line).drafted).toBe('3 September 2026');
+    }
+  });
+
   it('starts the body after the front matter', () => {
     const body = documentBody(blocks);
     expect(body[0]?.kind).toBe('heading');
