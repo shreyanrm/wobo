@@ -13,7 +13,7 @@ updated in the same breath as the decision, not later.
 
 | What | Wave | Where it is |
 |---|---|---|
-| The ink aims at the right thing | 41 | judge scored 1.62 (from 0.96); the closer is on 14 findings |
+| Four out of four on the ink | 42 | just launched; loops build, judge, close until every lens scores 4 |
 | The public site becomes readable by crawlers | 43 | pre-render, real 404s, one address per document, previews, the entity graph |
 | The page families | 44 | the open syllabus door, then chapters, topics, subjects, comparisons, the blog |
 
@@ -21,7 +21,6 @@ updated in the same breath as the decision, not later.
 
 | What | Wave | Why it waits |
 |---|---|---|
-| Four out of four on the ink | 42 | needs 41 to land; loops build, judge, close until every lens scores 4 |
 | No trace of the old name | 40 | touches the gate scripts the others read |
 | The parent's account screens | 34 | shares files with the ink waves |
 | The daily allowance, the models desk, the free pool cap | 36 | shares the gateway with the ink waves |

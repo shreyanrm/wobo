@@ -1827,3 +1827,24 @@ for speed, nothing is ever deducted, a broken streak resets the streak and not t
 distance travelled, never a rank: no leaderboard, no comparison, and it never gates a lesson. The curve
 is one pure function with a test pinning every number, and the rates are console dials. The level-up
 moment is composed like every other reward and there is no popup, because the bar is already there.
+
+### 10.61 Wave 41 landed, and it found why every live turn drew nothing (2026-09-09)
+
+Judge: 1.62 grand (from 0.96), relevance 1.49, correctness 1.53, craft 1.07, timing 2.68, experience
+1.34. The closer then found the single line behind every dead live turn: the glass hold's cap was a
+flat 6 seconds counted from the ask, the wire's first byte arrives at 6.0 to 8.5 seconds, and the
+conductor read any release that was not 'end' or 'interrupt' as the learner barging in, so it aborted
+the stream, dropped the gate and stopped the voice. Empty transcript, zero ink, and voice billed for
+words never written. The cap is now silence-based (6 seconds since the last sign of life under a 30
+second ceiling) and 'cap' is no longer a barge-in. Also fixed: the phone's map was one entry because
+the deciding read happened with the ask drawer still over the page, so nothing was named, so it never
+froze, so the sheet never folded, a circle that only a folded read could break; the freeze now comes
+first and unconditionally and hands the page back if the turn will not draw. And Wobo's own transcript
+on the chat screen, which the first fixer marked in the companion and missed entirely in the chat
+screen.
+
+Honestly not done and carried into wave 42: the from-scratch pipelines (the lens still draws 10 cm for
+a 15 cm ask, signed verified), the renderer's labels (a curve labelled with Python operator syntax,
+5 to 8 pixel axis letters), and the live half of the doubt door. No live run at all: the whole lab was
+keyless, so the cap fix is proven by unit test and by mechanism, not yet by a live stream. Wave 42
+launched.
