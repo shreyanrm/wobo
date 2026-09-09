@@ -35,7 +35,7 @@ demonstration that misfires is worse than silence.
    for Dot eVentures, and a consistent one-sentence description on every one of them, identical to the
    site's. Same name, same logo, same line. This is what makes an engine say "Wobo is an AI tutor for
    Indian school students" instead of the job app.
-2. **Build the press kit** on heywobo.com/press: the one-liner, the hundred-word and three-hundred-word
+2. **Build the press kit** on heywobo.com/press, from docs/copy/press-kit.md (every string written, to be used verbatim and identically everywhere): the one-liner, the hundred-word and three-hundred-word
    descriptions, founder name and photo, the logo in SVG and PNG, three screenshots, a sixty-second
    film of a real lesson being drawn, the numbers we can prove, and a contact address. Journalists take
    what is easy. Every AI engine reads it too.

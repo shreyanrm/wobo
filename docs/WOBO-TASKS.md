@@ -1621,3 +1621,22 @@ public site and first-party counters in the gateway for the app; and **Reddit an
 automated** (Reddit's bans are tuned for exactly that pattern, Quora has no write API), so the machine
 drafts and a person posts. Still to write when the last two readers land: docs/GROWTH-SEARCH.md. The
 build waves follow the ink (41) and the rebrand sweep (40).
+
+### 10.50 Four out of four, and the press kit's exact words (2026-09-09)
+
+**The owner on the re-judged 0.96: "we gotta be 100% 4/4 if that's the move."** docs/INK-FOUR.md is
+the standard: what a 4 means on each of the five lenses, and the architecture that timing needs and
+we do not have. The finding that forces it: live, the first stroke lands 8.6 to 19.3 seconds after
+the ask, because every mark waits for a model, so timing can never score 4 as built. The answer is
+**the instant mark**: the glass map already carries the meaning of everything visible, so the client
+resolves a question that names a part in milliseconds and starts the stroke with no model call, the
+model refines when it lands, the first sentence comes from the cached concept core, and the obvious
+asks per card are precomputed with the level. Wave 42 (written, `waves/wave42-four.js`) builds that
+with the from-scratch drawings made correct and the say naming what it draws, and it LOOPS: build,
+judge against INK-FOUR, close the findings, judge again, up to three rounds, and it is finished only
+when every lens scores 4.
+
+**Press:** docs/copy/press-kit.md carries every string, to be used verbatim and identically on every
+listing, because the entity problem is solved by agreement between sources, not by cleverness. The
+owner's list, in order: Wikidata, LinkedIn company page, Crunchbase, Product Hunt, Google Business
+Profile, the app stores when the shells ship, G2 and Capterra. Ours to build: heywobo.com/press.
