@@ -97,3 +97,32 @@ like to cite.
 Chase Allen's eight million pages. Publish a page for a board we have not read. Generate a page per
 keyword with a template. Claim a syllabus we have not verified. The count we publish is the count we
 can prove, which is the rule already written in the honest-count law.
+
+## 6. Handcrafted where it counts, generated where it scales (owner, 2026-09-09)
+
+*"Are we specially designing each of those subject pages and all those other pages, handcrafted
+uniquely?"* Not all of them, and the split is deliberate.
+
+**Handcrafted, 67 pages.** The 4 board pages, the 13 class pages and the 50 subject pages are written
+and designed one at a time, with their own opening, their own art and their own answer to the question
+a parent is actually asking on that page. These are the pages someone lands on while deciding, and
+there are few enough to do properly. They are never generated from a template with a name swapped, and
+a test asserts that no two of them share a paragraph.
+
+**One template per large family, with content and artwork unique per page.** 333 chapters, 711 topics,
+the glossary. A shared frame is right here: it is what makes a site navigable and it is what every
+reference site on earth does. The template is not what makes a page thin; emptiness is. Ours carries,
+per page and different every time: the chapter's own topics, the official document it came from with
+its page and section, the hash of the bytes we read, the date we last checked, and a tutor door that
+answers about that chapter.
+
+**The upgrade that no competitor can copy.** Our figures are generated per concept, not chosen from a
+library, so an electrostatics page can carry a field diagram and a French Revolution page a timeline,
+each drawn for that concept by the same pipeline that draws for a learner. Nobody in this market ships
+an original explanatory figure on a chapter page at all. That is the difference between our template
+and a content farm's, and it is the reason to build the cores before scaling the family.
+
+**So the family ships in two passes, and the first is honest about being the first.** Tier one is the
+chapter, its topics, its provenance and the tutor door: real, useful, plain, and shipped at a measured
+pace. Tier two adds the drawn explanation, the figure and three questions as the concept cores land.
+A tier one page never implies it has an explanation it does not have.
