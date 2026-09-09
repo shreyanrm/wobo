@@ -1640,3 +1640,15 @@ when every lens scores 4.
 listing, because the entity problem is solved by agreement between sources, not by cleverness. The
 owner's list, in order: Wikidata, LinkedIn company page, Crunchbase, Product Hunt, Google Business
 Profile, the app stores when the shells ship, G2 and Capterra. Ours to build: heywobo.com/press.
+
+### 10.51 Taking the name (owner, 2026-09-09)
+
+*"We need to take over the name Wobo."* docs/GROWTH-ENTITY.md is the plan. The strategy: do not fight
+for the bare word, win every qualified query and the Indian market, and the word follows the volume,
+because entity resolution is per-market and follows the people. Checked today: `wobo.com`, `.in`,
+`.ai`, `.app`, `.io` are taken; **`wobo.ink` and `wobo.co.in` are available**, the first being the
+better brand asset we could own (we are the tutor that draws), the second being the strongest per-market
+signal. Owner actions: register those two and park the education set; file the trademark in India in
+classes 41 and 9; create the ten listings with the copy in docs/copy/press-kit.md unchanged. Ours:
+pre-render the site, the press page, the sameAs graph, the chapter pages, and the monthly measure of
+what each answer engine says Wobo is.
