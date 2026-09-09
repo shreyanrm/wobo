@@ -1,0 +1,75 @@
+# NOW: everything discussed, and where it actually is
+
+**The rule (owner, 2026-09-09):** *"Everything we discuss should be on a task list, it should be in
+motion. Eventually we can just keep ideas as plans without implementation."* So nothing said in a
+conversation is finished until it appears here with a state. This file is the single board. It is
+updated in the same breath as the decision, not later.
+
+**States:** `RUNNING` a wave is working on it now · `QUEUED` written and waiting on the tree ·
+`TO WRITE` decided, the wave is not written yet · `OWNER` waiting on the owner and nothing else ·
+`LANDED` in the repository and verified.
+
+## Running now
+
+| What | Wave | Where it is |
+|---|---|---|
+| The ink aims at the right thing | 41 | judge scored 1.62 (from 0.96); the closer is on 14 findings |
+| The public site becomes readable by crawlers | 43 | pre-render, real 404s, one address per document, previews, the entity graph |
+| The page families | 44 | the open syllabus door, then chapters, topics, subjects, comparisons, the blog |
+
+## Queued, written, waiting only on the tree
+
+| What | Wave | Why it waits |
+|---|---|---|
+| Four out of four on the ink | 42 | needs 41 to land; loops build, judge, close until every lens scores 4 |
+| No trace of the old name | 40 | touches the gate scripts the others read |
+| The parent's account screens | 34 | shares files with the ink waves |
+| The daily allowance, the models desk, the free pool cap | 36 | shares the gateway with the ink waves |
+| The content layers, the caches, the five stores | 37 | the concept cores that tier-two pages need |
+| Mail, and the animation library (12 moves, every surface) | 38 | touches surfaces the ink waves hold |
+
+## Decided, still to write
+
+| What | Where it is specified |
+|---|---|
+| The board cold start: never an empty shelf, teaching does not wait | docs/BOARD-COLD-START.md |
+| The discovery worker on, prewarmed by student population | WOBO-TASKS 10.54 |
+| The board changes once, then a person handles it | docs/CONSOLE-ROLES-AND-BOARD.md |
+| One owner, and the owner shapes every other role | docs/CONSOLE-ROLES-AND-BOARD.md |
+| The growth desk: gather, make, post, measure | docs/GROWTH-DESK.md |
+| The press page and the launch assets | docs/GROWTH-PRESS.md, docs/copy/press-kit.md |
+| The adaptive line on the public pages | docs/copy/growth/lines.md, WOBO-TASKS 10.47 |
+| Chapter pages tier two: the drawn explanation and three questions | docs/GROWTH-SEARCH.md, needs 37 |
+| The Android shell | docs/PLATFORMS.md |
+| The 67 handcrafted pages, designed one at a time | docs/GROWTH-SEARCH.md section 6 |
+
+## Waiting on the owner, and nothing else
+
+| What | Why it matters | Effort |
+|---|---|---|
+| Claim @heywobo everywhere, and linkedin.com/company/wobo | a handle is first-come and unobtainable once noticed | an hour |
+| Reserve the app name Wobo in Play Console and App Store Connect | same, plus it is a strong entity signal | a form, about 10,500 rupees a year |
+| Add heywobo.com in Resend and put the three records plus DMARC in DNS | until this is done, not one mail has ever been delivered | half an hour |
+| A real mailbox behind hello@ and support@ | replies are the strongest inbox signal there is | minutes |
+| Set WOBO_DISCOVERY_WORKER on Railway | 264 boards are named and empty until this runs | one variable |
+| Top up the Anthropic account | the cross-provider second opinion is out of credit | minutes |
+| File the Wobo trademark in India, classes 41 and 9 | the legal backstop for the name | a lawyer |
+| Create the listings: Wikidata, LinkedIn, Crunchbase, Product Hunt, Google Business Profile | this is what makes an engine answer "Wobo is an AI tutor" | an afternoon, copy is written |
+| Razorpay keys | checkout answers 503 until they exist | minutes |
+| Turn on Supabase leaked-password protection | an open advisory | one switch |
+| Push the branch | 100 or so commits sit local | one command |
+
+## Landed today
+
+The four-out-of-four standard; the ink law (freeze, plan, trace); the search law; the content desk;
+press, awards and the press kit's exact words; the entity plan and the handle audit; the naming law
+(the brand is Wobo, heywobo.com is an address); the animation library widened to twelve moves on every
+surface; the board cold start; the console roles and the board-change rule; the platforms order; the
+free tier's rule that quality is shared and quantity is sold; the create tier on Astra paid by the
+platform; wave 32 and wave 35 verified, committed and deployed to both ends.
+
+## The rule about this file
+
+Anything decided in conversation is written here before the conversation moves on. A plan with no row
+here does not exist. A row that sits in `TO WRITE` for more than a few days is either written or struck
+out on purpose, never left to rot.

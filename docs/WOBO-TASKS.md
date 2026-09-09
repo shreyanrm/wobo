@@ -1,3 +1,7 @@
+> **The live board is docs/NOW.md**: everything discussed, with its state (running, queued, to write,
+> waiting on the owner, landed). This file is the long-form ledger behind it. Nothing is decided in a
+> conversation without a row appearing in NOW.md in the same breath (owner, 2026-09-09).
+
 # Wobo — task list
 
 Companion to `docs/WOBO-PLAN.md`. Every task is a checkbox; checked off with the commit that closed it. Waves 1 to 4 come from the 2026-09-02 audit (246 findings; the report is kept outside the repo); waves 5 to 9 are the product. Nothing starts on ambiguity between waves; each wave ends with all gates green, a commit, a push, screenshot proof, and an update to this file.
