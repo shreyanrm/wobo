@@ -1910,3 +1910,27 @@ reach (three shape mismatches between the web's post and the gateway's contract,
 files) and a one-way valve where the dial could be shut and never reopened. Suites: web 3140, sdk 177,
 gateway green, typecheck clean. **Two owner switches remain and code cannot do them**: turn off "Allow
 new users to sign up" and anonymous sign-ins in Supabase, and apply migrations 0024 and 0025.
+
+### 10.66 The mail law, researched rather than assumed (owner, 2026-09-10)
+
+docs/MAIL-PRIMARY.md, from three readers. **No mailbox provider documents any sender-side lever over
+tab placement.** Google's only tab guidance ever ("send different categories from different addresses",
+"never mix categories in one message") was deleted from the Bulk Senders Guidelines between 2019-04-25
+and 2020-06-16 and survives only as spam guidance. The `Precedence: bulk` instruction that every ESP
+article still quotes is from that same dead page. `List-Unsubscribe` is required and neutral, not a
+push toward Promotions. Google does not track open rates. Below 5,000 messages a day, SPF **or** DKIM
+satisfies Gmail; DMARC and one-click unsubscribe are 5,000-plus requirements, and we do them anyway.
+Apple now runs its own on-device categoriser, and Apple's privacy protection loads remote content
+regardless of engagement, so open tracking is dead as a signal.
+
+Two consequences shape the law. **Placement belongs to the recipient, not the message**: Google
+documents that dragging trains Gmail and Microsoft exposes a per-user override keyed on the sender's
+address, so one stable sending address held for years is worth more than any template decision. And
+**Updates is not a failure**: Google defines it as automated confirmations, notifications, statements
+and reminders, which is exactly six of our kinds (plan confirmation, receipt, both renewals, payment
+failed, cancellation). Primary matters for five: the welcome, the quick one, the mid-chapter, the doubt
+solved and the Sunday note to a parent. We never promise Primary to anyone, including ourselves.
+
+The file carries 26 assertions a test can run over every rendered template, eight subject lines and
+eight opening lines for the real family, the envelope headers to set and to omit, and 15 things the
+readers could not establish that we have to measure ourselves.

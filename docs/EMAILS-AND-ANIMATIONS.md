@@ -96,6 +96,15 @@ for the destination.
 
 ## 6. Landing in Primary, not Promotions
 
+> **Superseded 2026-09-10 by docs/MAIL-PRIMARY.md**, which is researched rather than assumed and is the
+> law. Three corrections it makes to this section: nobody documents any sender-side lever over tab
+> placement at all, so we never promise Primary; `Precedence: bulk` advice everywhere on the internet
+> quotes a Google page deleted between April 2019 and June 2020; and `List-Unsubscribe` is required and
+> neutral rather than a push toward Promotions. Also: **Updates is the correct home for six of our
+> kinds** (the receipts and renewals), and Primary matters for five. The DNS steps below still stand,
+> with the sending domain now `mail.heywobo.com`.
+
+
 **The owner, later the same day:** *"They use such wording or tactics that their mails do not end up
 in Updates or Promotions or Spam; they come straight to Primary. We need to do that too."*
 

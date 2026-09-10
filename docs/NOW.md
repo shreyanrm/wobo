@@ -37,6 +37,7 @@ updated in the same breath as the decision, not later.
 | The board changes once, then a person handles it | docs/CONSOLE-ROLES-AND-BOARD.md |
 | One owner, and the owner shapes every other role | docs/CONSOLE-ROLES-AND-BOARD.md |
 | The growth desk: gather, make, post, measure | docs/GROWTH-DESK.md |
+| The mail law enforced: 26 assertions over every rendered template, the eight subjects and openings rewritten | docs/MAIL-PRIMARY.md |
 | The press page and the launch assets | docs/GROWTH-PRESS.md, docs/copy/press-kit.md |
 | The adaptive line on the public pages | docs/copy/growth/lines.md, WOBO-TASKS 10.47 |
 | Chapter pages tier two: the drawn explanation and three questions | docs/GROWTH-SEARCH.md, needs 37 |
