@@ -108,9 +108,26 @@ key we hold cannot list domains, DNS is the proof); so the gateway holds every l
 third thing; the first two come first.
 
 **First, the identity (an owner action, half an hour, once):**
-1. Add `heywobo.com` in Resend (region: the nearest to India) and put its three records into Vercel
-   DNS: the DKIM `TXT` at `resend._domainkey`, the SPF `TXT` and the `MX` for the bounce address
-   at `send.heywobo.com` (a sending subdomain keeps bounces and reputation off the root).
+1. **Add the ROOT domain `heywobo.com` in Resend** (region: the nearest to India) and put its three
+   records into Vercel DNS: the DKIM `TXT` at `resend._domainkey`, and the SPF `TXT` plus the `MX`
+   for the bounce address at `send`. Note what `send` is and is not: **it is the hostname Resend puts
+   the bounce records at, automatically, whatever domain you add.** It is not a choice and it never
+   appears in a From address.
+
+   **The choice is root versus a subdomain for the From address, and we send from the root.** Resend
+   recommends a subdomain (their examples are `updates.` and `notifications.`) to isolate sending
+   reputation, and that advice is right for a company running bulk marketing beside its product mail.
+   It is wrong for us, for four reasons. A parent deciding whether to trust us with a child reads
+   `hello@heywobo.com` and trusts it; `hello@updates.heywobo.com` reads as a mailing list, and
+   `hello@notifications.heywobo.com` reads as a machine. We have no marketing programme to separate
+   from product mail, and the growth desk posts to channels rather than mailing anyone. There is no
+   existing reputation on the root to protect, and no person's mail lives there (the owner is on
+   another domain entirely). And the inbox law makes a bad batch unlikely by construction: one mail
+   per address per twenty-four hours, never on a day the learner came, unsubscribe honoured at once.
+
+   **If we ever add a real newsletter or any bulk sending, that goes on its own subdomain** and the
+   product mail stays where it is. That is the moment the isolation argument becomes true, and not
+   before.
 2. Publish DMARC: `_dmarc.heywobo.com TXT "v=DMARC1; p=none; rua=mailto:dmarc@heywobo.com"`,
    then `p=quarantine` after two clean weeks. Gmail's 2024 sender rules require SPF, DKIM, an
    aligned DMARC, one-click `List-Unsubscribe-Post` (we send it), a spam rate under 0.3 percent,
