@@ -22,6 +22,7 @@ import { useDoorsOpen } from './dial';
 import {
   FOOTER_COLUMNS,
   FOOTER_LINE,
+  FOOTER_SOCIALS,
   headerDoors,
   NAV_LINKS,
   SiteLink,
@@ -130,6 +131,26 @@ export function SiteShell({
               </SiteLink>
             </div>
             <p className="st-line">{FOOTER_LINE}</p>
+            {/*
+              The same listings the entity graph names, read from `shell/profiles.ts` rather than
+              typed again, so the footer and the markup can never say two different things about
+              where Wobo is. Nothing unclaimed appears (docs/GROWTH-ENTITY.md).
+            */}
+            {FOOTER_SOCIALS.length > 0 ? (
+              <p className="st-social">
+                {FOOTER_SOCIALS.map((social) => (
+                  <a
+                    key={social.href}
+                    href={social.href}
+                    rel="me noopener"
+                    target="_blank"
+                    aria-label={`Wobo on ${social.label}`}
+                  >
+                    {social.label}
+                  </a>
+                ))}
+              </p>
+            ) : null}
           </div>
           {FOOTER_COLUMNS.map((column) => (
             <div key={column.title}>

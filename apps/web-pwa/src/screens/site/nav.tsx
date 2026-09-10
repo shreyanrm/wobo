@@ -16,6 +16,7 @@
  * holds the labels to that source, the order to the funnel, and every address to the router.
  */
 
+import { PROFILES } from '../../shell/profiles';
 import type { MouseEvent, ReactNode } from 'react';
 import { addressOf, pathToRoute, type Route, useRouter } from '../../shell/router';
 import { ctaFor } from './cta';
@@ -187,6 +188,22 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
     ],
   },
 ];
+
+/**
+ * The places a reader can follow Wobo, in the footer of every public page.
+ *
+ * These are the SAME listings the entity graph names in `shell/profiles.ts`, read from it rather
+ * than typed a second time: a footer that pointed somewhere the markup did not would be two
+ * answers to "where is Wobo", which is the exact thing the entity work exists to stop
+ * (docs/GROWTH-ENTITY.md). Nothing unclaimed appears here for the same reason it never reaches
+ * `sameAs`: a link to a handle nobody holds is a broken promise, and one somebody else holds is
+ * worse. The name is always Wobo and `heywobo` is only the handle (§2).
+ */
+export const FOOTER_SOCIALS: readonly { readonly label: string; readonly href: string }[] =
+  PROFILES.filter((p) => p.claimed && p.kind === 'social' && p.url).map((p) => ({
+    label: p.platform,
+    href: p.url as string,
+  }));
 
 /** The line under the footer's wordmark. */
 export const FOOTER_LINE = 'A tutor that draws, never judges, and is always there.';

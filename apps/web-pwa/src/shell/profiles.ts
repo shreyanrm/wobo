@@ -83,8 +83,8 @@ export const PROFILES: readonly EntityProfile[] = [
     id: 'linkedin',
     platform: 'LinkedIn',
     kind: 'listing',
-    url: 'https://www.linkedin.com/company/wobo',
-    claimed: false,
+    url: `https://www.linkedin.com/company/${HANDLE}`,
+    claimed: true,
     note: 'The bare name was free on 2026-09-09 and a company page is one of the strongest entity signals there is, so this one is taken under Wobo rather than under the handle.',
   },
   {
@@ -100,7 +100,7 @@ export const PROFILES: readonly EntityProfile[] = [
     platform: 'X',
     kind: 'social',
     url: `https://x.com/${HANDLE}`,
-    claimed: false,
+    claimed: true,
     note: 'Free on 2026-09-09 under the handle; the bare name is held by another product.',
   },
   {
@@ -132,8 +132,8 @@ export const PROFILES: readonly EntityProfile[] = [
     platform: 'Instagram',
     kind: 'social',
     url: `https://www.instagram.com/${HANDLE}`,
-    claimed: false,
-    note: 'Instagram returns success for any string from outside, so this one has to be checked by hand while signed in.',
+    claimed: true,
+    note: 'Held by the owner under the handle, confirmed 2026-09-10.',
   },
   {
     id: 'threads',

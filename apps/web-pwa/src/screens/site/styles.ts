@@ -106,6 +106,12 @@ export const SITE_CSS = `
 .st-footer .st-wm svg{height:22px;color:var(--paper)}
 .st-footer a[aria-current="page"]{color:var(--paper)}
 .st-footer .st-line{margin-top:10px;max-width:28ch}
+/* Where to follow Wobo. Quiet by design: the footer's job is the columns, and these sit under the
+   line as a row of words rather than a row of logos, because a brand mark we do not own is not
+   ours to draw and a glyph set is weight for nothing. Phone hit areas clear 44px (DESIGN.md). */
+.st-footer .st-social{margin-top:12px;display:flex;flex-wrap:wrap;gap:16px}
+.st-footer .st-social a{color:var(--ink-2);font-size:15px;text-decoration:none;text-underline-offset:4px;padding:11px 0}
+.st-footer .st-social a:hover,.st-footer .st-social a:focus-visible{color:var(--ink);text-decoration:underline}
 
 /* --- prose: reviewed copy, rendered (help articles, the legal set, the gift page) ------------ */
 .st-prose{color:var(--ink-2);font-size:17px;line-height:1.65;max-width:68ch}
