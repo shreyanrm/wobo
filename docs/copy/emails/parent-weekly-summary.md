@@ -3,7 +3,7 @@
 **Kind:** hospitality, recurring
 **Trigger:** weekly, where a parent link is active and the learner did something that week
 **To:** the parent
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** Sunday evening, parent's local time
 **Category:** weekly summaries. Off switch in every send.
 

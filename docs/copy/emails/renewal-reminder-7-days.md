@@ -3,7 +3,7 @@
 **Kind:** transactional
 **Trigger:** 7 days before any renewal
 **To:** the account holder who pays
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** 7 days before {{renewal_date}}
 **Category:** billing. Not switchable off.
 

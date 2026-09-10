@@ -80,7 +80,7 @@ def idempotency_key(kind: str, to: str, period: str, *, learner_id: str | None =
 # swap is a deploy change, not a code change. The defaults are the real domain now that it exists
 # (heywobo.com, bought 2026-09-03); the host still sets them, and until the sending domain is
 # verified with the provider EMAIL_MODE=console means nothing leaves on any of these.
-_FROM = os.getenv("EMAIL_FROM", "Wobo <hello@heywobo.com>")
+_FROM = os.getenv("EMAIL_FROM", "Wobo <hello@mail.heywobo.com>")
 _REPLY_TO = os.getenv("EMAIL_REPLY_TO", "support@heywobo.com")
 _API_URL = os.getenv("EMAIL_API_URL", "https://api.resend.com/emails")
 _HTTP_TIMEOUT_S = 20.0

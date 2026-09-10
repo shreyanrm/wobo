@@ -3,7 +3,7 @@
 **Kind:** transactional
 **Trigger:** an email address is added to an account, or used to sign in for the first time
 **To:** the address being verified
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** immediately
 **Category:** account. Not switchable off.
 

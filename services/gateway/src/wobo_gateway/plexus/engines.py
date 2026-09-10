@@ -1679,16 +1679,30 @@ def _complete(
     fallbacks: tuple[str, ...],
     *,
     timeout_s: float | None = None,
+    system: str | None = None,
+    capability: str | None = None,
+    meter: dict[str, Any] | None = None,
 ) -> tuple[str, int]:
+    """One model call for an engine. ``(text, total tokens)``.
+
+    ``system`` overrides the modality's system message — the concept core and the level rendering
+    are both ``compose``-shaped calls with different briefs (docs/CONTENT-INTERACTION.md §5.2), and
+    a second modality for each would have doubled the schema, the max-token table and the timeout
+    table for no gain. ``capability`` is what the cost is recorded AGAINST, so a core and a level
+    are two lines in the ledger and not one blur. ``meter``, when a caller passes a dict, is filled
+    with what this call cost and what it used: the layer ledger (:mod:`plexus.economy`) needs the
+    per-call number and this is the only place that knows it. A stubbed ``_complete`` in a test
+    simply leaves the dict empty, which reads as "not measured" rather than as "free"."""
     # Through ``model_call``, never ``litellm.completion`` directly: it drops the sampling knob a
     # model in the chain would refuse (Claude 5 takes only its default) and retries once, so one
     # fussy model in the chain is never read as the whole chain being down.
     from wobo_gateway.model_call import complete as model_complete
 
+    cap = capability or f"engine.{modality}"
     response = model_complete(
         model=provider_model,
         messages=[
-            {"role": "system", "content": _SYSTEMS[modality] + _DATA_RULE},
+            {"role": "system", "content": (system or _SYSTEMS[modality]) + _DATA_RULE},
             {"role": "user", "content": user},
         ],
         fallbacks=list(fallbacks) or None,
@@ -1698,10 +1712,34 @@ def _complete(
         # a generation slot, and the learner's budget open forever.
         timeout=timeout_for(f"engine.{modality}", timeout_s),
     )
-    record_cost(capability=f"engine.{modality}", model=provider_model, response=response)
+    cost = record_cost(capability=cap, model=provider_model, response=response)
     text = response.choices[0].message.content or ""
     usage = getattr(response, "usage", None)
-    return text, int(getattr(usage, "total_tokens", 0) or 0)
+    total = int(getattr(usage, "total_tokens", 0) or 0)
+    if meter is not None:
+        served = str(getattr(response, "served_model", "") or "") or provider_model
+        tokens_in = int(getattr(usage, "prompt_tokens", 0) or 0)
+        tokens_out = int(getattr(usage, "completion_tokens", 0) or 0)
+        # litellm prices what it has a table for; the vendors' own per-million rates in
+        # ``routing.CATALOGUE`` price the rest, and the row says which of the two answered.
+        source = "litellm"
+        if cost is None:
+            from wobo_gateway.routing import token_cost
+
+            cost = token_cost(served, tokens_in, tokens_out)
+            source = "catalogue" if cost is not None else "unpriced"
+        meter.update(
+            {
+                "model": served,
+                "capability": cap,
+                "tokens": total,
+                "tokensIn": tokens_in,
+                "tokensOut": tokens_out,
+                "costUsd": cost,
+                "costSource": source,
+            }
+        )
+    return text, total
 
 
 def _raster_diagram(concept: str, difficulty: str) -> str | None:

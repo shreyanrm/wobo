@@ -3,7 +3,7 @@
 **Kind:** hospitality
 **Trigger:** a day passes with no activity and the weekly rest day covers it, keeping the streak intact
 **To:** the learner
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** the following morning, local time
 **Category:** progress moments. Off switch in footer.
 

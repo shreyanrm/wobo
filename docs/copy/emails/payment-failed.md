@@ -3,7 +3,7 @@
 **Kind:** transactional
 **Trigger:** a charge is declined. Sends on the first failure and once more before the plan ends.
 **To:** the account holder who pays
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** within an hour of the decline
 **Category:** billing. Not switchable off.
 

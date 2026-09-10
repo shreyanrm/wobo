@@ -189,7 +189,7 @@ export function penMaskId(id: string, glyphKey: string): string {
 
 // --- Geometry cache ----------------------------------------------------------------------------------
 
-interface CacheEntry {
+export interface CacheEntry {
   sig: string;
   generation: number;
   font: HandFont | null;
@@ -525,7 +525,7 @@ function ControlHit(props: {
 }
 
 /** One object, resolved: its geometry, how long the pen takes over it, and what it hangs from. */
-interface Built {
+export interface Built {
   state: BoardObjectState;
   geometry: ObjectGeometry | null;
   durMs: number;
@@ -541,7 +541,7 @@ interface Built {
 
 const NO_BUILD: Built[] = [];
 
-interface BuildContext {
+export interface BuildContext {
   frame: BoardFrame;
   font: HandFont | null;
   store: BoardStore;
@@ -556,12 +556,117 @@ interface BuildContext {
   avoid?: (near: RectLike) => readonly RectLike[];
 }
 
+/** The anchor-bearing side channels: an arrow starts somewhere, a line ends somewhere. */
+interface AnchorHolder {
+  from?: unknown;
+  to?: unknown;
+  object?: unknown;
+}
+
+/** Every object id whose box this object's geometry reads. */
+function anchorObjectId(a: unknown): string | null {
+  return a && typeof a === 'object' && 'object' in a && typeof (a as { object: unknown }).object === 'string'
+    ? ((a as { object: string }).object)
+    : null;
+}
+
+/**
+ * THE IDS THIS MARK CANNOT BE DRAWN WITHOUT (the adversary, wave 48, findings 1 and 2).
+ *
+ * Not only the anchor: an arrow reads its `from`, a line its `to`, a swipe the box of the object
+ * it takes off. Every one of those is `resolveAnchorBox` against `ctx.objectBox`, so every one of
+ * them is a build-order edge.
+ */
+export function objectDependencies(
+  state: BoardObjectState,
+  store: Pick<BoardStore, 'anchorOf'>,
+): string[] {
+  const out: string[] = [];
+  const push = (id: string | null) => {
+    if (id && id !== state.object.id && !out.includes(id)) out.push(id);
+  };
+  push(anchorObjectId(store.anchorOf(state)));
+  const o = state.object as unknown as AnchorHolder;
+  if (state.object.kind === 'arrow') push(anchorObjectId(o.from));
+  if (state.object.kind === 'line') push(anchorObjectId(o.to));
+  if (state.object.kind === 'erase' && typeof o.object === 'string') push(o.object);
+  return out;
+}
+
+/**
+ * The order the pass must build in: a mark that hangs off another is built AFTER it, however the
+ * two were beaten. Stable — anything with no dependency between it and its neighbour keeps its
+ * arrival order, because arrival order is z-order and the store is the only authority on that.
+ *
+ * A cycle (a label on an arrow on the label) is not dropped: whatever is still unplaced when no
+ * further mark can be placed is emitted in arrival order, and the second pass in `buildObjects`
+ * picks up whichever half of it resolved.
+ */
+export function dependencyOrder(
+  states: readonly BoardObjectState[],
+  store: Pick<BoardStore, 'anchorOf'>,
+): BoardObjectState[] {
+  const present = new Map<string, BoardObjectState>();
+  for (const s of states) present.set(s.object.id, s);
+  const out: BoardObjectState[] = [];
+  const done = new Set<string>();
+  const open = new Set<string>();
+  const visit = (state: BoardObjectState): void => {
+    const id = state.object.id;
+    if (done.has(id) || open.has(id)) return;
+    open.add(id);
+    for (const dep of objectDependencies(state, store)) {
+      const on = present.get(dep);
+      if (on) visit(on);
+    }
+    open.delete(id);
+    done.add(id);
+    out.push(state);
+  };
+  for (const s of states) visit(s);
+  return out;
+}
+
+/**
+ * The marks whose geometry can move without the surface moving: anything hanging off the page, and
+ * anything that hangs off one of those, transitively and WHATEVER ORDER THEY WERE BEATEN IN. The
+ * old single forward walk missed a label beaten before the ring it sits on, so the label was built
+ * on the settled clock and stood still while its ring travelled with the page.
+ */
+export function liveObjectIds(
+  states: readonly BoardObjectState[],
+  store: Pick<BoardStore, 'anchorOf'>,
+): Set<string> {
+  const live = new Set<string>();
+  const deps = new Map<string, string[]>();
+  for (const state of states) {
+    deps.set(state.object.id, objectDependencies(state, store));
+    if (isScreenAnchored(store.anchorOf(state))) live.add(state.object.id);
+  }
+  // Fixed point: cheap, and bounded by the render budget.
+  for (;;) {
+    let grew = false;
+    for (const [id, on] of deps) {
+      if (live.has(id)) continue;
+      if (on.some((d) => live.has(d))) {
+        live.add(id);
+        grew = true;
+      }
+    }
+    if (!grew) break;
+  }
+  return live;
+}
+
 /**
  * Resolve a set of objects into geometry, reusing the cache wherever the anchor signature, the
  * generation and the font are all unchanged. Split out of the component so the board-anchored half
  * and the screen-anchored half can be built on different clocks (see `liveIds`).
+ *
+ * Built in DEPENDENCY order and returned in STORE order: the first is what makes an `{object: …}`
+ * anchor resolvable at all, the second is z-order.
  */
-function buildObjects(states: readonly BoardObjectState[], build: BuildContext): Built[] {
+export function buildObjects(states: readonly BoardObjectState[], build: BuildContext): Built[] {
   const { frame, font, store, cache, boxes, occupied } = build;
   const targetMap = new Map<string, BoardTarget>();
   for (const t of build.targets()) targetMap.set(t.id, t);
@@ -598,8 +703,7 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
         }
       : {}),
   };
-  const out: Built[] = [];
-  for (const state of states) {
+  const resolve = (state: BoardObjectState): Built => {
     const anchor = store.anchorOf(state);
     const key = state.object.id;
     const hit = cache.get(key);
@@ -611,15 +715,14 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
       gone = rect === null || (onGlass && offGlass(rect, frame));
     }
     if (gone && hit?.geometry) {
-      out.push({
+      return {
         state,
         geometry: hit.geometry,
         durMs: hit.durMs,
         slots: hit.slots,
         sig: hit.sig,
         gone: true,
-      });
-      continue;
+      };
     }
     const sigBox = anchor ? resolveAnchorBox(anchor, ctx) : null;
     const sig = `${anchorSignature(sigBox)}|${frame.zoom}`;
@@ -639,8 +742,17 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
         durMs: drawTimeOf(state, geometry, frame),
         slots: geometry ? strokeSlots(geometry) : [],
       };
+      /**
+       * NEVER CACHE AN EMPTY GEOMETRY UNDER A SIGNATURE THAT CANNOT CHANGE (the adversary, wave
+       * 48, finding 2). An `{object: …}` anchor that did not resolve signs itself `gone|zoom`;
+       * if that were cached, the entry would be reused for ever, because a signature taken of a
+       * box that does not exist never moves. The mark is left uncached instead, so the next pass
+       * — the one where the thing it hangs off has finally been drawn — builds it for real.
+       */
+      const pending =
+        geometry === null && objectDependencies(state, store).some((d) => !boxes.has(d));
       // A mark whose box came back null keeps whatever it last drew: the fade above needs it.
-      if (geometry || !hit?.geometry) cache.set(key, entry);
+      if (!pending && (geometry || !hit?.geometry)) cache.set(key, entry);
     }
     if (entry.geometry) {
       boxes.set(key, entry.geometry.box);
@@ -648,14 +760,45 @@ function buildObjects(states: readonly BoardObjectState[], build: BuildContext):
       // plot (layout.blocksLayout). Every other kind takes its space.
       if (blocksLayout(String(state.object.kind))) occupied.push(entry.geometry.box);
     }
-    out.push({
+    return {
       state,
       geometry: entry.geometry,
       durMs: entry.durMs,
       slots: entry.slots,
       sig: entry.sig,
       gone,
-    });
+    };
+  };
+
+  const order = dependencyOrder(states, store);
+  const done = new Map<string, Built>();
+  for (const state of order) done.set(state.object.id, resolve(state));
+  /**
+   * THE SECOND PASS. Dependency order settles everything that can be settled in one sweep, but a
+   * cycle (a note on an arrow that starts at the note) leaves whichever mark was opened first
+   * without a box. Now that every box this pass could fill IS filled, try the empties again.
+   * Bounded to two sweeps over what is still empty, so a board of two thousand strokes pays
+   * nothing for a board with no cycle in it.
+   */
+  for (let sweep = 0; sweep < 2; sweep += 1) {
+    let healed = false;
+    for (const state of order) {
+      const b = done.get(state.object.id);
+      if (!b || b.geometry || b.gone) continue;
+      if (!objectDependencies(state, store).some((d) => boxes.has(d))) continue;
+      const again = resolve(state);
+      if (again.geometry) {
+        done.set(state.object.id, again);
+        healed = true;
+      }
+    }
+    if (!healed) break;
+  }
+  // Back in STORE order: the build order is a dependency, z-order is arrival.
+  const out: Built[] = [];
+  for (const state of states) {
+    const b = done.get(state.object.id);
+    if (b) out.push(b);
   }
   return out;
 }
@@ -966,19 +1109,7 @@ export function BoardSurface(props: BoardSurfaceProps) {
    * them once a frame because one mark on the screen was among them cost 30 fps on a throttled
    * machine — and a mark on the screen is Wobo's commonest turn, so that was the ordinary case.
    */
-  const liveIds = useMemo(() => {
-    const live = new Set<string>();
-    for (const state of rendered) {
-      const anchor = store.anchorOf(state);
-      if (isScreenAnchored(anchor)) {
-        live.add(state.object.id);
-      } else if (anchor && 'object' in anchor && live.has(anchor.object)) {
-        // It hangs off something that moves, so it moves.
-        live.add(state.object.id);
-      }
-    }
-    return live;
-  }, [rendered, store]);
+  const liveIds = useMemo(() => liveObjectIds(rendered, store), [rendered, store]);
   const hasScreenAnchor = liveIds.size > 0;
   const screenTick = hasScreenAnchor ? paint : 0;
 

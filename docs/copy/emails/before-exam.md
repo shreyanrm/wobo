@@ -3,7 +3,7 @@
 **Kind:** hospitality
 **Trigger:** an exam the learner told Wobo about, or a board exam window for their board and class, is {{days_until}} away. Sends at 14 days and 3 days.
 **To:** the learner
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** early evening local time
 **Category:** exam reminders. Off switch in footer.
 

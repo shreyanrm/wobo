@@ -3,7 +3,7 @@
 **Kind:** transactional, sent once
 **Trigger:** account created and first sign-in completed
 **To:** the learner
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** immediately
 **Category:** account. Not switchable off.
 

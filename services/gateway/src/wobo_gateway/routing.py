@@ -168,6 +168,29 @@ CATALOGUE: dict[str, Price] = {
 }
 
 
+def token_cost(
+    provider_model: str, tokens_in: int | None, tokens_out: int | None
+) -> float | None:
+    """USD for one call, from the vendor's own per-million rates in :data:`CATALOGUE`.
+
+    litellm prices what its table knows; this prices what the catalogue knows, which is every id
+    this router may actually route to. It exists because the content economy is measured per LAYER
+    (a concept core against a level rendering, ``plexus/economy.py``) and a layer whose price came
+    back ``None`` cannot be compared with one that did — the saving would be a claim.
+
+    ``None`` when the id is not in the catalogue, when its unit is not a token (voice, imagery: the
+    seams that call those price the unit the learner received), or when the provider reported no
+    usage. None is never rendered as zero anywhere downstream."""
+    price = CATALOGUE.get(provider_model)
+    if price is None or price.per_million_in is None or price.per_million_out is None:
+        return None
+    if tokens_in is None and tokens_out is None:
+        return None
+    cost = (max(0, tokens_in or 0) / 1_000_000.0) * price.per_million_in
+    cost += (max(0, tokens_out or 0) / 1_000_000.0) * price.per_million_out
+    return round(cost, 8)
+
+
 def provider_of(model_id: str) -> str:
     """``openai/gpt-5.6-terra`` -> ``openai``. An id with no prefix has no provider we can name."""
     return model_id.split("/", 1)[0] if "/" in model_id else ""

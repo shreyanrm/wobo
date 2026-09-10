@@ -5,7 +5,7 @@
 **Kind:** transactional
 **Trigger:** a password reset is requested for an account that has a password set
 **To:** the account's verified email address
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** immediately
 **Category:** account. Not switchable off.
 

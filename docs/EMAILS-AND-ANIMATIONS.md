@@ -108,26 +108,36 @@ key we hold cannot list domains, DNS is the proof); so the gateway holds every l
 third thing; the first two come first.
 
 **First, the identity (an owner action, half an hour, once):**
-1. **Add the ROOT domain `heywobo.com` in Resend** (region: the nearest to India) and put its three
-   records into Vercel DNS: the DKIM `TXT` at `resend._domainkey`, and the SPF `TXT` plus the `MX`
-   for the bounce address at `send`. Note what `send` is and is not: **it is the hostname Resend puts
-   the bounce records at, automatically, whatever domain you add.** It is not a choice and it never
-   appears in a From address.
+1. **Add `mail.heywobo.com` in Resend** (region: the nearest to India) and put its records into
+   Vercel DNS: the DKIM `TXT` at `resend._domainkey.mail`, and the SPF `TXT` plus the bounce `MX` at
+   `send.mail`. Note what `send` is: **the hostname Resend puts the bounce records at, automatically,
+   whatever domain you add.** It is not a choice and it never appears in a From address.
 
-   **The choice is root versus a subdomain for the From address, and we send from the root.** Resend
-   recommends a subdomain (their examples are `updates.` and `notifications.`) to isolate sending
-   reputation, and that advice is right for a company running bulk marketing beside its product mail.
-   It is wrong for us, for four reasons. A parent deciding whether to trust us with a child reads
-   `hello@heywobo.com` and trusts it; `hello@updates.heywobo.com` reads as a mailing list, and
-   `hello@notifications.heywobo.com` reads as a machine. We have no marketing programme to separate
-   from product mail, and the growth desk posts to channels rather than mailing anyone. There is no
-   existing reputation on the root to protect, and no person's mail lives there (the owner is on
-   another domain entirely). And the inbox law makes a bad batch unlikely by construction: one mail
-   per address per twenty-four hours, never on a day the learner came, unsubscribe honoured at once.
+   **Product mail is sent from `Wobo <hello@mail.heywobo.com>`. Support stays on the root, at
+   `support@heywobo.com`, and is the reply-to on every message.** So a person writing back reaches a
+   root-domain mailbox that no automated sending can ever damage.
 
-   **If we ever add a real newsletter or any bulk sending, that goes on its own subdomain** and the
-   product mail stays where it is. That is the moment the isolation argument becomes true, and not
-   before.
+   **Why a subdomain, having first argued for the root.** The decisive fact is that our own plan
+   contains a batch: on the day the door opens, everyone on the waiting list gets one message at
+   once, and some of them signed up months earlier and will have forgotten. A stale list sent in one
+   day is the classic way a domain's reputation is burned, and recovery is slow precisely because our
+   volume is low: reputation is rebuilt by clean sending, and Google will not even show us Postmaster
+   data below a few thousand messages a day. Isolation is therefore worth having before the risk
+   arrives, not after.
+
+   The cost of a subdomain is also smaller than it first appears. **A person's inbox list shows the
+   display name, "Wobo", and the subject; the address is only read if they expand the header.** So
+   `mail.heywobo.com` costs almost nothing in trust while protecting the one address a worried parent
+   might actually write to.
+
+   **Why `mail.` and not `updates.` or `notes.`.** `updates.` self-labels as a mailing list to both a
+   filter and a reader, which is an argument against ourselves. `notes.` is truer to our own language
+   (the Sunday note) but cuteness costs clarity in an address that has to be parsed at a glance.
+   `mail.` is read instantly by a person and by a filter, and it claims nothing.
+
+   Alignment holds: the From, the DKIM signature and the Return-Path all sit under
+   `mail.heywobo.com`, and a DMARC record on the root covers the subdomain.
+
 2. Publish DMARC: `_dmarc.heywobo.com TXT "v=DMARC1; p=none; rua=mailto:dmarc@heywobo.com"`,
    then `p=quarantine` after two clean weeks. Gmail's 2024 sender rules require SPF, DKIM, an
    aligned DMARC, one-click `List-Unsubscribe-Post` (we send it), a spam rate under 0.3 percent,
@@ -135,11 +145,13 @@ third thing; the first two come first.
    dropped regardless of the words in it.
 3. Register the domain in Google Postmaster Tools; the spam rate and the reputation there are the
    only honest measurement, and they belong on the superadmin's mail desk.
-4. Put a real mailbox behind `hello@heywobo.com` and `support@heywobo.com`, and read replies.
+4. Put a real mailbox behind `support@heywobo.com` on the ROOT, and read the replies. That address is
+   the reply-to on every message and the one a worried parent will write to, so it must stay reachable
+   whatever ever happens to the sending subdomain.
    Replies are the strongest Primary signal Gmail has; a sender nobody can answer is a promotion.
 
 **Then, the shape (the gateway enforces every line; the wave writes the tests):**
-- One sender, always: `Wobo <hello@heywobo.com>`. Never `noreply`, never a second address, never a
+- One sender, always: `Wobo <hello@mail.heywobo.com>`. Never `noreply`, never a second address, never a
   different display name per kind. The address that sent the welcome sends the streak.
 - A person's mail, not a campaign's: text first, one image (the orb), one link. Gmail files
   image-heavy multi-link mail with a footer full of badges in Promotions. Brilliant's badges sit

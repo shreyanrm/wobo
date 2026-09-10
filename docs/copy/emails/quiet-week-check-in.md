@@ -3,7 +3,7 @@
 **Kind:** hospitality
 **Trigger:** seven consecutive days with no activity, on an account that was previously active
 **To:** the learner
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** once, mid-evening local time. Never repeated; the next contact is `win-back-30-days`.
 **Category:** progress moments. Off switch in footer.
 

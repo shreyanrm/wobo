@@ -3,7 +3,7 @@
 **Kind:** transactional
 **Trigger:** 30 days before an annual renewal. Annual and family plans only; monthly plans get the 7-day reminder only.
 **To:** the account holder who pays
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** 30 days before {{renewal_date}}
 **Category:** billing. Not switchable off.
 

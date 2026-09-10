@@ -3,7 +3,7 @@
 **Kind:** hospitality, sent once
 **Trigger:** seven days after the first sign-in, if the learner did anything at all in that week
 **To:** the learner
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** day 7, mid-evening local time
 **Category:** weekly summaries. Off switch in footer.
 

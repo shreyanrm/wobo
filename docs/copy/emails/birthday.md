@@ -3,7 +3,7 @@
 **Kind:** hospitality
 **Trigger:** the learner's birthday, where a date of birth is known
 **To:** the learner
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** morning, local time
 **Category:** progress moments. Off switch in footer.
 

@@ -3,7 +3,7 @@
 **Kind:** lifecycle, final
 **Trigger:** 90 days with no activity
 **To:** the learner, or the parent where consent sits with the parent
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** once, early evening local time. The last message of this kind we send.
 **Category:** progress moments. Off switch in footer.
 

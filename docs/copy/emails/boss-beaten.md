@@ -3,7 +3,7 @@
 **Kind:** hospitality
 **Trigger:** a boss battle is completed. Sent for the first boss, for synthesis bosses, and for a boss beaten with no help; not for every ordinary one.
 **To:** the learner
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** within the hour, never between 22:00 and 07:00 local
 **Category:** progress moments. Off switch in footer.
 

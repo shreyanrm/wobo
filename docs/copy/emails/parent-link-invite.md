@@ -3,7 +3,7 @@
 **Kind:** transactional
 **Trigger:** a learner or parent creates the parent link and enters the parent's email
 **To:** the parent
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** immediately
 **Category:** account. Not switchable off; the link itself can be ended at any time by either side.
 

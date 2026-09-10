@@ -3,7 +3,7 @@
 **Kind:** lifecycle
 **Trigger:** 30 days with no activity, on an account that had at least one completed topic
 **To:** the learner, or the parent where the learner is under 18 and marketing consent sits with the parent
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** once, early evening local time
 **Category:** progress moments. Off switch in footer.
 

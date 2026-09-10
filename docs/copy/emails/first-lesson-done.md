@@ -3,7 +3,7 @@
 **Kind:** hospitality, sent once
 **Trigger:** the learner completes their first lesson, including its boss
 **To:** the learner
-**From:** Wobo <hello@heywobo.com> · **Reply-to:** support@heywobo.com
+**From:** Wobo <hello@mail.heywobo.com> · **Reply-to:** support@heywobo.com
 **Send:** within an hour of finishing, never between 22:00 and 07:00 local time
 **Category:** progress moments. Off switch in footer.
 

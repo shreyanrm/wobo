@@ -468,3 +468,97 @@ if __name__ == "__main__":  # operator entrypoint: python -m wobo_gateway.plexus
     print(f"migrated {len(written)} cache artifact(s) onto concept keys")
     for a in written:
         print(f"  {a['modality']}/{a['from']} -> {a['to']}  ({a['conceptId']})")
+
+
+# --- the concept core: the second key, and the only one that is the concept alone -------
+#
+# THE THREE LAYERS (docs/CONTENT-INTERACTION.md §1, docs/CACHES.md §1). Everything above this
+# line is the LEVEL RENDERING's key: concept x board x grade x syllabus version x variant, which
+# is right for the reading, the worked example and the quiz — a CBSE class 6 child and an ISC
+# class 11 student must not be handed the same words.
+#
+# But most of what makes a concept teachable does NOT change between boards: the idea, why it
+# matters, the two commonest misconceptions and their counter-examples, the one check that proves
+# understanding, the vocabulary. That is the CONCEPT CORE, and it is keyed on the concept ALONE,
+# made once by the strongest model, judged hard, and reused by every board, grade, interaction
+# and learner forever. Wave 31 keyed everything to the board and so paid twelve times for the one
+# thing that was identical twelve times; this is the half of that key that comes back off.
+#
+# ``scope`` is still ACCEPTED here and still never digested: it resolves the registry override
+# (two boards that NAME one concept differently collapse onto one id), which is the mapping layer,
+# not the key. A core made for a CBSE request is the same file a later ISC request reads.
+
+#: A core generated under an older core prompt is stale and is made again (the same law the level
+#: renderings live under). Bump when the core's schema or its prompt changes what a core contains.
+CORE_PROMPT_VERSION = "core-v1"
+
+CORE_MODALITY = "core"
+
+
+def core_path(concept: str, scope: dict[str, str] | None = None) -> Path:
+    """Where one concept's core lives. The digest binds to the concept identity and NOTHING else.
+
+    Deliberately not :func:`artifact_path`: no modality, no difficulty, no scope key. Two requests
+    that differ in every curriculum coordinate and agree on the concept land on this one file."""
+    cid = concept_id(concept, scope)
+    digest = hashlib.sha256(concept_identity(concept, scope).encode()).hexdigest()[:16]
+    return _inside_cache(cache_dir() / CORE_MODALITY / f"{cid}--{digest}.json")
+
+
+def core_is_stale(record: dict[str, Any] | None) -> bool:
+    """A core made under an older core prompt no longer holds what a level render reads."""
+    if not isinstance(record, dict):
+        return True
+    return str(record.get("promptVersion") or "") != CORE_PROMPT_VERSION
+
+
+def load_core(concept: str, scope: dict[str, str] | None = None) -> dict[str, Any] | None:
+    """The stored core for a concept, or ``None`` on a miss or a stale prompt version."""
+    record = _read(core_path(concept, scope))
+    if record is None or core_is_stale(record):
+        return None
+    return record
+
+
+def save_core(concept: str, record: dict[str, Any], scope: dict[str, str] | None = None) -> None:
+    """Write the live core pointer. Crash-safe, like every other record here."""
+    _write_atomic(core_path(concept, scope), json.dumps(record, ensure_ascii=False, indent=1))
+
+
+def core_versions_dir(concept: str, scope: dict[str, str] | None = None) -> Path:
+    base = core_path(concept, scope)
+    return base.parent / "versions" / base.stem
+
+
+def save_core_version(
+    concept: str, record: dict[str, Any], scope: dict[str, str] | None = None
+) -> Path:
+    """Append one immutable core version. The owner's retention law reaches the cores too: a core
+    that a refresh supersedes is kept forever, because the learners mid-chapter are on it."""
+    vdir = core_versions_dir(concept, scope)
+    vdir.mkdir(parents=True, exist_ok=True)
+    prov = record.get("provenance") if isinstance(record.get("provenance"), dict) else {}
+    model = _slug(str((prov or {}).get("model") or "unknown"))
+    state = str(record.get("status") or CANONICAL)
+    stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%f")
+    path = vdir / f"{stamp}-{state}-{model}.json"
+    while path.exists():
+        stamp += "x"
+        path = vdir / f"{stamp}-{state}-{model}.json"
+    _write_atomic(path, json.dumps(record, ensure_ascii=False, indent=1))
+    return path
+
+
+def load_core_versions(
+    concept: str, scope: dict[str, str] | None = None
+) -> list[dict[str, Any]]:
+    vdir = core_versions_dir(concept, scope)
+    out: list[dict[str, Any]] = []
+    if not vdir.is_dir():
+        return out
+    for path in sorted(vdir.glob("*.json")):
+        try:
+            out.append(json.loads(path.read_text(encoding="utf-8")))
+        except (OSError, json.JSONDecodeError):
+            continue
+    return out
