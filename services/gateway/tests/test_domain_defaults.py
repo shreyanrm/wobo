@@ -36,7 +36,11 @@ def clean_env(monkeypatch: pytest.MonkeyPatch):
 def test_the_sender_and_reply_to_default_to_real_addresses(clean_env) -> None:
     email_mod, _ = clean_env
     sender, reply_to = email_mod._FROM, email_mod._REPLY_TO
-    assert sender == f"Wobo <hello@{DOMAIN}>"
+    # The sender lives on the SENDING SUBDOMAIN and the reply-to on the root (docs/MAIL-PRIMARY.md,
+    # revised 2026-09-10). The split is the point: the launch mail to the waiting list is a batch to
+    # people who signed up months earlier, which is how a domain's reputation is burned, and
+    # support@ must stay reachable whatever happens to the address that sends.
+    assert sender == f"Wobo <hello@mail.{DOMAIN}>"
     assert reply_to == f"support@{DOMAIN}"
 
 

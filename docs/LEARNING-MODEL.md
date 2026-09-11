@@ -95,3 +95,29 @@ judgeable fault.
   not the machinery that chooses it.
 - **The public chapter pages** list the board's topics, never our modules, because the syllabus is the
   board's and the pool is ours.
+
+## 7. The seam, and where it stands (2026-09-10)
+
+The two ends of this were built and never joined: the architect builds a pool on the gateway
+(`plexus/blueprint.py`), the client walks one (`curriculum/blueprint.ts`: `groupFor`,
+`blueprintWalk`, `groundUnder`), and nothing carried a pool from one to the other.
+`placement.ts`'s whole "THE ARCHITECT FIRST" branch sat behind a `sources.assumptions` parameter no
+caller passed, and `groupFor` was imported by no screen.
+
+What now exists, end to end:
+
+- **`curriculum.blueprint`** — a capability that READS a stored pool for one syllabus cell and
+  never builds one. A cell without a pool answers null, a HELD pool is never served, and the count
+  of held attempts rides along so a screen can be honest about "not yet"
+  (`curriculum/api.py`, `test_curriculum_blueprint_route.py`).
+- **`curriculum/pool.ts`** — one fetch per cell per session, validated by the same `isBlueprint`
+  gate the walker uses, and `usePool` for a screen. A failure is remembered as "no pool", never
+  retried on every render.
+- **The placement check asks the architect's own ground.** `Course.tsx` hands the pool to
+  `usePlacementGate`, which hands `groundUnder` to `planPlacement`; what the learner answers is
+  what `unmetAssumptions` feeds to `groupFor`. That is the loop this document exists for, closed.
+
+What is still open, said plainly rather than implied: **no pool has passed its judge yet** (the one
+cell run is held at 42/48/58/58 against a bar of 70), and **the course still renders a level, not a
+group of modules** — rendering a group needs the compose brief seam (`blueprint.compose_brief`)
+wired into the content path, and until a pool passes, none of it can be proved on real content.

@@ -171,7 +171,7 @@ create table if not exists content.cores (
   served_count bigint not null default 0,
   last_served_at timestamptz,
   created_at timestamptz not null default now(),
-  constraint cores_key_is_short check (char_length(key) <= 200),
+  constraint cores_key_is_short check (char_length(key) <= 300),
   constraint cores_concept_is_short check (char_length(concept_id) <= 200),
   constraint cores_version_counts_up check (version >= 1),
   constraint cores_money_is_not_negative check (cost_usd is null or cost_usd >= 0),
@@ -229,7 +229,7 @@ create table if not exists content.levels (
   served_count bigint not null default 0,
   last_served_at timestamptz,
   created_at timestamptz not null default now(),
-  constraint levels_key_is_short check (char_length(key) <= 200),
+  constraint levels_key_is_short check (char_length(key) <= 300),
   constraint levels_version_counts_up check (version >= 1),
   constraint levels_money_is_not_negative check (cost_usd is null or cost_usd >= 0),
   constraint levels_serves_are_not_negative check (served_count >= 0),
@@ -288,7 +288,7 @@ create table if not exists content.interactions (
   served_count bigint not null default 0,
   last_served_at timestamptz,
   created_at timestamptz not null default now(),
-  constraint interactions_key_is_short check (char_length(key) <= 200),
+  constraint interactions_key_is_short check (char_length(key) <= 300),
   constraint interactions_kind_is_short check (char_length(kind) <= 64),
   constraint interactions_version_counts_up check (version >= 1),
   constraint interactions_money_is_not_negative check (cost_usd is null or cost_usd >= 0),
@@ -358,7 +358,7 @@ create table if not exists content.assets (
   served_count bigint not null default 0,
   last_served_at timestamptz,
   created_at timestamptz not null default now(),
-  constraint assets_key_is_short check (char_length(key) <= 200),
+  constraint assets_key_is_short check (char_length(key) <= 300),
   constraint assets_kind_is_short check (char_length(asset_kind) <= 64),
   constraint assets_version_counts_up check (version >= 1),
   constraint assets_money_is_not_negative check (cost_usd is null or cost_usd >= 0),
@@ -433,7 +433,7 @@ create table if not exists content.turns (
   served_count bigint not null default 0,
   last_served_at timestamptz,
   created_at timestamptz not null default now(),
-  constraint turns_key_is_short check (char_length(key) <= 200),
+  constraint turns_key_is_short check (char_length(key) <= 300),
   -- A question, not an essay. A "generic question" longer than this is not the thing many
   -- learners ask in the same words, and keying on it would fill the table with rows of one.
   constraint turns_question_is_a_question check (char_length(question_norm) between 3 and 300),
@@ -476,11 +476,21 @@ comment on column content.turns.question_norm is
 -- ---------------------------------------------------------------------------------------------
 -- RULING 2, AS A TRIGGER: a new version stamps the row it replaces, and nothing else edits a body.
 --
--- One function for all five tables. It runs `after insert`, reads `TG_TABLE_SCHEMA`/`TG_TABLE_NAME`
--- and stamps the superseded row with dynamic SQL, so there is ONE definition of what supersession
--- means rather than five that drift. A rejected or already-superseded insert stamps nothing: a
--- regeneration that LOST its best-of must not retire the row that beat it, which is the bug this
--- guard exists for.
+-- One function for all five tables. It reads `TG_TABLE_SCHEMA`/`TG_TABLE_NAME` and stamps the
+-- superseded row with dynamic SQL, so there is ONE definition of what supersession means rather
+-- than five that drift.
+--
+-- IT RUNS `before insert`, AND THE ORDER IS THE WHOLE POINT. The first version of this ran
+-- `after insert`, and it could never have worked: the partial unique index on `key` (ruling 3) is
+-- checked as the row goes in, so a successor arriving while its predecessor is still live is a
+-- unique violation and the trigger that would have retired the predecessor never gets to run. A
+-- regeneration could not be stored at all. `before insert` retires the old row FIRST, which frees
+-- the key for the row now being inserted. Caught by `test_a_superseding_row_retires_the_one_it_names`
+-- against the fake in `tests/store_fakes.py`, which enforces the index the way Postgres does.
+--
+-- A rejected insert stamps nothing: a regeneration that LOST its best-of must not retire the row
+-- that beat it, and (because a rejected row never holds the live pointer) it does not need the key
+-- freed either.
 -- ---------------------------------------------------------------------------------------------
 create or replace function content.stamp_the_superseded_row()
 returns trigger
@@ -489,19 +499,16 @@ security definer
 set search_path = ''
 as $$
 begin
-  if new.supersedes is null then
-    return null;
-  end if;
-  if new.status not in ('provisional', 'canonical') then
+  if new.supersedes is null or new.status not in ('provisional', 'canonical') then
     -- A loser does not retire the winner.
-    return null;
+    return new;
   end if;
   execute format(
     'update %I.%I set superseded_by = $1, superseded_at = now(), status = ''superseded'''
     || ' where id = $2 and superseded_by is null',
     tg_table_schema, tg_table_name
   ) using new.id, new.supersedes;
-  return null;
+  return new;
 end;
 $$;
 
@@ -538,7 +545,7 @@ begin
   foreach t in array array['cores', 'levels', 'interactions', 'assets', 'turns'] loop
     execute format('drop trigger if exists stamp_superseded on content.%I', t);
     execute format(
-      'create trigger stamp_superseded after insert on content.%I'
+      'create trigger stamp_superseded before insert on content.%I'
       || ' for each row execute function content.stamp_the_superseded_row()', t);
     execute format('drop trigger if exists body_is_never_edited on content.%I', t);
     execute format(
@@ -603,7 +610,10 @@ $$;
 -- counts, so the desk shows "this much saved, over N rows we could not price" rather than a total
 -- that quietly reads unpriced as free — the same honesty rule the usage ledger already keeps.
 -- ---------------------------------------------------------------------------------------------
-create or replace view content.store_savings as
+-- `security_invoker`: the view runs with the CALLER's rights, so it cannot become a way around
+-- the RLS forced on the five tables it reads. A view without it runs as its owner, which on a
+-- managed project is a superuser, and Supabase's own advisors flag exactly that.
+create or replace view content.store_savings with (security_invoker = true) as
 with every_store as (
   select 'cores'        as store, cost_usd, served_count, status, created_at from content.cores
   union all
@@ -669,10 +679,16 @@ $$;
 -- Grants, one at a time, in writing (ruling 8).
 --
 -- SELECT so a cold container can rebuild its front cache. INSERT so a generation lands. UPDATE
--- for the serve counters only, and the trigger above refuses an update that touches anything
--- else, so the narrow grant and the trigger say the same thing twice. DELETE for nobody at all,
--- service role included: "version, never overwrite" is not a habit if a caller can delete.
--- TRUNCATE for nobody, for the same reason.
+-- on TWO COLUMNS, by name, and on nothing else: `content.note_serves` is `security invoker`, so it
+-- moves the serve counters as the service role and needs exactly that much. Every other column is
+-- unreachable by an UPDATE at the grant level, and the `body_is_never_edited` trigger refuses one
+-- a second time — the narrow grant and the trigger say the same thing twice, in different
+-- languages, which is what makes "version, never overwrite" a property rather than a habit. The
+-- supersession stamp reaches `status` and `superseded_*` because that trigger is `security
+-- definer` and runs as its owner, which is the one place that edit is legitimate.
+--
+-- DELETE for nobody at all, service role included, and TRUNCATE for nobody: the old row is what a
+-- learner mid-chapter is still being served and what a revert restores.
 -- ---------------------------------------------------------------------------------------------
 do $$
 declare
@@ -680,7 +696,9 @@ declare
 begin
   foreach t in array array['cores', 'levels', 'interactions', 'assets', 'turns'] loop
     execute format('revoke all on content.%I from public, anon, authenticated', t);
-    execute format('grant select, insert, update on content.%I to service_role', t);
+    execute format('grant select, insert on content.%I to service_role', t);
+    execute format(
+      'grant update (served_count, last_served_at) on content.%I to service_role', t);
     execute format('revoke delete, truncate on content.%I from service_role', t);
   end loop;
 end;

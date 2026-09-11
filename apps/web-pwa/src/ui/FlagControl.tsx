@@ -39,8 +39,13 @@ export const FLAG_CSS = `
 /* While the glass is held the sheet is a strip along the bottom and the page is the point, and
    for as long as Wobo's ink is on that page the pill stands aside with the rest of Wobo's
    furniture (wobo/clearance.ts): it sat over the strip through every turn at 390
-   (docs/INK-FREEZE-PLAN-TRACE.md section 3). */
-[data-glass-held] .wf-float,[data-wobo-ink] .wf-float{visibility:hidden}
+   (docs/INK-FREEZE-PLAN-TRACE.md section 3).
+   AND WHILE THE PHONE SHEET IS UP (the adversary, wave 49, finding 6). Wobo's ink mark is set from
+   the SCREEN store, and a board built from scratch draws on the sheet instead — so on four boards
+   at 390 this pill sat squarely over the answer ('9 + 16 = 25', 'hypotenuse 5.00 cm', 'dominant 3',
+   'recessive 1', 'range 40.79 m'). The sheet is the third key; it is on the root for exactly as
+   long as the sheet takes the phone's screen (board/plane.tsx, SHEET_ATTRIBUTE). */
+[data-glass-held] .wf-float,[data-wobo-ink] .wf-float,[data-wobo-sheet] .wf-float{visibility:hidden}
 .wf-corner{position:absolute;right:16px;top:16px;z-index:2}
 .wf-panel{position:fixed;left:20px;bottom:20px;width:min(320px,calc(100vw - 24px));max-height:min(560px,calc(100vh - 40px));overflow:auto;z-index:1000;display:grid;gap:12px;padding:20px;border-radius:24px;background:var(--paper-2);box-shadow:var(--shadow)}
 .wf-panel.wf-at-top{left:auto;bottom:auto;right:16px;top:16px}

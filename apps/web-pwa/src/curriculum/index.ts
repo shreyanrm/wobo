@@ -7,6 +7,7 @@
  */
 
 export * from './adopt';
+export * from './blueprint';
 export { BoardSearch } from './BoardSearch';
 export { cache } from './cache';
 export { curriculum, curriculumReady, gatewayUrl, setCurriculumClient } from './client';
@@ -16,6 +17,7 @@ export { OverlayEditor } from './OverlayEditor';
 export { OwnSyllabus } from './OwnSyllabus';
 export { LevelPicker, SubjectPicker } from './Pickers';
 export * from './placement';
+export * from './pool';
 export * from './prereq';
 export * from './registry';
 export { DiscoveryCard, EmptyWorldCard } from './StatusCard';

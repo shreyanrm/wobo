@@ -16,6 +16,12 @@ button.db-entry{border:0;padding:0;font:inherit}
 button.db-entry:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
 .db-entry > input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .db-entry-note{position:fixed;right:20px;bottom:190px;z-index:900;max-width:min(320px,calc(100vw - 40px));background:var(--paper-2);color:var(--ink);border-radius:14px;padding:10px 14px;font:500 14px/1.4 var(--sans);box-shadow:var(--lift)}
+/* AND IT STANDS ASIDE FOR THE INK (wobo/clearance.ts; the adversary, wave 49, finding 6). The
+   camera floats at the same corner the board's ink reaches at 390: on the map board it sat over
+   'find maharashtra'. It goes while the glass is held for a turn, while Wobo's screen ink is up,
+   and while the phone sheet is Wobo's board — and comes back the moment the ink does. */
+[data-glass-held] .db-entry,[data-wobo-ink] .db-entry,[data-wobo-sheet] .db-entry,
+[data-glass-held] .db-entry-note,[data-wobo-ink] .db-entry-note,[data-wobo-sheet] .db-entry-note{visibility:hidden}
 @media (max-width:900px){
   .db-entry{right:12px;bottom:calc(84px + var(--wst-height,0px) + env(safe-area-inset-bottom))}
   .db-entry-note{right:12px;bottom:calc(146px + var(--wst-height,0px) + env(safe-area-inset-bottom))}
@@ -27,15 +33,71 @@ button.db-entry:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
 .db-grid > *{min-width:0}
 @media (max-width:1100px){.db-grid{grid-template-columns:1fr}}
 
+/* THE PHONE PANE — THE DOUBT ENDS WHERE WOBO'S OWN FURNITURE BEGINS (the adversary, wave 42
+   re-judge, finding 1; docs/INK-FOUR.md, craft "nothing under a panel, sheet, toast or pill" and
+   experience "after the turn the learner can act on what they see").
+   Measured at 390x844 on the CONFIRM step, which is the step a learner reaches with a photo: the
+   sentence Wobo asks them to check sat under the fixed Tell Wobo pill, the instruction under the
+   tab bar, and Explain at y 1302 in an 844 px viewport — 458 px below a fold nothing scrolled to.
+   The step needs about a thousand pixels and the screen has 628 once the tab bar (76 px) and the
+   pill (44 px, 84 px up) have taken theirs, so no amount of padding closes it: a scrolling page
+   under fixed chrome always has something behind something.
+   So the column becomes a PANE of three rows. `--db-pane` is its measured height (DoubtScreen
+   `bottomChrome`); the photo keeps the top, the reading scrolls in the middle, and what the learner
+   does next is docked at the foot in `.db-act`. The page itself stops scrolling — `--db-tail`
+   cancels the main column's own bottom padding, which was there to clear the same tab bar — so
+   nothing of the doubt is ever painted in the band the chrome owns. */
+@media (max-width:900px){
+  .db-grid{height:var(--db-pane,auto);grid-template-rows:auto minmax(0,1fr) auto;gap:12px;align-items:stretch;margin-bottom:calc(0px - var(--db-tail,0px))}
+  /* the reading is the one thing that scrolls, and it fades over its last 20 px rather than ending
+     on a hard cut: a phone's scrollbar is an overlay nobody sees at rest, and the CORRECTIONS are
+     below the reading, so the one thing the step exists for has to look like it continues */
+  /* `grid-auto-rows:max-content` because the pane gives this grid a DEFINITE height, and a grid
+     with less room than its rows want sizes each row to that row's MINIMUM. Every row's minimum is
+     its own content — except the two that declare a `min-height` smaller than theirs, which is what
+     the minimum then becomes: at the end of a turn the printed caption (`min-height:1.55em`) was
+     sized to one line while four lines of it were painted, straight over "Kept with your doubts".
+     max-content rows are never shrunk, so the scroll takes the overflow instead of the words. */
+  .db-read{min-height:0;grid-auto-rows:max-content;overflow-y:auto;overscroll-behavior:contain;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 20px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 20px),transparent)}
+  /* and the photo takes a quarter of the pane rather than three fifths of the screen. It keeps its
+     place while the reading scrolls: a line tapped in the reading lights its place ON the photo,
+     and a photo that had scrolled away would light off screen, or yank the correction being typed
+     back out of view when it scrolled itself in. */
+  .db-photo{--db-photo-vh:26vh}
+  .db-act{background:var(--paper-2);border-radius:22px;padding:14px 22px;display:grid;gap:12px}
+  .db-act > .db-row > .wk-btn{flex:1}
+}
+
 /* before a photo: the camera on a phone, the picker and the drop zone on a laptop */
 .db-drop{border-radius:22px;background:var(--paper-2);padding:28px 24px;display:grid;gap:14px;justify-items:center;text-align:center;min-height:300px;align-content:center}
 .db-drop.db-over{background:var(--paper-3)}
+/* THE HERO CAMERA CARRIES ITS OWN SIZE (the adversary, wave 49, finding 8). An <svg> with a
+   viewBox and no width/height is a replaced element with an intrinsic ratio: unsized it took the
+   whole column and 1:1 of its height — 1072 px at 1440 — and the panel grew to 1390, which put the
+   refusal at its foot 482 px below the fold with nothing to scroll it into view. */
+.db-drop > svg{width:48px;height:48px;flex:none;color:var(--ink-2)}
 .db-drop > h2{font:600 22px/1.3 var(--sans);letter-spacing:-.02em}
-.db-drop > p{color:var(--ink-2);max-width:38ch}
+/* THE MEASURE IS THE PANEL'S; THE COLOUR BELONGS TO WHICHEVER LINE IT IS (the adversary, wave 42,
+   re-judging finding 8). `.db-drop > p` is (0,1,1) and both `.db-error` and `.db-note` are (0,1,0),
+   so a colour declared here beat every line that had asked for its own. The REFUSAL was painted
+   --ink-2 rather than --rose — the exact grey of the description two rows above it, at 1440 and
+   390 and in both themes — and the fine print lost --ink-3 the same way. A refusal the eye slides
+   over is the same defect as a refusal below the fold, one step further on. */
+.db-drop > p{max-width:38ch}
+.db-drop > p:not(.db-error):not(.db-note){color:var(--ink-2)}
 label.db-take{cursor:pointer;position:relative}
 label.db-take > input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 label.db-take:focus-within{outline:3px solid var(--pig);outline-offset:2px}
-.db-error{color:var(--rose);font-weight:500}
+/* A REFUSAL IS MARKED, NOT WASHED (the adversary, wave 42, re-judging finding 8). It asked for
+   --rose as bare text and never got it: `.db-drop > p` outranked it (above), so the one sentence
+   that must be read was painted --ink-2 — the exact grey of the description two rows up.
+   Neither obvious way out is open. The rose it asked for prints at 2.6:1 on the light ground: a
+   refusal noticed and not readable is the same law failed from the other side. The doors' rose
+   slab (auth `.au-error`, onboarding `.ob-refuse`) reads at 15.9:1 and is sanctioned for exactly
+   this job — but not HERE: this sheet's own law is that nothing on the doubt screen is washed
+   (the header above; doubt-screen.test.ts holds it). So the pigment goes on a RULE and the words
+   stay at full ink: 16.7:1 light, 16.2:1 dark, and a rose edge nothing else on the panel has. */
+.db-error{color:var(--ink);font-weight:600;border-left:3px solid var(--rose);padding-left:12px;text-align:left}
 
 /* the photo, registered */
 .db-stage{position:relative;border-radius:22px;background:var(--paper-2);padding:14px;display:grid;gap:12px;justify-items:center}

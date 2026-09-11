@@ -48,5 +48,19 @@
    recessive 1. Read the' and then the sheet edge. The plane publishes its own height on the root
    while it is up (`sheetReserve`, board/plane.tsx); the thread keeps that much clear at its foot,
    so scrolling to the end lands the last line above the edge. Nothing is hidden and nothing
-   shrinks — the reading line simply moves up, and comes back down the moment the sheet goes. */
+   shrinks — the reading line simply moves up, and comes back down the moment the sheet goes.
+
+   RE-MEASURED ON REAL SCREENS, wave 53, 390x844, four from-scratch boards, light, dark and reduced
+   motion, after a real conversation of eight plain turns and then the drawing. The last line Wobo
+   said, against the sheet's top edge at 321:
+
+     with this rule          bottom 304-305, 16 clear, and elementsFromPoint finds nothing over it
+     the reserve put back
+     to the thread's 16px    bottom 325-326, so 4-5 of it sits behind the sheet's own header
+
+   The two halves are this reserve and ChatScreen's `followInPage`, which scrolls the PAGE until the
+   last line sits at innerHeight - 62vh - 16. The scroll can only go there if the thread has left
+   that much room below itself; take the reserve away and the page runs out of scroll first. Both
+   halves are held by src/screens/chat/chat.test.ts, which reads what this declaration resolves to
+   rather than that it exists. */
 [data-wobo-sheet] .ch-thread{padding-bottom:calc(var(--wobo-sheet-h, 62vh) + 24px)}

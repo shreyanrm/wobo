@@ -49,6 +49,13 @@ export type Route =
   | { name: 'practice' }
   | { name: 'subject'; subjectId: string; intent: 'learn' | 'practice' }
   | { name: 'course'; topicId: string }
+  /**
+   * A bonus level, opened from the side door in the middle of a chapter
+   * (docs/CONTENT-INTERACTION.md §7). It is addressed by the topic the door hangs off, because that
+   * is the thing the learner just finished; the level itself is the one that course carried, and it
+   * is never fetched again. Optional and off the climb: nothing routes here on its own.
+   */
+  | { name: 'arcade'; topicId: string }
   | { name: 'sandbox'; topicId?: string }
   | { name: 'progress' }
   | { name: 'you' }
@@ -143,6 +150,8 @@ export function routeToPath(route: Route): string {
       return `/course/${encodeURIComponent(route.topicId)}`;
     case 'sandbox':
       return route.topicId ? `/sandbox/${encodeURIComponent(route.topicId)}` : '/sandbox';
+    case 'arcade':
+      return `/arcade/${encodeURIComponent(route.topicId)}`;
     case 'helpArticle':
       return `/help/${encodeURIComponent(route.group)}/${encodeURIComponent(route.slug)}`;
     case 'syllabus':
@@ -370,6 +379,10 @@ export function pathToRoute(path: string): Route | null {
     if (rest.length === 0) return { name: 'sandbox' };
     const topicId = decode(rest[0]);
     return topicId && rest.length === 1 ? { name: 'sandbox', topicId } : null;
+  }
+  if (head === 'arcade') {
+    const topicId = decode(rest[0]);
+    return topicId && rest.length === 1 ? { name: 'arcade', topicId } : null;
   }
   // The public syllabus family. `/learn` on its own is the app's learn screen and was matched
   // above; one segment deeper is a board, and each segment after it is one layer down.

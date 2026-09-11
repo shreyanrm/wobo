@@ -1,0 +1,533 @@
+{
+ "_": "Produced BY THE GATEWAY and not by hand: interaction_floor(kind, core) for every row of docs/CONTENT-INTERACTION.md section 2, serialised through engines._design_json exactly as attach_interaction puts it on a served card. Regenerate with the snippet in test/gateway-designs.test.ts when interaction_floor or the design schema changes.",
+ "floors": {
+  "classify": {
+   "id": "floor-classify",
+   "concept": "the parts of a plant cell",
+   "kind": "classify",
+   "mechanic": "join each one to what it means",
+   "why": "the parts of a plant cell is a set of correspondences, so joining them is the idea itself",
+   "steps": [
+    {
+     "id": "s1",
+     "beat": "check",
+     "primitive": {
+      "kind": "match",
+      "prompt": "join each one to what it means",
+      "pairs": [
+       {
+        "id": "v1",
+        "left": "cell wall",
+        "right": "the stiff outer boundary",
+        "why": "the stiff outer boundary"
+       },
+       {
+        "id": "v2",
+        "left": "chloroplast",
+        "right": "where light becomes food",
+        "why": "where light becomes food"
+       },
+       {
+        "id": "v3",
+        "left": "nucleus",
+        "right": "where the instructions are kept",
+        "why": "where the instructions are kept"
+       }
+      ],
+      "card": {
+       "x": 2.0,
+       "y": 3.0,
+       "w": 47.0,
+       "h": 20.0
+      },
+      "feedback": {
+       "right": "every pair is joined.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "the last two snap together and the whole set reads as one idea"
+    }
+   ],
+   "marks": [],
+   "source": "floor",
+   "refreshDays": 90
+  },
+  "order": {
+   "id": "floor-order",
+   "concept": "the parts of a plant cell",
+   "kind": "order",
+   "mechanic": "put them in the order they belong in",
+   "why": "the parts of a plant cell only makes sense in its order, so the order is what the learner builds",
+   "steps": [
+    {
+     "id": "s1",
+     "beat": "build",
+     "primitive": {
+      "kind": "sort",
+      "prompt": "put these in the order they belong in",
+      "items": [
+       {
+        "id": "v1",
+        "label": "cell wall",
+        "box": {
+         "x": 2.0,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "rank": 1,
+        "why": "the stiff outer boundary"
+       },
+       {
+        "id": "v2",
+        "label": "chloroplast",
+        "box": {
+         "x": 34.66666666666667,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "rank": 2,
+        "why": "where light becomes food"
+       },
+       {
+        "id": "v3",
+        "label": "nucleus",
+        "box": {
+         "x": 67.33333333333334,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "rank": 3,
+        "why": "where the instructions are kept"
+       }
+      ],
+      "axis": "horizontal",
+      "feedback": {
+       "right": "that is the order, and each one sets up the next.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "the line settles and each step explains the one after it"
+    }
+   ],
+   "marks": [],
+   "source": "floor",
+   "refreshDays": 90
+  },
+  "match": {
+   "id": "floor-match",
+   "concept": "the parts of a plant cell",
+   "kind": "match",
+   "mechanic": "join each one to what it means",
+   "why": "the parts of a plant cell is a set of correspondences, so joining them is the idea itself",
+   "steps": [
+    {
+     "id": "s1",
+     "beat": "check",
+     "primitive": {
+      "kind": "match",
+      "prompt": "join each one to what it means",
+      "pairs": [
+       {
+        "id": "v1",
+        "left": "cell wall",
+        "right": "the stiff outer boundary",
+        "why": "the stiff outer boundary"
+       },
+       {
+        "id": "v2",
+        "left": "chloroplast",
+        "right": "where light becomes food",
+        "why": "where light becomes food"
+       },
+       {
+        "id": "v3",
+        "left": "nucleus",
+        "right": "where the instructions are kept",
+        "why": "where the instructions are kept"
+       }
+      ],
+      "card": {
+       "x": 2.0,
+       "y": 3.0,
+       "w": 47.0,
+       "h": 20.0
+      },
+      "feedback": {
+       "right": "every pair is joined.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "the last two snap together and the whole set reads as one idea"
+    }
+   ],
+   "marks": [],
+   "source": "floor",
+   "refreshDays": 90
+  },
+  "vary": {
+   "id": "floor-vary",
+   "concept": "the parts of a plant cell",
+   "kind": "vary",
+   "mechanic": "move it and watch what stays the same",
+   "why": "the parts of a plant cell is a relation that holds while a quantity moves, so moving it is the idea",
+   "steps": [
+    {
+     "id": "s1",
+     "beat": "build",
+     "primitive": {
+      "kind": "slide",
+      "prompt": "move it and watch what stays the same",
+      "min": 1.0,
+      "max": 3.0,
+      "from": 1.0,
+      "at": 3.0,
+      "valueLabel": "the parts of a plant cell",
+      "feedback": {
+       "right": "the relation held all the way across.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "one side changes and the other does not"
+    },
+    {
+     "id": "s2",
+     "beat": "check",
+     "primitive": {
+      "kind": "reveal",
+      "trigger": "onDone",
+      "what": "A plant cell is a room with named parts, each one doing a job the others cannot.",
+      "marks": [],
+      "feedback": {
+       "right": "that is the relation.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     }
+    }
+   ],
+   "marks": [],
+   "source": "floor",
+   "refreshDays": 90
+  },
+  "construct": {
+   "id": "floor-construct",
+   "concept": "the parts of a plant cell",
+   "kind": "construct",
+   "mechanic": "build it one step at a time",
+   "why": "the parts of a plant cell is a procedure, and a procedure is learnt by carrying it out",
+   "steps": [
+    {
+     "id": "s1",
+     "beat": "build",
+     "primitive": {
+      "kind": "sequence",
+      "prompt": "build it one step at a time",
+      "steps": [
+       {
+        "id": "v1",
+        "label": "cell wall",
+        "box": {
+         "x": 2.0,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "check": "the stiff outer boundary",
+        "feedback": {
+         "right": "that step holds: the stiff outer boundary",
+         "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+        }
+       },
+       {
+        "id": "v2",
+        "label": "chloroplast",
+        "box": {
+         "x": 34.66666666666667,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "check": "where light becomes food",
+        "feedback": {
+         "right": "that step holds: where light becomes food",
+         "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+        }
+       },
+       {
+        "id": "v3",
+        "label": "nucleus",
+        "box": {
+         "x": 67.33333333333334,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "check": "where the instructions are kept",
+        "feedback": {
+         "right": "that step holds: where the instructions are kept",
+         "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+        }
+       }
+      ],
+      "feedback": {
+       "right": "it is built, and every step held on the way.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "the last step closes and the whole construction stands"
+    }
+   ],
+   "marks": [],
+   "source": "floor",
+   "refreshDays": 90
+  },
+  "discriminate": {
+   "id": "floor-discriminate",
+   "concept": "the parts of a plant cell",
+   "kind": "discriminate",
+   "mechanic": "mark the part that decides it",
+   "why": "the parts of a plant cell is telling near things apart, so the learner has to find what decides it",
+   "steps": [
+    {
+     "id": "s1",
+     "beat": "check",
+     "primitive": {
+      "kind": "branch",
+      "prompt": "which one is it",
+      "options": [
+       {
+        "id": "o1",
+        "label": "the cell wall",
+        "box": {
+         "x": 2.0,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 24.0
+        },
+        "correct": true,
+        "teaches": ""
+       },
+       {
+        "id": "m1",
+        "label": "the cell wall and the cell membrane are the same thing",
+        "box": {
+         "x": 34.66666666666667,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 24.0
+        },
+        "correct": false,
+        "teaches": "the wall is stiff and sits outside the membrane, which is soft and alive",
+        "goto": "s2"
+       },
+       {
+        "id": "m2",
+        "label": "chloroplasts are in every cell of a plant",
+        "box": {
+         "x": 67.33333333333334,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 24.0
+        },
+        "correct": false,
+        "teaches": "a root cell has none, because no light reaches it",
+        "goto": "s2"
+       }
+      ],
+      "feedback": {
+       "right": "that is the one, and now show where it shows.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     }
+    },
+    {
+     "id": "s2",
+     "beat": "build",
+     "primitive": {
+      "kind": "mark",
+      "prompt": "mark the part that decides it",
+      "tool": "point",
+      "targets": [
+       {
+        "id": "t1",
+        "x": 50.0,
+        "y": 46.0,
+        "r": 6.666666666666667,
+        "why": "the cell wall"
+       }
+      ],
+      "need": 1,
+      "feedback": {
+       "right": "that is the part that decides it.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "the deciding feature lights and the near thing stops looking near"
+    }
+   ],
+   "marks": [],
+   "source": "floor",
+   "refreshDays": 90
+  },
+  "drill": {
+   "id": "floor-drill",
+   "concept": "the parts of a plant cell",
+   "kind": "drill",
+   "mechanic": "join each one to what it means, as many as you can inside a minute",
+   "why": "the parts of a plant cell is a set of correspondences, so joining them is the idea itself",
+   "steps": [
+    {
+     "id": "s1",
+     "beat": "fun",
+     "primitive": {
+      "kind": "match",
+      "prompt": "join each one to what it means",
+      "pairs": [
+       {
+        "id": "v1",
+        "left": "cell wall",
+        "right": "the stiff outer boundary",
+        "why": "the stiff outer boundary"
+       },
+       {
+        "id": "v2",
+        "left": "chloroplast",
+        "right": "where light becomes food",
+        "why": "where light becomes food"
+       },
+       {
+        "id": "v3",
+        "left": "nucleus",
+        "right": "where the instructions are kept",
+        "why": "where the instructions are kept"
+       }
+      ],
+      "card": {
+       "x": 2.0,
+       "y": 3.0,
+       "w": 47.0,
+       "h": 20.0
+      },
+      "feedback": {
+       "right": "every pair is joined.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "the last two snap together and the whole set reads as one idea"
+    },
+    {
+     "id": "s2",
+     "beat": "fun",
+     "primitive": {
+      "kind": "timer",
+      "seconds": 60,
+      "onExpire": "end",
+      "visible": true,
+      "feedback": {
+       "right": "you got through them inside the minute.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     }
+    },
+    {
+     "id": "s3",
+     "beat": "fun",
+     "primitive": {
+      "kind": "score",
+      "perRight": 10,
+      "perWrong": 0,
+      "show": "number",
+      "feedback": {
+       "right": "that is your score for the round.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     }
+    }
+   ],
+   "marks": [],
+   "source": "floor",
+   "refreshDays": 90
+  },
+  "watch": {
+   "id": "floor-watch",
+   "concept": "the parts of a plant cell",
+   "kind": "watch",
+   "mechanic": "put them in the order they belong in",
+   "why": "the parts of a plant cell only makes sense in its order, so the order is what the learner builds",
+   "steps": [
+    {
+     "id": "s1",
+     "beat": "build",
+     "primitive": {
+      "kind": "reveal",
+      "trigger": "onTap",
+      "what": "A plant cell is a room with named parts, each one doing a job the others cannot.",
+      "marks": [],
+      "feedback": {
+       "right": "that is the whole of it, once through.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "the thing moves and the shape of it is suddenly obvious"
+    },
+    {
+     "id": "s2",
+     "beat": "check",
+     "primitive": {
+      "kind": "sort",
+      "prompt": "put these in the order they belong in",
+      "items": [
+       {
+        "id": "v1",
+        "label": "cell wall",
+        "box": {
+         "x": 2.0,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "rank": 1,
+        "why": "the stiff outer boundary"
+       },
+       {
+        "id": "v2",
+        "label": "chloroplast",
+        "box": {
+         "x": 34.66666666666667,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "rank": 2,
+        "why": "where light becomes food"
+       },
+       {
+        "id": "v3",
+        "label": "nucleus",
+        "box": {
+         "x": 67.33333333333334,
+         "y": 3.0,
+         "w": 30.666666666666668,
+         "h": 18.0
+        },
+        "rank": 3,
+        "why": "where the instructions are kept"
+       }
+      ],
+      "axis": "horizontal",
+      "feedback": {
+       "right": "that is the order, and each one sets up the next.",
+       "wrong": "the wall is stiff and sits outside the membrane, which is soft and alive"
+      }
+     },
+     "surprise": "the line settles and each step explains the one after it"
+    }
+   ],
+   "marks": [],
+   "source": "floor",
+   "refreshDays": 90
+  }
+ }
+}

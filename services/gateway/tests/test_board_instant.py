@@ -76,25 +76,25 @@ def payload_of(text: str) -> dict[str, Any]:
 def slow_brain(
     monkeypatch: pytest.MonkeyPatch, seconds: float = SLOW_MODEL_S, fails: bool = False
 ) -> dict[str, Any]:
-    """Live mode with a model that thinks for `seconds`. Returns the call's own record."""
+    """Live mode with a model that thinks for `seconds`. Returns the call's own record.
+
+    Phase two asks for WORDS, not for a board plan (``board.scaffold``, the words cut): the model
+    is handed a figure a pipeline already drew and gives back the sentences that teach it.
+    """
     import wobo_gateway.wobo as wobo
 
     monkeypatch.setenv("LLM_MODE", "live")
     seen: dict[str, Any] = {"calls": 0}
-    real = wobo.mock_board_plan
 
-    def _slow(payload: dict[str, Any], *, live: bool) -> dict[str, Any] | None:
+    def _slow(payload: dict[str, Any], *, scaffold: Any) -> dict[str, Any] | None:
         seen["calls"] += 1
         time.sleep(seconds)
         if fails:
             raise RuntimeError("every provider fell over")
-        plan = real(payload)
-        if plan is not None:
-            # The model's own words, over the drawing the scaffold already made.
-            plan = {**plan, "say": "The squares make the proof visible."}
-        return plan
+        # The model's own words, over the drawing the scaffold already made.
+        return {"say": "The squares make the proof visible.", "objects": []}
 
-    monkeypatch.setattr(wobo, "board_plan_for", _slow)
+    monkeypatch.setattr(wobo, "board_words_for", _slow)
     return seen
 
 

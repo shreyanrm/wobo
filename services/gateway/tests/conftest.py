@@ -70,6 +70,13 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     # test's vendor call that never happened. A test that wants a warm cache still sets this
     # itself: its own setenv runs after this fixture and wins.
     monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path / "plexus-cache"))
+    # THE BACKGROUND DESIGNER IS A MODEL CALL IN A THREAD (engines._spawn_designer). In production
+    # it is what makes §3's designed interaction real: the learner is served the floor at once and
+    # the model's design lands in the store for the next one. In a suite it is a thread outliving
+    # the test that started it, reaching for a stub that has been torn down and writing into
+    # another test's cache — which is exactly how two unrelated tests started failing in a full run
+    # and passing alone. Off for every test; the one test that is ABOUT the designer turns it on.
+    monkeypatch.setenv("PLEXUS_DESIGNER", "off")
     # The platform's money ledger, the alarm's cooldowns and the provider health window are all
     # per-process, exactly like the meters: one test's spend must never be another test's
     # refusal, and one test's alert must never be another test's suppressed page.

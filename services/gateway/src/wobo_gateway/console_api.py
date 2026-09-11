@@ -185,6 +185,30 @@ def register_console(app: FastAPI) -> None:
             "rollup_interval_s": ledger.rollup_interval_s(),
         }
 
+    @router.get("/stores")
+    def stores(ctx: CanRead) -> dict[str, Any]:
+        """The stores desk (docs/CACHES.md §4): hit rates, rows, and the spend a serve saved.
+
+        TWO READINGS OF THE SAME THING, AND THEY DISAGREE BY DESIGN, exactly as ``/usage`` shows
+        the rollup beside the live ceiling:
+
+        * ``process`` is what THIS container has seen since it started — how often the file front
+          answered, how often Postgres did, how often neither did and somebody paid for a
+          generation. It is per-process and a deploy resets it, which is the point: it is the
+          answer to "is the cache working right now".
+        * ``stored`` is ``content.store_savings``, which survives everything: how many rows each
+          store holds, how many times they have been served, and the money the serves after the
+          first did not spend.
+
+        A ``stored`` of ``null`` means the view could not be read at all, and the screen must say
+        "we cannot see" rather than draw a table of zeroes — a cache reported as empty and a cache
+        reported as unreachable are different facts and only one of them is an emergency.
+        """
+        from wobo_gateway.plexus import db as stores_db
+
+        ctx.audit("console.stores.read", resource_type="content_stores")
+        return {"process": stores_db.state(), "stored": stores_db.savings()}
+
     @router.get("/health")
     def gateway_health(ctx: CanRead) -> dict[str, Any]:
         """The same snapshot ``/healthz`` serves, read through the door so the look is audited.

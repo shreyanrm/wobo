@@ -101,13 +101,34 @@ _NARRATION = re.compile(
 #: The four sentence-enders a learner reads. An exclamation mark is never one of them (voice.md §3).
 _TERMINALS = ".?"
 
-#: Working, rather than words: an equals sign, a power, or a number with an operator against it.
-_EXPRESSION = re.compile(r"[=^]|\d\s*[+*/]|[+*/]\s*\d")
+#: Working, rather than words: an equals sign, a power (written either way — the board's caret or
+#: the say's raised digit), or a number with an operator against it.
+_EXPRESSION = re.compile(r"[=^⁰¹²³⁴⁵⁶⁷⁸⁹]|\d\s*[+*/]|[+*/]\s*\d")
+
+
+#: A POWER IS THE SAME POWER IN BOTH HANDS. The board writes ``x^2`` — the handwriting layer
+#: raises the caret as a superscript — and the say writes ``x²``, because a voice reading "x caret
+#: 2" to a child is not reading mathematics. They are one line, and the pass that matches a mark
+#: to the sentence naming it has to see them as one: until it did, the quadratic's given line was
+#: quoted word for word in Wobo's own opening sentence and the ``write`` that drew it still kept
+#: time with the ANSWER, three and a half seconds later (measured 2026-09-10).
+_SUPERSCRIPTS = {c: f" {i}" for i, c in enumerate("⁰¹²³⁴⁵⁶⁷⁸⁹")}
+_SUPERSCRIPT_RE = re.compile("[⁰¹²³⁴⁵⁶⁷⁸⁹]")
+
+
+def words_in(text: str) -> list[str]:
+    """The words and numbers of a line, however its powers are spelt.
+
+    A raised digit is a word of its own, exactly as ``^2`` is: ``x²`` and ``x^2`` both read as
+    "x", "2", so the two spellings of one line match.
+    """
+    body = _SUPERSCRIPT_RE.sub(lambda m: _SUPERSCRIPTS[m.group(0)], (text or "").lower())
+    return _WORD.findall(body)
 
 
 def flat(text: str) -> str:
     """The same sentence whatever the stream did to its spacing, case or punctuation."""
-    return " ".join(_WORD.findall((text or "").lower()))
+    return " ".join(words_in(text))
 
 
 def split(say: str) -> list[str]:
@@ -116,7 +137,7 @@ def split(say: str) -> list[str]:
 
 
 def _content(text: str) -> list[str]:
-    return [w for w in _WORD.findall((text or "").lower()) if w not in _STOPWORDS]
+    return [w for w in words_in(text) if w not in _STOPWORDS]
 
 
 def names(sentence: str, subject: str) -> bool:
@@ -235,7 +256,121 @@ def _amount(value: Any, precision: Any) -> str:
     return str(int(value)) if float(value).is_integer() else str(value)
 
 
+# --- the words a figure that carries none gives itself -------------------------------------------
+
+#: A power a learner reads as a power. Anything taller is left in the notation the ask used.
+_POWERS = {"2": "²", "3": "³"}
+
+
+def readable(expr: str) -> str:
+    """``x**2`` as a learner writes it. Programming notation is not mathematics (finding 7)."""
+    out = re.sub(r"\*\*(\d)", lambda m: _POWERS.get(m.group(1), f"^{m.group(1)}"), expr)
+    return out.replace("*", "").strip()
+
+
+def number(value: Any) -> str:
+    """A number as a teacher writes it on a board: 3, not 3.0."""
+    try:
+        amount = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return str(int(amount)) if amount.is_integer() else f"{amount:g}"
+
+
+def _from_the_ask(ask: str, *values: Any) -> bool:
+    """Is every one of these numbers in the learner's own question?
+
+    ``board_intents`` fills in a sensible default domain when the ask names none, so a sentence
+    written from the intent can carry a number nobody gave — "The number line, -5 to 5." over an
+    ask that said only "show me a number line". The spoken-number law (``wobo_gateway.spoken``)
+    rightly refuses that and the turn goes silent, which is worse than the generic line it
+    replaced. So the clause is only written when the numbers in it are the learner's.
+    """
+    said = set(_NUMERAL_IN_ASK.findall(ask or ""))
+    if not said:
+        return False
+    for value in values:
+        forms = {number(value), str(value)}
+        try:
+            amount = float(value)
+        except (TypeError, ValueError):
+            return False
+        forms.add(f"{amount:g}")
+        if not (forms & said):
+            return False
+    return True
+
+
+_NUMERAL_IN_ASK = re.compile(r"-?\d+(?:\.\d+)?")
+
+
+def opening(intent: dict[str, Any], ask: str = "") -> str:
+    """The first true sentence about a drawing whose own marks carry no words.
+
+    Step 3 of docs/INK-FOUR.md: *the words come from the core, not from the wire*. Most figures
+    name themselves — this file writes "Square on the base, square on the height" out of the marks
+    — but a grid, an axis and a curve carry no words at all, so the graph, the number line, the
+    circuit and the balanced equation are drawn in silence until something says what they are.
+    Every number here came out of the learner's own question, which is the only place a number
+    Wobo says is allowed to come from, and ``ask`` is how that is kept rather than asserted.
+
+    IT LIVES HERE, NOT IN THE SCAFFOLD, BECAUSE THE KEYLESS TURN NEEDS IT TOO (the adversary, wave
+    42, finding 8). It was written for the live two-phase turn, so live the graph said "The curve
+    of y = x², from -3 to 3." and keyless the same turn said "Read it a piece at a time, and say
+    which part looks off." — a line that names nothing it drew, on the path all 59 turns are
+    judged on. One figure, one sentence, whoever is asking.
+    """
+    op = str(intent.get("op") or "")
+    domain = intent.get("domain")
+    bounds = domain if isinstance(domain, list) and len(domain) == 2 else None
+    if op == "graph":
+        expr = readable(str(intent.get("expr") or ""))
+        if not expr:
+            return ""
+        if bounds and _from_the_ask(ask, *bounds):
+            return f"The curve of y = {expr}, from {number(bounds[0])} to {number(bounds[1])}."
+        return f"The curve of y = {expr}."
+    if op == "number_line":
+        if bounds and _from_the_ask(ask, *bounds):
+            return f"The number line, {number(bounds[0])} to {number(bounds[1])}."
+        return "The number line."
+    if op == "circuit":
+        arrangement = str(intent.get("arrangement") or "series")
+        emf = intent.get("emf")
+        return (
+            f"A {arrangement} circuit, {number(emf)} volts."
+            if emf and _from_the_ask(ask, emf)
+            else f"A {arrangement} circuit."
+        )
+    if op == "balance":
+        left = " + ".join(str(f) for f in (intent.get("reactants") or []) if f)
+        right = " + ".join(str(f) for f in (intent.get("products") or []) if f)
+        if left and right:
+            return f"{left} to {right}, counted on both sides."
+        return ""
+    if op == "derivation":
+        # THE GIVEN, AS THE LEARNER WROTE IT. A derivation's own marks are ``write`` objects, and
+        # the naming pass deliberately does not read working back (that is the label read back the
+        # law forbids), so the board opened on the family's line — "Read it a piece at a time" —
+        # which names nothing it drew. The line it starts FROM is the one true thing to say about
+        # it, and every numeral in it is the learner's own or it is not said.
+        equation = readable(str(intent.get("equation") or ""))
+        numbers = _NUMERAL_IN_ASK.findall(equation)
+        if not equation or not _from_the_ask(ask, *numbers):
+            return ""
+        return f"{equation}, line by line."
+    return ""
+
+
 # --- the register --------------------------------------------------------------------------------
+
+
+#: THE CARET IS THE BOARD'S, NOT THE VOICE'S. ``pretty_algebra`` leaves ``x^2`` in a ``write``
+#: because the handwriting layer raises the caret as a real superscript. The SAY is read out loud
+#: and printed in the transcript, and "x caret 2" is not how anybody says x squared: live at 1440
+#: the quadratic's second sentence was "x^2 + bx/a + c/a = 0." (measured 2026-09-10). One line,
+#: two hands, each spelling it the way its own reader reads it.
+_SAID_POWER = re.compile(r"\^(\d)")
 
 
 def in_register(words: str) -> str:
@@ -246,6 +381,7 @@ def in_register(words: str) -> str:
     a capital at the front and a full stop at the back, because it is a sentence.
     """
     body = _NARRATION.sub("", (words or "").strip())
+    body = _SAID_POWER.sub(lambda m: _POWERS.get(m.group(1), m.group(0)), body)
     body = body.replace("—", ",").replace("–", ",").replace("!", ".")
     body = re.sub(r"\s*,\s*,+", ",", body).strip(" ,;:")
     body = re.sub(r"\s+", " ", body)
@@ -258,6 +394,16 @@ def in_register(words: str) -> str:
     if not _EXPRESSION.search(body):
         body = body[0].upper() + body[1:]
     return body if body[-1] in _TERMINALS else f"{body}."
+
+
+def narrates(text: str) -> bool:
+    """Does this line announce what Wobo is about to do, instead of doing it (voice.md 10c)?
+
+    :func:`in_register` takes narration OFF a line it is building. A line already written and
+    stored has to be REFUSED instead: rewriting it at serve time would hand a learner a sentence
+    no judge ever saw. So the same pattern is asked as a question here.
+    """
+    return bool(_NARRATION.match((text or "").strip()))
 
 
 #: A spoken line is prose. Anything with a brace or an envelope key in it is machinery.
@@ -307,6 +453,161 @@ def _beat_of(obj: dict[str, Any]) -> int | None:
     return None
 
 
+def _beat_dict(obj: dict[str, Any]) -> dict[str, Any] | None:
+    """The beat as it is written on this object, wherever it is written — ``with`` or ``after``."""
+    for holder in (obj, obj.get("meta") if isinstance(obj.get("meta"), dict) else {}):
+        beat = holder.get("beat") if isinstance(holder, dict) else None
+        if not isinstance(beat, dict):
+            continue
+        for key in ("with", "after"):
+            if isinstance(beat.get(key), int) and not isinstance(beat.get(key), bool):
+                return beat
+    return None
+
+
+def chosen(obj: dict[str, Any]) -> bool:
+    """Was this beat CHOSEN — by the plan, or by the glass planner — rather than derived?
+
+    The same reading as ``stream._authored``: a beat this file worked out carries ``words``, so a
+    beat without it is choreography somebody meant, and neither pass may overrule it.
+    """
+    beat = _beat_dict(obj)
+    return beat is not None and not isinstance(beat.get("words"), int)
+
+
+def _place_of(obj: dict[str, Any]) -> tuple[int, int] | None:
+    """``(sentence, word)`` this object keeps time with, or None when it keeps time with none.
+
+    The word is the ordering INSIDE a sentence, so two marks of one sentence are still ordered
+    against each other; a beat that names no word counts as the first word of its sentence.
+    """
+    beat = _beat_dict(obj)
+    if beat is None:
+        return None
+    where = beat.get("with")
+    if not isinstance(where, int) or isinstance(where, bool):
+        where = beat.get("after")
+    if not isinstance(where, int) or isinstance(where, bool):
+        return None
+    word = beat.get("word")
+    return max(0, int(where)), int(word) if isinstance(word, int) else 0
+
+
+def anchor_ids(obj: dict[str, Any]) -> list[str]:
+    """The ids of the board objects this one hangs off — its anchor, and an arrow's two ends."""
+    out: list[str] = []
+    for field_name in ("anchor", "to", "from"):
+        anchor = obj.get(field_name)
+        if isinstance(anchor, dict) and isinstance(anchor.get("object"), str):
+            out.append(anchor["object"])
+    return out
+
+
+def _set_place(obj: dict[str, Any], place: tuple[int, int], words: int) -> None:
+    """Write a derived beat. Derived, not authored: it carries ``words``, which is how
+    ``stream._authored`` tells a beat somebody CHOSE from one this pass worked out."""
+    beat: dict[str, Any] = {"with": place[0], "word": max(0, place[1]), "words": max(1, words)}
+    existing = _beat_dict(obj)
+    if existing is not None:
+        existing.clear()
+        existing.update(beat)
+        return
+    meta = obj.get("meta")
+    if not isinstance(meta, dict):
+        meta = {}
+        obj["meta"] = meta
+    meta["beat"] = beat
+
+
+#: EVERY DRAWN THING KEEPS TIME WITH A SENTENCE, AND A THING IS BEATEN BEFORE WHAT HANGS OFF IT
+#: (the adversary, wave 42, findings (a) and (b); measured live at 390 and 1440).
+#:
+#: The beat is not a hint to the stream's clock — it is the CLIENT's clock.
+#: ``apps/web-pwa/src/wobo/beat.ts`` holds every ink frame until the voice reaches the sentence the
+#: beat names, and a frame with NO beat falls back to ``planned - 1``: the last sentence queued so
+#: far, which on a fast wire is the last sentence of the whole turn. So on the plant cell the five
+#: labels (named by sentence 0) were released at 4 538 ms and the leaders they hang off (unbeaten,
+#: and therefore sentence 1) at 10 323 ms. A label drawn five seconds before its own leader
+#: resolves its anchor box to null, and ``renderer.tsx`` caches that emptiness under a signature
+#: that can never change: the mark is lost for good, not merely late. Three of five labels, and
+#: two arrows pointing at nothing.
+#:
+#: The fix is one invariant, kept here because this is the only place a turn's words and its ink
+#: are both in hand: **nothing reaches the wire without a beat, and the thing a mark hangs off is
+#: beaten no later than the mark.** A construction stroke rides with the label it leads to; the
+#: pen's own order settles the rest.
+def settle_beats(said: str, objects: list[dict[str, Any]]) -> None:
+    """Give every object a beat, with anchors never later than what hangs off them. In place."""
+    parts = split(said)
+    if not parts or not objects:
+        return
+    lengths = [max(1, len(words_in(part))) for part in parts]
+    places: list[tuple[int, int] | None] = [_place_of(o) for o in objects]
+    if all(place is None for place in places):
+        return
+    index_of = {str(o.get("id")): i for i, o in enumerate(objects) if o.get("id")}
+
+    # 1. BACKWARDS ALONG THE ANCHORS, taking the earliest. A stroke that several marks hang off
+    #    is drawn before the first of them, never before the last. Relaxed to a fixed point
+    #    because a plan may anchor forwards as well as back.
+    for _ in range(len(objects)):
+        moved = False
+        for i, obj in enumerate(objects):
+            mine = places[i]
+            if mine is None:
+                continue
+            for other in anchor_ids(obj):
+                j = index_of.get(other)
+                if j is None or j == i:
+                    continue
+                if places[j] is None or places[j] > mine:
+                    places[j] = mine
+                    moved = True
+        if not moved:
+            break
+
+    # 2. WHAT IS STILL FREE RIDES WITH WHAT COMES NEXT. A stroke nothing names and nothing hangs
+    #    off belongs with the mark the pen reaches after it — the timeline's rule before its first
+    #    tick — and, when nothing follows, with the last thing that was named.
+    later: tuple[int, int] | None = None
+    for i in range(len(objects) - 1, -1, -1):
+        if places[i] is None:
+            places[i] = later
+        elif later is None or places[i] < later:
+            later = places[i]
+    earlier: tuple[int, int] | None = None
+    for i, place in enumerate(places):
+        if place is None:
+            places[i] = earlier
+        else:
+            earlier = place
+
+    # 3. AND THE INVARIANT, ENFORCED RATHER THAN HOPED FOR. Filling the free ink from what comes
+    #    NEXT can hand a mark a beat earlier than the stroke it hangs off, so every dependent is
+    #    raised to its anchor, to a fixed point. This is the one rule the wire may not break.
+    for _ in range(len(objects) + 1):
+        moved = False
+        for i, obj in enumerate(objects):
+            for other in anchor_ids(obj):
+                j = index_of.get(other)
+                if j is None or j == i or places[j] is None:
+                    continue
+                if places[i] is None or places[i] < places[j]:
+                    places[i] = places[j]
+                    moved = True
+        if not moved:
+            break
+
+    for obj, place in zip(objects, places, strict=True):
+        # A BEAT SOMEBODY CHOSE IS NEVER REWRITTEN. `{"with": n}`, `{"after": n}` and `lag` are
+        # choreography a plan meant; this pass reads them to order the free ink around them and
+        # leaves them exactly as written.
+        if place is None or chosen(obj):
+            continue
+        sentence = max(0, min(place[0], len(parts) - 1))
+        _set_place(obj, (sentence, place[1]), lengths[sentence])
+
+
 def _rebeat(obj: dict[str, Any], to: int) -> None:
     for holder in (obj, obj.get("meta") if isinstance(obj.get("meta"), dict) else None):
         if not isinstance(holder, dict):
@@ -336,7 +637,7 @@ def _word_place(sentence: str, name: str, after: int = 0) -> tuple[int, int] | N
     reading cursor: each name is found past the one before it, which is the order the sentence
     says them in and the order the pen draws them.
     """
-    words = _WORD.findall((sentence or "").lower())
+    words = words_in(sentence)
     wanted = _content(name)
     if not words or not wanted:
         return None
@@ -355,6 +656,16 @@ def _word_place(sentence: str, name: str, after: int = 0) -> tuple[int, int] | N
     return (after, len(words)) if after < len(words) else (0, len(words))
 
 
+#: A NAME FOR KEEPING TIME IS NOT A NAME TO SAY. ``part_name`` deliberately refuses to read
+#: working back to a learner — "TT, Tt, Tt, tt" is the label read back the law forbids — but when
+#: the say ALREADY carries that line, the mark that writes it has to keep time with it. The
+#: derivation's given was the case: the say opens on "x² + 5x + 6 = 0, line by line." and the
+#: ``write`` that draws it was left free, inherited the sentence of the ANSWER, and the board sat
+#: on one line for 3.7 s (measured 2026-09-10). This is used for the beat and never for the say.
+def _timing_name(obj: dict[str, Any]) -> str | None:
+    return _sayable_name(_own_words(obj, "text", "tex", "label", "title"))
+
+
 def keep_time(said: str, objects: list[dict[str, Any]]) -> None:
     """Beat every drawn thing to the sentence that names it. In place, on the objects given.
 
@@ -371,7 +682,7 @@ def keep_time(said: str, objects: list[dict[str, Any]]) -> None:
     for obj in objects:
         if not isinstance(obj, dict) or _beat_of(obj) is not None:
             continue
-        name = part_name(obj) or mark_subject(obj, by_id)
+        name = part_name(obj) or mark_subject(obj, by_id) or _timing_name(obj)
         if not name:
             continue
         where = next((i for i, part in enumerate(parts) if names(part, name)), None)
@@ -390,6 +701,9 @@ def keep_time(said: str, objects: list[dict[str, Any]]) -> None:
             meta = {}
             obj["meta"] = meta
         meta["beat"] = beat
+    # Nothing reaches the wire without a sentence to keep time with, and nothing is beaten before
+    # the thing it hangs off (:func:`settle_beats`).
+    settle_beats(said, [o for o in objects if isinstance(o, dict)])
 
 
 def unnamed(say: str, objects: list[dict[str, Any]]) -> list[str]:
@@ -416,6 +730,70 @@ def unnamed(say: str, objects: list[dict[str, Any]]) -> list[str]:
         if name and not names(say, name):
             out.append(name)
     return out
+
+
+#: NOTHING IS SPOKEN THAT WAS NOT DRAWN (INK-FOUR, correctness at 4; the adversary, wave 42,
+#: finding (b)). The say and the ledger were both built from the PLAN, and nothing reconciled them
+#: against what actually went out: a plan whose ring was refused kept the sentence that named it,
+#: so a learner heard "The hypotenuse" over a board with no hypotenuse marked on it. This is the
+#: say's half of the reconciliation — the ledger's half is in ``stream.build_events``.
+def only_what_is_drawn(
+    say: str, drawn: list[dict[str, Any]], missing: list[dict[str, Any]]
+) -> tuple[str, tuple[int, ...]]:
+    """The line with every sentence about a mark that never reached the wire taken out.
+
+    A sentence goes only when it is ABOUT something that is not there: it names a missing mark and
+    names nothing that IS on the board. A sentence that teaches, or that names both, is kept —
+    the law is against speaking what was not drawn, not against speaking at all.
+
+    Returns the line and the indices of the sentences that went, so the beats choreographed to
+    later sentences can be moved up with them.
+    """
+    parts = split(say)
+    if not parts or not missing:
+        return say, ()
+    by_id = {str(o.get("id")): o for o in [*drawn, *missing] if o.get("id")}
+    gone = [n for n in (_own_name(o, by_id) for o in missing) if n]
+    if not gone:
+        return say, ()
+    here = [n for n in (_own_name(o, by_id) for o in drawn) if n]
+    kept: list[str] = []
+    dropped: list[int] = []
+    for index, part in enumerate(parts):
+        if any(names(part, n) for n in gone) and not any(names(part, n) for n in here):
+            dropped.append(index)
+            continue
+        kept.append(part)
+    return " ".join(kept), tuple(dropped)
+
+
+def _own_name(obj: dict[str, Any], by_id: dict[str, dict[str, Any]]) -> str | None:
+    return part_name(obj) or mark_subject(obj, by_id)
+
+
+def rebeat_after_dropping(
+    objects: list[dict[str, Any]], dropped: tuple[int, ...], total: int
+) -> None:
+    """Move every beat that named a later sentence up by the sentences taken out before it.
+
+    The same rule ``spoken.reanchor`` keeps when the spoken-number law drops a sentence: a beat on
+    a sentence that went lands on the sentence that took its place, so no mark is left keeping
+    time with silence.
+    """
+    if not dropped:
+        return
+    remaining = max(0, total - len(dropped))
+    for obj in objects:
+        beat = _beat_dict(obj) if isinstance(obj, dict) else None
+        if beat is None:
+            continue
+        for key in ("with", "after"):
+            index = beat.get(key)
+            if not isinstance(index, int) or isinstance(index, bool):
+                continue
+            shift = sum(1 for d in dropped if d < index)
+            beat[key] = max(0, min(max(remaining - 1, 0), index - shift))
+
 
 def _chunks(items: list[str], size: int) -> list[list[str]]:
     """Split a run of names into even mouthfuls. Nine parts read as five and four, never eight and

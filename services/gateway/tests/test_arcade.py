@@ -13,7 +13,6 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
-
 from wobo_gateway.plexus import arcade
 
 # --- the material a bonus level is filled from ---------------------------------------------------
@@ -91,6 +90,8 @@ def _course() -> dict[str, Any]:
                 "answer": "49",
             },
         ],
+        # Three, because `_verify_items` refuses fewer, and because the boss having its own words
+        # is the whole reason a bonus level is never allowed to spend them.
         "boss": [
             {
                 "id": "b1",
@@ -98,7 +99,20 @@ def _course() -> dict[str, Any]:
                 "prompt": "what is 17 x 7",
                 "options": ["119", "117", "129"],
                 "answer": "119",
-            }
+            },
+            {
+                "id": "b2",
+                "type": "mcq",
+                "prompt": "what is 23 x 7",
+                "options": ["161", "151", "171"],
+                "answer": "161",
+            },
+            {
+                "id": "b3",
+                "type": "fill",
+                "prompt": "seven thirteens is ________",
+                "answer": "91",
+            },
         ],
     }
 
@@ -270,7 +284,7 @@ def test_the_level_is_filled_from_the_rendering_and_invents_nothing() -> None:
 
 
 def test_the_boss_items_are_never_spent_on_a_game() -> None:
-    """The boss is the summit and it must still be a surprise: nothing from `boss` reaches a chip."""
+    """The boss is the summit and it must still be a surprise: nothing from it reaches a chip."""
     course = _course()
     plan = arcade.plan_arcade(course, ["a", "b", "c", "d", "e", "f", "g"], chapter="tables")
     boss_words = {str(i.get("prompt", "")) for i in course["boss"]}
@@ -295,11 +309,40 @@ def test_every_planned_level_passes_the_gate_it_will_be_served_through() -> None
 
 
 def test_a_chapter_where_speed_is_not_the_skill_gets_no_door() -> None:
-    """A bonus level exists only where the mechanic IS the skill. Never a nag, never filler."""
+    """A bonus level exists only where the mechanic IS the skill. Never a nag, never filler.
+
+    The chapter is asked through its own RENDERING as of 2026-09-10, not through its name alone
+    (``skill_of(name, course)``), so the course here is the ethics chapter's own: prose, a
+    discussion, no order to restore and no set of names to hold. Handing this test the tables
+    rendering under the ethics title used to pass for the wrong reason — the name carried no
+    keyword — and would now fail for the right one, because that rendering IS a drill.
+    """
+    ethics = {
+        "topic": "the ethics of cloning",
+        "difficulty": "core",
+        "cards": [
+            {
+                "id": "c1",
+                "kind": "text",
+                "title": "who decides",
+                "idea": "a technique that can be used is not a technique that should be.",
+                "interaction": {"kind": "tap", "prompt": "tap the claim you disagree with"},
+                "reveal": "the argument turns on consent, not on the biology.",
+            }
+        ],
+        "workbook": [
+            {
+                "id": "w1",
+                "type": "mcq",
+                "prompt": "what does the objection rest on?",
+                "options": ["consent", "the cost"],
+                "answer": "consent",
+            }
+        ],
+        "boss": [],
+    }
     assert (
-        arcade.plan_arcade(
-            _course(), ["a", "b", "c", "d", "e", "f", "g"], chapter="the ethics of cloning"
-        )
+        arcade.plan_arcade(ethics, ["a", "b", "c", "d", "e", "f", "g"], chapter=ethics["topic"])
         == []
     )
 
@@ -316,7 +359,10 @@ def test_the_register_holds_inside_a_game() -> None:
     """voice.md 10a: no em dash a learner reads, no hype, no emoji, no exclamation."""
     plan = arcade.plan_arcade(_course(), ["a", "b", "c", "d", "e", "f", "g"], chapter="tables")
     said = " ".join(
-        [d["spec"]["title"] for d in plan] + [d["why"] for d in plan] + [arcade.DOOR_LINE]
+        [d["spec"]["title"] for d in plan]
+        + [d["why"] for d in plan]
+        + sorted(arcade.FRAMING)
+        + [arcade.DOOR_LINE]
     )
     assert "—" not in said and "–" not in said
     assert "!" not in said
@@ -333,3 +379,90 @@ def test_bonus_xp_is_capped_and_kept_apart_from_the_climb() -> None:
     assert arcade.BONUS_XP_CHAPTER_CAP == 45
     assert arcade.BONUS_XP_DAILY_CAP == 60
     assert arcade.BONUS_XP_COUNTS_TOWARD_LEVEL is False
+
+
+# --- the template floor, on a real course ---------------------------------------------------------
+
+
+def test_the_floor_attaches_a_bonus_level_where_the_model_attached_none() -> None:
+    """§3: templates are the floor, not the ceiling. A chapter where speed or recall IS the skill
+    gets a bonus level from the rendering even when the model did not think to write one, and it
+    costs nothing because it is a template filled from a course that was already paid for."""
+    from wobo_gateway.plexus.engines import _verify_compose
+
+    course = _course()
+    spec = {
+        "topic": "multiplication tables",
+        "cards": [
+            {
+                "id": f"c{i}",
+                "kind": "text",
+                "title": f"card {i}",
+                "idea": "an idea",
+                "interaction": {"kind": "tap", "prompt": "tap it"},
+                "reveal": "there it is",
+            }
+            for i in range(1, 4)
+        ],
+        "workbook": course["workbook"],
+        "boss": course["boss"],
+    }
+    out = _verify_compose(spec, "multiplication tables", "core")
+    assert out is not None
+    attached = [c for c in out["cards"] if "arcade" in c]
+    assert len(attached) == 1, "exactly one bonus level, on one card"
+    assert arcade.verify_arcade(attached[0]["arcade"]) is not None
+
+
+def test_the_floor_stays_silent_where_a_game_would_be_noise() -> None:
+    from wobo_gateway.plexus.engines import _verify_compose
+
+    course = _course()
+    spec = {
+        "topic": "the ethics of cloning",
+        "cards": [
+            {
+                "id": f"c{i}",
+                "kind": "text",
+                "title": f"card {i}",
+                "idea": "an idea",
+                "interaction": {"kind": "tap", "prompt": "tap it"},
+                "reveal": "there it is",
+            }
+            for i in range(1, 4)
+        ],
+        "workbook": course["workbook"],
+        "boss": course["boss"],
+    }
+    out = _verify_compose(spec, "the ethics of cloning", "core")
+    assert out is not None
+    assert all("arcade" not in c for c in out["cards"])
+
+
+def test_the_floor_never_overrules_the_model() -> None:
+    """A course the model gave a bonus level keeps the model's one: the floor is a floor."""
+    from wobo_gateway.plexus.engines import _verify_compose
+
+    course = _course()
+    cards = [
+        {
+            "id": f"c{i}",
+            "kind": "text",
+            "title": f"card {i}",
+            "idea": "an idea",
+            "interaction": {"kind": "tap", "prompt": "tap it"},
+            "reveal": "there it is",
+        }
+        for i in range(1, 4)
+    ]
+    cards[0]["arcade"] = _valid("match")
+    spec = {
+        "topic": "multiplication tables",
+        "cards": cards,
+        "workbook": course["workbook"],
+        "boss": course["boss"],
+    }
+    out = _verify_compose(spec, "multiplication tables", "core")
+    assert out is not None
+    attached = [c for c in out["cards"] if "arcade" in c]
+    assert len(attached) == 1 and attached[0]["arcade"]["game"] == "match"

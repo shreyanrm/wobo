@@ -54,6 +54,11 @@ export const SCOPED_KEYS = [
   'wobo-activity-v1', // the days they showed up
   'wobo-activity-counts-v1', // how much they did on each of them
   'wobo-trophies-celebrated-v1', // which ceremonies they have already had
+  // The arcade's own ledger (store/arcade.ts): which bonus levels they cleared, what the day
+  // and the chapter have already paid, and which side doors stand open for them. It is one
+  // learner's play and one learner's caps, so a sibling on the same tablet never inherits a
+  // spent day, and it leaves with the learner.
+  'wobo-arcade-v1',
   'wobo-proactivity-v1', // how much Wobo speaks up, which is their dial and not the device's
   // The photos a learner took of their doubts, with what Wobo read on them, and the deletes still
   // owed to the server for the ones they removed (screens/doubt/doubt-store.ts). A photo of a

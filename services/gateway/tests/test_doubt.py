@@ -1140,4 +1140,420 @@ def test_each_call_is_given_only_the_time_that_is_left() -> None:
     assert screen.with_seconds(3.0).timeout_s == 3.0
 
     # the whole door fits inside its own wall clock, worst case
-    assert doubt.LiveImageScreen().timeout_s * 2 + doubt.LiveReader().timeout_s >= doubt.DOUBT_BUDGET_S
+    worst = doubt.LiveImageScreen().timeout_s * 2 + doubt.LiveReader().timeout_s
+    assert worst >= doubt.DOUBT_BUDGET_S
+
+
+# --- the door is not a coin toss: neither vision call may think its answer away -------------------
+#
+# THE MEASUREMENT THIS SECTION WAS WRITTEN FROM (live on Luna/Flash, 2026-09-10, the lab's own
+# three photographs through POST /v1/doubt on a pinned ladder):
+#
+#   history.jpg  422 nothing_read after 15 265 ms
+#     doubt.read  finish='length'  completion=1496 of 1500  REASONING=1304  text=192
+#     the content was a correct read of the page — "subject": "History", "topic": "The Revolt of
+#     1857", the question, and three whole lines with their boxes — cut off mid-object. json.loads
+#     refused it, _extract_json returned {}, and the learner was told their PHOTOGRAPH was bad.
+#   math.jpg and diagram.jpg  503 photo_outage after 4014 ms and 4432 ms
+#     doubt.screen  finish='length'  completion=200 of 200  REASONING=200  body=''
+#     not one character of the four booleans came out; screen_image fails closed, correctly, and
+#     refused two photographs that were perfectly good pages of work.
+#   the one screen that passed that day spent 65 of its 200 tokens thinking. That is the whole
+#   difference between a door that opens and a door that does not: how long the model felt like
+#   thinking about a photograph of a textbook.
+#
+# Neither call is a puzzle. One reads four booleans off a picture; the other transcribes a page.
+# ``plexus/engines.py`` already carries this exact lesson above ``_MAX_TOKENS`` — "reasoning tokens
+# count against max_tokens, so a tight budget gets exhausted mid-thought and returns EMPTY content
+# — which parses to {}". The doubt door was the one place it had not been applied.
+
+
+def _reader_response(content: str) -> Any:
+    class Message:
+        pass
+
+    message = Message()
+    message.content = content
+
+    class Choice:
+        pass
+
+    choice = Choice()
+    choice.message = message
+
+    class Response:
+        pass
+
+    response = Response()
+    response.choices = [choice]
+    response.usage = None
+    return response
+
+
+def _capture(monkeypatch: pytest.MonkeyPatch, content: str) -> list[dict[str, Any]]:
+    sent: list[dict[str, Any]] = []
+
+    def complete(**kwargs: Any) -> Any:
+        sent.append(kwargs)
+        return _reader_response(content)
+
+    monkeypatch.setattr("wobo_gateway.model_call.complete", complete)
+    monkeypatch.setattr("wobo_gateway.telemetry.record_cost", lambda **kw: None)
+    return sent
+
+
+#: The history page as it actually came back on 2026-09-10, cut off by the output cap mid-object.
+TRUNCATED = """```json
+{
+  "subject": "History",
+  "topic": "The Revolt of 1857",
+  "question": "Answer the questions regarding the sepoy march to Delhi.",
+  "lines": [
+    {
+      "text": "3.2 The Revolt Begins",
+      "box": [0.11, 0.10, 0.48, 0.13]
+    },
+    {
+      "text": "The revolt of 1857 began at Meerut on 10 May 1857, when",
+      "box": [0.12, 0.16, 0.81, 0.18]
+    },
+    {
+      "text": "sepoys of the Bengal Army rose against their British",
+"""
+
+
+def test_a_read_that_ran_out_of_room_is_read_as_far_as_it_got(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """[wrong] Wave 42 finding 11. The reader read the page correctly and was cut off by the output
+    cap; every word of it was dropped and the learner was told to take a straighter, brighter
+    photograph. An answer is never thrown away: the lines that ARE closed are the reading."""
+    _capture(monkeypatch, TRUNCATED)
+    reading = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="")
+    assert reading.how == "repaired"
+    assert reading.subject == "History" and reading.topic == "The Revolt of 1857"
+    assert [line.text for line in reading.lines] == [
+        "3.2 The Revolt Begins",
+        "The revolt of 1857 began at Meerut on 10 May 1857, when",
+    ]
+    # and they are TARGETS: a repaired line keeps the box the reader gave it, so ink may anchor
+    assert reading.targets[0].box == (0.11, 0.1, 0.48, 0.13)
+    assert "straighter" not in reading.say() and reading.say().startswith("I read this as")
+
+
+def test_a_page_written_out_in_prose_is_a_reading_with_nothing_to_anchor_to(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A vision model asked for JSON sometimes writes the page out instead. That is the page, and
+    it is kept as text the learner can correct — with NO box, so law 3 still forbids a mark on it
+    (an anchor needs a rect), and nothing is ringed on a page nobody placed."""
+    _capture(monkeypatch, "Ex 2.3 Q4\nSolve: 3x + 5 = 20\n3x = 20 + 5")
+    reading = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="")
+    assert reading.how == "prose"
+    assert [line.text for line in reading.lines] == [
+        "Ex 2.3 Q4",
+        "Solve: 3x + 5 = 20",
+        "3x = 20 + 5",
+    ]
+    assert reading.targets == () and reading.unplaced == 3
+
+
+def test_the_reader_saying_nothing_is_not_the_photograph_saying_nothing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """[wrong] The split builder 2 named and did not build. Three different things arrived at ONE
+    sentence about the photograph. Only one of them is about the photograph."""
+    _capture(monkeypatch, "")
+    mute = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="")
+    assert mute.how == "mute" and mute.lines == ()
+    assert mute.say() == doubt.NO_ANSWER_SAY
+    for blame in ("photo", "brighter", "straighter", "figure"):
+        assert blame not in doubt.NO_ANSWER_SAY.lower()
+
+    # the reader that WILL not read is not the page that has nothing on it either
+    _capture(monkeypatch, "I'm sorry, I can't identify people in this image.")
+    declined = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="")
+    assert declined.how == "mute" and declined.lines == ()
+
+    # and the one case the old sentence was always true of keeps it
+    looked = doubt.reading_from({"subject": "maths", "lines": []})
+    assert looked.how == "read" and looked.say() == doubt.NOTHING_READ_SAY
+
+
+def test_a_mute_reader_is_refused_as_a_reader_and_never_as_a_bad_page(
+    client: TestClient, auth
+) -> None:
+    """On the wire: the code an operator greps and the app switches on says which of the two it
+    was. A page that was looked at and had nothing on it is still 422 nothing_read."""
+    doubt.set_eyes(
+        doubt.Eyes(
+            screen=FakeScreen(),
+            reader=FakeReader(reading=doubt.Reading("", "", "", (), how="mute")),
+        )
+    )
+    res = read(client, auth)
+    assert res.status_code == 503 and res.json()["code"] == "reader_mute"
+    assert res.json()["message"] == doubt.NO_ANSWER_SAY
+    assert doubt.get_store().list(ME) == []
+
+    doubt.set_eyes(
+        doubt.Eyes(screen=FakeScreen(), reader=FakeReader(reading=doubt.Reading("", "", "", ())))
+    )
+    res = read(client, auth)
+    assert res.status_code == 422 and res.json()["code"] == "nothing_read"
+    assert res.json()["message"] == doubt.NOTHING_READ_SAY
+
+
+def test_a_clean_crop_is_not_screened_a_second_time(client: TestClient, auth) -> None:
+    """[slow] Wave 42 finding 4. The door screened EVERY crop twice. The second look is what
+    catches a crop that failed to leave someone's details behind, and that is the only thing it
+    can catch: when the screen found no details at all, the crop is a subregion of a frame it has
+    just certified — no face, no details, a page of work — and a crop can only take things away.
+    The call bought nothing and cost the learner about two seconds and one more chance to fail
+    closed. The details path still gets its second look (test_personal_details_keep_only_the_work,
+    test_a_re_screen_that_still_finds_details_refuses)."""
+    screen = FakeScreen(
+        verdicts=[
+            # the work is only part of the frame, and there is nothing on it that should not be
+            doubt.verdict_from(
+                {"page_of_work": True, "personal_details": False, "work_box": [0, 0.2, 1, 1]}
+            )
+        ]
+    )
+    reader = FakeReader()
+    doubt.set_eyes(doubt.Eyes(screen=screen, reader=reader))
+    res = read(client, auth)
+    assert res.status_code == 200
+    assert len(screen.calls) == 1, "a crop with nothing to hide was screened twice"
+    # and the CROP is what was read and kept, not the whole frame the screen was shown
+    whole = doubt.prepare_image(photo_bytes(), media_type="image/jpeg")
+    assert reader.calls and reader.calls[0][0] < len(whole.data)
+    assert doubt.get_store().photo(ME, res.json()["doubt"]) is not None
+
+
+def test_half_a_json_object_is_never_read_out_as_the_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The second live history read on 2026-09-10 was cut off BEFORE its first line object: a
+    subject, a topic, a question and the word "lines". There is nothing to repair there, and the
+    prose reader must not take the braces and the field names for the page — a learner asked "is
+    that right?" about {, "subject": "History", is being shown the machine, not their book."""
+    _capture(
+        monkeypatch,
+        '```json\n{\n  "subject": "History",\n  "topic": "The Revolt of 1857",\n'
+        '  "question": "Why did the sepoys march to Delhi?",\n  "lines":',
+    )
+    reading = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="")
+    assert reading.how == "mute" and reading.lines == ()
+    assert reading.say() == doubt.NO_ANSWER_SAY
+
+
+# --- the read is RIGHT, not merely 200 (wave 42's judge, finding 1) -------------------------------
+
+#: The maths page as it actually came back on 2026-09-10 with the reader forbidden to think, on
+#: all THREE of the five live runs that read at all (the other two refused).
+#: turns/doubt/w54-live-math-390{,-r3,-r5}. The page has SIX lines; four came back. Gone are
+#: "Solve: 3x + 5 = 20" — filed under ``question`` as a paraphrase and left out of the working —
+#: and "3x = 20 + 5 ?", the learner's own step 1, which is the one line the sign error is on.
+#: With thinking ON the same photo read all six, twice (w44, w47).
+THINNED = json.dumps(
+    {
+        "subject": "Math",
+        "topic": "Algebra",
+        "question": "Solve the equation 3x + 5 = 20.",
+        "lines": [
+            {"text": "Ex 2.3 Q4", "box": [0.16, 0.10, 0.36, 0.12]},
+            {"text": "3x = 25", "box": [0.16, 0.37, 0.36, 0.40]},
+            {"text": "x = 25/3", "box": [0.16, 0.45, 0.36, 0.48]},
+            {"text": "x = 8.33", "box": None},
+        ],
+    }
+)
+#: What the learner typed beside that photograph.
+ASKED = "Is my step 2 right? I am not sure about the +5"
+
+
+def test_the_screen_may_not_think_and_the_reader_must(monkeypatch: pytest.MonkeyPatch) -> None:
+    """[broken] Wave 42's judge, finding 1. Forbidding BOTH vision calls to think fixed the wrong
+    half. Four booleans off a picture is not a puzzle and the screen keeps :data:`NO_THINKING`;
+    transcribing a page IS one, and a reader told to spend nothing on looking skims it. Five live
+    runs of the same maths photo, ladder pinned: three read, and all three returned four of six
+    lines and then told the learner the wrong step was right. The truncation that was used to
+    justify the ban is already repaired in this file (:func:`_repaired`), and a read that is short
+    and says so is a smaller defect than a read that is short and signed."""
+    sent = _capture(monkeypatch, '{"page_of_work": true}')
+    doubt.LiveImageScreen().screen(image=b"\xff\xd8jpeg", media_type="image/jpeg")
+    doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="")
+    assert [call.get("reasoning_effort") for call in sent] == [doubt.NO_THINKING, doubt.READ_EFFORT]
+    assert doubt.READ_EFFORT != doubt.NO_THINKING
+    # both values are ones EVERY rung of every doubt chain accepts: litellm maps them onto
+    # Gemini's thinkingConfig and OpenAI takes them by name. A value only one vendor knows would
+    # 400 the fallback the moment the primary went out.
+    assert {doubt.NO_THINKING, doubt.READ_EFFORT} <= {"minimal", "low", "medium", "high"}
+
+
+def test_the_page_s_own_equation_is_never_lost_to_the_question_field(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """[broken] The equation a page asks about is a LINE of that page. ``question`` is a summary
+    of it, not a replacement for it, and a reader that files it there and nowhere else hands the
+    tutor a working that begins "3x = 25" with nothing for the 25 to have come from. All three
+    live reads then affirmed it. It comes back with NO box (nobody placed it, so law 3 still
+    forbids a mark on it) and in reading order, before the working it sets up."""
+    _capture(monkeypatch, THINNED)
+    reading = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words=ASKED)
+    assert [line.text for line in reading.lines] == [
+        "Ex 2.3 Q4",
+        "Solve the equation 3x + 5 = 20.",
+        "3x = 25",
+        "x = 25/3",
+        "x = 8.33",
+    ]
+    restored = reading.lines[1]
+    assert restored.box is None and restored not in reading.targets
+
+
+def test_a_question_that_is_about_the_page_is_not_written_onto_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The other half of the same law. A history page's "Why did the sepoys march to Delhi?" is a
+    question ABOUT the page; putting it back would write a line nobody wrote, and law 1 would then
+    read it out and ask a child "is that right?" about Wobo's own sentence."""
+    _capture(
+        monkeypatch,
+        json.dumps(
+            {
+                "subject": "History",
+                "topic": "The Revolt of 1857",
+                "question": "Why did the sepoys march to Delhi?",
+                "lines": [{"text": "3.2 The Revolt Begins", "box": [0.1, 0.1, 0.5, 0.13]}],
+            }
+        ),
+    )
+    reading = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="")
+    assert [line.text for line in reading.lines] == ["3.2 The Revolt Begins"]
+    # nor is a question whose numbers are all on the page already: it is the same line, said twice
+    _capture(
+        monkeypatch,
+        json.dumps(
+            {
+                "question": "Solve: 3x + 5 = 20",
+                "lines": [{"text": "Solve: 3x + 5 = 20", "box": [0.1, 0.1, 0.5, 0.13]}],
+            }
+        ),
+    )
+    again = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words="")
+    assert [line.text for line in again.lines] == ["Solve: 3x + 5 = 20"]
+
+
+def test_a_reading_that_misses_what_the_learner_pointed_at_says_so(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """[broken] "I am not sure about the +5" and not one line read carries a +5. Three live runs
+    answered "Step 2 is right" over exactly that. A reading that does not contain the thing the
+    learner is asking about is KNOWN to be short, and law 1 is the place to say so: the learner
+    sees the gap before a single number is computed."""
+    # The same four lines with no question to put back: nothing on them carries a +5.
+    thinner = json.loads(THINNED)
+    thinner.pop("question")
+    reading = doubt.reading_from(thinner, words=ASKED)
+    assert reading.missing == ("+5",) and reading.short
+    say = reading.say()
+    assert "+5" in say and say.endswith("Is that right? Fix anything I got wrong first.")
+    assert "I could not find the +5 in what I read" in say
+
+    # "step 2" is a place in the working, not a term of it. A bare integer is never flagged, or
+    # every reading ever made would be short: "Q4", "part 3", "in 1857".
+    plain = doubt.reading_from(thinner, words="Is my step 2 right? Q4 part 3 in 1857")
+    assert plain.missing == () and not plain.short
+
+    # nor is a hyphen that joins two things a minus sign; a sign has to stand on its own
+    assert doubt.unaccounted(["3x = 25"], "is step-2 right, and lines 1-3?") == ()
+    assert doubt.unaccounted(["3x = 25"], "I am not sure about the -5") == ("-5",)
+
+    # and when the page's own equation IS put back, the +5 is accounted for: the learner is not
+    # told a line is missing when Wobo has it. That is the whole point of the restore.
+    _capture(monkeypatch, THINNED)
+    whole = doubt.LiveReader().read(image=b"\xff\xd8jpeg", media_type="image/jpeg", words=ASKED)
+    assert whole.missing == () and not whole.short
+    assert "3x + 5 = 20" in " ".join(line.text for line in whole.lines)
+
+
+def test_wobo_counts_the_lines_it_did_not_read_out_in_english() -> None:
+    """[ugly] Live on 2026-09-10, three reads in five split the page's stray "?" onto a line of
+    its own and law 1's sentence ended "and 1 more lines". Seven lines is the first page that
+    reaches it, and a page of working reaches it often."""
+    seven = tuple(doubt.Line(f"r{i}", f"line {i}", None) for i in range(1, 8))
+    assert doubt.Reading("", "", "", seven).say().count("and 1 more line.") == 1
+    eight = (*seven, doubt.Line("r8", "line 8", None))
+    assert "and 2 more lines." in doubt.Reading("", "", "", eight).say()
+
+
+def test_the_working_handed_to_the_answer_starts_at_the_equation(client: TestClient, auth) -> None:
+    """[broken] ``canvas.equation`` is what the CAS grounding is given, and it was the FIRST line
+    of the page — "Ex 2.3 Q4", an exercise number. The relation is the equation; a heading is not.
+    And when the reading is known short, the packet says which words are not in it, so the answer
+    cannot sign off on working it never saw."""
+    lines = (
+        doubt.Line("r1", "Ex 2.3 Q4", (0.16, 0.10, 0.36, 0.12)),
+        doubt.Line("r2", "3x = 25", (0.16, 0.37, 0.36, 0.40)),
+        doubt.Line("r3", "x = 25/3", (0.16, 0.45, 0.36, 0.48)),
+    )
+    doubt.set_eyes(
+        doubt.Eyes(
+            screen=FakeScreen(),
+            reader=FakeReader(reading=doubt.Reading("Math", "Algebra", "", lines)),
+        )
+    )
+    res = read(client, auth, words=ASKED)
+    assert res.status_code == 200, res.text
+    kept = doubt.get_store().get(ME, res.json()["doubt"])
+    assert kept is not None
+    payload = doubt.turn_payload(kept, ASKED)
+    assert payload["context"]["canvas"]["equation"] == "3x = 25"
+    assert "+5" in str(payload["context"]["page"]["state"].get("couldNotRead"))
+
+
+def test_the_learner_is_told_when_the_reading_was_cut_off(client: TestClient, auth) -> None:
+    """[wrong] The route rebuilt a fresh ``Reading`` from the stored record to write law 1's
+    sentence, so ``how`` was "read" every time and the repaired reading's own clause — "I may not
+    have got to the end of the page" — could never reach the wire. The honesty was written and
+    never said."""
+    doubt.set_eyes(
+        doubt.Eyes(
+            screen=FakeScreen(),
+            reader=FakeReader(reading=doubt.Reading("maths", "", "", LINES, how="repaired")),
+        )
+    )
+    res = read(client, auth)
+    assert res.status_code == 200, res.text
+    assert "I may not have got to the end of the page." in res.json()["say"]
+
+
+def test_a_screen_that_answers_nothing_is_asked_once_more_before_the_door_shuts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """[broken] Two of five live runs of a perfectly good maths page refused ``photo_outage``
+    after 2828 ms and 3334 ms, with a ``doubt.screen`` row charged and no ``doubt.read`` row: the
+    screen answered with an EMPTY body and :func:`safety.screen_image` failed closed, correctly.
+    An empty body is not a verdict — it is the checker not running — and the door spends a
+    learner's whole turn on it. It is asked once more, on the rung behind, before it shuts."""
+    bodies = ["", '{"page_of_work": true}']
+    sent: list[dict[str, Any]] = []
+
+    def complete(**kwargs: Any) -> Any:
+        sent.append(kwargs)
+        return _reader_response(bodies[min(len(sent) - 1, len(bodies) - 1)])
+
+    monkeypatch.setattr("wobo_gateway.model_call.complete", complete)
+    monkeypatch.setattr("wobo_gateway.telemetry.record_cost", lambda **kw: None)
+    verdict = doubt.LiveImageScreen().screen(image=b"\xff\xd8jpeg", media_type="image/jpeg")
+    assert verdict.allowed and len(sent) == 2
+    assert sent[1]["model"] != sent[0]["model"], "the second look went to the same rung"
+
+    # and two non-answers is still an outage: the photo is never kept on a screen that never ran
+    sent.clear()
+    bodies[:] = ["", ""]
+    with pytest.raises(ValueError):
+        doubt.LiveImageScreen().screen(image=b"\xff\xd8jpeg", media_type="image/jpeg")
+    assert len(sent) == 2

@@ -22,8 +22,10 @@ baseline row exists it says so rather than inventing one.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
+import math
 import os
 import threading
 from datetime import UTC, datetime
@@ -140,13 +142,80 @@ def _totals(subset: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+#: How many measurements make a price. Below this a mean is one run's weather, and the wave that
+#: quoted "break-even is ~38 levels" was quoting a baseline measured exactly once.
+MIN_SAMPLES = 3
+
+
+def _made_costs(data: list[dict[str, Any]], layer: str) -> list[float]:
+    return [
+        float(r["costUsd"])
+        for r in data
+        if r.get("layer") == layer
+        and not r.get("cached")
+        and isinstance(r.get("costUsd"), int | float)
+    ]
+
+
+def _break_even(
+    data: list[dict[str, Any]],
+    baseline_unit: float | None,
+    level_unit: float | None,
+    core_unit: float | None,
+) -> tuple[int | None, str]:
+    """How many levels of one concept a core must serve before the split is cheaper, or nothing.
+
+    THREE THINGS HAVE TO HOLD, and if any of them does not the answer is None WITH A REASON.
+
+    1. there is a measured baseline at all. A full generation nobody made is not a price;
+    2. there are at least :data:`MIN_SAMPLES` of each. On 2026-09-10 the only run that carried a
+       baseline carried ONE, and a figure was published off it;
+    3. every measured level cost less than every measured baseline. When the two ranges overlap,
+       the per-level saving is inside the noise: the headline run's twelve levels ran 0.004283 to
+       0.006257 against a single 0.006359 baseline, which makes break-even 25, or 38, or never,
+       depending on which row you divide by. A direction that a coin toss could reverse is not a
+       measurement, and printing it is how "about one tenth of the money" becomes folklore.
+    """
+    if baseline_unit is None:
+        return None, "no full generation was measured, so there is no baseline to compare against"
+    if level_unit is None or core_unit is None:
+        return None, "no core or no level rendering was made, so there is nothing to compare"
+    baselines = _made_costs(data, FULL)
+    levels = _made_costs(data, LEVEL)
+    if len(baselines) < MIN_SAMPLES or len(levels) < MIN_SAMPLES:
+        return None, (
+            f"not enough measurements: {len(baselines)} baseline(s) and {len(levels)} level(s), "
+            f"and a mean of fewer than {MIN_SAMPLES} is one run's weather"
+        )
+    if max(levels) >= min(baselines):
+        return None, (
+            "the level costs straddle the baseline "
+            f"({min(levels):.6f}-{max(levels):.6f} against {min(baselines):.6f}-"
+            f"{max(baselines):.6f}), so the per-level saving is inside the noise"
+        )
+    per_level_saving = baseline_unit - level_unit
+    if per_level_saving <= 0:
+        return None, "a level rendering costs as much as a full generation, so it never pays back"
+    return int(math.ceil(core_unit / per_level_saving)), ""
+
+
 def summary(rows_in: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Per-layer totals, and the saving where it can honestly be computed.
 
     The baseline is the price of ONE full generation of a level from nothing. It is taken from
     recorded ``FULL`` rows when there are any (measured, not assumed); with none, ``baselineUsd``
     is ``None`` and ``savedUsd`` is ``None`` — the console then shows the layer costs and says the
-    baseline has not been measured, which is the honest answer and not a flattering one."""
+    baseline has not been measured, which is the honest answer and not a flattering one.
+
+    WHAT HAS ACTUALLY BEEN MEASURED, so nothing here has to be remembered from a conversation.
+    The headline three-layer run (harness/reports/three-layers-20260910-062054.json, three
+    concepts x two boards x two classes) recorded a concept core at a mean of USD 0.030699 over
+    three cores and a level rendering at USD 0.005343 over twelve, and made NO full generation,
+    so it measured no baseline and reports none. The only run that ever recorded one
+    (…-054237.json) recorded a single row at USD 0.006359 and its own summary says
+    ``savedUsd: -0.07198``: on that evidence the split cost more than the path it replaces. So
+    "about one tenth of the money" (docs/CONTENT-INTERACTION.md §1) remains a design claim and is
+    not yet a measurement, and :func:`_break_even` is written to refuse to dress it as one."""
     data = rows() if rows_in is None else list(rows_in)
     by_layer = {layer: _totals([r for r in data if r.get("layer") == layer]) for layer in LAYERS}
     total = round(
@@ -161,6 +230,9 @@ def summary(rows_in: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     baseline_unit = by_layer[FULL]["meanMadeUsd"]
     levels_made = by_layer[LEVEL]["made"]
     baseline = None if baseline_unit is None else round(baseline_unit * levels_made, 6)
+    level_unit = by_layer[LEVEL]["meanMadeUsd"]
+    core_unit = by_layer[CORE]["meanMadeUsd"]
+    break_even, why = _break_even(data, baseline_unit, level_unit, core_unit)
     return {
         "layers": by_layer,
         "totalUsd": total,
@@ -169,12 +241,18 @@ def summary(rows_in: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         "baselineUnitUsd": baseline_unit,
         "baselineUsd": baseline,
         "savedUsd": None if baseline is None else round(baseline - total, 6),
+        "breakEvenLevels": break_even,
+        # WHY THERE IS NO NUMBER, in a sentence, so a report cannot print a silence as a result.
+        "breakEvenReason": why,
+        # How many measurements are under the figures above. A mean of one is a price nobody
+        # measured twice, and the wave's own "~38 levels" came from exactly that.
+        "baselineSamples": by_layer[FULL]["made"],
+        "levelSamples": levels_made,
+        "coreSamples": by_layer[CORE]["made"],
     }
 
 
 def reset() -> None:
     """Drop the layer ledger. The lab's setup, never a production path."""
-    try:
+    with contextlib.suppress(OSError):
         path().unlink(missing_ok=True)
-    except OSError:
-        pass

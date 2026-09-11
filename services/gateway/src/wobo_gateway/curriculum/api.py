@@ -68,6 +68,11 @@ CAPABILITIES: tuple[str, ...] = (
     "curriculum.overlay.get",
     "curriculum.overlay.apply",
     "curriculum.status",
+    # THE CHAPTER'S POOL (docs/LEARNING-MODEL.md). A READ, like everything else in this file: the
+    # architect builds a pool on the platform's own money, and this hands the stored one to the
+    # client that walks it. Until 2026-09-10 nothing served a blueprint and nothing asked for one,
+    # so ``placement.ts``'s "THE ARCHITECT FIRST" branch and ``groupFor`` were unreachable code.
+    "curriculum.blueprint",
     # The own-syllabus door (§6). It is the answer to every dead end above, so it is not optional:
     # without these four the "not listed? show me yours" line the other capabilities all carry
     # would lead nowhere.
@@ -1028,8 +1033,43 @@ def _own_offer(payload: dict[str, Any], subject: str, store: CurriculumStore) ->
     }
 
 
+def _blueprint(payload: dict[str, Any], subject: str, store: CurriculumStore) -> dict[str, Any]:
+    """The stored pool for one syllabus cell, or none — and never a build.
+
+    Three things this is careful about:
+
+    * **it never generates.** ``create.blueprint`` is a platform-paid job an operator runs; a
+      learner opening a chapter must not be able to start one from a read.
+    * **a HELD pool is not served.** ``blueprint.load`` already refuses anything the judge did not
+      pass; the count of held attempts rides along so the client can say "not yet" honestly rather
+      than pretending the chapter has no pool.
+    * **the answer is the document the client already parses** (``curriculum/blueprint.ts``:
+      ``isBlueprint``), so there is one shape and not two.
+    """
+    from wobo_gateway.plexus import blueprint as architect
+
+    try:
+        brief = architect.NodeBrief.from_dict(payload)
+    except (ValueError, TypeError) as exc:
+        raise CurriculumError(
+            "bad_request",
+            "I need the chapter and its topics before I can look up how it is built.",
+        ) from exc
+    try:
+        pool = architect.load(brief)
+        held_count = len(architect.held(brief))
+    except Exception:  # a cache that cannot be read is a cell with no pool, never an error page
+        logger.warning("curriculum: the blueprint read failed", exc_info=True)
+        return {"blueprint": None, "held": 0}
+    return {
+        "blueprint": pool.model_dump(mode="json", exclude_none=True) if pool is not None else None,
+        "held": held_count,
+    }
+
+
 _HANDLERS = {
     "curriculum.search": _search,
+    "curriculum.blueprint": _blueprint,
     "curriculum.framework": _framework_capability,
     "curriculum.units": _units,
     "curriculum.topics": _topics,

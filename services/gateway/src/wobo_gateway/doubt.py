@@ -12,7 +12,14 @@ returns what is on the page as lines, each with a box in page fractions, plus th
 topic and the question. The reading is sent back FIRST, as its own answer, with Wobo's line "I read
 this as ..., is that right?" and no answer at all (law 1): vision misreads, a 3 becomes an 8, a
 minus vanishes, and the verified-number law downstream depends on what was read, so the learner
-corrects the reading before a single number is computed.
+corrects the reading before a single number is computed. The screen is not allowed to spend its
+200-token budget thinking (:data:`NO_THINKING`) and the reader is required to (:data:`READ_EFFORT`,
+because a reader told to spend nothing on looking skims a page of working and drops the middle);
+an answer that comes back in some other shape is read as far as it got rather than thrown away
+(:func:`read_payload`) — a learner is told their photograph was bad only when the reader looked at
+it and found nothing on it. What the reading is KNOWN to be short of is said out loud in law 1's
+own sentence and carried into the answer, never swallowed (:func:`question_line`,
+:func:`unaccounted`).
 
 **Step two, the answer** (``POST /v1/doubt/{id}/answer``, ``Accept: text/event-stream``). The
 corrected reading becomes the learner's working, the photo becomes a registered surface whose
@@ -162,6 +169,58 @@ DOUBT_BUDGET_S = 45.0
 _MIN_CALL_S = 4.0
 #: What the learner reads when the door runs out. It blames the wait, never the photograph.
 TOO_SLOW_SAY = "That one took longer than it should have. Send it again and I will have another go."
+
+#: THE SCREEN MAY NOT THINK ITS ANSWER AWAY (the adversary, wave 42, finding 11).
+#:
+#: The door was one photo in two, four waves running, and the photographs were never the problem.
+#: Live on Luna and Flash, 2026-09-10, with the ladder pinned and the lab's own three pages:
+#:
+#: * ``doubt.screen``, capped at 200 output tokens, came back ``finish='length'`` with
+#:   ``reasoning_tokens=200`` and an EMPTY body. Not one character of the four booleans was
+#:   written. :func:`safety.screen_image` fails closed, correctly, so a perfectly good maths page
+#:   and a perfectly good diagram were both refused "I could not check that photo just now".
+#:   The one screen that passed that day had spent 65 of its 200 tokens thinking.
+#: * ``doubt.read``, capped at 1500, came back ``finish='length'`` with ``reasoning_tokens=1304``
+#:   and 192 tokens of actual reading — a CORRECT read of the history page, subject, topic,
+#:   question and three whole lines with their boxes, cut off mid-object. ``json.loads`` refused
+#:   it, so the learner was told to take a straighter, brighter photograph of a page Wobo had
+#:   just read.
+#:
+#: Reading four booleans off a picture is not a puzzle. ``plexus/engines.py`` already carries this
+#: lesson above its own ``_MAX_TOKENS`` — "reasoning tokens count against max_tokens, so a tight
+#: budget gets exhausted mid-thought and returns EMPTY content — which parses to {}". The screen is
+#: the place in this service where the budget is smallest, so it is the place that breaks first.
+#:
+#: "minimal" is a value EVERY rung of every doubt chain takes: litellm maps it onto Gemini's
+#: ``thinkingConfig`` and OpenAI accepts it by name, so a fallback cannot 400 on the word.
+NO_THINKING = "minimal"
+
+#: BUT THE READER MUST LOOK (the adversary, wave 42's judge, finding 1).
+#:
+#: Wave 42 applied :data:`NO_THINKING` to BOTH vision calls and measured the outcome — 200 instead
+#: of 503 — without measuring whether the reading was RIGHT. It was not. Five live runs of the
+#: lab's maths page on 2026-09-10, Luna and Flash, ladder pinned, muted, at 390:
+#:
+#: * two refused ``photo_outage`` at 2828 ms and 3334 ms (the screen; see :class:`LiveImageScreen`)
+#: * the three that read all returned FOUR of the page's six lines — ``Ex 2.3 Q4``, ``3x = 25``,
+#:   ``x = 25/3``, ``x = 8.33`` — losing ``Solve: 3x + 5 = 20`` (paraphrased into ``question`` and
+#:   left out of ``lines``) and ``3x = 20 + 5 ?``, the learner's own step 1. Those are the two
+#:   lines the sign error is on, and the learner had typed "I am not sure about the +5".
+#: * all three then told the child the wrong step was right: "Step 2 is right: x = 25/3, because
+#:   dividing both sides of 3x = 25 by 3 leaves x alone." Zero of five found the error.
+#:
+#: The same photograph read all six lines, twice, with thinking on (waves 40 and 42's live runs,
+#: ``turns/doubt/w44-live-math-390`` and ``w47-live-math-390``). Transcribing a page of a child's
+#: handwriting IS a puzzle: a reader told to spend nothing on looking skims it, and a skim of a
+#: page of working drops the middle.
+#:
+#: The truncation that was used to justify the ban is ALREADY REPAIRED, in this file and on the
+#: same day: :func:`_repaired` reads a cut-off answer as far as it got, with the boxes it gave,
+#: and :meth:`Reading.say` tells the learner it may not have reached the end of the page. A read
+#: that is short and SAYS SO is a smaller defect than a read that is short and signed. So the room
+#: goes back to the looking, and the two guards below catch what a short read costs:
+#: :func:`question_line` and :func:`unaccounted`.
+READ_EFFORT = "low"
 #: Storage lists and deletes a page at a time.
 _BUCKET_PAGE = 1000
 _BUCKET_MAX_PAGES = 100
@@ -320,6 +379,17 @@ def _degraded_chain(capability: str) -> tuple[str, list[str]]:
     ]
 
 
+def _second_look(primary: str, fallbacks: list[str]) -> tuple[tuple[str, list[str]], ...]:
+    """The two chains a screen gets: the registry's, then the same one rotated one rung.
+
+    With no fallback there is nothing to rotate to and the same model is asked again — still worth
+    it, because what failed was one sampling of a 200-token budget, not the model.
+    """
+    if not fallbacks:
+        return ((primary, []), (primary, []))
+    return ((primary, list(fallbacks)), (fallbacks[0], [primary, *fallbacks[1:]]))
+
+
 def _image_part(image: bytes, media_type: str) -> dict[str, Any]:
     data_url = f"data:{media_type};base64,{base64.b64encode(image).decode('ascii')}"
     return {"type": "image_url", "image_url": {"url": data_url}}
@@ -376,6 +446,26 @@ class LiveImageScreen:
         return replace(self, timeout_s=min(self.timeout_s, max(0.0, float(seconds))))
 
     def screen(self, *, image: bytes, media_type: str) -> ImageVerdict:
+        """The verdict, or a raise. AN EMPTY BODY IS NOT A VERDICT, so it is asked once more.
+
+        Wave 42's judge, finding 1: two of five live runs of a perfectly good maths page refused
+        ``photo_outage`` at 2828 ms and 3334 ms, each with ONE ``doubt.screen`` row charged and no
+        ``doubt.read`` row. The screen returned, was paid for, and wrote nothing: 200 output
+        tokens is a tight fit for four booleans even at :data:`NO_THINKING`, and it fits about
+        three times in five. :func:`safety.screen_image` then failed closed, correctly — but
+        failing closed on a checker that never ANSWERED costs a child their whole turn, and the
+        module already draws this distinction for the reader (:data:`NO_ANSWER_SAY`).
+
+        So the non-answer gets a second look, on the rung BEHIND the primary where there is one:
+        the same model that just wrote nothing is the least likely to write something now, and a
+        different provider fails independently. Two non-answers is an outage and the photo is not
+        kept. Nothing here can turn a refusal into a pass — only an explicit verdict is read, and
+        it is read by :func:`verdict_from` exactly as before.
+
+        The empty body did not come back in seventeen live openings of this door on the afternoon
+        of 2026-09-10, so this second look is held by the suite and by the shape of the thing, not
+        by a live reproduction. It costs nothing on a screen that answers, which is every one.
+        """
         from wobo_gateway.model_call import complete
         from wobo_gateway.providers import max_tokens_for
         from wobo_gateway.telemetry import record_cost
@@ -383,24 +473,37 @@ class LiveImageScreen:
         primary, fallbacks = (
             _degraded_chain(SCREEN_CAPABILITY) if self.degraded else _chain(SCREEN_CAPABILITY)
         )
-        response = complete(
-            model=primary,
-            messages=[
-                {"role": "system", "content": SCREEN_SYSTEM},
-                {"role": "user", "content": [_image_part(image, media_type)]},
-            ],
-            fallbacks=fallbacks or None,
-            max_tokens=max_tokens_for(SCREEN_CAPABILITY, 200),
-            temperature=0.0,
-            timeout=self.timeout_s,
-        )
-        record_cost(
-            capability=SCREEN_CAPABILITY, model=primary, response=response, unit_kind=ledger.DOUBT
-        )
-        data = _json_in(response.choices[0].message.content or "")
-        if not data:
-            raise ValueError("the screen answered nothing readable")
-        return verdict_from(data)
+        started = time.monotonic()
+        for look, (model, behind) in enumerate(_second_look(primary, fallbacks)):
+            # The second look comes out of the FIRST one's deadline, never on top of it: the door
+            # narrowed this screen to what it had left (:meth:`with_seconds`) and a retry that
+            # ignored that would spend a learner's whole wall clock on the checker.
+            left = self.timeout_s - (time.monotonic() - started)
+            if look and left < _MIN_CALL_S:
+                break
+            response = complete(
+                model=model,
+                messages=[
+                    {"role": "system", "content": SCREEN_SYSTEM},
+                    {"role": "user", "content": [_image_part(image, media_type)]},
+                ],
+                fallbacks=behind or None,
+                max_tokens=max_tokens_for(SCREEN_CAPABILITY, 200),
+                temperature=0.0,
+                reasoning_effort=NO_THINKING,  # 200 tokens, four booleans (:data:`NO_THINKING`)
+                timeout=left if look else self.timeout_s,
+            )
+            record_cost(
+                capability=SCREEN_CAPABILITY, model=model, response=response, unit_kind=ledger.DOUBT
+            )
+            data = _json_in(response.choices[0].message.content or "")
+            if data:
+                return verdict_from(data)
+            logger.warning(
+                "doubt: the screen answered nothing readable",
+                extra={"fields": {"model": model, "again": bool(look)}},
+            )
+        raise ValueError("the screen answered nothing readable")
 
 
 def verdict_from(data: dict[str, Any]) -> ImageVerdict:
@@ -427,7 +530,10 @@ READ_SYSTEM = (
     '"lines": [{"text": "<one line of the page, exactly as written>", "box": [x0, y0, x1, y1]}]}. '
     "Read every line of printed or handwritten work in reading order, exactly as it appears: do "
     "not "
-    "correct, complete, solve or translate anything. A digit or a sign you cannot make out is "
+    "correct, complete, solve or translate anything. The question is a SUMMARY of the task and "
+    "never a replacement for a line: a question printed on the page is still one of lines, "
+    "verbatim and in its place, and so is every step of the student's own working, including a "
+    "step they crossed out or put a question mark beside. A digit or a sign you cannot make out is "
     "written as ?. box is the region the line occupies, as fractions of width and height (left, "
     f"top, right, bottom). At most {MAX_LINES} lines; when the page has more, read the ones that "
     "carry the question and the student's own working. A figure is a line too: a diagram, a "
@@ -451,6 +557,98 @@ NOTHING_READ_SAY = (
     "I could not make out any writing or figure on that page. Try a straighter, brighter photo, "
     "or type what the page shows and I will start from there."
 )
+
+#: When the reader RAN and said nothing usable at all. Until 2026-09-10 this arrived at
+#: :data:`NOTHING_READ_SAY` with the other two, so a learner whose page Wobo never got a word out
+#: about was told their photograph was bad and sent to take another one — advice that cannot work,
+#: about a thing that was not wrong. This blames the reading, which is what actually failed, and
+#: hands back a move that does.
+NO_ANSWER_SAY = (
+    "My reading of that page did not come back. Send it to me again and I will have another go."
+)
+
+#: A prose answer that is ABOUT the read rather than OF the page. A vision model that will not
+#: answer writes a sentence in the first person, and putting "I cannot identify people in this
+#: image" into the learner's own reading and then asking "is that right?" is a worse lie than the
+#: one this whole change is here to end.
+_ABOUT_ITSELF_RE = re.compile(
+    r"^(i\b|i'm|sorry|as an|unfortunately|apolog|there (is|are) no)", re.I
+)
+#: One ``{...}`` with no brace inside it: a line of the reader's ``lines`` array, closed.
+_CLOSED_OBJECT_RE = re.compile(r"\{[^{}]*\}")
+
+
+def _repaired(text: str) -> dict[str, Any] | None:
+    """A reading that ran out of room, read as far as it got.
+
+    The reader writes ``lines`` last and one object at a time, so an answer cut off by the output
+    cap is a whole subject, a whole topic, a whole question and N whole lines followed by half of
+    one. Every closed object is a line the reader actually read, WITH the box it gave it, so a
+    repaired line is a target ink may anchor to exactly like any other. The half is dropped.
+    """
+    start = text.find("{")
+    if start < 0:
+        return None
+    body = text[start:]
+    out: dict[str, Any] = {}
+    for name in ("subject", "topic", "question"):
+        match = re.search(rf'"{name}"\s*:\s*("(?:[^"\\]|\\.)*")', body)
+        if match:
+            with contextlib.suppress(ValueError):
+                out[name] = json.loads(match.group(1))
+    at = body.find('"lines"')
+    lines: list[dict[str, Any]] = []
+    if at >= 0:
+        for chunk in _CLOSED_OBJECT_RE.finditer(body[at:]):
+            with contextlib.suppress(ValueError):
+                item = json.loads(chunk.group(0))
+                if isinstance(item, dict) and item.get("text"):
+                    lines.append(item)
+    if not lines:
+        return None
+    out["lines"] = lines
+    return out
+
+
+def _prose(text: str) -> dict[str, Any] | None:
+    """The reader wrote the page out instead of shaping it.
+
+    Those are lines of the page and they are kept, with NO BOX: text the learner can correct,
+    which is the whole of law 1, and never a rect ink may anchor to, which is law 3 already. A
+    page nobody placed gets no ring.
+
+    An answer that STARTED the shape it was asked for is never prose, however it ended. A read cut
+    off before its first whole line has nothing left to repair, and reading its braces and field
+    names out as the page — "is that right?" over ``{``, ``"subject": "History",`` — would show a
+    child the machine instead of their book.
+    """
+    stripped = re.sub(r"^\s*```[a-zA-Z]*\s*|\s*```\s*$", "", text.strip())
+    if stripped.startswith(("{", "[")):
+        return None
+    rows = [row for row in (_clean_line(part) for part in stripped.splitlines()) if row]
+    if not rows or all(_ABOUT_ITSELF_RE.match(row) for row in rows):
+        return None
+    return {"lines": [{"text": row} for row in rows[:MAX_LINES]]}
+
+
+def read_payload(text: str) -> tuple[dict[str, Any], str]:
+    """The reader's answer and HOW it came: ``read``, ``repaired``, ``prose`` or ``mute``.
+
+    Until 2026-09-10 this was one line — ``_extract_json`` — and every answer that was not exactly
+    one whole JSON object was discarded, whole, and reported to the learner as a bad photograph.
+    Three different things arrived at that one sentence and only one of them is about the
+    photograph (:data:`NO_ANSWER_SAY`, :data:`NOTHING_READ_SAY`).
+    """
+    data = _json_in(text)
+    if data:
+        return data, "read"
+    repaired = _repaired(text)
+    if repaired:
+        return repaired, "repaired"
+    prose = _prose(text)
+    if prose:
+        return prose, "prose"
+    return {}, "mute"
 
 
 @dataclass(frozen=True)
@@ -478,26 +676,138 @@ class Reading:
     #: True when nothing looked at the photo at all — the keyless path. Not the same as a page
     #: that was looked at and could not be read, and it is not said the same way.
     blind: bool = False
+    #: HOW the reader's answer came back (:func:`read_payload`): ``read`` when it was the shape
+    #: asked for, ``repaired`` when it ran out of room and was read as far as it got, ``prose``
+    #: when the page was written out instead, ``mute`` when nothing usable came at all. It decides
+    #: which sentence an empty reading gets, and no two of them blame the same thing.
+    how: str = "read"
+    #: What the learner's own words point at that is nowhere in the lines (:func:`unaccounted`).
+    #: A reading with any of these is KNOWN to be short of the thing it was asked about.
+    missing: tuple[str, ...] = ()
 
     @property
     def targets(self) -> tuple[Line, ...]:
         return tuple(line for line in self.lines if line.box is not None)
 
+    @property
+    def short(self) -> bool:
+        """True when this reading is KNOWN not to be the whole page: it was cut off, or it does
+        not contain the thing the learner asked about."""
+        return self.how == "repaired" or bool(self.missing)
+
     def say(self) -> str:
         """Law 1, in Wobo's voice: what was read, and the question that hands it back."""
         if not self.lines:
-            return NO_EYES_SAY if self.blind else NOTHING_READ_SAY
+            if self.blind:
+                return NO_EYES_SAY
+            return NOTHING_READ_SAY if self.how == "read" else NO_ANSWER_SAY
         shown = "; ".join(line.text for line in self.lines[:6])
-        more = f" and {len(self.lines) - 6} more lines" if len(self.lines) > 6 else ""
-        return f"I read this as: {shown}{more}. Is that right? Fix anything I got wrong first."
+        rest = len(self.lines) - 6
+        # "and 1 more lines" was on the wire live on 2026-09-10, three times in five, whenever the
+        # page's stray "?" was read as a line of its own. Wobo counts in English.
+        more = f" and {rest} more line{'' if rest == 1 else 's'}" if rest > 0 else ""
+        # A repaired reading is a reading that is KNOWN to be short: the reader was cut off, so
+        # saying "I read this as ..." with no more would claim a whole page had been read.
+        end = " I may not have got to the end of the page." if self.how == "repaired" else ""
+        if self.missing:
+            # And so is a reading that has not got the thing the learner is pointing at. Three
+            # live runs answered "Step 2 is right" over a working with no +5 anywhere in it while
+            # the learner's own words said "I am not sure about the +5". Law 1 is where that is
+            # caught: the learner sees the gap before a single number is computed.
+            end += f" I could not find {_named(self.missing)} in what I read, and that is what you"
+            end += " asked about."
+        return f"I read this as: {shown}{more}.{end} Is that right? Fix anything I got wrong first."
 
 
 def _clean_line(text: Any) -> str:
     return " ".join(str(text or "").split())[:MAX_LINE_CHARS]
 
 
-def reading_from(data: dict[str, Any]) -> Reading:
-    """The reader's JSON into a reading: bounded, boxed, and honest about what had no place."""
+def _named(things: tuple[str, ...]) -> str:
+    """One or two of them, in Wobo's voice: the +5, or the +5 or the 8.33. Never a list."""
+    shown = [f"the {thing}" for thing in things[:2]]
+    return " or ".join(shown)
+
+
+def _squashed(text: str) -> str:
+    return re.sub(r"\s+", "", text or "").lower()
+
+
+#: A relation. A page that states one states the thing its working is about.
+_RELATION_RE = re.compile(r"[=<>≤≥≠]")
+#: A number as a whole number, never a run of digits inside a longer one: the 5 of "+5" is not the
+#: 5 of "25", and reading it as one is how "3x = 25" came to look like it had the +5 in it.
+_NUMBER_RE = re.compile(r"\d+(?:\.\d+)?")
+#: WHAT A LEARNER CAN POINT AT, in their own words. Exactly two shapes count.
+#:
+#: * a SIGNED number — "the +5", "that -3", "the minus" — which is a term of the working; the sign
+#:   is the whole reason they are asking.
+#: * a number written with a point or a slash — 8.33, 25/3 — which nothing but the page says.
+#:
+#: A bare integer is never one. "Is my step 2 right?", "Q4", "part 3", "in 1857" name a place, a
+#: label or a date, not a term of the working, and counting those would make every reading ever
+#: made short. Nor is a hyphen that joins two things a minus sign: the lookbehind keeps "step-2"
+#: and "lines 1-3" out, because the sign has to stand on its own to be a sign.
+_POINTED_AT_RE = re.compile(r"(?<![\w])[+\-]\s*\d+(?:\.\d+)?|(?<![\w])\d+(?:[./]\d+)+")
+
+
+def unaccounted(lines: Any, words: str) -> tuple[str, ...]:
+    """The things the learner's own words point at that are nowhere in what was read.
+
+    Wave 42's judge, finding 1: the learner typed "Is my step 2 right? I am not sure about the +5"
+    and the reading that came back — ``Ex 2.3 Q4``, ``3x = 25``, ``x = 25/3``, ``x = 8.33`` — had
+    no ``+5`` on it anywhere, because the two lines that carry it were dropped. All three live
+    reads then told the child the wrong step was right, and one of them said the quiet part out
+    loud: "The +5 isn't in the visible working." That sentence is the refusal it should have been.
+    """
+    page = "|".join(_squashed(str(text)) for text in lines)
+    out: list[str] = []
+    for found in _POINTED_AT_RE.findall(words or ""):
+        token = _squashed(found)
+        if token not in page and token not in out:
+            out.append(token)
+    return tuple(out[:2])
+
+
+def question_line(question: str, lines: Any) -> str:
+    """The page's own question, when it states a relation the working needs and no line has it.
+
+    Live on 2026-09-10 the reader put ``Solve the equation 3x + 5 = 20.`` in ``question`` and left
+    it out of ``lines`` on all three runs that read at all, so the working handed to the tutor
+    began ``3x = 25`` with nothing for the 25 to have come from. The equation a page asks about is
+    a LINE of that page; ``question`` is a summary of it, not a replacement for it. READ_SYSTEM
+    now says so, and this is the deterministic half, because a prompt is a request and this is a
+    law.
+
+    It comes back with NO box — nobody placed it, so law 3 still forbids a mark on it — and the
+    learner is shown it for correction like every other line, which is the whole of law 1.
+
+    Only a question that states a RELATION whose numbers are missing from every line is restored.
+    A history page's "Why did the sepoys march to Delhi?" is a question ABOUT the page: putting it
+    back would write a line nobody wrote, and law 1 would then read Wobo's own sentence out to a
+    child and ask "is that right?". And a question that is the same line said twice adds nothing.
+    """
+    text = _clean_line(question)
+    if not text or not _RELATION_RE.search(text):
+        return ""
+    written = [str(line) for line in lines]
+    if _squashed(text) in "|".join(_squashed(line) for line in written):
+        return ""
+    page = " ".join(written)
+    numbers = _NUMBER_RE.findall(text)
+    if not numbers:
+        return ""
+    if all(re.search(rf"(?<!\d){re.escape(n)}(?!\d)", page) for n in numbers):
+        return ""
+    return text
+
+
+def reading_from(data: dict[str, Any], how: str = "read", *, words: str = "") -> Reading:
+    """The reader's JSON into a reading: bounded, boxed, and honest about what had no place.
+
+    ``words`` are the learner's own, beside the photo. They are never read back as the page; they
+    are what :func:`unaccounted` measures the reading against.
+    """
     lines: list[Line] = []
     unplaced = 0
     raw_lines = data.get("lines")
@@ -513,12 +823,27 @@ def reading_from(data: dict[str, Any]) -> Reading:
         lines.append(Line(id=f"r{len(lines) + 1}", text=text, box=box))
         if len(lines) >= MAX_LINES:
             break
+    question = _clean_line(data.get("question"))
+    # Only with room for it: a page already at MAX_LINES is a page whose last line matters as
+    # much as its first, and buying one back by dropping one is not a repair.
+    lost = (
+        question_line(question, [line.text for line in lines]) if 0 < len(lines) < MAX_LINES else ""
+    )
+    if lost:
+        # In reading order: the question sets up the working, so it goes before the first line
+        # that states a relation — a heading ("Ex 2.3 Q4") comes first on the page and still does.
+        at = next((i for i, line in enumerate(lines) if _RELATION_RE.search(line.text)), 0)
+        lines.insert(at, Line(id="", text=lost, box=None))
+        lines = [replace(line, id=f"r{i + 1}") for i, line in enumerate(lines)]
+        unplaced += 1
     return Reading(
         subject=_clean_line(data.get("subject"))[:MAX_TOPIC_CHARS],
         topic=_clean_line(data.get("topic"))[:MAX_TOPIC_CHARS],
-        question=_clean_line(data.get("question")),
+        question=question,
         lines=tuple(lines),
         unplaced=unplaced,
+        how=how,
+        missing=unaccounted([line.text for line in lines], words),
     )
 
 
@@ -565,12 +890,31 @@ class LiveReader:
             fallbacks=fallbacks or None,
             max_tokens=max_tokens_for(READ_CAPABILITY, 1500),
             temperature=0.0,
+            reasoning_effort=READ_EFFORT,  # the reader must look (:data:`READ_EFFORT`)
             timeout=self.timeout_s,
         )
         record_cost(
             capability=READ_CAPABILITY, model=primary, response=response, unit_kind=ledger.DOUBT
         )
-        return reading_from(_json_in(response.choices[0].message.content or ""))
+        data, how = read_payload(response.choices[0].message.content or "")
+        if how != "read":
+            # An operator can tell the three apart WITHOUT a probe, which is how this took four
+            # waves to find: the wire said 422 and the log said nothing at all.
+            logger.warning(
+                "doubt: the reader did not answer in the shape asked",
+                extra={
+                    "fields": {
+                        "how": how,
+                        "model": primary,
+                        "chars": len(response.choices[0].message.content or ""),
+                        "finish": str(
+                            getattr(response.choices[0], "finish_reason", "") or "unknown"
+                        ),
+                        "lines": len(data.get("lines") or []),
+                    }
+                },
+            )
+        return reading_from(data, how, words=words)
 
 
 class MockEyes:
@@ -656,6 +1000,13 @@ class Doubt:
     framework_id: str | None = None
     status: str = "read"
     answered_at: str | None = None
+    #: HOW this turn's reading came back (:class:`Reading`). It is about the CALL, not the record,
+    #: so it is not in :meth:`to_row` and a doubt read back from the store has the default — but
+    #: it must survive as far as the route, because law 1's sentence is written there and a
+    #: reading that was cut off has to say so. Until 2026-09-10 the route rebuilt a bare
+    #: ``Reading`` from the row, so ``how`` was always "read" and the repaired reading's own
+    #: clause could never reach the wire: honesty that was written and never said.
+    how: str = "read"
 
     @property
     def photo_path(self) -> str:
@@ -1245,8 +1596,14 @@ def turn_payload(doubt: Doubt, words: str) -> dict[str, Any]:
     learner's own to repeat — which is what a corrected reading is. ONLY the corrected lines are
     in here. The reader's own ``question`` is never shown to the learner and cannot be corrected,
     so it went into ``canvas.equation`` until 2026-09-05 and licensed the UNCORRECTED numbers: a
-    learner who fixed 8x to 3x still heard "start with 8x". The equation seat is now the first
-    corrected line, and the learner's words are theirs or the tap's meaning, never the reader's.
+    learner who fixed 8x to 3x still heard "start with 8x". The equation seat is a corrected line,
+    and the learner's words are theirs or the tap's meaning, never the reader's.
+
+    WHICH corrected line, though. It was the FIRST, and the first line of a page of exercise work
+    is "Ex 2.3 Q4" — an exercise number, handed to ``_ground_working`` as the equation to ground
+    against. The relation is the equation; a heading is not. So the seat goes to the first
+    corrected line that states one, and falls back to the first line when no line does (a history
+    page has no equation and never did).
     """
     targets = [{"id": line.id, "kind": "line", "label": line.text} for line in doubt.targets]
     # The photo's lines ARE the glass map (docs/INK-FREEZE-PLAN-TRACE.md section 3, Freeze): the
@@ -1255,16 +1612,26 @@ def turn_payload(doubt: Doubt, words: str) -> dict[str, Any]:
         {"id": line.id, "role": "photo-line", "text": line.text, "box": list(line.box or ())}
         for line in doubt.targets
     ]
+    written = [line.text for line in doubt.lines]
+    equation = next((text for text in written if _RELATION_RE.search(text)), "")
+    # What the learner pointed at and this reading has not got. It rides in the page's own state,
+    # which is where the turn prompt reads a screen from, so an answer built on a working with a
+    # hole in it cannot be written as though the working were whole. Three live runs on
+    # 2026-09-10 said "Step 2 is right" about a page whose step 2 was never read.
+    gap = unaccounted(written, words)
+    state: dict[str, Any] = {"surface": "photo", "doubt": doubt.id, "lines": len(doubt.lines)}
+    if gap:
+        state["couldNotRead"] = (
+            f"{', '.join(gap)} — the learner asked about this and it is NOT in the working below, "
+            "so the working is incomplete: say that, and never call a step right or wrong on it"
+        )
     return {
         "context": {
             "turn": {"lastUserInput": (words or DEFAULT_WORDS)[:MAX_WORDS_CHARS]},
-            "page": {
-                "route": "doubt",
-                "state": {"surface": "photo", "doubt": doubt.id, "lines": len(doubt.lines)},
-            },
+            "page": {"route": "doubt", "state": state},
             "curriculum": {"nodeName": doubt.node_name or doubt.topic or doubt.school_subject},
             "canvas": {
-                "equation": doubt.lines[0].text if doubt.lines else "",
+                "equation": equation or (written[0] if written else ""),
                 "steps": [f"{line.id}: {line.text}" for line in doubt.lines],
             },
             "targets": targets,
@@ -1485,18 +1852,32 @@ def read_doubt(
         prepared.data, media_type=prepared.media_type, screen=_given(eyes.screen, left())
     )
     if verdict.allowed and verdict.crop is not None:
-        # The screen found the work apart from something the page does not need. Keep the work,
-        # and ask once more about what is left: a crop is the screen's suggestion, not its verdict.
+        # The screen found the work apart from something the page does not need. Keep the work.
         prepared = prepare_image(raw, media_type=media_type, crop=verdict.crop)
-        verdict = screen_image(
-            prepared.data, media_type=prepared.media_type, screen=_given(eyes.screen, in_time())
-        )
-        if verdict.allowed and verdict.details:
-            # The crop still carries someone's details. Until 2026-09-05 this second "details,
-            # but here is a crop" was read as a pass and the photo was kept and read.
-            verdict = ImageVerdict(allowed=False, reason="personal")
-        elif verdict.allowed and verdict.crop is not None:
-            verdict = replace(verdict, crop=None)
+        if verdict.details:
+            # THE SECOND LOOK, AND THE ONLY CASE THAT NEEDS ONE. This crop was allowed only
+            # because the screen said someone's details are on the page but the work is APART
+            # from them, so the one thing nobody has checked is whether the crop actually left
+            # them behind: a crop is the screen's suggestion, not its verdict. Until 2026-09-05
+            # a second "details, but here is a crop" was read as a pass and the photo was kept.
+            #
+            # A crop with NO details is a different thing and gets no second call. It is a
+            # SUBREGION of a frame this screen has just certified in the same breath — no face
+            # anywhere in it, no personal detail anywhere in it, a page of work — and every one
+            # of those three survives cropping, because a crop can only take things away. The
+            # call bought nothing and cost the learner about two seconds of the wait finding 4
+            # is about, plus one more chance to fail closed: live on 2026-09-10 a screen that
+            # spent its whole 200-token budget thinking refused two perfectly good pages of work
+            # with "I could not check that photo just now" (:data:`NO_THINKING`).
+            verdict = screen_image(
+                prepared.data,
+                media_type=prepared.media_type,
+                screen=_given(eyes.screen, in_time()),
+            )
+            if verdict.allowed and verdict.details:
+                verdict = ImageVerdict(allowed=False, reason="personal")
+            elif verdict.allowed and verdict.crop is not None:
+                verdict = replace(verdict, crop=None)
     if not verdict.allowed:
         status = 503 if verdict.reason == "outage" else 422
         raise DoubtRefused(f"photo_{verdict.reason or 'refused'}", verdict.say, status=status)
@@ -1514,6 +1895,12 @@ def read_doubt(
             status=503,
         ) from exc
     if not reading.lines:
+        # The reader that said nothing is not the page that had nothing on it. 422 nothing_read
+        # is a verdict about the PHOTOGRAPH and the learner is asked to take another; a reader
+        # that ran and produced nothing usable is a 503 about the reading, and the same photo is
+        # worth sending again. Until 2026-09-10 both were the first sentence.
+        if reading.how == "mute":
+            raise DoubtRefused("reader_mute", reading.say(), status=503)
         raise DoubtRefused("nothing_read", reading.say(), status=422)
     placement = place(subject, reading, framework_id)
     doubt = Doubt(
@@ -1530,6 +1917,7 @@ def read_doubt(
         node_id=placement.node_id,
         node_name=placement.node_name,
         framework_id=placement.framework_id,
+        how=reading.how,
     )
     try:
         return store.put(doubt, prepared.data)
@@ -1662,7 +2050,17 @@ def register_doubt(app: FastAPI, gateway: Any) -> None:
         except Exception:
             budget.refund(meter, READ_CAPABILITY)
             raise
-        reading = Reading(doubt.school_subject, doubt.topic, doubt.question, doubt.lines)
+        # The reading AS IT CAME, not a fresh one built from the row: ``how`` says whether it was
+        # cut off and ``missing`` what the learner pointed at and Wobo did not find, and law 1's
+        # sentence is the only place either of them is said out loud.
+        reading = Reading(
+            doubt.school_subject,
+            doubt.topic,
+            doubt.question,
+            doubt.lines,
+            how=doubt.how,
+            missing=unaccounted([line.text for line in doubt.lines], _words(body.words)),
+        )
         return JSONResponse(
             status_code=200,
             content={**doubt.as_dict(), "say": reading.say(), "step": "reading"},
@@ -1807,11 +2205,14 @@ __all__ = [
     "MAX_PIXELS",
     "MockEyes",
     "NOTHING_READ_SAY",
+    "NO_ANSWER_SAY",
     "NO_EYES_SAY",
+    "NO_THINKING",
     "OFF_PAGE",
     "PostgrestDoubtStore",
     "Prepared",
     "READ_CAPABILITY",
+    "READ_EFFORT",
     "Reading",
     "SCREEN_CAPABILITY",
     "StoreMissing",
@@ -1824,7 +2225,9 @@ __all__ = [
     "join_the_climb",
     "place",
     "prepare_image",
+    "question_line",
     "read_doubt",
+    "read_payload",
     "reading_from",
     "refusal_for_validation",
     "register_doubt",
@@ -1832,5 +2235,6 @@ __all__ = [
     "set_store",
     "topic_node_uuid",
     "turn_payload",
+    "unaccounted",
     "verdict_from",
 ]

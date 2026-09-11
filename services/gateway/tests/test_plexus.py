@@ -242,6 +242,70 @@ def test_compose_emits_image_spec_for_organic_visual() -> None:
 def _valid_activities() -> dict:
     """One valid spec per rich activity field — mirrors each client parser's accept shape."""
     return {
+        # The designed interaction of §3, which the client's parser reads BEFORE any of the
+        # others. It is gated like the rest: valid, it survives verbatim; refused, it is dropped
+        # and the card still teaches through its own kind.
+        "design": {
+            "id": "design-fractions",
+            "concept": "equivalent fractions",
+            "kind": "classify",
+            "mechanic": "drop each fraction beside the one it equals",
+            "why": "two quarters and four eighths cover the same strip, and moving them shows it",
+            "source": "model",
+            "refreshDays": 90,
+            "steps": [
+                {
+                    "id": "s1",
+                    "beat": "build",
+                    "primitive": {
+                        "kind": "drop",
+                        "prompt": "put each fraction with the one it equals",
+                        "tokens": [
+                            {
+                                "id": "t1",
+                                "label": "two quarters",
+                                "box": {"x": 4, "y": 44, "w": 20, "h": 15},
+                                "belongs": "z1",
+                                "why": "it covers half the strip",
+                            },
+                            {
+                                "id": "t2",
+                                "label": "one third",
+                                "box": {"x": 30, "y": 44, "w": 20, "h": 15},
+                                "belongs": "z2",
+                                "why": "three of them make the whole, not two",
+                            },
+                        ],
+                        "zones": [
+                            {
+                                "id": "z1",
+                                "label": "one half",
+                                "box": {"x": 4, "y": 4, "w": 40, "h": 30},
+                                "accepts": ["t1"],
+                                "feedback": {
+                                    "right": "the same strip is covered",
+                                    "wrong": "a third is a smaller share than a half",
+                                },
+                            },
+                            {
+                                "id": "z2",
+                                "label": "not one half",
+                                "box": {"x": 52, "y": 4, "w": 40, "h": 30},
+                                "accepts": ["t2"],
+                                "feedback": {
+                                    "right": "it never covers half",
+                                    "wrong": "two quarters do cover half the strip",
+                                },
+                            },
+                        ],
+                        "feedback": {
+                            "right": "the same amount, named two ways",
+                            "wrong": "bigger numbers did not make more",
+                        },
+                    },
+                }
+            ],
+        },
         "perturbation": {
             "id": "p1",
             "title": "break ohm",
@@ -483,6 +547,24 @@ def test_compose_preserves_every_rich_activity_field() -> None:
     assert out is not None
     assert len(out["cards"]) == 3
     for field in _CARD_ACTIVITIES:
+        if field == "design":
+            # Like the arcade below: the design has a real contract (specs.InteractionDesign), so
+            # the gate returns the CLEAN composition — the defaults the contract declares are
+            # filled in (an empty ``marks``), and what must survive is the mechanic and its beats.
+            served = out["cards"][0]["design"]
+            assert served["mechanic"] == activities["design"]["mechanic"]
+            assert served["steps"] == activities["design"]["steps"]
+            assert served["marks"] == []
+            continue
+        if field == "arcade":
+            # The one activity that is no longer a pass-through. Wave 47 gave the bonus level a
+            # real contract (specs.ArcadeSpec, six mechanics), so its gate returns the CLEAN spec
+            # rather than the draft: unknown keys are stripped and the defaults the contract
+            # declares are filled in. What must survive is the play, not the bytes.
+            served = out["cards"][0]["arcade"]
+            assert served["rounds"] == activities["arcade"]["rounds"]
+            assert served["game"] == "catch" and served["skill"] in ("speed", "recall")
+            continue
         assert out["cards"][0][field] == activities[field], f"{field} must survive verbatim"
     assert "perturbation" not in out["cards"][1]  # malformed dropped — the card still teaches
 

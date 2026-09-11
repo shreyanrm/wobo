@@ -236,9 +236,13 @@ def record_cost(
         else:
             logger.info("gateway.cost", extra={"fields": fields})
         try:
+            from wobo_gateway import ledger as ledger_module
             from wobo_gateway import spend
 
             spend.record(cost, capability=capability, model=served)
+            # …and against THIS request, so a store row can record what the answer it holds cost
+            # to make. See ledger.note_spend for why that is a different question from the above.
+            ledger_module.note_spend(cost)
         except Exception:  # noqa: BLE001 - the ledger must never be able to fail a learner's turn
             logger.debug("spend not recorded", extra={"fields": {"capability": capability}})
 

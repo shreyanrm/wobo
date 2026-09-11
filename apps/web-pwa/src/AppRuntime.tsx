@@ -115,6 +115,9 @@ const ChatScreen = lazy(() =>
   import('./screens/ChatScreen').then((m) => ({ default: m.ChatScreen })),
 );
 const Course = lazy(() => import('./screens/Course').then((m) => ({ default: m.Course })));
+// The bonus level behind a side door (docs/CONTENT-INTERACTION.md §7). Its own chunk: a learner
+// who never opens a door never downloads a game.
+const Arcade = lazy(() => import('./screens/Arcade').then((m) => ({ default: m.Arcade })));
 const DownloadCenter = lazy(() =>
   import('./store/DownloadCenter').then((m) => ({ default: m.DownloadCenter })),
 );
@@ -341,6 +344,7 @@ function Screen() {
           )}
           {route.name === 'course' && <Course topicId={route.topicId} />}
           {route.name === 'sandbox' && <Course topicId={route.topicId ?? ''} sandbox />}
+          {route.name === 'arcade' && <Arcade topicId={route.topicId} />}
           {route.name === 'progress' && <ProgressScreen />}
           {route.name === 'you' && <You />}
           {route.name === 'doubt' && <DoubtScreen />}

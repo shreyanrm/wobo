@@ -994,6 +994,7 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
     }
     out = _apply_classification(out, classification, live=False)
     out["say"] = _mock_say(out, classification, node, text)
+    _tell_the_voice(out["say"])
     return out
 
 
@@ -1557,6 +1558,7 @@ def run_wobo_turn(
         # every number in ``say`` the way the board's ``done`` frame proves every drawn one.
         "verified": [c.name for c in decided.checks],
     }
+    _tell_the_voice(say)
     # The model's own classification wins when valid; the keyword classifier is the safety net.
     classification: dict[str, Any] = (
         data
@@ -1566,6 +1568,40 @@ def run_wobo_turn(
         )
     )
     return _apply_classification(out, classification, live=True), tokens
+
+
+# --- what Wobo is about to say, told to the voice ------------------------------------------------
+#
+# The voice buys ONE SENTENCE PER CALL and the client asks for the next only once it holds the audio
+# for this one (``speech.tsx`` ``startUtterance``; the board's hand waits on those same sentences,
+# ``wobo/beat.ts``). Each of those calls is a whole text-to-speech round trip — 4.3 to 10.3 seconds
+# live on 2026-09-10, 22.5 to 24.2 when the first voice hung, 2 to 21 MILLISECONDS when the line had
+# been bought before. So the written line was prompt and the spoken one arrived a round trip later,
+# then another for the next sentence: the voice fell further behind the ink with every sentence.
+#
+# This is where a turn's words are DECIDED, seconds before one syllable of them is asked for, so
+# this is where the voice is told what is coming. ``voice.remember_line`` keeps Wobo's own sentences
+# for three minutes; the read-aloud route then buys the ones behind the sentence it is reading while
+# it reads it (``voice.buy_line_ahead``). Nothing a learner typed is kept, nothing is spoken here,
+# and a line that is never remembered simply costs what it costs today.
+
+
+def _tell_the_voice(say: Any, ask: Any = None) -> None:
+    """Tell the voice what Wobo is about to say. Never raises: a turn is not a spoken line.
+
+    ``ask`` is the question that hands the next move back. It is part of what is SPOKEN — the
+    client reads it last, as a question — but it is not part of ``say``, so a board turn whose
+    words are one sentence and one question was two spoken lines the voice knew one of.
+    """
+    line = str(say or "").strip()
+    if not line:
+        return
+    try:
+        from wobo_gateway import voice
+
+        voice.remember_line(line, ask=str(ask or "").strip() or None)
+    except Exception as exc:  # noqa: BLE001 — the words go out whether the voice heard or not
+        logger.debug("the voice was not told the line (%s: %s)", type(exc).__name__, exc)
 
 
 # --- the board turn (BOARD.md) --------------------------------------------------------------------
@@ -2202,8 +2238,17 @@ def mock_board_plan(payload: dict[str, Any]) -> dict[str, Any] | None:
     if not intents:
         return marked
     family = str(intents[0].get("pipeline") or "math")
+    # THE FIGURE NAMES ITSELF BEFORE THE FAMILY DOES (the adversary, wave 42, finding 8). Most
+    # boards are named by their own marks (``board.naming``), but a grid, an axis, a curve and a
+    # line of working carry no words, so those turns fell back to the family's line — "Read it a
+    # piece at a time, and say which part looks off." over a graph, which names nothing it drew.
+    # Live, the scaffold already said "The curve of y = x², from -3 to 3."; this is the same
+    # sentence, from the same intent, on the path all 59 turns are judged on.
+    from wobo_gateway.board import naming as board_naming
+
+    said = board_naming.in_register(board_naming.opening(intents[0], text))
     return {
-        "say": _BOARD_SAY.get(family, _BOARD_SAY["math"]),
+        "say": said or _BOARD_SAY.get(family, _BOARD_SAY["math"]),
         "intents": intents,
         "objects": [],
         "ask": {"prompt": "What do you notice about it?", "targets": []},
@@ -2246,6 +2291,8 @@ def run_board_plan(
 
     context = payload.get("context") or {}
     entries = glass.entries_of(payload)
+    from wobo_gateway.board import scaffold as board_scaffold
+
     response = model_complete(
         model=provider_model,
         messages=[
@@ -2255,7 +2302,23 @@ def run_board_plan(
         fallbacks=list(fallbacks) or None,
         max_tokens=max_tokens_for(BOARD_TIER_CAPABILITY, 900),
         temperature=0.2,
-        timeout=timeout_for(BOARD_TIER_CAPABILITY, timeout_s),
+        # HOW HARD, AND HOW LONG. Both are the models desk's, and both are written down in
+        # ``board.scaffold`` beside the words cut they are the complement of: a board plan is
+        # reasoning, so it keeps the generate tier and thinks ``low`` rather than ``minimal``;
+        # and it drops after eighteen seconds rather than sixty, because the keyless plan behind
+        # it resolves the same glass map instantly (the adversary, wave 48, finding 10).
+        timeout=timeout_for(BOARD_TIER_CAPABILITY, timeout_s or board_scaffold.PLAN_TIMEOUT_S),
+        # ONE ATTEMPT PER RUNG, which is what makes the deadline above the deadline the learner
+        # actually gets: the provider SDK retries a timed-out request underneath the chain walker,
+        # so without this a biting deadline costs 1.8-2.9x itself. Retrying is the CHAIN's job.
+        num_retries=board_scaffold.PLAN_RETRIES,
+        # ``litellm.drop_params`` is on (``model_call.complete``), so a rung of the chain with no
+        # such knob simply does not get it.
+        **(
+            {"reasoning_effort": board_scaffold.PLAN_REASONING}
+            if board_scaffold.PLAN_REASONING
+            else {}
+        ),
     )
     record_cost(capability=BOARD_TIER_CAPABILITY, model=provider_model, response=response)
     data = _extract_json(response.choices[0].message.content or "")
@@ -2263,6 +2326,58 @@ def run_board_plan(
     tokens = int(getattr(usage, "total_tokens", 0) or 0)
     plan = glass.compile(glass.validate(glass.parse(data), entries=entries, context=context))
     return (plan or {}), tokens
+
+
+def run_board_words(brief: Any) -> tuple[dict[str, Any], int]:
+    """PHASE TWO OF A SCAFFOLDED TURN: THE WORDS, AND ONLY THE WORDS. Returns (plan, tokens).
+
+    The brief comes from ``board.scaffold.words_brief`` — the job, the tier and the two ceilings —
+    because that is where the two-phase turn is decided. Here is where every model call in the
+    service lives, so here is where it is made: same door, same meter, same fallback chain, and a
+    cost line of its own so the desk can see what the cut off the generate tier bought
+    (the adversary, wave 42, finding 10).
+    """
+    from wobo_gateway.board import scaffold as board_scaffold
+    from wobo_gateway.routing import Track, resolve, resolve_any, tier_fallbacks, tier_primary
+
+    spec = resolve(tier_primary(brief.tier), Track.TRACK_1)
+    fallbacks = [resolve_any(name).provider_model for name in tier_fallbacks(brief.tier)]
+    response = model_complete(
+        model=spec.provider_model,
+        messages=[
+            {"role": "system", "content": brief.system},
+            {"role": "user", "content": brief.user},
+        ],
+        fallbacks=fallbacks or None,
+        max_tokens=max_tokens_for(brief.capability, brief.max_tokens),
+        temperature=0.3,
+        timeout=timeout_for(brief.capability, brief.timeout_s),
+        # A knob a rung of the chain has no idea about is dropped by litellm, not refused
+        # (``model_call.complete`` sets ``drop_params``), so this narrows nothing.
+        **({"reasoning_effort": brief.reasoning} if brief.reasoning else {}),
+    )
+    record_cost(capability=brief.capability, model=spec.provider_model, response=response)
+    usage = getattr(response, "usage", None)
+    tokens = int(getattr(usage, "total_tokens", 0) or 0)
+    data = _extract_json(response.choices[0].message.content or "")
+    return board_scaffold.words_plan(data), tokens
+
+
+def board_words_for(payload: dict[str, Any], *, scaffold: Any) -> dict[str, Any] | None:
+    """The words that continue a turn a pipeline already drew, or None when the model gave none.
+
+    None means "the scaffold taught, and it teaches alone" (``board.scaffold.alone``) — the same
+    answer a provider that fell over gives, because a model that wrote no sentence has said
+    nothing whether it answered or not.
+    """
+    from wobo_gateway.board import scaffold as board_scaffold
+
+    plan, _tokens = run_board_words(board_scaffold.words_brief(scaffold, payload))
+    if not plan.get("say"):
+        return None
+    ask = plan.get("ask") if isinstance(plan.get("ask"), dict) else {}
+    _tell_the_voice(plan["say"], (ask or {}).get("prompt"))
+    return plan
 
 
 def board_plan_for(payload: dict[str, Any], *, live: bool) -> dict[str, Any] | None:
@@ -2276,7 +2391,7 @@ def board_plan_for(payload: dict[str, Any], *, live: bool) -> dict[str, Any] | N
 
     board_stream.mark_turn_start()
     if not live:
-        return mock_board_plan(payload)
+        return _said(mock_board_plan(payload))
     from wobo_gateway.registry import policy
     from wobo_gateway.routing import Track, resolve, resolve_any
 
@@ -2288,5 +2403,13 @@ def board_plan_for(payload: dict[str, Any], *, live: bool) -> dict[str, Any] | N
             provider_model=spec.provider_model, payload=payload, fallbacks=fallbacks
         )
     except Exception:  # a provider that fell over never costs the turn — the keyless plan draws instead
-        return mock_board_plan(payload)
-    return plan or mock_board_plan(payload)
+        return _said(mock_board_plan(payload))
+    return _said(plan or mock_board_plan(payload))
+
+
+def _said(plan: dict[str, Any] | None) -> dict[str, Any] | None:
+    """A plan on its way out, with the voice told what it says. The plan itself is untouched."""
+    if plan is not None:
+        ask = plan.get("ask") if isinstance(plan.get("ask"), dict) else {}
+        _tell_the_voice(plan.get("say"), (ask or {}).get("prompt"))
+    return plan

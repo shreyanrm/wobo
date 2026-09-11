@@ -21,6 +21,13 @@ export default defineConfig({
   expect: { timeout: 12_000 },
   use: {
     baseURL: `http://localhost:${PORT}`,
+    // A LAB IS SILENT (the owner, 2026-09-09). A headless browser plays through the owner's
+    // speakers, and it did, while he was working. Every browser this config launches starts with
+    // audio off; a voice timing is measured from the synthesis call and the wire, never from a
+    // speaker. The main playwright.config.ts has carried this since the law was written — these
+    // configs declare their own `use:` and their own projects and inherit none of it, so the
+    // flag has to be here too (test/labs-are-muted.test.ts holds all four to it).
+    launchOptions: { args: ['--mute-audio'] },
     trace: 'retain-on-failure',
     screenshot: 'off', // the spec takes its own, named per matrix cell
     actionTimeout: 15_000,

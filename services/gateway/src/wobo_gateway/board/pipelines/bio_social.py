@@ -240,7 +240,36 @@ def syllabus_timeline(question: str) -> list[dict[str, Any]]:
 
 
 _EARLIEST_YEAR = -4000
-_MAX_EVENTS = 14
+#: HOW MANY EVENTS A BOARD HAS ROWS FOR — MEASURED (the judge, wave 48, finding 1).
+#:
+#: An event's name is written on a row of its own (see :func:`_timeline`), so a timeline is as tall
+#: as it has events, and two things run out as the rows pile up: the board, and the type. Both
+#: were measured on the real screens rather than reasoned about, on a made-up seven-event ask at
+#: 390 and 1440:
+#:
+#: * SEVEN. The ladder walks past the bottom of the board, where ``placeLabelAt`` stops walking and
+#:   starts writing names ON TOP of each other — four of them stacked on one row at 390 with the
+#:   line where it used to sit. Moving the line to the top of the figure box (:data:`_TIMELINE_Y`)
+#:   buys the room and seven then ladder cleanly, but the ink is now so tall that the camera pulls
+#:   back and the writing goes under INK-FOUR's twelve pixels: five of the seven names measure 9.9
+#:   to 11.7 px at 1440, and the shortest measures 11.7 px at 390. Both themes, and the same under
+#:   reduced motion.
+#: * SIX. Clean at 390 and 1440, in light, in dark and under reduced motion: six rows, nothing
+#:   shared, nothing under the chrome, every name 12.6 to 17.5 px.
+#:
+#: So six, and a seventh is refused with the reason it always gave. Fourteen was a number nobody
+#: had measured, and it drew a pile.
+_MAX_EVENTS = 6
+
+#: WHERE THE LINE ITSELF SITS: at the TOP of the figure box, not through the middle of it.
+#:
+#: The years stagger upward off the ticks and the names ladder downward, so a timeline is a figure
+#: that hangs almost entirely BELOW its own line, and centring the line wasted half the box on air
+#: and cost the ladder the rows it needed (see :data:`_MAX_EVENTS`). Measured: it changes nothing
+#: at all for a three- or five-event board — the camera fits the ink, so sliding the whole figure
+#: up is invisible — and it is the difference between six names in six rows and three names in a
+#: heap.
+_TIMELINE_Y = FIGURE[1]
 _MAX_NODES = 16
 
 
@@ -604,7 +633,7 @@ def _timeline(intent: dict[str, Any], draft: Draft) -> Draft:
     lo, hi = events[0][0], events[-1][0]
     frame = Frame(
         x0=FIGURE[0],
-        y0=FIGURE_MID[1],
+        y0=_TIMELINE_Y,
         w=FIGURE[2],
         h=1.0,
         xmin=float(lo),
@@ -619,8 +648,35 @@ def _timeline(intent: dict[str, Any], draft: Draft) -> Draft:
         style=wobo(2),
         hint="timeline",
     )
+    # THE EVENT NAMES ARE A LADDER, NOT A ROW (the judge, wave 48, finding 1).
+    #
+    # Each name used to hang off its own tick at ``bottom`` and nothing else, which left WHICH
+    # NAMES SHARE A ROW to the client's collision walk, and that walk only moves a label when the
+    # boxes actually overlap. Measured on the real screens at 390, in light, in dark and under
+    # reduced motion: "Jallianwala Bagh massacre" at x 41-198 and "Chauri Chaura, called off" at
+    # x 205-352 on the SAME row — seven pixels between two different events' names, reading as one
+    # run-on line — while "Non-Cooperation begins" was bumped 27 px down. The same plan at 1440
+    # put that pair 55 px apart and read fine; the five-event national movement board ladders
+    # cleanly at 390 and runs "Dandi March" into "Independence and Partition" with three pixels to
+    # spare at 1440. So the board a learner read was a different board on a different screen.
+    #
+    # THE FIX IS A LEFT MARGIN, NOT A ROW HEIGHT. Every name asks to be written at the SAME left
+    # edge — the first tick's — so every pair of them overlaps where it is asked for, and the
+    # client's own walk steps each one down by one REAL line height at whatever size that screen's
+    # type ladder chose. One event, one row, in the order the years run, identical at 390 and 1440.
+    #
+    # A row height cannot be chosen here: written type is scaled by the board's own ladder up to
+    # twice its planned size (``MAX_TYPE_SCALE``), so a row is 37 board units on one screen and 64
+    # on another, and a nudge in board units would be wrong on one of them. The nudge is sideways
+    # only; the vertical step belongs to the hand that knows how big it is writing.
+    #
+    # It is a nudge on the anchor rather than a re-anchoring, so the name still belongs to the
+    # tick of its own event — which is what the say is reconciled against, what the renderer's
+    # dependency order reads, and what makes the name fade with the mark it names.
+    left = frame.at(lo, 0)[0]
     for year, label in events:
-        tick = draft.add("point", anchor=board(*frame.at(year, 0)), style=accent(3), hint="tick")
+        at_x, at_y = frame.at(year, 0)
+        tick = draft.add("point", anchor=board(at_x, at_y), style=accent(3), hint="tick")
         # The check's name carries the year, because that is how it was RECORDED above
         # (``verify.in_bounds(f"year {year}", ...)`` -> ``board.in_bounds:year 1919``). Writing the
         # bare ``board.in_bounds:year`` here named a check that never ran, so the planner's own law
@@ -629,7 +685,13 @@ def _timeline(intent: dict[str, Any], draft: Draft) -> Draft:
         draft.number(
             year, f"board.in_bounds:year {year}", anchor=on(tick, "top"), decimals=0, style=wobo(1)
         )
-        draft.add("label", anchor=on(tick, "bottom"), text=label, style=faint(1), hint="event")
+        draft.add(
+            "label",
+            anchor={**on(tick, "bottom"), "offset": [round(left - at_x, 2), 0.0]},
+            text=label,
+            style=faint(1),
+            hint="event",
+        )
     draft.add("underline", anchor=on(line), style=faint(1), hint="span")
     return draft
 

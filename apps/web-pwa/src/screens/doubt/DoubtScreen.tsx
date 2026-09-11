@@ -35,7 +35,7 @@ import { useRouter } from '../../shell/router';
 import { GATEWAY_URL } from '../../store/app-sdk';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
-import { Button, Chip, Tag, TopBar } from '../../ui/primitives';
+import { Button, Chip, Tag, TopBar, usePhone } from '../../ui/primitives';
 import { screenStore } from '../../wobo/board-turn';
 import { useWoboChat } from '../../wobo/chat';
 import { type Rotation, readingLine, strokeHold } from '../../wobo/doubt-surface';
@@ -86,6 +86,42 @@ export const UNEXPLAINED_LINE =
 const DEFAULT_STROKE_MS = 900;
 /** Past this the reading is saying so, rather than leaving a learner watching a still photo. */
 const SLOW_READ_MS = 9000;
+/** Air between the foot of the phone pane and the first of Wobo's floating controls. */
+const PANE_GAP_PX = 8;
+/** The pane never gives the reading less than this, whatever a small screen says. */
+const MIN_PANE_PX = 360;
+/**
+ * A fixed box counts as the screen's bottom furniture when it lives in the lower part of the
+ * viewport and never reaches the top of it. The tab bar sits ON the bottom edge; the Tell Wobo pill
+ * floats 84 px above it; a full-screen ink layer or sheet starts at the top and is neither.
+ */
+const BOTTOM_BAND = 0.55;
+
+/**
+ * WHERE WOBO'S OWN FURNITURE BEGINS, measured rather than guessed.
+ *
+ * The numbers belong to other files — `.wk-rail` is 76 px of tab bar (ui/primitives/ui.css) and
+ * `.wf-float` sits 84 px above it (ui/FlagControl.tsx) — and a constant copied here would be a
+ * fourth place for them to disagree. So the screen reads the live boxes, the same way the
+ * save-trouble strip publishes its own height for everything else pinned to the bottom to sit
+ * above: whatever floats down there, the pane stops before it.
+ */
+function bottomChrome(): number {
+  const floor = window.innerHeight;
+  let ceiling = floor;
+  for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+    const style = getComputedStyle(el);
+    if (style.position !== 'fixed') continue;
+    if (style.visibility === 'hidden' || style.display === 'none') continue;
+    if (Number(style.opacity) === 0 || style.pointerEvents === 'none') continue;
+    const box = el.getBoundingClientRect();
+    if (box.width < 4 || box.height < 4) continue;
+    if (box.top <= floor * BOTTOM_BAND || box.top >= floor) continue;
+    if (box.bottom <= floor * BOTTOM_BAND) continue;
+    ceiling = Math.min(ceiling, box.top);
+  }
+  return ceiling;
+}
 
 /** Where a doubt was filed: the learner's own topic, or the node the gateway filed it under. */
 interface Placed {
@@ -124,7 +160,96 @@ export function DoubtScreen() {
   /** Which reading is the live one: an abandoned photo's answer must not land on the new one. */
   const readRun = useRef(0);
   const lineInputs = useRef(new Map<string, HTMLInputElement>());
+  /** The paragraph a refusal is printed in, wherever it is printed. */
+  const refusalRef = useRef<HTMLParagraphElement | null>(null);
+  /** The phone pane, and the one thing inside it that scrolls. */
+  const paneRef = useRef<HTMLDivElement | null>(null);
+  const readRef = useRef<HTMLElement | null>(null);
+  const phone = usePhone();
   const frameworkId = world?.frameworkId ?? null;
+  /** True once there is a photo to work on: from there the screen is a pane, not a column. */
+  const paneUp = state.phase !== 'capture' && !!state.capture;
+
+  /**
+   * THE PANE ENDS WHERE WOBO'S OWN FURNITURE BEGINS (docs/INK-FOUR.md, craft: "Nothing under a
+   * panel, sheet, toast or pill"; experience: "after the turn the learner can act on what they
+   * see". The adversary, wave 42 re-judge, finding 1.)
+   *
+   * Measured at 390x844 on the step a learner actually reaches with a photo: the sentence Wobo
+   * asks them to check sat under the fixed "Tell Wobo" pill, the instruction under the tab bar,
+   * and EXPLAIN — the only way the turn continues — at y 1302 in an 844 px viewport, 458 px below
+   * a fold nothing scrolled to. The column was 1478 px long and the bottom 128 px of every screen
+   * of it belonged to chrome.
+   *
+   * A taller column cannot fix that: at 390 the confirm step needs about a thousand pixels and the
+   * screen has 628 once the tab bar and the pill have taken theirs. So on a phone the doubt becomes
+   * a PANE that ends above them: the photo keeps the top of it, the reading scrolls INSIDE it, the
+   * action is docked at its foot (`.db-act`), and the page itself no longer scrolls at all —
+   * nothing can pass under anything, because nothing of the pane is ever painted there.
+   *
+   * The photo keeps its place rather than scrolling with the reading, because a line tapped in the
+   * reading LIGHTS its place on the photo (`PhotoStage`, law 1), and a photo that had scrolled away
+   * would either light off screen or yank the correction the learner was typing back out of view.
+   *
+   * The height is measured, not written down: `bottomChrome()` reads the live boxes so the pane
+   * still stops in the right place if the pill moves, if the save-trouble strip lifts it, or if a
+   * phone's safe area is deeper than a lab's. `--db-tail` cancels the main column's own bottom
+   * padding, which exists to clear the same tab bar and would otherwise leave the page scrolling
+   * 110 px to nothing.
+   */
+  useEffect(() => {
+    const node = paneRef.current;
+    if (!node || typeof window === 'undefined') return;
+    if (!phone || !paneUp) {
+      node.style.removeProperty('--db-pane');
+      node.style.removeProperty('--db-tail');
+      return;
+    }
+    const measure = () => {
+      const pane = paneRef.current;
+      if (!pane) return;
+      // measured with the pane at its natural height, so a second pass never reads its own answer
+      pane.style.removeProperty('--db-pane');
+      pane.style.removeProperty('--db-tail');
+      const top = pane.getBoundingClientRect().top + window.scrollY;
+      const main = pane.closest('main');
+      const tail = main ? Number.parseFloat(getComputedStyle(main).paddingBottom) || 0 : 0;
+      const room = Math.max(MIN_PANE_PX, bottomChrome() - top - PANE_GAP_PX);
+      pane.style.setProperty('--db-pane', `${Math.round(room)}px`);
+      pane.style.setProperty('--db-tail', `${Math.round(tail)}px`);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    window.visualViewport?.addEventListener('resize', measure);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('orientationchange', measure);
+      window.visualViewport?.removeEventListener('resize', measure);
+    };
+  }, [phone, paneUp]);
+
+  /**
+   * A REFUSAL THE LEARNER NEVER SEES IS NOT A REFUSAL (docs/INK-FOUR.md, experience; the
+   * adversary, wave 49, finding 8).
+   *
+   * Measured at 1440x900: "I cannot see the page on this device..." sat at top 1382 on a page 1520
+   * tall with scrollY 0, and nothing scrolled to it. The hero camera's size is the cause and is
+   * fixed in doubt.css; this is the rule that holds whatever any future layout does — a refusal
+   * that lands off the fold brings itself into view. Reduce motion gets the jump, not the glide.
+   */
+  useEffect(() => {
+    if (!state.error) return;
+    const el = refusalRef.current;
+    if (!el || typeof window === 'undefined') return;
+    const box = el.getBoundingClientRect();
+    if (box.top >= 0 && box.bottom <= window.innerHeight) return;
+    const still =
+      document.documentElement.getAttribute('data-motion') === 'reduce' ||
+      (typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    el.scrollIntoView({ block: 'center', behavior: still ? 'auto' : 'smooth' });
+  }, [state.error]);
 
   // --- reading -----------------------------------------------------------------------------------
   const begin = useCallback(
@@ -262,13 +387,20 @@ export function DoubtScreen() {
     if (state.phase !== 'explaining') return;
     const root = document.documentElement;
     const before = root.style.overflow;
+    // On a phone the page does not scroll at all — the reading inside the pane does — so holding
+    // the page still under the pen means holding that as well, or the ink would be the only thing
+    // that did not move (docs/INK-FOUR.md, timing).
+    const scroller = readRef.current;
+    const scrolledBefore = scroller ? scroller.style.overflowY : '';
     const hold = strokeHold({
       lock: () => {
         root.style.overflow = 'hidden';
+        if (scroller) scroller.style.overflowY = 'hidden';
         setHeld(true);
       },
       unlock: () => {
         root.style.overflow = before;
+        if (scroller) scroller.style.overflowY = scrolledBefore;
         setHeld(false);
       },
       now: () => performance.now(),
@@ -399,6 +531,37 @@ export function DoubtScreen() {
       ? suggestTopics(reading, state.result?.reading.topic, loadedTopics(), progress.topicProgress)
       : [];
 
+  /**
+   * WHAT THE LEARNER DOES NEXT, written once and put in one of two places: at the end of the
+   * reading on a laptop, where the whole step is on the glass at once; docked at the foot of the
+   * pane on a phone, where it is not. A refusal travels with the action it is about, so it is
+   * never the thing that fell off the bottom.
+   */
+  const nextStep =
+    state.phase === 'confirm' ? (
+      <>
+        {state.error ? (
+          <p className="db-error" role="alert" ref={refusalRef}>
+            {state.error}
+          </p>
+        ) : null}
+        <div className="db-row">
+          <Button tone="pig" onClick={() => void explain()} disabled={!canExplain}>
+            Explain
+          </Button>
+        </div>
+      </>
+    ) : state.phase === 'placing' ? (
+      <div className="db-row">
+        <Button tone="pig" onClick={retake}>
+          Another doubt
+        </Button>
+        <Button tone="quiet" onClick={() => router.navigate({ name: 'you' })}>
+          See my doubts
+        </Button>
+      </div>
+    ) : null;
+
   return (
     <AppFrame active="learn" about={{ surface: 'doubt' }}>
       <TopBar crumb="A doubt" />
@@ -470,15 +633,15 @@ export function DoubtScreen() {
             </div>
             <p className="db-note">On a laptop you can also drop the photo here.</p>
             {state.error ? (
-              <p className="db-error" role="alert">
+              <p className="db-error" role="alert" ref={refusalRef}>
                 {state.error}
               </p>
             ) : null}
           </section>
         ) : null}
 
-        {state.phase !== 'capture' && state.capture ? (
-          <div className="db-grid">
+        {paneUp && state.capture ? (
+          <div className="db-grid" ref={paneRef}>
             <PhotoStage
               photoId={state.result?.id ?? 'photo'}
               capture={state.capture}
@@ -495,7 +658,7 @@ export function DoubtScreen() {
               {...(state.phase !== 'explaining' ? { onRetake: retake } : {})}
             />
 
-            <section className="db-read" aria-label="What Wobo read">
+            <section className="db-read" aria-label="What Wobo read" ref={readRef}>
               {state.phase === 'reading' ? (
                 <>
                   <Tag>Reading</Tag>
@@ -547,7 +710,10 @@ export function DoubtScreen() {
                           key={r.id}
                           on={state.lit === r.id}
                           onClick={() =>
-                            dispatch({ type: 'light', regionId: state.lit === r.id ? null : r.id })
+                            dispatch({
+                              type: 'light',
+                              regionId: state.lit === r.id ? null : r.id,
+                            })
                           }
                         >
                           {r.label}
@@ -569,16 +735,7 @@ export function DoubtScreen() {
                       onChange={(e) => dispatch({ type: 'words', text: e.target.value })}
                     />
                   </label>
-                  <div className="db-row">
-                    <Button tone="pig" onClick={() => void explain()} disabled={!canExplain}>
-                      Explain
-                    </Button>
-                  </div>
-                  {state.error ? (
-                    <p className="db-error" role="alert">
-                      {state.error}
-                    </p>
-                  ) : null}
+                  {phone ? null : nextStep}
                 </>
               ) : null}
 
@@ -624,17 +781,11 @@ export function DoubtScreen() {
                         : 'Kept with your doubts. Choose a board in You and it can join your map.'}
                     </p>
                   )}
-                  <div className="db-row">
-                    <Button tone="pig" onClick={retake}>
-                      Another doubt
-                    </Button>
-                    <Button tone="quiet" onClick={() => router.navigate({ name: 'you' })}>
-                      See my doubts
-                    </Button>
-                  </div>
+                  {phone ? null : nextStep}
                 </div>
               ) : null}
             </section>
+            {phone && nextStep ? <div className="db-act">{nextStep}</div> : null}
           </div>
         ) : null}
       </div>

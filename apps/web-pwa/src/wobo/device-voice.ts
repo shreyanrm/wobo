@@ -93,6 +93,64 @@ export function speakWithDevice(
   });
 }
 
+/**
+ * THE WAKE, AND WHY IT IS NOT THE TURN'S TO PAY (the adversary, wave 53, finding 1;
+ * docs/INK-FOUR.md, timing: "the pen is on the board inside a second").
+ *
+ * A browser starts its speech service on the FIRST touch of `speechSynthesis` in the whole
+ * browser session, and the touch that starts it waits for it. Wobo's own first touch was the
+ * opening of the turn's utterance — `startUtterance` -> `stopSpeaking` -> `stopDeviceVoice` —
+ * which runs on the submit handler, BEFORE the ask leaves the page.
+ *
+ * MEASURED, keyless, at 390, on a gateway already warm: the first drawing turn of a fresh browser
+ * session took 937, 946, 962 and 986 ms from Enter to the request being issued, against 187, 217,
+ * 367 ms for every turn after it in the same browser; the gateway answered in 15-30 ms either way.
+ * Reversing the boards moved the whole second with the SESSION and not with the board, and warming
+ * the connection to the gateway did not touch it. Touching `speechSynthesis` once at document
+ * start — 0.8 ms, and it returns an empty voice list — took the same first turn to 264, 265, 299
+ * and 318 ms. That second belonged to a learner's first-ever ask, which is the one turn nobody
+ * gets to make twice.
+ *
+ * So the engine is woken on an idle tick after the page is up, and the turn finds it awake. The
+ * wake asks the engine for its voice list and nothing else: no `cancel`, which would cut off a
+ * line that a cold-loaded course had already begun to read.
+ */
+const WAKE_IDLE_TIMEOUT_MS = 1500;
+
+/** The engine this session has already woken — per engine, so a swapped-in engine is woken too. */
+let woken: Synth | null = null;
+
+/** Start the browser's speech service now, off any turn's clock. Cheap, idempotent, silent. */
+export function wakeDeviceVoice(): void {
+  const engine = synth();
+  if (!engine || engine === woken) return;
+  woken = engine;
+  try {
+    engine.getVoices?.();
+  } catch {
+    // An engine that will not list its voices can still speak one; it is awake either way.
+  }
+}
+
+/**
+ * Book the wake for the next idle tick, and never later than `WAKE_IDLE_TIMEOUT_MS` — a boot busy
+ * enough to have no idle is exactly the boot where the learner asks first and soonest.
+ */
+export function scheduleDeviceVoiceWake(): void {
+  const g = globalThis as unknown as {
+    requestIdleCallback?: (cb: () => void, opts?: { timeout?: number }) => number;
+  };
+  const wake = () => wakeDeviceVoice();
+  if (typeof g.requestIdleCallback === 'function') {
+    g.requestIdleCallback(wake, { timeout: WAKE_IDLE_TIMEOUT_MS });
+    return;
+  }
+  setTimeout(wake, 0);
+}
+
+// The module is loaded with the surfaces that speak, which is long before the first ask.
+if (typeof window !== 'undefined') scheduleDeviceVoiceWake();
+
 /** Cut the device voice off mid-word, the way a new line cuts the gateway voice off. */
 export function stopDeviceVoice(): void {
   const engine = synth();

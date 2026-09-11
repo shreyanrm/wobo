@@ -380,11 +380,24 @@ def test_a_line_of_algebra_keeps_its_own_case() -> None:
     """The pass sentence-cased the working into speech: "X^2 + bx/a + c/a = 0." and "X = 2." on
     the live quadratic and derivation boards. `x` is not a word and a capital changes what it is.
     """
-    assert naming.in_register("x^2 + bx/a + c/a = 0") == "x^2 + bx/a + c/a = 0."
+    assert naming.in_register("x^2 + bx/a + c/a = 0") == "x² + bx/a + c/a = 0."
     assert naming.in_register("x = 2") == "x = 2."
     # ordinary prose still gets its capital
     assert naming.in_register("the hypotenuse") == "The hypotenuse."
     assert naming.in_register("nucleus") == "Nucleus."
+
+
+def test_a_power_is_spoken_as_a_power_even_though_the_board_writes_a_caret() -> None:
+    """``pretty_algebra`` leaves ``x^2`` in a ``write`` because the handwriting layer raises the
+    caret as a real superscript. The say is read out loud and printed in the transcript, and
+    "x caret 2" is not how anybody says x squared: live at 1440 the quadratic's second sentence
+    was "x^2 + bx/a + c/a = 0." (the adversary, wave 42; measured 2026-09-10)."""
+    assert naming.in_register("x^2 + 5x + 6 = 0") == "x² + 5x + 6 = 0."
+    assert naming.in_register("a^3") == "a³."
+    # a power the alphabet cannot raise is left exactly as the board wrote it
+    assert naming.in_register("x^4 + 1 = 0") == "x^4 + 1 = 0."
+    # and the two spellings are one line as far as naming is concerned
+    assert naming.names("x² + 5x + 6 = 0, line by line.", "x^2 + 5x + 6 = 0")
 
 
 def test_a_mark_written_as_an_operator_is_not_a_sentence() -> None:

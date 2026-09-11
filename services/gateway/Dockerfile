@@ -50,9 +50,20 @@ COPY --chown=gateway:gateway docs/copy/about.md /app/content/copy/
 # path discovery from __file__ would walk up inside the venv, not to /app. These two
 # env overrides (the same ones both modules already honour) point at the copies above,
 # so discovery is explicit instead of depending on the install layout.
+# THE CACHE LIVES ON A DISK, NOT IN THE CONTAINER (docs/CACHES.md: "the database is the truth
+# when the container is new"). It used to be /home/gateway/cache — the image's own writable layer —
+# so every deploy discarded every concept core (about USD 0.031 each), every level rendering,
+# every interaction design and every generic turn, and the next learner bought them all again.
+# /data is where Railway's volume mounts; `store.cache_dir()` also follows RAILWAY_VOLUME_MOUNT_PATH
+# on its own, so attaching the volume is the whole of the change on the platform side. The
+# directory is created and owned here because a volume mounts onto it and the process that writes
+# it is `gateway`, and /healthz reports `persistence.durable: false` while no volume is attached,
+# so an image running without one says so rather than quietly costing money.
+RUN mkdir -p /data/plexus/images && chown -R gateway:gateway /data
+VOLUME ["/data"]
 ENV PATH="/app/.venv/bin:$PATH" \
-    PLEXUS_CACHE_DIR=/home/gateway/cache \
-    WOBO_IMAGE_CACHE_DIR=/home/gateway/cache/images \
+    PLEXUS_CACHE_DIR=/data/plexus \
+    WOBO_IMAGE_CACHE_DIR=/data/plexus/images \
     PLEXUS_CONCEPTS_PATH=/app/content/catalogs/concepts.json \
     FACTBASE_DIR=/app/content/factbase \
     WOBO_HOSPITALITY_CONTENT=/app/content/hospitality \

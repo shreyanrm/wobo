@@ -363,6 +363,37 @@ def _config_check() -> tuple[str, dict[str, Any]]:
     return OK, detail
 
 
+def _persistence_check() -> tuple[str, dict[str, Any]]:
+    """Does anything this container generates outlive it?
+
+    THE ONE THING THE THREE-LAYER ECONOMY ASSUMES (docs/CACHES.md, docs/CONTENT-INTERACTION.md §1)
+    is that a concept core made once is reused forever. Two things can carry it across a deploy:
+    the content stores in the database, and a cache directory on an attached volume. On
+    2026-09-10 the gateway had NEITHER — the image cached into its own writable layer and the
+    content schema's migrations were unapplied — and it said nothing at all, so a deploy quietly
+    threw away every core, level, design and turn and the next learner paid for them again.
+
+    In dev this is ordinary and not worth a word. In prod, no durable cache AND no store is
+    degraded: every request is served correctly, and every one of them costs what the layer above
+    it was supposed to have already bought.
+    """
+    from wobo_gateway.plexus import db, store
+
+    env = os.getenv("ENV", "dev").lower()
+    durable = store.cache_is_durable()
+    stores = db.configured()
+    detail: dict[str, Any] = {"durable": durable, "stores": stores}
+    if durable or stores or env != "prod":
+        return OK, detail
+    return DEGRADED, {
+        **detail,
+        "reason": (
+            "no volume and no content store: every core, level, design and turn is thrown away "
+            "on the next deploy and bought again"
+        ),
+    }
+
+
 def _auth_check() -> tuple[str, dict[str, Any]]:
     env = os.getenv("ENV", "dev").lower()
     verifiable = bool(os.getenv("SUPABASE_JWT_SECRET") or jwks_url())
@@ -433,6 +464,7 @@ def snapshot(now: float | None = None, *, public: bool = False) -> dict[str, Any
     for name, (status, detail) in {
         "config": _config_check(),
         "auth": _auth_check(),
+        "persistence": _persistence_check(),
         "spend": _spend_check(public=public),
         "providers": _provider_check(moment, public=public),
         "payments": _payments_check(),

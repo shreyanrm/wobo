@@ -68,6 +68,27 @@ const nextInstantId = (): string => `${INSTANT_ID}-${(instantTurn += 1)}`;
 const INSTANT_STROKE_MS = 420;
 /** A breath after the last stroke lands before the glass is let go. */
 const STROKE_SETTLE_MS = 80;
+/**
+ * A stroke that begins within this is already the pen's: the freeze is taken just ahead of the
+ * nib, never a moment earlier. A plan spaces its marks across the sentences that name them, so
+ * between two of them there is nothing in flight and the page is the learner's.
+ */
+const STROKE_LEAD_MS = 120;
+/**
+ * HOW LONG A HANDOVER LIFT LASTS (the adversary, wave 52, finding 2).
+ *
+ * A third of `FADE_MS`. When the learner asks the next thing, the last turn's ink is lifted — and
+ * it used to be lifted as an ordinary fade, `FADE_MS` long, which the new answer begins inside:
+ * measured at 1440, Wobo's line is on the glass at 255-306 ms and spoken at 503 ms, and live the
+ * first word lands at 433 ms, while the ring is still there at 0.43, 0.19, 0.05 — a mark about the
+ * question the learner has already left, standing under the answer to the new one.
+ *
+ * A lift is not a fade: the mark is not finishing, it is being taken away, and it is taken away
+ * before Wobo says anything. A third of the fade is enough for the eye to read it as going rather
+ * than as a blink, and it is inside every first word measured, keyless or live, by 95 ms or more.
+ * An ordinary end-of-turn fade is untouched — that one has nothing coming after it.
+ */
+const LIFT_MIN_MS = 160;
 
 /** Is any of Wobo's ink still on the screen, holding for an answer or lingering? */
 export function screenInkHolding(): boolean {
@@ -173,7 +194,22 @@ export interface RunBoardTurn {
 export interface BoardTurnOutcome {
   /** Everything Wobo said, in order — one line for the transcript. */
   said: string;
-  /** True when `done` landed; false when the learner or the network cut it short. */
+  /**
+   * THE TURN ENDED OF ITS OWN ACCORD — nothing of the learner's cut it short (the adversary,
+   * wave 53; docs/INK-FOUR.md, experience).
+   *
+   * It used to read "a `done` frame landed", and its one caller asks a different question:
+   * `AppRuntime.tsx` says the honest line — "That one did not come out." — for a turn that came
+   * back with no shape, "unless the learner cut Wobo off". A stream that opens, carries nothing
+   * and closes without `done` is exactly that turn, and `streamBoardTurn` RESOLVES on it rather
+   * than throwing, so the caller's catch never ran either: the learner was left with their own
+   * question, an empty page, and nothing said at all. One keyless drawing turn in sixty-five did
+   * this under contention, and it is the failure no probe catches, because there is nothing to
+   * look at.
+   *
+   * So: true when the wire ran to its end, however badly, and false only when the learner
+   * interrupted (a thrown network loss reaches the caller as a throw, and is refused in words).
+   */
   completed: boolean;
   presentation: Presentation;
   objects: number;
@@ -192,7 +228,12 @@ class BoardConductor {
   private gate: SentenceGate | null = null;
   /** True while this turn holds the glass (its ink is on the screen). */
   private glassHeld = false;
-  /** The release waiting on the last stroke to land. */
+  /**
+   * True from this turn's first screen stroke until the turn ends or is cut: while it stands, the
+   * strokes govern the glass — they take it as each one begins and give it back as it lands.
+   */
+  private strokesGovern = false;
+  /** The next moment the glass changes hands: the end of the stroke in flight, or the next one's start. */
   private releaseTimer: ReturnType<typeof setTimeout> | null = null;
   /** Which run this is, and which run was cut, so a cut turn never prints what it did not say. */
   private runSeq = 0;
@@ -221,6 +262,8 @@ class BoardConductor {
   private instantKind: 'ring' | 'underline' | null = null;
   /** The id this turn's instant mark lives under; the plan's first anchored mark is rewritten to it. */
   private instantId: string | null = null;
+  /** True once the last turn's ink has been taken off the glass for this one. */
+  private handedOver = false;
   /** The BOARD surface's store. Screen-anchored marks always go to `screenStore` instead. */
   private store: BoardStore = screenStore;
   /** The instant the voice zeroed the clock, so a promoted board keeps Wobo's timing. */
@@ -331,6 +374,7 @@ class BoardConductor {
     this.controller?.abort();
     this.controller = null;
     this.set({ active: false, interruptedAt: at });
+    this.strokesGovern = false;
     this.releaseGlass('interrupt');
     return at;
   }
@@ -347,6 +391,7 @@ class BoardConductor {
     }
     const held = this.glassHeld || scrollHold.held;
     this.releaseScreen();
+    this.strokesGovern = false;
     if (held) this.releaseGlass('interrupt');
     // The page the read was of is gone: the next reader (a lasso, a turn) takes a fresh one.
     forgetGlass();
@@ -357,7 +402,7 @@ class BoardConductor {
    * let go. Every turn calls this as it opens; a plain turn that draws nothing calls it too.
    */
   answered(): void {
-    this.releaseScreen();
+    this.liftForTheAsk();
   }
 
   /** Let the screen's ink go, now or at `at`, and forget it once its fade has finished. */
@@ -366,6 +411,58 @@ class BoardConductor {
     if (typeof setTimeout !== 'function') return;
     const wait = Math.max(0, at - screenStore.time()) + FADE_MS + 40;
     setTimeout(() => screenStore.sweep(), wait);
+  }
+
+  /**
+   * THE LAST TURN'S INK IS NEVER ON THE GLASS BESIDE THIS TURN'S (the adversary, wave 49,
+   * finding 7).
+   *
+   * The lift already happens at the ask — measured at 1440 on the course page, the previous ring
+   * begins to fade within 40 ms of Enter. But a fade is 480 ms, and this turn's first stroke is
+   * owed inside 700 (docs/INK-FOUR.md, timing): on 'draw this for me' the old ring was still at
+   * 0.69 opacity 169 ms in, and on a slower machine or a faster plan the learner has two of Wobo's
+   * rings on the page at once, one of them about the question they have already left.
+   *
+   * So the fade is a handover, not an overlap: the moment THIS turn puts anything on the screen,
+   * whatever is still fading from the last one goes. Nothing pops — the eye is on the new stroke,
+   * which is exactly the moment the old mark has stopped meaning anything. A turn that draws
+   * nothing leaves the fade alone and it finishes in its own time.
+   */
+  private handOver(): void {
+    if (this.handedOver) return;
+    this.handedOver = true;
+    for (const s of screenStore.snapshot()) {
+      if (s.removed || s.fadingAt === undefined) continue;
+      screenStore.ink({ id: s.object.id, kind: 'remove' } as never);
+    }
+  }
+
+  /**
+   * THE LEARNER ASKED SOMETHING ELSE: LIFT WHAT THE LAST ANSWER LEFT (the adversary, wave 52,
+   * finding 2; docs/INK-FREEZE-PLAN-TRACE.md §3, Trace: ink "fades when the learner answers,
+   * interrupts, or the next turn begins").
+   *
+   * `handOver` is the whole answer for a turn that DRAWS: the first stroke takes the last turn's
+   * ink with it. But most turns do not draw. On "show me why" at 1440 no conductor runs at all —
+   * it is a plain spoken answer — and the ring from "circle the hypotenuse" was left to an
+   * ordinary `FADE_MS` fade that the new answer begins inside: 0.43 when Wobo's line appears at
+   * 255 ms, 0.19 at 402, gone at 517, with the voice starting at 503. Live the same shape, 0.05 at
+   * 433 ms. The learner hears a new answer over the mark of the question they already left.
+   *
+   * So the lift is a lift: the ink fades for `LIFT_MIN_MS` and is then off the glass, well before
+   * anything of the new turn is said. Only what this handover itself lifted goes — ink that begins
+   * fading later (this turn's own, at its end) fades in its own time, which is what a fade is for.
+   */
+  private liftForTheAsk(): void {
+    const at = this.now();
+    this.releaseScreen(at);
+    if (typeof setTimeout !== 'function') return;
+    setTimeout(() => {
+      for (const s of screenStore.snapshot()) {
+        if (s.removed || s.fadingAt === undefined || s.fadingAt > at) continue;
+        screenStore.ink({ id: s.object.id, kind: 'remove' } as never);
+      }
+    }, LIFT_MIN_MS);
   }
 
   /**
@@ -396,35 +493,79 @@ class BoardConductor {
   }
 
   /**
-   * THE HOLD IS SHORT AND HONEST (docs/INK-FREEZE-PLAN-TRACE.md §3; the adversary, 2026-09-08).
+   * THE GLASS FOLLOWS THE PEN (docs/INK-FREEZE-PLAN-TRACE.md §3; docs/INK-FOUR.md, timing: "the
+   * page is held still only while a stroke is in flight"; the adversary, 2026-09-08 and wave 52,
+   * finding 1).
    *
-   * The freeze is for the tracing, not the talking. The glass is held while a stroke is actually
-   * in flight and let go the instant the last one lands — mid-turn, between two sentences, while
-   * Wobo is still speaking. The next mark takes it back (`land`). So the page is the learner's
-   * again the moment the pen lifts, and wave 33's best moment is possible inside a turn: a
-   * released scroll carries the ring with it, because every mark re-measures its own live box.
+   * The freeze is for the tracing, not the talking. The glass is taken just ahead of each stroke
+   * and given back the instant it lands — mid-turn, between two sentences, while Wobo is still
+   * speaking — so wave 33's best moment is possible inside a turn: a released scroll carries the
+   * ring with it, because every mark re-measures its own live box.
    *
-   * Before this, the release waited for the `done` frame AND an empty gate, which is nearly the
-   * whole utterance: live, two of nine turns hit the 45 s cap while Wobo was still speaking, and
-   * every keyless turn pinned the page for ten seconds (wave 33 scrolled freely).
+   * THE SCHEDULE IS NOT THE PEN (wave 52, finding 1). This used to schedule one release at the end
+   * of the LAST stroke the store knew about, and every mark of a plan lands in the store the
+   * moment its sentence begins while the pen reaches it up to `SENTENCE_REACH_MS` later. So a plan
+   * whose marks are spaced across its sentences held the page from the first landing to the last
+   * scheduled stroke's end, with nothing being drawn for most of it: live at 1440 on "circle the
+   * hypotenuse" the glass was taken again when the plan arrived at 5584 ms and let go by the CAP
+   * at 11592 — six frozen seconds in the middle of an answer, and the same shape on world sync-1
+   * (hold@7503, release:cap@13510). Keyless it never showed, because a keyless plan's strokes are
+   * all in flight at once and every hold released on `end` inside 138 ms.
+   *
+   * Now this is a tick, not a countdown: it looks at what the pen is doing NOW, holds or lets go
+   * accordingly, and comes back at the next moment either could change — the end of the stroke in
+   * flight, or a lead ahead of the next one's start. Ink already fading is on its way out and buys
+   * nothing. Returns true while the strokes still have a claim on the glass.
    */
-  private scheduleGlassRelease(): void {
-    if (!this.glassHeld) return;
-    if (typeof setTimeout !== 'function') return;
+  private traceGlass(): boolean {
+    if (!this.strokesGovern) return false;
+    if (this.releaseTimer !== null) clearTimeout(this.releaseTimer);
+    this.releaseTimer = null;
     const now = this.now();
-    let end = now;
+    /** The end of the last stroke that is in flight right now (or about to be). */
+    let flying = 0;
+    /** The start of the nearest stroke the pen has not reached yet. */
+    let next = Number.POSITIVE_INFINITY;
     for (const s of screenStore.snapshot()) {
       if (s.removed) continue;
-      end = Math.max(end, s.startAt + (s.durMs ?? DEFAULT_STROKE_MS));
+      if (s.fadingAt !== undefined && s.fadingAt <= now) continue;
+      const end = s.startAt + (s.durMs ?? DEFAULT_STROKE_MS);
+      if (s.startAt <= now + STROKE_LEAD_MS) {
+        if (end > now) flying = Math.max(flying, end);
+      } else {
+        next = Math.min(next, s.startAt);
+      }
     }
-    if (this.releaseTimer !== null) clearTimeout(this.releaseTimer);
-    this.releaseTimer = setTimeout(
-      () => {
+    const at = (when: number) => {
+      if (typeof setTimeout !== 'function') return;
+      this.releaseTimer = setTimeout(() => {
         this.releaseTimer = null;
-        if (this.glassHeld) this.releaseGlass('end');
-      },
-      Math.max(0, end - now) + STROKE_SETTLE_MS,
-    );
+        this.traceGlass();
+      }, Math.max(0, when));
+    };
+    if (flying > now) {
+      if (!this.glassHeld) this.holdGlass();
+      at(flying - now + STROKE_SETTLE_MS);
+      return true;
+    }
+    if (this.glassHeld) this.releaseGlass('end');
+    if (next === Number.POSITIVE_INFINITY) {
+      this.strokesGovern = false;
+      return false;
+    }
+    // The page is the learner's until the pen reaches the next mark, and then it is the pen's.
+    at(next - STROKE_LEAD_MS - now);
+    return true;
+  }
+
+  /**
+   * The turn is over: the glass goes back, unless a stroke of it is still in flight or still owed
+   * a moment on the clock — those keep it for exactly as long as they are drawing.
+   */
+  private endGlass(): void {
+    if (this.traceGlass()) return;
+    this.strokesGovern = false;
+    this.releaseGlass('end');
   }
 
   /** Let the glass go: the turn's hold, any stroke's hold, and whoever is waiting to hear it. */
@@ -450,6 +591,8 @@ class BoardConductor {
     this.inked = [];
     this.lastEventId = undefined;
     this.utteranceAt = null;
+    // The last turn's strokes no longer govern the glass; this turn's will, from its first mark.
+    this.strokesGovern = false;
     if (this.releaseTimer !== null) clearTimeout(this.releaseTimer);
     this.releaseTimer = null;
     // The pen's audio opens now, while the brain is being waited on, never on the first stroke.
@@ -460,6 +603,7 @@ class BoardConductor {
     this.instantTarget = null;
     this.instantKind = null;
     this.instantId = null;
+    this.handedOver = false;
     this.choice = new PresentationChoice({
       ...(override ? { override } : {}),
       lesson: isLessonRoute(route),
@@ -470,9 +614,9 @@ class BoardConductor {
     // is a store, not a door; it shows itself only once it holds ink.
     this.pendingBoard = presentation === 'plane' ? 'plane' : null;
     this.store = presentation === 'full' ? lessonStore : screenStore;
-    // The last turn's ink was holding for an answer, and this turn is the answer: it fades now,
-    // under the new marks rather than before them. The log is bounded, so nothing accumulates.
-    this.releaseScreen();
+    // The last turn's ink was holding for an answer, and this turn is the answer: it is lifted
+    // now, under the new marks rather than before them. The log is bounded, so nothing accumulates.
+    this.liftForTheAsk();
     this.set({
       active: true,
       presentation: presentation === 'plane' ? 'screen' : presentation,
@@ -503,11 +647,12 @@ class BoardConductor {
       ...(mark.words ? { words: mark.words } : {}),
       t: { start: 0, dur: INSTANT_STROKE_MS },
     };
+    this.handOver();
     screenStore.beginUtterance(screenStore.time());
     screenStore.applyEvent({ type: 'ink', t: 0, object } as BoardEvent);
-    this.holdGlass();
+    this.strokesGovern = true;
     this.set({ objects: Math.max(this.state.objects, 1) });
-    this.scheduleGlassRelease();
+    this.traceGlass();
   }
 
   /**
@@ -573,11 +718,15 @@ class BoardConductor {
     } as InkFrame;
     this.inked.push({ event: timed, pinned });
     const store = pinned || surface === 'screen' ? screenStore : this.store;
+    // Whatever surface this turn draws on, the last turn's ink on the PAGE has handed over: at
+    // 1440 the plane is a panel beside the page, so a board turn used to leave the previous ring
+    // standing on the very page the board is about.
+    this.handOver();
     store.applyEvent(timed);
     this.stillAlive();
-    if (store === screenStore) this.holdGlass();
+    if (store === screenStore) this.strokesGovern = true;
     this.set({ objects: this.choice.objects() });
-    this.scheduleGlassRelease();
+    this.traceGlass();
   }
 
   private storeFor(presentation: Presentation, title?: string): BoardStore {
@@ -643,7 +792,24 @@ class BoardConductor {
     // THE FIRST STROKE, BEFORE THE REQUEST LEAVES (docs/INK-FOUR.md). Everything below this line
     // waits on a model; this line does not. `open()` has just cleared the glass of the last turn's
     // ink, so the mark lands on a clean page and holds it still while it draws.
-    if (options.instant) this.startInstant(options.instant);
+    if (options.instant) {
+      this.startInstant(options.instant);
+      // AND THE BRAIN IS TOLD IT IS THERE. `board.drawn` is the last turn's ids and was read a
+      // line ago, before this pen moved; this is what THIS turn has already put on the glass, in
+      // the words it carries. Without it the brain plans against a board it believes is empty:
+      // live at 1440 "circle the hypotenuse" rang the square on the hypotenuse at 158 ms and then
+      // refused both of the model's sentences for having no mark, so the ring stood there for the
+      // whole turn with nothing said about it (the adversary, wave 42). The gateway's half of the
+      // law is `board/stream.py`, "nothing stands on the glass unspoken".
+      board.standing = [
+        {
+          id: this.instantId ?? INSTANT_ID,
+          kind: options.instant.kind,
+          anchor: { target: options.instant.target },
+          ...(options.instant.words ? { words: options.instant.words } : {}),
+        },
+      ];
+    }
     const controller = new AbortController();
     this.controller = controller;
     const said: string[] = [];
@@ -690,8 +856,11 @@ class BoardConductor {
         },
       }),
       {
-        onSentence: (index) => {
-          gate.voiceStarted(index);
+        // The sentence's own length rides with the beat: it is the rope the voice is given before
+        // the hand goes on without it (wobo/beat.ts, "a mark never waits on a sentence that will
+        // never come"). speech.tsx has it from the synthesis and had nowhere to put it until now.
+        onSentence: (index, voicedMs) => {
+          gate.voiceStarted(index, voicedMs);
           surfaceUpTo(index);
         },
       },
@@ -817,9 +986,14 @@ class BoardConductor {
       // The ink holds while the question is open. A turn that asked nothing lets it linger a
       // moment, then lets it go; and the glass is released the moment the pen and the voice end.
       if (!this.state.ask) this.releaseScreen(this.now() + LINGER_MS);
-      this.releaseGlass('end');
+      this.endGlass();
     }
-    return this.outcome(said);
+    // THE STREAM ENDED, WHATEVER IT CARRIED (the adversary, wave 53). Reaching this line means
+    // `open()` resolved: the wire ran out, with a `done` frame or without one. Only the learner's
+    // own interruption makes a turn incomplete here — everything else that goes wrong on the wire
+    // throws, and is answered in words by the caller. A turn that ends with nothing said and
+    // nothing drawn therefore reaches the honest line instead of ending in silence.
+    return this.outcome(said, this.interruptedRun !== token);
   }
 
   /** What the caller is handed however the turn ended. */
@@ -850,7 +1024,7 @@ class BoardConductor {
       ...(done.verified ? { verified: done.verified } : {}),
       ...(done.objects !== undefined ? { objects: done.objects } : {}),
     });
-    this.scheduleGlassRelease();
+    this.traceGlass();
   }
 
   /**

@@ -238,6 +238,10 @@ _POLICIES: dict[str, RoutingPolicy] = {
         _policy("curriculum.overlay.get", Tier.TINY, CacheTier.NONE, max_latency_ms=1200),
         _policy("curriculum.overlay.apply", Tier.TINY, CacheTier.NONE, max_latency_ms=1500),
         _policy("curriculum.status", Tier.TINY, CacheTier.NONE, max_latency_ms=800),
+        # The chapter's pool (docs/LEARNING-MODEL.md). A file or database read and never a build —
+        # the architect is a platform-paid job, not something a learner opening a chapter starts —
+        # so it answers at the speed of a lookup and no tier is ever reached.
+        _policy("curriculum.blueprint", Tier.TINY, CacheTier.NONE, max_latency_ms=1200),
         # The own-syllabus door (§6). `read` is the one that calls a model — the generate tier
         # structures the learner's own document, and a photo goes to the image-capable rung — so
         # it gets the latency of a generation, not of a lookup. The other three only move an
@@ -314,6 +318,7 @@ EXPECTED_CAPABILITIES: tuple[str, ...] = (
     "curriculum.overlay.get",
     "curriculum.overlay.apply",
     "curriculum.status",
+    "curriculum.blueprint",
     "curriculum.own.read",
     "curriculum.own.confirm",
     "curriculum.own.publish",

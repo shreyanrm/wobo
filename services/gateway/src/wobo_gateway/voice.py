@@ -613,6 +613,149 @@ def reset_tokens() -> None:
         _active_tts = 0
 
 
+# --- THE LINE AHEAD: the rest of what Wobo is about to say, bought while the first is read ------
+#
+# The client asks for ONE SENTENCE PER CALL and asks for the next one only once it holds the audio
+# for this one (``speech.tsx`` ``startUtterance``, and the board's hand waits on those same
+# sentences — ``wobo/beat.ts``). Each of those calls is a whole text-to-speech round trip. Measured
+# live on 2026-09-10 with every browser muted, off the wire: 4.3 to 10.3 seconds when Google's
+# text-to-speech spoke, 22.5 to 24.2 when it hung and OpenAI spoke behind it, and 2 to 21
+# MILLISECONDS when the line had been bought before. So Wobo's written line was prompt and Wobo's
+# VOICE arrived a slow round trip later, then another for the next sentence, and another — the
+# voice falling further behind the ink with every sentence of the same answer.
+#
+# The gateway wrote the whole line before one syllable of it was asked for. So when a sentence is
+# asked for, the sentences BEHIND it in that same line are bought at the same moment, with the same
+# accent and the same beat the asked one is being read with — the same cache key the client's next
+# call will present, so the buy is the same buy and nothing is bought twice (``plexus.media``
+# refuses to buy one line twice at once). By the time the client asks, the audio is on the disk.
+#
+# What is remembered is Wobo's own sentence, for three minutes, and nothing a learner typed: the
+# lines come from ``wobo.py`` at the moment the turn's words are decided.
+
+#: How many sentences behind the asked one are bought. Two covers the two-to-four-sentence answer
+#: the plan grammar asks for without buying a line the learner may never sit through.
+AHEAD_SENTENCES = 2
+#: How long a decided line is worth buying ahead for. A turn the learner walked away from is not.
+_AHEAD_TTL_S = 180.0
+#: How many lines are remembered at once. Small: this is the turn in flight, not a history.
+_AHEAD_MAX = 64
+#: At most this many lines are being bought ahead across the whole service at any moment, so a
+#: burst of turns can never spawn an unbounded number of threads on a paid API.
+_AHEAD_IN_FLIGHT = 8
+
+#: sentence -> (when it was decided, the sentences behind it and the beat each is read on)
+_ahead: dict[str, tuple[float, tuple[tuple[str, Beat | None], ...]]] = {}
+_ahead_lock = threading.Lock()
+_ahead_slots = threading.Semaphore(_AHEAD_IN_FLIGHT)
+
+
+def sentences_of(say: str) -> list[str]:
+    """Wobo's line split the way Wobo speaks it — the same split that cut it into ``say`` frames."""
+    from wobo_gateway.board.stream import sentences
+
+    return sentences(say)
+
+
+def remember_line(say: str, *, ask: str | None = None) -> None:
+    """Remember what Wobo is about to say, so the voice can buy it ahead of the ask.
+
+    Called from ``wobo.py`` the moment a turn's words are decided. ``ask`` is the question that
+    hands the next move back: the client speaks it last and speaks it as a QUESTION
+    (``board-turn.ts``: ``utterance.say(prompt, 'ask')``), so it is remembered with the beat it
+    will be read on — buy it on any other beat and the key is a key nobody presents.
+
+    Never raises and never blocks: a line that is not remembered is simply not bought ahead, and
+    the learner hears exactly what they hear today.
+    """
+    try:
+        remember_parts(sentences_of(say), ask=ask)
+    except Exception as exc:  # noqa: BLE001 — a line we cannot split is one we do not buy ahead
+        logger.debug("voice: line not remembered (%s: %s)", type(exc).__name__, exc)
+
+
+def remember_parts(said: list[str], *, ask: str | None = None) -> None:
+    """The same, for a caller that has already split the line — ``board.stream.build_events``
+    holds the EXACT sentences the client will ask for, in order, after the naming law has had its
+    say, so what it hands over is the wire's own list rather than the plan's."""
+    parts: list[tuple[str, Beat | None]] = [(p.strip(), None) for p in said if p and p.strip()]
+    question = (ask or "").strip()
+    if question and (not parts or parts[-1][0] != question):
+        parts.append((question, "ask"))
+    if len(parts) < 2:
+        return
+    now = time.monotonic()
+    with _ahead_lock:
+        for stale in [k for k, (at, _) in _ahead.items() if now - at > _AHEAD_TTL_S]:
+            del _ahead[stale]
+        while len(_ahead) >= _AHEAD_MAX:
+            del _ahead[next(iter(_ahead))]
+        for i, (part, _beat) in enumerate(parts[:-1]):
+            _ahead[part] = (now, tuple(parts[i + 1 : i + 1 + AHEAD_SENTENCES]))
+
+
+def line_ahead(text: str) -> tuple[tuple[str, Beat | None], ...]:
+    """What follows this sentence in a line Wobo decided — each with the beat it is read on when
+    that is not the beat of the sentence being asked for — or ``()`` for anything else."""
+    key = (text or "").strip()
+    if not key:
+        return ()
+    with _ahead_lock:
+        found = _ahead.get(key)
+        if found is None:
+            return ()
+        at, rest = found
+        if time.monotonic() - at > _AHEAD_TTL_S:
+            del _ahead[key]
+            return ()
+        return rest
+
+
+def forget_lines() -> None:
+    """Test seam — forget every remembered line."""
+    with _ahead_lock:
+        _ahead.clear()
+
+
+def _buy_ahead(text: str, instruction: str) -> None:
+    """One sentence, bought and kept. Runs off the request thread; never raises, never speaks."""
+    try:
+        from wobo_gateway.plexus.media import synthesize_narration
+
+        synthesize_narration(text, instruction=instruction)
+    except Exception as exc:  # noqa: BLE001 — a line not bought ahead is a line bought on the ask
+        logger.debug("voice: line ahead not bought (%s: %s)", type(exc).__name__, exc)
+    finally:
+        _ahead_slots.release()
+
+
+def buy_line_ahead(text: str, *, accent: str, beat: Beat = DEFAULT_BEAT) -> int:
+    """Buy the sentences behind this one, off this thread. Returns how many were started.
+
+    The accent is the one resolved for this learner and the beat is this line's own, so the key
+    each sentence is kept under is exactly the key the client's next call will present — except
+    the closing question, which the client reads as a question and which is bought as one.
+    """
+    # NOT ON A DAY THE PLATFORM IS ALREADY TRIMMING. Buying ahead is a kindness to the ear, not the
+    # answer itself: the learner still hears every sentence without it, a few seconds later. So it
+    # is asked of the day's ceiling in the strictest lane there is — while even a stranger would be
+    # served, the day can afford it; past that line the money goes to answers, not to anticipation.
+    from wobo_gateway import spend
+
+    if spend.verdict(spend.Priority.STRANGER) is not spend.Verdict.SERVE:
+        return 0
+    started = 0
+    for part, other in line_ahead(text):
+        if not _ahead_slots.acquire(blocking=False):
+            break
+        instruction = spoken_instruction(accent, other or beat)
+        threading.Thread(
+            target=_buy_ahead, args=(part, instruction), name="voice-ahead", daemon=True
+        ).start()
+        started += 1
+    return started
+
+
 # The only frame kinds a browser may put on the wire to Gemini Live. The gateway sends the
 # setup itself — model, persona, transcription config — and a client-sent `setup` would replace
 # ours: a different model, a different system instruction, our key. Anything not in this set is
@@ -813,7 +956,14 @@ def register_voice(app: FastAPI) -> None:
         accent = learner_accent(
             request.state.principal.claims, request.headers.get("accept-language")
         )
-        audio = synthesize_narration(body.text, instruction=spoken_instruction(accent, body.beat))
+        instruction = spoken_instruction(accent, body.beat)
+        # THE LINE AHEAD. The sentences behind this one in the line Wobo decided are bought while
+        # this one is being synthesised, on this learner's own accent and this line's own beat, so
+        # the client's next call — which it makes only once it holds this sentence's audio — is a
+        # disk read of milliseconds rather than another four-to-ten-second round trip. Started
+        # BEFORE the blocking call below, because the point is that the two run together.
+        buy_line_ahead(body.text, accent=accent, beat=body.beat)
+        audio = synthesize_narration(body.text, instruction=instruction)
         if audio is None:
             # Both voices failed: the client reads the same words with the device's own voice,
             # and the call is GIVEN BACK. A learner never pays for a call we did not serve; until

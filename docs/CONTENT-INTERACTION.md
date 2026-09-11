@@ -33,6 +33,21 @@ cell costs USD 0.27 to 1.1 (wave 30's manifests). Three boards and four grades o
 today: twelve full generations. Under this: one core, twelve level renderings, templates. About
 one tenth of the money, and the core is better because it was made by the strongest model once.
 
+**WHAT HAS BEEN MEASURED SINCE, and it is not that yet (2026-09-10).** The headline three-layer run
+(`harness/reports/three-layers-20260910-062054.json`, three concepts x two boards x two classes)
+priced a concept core at a mean of USD 0.030699 over three and a level rendering at USD 0.005343
+over twelve, and it made no full generation at all, so it measured NO baseline: its own summary
+says `baselineUsd: null`, `savedUsd: null`. The one earlier run that did record a baseline recorded
+a single row and reported `savedUsd: -0.07198` — on that evidence the split cost more than the path
+it replaces, because a level rendering writes a whole course too and the output tokens dominate. A
+"break-even is about 38 levels" was quoted from that superseded run; recomputed on the headline
+run's own core price it is 30, and the headline run's twelve level costs straddle its baseline, so
+it is not determinable at all. `economy.summary` now refuses to print a break-even that fewer than
+three measurements of each, or two overlapping ranges, cannot support, and says in a sentence why
+(`breakEvenReason`). The tenth-of-the-money line above stays as the DESIGN's claim, and the core's
+real amortisation — every board, class, version, interaction and re-render, forever — is the
+argument for the split. It is not yet a measurement, and nothing in the code prints it as one.
+
 ## 2. Choosing the interaction: the gate decides, per concept, from a mix
 
 The quality gate (plexus/validate.py) already judges an artifact after it is served. It gains a

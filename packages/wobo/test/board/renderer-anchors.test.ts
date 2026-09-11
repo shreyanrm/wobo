@@ -155,3 +155,73 @@ describe('what moves with the page moves with the page, whenever it was beaten',
     expect(liveObjectIds(store.snapshot(), store).has('arr')).toBe(true);
   });
 });
+
+/**
+ * THE TWO MECHANISMS ARE ONE LAW EACH, AND EACH IS HELD ON ITS OWN (wave 52).
+ *
+ * The close above was re-measured and holds on the glass, but the suite only caught the two
+ * mechanisms TOGETHER: with `dependencyOrder` taken out of `buildObjects` the whole package
+ * stayed green, and with the second pass taken out it stayed green too, because either one alone
+ * still rescues a one-deep label. A close that no single test holds is a close a refactor can
+ * undo without turning anything red, and wave 48's defect comes back the moment the survivor is
+ * weakened as well. So: one test per mechanism, each red when only its own mechanism is removed.
+ *
+ * The division of labour they pin is the design itself — DEPTH is the ordering's job, and the
+ * second pass is only ever for a cycle:
+ *   · dependency order settles a chain of any depth in ONE sweep;
+ *   · the second pass, bounded at two, is for the one edge a cycle forces the order to break.
+ */
+describe('each half of the build order is load-bearing on its own', () => {
+  it('settles a chain of any depth in one sweep — depth is the ORDERING’s job', () => {
+    // A label on a leader on a bracket on a rim on the cell body, every one of them beaten before
+    // the thing it hangs off. Two sweeps of healing reach two levels; the chain is four deep, so
+    // without the ordering the last two are lost exactly as the plant cell's were.
+    const store = new BoardStore({ presentation: 'plane' });
+    const chain: BoardObject[] = [];
+    for (let i = 2; i <= 5; i += 1) {
+      chain.push({
+        id: `l${i}`,
+        kind: 'label',
+        anchor: { object: `l${i - 1}` },
+        text: `part ${i}`,
+      } as BoardObject);
+    }
+    for (const o of [...chain].reverse()) store.ink(o);
+    store.ink({ id: 'l1', kind: 'ellipse', anchor: { board: [400, 300] }, rx: 90, ry: 60 } as BoardObject);
+    expect(build(store).filter((b) => !b.geometry).map((b) => b.state.object.id)).toEqual([]);
+  });
+
+  it('heals the half of a cycle that CAN resolve — the SECOND PASS’s job', () => {
+    // An arrow that starts at a note, and a note that hangs off the arrow. No order can build both
+    // second, so the order breaks the arrow's edge: the note is built first and comes back empty,
+    // the arrow lands on its own board point, and the pass that follows is what puts the note on
+    // the glass. Without that pass the note is not late, it is never drawn.
+    const store = makeStore([
+      {
+        id: 'arr',
+        kind: 'arrow',
+        anchor: { board: [500, 300] },
+        from: { object: 'note' },
+      } as BoardObject,
+      { id: 'note', kind: 'label', anchor: { object: 'arr' }, text: 'this way' } as BoardObject,
+    ]);
+    expect(build(store).find((b) => b.state.object.id === 'note')?.geometry).not.toBeNull();
+  });
+
+  it('carries the whole tail hanging off a healed cycle, within the two sweeps', () => {
+    // The bound of two is only honest if a heal cascades WITHIN a sweep: the tail hanging off the
+    // note must land in the same sweep the note does, however long it is.
+    const store = makeStore([
+      {
+        id: 'arr',
+        kind: 'arrow',
+        anchor: { board: [500, 300] },
+        from: { object: 'note' },
+      } as BoardObject,
+      { id: 'note', kind: 'label', anchor: { object: 'arr' }, text: 'this way' } as BoardObject,
+      { id: 'tail1', kind: 'label', anchor: { object: 'note' }, text: 'and then' } as BoardObject,
+      { id: 'tail2', kind: 'label', anchor: { object: 'tail1' }, text: 'and then' } as BoardObject,
+    ]);
+    expect(build(store).filter((b) => !b.geometry).map((b) => b.state.object.id)).toEqual([]);
+  });
+});

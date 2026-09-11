@@ -1,349 +1,245 @@
 'use client';
 
 /**
- * ArcadeShell — a minimal game frame (score · lives · restart) hosting a spec-driven micro-game
- * where the mechanic IS the concept (DESIGN.md §9, "mini-games & arcade"). It ships with one proven
- * pattern: a falling-answers catch game wired to real quiz items. Options rain down; slide the
- * catcher to grab the correct answer for the current question. A right catch scores and records real
- * evidence (learn.attempt.submitted.v1); a wrong catch (or letting the answer fall past) costs a
- * life. Three lives, then restart.
+ * THE ARCADE SHELL — one frame, six mechanics, and a bonus level that pays once.
  *
- * Registers as a Wobo scene target (Wobo can nudge the catcher / restart). Keyboard + pointer
- * driven, reduced-motion aware (calmer fall), mute-aware via sfx, both themes, no new deps.
+ * docs/CONTENT-INTERACTION.md §7 (the owner, 2026-09-08): optional study arcade games as bonus
+ * levels for extra XP, "every now and then in the middle" of a chapter, since the boss level
+ * already sits at the end.
+ *
+ * WHAT THIS FILE OWNS: the score, the lives, the clock, which round is up, the evidence, the
+ * award, and the words around the play. WHAT IT DOES NOT OWN: the play itself. Each of the six
+ * mechanics is a field in `arcade/mechanics.tsx` and says only two things back — that one is
+ * right, or that one is wrong and here is why. Adding a seventh is a row in `MECHANICS` and a
+ * shape in `plexus/specs.py`; it is never a change here.
+ *
+ * THE RULES THAT ARE NOT NEGOTIABLE, all of them from §7 and docs/LEVELS.md §4:
+ *   · Bonus XP is capped per chapter and per day and NEVER counts toward a level. `store/arcade.ts`
+ *     holds it, in its own key, and cannot reach the climb's XP. A game is a reward, never a
+ *     shortcut past the learning.
+ *   · A level pays the first time it is cleared and never again. It stays open, because it is
+ *     theirs; it just stops paying.
+ *   · The register and the never-narrate law hold inside a game. Nothing here says what the
+ *     product is doing, and there is no hype anywhere in it.
+ *   · Older classes get a lighter shell: fewer words, no encouragement, the same game (`lite`).
+ *   · Reduced motion is a still with the spark, and the sound layer is the app's one mute.
  */
 
 import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import {
-  type PointerEvent as ReactPointerEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BarState } from '../screens/course/shared';
-import { CardBody, cardTitle, rgba, Stage, whisper } from '../screens/course/shared';
+import { CardBody, cardTitle, whisper } from '../screens/course/shared';
+import { awardBonus, BONUS_LINES, type BonusOutcome } from '../store/arcade';
 import { useSdk } from '../store/sdk';
 import { hueForTopic } from '../ui/hues';
 import { sfx } from '../ui/sound';
+import { MECHANICS, type MechanicProps } from './arcade/mechanics';
+import { ARCADE_COPY, type ArcadeGame, type ArcadeSpec, parseArcade } from './arcade/spec';
 
-// --- The spec ------------------------------------------------------------------------------------
+export {
+  ARCADE_COPY,
+  ARCADE_GAMES,
+  type ArcadeGame,
+  type ArcadeRound,
+  type ArcadeSpec,
+  parseArcade,
+} from './arcade/spec';
 
-export interface ArcadeRound {
-  id: string;
-  prompt: string;
-  answer: string;
-  distractors: string[];
-}
-
-export interface ArcadeSpec {
-  id: string;
-  title: string;
-  /** The one shipped mechanic. Kept as a field so new mechanics slot in behind the same shell. */
-  game: 'catch';
-  rounds: ArcadeRound[];
-}
-
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-const str = (v: unknown): v is string => typeof v === 'string' && v.trim() !== '';
-
-export function parseArcade(raw: unknown): ArcadeSpec | null {
-  if (!isRecord(raw)) return null;
-  const src = isRecord(raw.artifact) ? raw.artifact : raw;
-  if (raw.verified === false || src.verified === false) return null;
-  const rounds = (Array.isArray(src.rounds) ? src.rounds : [])
-    .filter(
-      (r): r is Record<string, unknown> =>
-        isRecord(r) && str(r.prompt) && str(r.answer) && Array.isArray(r.distractors),
-    )
-    .map((r, i) => ({
-      id: str(r.id) ? (r.id as string) : `r${i + 1}`,
-      prompt: r.prompt as string,
-      answer: r.answer as string,
-      distractors: (r.distractors as unknown[]).filter(str).slice(0, 3),
-    }))
-    .filter((r) => r.distractors.length >= 1);
-  if (rounds.length === 0 || rounds.length > 12) return null;
-  return {
-    id: str(src.id) ? src.id : 'arcade',
-    title: str(src.title) ? src.title : 'catch it',
-    game: 'catch',
-    rounds,
-  };
-}
-
-// --- Falling item -----------------------------------------------------------------------------------
-
-interface FallingItem {
-  key: string;
-  label: string;
-  correct: boolean;
-  x: number; // 0..100
-  y: number; // 0..100 (0 top)
-  vy: number; // per second
-  caught: 'right' | 'wrong' | null;
-}
-
-const CATCHER_Y = 88;
-const CATCHER_W = 24; // half-width of the catch zone in x units
 const START_LIVES = 3;
 
-function shuffleSeeded<T>(arr: T[], seed: number): T[] {
-  let h = seed >>> 0;
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    h ^= h << 13;
-    h ^= h >>> 17;
-    h ^= h << 5;
-    h >>>= 0;
-    const j = h % (i + 1);
-    [a[i], a[j]] = [a[j] as T, a[i] as T];
-  }
-  return a;
-}
-
-// --- The game -------------------------------------------------------------------------------------
+/**
+ * Which mechanics spend the round on a wrong move. Catch has already fallen, the quiz has already
+ * been answered and the line has already been tapped, so all three move on. A sort, a match and a
+ * sequence are still in front of the learner, so they stay: the board is the lesson.
+ */
+const SPENDS_THE_ROUND: ReadonlySet<ArcadeGame> = new Set(['catch', 'quiz', 'numberline']);
 
 type Phase = 'ready' | 'playing' | 'won' | 'lost';
+
+export interface ArcadeShellProps {
+  spec: ArcadeSpec;
+  hue?: string;
+  /** The concept this level rehearses. Every attempt is recorded against it, as real evidence. */
+  nodeId: string;
+  courseId?: string;
+  /** The chapter the door hangs off. The XP cap is per chapter, so it has to be named. */
+  chapterId?: string;
+  /** The lighter shell: set for the older classes. Same game, fewer words. */
+  lite?: boolean;
+  setBar?: (b: BarState | null) => void;
+  onDone?: () => void;
+}
 
 export function ArcadeShell({
   spec,
   hue = hueForTopic(''),
   nodeId,
   courseId,
+  chapterId = 'chapter',
+  lite = false,
   setBar,
   onDone,
-}: {
-  spec: ArcadeSpec;
-  hue?: string;
-  nodeId: string;
-  courseId?: string;
-  setBar?: (b: BarState | null) => void;
-  onDone?: () => void;
-}) {
+}: ArcadeShellProps) {
   const sdk = useSdk();
   const bus = useWoboBus();
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotion() ?? false;
 
   const [phase, setPhase] = useState<Phase>('ready');
-  const [round, setRound] = useState(0);
+  const [at, setAt] = useState(0);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(START_LIVES);
-  const [items, setItems] = useState<FallingItem[]>([]);
-  const catcherX = useRef(50);
-  const [catcherRender, setCatcherRender] = useState(50);
-  const lastTs = useRef(0);
-  const rafRef = useRef(0);
-  const roundRef = useRef(0);
-  const settling = useRef(false); // true briefly after a catch, before the next round
-  const areaRef = useRef<HTMLDivElement>(null);
+  const [run, setRun] = useState(0);
+  const [left, setLeft] = useState(spec.seconds ?? 0);
+  const [paid, setPaid] = useState<BonusOutcome | null>(null);
+  const settling = useRef(false);
   const itemIds = useRef<Map<number, string>>(new Map());
+  // Which round is up, readable from a timer without re-creating it. React may run a state updater
+  // more than once for one change, so deciding "was that the last round?" INSIDE `setAt` both
+  // hides the decision from the render that needs it and risks running it twice. The ref is the
+  // decision; `setAt` only draws it.
+  const atRef = useRef(0);
 
-  const fallSpeed = reduced ? 14 : 22; // x-units? no — y-units per second
+  const round = spec.rounds[at];
+  const Field = MECHANICS[spec.game];
 
-  const spawnRound = useCallback(
-    (r: number) => {
-      const cur = spec.rounds[r];
-      if (!cur) return;
-      const options = shuffleSeeded(
-        [
-          { label: cur.answer, correct: true },
-          ...cur.distractors.map((d) => ({ label: d, correct: false })),
-        ],
-        r + 1,
-      );
-      const n = options.length;
-      const spawned: FallingItem[] = options.map((o, i) => ({
-        key: `${r}-${i}`,
-        label: o.label,
-        correct: o.correct,
-        x: 14 + (i + 0.5) * (72 / n) + (reduced ? 0 : (Math.random() - 0.5) * 6),
-        y: -10 - i * 22, // staggered entry from above
-        vy: fallSpeed * (0.85 + i * 0.08),
-        caught: null,
-      }));
-      settling.current = false;
-      setItems(spawned);
-      if (!itemIds.current.has(r)) itemIds.current.set(r, crypto.randomUUID());
-    },
-    [spec, fallSpeed, reduced],
-  );
-
-  const recordAttempt = useCallback(
-    (r: number, correct: boolean) => {
-      sdk.events.record(
-        'learn.attempt.submitted.v1',
-        {
-          node_id: nodeId,
-          item_id: itemIds.current.get(r) ?? crypto.randomUUID(),
-          response: { kind: 'choice', selected: [correct ? 'caught-answer' : 'caught-wrong'] },
-          correct,
-          aided: false,
-          independence_signal: 0.9,
-          latency_ms: 0,
-          attempt_index: 0,
-        },
-        { ontologyNodeId: nodeId, ...(courseId ? { courseId } : {}) },
-      );
+  const record = useCallback(
+    (index: number, correct: boolean) => {
+      let id = itemIds.current.get(index);
+      if (!id) {
+        id = crypto.randomUUID();
+        itemIds.current.set(index, id);
+      }
+      try {
+        sdk.events.record(
+          'learn.attempt.submitted.v1',
+          {
+            node_id: nodeId,
+            item_id: id,
+            response: { kind: 'choice', selected: [correct ? 'cleared' : 'missed'] },
+            correct,
+            aided: false,
+            independence_signal: 0.9,
+            latency_ms: 0,
+            attempt_index: 0,
+          },
+          { ontologyNodeId: nodeId, ...(courseId ? { courseId } : {}) },
+        );
+      } catch {
+        // A refused payload must never eat the play. The evidence is worth having and the caller
+        // hands us a real node id, but a game that freezes mid-round because a record was rejected
+        // is a worse failure than a lost attempt, and this is the round the learner is standing in.
+      }
     },
     [sdk, nodeId, courseId],
   );
 
-  const loseLife = useCallback(() => {
+  const start = useCallback(() => {
+    atRef.current = 0;
+    setAt(0);
+    setScore(0);
+    setLives(START_LIVES);
+    setLeft(spec.seconds ?? 0);
+    setPaid(null);
+    setRun((n) => n + 1);
+    settling.current = false;
+    setPhase('playing');
+  }, [spec.seconds]);
+
+  /** The clock, where the mechanic has one. It runs on the level, not the round. */
+  useEffect(() => {
+    if (phase !== 'playing' || !spec.seconds) return;
+    const tick = window.setInterval(() => {
+      setLeft((s) => {
+        if (s <= 1) {
+          window.clearInterval(tick);
+          setPhase('lost');
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(tick);
+  }, [phase, spec.seconds]);
+
+  const advance = useCallback(() => {
+    settling.current = true;
+    window.setTimeout(
+      () => {
+        const next = atRef.current + 1;
+        if (next >= spec.rounds.length) {
+          setPhase('won');
+          return;
+        }
+        atRef.current = next;
+        setAt(next);
+        settling.current = false;
+      },
+      reduced ? 160 : 460,
+    );
+  }, [spec.rounds.length, reduced]);
+
+  const onRight = useCallback(() => {
+    if (settling.current) return;
+    setScore((s) => s + 1);
+    record(at, true);
+    advance();
+  }, [at, record, advance]);
+
+  const onWrong = useCallback(() => {
+    if (settling.current) return;
+    record(at, false);
     setLives((l) => {
       const next = l - 1;
       if (next <= 0) setPhase('lost');
       return Math.max(0, next);
     });
-  }, []);
+    if (SPENDS_THE_ROUND.has(spec.game)) advance();
+  }, [at, record, advance, spec.game]);
 
-  const advanceRound = useCallback(
-    (r: number) => {
-      settling.current = true;
-      window.setTimeout(
-        () => {
-          if (r >= spec.rounds.length - 1) {
-            setPhase('won');
-            return;
-          }
-          const nr = r + 1;
-          roundRef.current = nr;
-          setRound(nr);
-          spawnRound(nr);
-        },
-        reduced ? 200 : 550,
-      );
-    },
-    [spec.rounds.length, spawnRound, reduced],
-  );
-
-  // the game loop
+  /** The award, once the level is cleared. It pays once, under two caps, and never up the climb. */
   useEffect(() => {
-    if (phase !== 'playing') return;
-    const step = (ts: number) => {
-      const dt = lastTs.current ? Math.min(0.05, (ts - lastTs.current) / 1000) : 0;
-      lastTs.current = ts;
-      setItems((prev) => {
-        if (settling.current) return prev;
-        let hitRight = false;
-        let hitWrong = false;
-        let missedAnswer = false;
-        const next: FallingItem[] = [];
-        for (const it of prev) {
-          if (it.caught) {
-            next.push(it);
-            continue;
-          }
-          const y = it.y + it.vy * dt;
-          // collision with the catcher band
-          if (
-            y >= CATCHER_Y &&
-            it.y < CATCHER_Y &&
-            Math.abs(it.x - catcherX.current) <= CATCHER_W / 2 + 6
-          ) {
-            if (it.correct) hitRight = true;
-            else hitWrong = true;
-            next.push({ ...it, y, caught: it.correct ? 'right' : 'wrong' });
-            continue;
-          }
-          if (y > 108) {
-            if (it.correct) missedAnswer = true; // the answer fell past — a miss
-            continue; // drop it
-          }
-          next.push({ ...it, y });
-        }
-        const r = roundRef.current;
-        if (hitRight) {
-          settling.current = true;
-          sfx.bloom();
-          setScore((s) => s + 1);
-          recordAttempt(r, true);
-          advanceRound(r);
-        } else if (hitWrong) {
-          sfx.wrong();
-          recordAttempt(r, false);
-          loseLife();
-        } else if (missedAnswer && !settling.current) {
-          sfx.wrong();
-          loseLife();
-          advanceRound(r);
-        }
-        return next;
-      });
-      rafRef.current = requestAnimationFrame(step);
-    };
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [phase, advanceRound, loseLife, recordAttempt]);
+    if (phase !== 'won' || paid) return;
+    const outcome = awardBonus(chapterId, spec.id);
+    setPaid(outcome);
+    if (outcome.granted > 0) sfx.reward();
+  }, [phase, paid, chapterId, spec.id]);
 
-  const start = useCallback(() => {
-    setScore(0);
-    setLives(START_LIVES);
-    setRound(0);
-    roundRef.current = 0;
-    lastTs.current = 0;
-    catcherX.current = 50;
-    setCatcherRender(50);
-    setPhase('playing');
-    spawnRound(0);
-  }, [spawnRound]);
+  const ended = phase === 'won' || phase === 'lost';
 
-  // pointer + keyboard control of the catcher
-  const moveCatcher = useCallback((x: number) => {
-    const clamped = Math.max(CATCHER_W / 2, Math.min(100 - CATCHER_W / 2, x));
-    catcherX.current = clamped;
-    setCatcherRender(clamped);
-  }, []);
-  const onPointer = (e: ReactPointerEvent) => {
-    if (phase !== 'playing') return;
-    const rect = areaRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    moveCatcher(((e.clientX - rect.left) / rect.width) * 100);
-  };
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (phase !== 'playing') return;
-      if (e.key === 'ArrowLeft') moveCatcher(catcherX.current - 8);
-      else if (e.key === 'ArrowRight') moveCatcher(catcherX.current + 8);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [phase, moveCatcher]);
-
-  // the action bar — advance out of the game (won or as an escape hatch)
+  // The action bar. The primary is always the way out, because a bonus level is never in the path:
+  // a learner who opens one can leave it at any moment and lose nothing.
   useEffect(() => {
     if (!setBar) return;
     setBar({
       primary: {
-        label: phase === 'won' ? 'continue' : 'done',
+        label: phase === 'won' ? 'back to the climb' : 'leave it',
         disabled: false,
         onClick: () => onDone?.(),
       },
-      secondary:
-        phase === 'lost' || phase === 'won' ? { label: 'play again', onClick: start } : undefined,
+      // Offered only once a level has ENDED. A restart sitting under a round in progress is an
+      // invitation to give up on the round the learner is standing in.
+      secondary: ended ? { label: 'play again', onClick: start } : undefined,
     });
-  }, [setBar, phase, onDone, start]);
+    return () => setBar(null);
+  }, [setBar, phase, ended, onDone, start]);
 
   const stageRef = useRegisterTarget<HTMLDivElement>(`arcade-${spec.id}`, {
     kind: 'arcade',
-    label: `catch game: ${spec.title}`,
+    label: `bonus level: ${spec.title}, played as ${spec.game}`,
     getSceneState: () => ({
       title: spec.title,
+      game: spec.game,
       phase,
-      round: `${round + 1} of ${spec.rounds.length}`,
-      prompt: spec.rounds[round]?.prompt,
+      round: `${at + 1} of ${spec.rounds.length}`,
+      prompt: round?.prompt,
       score,
       lives,
+      ...(spec.seconds ? { secondsLeft: left } : {}),
     }),
-    getValidActions: () =>
-      phase === 'playing'
-        ? ['move the catcher left or right', 'catch the correct answer']
-        : ['start the game'],
+    getValidActions: () => (phase === 'playing' ? ['play the round'] : ['start the level']),
     applyTutorAction: (patch) => {
-      if (patch.start === true) return start();
-      if (patch.move === 'left') return moveCatcher(catcherX.current - 10);
-      if (patch.move === 'right') return moveCatcher(catcherX.current + 10);
-      if (typeof patch.catcherX === 'number') return moveCatcher(patch.catcherX);
+      if (patch.start === true) start();
     },
   });
 
@@ -351,22 +247,26 @@ export function ArcadeShell({
     bus.publishCanvas({
       nodeId,
       steps: [
-        `arcade: ${spec.title}`,
-        `${phase} · round ${round + 1}/${spec.rounds.length}`,
-        `score ${score} · lives ${lives}`,
-        spec.rounds[round]?.prompt ?? '',
+        `bonus level: ${spec.title}`,
+        `${spec.game} · ${phase}`,
+        `round ${at + 1} of ${spec.rounds.length} · score ${score} · lives ${lives}`,
       ],
       lastEditedAt: new Date().toISOString(),
     });
-  }, [bus, nodeId, spec, phase, round, score, lives]);
+  }, [bus, nodeId, spec, phase, at, score, lives]);
   useEffect(() => () => bus.publishCanvas(undefined), [bus]);
 
-  const cur = spec.rounds[round];
+  const copy = ARCADE_COPY[spec.game];
+  const how = lite ? copy.lite : copy.how;
+
+  const props: MechanicProps | null = round
+    ? { round, run, hue, lite, reduced, onRight, onWrong }
+    : null;
 
   return (
     <CardBody maxWidth={620} center={false}>
       <div ref={stageRef} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div
+        <header
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -375,203 +275,164 @@ export function ArcadeShell({
           }}
         >
           <div>
-            <div style={whisper}>catch the answer</div>
-            <div style={{ ...cardTitle, marginTop: 6 }}>{spec.title}</div>
+            <div style={whisper}>bonus level</div>
+            <h2 style={{ ...cardTitle, marginTop: 6, marginBottom: 0 }}>{spec.title}</h2>
           </div>
-          <div style={{ display: 'flex', gap: 18, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+            {spec.seconds ? (
+              <div style={{ textAlign: 'right' }}>
+                <div style={whisper}>time</div>
+                <div
+                  style={{
+                    fontSize: '1.2rem',
+                    fontWeight: 600,
+                    color: 'var(--ink)',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {left}
+                </div>
+              </div>
+            ) : null}
             <div style={{ textAlign: 'right' }}>
               <div style={whisper}>score</div>
               <div
                 style={{
-                  fontSize: '1.3rem',
+                  fontSize: '1.2rem',
                   fontWeight: 600,
-                  color: 'var(--wobo-ink-900)',
+                  color: 'var(--ink)',
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
                 {score}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 4 }} role="img" aria-label={`${lives} lives`}>
+            <div style={{ display: 'flex', gap: 4 }} role="img" aria-label={`${lives} lives left`}>
               {Array.from({ length: START_LIVES }, (_, i) => (
                 <span
-                  // biome-ignore lint/suspicious/noArrayIndexKey: fixed life pips
+                  // biome-ignore lint/suspicious/noArrayIndexKey: three fixed life pips
                   key={i}
                   style={{
-                    width: 10,
-                    height: 10,
+                    width: 9,
+                    height: 9,
                     borderRadius: 999,
-                    background: i < lives ? hue : 'var(--wobo-ink-100)',
+                    background: i < lives ? hue : 'var(--paper-3)',
                     transition: 'background 0.3s ease',
                   }}
                 />
               ))}
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* the current question — what you're hunting for */}
-        {cur && phase === 'playing' && (
+        {phase === 'playing' && props ? (
+          <Field {...props} />
+        ) : (
           <div
             style={{
-              ...whisper,
-              textTransform: 'none',
-              letterSpacing: 0,
-              fontSize: '1rem',
-              color: 'var(--wobo-ink-900)',
-              fontWeight: 520,
+              minHeight: 300,
+              borderRadius: 16,
+              background: 'var(--paper-2)',
+              display: 'grid',
+              placeItems: 'center',
+              padding: 24,
+              textAlign: 'center',
             }}
           >
-            {cur.prompt}
+            <motion.div
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: '1.2rem',
+                  fontWeight: 540,
+                  color: 'var(--ink)',
+                  lineHeight: 1.35,
+                }}
+              >
+                {phase === 'ready'
+                  ? how
+                  : phase === 'won'
+                    ? `cleared, ${score} of ${spec.rounds.length}`
+                    : `out of it at ${score} of ${spec.rounds.length}`}
+              </p>
+              {ended && paid ? (
+                <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.95rem', maxWidth: 340 }}>
+                  {BONUS_LINES[paid.reason]}
+                </p>
+              ) : null}
+              {phase === 'lost' && !lite ? (
+                <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: '0.95rem', maxWidth: 340 }}>
+                  nothing is lost here. the climb is exactly where you left it.
+                </p>
+              ) : null}
+              <button
+                type="button"
+                onClick={start}
+                style={{
+                  minHeight: 44,
+                  padding: '11px 24px',
+                  borderRadius: 999,
+                  border: 0,
+                  background: hue,
+                  color: 'var(--paper)',
+                  fontFamily: 'inherit',
+                  fontSize: '0.95rem',
+                  fontWeight: 540,
+                  cursor: 'pointer',
+                }}
+              >
+                {phase === 'ready' ? 'start' : 'play again'}
+              </button>
+            </motion.div>
           </div>
         )}
 
-        {/* the play field */}
-        <div ref={areaRef} onPointerMove={onPointer} style={{ touchAction: 'none' }}>
-          <Stage hue={hue} tint={0.05} minHeight={340} style={{ padding: 0 }}>
-            <div style={{ position: 'relative', width: '100%', height: 340, overflow: 'hidden' }}>
-              {/* falling answer chips */}
-              <AnimatePresence>
-                {items.map((it) => (
-                  <div
-                    key={it.key}
-                    style={{
-                      position: 'absolute',
-                      left: `${it.x}%`,
-                      top: `${it.y}%`,
-                      transform: 'translate(-50%, -50%)',
-                      padding: '7px 13px',
-                      borderRadius: 999,
-                      whiteSpace: 'nowrap',
-                      fontSize: '0.9rem',
-                      fontWeight: 520,
-                      border: `1px solid ${it.caught === 'right' ? 'var(--wobo-feedback-correct)' : it.caught === 'wrong' ? 'var(--wobo-feedback-retry)' : 'var(--wobo-hairline-on-paper-strong)'}`,
-                      background:
-                        it.caught === 'right'
-                          ? 'var(--wobo-feedback-correctSoft)'
-                          : it.caught === 'wrong'
-                            ? 'var(--wobo-feedback-retrySoft)'
-                            : 'var(--wobo-paper)',
-                      color: 'var(--wobo-ink-900)',
-                      opacity: it.caught ? 0.85 : 1,
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    {it.label}
-                  </div>
-                ))}
-              </AnimatePresence>
-
-              {/* the catcher */}
-              {phase === 'playing' && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    left: `${catcherRender}%`,
-                    top: `${CATCHER_Y}%`,
-                    transform: 'translate(-50%, -50%)',
-                    width: `${CATCHER_W}%`,
-                    height: 14,
-                    borderRadius: 999,
-                    background: hue,
-                    boxShadow: `0 0 0 4px ${rgba(hue, 0.18)}`,
-                    pointerEvents: 'none',
-                  }}
-                />
-              )}
-
-              {/* ready / won / lost overlays */}
-              {phase !== 'playing' && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    display: 'grid',
-                    placeItems: 'center',
-                    padding: 20,
-                    textAlign: 'center',
-                  }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 14,
-                      alignItems: 'center',
-                    }}
-                  >
-                    <div
-                      style={{ fontSize: '1.3rem', fontWeight: 560, color: 'var(--wobo-ink-900)' }}
-                    >
-                      {phase === 'ready'
-                        ? 'slide to catch the right answer'
-                        : phase === 'won'
-                          ? `cleared it — ${score}/${spec.rounds.length}`
-                          : `out of lives — ${score} caught`}
-                    </div>
-                    <div
-                      style={{ ...whisper, textTransform: 'none', letterSpacing: 0, maxWidth: 320 }}
-                    >
-                      {phase === 'ready'
-                        ? 'move with your finger or the arrow keys. grab the answer, dodge the rest.'
-                        : phase === 'won'
-                          ? 'every question, caught clean.'
-                          : 'the answers are still yours — give it another run.'}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={start}
-                      style={{
-                        padding: '10px 22px',
-                        borderRadius: 999,
-                        border: 'none',
-                        background: hue,
-                        color: 'var(--wobo-on-ink)',
-                        fontFamily: 'inherit',
-                        fontSize: '0.95rem',
-                        fontWeight: 540,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {phase === 'ready' ? 'start' : 'play again'}
-                    </button>
-                  </motion.div>
-                </div>
-              )}
-            </div>
-          </Stage>
-        </div>
+        <p style={{ margin: 0, color: 'var(--ink-3)', fontSize: '0.85rem' }}>
+          round {Math.min(at + 1, spec.rounds.length)} of {spec.rounds.length}
+        </p>
       </div>
     </CardBody>
   );
 }
 
-// --- A hand-authored demo (real quiz items) -------------------------------------------------------
-
-export const ARCADE_DEMO: ArcadeSpec = {
+/**
+ * A hand-authored level for the engine gallery — real items, and one of each mechanic would be six
+ * demos, so this is the catch that already shipped. Every other mechanic is exercised by
+ * `arcade/spec.test.ts` and by `tests/arcade.spec.ts` against the running app.
+ */
+export const ARCADE_DEMO: ArcadeSpec = parseArcade({
   id: 'demo-arcade',
   title: 'element catch',
   game: 'catch',
+  skill: 'recall',
   rounds: [
     {
       id: 'r1',
       prompt: 'catch the element with 6 protons.',
       answer: 'carbon',
       distractors: ['oxygen', 'helium'],
+      why: 'the proton count is what names an element, and carbon is the one with six.',
     },
     {
       id: 'r2',
       prompt: 'catch the particle with no charge.',
       answer: 'neutron',
       distractors: ['proton', 'electron'],
+      why: 'a proton is positive and an electron negative, so the neutral one is the neutron.',
     },
     {
       id: 'r3',
       prompt: 'catch what decides the element.',
       answer: 'proton count',
       distractors: ['electron count', 'neutron count'],
+      why: 'electrons and neutrons can change without the element changing. protons cannot.',
     },
   ],
-};
+}) as ArcadeSpec;
+
+/** Six, and a seventh is a row in `MECHANICS` plus a shape in `specs.py`. Read by the gallery. */
+export const ARCADE_MECHANIC_COUNT = Object.keys(MECHANICS).length;

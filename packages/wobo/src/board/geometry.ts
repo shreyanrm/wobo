@@ -28,6 +28,7 @@ import {
   measureText,
   scriptText,
   texPlainText,
+  wrapText,
   writeScripted,
   writeText,
 } from './handwriting';
@@ -115,8 +116,122 @@ export function typeUnits(base: number, frame: BoardFrame): number {
   return Math.max(base, MIN_TYPE_PX / k);
 }
 
+/**
+ * THE FLOOR, WIRED IN AT LAST — as ONE factor for the whole board, resolved outside the geometry
+ * (wave 48, finding 5; wave 47, finding 3).
+ *
+ * The loop the note above describes is real, and this is the shape that breaks it. Write out what
+ * a glyph of `h` units actually measures on the glass under an auto-fitted camera:
+ *
+ *     px = h · pxPerUnit(zoom 1) · zoom,   zoom = CAMERA_FILL · BOARD_UNITS / inkWidth
+ *        = h · (frame.width / BOARD_UNITS) · CAMERA_FILL · BOARD_UNITS / inkWidth
+ *        = CAMERA_FILL · frame.width · h / inkWidth
+ *
+ * The camera cancels. What decides whether a label is legible is not the zoom at all — it is the
+ * label's height as a FRACTION OF THE INK'S OWN EXTENT, against the surface's width in px. So the
+ * floor never has to read the camera it moves, and there is no loop to settle: `typeScaleFor` in
+ * the renderer solves that one fraction against the ink a pilot build measured, and hands the
+ * answer down here as a single number.
+ *
+ * One factor for the whole board, and not a per-object rescue, because a board where one label
+ * grew and its neighbour did not is no longer a hand — it is a ransom note. The hand's own
+ * proportions (a note is bigger than a label, a title bigger than a cell) are kept exactly.
+ */
+export function scaledType(ctx: { typeScale?: number }, base: number): number {
+  const k = ctx.typeScale ?? 1;
+  return k > 1 ? base * k : base;
+}
+
+/**
+ * A SURFACE FITTED BY A CAMERA — a board — as against the glass, where one unit is one pixel.
+ *
+ * The two laws below are about what a camera does to writing, so neither one applies to the glass:
+ * there the hand's sizes ARE screen pixels, `pxPerUnit` reads `frame.scale`, and nothing shrinks.
+ */
+function onBoard(frame: BoardFrame): boolean {
+  return frame.scale === undefined;
+}
+
+/**
+ * THE HAND'S SMALLEST WRITING ON A BOARD, IN BOARD UNITS (the adversary, wave 51, finding 1;
+ * INK-FOUR craft, "labels at least 12 px on the glass").
+ *
+ * `LABEL_SIZE` is two thirds of `WRITE_SIZE`, and that contrast is what fails the law: on every
+ * board the writing that measures under twelve pixels is the LABEL-sized half, sitting beside
+ * WRITE-sized numbers that clear it comfortably. Measured on the projectile board at 390: 'apex'
+ * 9.6 px, 'up-speed is zero here' 9.8 px and the ground axis's own label 9.8 px, against 'range
+ * 40.79 m' at 12.1 px right beside them — one hand, two legibilities, and only the small half is
+ * illegible.
+ *
+ * A pipeline may ask for a size, and an explicit `size: 22` is exactly what the projectile's apex
+ * label asks for. It may not ask for one the board cannot hold. So a board's writing has a floor
+ * of its own, whoever chose the size, and the hand's two sizes come within a whisker of each other
+ * rather than a third apart — which is what a hand does at arm's length anyway.
+ *
+ * TWENTY-EIGHT, measured and not tuned. All sixteen from-scratch board plans were captured off
+ * the wire and replayed through `buildObjects` and the renderer's own type ladder, on the real
+ * surfaces the plane gives them (366 × 333 at 390, 496 × 282 at 1440). Under 27 the projectile
+ * board falls back under the law; at 32 the type is large enough that notes start landing on one
+ * another. 28 sits inside the band that clears both, with the worst of the sixteen at 13.2 px.
+ */
+export const MIN_WRITTEN_UNITS = 28;
+
+/**
+ * THE MEASURE A WRITTEN LINE IS HELD TO ON A BOARD, IN BOARD UNITS (same finding).
+ *
+ * WHY A FLOOR ALONE IS NOT ENOUGH, and why a measure is the other half. Take the algebra
+ * `scaledType` is built on and put a text-dominated board through it. Under an auto fit
+ *
+ *     px = CAMERA_FILL · frame.width · h / inkWidth
+ *
+ * and when the widest thing on the board is a line of writing, `inkWidth ≈ c · h · characters`.
+ * The `h` cancels:
+ *
+ *     px ≈ CAMERA_FILL · frame.width / (c · characters)
+ *
+ * — the size of the writing has dropped out of its own legibility, and so has every rung of the
+ * type ladder. That is the projectile board at 390. Measured on its real plan and its real
+ * surface, the ladder walks 1 → 1.25 → 1.5 → 1.75 → 2 and the smallest glyph goes 9.58 → 9.49 →
+ * 9.37 → 9.28 → 9.38 px: every rung grows the type, the ink grows with it, the camera gives back
+ * exactly what was gained, and the board ends where it started. `MAX_TYPE_SCALE`'s note in the
+ * renderer calls this board "a pipeline's problem, not the hand's"; it is neither. It is a line of
+ * writing wider than the drawing it belongs to, and the hand's own answer to that is to wrap.
+ *
+ * TWO FIFTHS OF THE BOARD, AND THE SURFACE'S OWN PROPORTION. Wrapping trades ink WIDTH for ink
+ * HEIGHT, so it helps exactly while width is what the camera is fitted to. A board seen through a
+ * wide window (496 × 282 at 1440) is already fitted on its HEIGHT, and wrapping there costs more
+ * than it buys — measured: that board goes from 11.4 px to 8.5 px under a measure that does not
+ * know the shape of the window. So the measure opens with the window: `LINE_MEASURE`, times how
+ * much wider than tall the surface is. Across the sixteen boards a base of 360 to 450 all measure
+ * the same, 13.2 px at the worst; 400 is the middle of that band. The surface at zoom 1 is a
+ * stable input, unlike the gliding camera `typeUnits` warns about, so there is still no loop.
+ *
+ * A pipeline that asks for a narrower `maxWidth` still gets it; nothing gets a wider one.
+ */
+export const LINE_MEASURE = (BOARD_UNITS * 2) / 5;
+
+/** The measure on this surface: `LINE_MEASURE`, opened out by a wide window. Infinite off-board. */
+export function lineMeasure(frame: BoardFrame): number {
+  if (!onBoard(frame)) return Number.POSITIVE_INFINITY;
+  const w = frame.width > 0 ? frame.width : 1;
+  const h = frame.height > 0 ? frame.height : 1;
+  return LINE_MEASURE * Math.max(1, w / h);
+}
+
+/** The tallest single glyph in a built object, in board units — what the floor is measured on. */
+export function tallestGlyphUnits(geometry: ObjectGeometry): number {
+  let tall = 0;
+  for (const g of geometry.glyphs) if (g.box.h > tall) tall = g.box.h;
+  return tall;
+}
+
 interface BuildContext extends AnchorContext {
   font: HandFont | null;
+  /**
+   * The board's one written-type factor (`scaledType`). 1, or absent, is the hand's own sizes.
+   * Resolved by the renderer against the ink's extent, never against the live camera.
+   */
+  typeScale?: number;
   /** Boxes already placed this frame, so a written label lands in free space. */
   occupied?: BoardRect[];
   /**
@@ -282,7 +397,10 @@ function written(
     glyphs: laid.glyphs,
     strokes: [],
     box: { x: origin[0], y: origin[1], w: laid.width, h: laid.height },
-    lines: [text],
+    // THE LINES AS WRITTEN, not as asked for. `lines` is what the no-font fallback paints and what
+    // the accessible label reads; a note held to a measure that reported itself as one long line
+    // told both of them something that is not on the glass.
+    lines: wrapText(ctx.font, text, size, maxWidth),
     lineHeight,
   };
 }
@@ -303,22 +421,49 @@ function notePlacement(
   at?: AnchorAt,
 ): BoardPoint {
   if (anchorBox.w === 0 && anchorBox.h === 0) return [anchorBox.x, anchorBox.y];
-  const width = ctx.font
-    ? Math.min(measureText(ctx.font, text, size), maxWidth ?? Number.POSITIVE_INFINITY)
-    : text.length * size * 0.42;
-  const box = { w: width, h: size * 1.22 };
-  const asked = placeLabelAt(anchorBox, box, at, ctx.occupied ?? [], LABEL_MARGIN, ctx.area);
-  if (asked) return [asked.x, asked.y];
-  const placed = placeLabel(anchorBox, box, ctx.occupied ?? [], ctx.area, LABEL_MARGIN);
+  const occupied = ctx.occupied ?? [];
+  const box = noteSize(ctx, text, size, maxWidth);
+  const taken = (r: BoardRect) => occupied.some((o) => boxesOverlap(r, o, LABEL_MARGIN * 0.5));
+  const asked = placeLabelAt(anchorBox, box, at, occupied, LABEL_MARGIN, ctx.area);
+  /**
+   * A SIDE THAT IS TAKEN IS NOT A SIDE (the adversary, wave 51, finding 1, the second time round).
+   *
+   * `placeLabelAt` slides the note along the side it was asked for until it clears what is already
+   * down, and gives up at the edge of the board — returning the clashing box rather than nothing.
+   * Two notes hung off the same small mark at `topLeft` and `topRight`, written large enough to
+   * clear the 12 px law, run out of board and land on each other; measured on the projectile at
+   * 390, 46 × 146 units of one number written through another. The pipeline's `at` is a
+   * preference and it is kept while it is free; when it is not, the free-side search answers, and
+   * only if that is no better does the asked side stand.
+   */
+  if (asked && !taken(asked)) return [asked.x, asked.y];
+  const placed = placeLabel(anchorBox, box, occupied, ctx.area, LABEL_MARGIN);
+  if (asked && taken({ ...placed, ...box })) return [asked.x, asked.y];
   return [placed.x, placed.y];
 }
 
-/** The size a written note takes, measured without placing it. */
+/**
+ * The size a written note takes, measured without placing it.
+ *
+ * IT COUNTS THE LINES IT WILL ACTUALLY BE WRITTEN ON. Held to a measure a note wraps, and a
+ * two-line note placed as though it were one line is placed over whatever sits under it. The wrap
+ * costs one pass of glyph advances and it is the very wrap `written` lays.
+ */
 function noteSize(ctx: BuildContext, text: string, size: number, maxWidth?: number) {
-  const width = ctx.font
-    ? Math.min(measureText(ctx.font, text, size), maxWidth ?? Number.POSITIVE_INFINITY)
-    : text.length * size * 0.42;
-  return { w: width, h: size * 1.22 };
+  const cap = maxWidth ?? Number.POSITIVE_INFINITY;
+  if (!ctx.font) {
+    const lines = text.split('\n');
+    return {
+      w: Math.min(Math.max(...lines.map((l) => l.length)) * size * 0.42, cap),
+      h: lines.length * size * 1.22,
+    };
+  }
+  const font = ctx.font;
+  const lines = wrapText(font, text, size, maxWidth);
+  return {
+    w: Math.min(Math.max(...lines.map((l) => measureText(font, l, size))), cap),
+    h: lines.length * size * 1.22,
+  };
 }
 
 /** A check mark: a short stroke down and a longer one up, the way a hand ticks. */
@@ -350,6 +495,16 @@ function chromeRule(points: BoardPoint[], weight: number): Stroke {
 }
 
 export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeometry | null {
+  // Every written size on this board: the hand's own size or the pipeline's, never under the
+  // board's floor (`MIN_WRITTEN_UNITS`), then the board's one factor (`scaledType`).
+  const sized = (asked: number | undefined, base: number) =>
+    scaledType(ctx, Math.max(asked ?? base, onBoard(ctx.frame) ? MIN_WRITTEN_UNITS : 0));
+  const LABEL = sized(undefined, LABEL_SIZE);
+  const WRITE = sized(undefined, WRITE_SIZE);
+  // The width a line of writing is held to on this surface (`lineMeasure`), never wider than what
+  // the pipeline itself asked for.
+  const measure = (asked?: number) =>
+    asked !== undefined && asked > 0 ? Math.min(asked, lineMeasure(ctx.frame)) : lineMeasure(ctx.frame);
   const rng = penRng(object.id, object.kind);
   const anchor = 'anchor' in object ? object.anchor : undefined;
   const box = anchor ? resolveAnchorBox(anchor, ctx) : { x: 0, y: 0, w: 1000, h: 1000 };
@@ -439,7 +594,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       // on the subject (a ring round it, a cross through it) is part of what the note is beside:
       // the note sits beside the ring on the ring's own line, rather than sliding up a row to
       // dodge the ring's box and reading as a note on the line above.
-      const size = object.size ?? LABEL_SIZE;
+      const size = sized(object.size, LABEL_SIZE);
       const measured = noteSize(ctx, object.text, size, object.maxWidth);
       const around = padBox(anchorBox, 12);
       const hugging = (ctx.occupied ?? []).filter((o) => boxesOverlap(o, around));
@@ -579,22 +734,22 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         const labelBox: BoardRect = vertical
           ? { x: side === 'left' ? b.x - 16 : b.x + b.w, y: b.y, w: 1, h: b.h }
           : { x: b.x, y: side === 'top' ? b.y - 16 : b.y + b.h, w: b.w, h: 1 };
-        const origin = notePlacement(ctx, labelBox, object.label, LABEL_SIZE);
-        const w = written(ctx, object.label, origin, LABEL_SIZE);
+        const origin = notePlacement(ctx, labelBox, object.label, LABEL);
+        const w = written(ctx, object.label, origin, LABEL);
         glyphs = w.glyphs;
         boxes = [...boxes, w.box];
         text = {
           lines: w.lines,
           x: origin[0],
           y: origin[1],
-          size: LABEL_SIZE,
+          size: LABEL,
           lineHeight: w.lineHeight,
         };
       }
       return {
         strokes,
         glyphs,
-        ...(text ? { text, size: LABEL_SIZE } : {}),
+        ...(text ? { text, size: LABEL } : {}),
         box: unionBox(boxes) ?? b,
         length: totalLength(strokes, glyphs),
       };
@@ -602,17 +757,26 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
     case 'number': {
       const label = formatQuantity(object.value, object.precision, object.unit);
       const full = object.label ? `${object.label} ${label}` : label;
-      const origin = notePlacement(ctx, anchorBox, full, WRITE_SIZE, undefined, at);
-      const w = written(ctx, full, origin, WRITE_SIZE);
+      // A QUANTITY IS ONE WORD. Held to a measure, a greedy word wrap would happily leave '40.79'
+      // on one line and 'm' on the next, which is not a number any more. So the break is chosen
+      // here and not left to the wrap: when the whole will not sit on one line, the name takes a
+      // line and the quantity goes under it, whole.
+      const mw = measure();
+      const fits = ctx.font
+        ? measureText(ctx.font, full, WRITE) <= mw
+        : full.length * WRITE * 0.42 <= mw;
+      const laid = fits || !object.label ? full : `${object.label}\n${label}`;
+      const origin = notePlacement(ctx, anchorBox, laid, WRITE, mw, at);
+      const w = written(ctx, laid, origin, WRITE, mw);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
-        size: WRITE_SIZE,
+        size: WRITE,
         text: {
           lines: w.lines,
           x: origin[0],
           y: origin[1],
-          size: WRITE_SIZE,
+          size: WRITE,
           lineHeight: w.lineHeight,
         },
         box: w.box,
@@ -620,9 +784,10 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       };
     }
     case 'write': {
-      const size = object.size ?? WRITE_SIZE;
-      const origin = notePlacement(ctx, anchorBox, object.text, size, object.maxWidth, at);
-      const w = written(ctx, object.text, origin, size, object.maxWidth);
+      const size = sized(object.size, WRITE_SIZE);
+      const mw = measure(object.maxWidth);
+      const origin = notePlacement(ctx, anchorBox, object.text, size, mw, at);
+      const w = written(ctx, object.text, origin, size, mw);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
@@ -633,9 +798,10 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       };
     }
     case 'label': {
-      const size = object.size ?? LABEL_SIZE;
-      const origin = notePlacement(ctx, anchorBox, object.text, size, undefined, at);
-      const w = written(ctx, object.text, origin, size);
+      const size = sized(object.size, LABEL_SIZE);
+      const mw = measure();
+      const origin = notePlacement(ctx, anchorBox, object.text, size, mw, at);
+      const w = written(ctx, object.text, origin, size, mw);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
@@ -773,7 +939,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         const beside: BoardPoint = horizontal
           ? [end[0] + 10, end[1] + 4]
           : [end[0] + 10, end[1] - 8];
-        let written = writeText(ctx.font, object.label, beside, { size: LABEL_SIZE });
+        let written = writeText(ctx.font, object.label, beside, { size: LABEL });
         // How far the GLYPHS actually reach, plus the pad this box reports, minus the board. An
         // estimated width is not good enough here: it is the measured ink that either fits or does
         // not, and a label two units over the edge is still a label over the edge.
@@ -783,8 +949,8 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
           written = writeText(
             ctx.font,
             object.label,
-            [Math.max(0, beside[0] - over), end[1] + LABEL_SIZE + 10],
-            { size: LABEL_SIZE },
+            [Math.max(0, beside[0] - over), end[1] + LABEL + 10],
+            { size: LABEL },
           );
         }
         glyphs.push(...written.glyphs);
@@ -794,7 +960,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       return {
         strokes,
         glyphs,
-        size: LABEL_SIZE,
+        size: LABEL,
         box: padBox(bounds, AXIS_BOX_PAD),
         length: totalLength(strokes, glyphs),
       };
@@ -866,7 +1032,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
             const origin: BoardPoint = [p[0] + c * cw + 8, p[1] + r * rowHeight + rowHeight * 0.16];
             glyphs.push(
               ...writeText(ctx.font as HandFont, cell, origin, {
-                size: LABEL_SIZE,
+                size: LABEL,
                 maxWidth: cw - 16,
               }).glyphs,
             );
@@ -876,13 +1042,13 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       return {
         strokes,
         glyphs,
-        size: LABEL_SIZE,
+        size: LABEL,
         box: { x: p[0], y: p[1], w: object.w, h },
         length: totalLength(strokes, glyphs),
       };
     }
     case 'tex': {
-      const size = object.size ?? WRITE_SIZE;
+      const size = sized(object.size, WRITE_SIZE);
       if (!ctx.font) {
         // No Caveat: Wobo still shows the EQUATION, with its powers and indices as real characters
         // (a² + b² = c²), never the TeX source Wobo would never say out loud.
@@ -956,7 +1122,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       };
     }
     case 'atom': {
-      const size = object.size ?? WRITE_SIZE;
+      const size = sized(object.size, WRITE_SIZE);
       const glyphs: HandGlyph[] = [];
       let cursor: BoardPoint = [p[0], p[1] + size * 0.4];
       if (ctx.font) {
@@ -1021,7 +1187,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       if (object.title && ctx.font) {
         glyphs.push(
           ...writeText(ctx.font, object.title, [b.x + 12, b.y + 10], {
-            size: LABEL_SIZE,
+            size: LABEL,
             maxWidth: b.w - 24,
           }).glyphs,
         );
@@ -1029,7 +1195,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       return {
         strokes: [stroke],
         glyphs,
-        size: LABEL_SIZE,
+        size: LABEL,
         box: padBox(b, 6),
         length: totalLength([stroke], glyphs),
       };
@@ -1063,21 +1229,21 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       const glyphs: HandGlyph[] = [];
       if (object.label && ctx.font) {
         glyphs.push(
-          ...writeText(ctx.font, object.label, [p[0], p[1] - LABEL_SIZE * 1.6], {
-            size: LABEL_SIZE,
+          ...writeText(ctx.font, object.label, [p[0], p[1] - LABEL * 1.6], {
+            size: LABEL,
           }).glyphs,
         );
       }
       const b: BoardRect = {
         x: p[0] - 14,
-        y: p[1] - LABEL_SIZE * 1.8,
+        y: p[1] - LABEL * 1.8,
         w: w + 28,
-        h: LABEL_SIZE * 1.8 + 28,
+        h: LABEL * 1.8 + 28,
       };
       return {
         strokes,
         glyphs,
-        size: LABEL_SIZE,
+        size: LABEL,
         control: {
           variable: object.variable,
           kind: 'slider',
@@ -1111,13 +1277,13 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       const glyphs: HandGlyph[] = [];
       if (object.label && ctx.font) {
         glyphs.push(
-          ...writeText(ctx.font, object.label, [b.x + w + 12, b.y], { size: LABEL_SIZE }).glyphs,
+          ...writeText(ctx.font, object.label, [b.x + w + 12, b.y], { size: LABEL }).glyphs,
         );
       }
       return {
         strokes,
         glyphs,
-        size: LABEL_SIZE,
+        size: LABEL,
         control: { variable: object.variable, kind: 'toggle', hit: padBox(b, 6) },
         box: padBox(unionBox([b, ...glyphs.map((g) => g.box)]) ?? b, 6),
         length: totalLength(strokes, glyphs),
@@ -1126,40 +1292,40 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
     case 'input': {
       const w = object.w ?? 160;
       const rule: BoardPoint[] = [
-        [p[0], p[1] + WRITE_SIZE * 1.1],
-        [p[0] + w, p[1] + WRITE_SIZE * 1.1],
+        [p[0], p[1] + WRITE * 1.1],
+        [p[0] + w, p[1] + WRITE * 1.1],
       ];
       const strokes: Stroke[] = [ruledStroke(rule)];
       const glyphs: HandGlyph[] = [];
       if (ctx.font) {
         if (object.label)
           glyphs.push(
-            ...writeText(ctx.font, object.label, [p[0], p[1] - LABEL_SIZE * 1.4], {
-              size: LABEL_SIZE,
+            ...writeText(ctx.font, object.label, [p[0], p[1] - LABEL * 1.4], {
+              size: LABEL,
             }).glyphs,
           );
         if (object.value)
           glyphs.push(
             ...writeText(ctx.font, object.value, [p[0] + 6, p[1]], {
-              size: WRITE_SIZE,
+              size: WRITE,
               maxWidth: w - 12,
             }).glyphs,
           );
       }
       const b: BoardRect = {
         x: p[0],
-        y: p[1] - LABEL_SIZE * 1.6,
+        y: p[1] - LABEL * 1.6,
         w,
-        h: WRITE_SIZE * 1.4 + LABEL_SIZE * 1.6,
+        h: WRITE * 1.4 + LABEL * 1.6,
       };
       return {
         strokes,
         glyphs,
-        size: WRITE_SIZE,
+        size: WRITE,
         control: {
           variable: object.variable,
           kind: 'input',
-          hit: { x: p[0], y: p[1] - 4, w, h: WRITE_SIZE * 1.3 },
+          hit: { x: p[0], y: p[1] - 4, w, h: WRITE * 1.3 },
         },
         box: b,
         length: totalLength(strokes, glyphs),
@@ -1178,8 +1344,8 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       const glyphs: HandGlyph[] = [];
       if (object.label && ctx.font) {
         glyphs.push(
-          ...writeText(ctx.font, object.label, [handle[0] + 18, handle[1] - LABEL_SIZE * 0.6], {
-            size: LABEL_SIZE,
+          ...writeText(ctx.font, object.label, [handle[0] + 18, handle[1] - LABEL * 0.6], {
+            size: LABEL,
           }).glyphs,
         );
       }
@@ -1187,7 +1353,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       return {
         strokes,
         glyphs,
-        size: LABEL_SIZE,
+        size: LABEL,
         control: { variable: object.variable, kind: 'drag', hit: padBox(b, 6), knob: b },
         box: padBox(unionBox([b, ...glyphs.map((g) => g.box)]) ?? b, 6),
         length: totalLength(strokes, glyphs),

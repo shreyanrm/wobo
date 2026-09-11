@@ -645,9 +645,14 @@ def test_a_keyless_plan_that_would_draw_nothing_is_not_a_board_turn(
         assert done["objects"] == 0 and done["refused"], ask
         said = " ".join(f["text"] for f in frames if "text" in f and "dur" in f)
         assert said and said not in set(_BOARD_SAY.values()), ask
-    # and a plan that draws keeps its say
+    # and a plan that draws keeps a say that NAMES what it draws. It used to be the family's
+    # line — "Read it a piece at a time" — which names nothing on the board; wave 42's finding 8
+    # is that the keyless turn is owed the same sentence the live scaffold already wrote
+    # (``board.naming.opening``).
     plan = mock_board_plan(payload("solve 2x + 3 = 7"))
-    assert plan is not None and plan["say"] == _BOARD_SAY["math"]
+    assert plan is not None
+    assert plan["say"] == "2x + 3 = 7, line by line.", plan["say"]
+    assert plan["say"] not in set(_BOARD_SAY.values())
 
 
 def test_a_word_glued_to_a_bracket_is_left_for_the_verifier_to_refuse() -> None:

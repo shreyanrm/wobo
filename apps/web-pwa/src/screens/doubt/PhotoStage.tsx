@@ -31,7 +31,12 @@ import { captureUrl } from './capture';
 
 /** A region's hit area is never under the thumb's 44px, whatever the brain read. */
 const MIN_HIT = 44;
-/** The photo never takes more than this much of the viewport's height; the reading needs room. */
+/**
+ * The photo never takes more than this much of the viewport's height; the reading needs room.
+ * On a phone the sheet cuts it further still (`doubt.css`, `--db-photo-vh`): there the reading and
+ * its corrections share one pane with the photo, and three fifths of the screen was the reason the
+ * learner had to scroll past the fold to reach Explain at all.
+ */
 const MAX_VH = 0.7;
 
 export interface PhotoStageProps {
@@ -135,7 +140,7 @@ export function PhotoStage(props: PhotoStageProps) {
         data-testid="doubt-photo"
         style={{
           aspectRatio: `${ratio}`,
-          width: `min(100%, calc(${MAX_VH * 100}vh * ${ratio}))`,
+          width: `min(100%, calc(var(--db-photo-vh, ${MAX_VH * 100}vh) * ${ratio}))`,
         }}
       >
         <img

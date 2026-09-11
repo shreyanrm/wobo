@@ -27,8 +27,21 @@ is where the real reuse lives — they resolve a request to a conceptId at serve
 NEVER in the key or the record — Wobo personalizes the shared artifact at runtime. Each record
 carries provenance ``{engine, model, prompt_version}``.
 
-Server-side only for now. ``learner.content_cache`` (Supabase) is the eventual shared-sync
-home; this file cache is the source of truth until that sync lands.
+THE FILE IS THE FRONT; POSTGRES IS THE TRUTH (wave 47, docs/CACHES.md). Until this wave the two
+sentences below this one said the file cache was "the source of truth", and in production that
+meant the truth lived in ``/home/gateway/cache`` — a directory inside a Railway container's
+writable layer, with no volume mounted at it in ``railway.json`` — so every artifact the platform
+had ever generated was discarded on each deploy and paid for again. ``plexus/db.py`` is the
+database behind this file, and the order is now:
+
+    file front   hit   -> serve, microseconds, no network
+    file front   miss  -> database (:mod:`wobo_gateway.plexus.db`)
+    database     hit   -> serve, tens of milliseconds, AND re-index onto the file front
+    database     miss  -> generate, then write BOTH
+
+Nothing about the key changed. This file remains the single definition of what a key IS
+(:func:`artifact_path` and :func:`cache_key` compute the same digest), and ``db.py`` never derives
+one. With no database configured every seam below is exactly what it was: a file cache.
 """
 
 from __future__ import annotations
@@ -36,6 +49,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import logging
 import os
 import re
 import tempfile
@@ -43,6 +57,8 @@ from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger("wobo.gateway.plexus.store")
 
 # v3: full type universe — cards may carry any rich activity (perturbation, whatIf, compare,
 # conceptMap, mini-workbook, flashcards, derivation, wordProblem, podcast, arcade) alongside the
@@ -69,12 +85,55 @@ def status(record: dict[str, Any]) -> str:
     return record.get("status") or CANONICAL
 
 
+#: Where the platform mounts a disk that outlives a deploy. Railway sets this in the container the
+#: moment a volume is attached, so the cache follows the disk without anybody editing an env var —
+#: and until 2026-09-10 nothing read it: the image cached to ``/home/gateway/cache``, a path in the
+#: container's own writable layer, and every deploy threw away every core (USD 0.031 each), every
+#: level, every design and every turn and bought them again.
+MOUNT_ENV = "RAILWAY_VOLUME_MOUNT_PATH"
+
+#: What the cache is called inside the mount. One directory, so a volume can carry other things.
+MOUNT_SUBDIR = "plexus"
+
+
+def volume_path() -> Path | None:
+    """The attached durable disk, or None when the container has none."""
+    mount = (os.getenv(MOUNT_ENV) or "").strip()
+    return Path(mount) if mount else None
+
+
 def cache_dir() -> Path:
+    """Where the artifact cache lives, in the order that keeps a deploy from costing money.
+
+    An explicit ``PLEXUS_CACHE_DIR`` always wins: a lab, a test and a laptop each name their own.
+    Otherwise an attached volume is used when there is one, and only then the repo-relative
+    development default.
+    """
     override = os.getenv("PLEXUS_CACHE_DIR")
     if override:
         return Path(override)
+    mount = volume_path()
+    if mount is not None:
+        return mount / MOUNT_SUBDIR
     # ponytail: repo-relative default works for dev/tests; deployments set PLEXUS_CACHE_DIR.
     return Path(__file__).resolve().parents[5] / "content" / "cache"
+
+
+def cache_is_durable() -> bool:
+    """Does what this container writes to the cache survive the next deploy?
+
+    True only when the cache is inside the attached volume. A path in the writable layer is a
+    cache that is thrown away with the container, which is a correct cache and a false economy,
+    and the gateway has to be able to say which one it is running (``health.snapshot``).
+    """
+    mount = volume_path()
+    if mount is None:
+        return False
+    try:
+        cache_dir().resolve().relative_to(mount.resolve())
+    except (ValueError, OSError):
+        return False
+    return True
 
 
 def _slug(text: str) -> str:
@@ -200,6 +259,38 @@ def _inside_cache(path: Path) -> Path:
     return resolved
 
 
+def _digest_for(
+    concept: str, modality: str, difficulty: str, scope: dict[str, str] | None
+) -> tuple[str, str, str, str]:
+    """``(conceptId, slugged modality, slugged difficulty, digest)`` — the key, computed once.
+
+    Factored out of :func:`artifact_path` so the file name and the database key are the SAME
+    computation rather than two implementations that agree until one of them is edited.
+    """
+    cid = concept_id(concept, scope)
+    modality = _slug(modality)
+    difficulty = _slug(difficulty)
+    identity = concept_identity(concept, scope)
+    body = f"{identity}\x00{modality}\x00{difficulty}"
+    skey = scope_key(scope)
+    if skey:  # an unscoped call keeps the bare concept key it has always had
+        body += f"\x00{skey}"
+    return cid, modality, difficulty, hashlib.sha256(body.encode()).hexdigest()[:16]
+
+
+def cache_key(
+    concept: str, modality: str, difficulty: str, scope: dict[str, str] | None = None
+) -> str:
+    """The key a store row is filed under — the artifact's path, without the directory or suffix.
+
+    Readable on purpose (``diagram/photosynthesis--core--1f2e…``), because it is the thing an
+    operator reads on the stores desk and pastes into a query. It is one-to-one with the file
+    path: the digest already carries the modality, so the leading modality is for the human.
+    """
+    cid, modality, difficulty, digest = _digest_for(concept, modality, difficulty, scope)
+    return f"{modality}/{cid}--{difficulty}--{digest}"
+
+
 def artifact_path(
     concept: str, modality: str, difficulty: str, scope: dict[str, str] | None = None
 ) -> Path:
@@ -209,15 +300,7 @@ def artifact_path(
     # modality and difficulty are slugged BEFORE they become path components: they arrive from the
     # request body, and "../../etc" is a directory traversal, not a difficulty. The scope half is
     # digested, never a path component, so a hostile board name cannot walk out of the cache dir.
-    cid = concept_id(concept, scope)
-    modality = _slug(modality)
-    difficulty = _slug(difficulty)
-    identity = concept_identity(concept, scope)
-    body = f"{identity}\x00{modality}\x00{difficulty}"
-    skey = scope_key(scope)
-    if skey:  # an unscoped call keeps the bare concept key it has always had
-        body += f"\x00{skey}"
-    digest = hashlib.sha256(body.encode()).hexdigest()[:16]
+    cid, modality, difficulty, digest = _digest_for(concept, modality, difficulty, scope)
     return _inside_cache(cache_dir() / modality / f"{cid}--{difficulty}--{digest}.json")
 
 
@@ -290,13 +373,67 @@ def _read(path: Path) -> dict[str, Any] | None:
     return data if isinstance(data, dict) else None
 
 
+def _from_database(
+    concept: str, modality: str, difficulty: str, scope: dict[str, str] | None
+) -> dict[str, Any] | None:
+    """The row Postgres holds for this key, re-indexed onto the file front on the way past.
+
+    This is the seam that makes a new container warm instead of empty. It is deliberately quiet:
+    an unreachable database, an unconfigured one, or a row whose body is not an artifact is a
+    cache MISS and a regeneration — expensive, correct, and never an error a learner sees.
+    """
+    from wobo_gateway.plexus import db
+
+    if not db.configured():
+        return None
+    try:
+        return _read_from_database(concept, modality, difficulty, scope)
+    except Exception:  # a cache read must never fail the generation that asked for it
+        logger.warning("plexus: the store read for %r failed", concept, exc_info=True)
+        return None
+
+
+def _read_from_database(
+    concept: str, modality: str, difficulty: str, scope: dict[str, str] | None
+) -> dict[str, Any] | None:
+    from wobo_gateway.plexus import db
+
+    key = cache_key(concept, modality, difficulty, scope)
+    row = db.read(db.LEVELS, key)
+    if not isinstance(row, dict):
+        db.note_miss(db.LEVELS)
+        return None
+    record = row.get("body")
+    if not isinstance(record, dict):
+        db.note_miss(db.LEVELS)
+        return None
+    db.note_database_hit(db.LEVELS, row.get("cost_usd"))
+    db.note_serve(db.LEVELS, row.get("id"))
+    # Warm the front so the SECOND read of this artifact is microseconds again. A read-only cache
+    # directory still serves the record; it just pays the database on every read.
+    with contextlib.suppress(OSError, TypeError, ValueError):
+        _write_atomic(
+            artifact_path(concept, modality, difficulty, scope),
+            json.dumps(record, ensure_ascii=False, indent=1),
+        )
+    return record
+
+
 def load(
     concept: str, modality: str, difficulty: str, scope: dict[str, str] | None = None
 ) -> dict[str, Any] | None:
     path = artifact_path(concept, modality, difficulty, scope)
     record = _read(path)
     if record is not None:
+        from wobo_gateway.plexus import db
+
+        db.note_front_hit(db.LEVELS)
         return record
+    # The file front missed. Postgres is the truth (docs/CACHES.md §2) and it is asked BEFORE the
+    # legacy fallback below, because a row in the database is scoped and a legacy file is not.
+    from_db = _from_database(concept, modality, difficulty, scope)
+    if from_db is not None:
+        return from_db
     # The legacy file is board-, class- and version-BLIND: nothing recorded which learner it was
     # written for. Re-indexing it onto a scoped key would hand a CBSE class 8 request an artifact
     # that may have been generated for ISC class 11 — the exact defect the scoped key exists to
@@ -325,8 +462,46 @@ def save(
     record: dict[str, Any],
     scope: dict[str, str] | None = None,
 ) -> None:
+    """Write the live pointer: the file front FIRST, then the database.
+
+    The order matters and is not arbitrary. The file is what the very next request reads, and it
+    cannot fail on a network; the database write is the one that survives the deploy. If the
+    database is unreachable the artifact is still cached in this container and still served — the
+    platform simply pays for it again after the next deploy, which is exactly the behaviour this
+    wave replaces rather than a new failure it introduces.
+    """
     path = artifact_path(concept, modality, difficulty, scope)
     _write_atomic(path, json.dumps(record, ensure_ascii=False, indent=1))
+    _save_to_database(concept, modality, difficulty, record, scope)
+
+
+def _save_to_database(
+    concept: str,
+    modality: str,
+    difficulty: str,
+    record: dict[str, Any],
+    scope: dict[str, str] | None,
+) -> None:
+    """Persist the same artifact as a ``content.levels`` row. Never raises into a caller.
+
+    A plexus artifact IS a level rendering — one concept, one board, one class, one modality — so
+    it lands in that store. Cores, interaction designs, assets and generic turns are written by
+    their own producers straight through :mod:`wobo_gateway.plexus.db`.
+    """
+    from wobo_gateway.plexus import db
+
+    if not db.configured():
+        return
+    try:
+        row = db.row_for_level(
+            cache_key(concept, modality, difficulty, scope),
+            record,
+            concept_id=concept_id(concept, scope),
+            scope=scope,
+        )
+        db.write(db.LEVELS, row)
+    except Exception:  # a cache write must never take a generation down with it
+        logger.warning("plexus: the store row for %r could not be written", concept, exc_info=True)
 
 
 # --- immutable version ledger (owner law, 2026-07-07) ----------------------------------
@@ -512,17 +687,100 @@ def core_is_stale(record: dict[str, Any] | None) -> bool:
     return str(record.get("promptVersion") or "") != CORE_PROMPT_VERSION
 
 
+def core_key(concept: str, scope: dict[str, str] | None = None) -> str:
+    """The key a ``content.cores`` row is filed under. Readable, and one-to-one with the file."""
+    cid = concept_id(concept, scope)
+    digest = hashlib.sha256(concept_identity(concept, scope).encode()).hexdigest()[:16]
+    return f"{CORE_MODALITY}/{cid}--{digest}"
+
+
+def row_for_core(
+    key: str, record: dict[str, Any], *, concept_id_value: str
+) -> dict[str, Any]:
+    """A ``content.cores`` row from one core record. The columns db.FIELDS[CORES] allows, no more.
+
+    The cost and the judge's score are lifted onto their own columns rather than left buried in
+    the body, because "what did our cores cost and what did the judge think of them" is a question
+    the stores desk answers with a SELECT and not by reading JSON."""
+    provenance = record.get("provenance") if isinstance(record.get("provenance"), dict) else {}
+    judge = (provenance or {}).get("judge")
+    judge = judge if isinstance(judge, dict) else {}
+    score = judge.get("score")
+    cost = (provenance or {}).get("costUsd")
+    return {
+        "key": key,
+        "concept_id": concept_id_value,
+        "body": record,
+        "status": str(record.get("status") or CANONICAL),
+        "judge_score": float(score) if isinstance(score, (int, float)) else None,
+        "judge": judge,
+        "model": str((provenance or {}).get("model") or "") or None,
+        "cost_usd": float(cost) if isinstance(cost, (int, float)) else None,
+        "provenance": provenance,
+    }
+
+
+def _core_from_database(concept: str, scope: dict[str, str] | None) -> dict[str, Any] | None:
+    """The core from Postgres when the file front has none. Never raises into the caller."""
+    from wobo_gateway.plexus import db
+
+    if not db.configured():
+        return None
+    try:
+        row = db.read(db.CORES, core_key(concept, scope))
+    except Exception:  # a cache read must never fail the generation that asked for it
+        logger.warning("plexus: the core read for %r failed", concept, exc_info=True)
+        return None
+    record = row.get("body") if isinstance(row, dict) else None
+    if not isinstance(record, dict):
+        db.note_miss(db.CORES)
+        return None
+    db.note_database_hit(db.CORES, row.get("cost_usd"))
+    db.note_serve(db.CORES, row.get("id"))
+    with contextlib.suppress(OSError, TypeError, ValueError):  # warm the front
+        _write_atomic(core_path(concept, scope), json.dumps(record, ensure_ascii=False, indent=1))
+    return record
+
+
 def load_core(concept: str, scope: dict[str, str] | None = None) -> dict[str, Any] | None:
-    """The stored core for a concept, or ``None`` on a miss or a stale prompt version."""
+    """The stored core for a concept, or ``None`` on a miss or a stale prompt version.
+
+    The file front first, then Postgres, exactly as :func:`load` does for a level — and it matters
+    MORE here: a core is the most expensive row the platform owns (a mean of USD 0.030699 over the
+    three cores of the headline run on 2026-09-10, against USD 0.005343 over its twelve level
+    renderings) and it is reused by every board, every class, every syllabus version and every
+    learner forever. Losing the cores on a deploy is the single worst thing an ephemeral container
+    cache could take with it, which is why the cache now follows a mounted volume."""
+    from wobo_gateway.plexus import db
+
     record = _read(core_path(concept, scope))
+    if record is not None:
+        db.note_front_hit(db.CORES)
+    else:
+        record = _core_from_database(concept, scope)
     if record is None or core_is_stale(record):
         return None
     return record
 
 
 def save_core(concept: str, record: dict[str, Any], scope: dict[str, str] | None = None) -> None:
-    """Write the live core pointer. Crash-safe, like every other record here."""
+    """Write the live core pointer, to the front and to the truth. Crash-safe on both."""
     _write_atomic(core_path(concept, scope), json.dumps(record, ensure_ascii=False, indent=1))
+    from wobo_gateway.plexus import db
+
+    if not db.configured():
+        return
+    try:
+        db.write(
+            db.CORES,
+            row_for_core(
+                core_key(concept, scope),
+                record,
+                concept_id_value=concept_id(concept, scope),
+            ),
+        )
+    except Exception:  # a cache write must never take a generation down with it
+        logger.warning("plexus: the core row for %r could not be written", concept, exc_info=True)
 
 
 def core_versions_dir(concept: str, scope: dict[str, str] | None = None) -> Path:
@@ -562,3 +820,146 @@ def load_core_versions(
         except (OSError, json.JSONDecodeError):
             continue
     return out
+
+
+# --- the interaction design: the third layer's own row ----------------------------------
+#
+# THE LAYER THAT REACHED NOBODY (docs/CONTENT-INTERACTION.md §3, docs/CACHES.md §1). The designs
+# store was named in the docs and in ``db.INTERACTIONS`` and nothing ever wrote to it or read from
+# it, so the model's interaction — the wave's flagship — was made in a test and nowhere else.
+#
+# Keyed on CONCEPT x ROW, like a core and unlike a level: a design is a mechanic for an idea, and
+# the same drag-into-bins works for a CBSE class 6 child and an ISC class 11 student. What differs
+# between them is the WORDS on the pieces, and those come off the level rendering, not off this.
+
+DESIGN_MODALITY = "design"
+
+#: Bump when the design vocabulary or the floors change what a stored design means.
+DESIGN_PROMPT_VERSION = "design-v1"
+
+
+def design_path(concept: str, kind: str, scope: dict[str, str] | None = None) -> Path:
+    cid = concept_id(concept, scope)
+    digest = hashlib.sha256(f"{concept_identity(concept, scope)}\x00{kind}".encode()).hexdigest()
+    return _inside_cache(cache_dir() / DESIGN_MODALITY / f"{cid}--{kind}--{digest[:16]}.json")
+
+
+def design_key(concept: str, kind: str, scope: dict[str, str] | None = None) -> str:
+    cid = concept_id(concept, scope)
+    digest = hashlib.sha256(f"{concept_identity(concept, scope)}\x00{kind}".encode()).hexdigest()
+    return f"{DESIGN_MODALITY}/{cid}--{kind}--{digest[:16]}"
+
+
+def design_is_stale(record: dict[str, Any] | None, *, core_version: str | None = None) -> bool:
+    """Stale on three signals, and never on the clock alone.
+
+    §3: *"regeneration only on a signal (judge score, observer flag, version change)."* A design
+    made under an older vocabulary cannot be rendered; a design made against an older core is
+    describing an idea that has since changed; a design past its refresh window is due a second
+    look. Everything else stays exactly as it was designed.
+    """
+    if not isinstance(record, dict):
+        return True
+    if str(record.get("promptVersion") or "") != DESIGN_PROMPT_VERSION:
+        return True
+    if core_version and str(record.get("coreVersion") or "") not in ("", str(core_version)):
+        return True
+    designed = str(record.get("designedAt") or "")
+    days = record.get("refreshDays")
+    if designed and isinstance(days, int | float):
+        with contextlib.suppress(ValueError):
+            age = datetime.now(UTC) - datetime.fromisoformat(designed)
+            return age.days > int(days)
+    return False
+
+
+def row_for_design(key: str, record: dict[str, Any], *, concept_id_value: str) -> dict[str, Any]:
+    """A ``content.interactions`` row from one design record. db.FIELDS[INTERACTIONS], no more."""
+    provenance = record.get("provenance") if isinstance(record.get("provenance"), dict) else {}
+    design = record.get("design") if isinstance(record.get("design"), dict) else {}
+    judge = (provenance or {}).get("judge")
+    judge = judge if isinstance(judge, dict) else {}
+    score = judge.get("score")
+    cost = (provenance or {}).get("costUsd")
+    return {
+        "key": key,
+        "concept_id": concept_id_value,
+        "kind": str(design.get("kind") or record.get("kind") or "") or None,
+        "is_template": str(design.get("source") or "") == "floor",
+        "body": record,
+        "status": str(record.get("status") or CANONICAL),
+        "judge_score": float(score) if isinstance(score, int | float) else None,
+        "judge": judge,
+        "model": str((provenance or {}).get("model") or "") or None,
+        "cost_usd": float(cost) if isinstance(cost, int | float) else None,
+        "provenance": provenance,
+    }
+
+
+def _design_from_database(
+    concept: str, kind: str, scope: dict[str, str] | None
+) -> dict[str, Any] | None:
+    from wobo_gateway.plexus import db
+
+    if not db.configured():
+        return None
+    try:
+        row = db.read(db.INTERACTIONS, design_key(concept, kind, scope))
+    except Exception:  # a cache read never fails the render that asked for it
+        logger.warning("plexus: the design read for %r failed", concept, exc_info=True)
+        return None
+    record = row.get("body") if isinstance(row, dict) else None
+    if not isinstance(record, dict):
+        db.note_miss(db.INTERACTIONS)
+        return None
+    db.note_database_hit(db.INTERACTIONS, row.get("cost_usd"))
+    db.note_serve(db.INTERACTIONS, row.get("id"))
+    with contextlib.suppress(OSError, TypeError, ValueError):  # warm the front
+        _write_atomic(
+            design_path(concept, kind, scope), json.dumps(record, ensure_ascii=False, indent=1)
+        )
+    return record
+
+
+def load_design(
+    concept: str,
+    kind: str,
+    scope: dict[str, str] | None = None,
+    *,
+    core_version: str | None = None,
+) -> dict[str, Any] | None:
+    """The stored design record for this concept and row, or None on a miss or a stale one."""
+    from wobo_gateway.plexus import db
+
+    record = _read(design_path(concept, kind, scope))
+    if record is not None:
+        db.note_front_hit(db.INTERACTIONS)
+    else:
+        record = _design_from_database(concept, kind, scope)
+    if record is None or design_is_stale(record, core_version=core_version):
+        return None
+    return record
+
+
+def save_design(
+    concept: str, kind: str, record: dict[str, Any], scope: dict[str, str] | None = None
+) -> None:
+    """Write the live design pointer, to the front and to the truth. Crash-safe on both."""
+    _write_atomic(
+        design_path(concept, kind, scope), json.dumps(record, ensure_ascii=False, indent=1)
+    )
+    from wobo_gateway.plexus import db
+
+    if not db.configured():
+        return
+    try:
+        db.write(
+            db.INTERACTIONS,
+            row_for_design(
+                design_key(concept, kind, scope),
+                record,
+                concept_id_value=concept_id(concept, scope),
+            ),
+        )
+    except Exception:  # the front already has it; the truth can be caught up by the next write
+        logger.warning("plexus: the design write for %r failed", concept, exc_info=True)

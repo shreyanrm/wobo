@@ -211,3 +211,46 @@ def test_a_check_that_actually_ran_still_signs_its_number() -> None:
     for obj in plan.objects:
         if obj.get("check"):
             assert obj["check"] in ran
+
+
+# --- a quoted equation is not an arithmetic claim ----------------------------------------------
+
+
+def test_a_fragment_of_algebra_is_not_a_sum_the_say_is_claiming() -> None:
+    """``_SUM_RUN`` stops at every letter, so "2x + 3 = 7, line by line." handed the CAS the
+    fragment "+ 3 = 7", the CAS said — correctly — that it is false, and ``audit`` dropped the
+    whole sentence. Any line that quotes an equation with a letter in it was unspeakable, which
+    is most of the mathematics on the board (measured 2026-09-10)."""
+    from wobo_gateway import spoken
+
+    assert spoken.statements_in("2x + 3 = 7, line by line.") == []
+    assert spoken.statements_in("x² + 5x + 6 = 0, line by line.") == []
+    assert spoken.statements_in("(x + 3)(x + 2) = 0.") == []
+    assert spoken.statements_in("y = 3x - 4 is the line.") == []
+
+
+def test_a_sum_written_out_in_full_is_still_read_and_confirmed() -> None:
+    """And the law it exists for is untouched: a real sum beside real words is still checked."""
+    from wobo_gateway import spoken
+
+    assert spoken.statements_in("So 9 + 16 = 25.") == ["9 + 16 = 25"]
+    assert spoken.statements_in("It is 5 because 5 * 5 = 25.") == ["5 * 5 = 25"]
+    assert spoken.statements_in("Halves and quarters: 1/2 = 2/4.") == ["1/2 = 2/4"]
+
+
+def test_a_false_sum_beside_words_is_still_refused() -> None:
+    from wobo_gateway import spoken
+
+    decided = spoken.audit("So 9 + 16 = 26.", given=set(), verified=set())
+    assert decided.say == ""
+    assert decided.unsaid
+
+
+def test_a_quoted_equation_is_spoken_when_its_numbers_are_the_learners() -> None:
+    from wobo_gateway import spoken
+
+    decided = spoken.audit(
+        "2x + 3 = 7, line by line.", given={2.0, 3.0, 7.0}, verified=set()
+    )
+    assert decided.say == "2x + 3 = 7, line by line."
+    assert decided.unsaid == []

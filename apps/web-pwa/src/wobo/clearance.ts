@@ -19,6 +19,17 @@ export const INK_ON_SCREEN_ATTRIBUTE = 'data-wobo-ink';
 export const GLASS_HELD = 'data-glass-held';
 
 /**
+ * The root carries this while the plane is a SHEET across a phone's screen — which is where every
+ * board built from scratch is drawn at 390 (`packages/wobo/src/board/plane.tsx`, SHEET_ATTRIBUTE).
+ * Re-declared here rather than imported so this file reads as one doctrine; the test holds the two
+ * to the same string.
+ */
+export const SHEET_UP = 'data-wobo-sheet';
+
+/** How tall Wobo's keeper bar is, so a scroll surface can keep it clear as well as the sheet. */
+export const KEEPER_HEIGHT = '60px';
+
+/**
  * The clearance, as CSS. Mounted beside the ink surface itself, so the rule and the layer it
  * protects live in one place (`wobo/Stage.tsx`).
  *
@@ -35,5 +46,15 @@ export const INK_CLEARANCE_CSS = `
 [${INK_ON_SCREEN_ATTRIBUTE}] [data-wobo-toast],[${GLASS_HELD}] [data-wobo-toast]{transition:opacity 160ms cubic-bezier(0.2,0,0,1)}
 @media (prefers-reduced-motion: reduce){
 [${INK_ON_SCREEN_ATTRIBUTE}] [data-wobo-toast],[${GLASS_HELD}] [data-wobo-toast]{transition:none}
+}
+/* AND THE SHEET KEEPS ITS OWN KEEPER BAR CLEAR (the adversary, wave 49, finding 6).
+   "save to notes" is docked to the foot of the screen, which on a laptop is beside the plane and
+   on a phone is INSIDE it: at 390 it sat over the Punnett's 'recessive 1'. Moving the bar only
+   moves the problem — lifted above the sheet it covered the say instead, which has a law of its
+   own (screens/chat/chat.css). So the BOARD gives the bar its band: the sheet's canvas ends above
+   it, the drawing is laid out in what is left, and no mark is ever put where the bar stands.
+   Nothing is hidden and nothing is unreachable. */
+@media (max-width: 900px){
+[${SHEET_UP}] .wobo-chrome-sheet > .wobo-chrome-canvas{margin-bottom:calc(12px + ${KEEPER_HEIGHT})}
 }
 `;

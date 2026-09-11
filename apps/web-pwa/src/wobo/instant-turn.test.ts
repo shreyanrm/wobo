@@ -287,12 +287,16 @@ describe("a new turn's mark is a new mark", () => {
     serveAfter(5, done);
     await run();
     await tick(60);
-    const marks = screenStore.snapshot().filter((s) => s.object.id.startsWith(INSTANT_ID));
-    expect(marks.length).toBe(2);
-    const second = marks.at(-1);
+    const drawn = screenStore.history().filter((s) => s.object.id.startsWith(INSTANT_ID));
+    expect(drawn.length).toBe(2);
+    const second = drawn.at(-1);
     expect(second).toBeDefined();
     expect(second?.object.id).not.toBe(firstId);
     expect(second?.generation).toBe(0);
+    // And only the new one is on the glass: the last turn's handed over as this one drew
+    // (the adversary, wave 49, finding 7).
+    const live = screenStore.snapshot().filter((s) => s.object.id.startsWith(INSTANT_ID));
+    expect(live.map((s) => s.object.id)).toEqual([second?.object.id as string]);
   });
 
   it('leaves nothing of the last turn live on the glass when the next one opens', async () => {
@@ -304,5 +308,59 @@ describe("a new turn's mark is a new mark", () => {
     boardTurn.answered();
     const live = screenStore.snapshot().filter((s) => !s.removed && s.fadingAt === undefined);
     expect(live).toEqual([]);
+  });
+});
+
+/**
+ * THE LAST TURN'S INK IS NEVER ON THE GLASS BESIDE THIS TURN'S (the adversary, wave 49, finding 7).
+ *
+ * Measured at 1440 on the course page: the previous turn's ring begins to fade within 40 ms of the
+ * next ask — the lift is at the ask, as the law says — but a fade is 480 ms, and on
+ * "draw this for me" it was still at 0.69 opacity 169 ms in, with this turn's own mark due inside
+ * 700. The handover is finished by the first thing this turn draws.
+ */
+describe("the last turn's ink hands over", () => {
+  it('goes the moment this turn puts a mark on the screen', async () => {
+    // the last turn's ring, still up and holding for an answer
+    screenStore.applyEvent({
+      type: 'ink',
+      t: 0,
+      object: {
+        id: 'last-turn-ring',
+        kind: 'ring',
+        anchor: { target: 'diagram-c4.effect' },
+        t: { start: 0, dur: 1 },
+      },
+    } as never);
+    expect(screenStore.snapshot().filter((s) => !s.removed)).toHaveLength(1);
+
+    serveAfter(300, done);
+    const running = run();
+    await tick(40);
+    const live = screenStore.snapshot().filter((s) => !s.removed);
+    expect(live.map((s) => s.object.id)).toEqual([instantOnGlass()?.object.id as string]);
+    expect(live).toHaveLength(1);
+    await running;
+  });
+
+  it('but a turn that draws nothing lets the fade finish in its own time', async () => {
+    screenStore.applyEvent({
+      type: 'ink',
+      t: 0,
+      object: {
+        id: 'last-turn-ring',
+        kind: 'ring',
+        anchor: { target: 'diagram-c4.effect' },
+        t: { start: 0, dur: 1 },
+      },
+    } as never);
+    serveAfter(60, done);
+    const running = run(null);
+    await tick(40);
+    const state = screenStore.snapshot().find((s) => s.object.id === 'last-turn-ring');
+    expect(state?.removed).toBe(false);
+    // it was let go at the ask, though — that is the half of the law that was always true
+    expect(state?.fadingAt).toBeDefined();
+    await running;
   });
 });

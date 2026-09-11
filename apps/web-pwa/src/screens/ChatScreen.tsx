@@ -38,6 +38,169 @@ import { loadProfile } from './you/profile';
 // The crumb is the name and nothing after it: a surface does not describe itself (DESIGN.md §0.x).
 const CRUMB = 'Wobo';
 
+/**
+ * A box on the screen, in viewport coordinates: what one piece of the page's furniture takes.
+ * `readingWindow` is pure and takes these, so the numbers the lab measured on a real phone can be
+ * replayed in a unit test (src/screens/chat/chat.test.ts) rather than asserted from memory.
+ */
+export type ScreenBox = { top: number; bottom: number; left: number; right: number };
+
+/** Kept between the last line and anything painted over the page. The margin law's own 16. */
+const READING_CLEARANCE = 16;
+
+/** How many nodes of one piece of furniture are measured for paint before we take what we have. */
+const PAINT_SCAN_LIMIT = 400;
+
+/**
+ * THE READING WINDOW: the band of the viewport Wobo's last line is allowed to end in.
+ *
+ * THE DEFECT THIS ANSWERS (the adversary, wave 42, finding 1, the SAY half). The floor used to be
+ * `innerHeight - reserve - 16`, and the reserve is zero whenever no board is open — so on /chat at
+ * 390 with ten lines on screen, the last one, Wobo's answer, sat at bottom 755 with the Tell Wobo
+ * pill standing at 716 and the doubt camera at 708. The page had 430 px of scroll left and the app
+ * parked its own answer under its own furniture, every time, in both themes and under reduced
+ * motion. INK-FOUR craft: "nothing under a panel, sheet, toast or pill."
+ *
+ * THE FLOOR IS MEASURED, NOT DECLARED. Wave 42's craft probe missed the same two pieces because
+ * neither was in its selector list, so nothing here names a class: the caller hands in every box
+ * the page actually paints over itself (`furnitureBoxes`) and this decides.
+ *
+ *  · furniture in another column never moves the line — at 1440 the rail is a tall sticky bar down
+ *    the left and the thread is nowhere near it;
+ *  · furniture standing at the FOOT (its top in the lower half) lowers the floor to its top;
+ *  · furniture standing at the HEAD (its bottom in the upper half) raises the ceiling instead, so
+ *    following a long answer down can never bury its first line under a sticky bar;
+ *  · furniture that spans the middle is a sheet, a scrim or a modal. It is not chrome over a page,
+ *    it IS the page for as long as it is up, and it has its own law — the reserve, which the caller
+ *    passes in (chat.css `[data-wobo-sheet] .ch-thread`, and the wave 47 measurement behind it).
+ */
+export function readingWindow(
+  view: { height: number; reserve: number },
+  line: { left: number; right: number },
+  furniture: readonly ScreenBox[],
+): { floor: number; ceiling: number } {
+  const middle = view.height / 2;
+  let floor = view.height - view.reserve - READING_CLEARANCE;
+  let ceiling = 0;
+  for (const box of furniture) {
+    if (box.bottom - box.top < 1 || box.right - box.left < 1) continue;
+    // not in the line's own column: it cannot cover a word of it
+    if (box.right <= line.left || box.left >= line.right) continue;
+    if (box.top >= middle) floor = Math.min(floor, box.top - READING_CLEARANCE);
+    else if (box.bottom <= middle) ceiling = Math.max(ceiling, box.bottom + READING_CLEARANCE);
+  }
+  return { floor, ceiling };
+}
+
+/** A colour that paints. `rgba(0, 0, 0, 0)` and `transparent` do not. */
+function opaque(colour: string): boolean {
+  if (!colour || colour === 'transparent') return false;
+  const alpha = /^rgba?\([^)]*,\s*([\d.]+)\s*\)$/.exec(colour);
+  return alpha ? Number(alpha[1]) > 0.01 : true;
+}
+
+/**
+ * Elements that are their own picture — nothing else has to paint for them to be seen. An `svg`
+ * counts where it STANDS, which is what makes Wobo's ink layer a layer the size of the screen: it
+ * spans the middle, and `readingWindow` leaves what spans the middle alone. Wobo's answer is not
+ * chrome over the page, and the line is never pushed around by the marks it is about.
+ */
+const SELF_PAINTING = new Set(['svg', 'img', 'canvas', 'video', 'input', 'textarea', 'select']);
+
+/** Does this node put anything on the screen itself — a ground, an edge, a shadow, or words? */
+function paintsItself(el: Element, cs: CSSStyleDeclaration): boolean {
+  if (opaque(cs.backgroundColor)) return true;
+  if (cs.backgroundImage !== 'none') return true;
+  if (cs.boxShadow !== 'none') return true;
+  if (Number.parseFloat(cs.borderTopWidth) > 0 || Number.parseFloat(cs.borderBottomWidth) > 0) {
+    return true;
+  }
+  if (SELF_PAINTING.has(el.tagName.toLowerCase())) return true;
+  for (const node of el.childNodes) {
+    if (node.nodeType === 3 && (node.nodeValue ?? '').trim() !== '') return true;
+  }
+  return false;
+}
+
+/** Hidden outright, or by an ancestor. A pill the ink rule takes away covers nothing. */
+function unpainted(cs: CSSStyleDeclaration): boolean {
+  return (
+    cs.display === 'none' ||
+    cs.visibility === 'hidden' ||
+    cs.visibility === 'collapse' ||
+    Number(cs.opacity) <= 0.05
+  );
+}
+
+/**
+ * The box a piece of furniture actually PAINTS in — not the box it reserves.
+ *
+ * The two are rarely the same. `.wf-float` is a transparent wrapper the size of the pill inside it;
+ * the portal hosts Wobo's own layers live in are transparent and the size of the whole screen. Take
+ * a wrapper's own rectangle and a page with one small pill in a full-screen host would be judged
+ * covered from the top down. So the union of what paints inside it is measured instead, and a piece
+ * of furniture that paints nothing at all takes nothing.
+ */
+function paintedBox(root: Element): ScreenBox | null {
+  let box: ScreenBox | null = null;
+  let seen = 0;
+  const stack: Element[] = [root];
+  while (stack.length > 0 && seen < PAINT_SCAN_LIMIT) {
+    const el = stack.pop() as Element;
+    seen += 1;
+    const cs = getComputedStyle(el);
+    if (unpainted(cs)) continue; // and nothing inside it paints either
+    if (paintsItself(el, cs)) {
+      const r = el.getBoundingClientRect();
+      if (r.width >= 1 && r.height >= 1) {
+        box = box
+          ? {
+              top: Math.min(box.top, r.top),
+              bottom: Math.max(box.bottom, r.bottom),
+              left: Math.min(box.left, r.left),
+              right: Math.max(box.right, r.right),
+            }
+          : { top: r.top, bottom: r.bottom, left: r.left, right: r.right };
+      }
+    }
+    for (const kid of el.children) stack.push(kid);
+  }
+  return box;
+}
+
+/**
+ * Every box the page paints OVER itself: each fixed or sticky element, measured where it paints.
+ *
+ * The thread's own subtree is skipped whole — the words being read are not furniture, and skipping
+ * the one big subtree on this screen is what keeps this cheap enough to run on every sentence.
+ */
+function furnitureBoxes(thread: Element | null): ScreenBox[] {
+  const boxes: ScreenBox[] = [];
+  if (typeof document === 'undefined' || !document.body) return boxes;
+  const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT, {
+    acceptNode: (node) => (node === thread ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  for (let node = walk.nextNode(); node; node = walk.nextNode()) {
+    const el = node as Element;
+    const cs = getComputedStyle(el);
+    if (cs.position !== 'fixed' && cs.position !== 'sticky') continue;
+    if (unpainted(cs)) continue;
+    // `opacity` does not inherit, so a layer faded out by the ink clearance (wobo/clearance.ts
+    // fades Wobo's toast to 0 for the length of a turn) has to be read from above as well.
+    let faded = false;
+    for (let up = el.parentElement; up && up !== document.body; up = up.parentElement) {
+      if (unpainted(getComputedStyle(up))) {
+        faded = true;
+        break;
+      }
+    }
+    if (faded) continue;
+    const box = paintedBox(el);
+    if (box) boxes.push(box);
+  }
+  return boxes;
+}
+
 export function ChatScreen() {
   const { turns, ask, busy, setMood, hasOlder, loadOlder, offline, pending } = useWoboChat();
   const bus = useWoboBus();
@@ -98,18 +261,32 @@ export function ChatScreen() {
    * in half by the sheet edge. Both are measured against the last line itself now.
    */
   /**
-   * Bring Wobo's last line above the sheet, in the page's own scroll. The sheet is fixed to the
-   * bottom of a phone screen, so "the bottom of the page" is under it; the line the learner is
-   * meant to read is put just above its edge. Nothing is hidden, and on a wide screen — where the
-   * plane is a panel beside the page — there is no sheet and nothing moves.
+   * Bring Wobo's last line above whatever stands over the foot of the page, in the page's own
+   * scroll. On a phone the sheet is fixed across the bottom, and so are the Tell Wobo pill, the
+   * doubt camera and the tab rail — so "the bottom of the page" is under all of them; the line the
+   * learner is meant to read is put just above the lowest-standing of them. Nothing is hidden, and
+   * on a wide screen — where the plane is a panel beside the page and the rail is a column down the
+   * left, in another column entirely — there is nothing over the line and nothing moves.
+   *
+   * The sheet is passed in as a reserve because it is not chrome over the page (see
+   * `readingWindow`); everything else is MEASURED, because a selector list is exactly what missed
+   * the pill and the camera for two waves running.
    */
   const followInPage = () => {
     if (typeof window === 'undefined') return;
     const last = (threadRef.current?.lastElementChild as HTMLElement | null) ?? null;
     if (!last) return;
+    const line = last.getBoundingClientRect();
     const reserve = sheet ? window.innerHeight * (PHONE_SHEET_VH / 100) : 0;
-    const floor = window.innerHeight - reserve - 16;
-    const over = last.getBoundingClientRect().bottom - floor;
+    const { floor, ceiling } = readingWindow(
+      { height: window.innerHeight, reserve },
+      { left: line.left, right: line.right },
+      furnitureBoxes(threadRef.current),
+    );
+    // Follow the foot of the line down to the floor — but never so far that a long answer's own
+    // first line is pushed up under whatever stands at the head of the page. A line taller than the
+    // window between them is read from its top.
+    const over = Math.min(line.bottom - floor, line.top - ceiling);
     if (over > 1) window.scrollBy(0, over);
   };
 

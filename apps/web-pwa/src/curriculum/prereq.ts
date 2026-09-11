@@ -35,11 +35,24 @@
 
 import type { Chapter, Topic } from '../data/model';
 
-/** Where an edge came from. Every edge carries one; no edge in this graph is anonymous. */
-export type PrereqReason = 'ontology' | 'editorial' | 'name' | 'sequence';
+/**
+ * Where an edge came from. Every edge carries one; no edge in this graph is anonymous.
+ *
+ * `blueprint` is the strongest, and it is the only one this module does not derive: the architect
+ * STATED that the chapter assumes this and that the board does not re-teach it
+ * (`curriculum/blueprint.ts`, docs/LEARNING-MODEL.md section 5). Everything else here is this
+ * client reading a printed order and saying so.
+ */
+export type PrereqReason = 'blueprint' | 'ontology' | 'editorial' | 'name' | 'sequence';
 
 /** Strongest source wins when two rules produce the same edge. */
-const STRENGTH: Record<PrereqReason, number> = { ontology: 3, editorial: 2, name: 1, sequence: 0 };
+const STRENGTH: Record<PrereqReason, number> = {
+  blueprint: 4,
+  ontology: 3,
+  editorial: 2,
+  name: 1,
+  sequence: 0,
+};
 
 export interface PrereqEdge {
   /** The topic that needs ground under it. */

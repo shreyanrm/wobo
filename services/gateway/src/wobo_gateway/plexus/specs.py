@@ -215,6 +215,16 @@ class Card(Spec):
     reveal: str
     discovery: DiscoverySpec | None = None
     imageSpec: ImageSpec | None = None
+    # THE DESIGNED INTERACTION (§3), and the row of §2 it belongs to. Both are read straight off a
+    # card by the client's own parser (``screens/course/Composing.tsx``: ``card.design`` first, then
+    # ``card.interactionKind``), and until 2026-09-10 neither existed here or on a served card, so
+    # both branches of that parser were dead on live content and every card fell through to the
+    # legacy ones. ``design`` is the composition — the model's, or the concept's own template floor
+    # filled from the core; ``interactionKind`` is what the client builds its own floor from when
+    # a card carries no design. The forward reference is resolved by ``model_rebuild`` at the foot
+    # of this module: the design vocabulary is declared below the card that carries it.
+    design: InteractionDesign | None = None
+    interactionKind: InteractionKindT | None = None
     # At most one rich-activity field rides alongside a card. The verifier preserves each
     # verbatim and the client parser owns its shape, so they are typed as pass-through objects
     # (not re-encoded here). See module docstring.
@@ -227,7 +237,9 @@ class Card(Spec):
     derivation: dict[str, Any] | None = None
     wordProblem: dict[str, Any] | None = None
     podcast: dict[str, Any] | None = None
-    arcade: dict[str, Any] | None = None
+    # The arcade's bonus level is the one activity with a full contract of its own (§7): the
+    # six mechanics are rendered by the client and nothing else may be, so the schema names them.
+    arcade: ArcadeSpec | None = None
     # The subject scenes. These are rich activities exactly like the ten above — engines.py
     # accepts and preserves each through _CARD_ACTIVITIES, and the client parses each off a
     # card — but they were missing here, so the generated contract described a card that could
@@ -364,7 +376,11 @@ class DropInteraction(Spec):
     kind: Literal["drop"]
     prompt: str
     tokens: list[DropToken] = Field(min_length=2, max_length=8)
-    zones: list[DropZone] = Field(min_length=2, max_length=4)
+    # Six, not four. Four was a guess and it cost a real design: on 2026-09-10 luna wrote five
+    # honest bins for the parts of a plant cell (shape, boundary, instructions, food, water) and
+    # the schema refused the lot. Six is what the stage can actually hold — six boxes of 14.3
+    # units across a 100-unit stage with gaps — so the cap is now the arithmetic and not a guess.
+    zones: list[DropZone] = Field(min_length=2, max_length=6)
     feedback: Feedback
 
     @model_validator(mode="after")
@@ -652,6 +668,113 @@ class InteractionDesign(Spec):
         return self
 
 
+# --- the arcade: the bonus level, as a contract (§7) --------------------------------------
+#
+# The six mechanics of docs/CONTENT-INTERACTION.md §7, as one spec with a discriminating ``game``
+# and a round shape per mechanic. It is a CONTRACT, not a suggestion: ``plexus/arcade.py`` is the
+# runtime gate that refuses anything this does not describe, and an unknown game never reaches a
+# client. The names are prefixed ``Arcade`` on purpose — a bonus level's pair is not the
+# interaction vocabulary's pair, and two things called MatchPair would drift into each other.
+#
+# Filled from the level rendering by ``arcade.plan_arcade``: zero model calls per play.
+
+ArcadeGame = Literal["catch", "sort", "match", "numberline", "sequence", "quiz"]
+
+#: Why this concept earns a bonus level at all. A game exists only where one of these two is
+#: genuinely the skill; everywhere else the chapter gets no door.
+ArcadeSkill = Literal["speed", "recall"]
+
+
+class ArcadeRoundBase(Spec):
+    """What every round carries: what is asked, and what a wrong move teaches.
+
+    ``why`` is the feedback slot of §3 in the arcade's own shape: a wrong sort says why the order
+    matters, in this concept's words, never "try again".
+    """
+
+    id: str
+    prompt: str
+    why: str | None = None
+
+
+class ArcadeCatchRound(ArcadeRoundBase):
+    """catch — the answers rain down and one of them is right."""
+
+    answer: str
+    distractors: list[str] = Field(min_length=1, max_length=3)
+
+
+class ArcadeQuizRound(ArcadeRoundBase):
+    """the running quiz with lives — the answer must be among the options, or no tap can win."""
+
+    answer: str
+    options: list[str] = Field(min_length=2, max_length=4)
+
+
+class ArcadeSortRound(ArcadeRoundBase):
+    """sort against the clock — ``order`` is the CORRECT order; the client shuffles it."""
+
+    order: list[str] = Field(min_length=2, max_length=6)
+    by: str | None = None
+
+
+class ArcadeMatchPair(Spec):
+    left: str
+    right: str
+
+
+class ArcadeMatchRound(ArcadeRoundBase):
+    """match pairs — two to six pairs, laid out shuffled."""
+
+    pairs: list[ArcadeMatchPair] = Field(min_length=2, max_length=6)
+
+
+class ArcadeLineRound(ArcadeRoundBase):
+    """defend the number line — where does this value sit, within a tolerance a finger can hit.
+
+    The gate holds ``tolerance`` under a quarter of the line: a tolerance that swallows the line
+    means no tap can be wrong, which is the exact failure the wave 30 judges scored 1.12 for.
+    """
+
+    target: float
+    min: float
+    max: float
+    tolerance: float = Field(gt=0)
+    unit: str | None = None
+
+
+class ArcadeSequenceRound(ArcadeRoundBase):
+    """build the sequence — ``steps`` in their right order, plus any step that does not belong."""
+
+    steps: list[str] = Field(min_length=2, max_length=6)
+    distractors: list[str] | None = None
+
+
+ArcadeRound = (
+    ArcadeCatchRound
+    | ArcadeQuizRound
+    | ArcadeSortRound
+    | ArcadeMatchRound
+    | ArcadeLineRound
+    | ArcadeSequenceRound
+)
+
+
+class ArcadeSpec(Spec):
+    """One bonus level: a side door in the middle of a chapter, never in the path.
+
+    ``seconds`` is the clock where the mechanic has one. Catch falls at its own pace and the
+    sequence teaches rather than races, so neither carries it.
+    """
+
+    id: str
+    title: str
+    game: ArcadeGame = "catch"
+    skill: ArcadeSkill = "recall"
+    seconds: int | None = Field(default=None, ge=10, le=180)
+    rounds: list[ArcadeRound] = Field(min_length=1, max_length=12)
+
+
 # engine.diagram emits a sanitized inline SVG **string** (no wrapper object), so it has no model;
 # the generated TS declares it as a string alias. See codegen.
 
@@ -659,6 +782,11 @@ class InteractionDesign(Spec):
 PlexusArtifact = CourseSpec | SimSpec | VideoSpec
 
 # Every model exported as a named TypeScript type (order = emission order).
+# The card names two models declared below it (§3's design vocabulary), so its own reference to
+# them is resolved once here, at import, rather than lazily on the first validation.
+Card.model_rebuild()
+CourseSpec.model_rebuild()
+
 EXPORTED: tuple[type[BaseModel], ...] = (
     Interaction,
     Mark,
@@ -702,4 +830,13 @@ EXPORTED: tuple[type[BaseModel], ...] = (
     RevealSpec,
     InteractionStep,
     InteractionDesign,
+    # The arcade's bonus level (§7): six mechanics, one contract, and the client renders no other.
+    ArcadeCatchRound,
+    ArcadeQuizRound,
+    ArcadeSortRound,
+    ArcadeMatchPair,
+    ArcadeMatchRound,
+    ArcadeLineRound,
+    ArcadeSequenceRound,
+    ArcadeSpec,
 )

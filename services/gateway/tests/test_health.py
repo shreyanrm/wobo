@@ -33,7 +33,17 @@ def test_a_working_gateway_answers_ok_and_names_its_checks() -> None:
     status, body = probe()
     assert status == 200
     assert body["status"] == "ok"
-    assert set(body["checks"]) == {"config", "auth", "spend", "providers", "payments"}
+    assert set(body["checks"]) == {
+        "config",
+        "auth",
+        "spend",
+        "providers",
+        "payments",
+        # Whether anything this container generates outlives it: a cache on an attached volume, or
+        # the content stores. Named here since 2026-09-10, when the answer was neither and the
+        # gateway had no way to say so (tests/test_cache_durability.py).
+        "persistence",
+    }
     assert all(check["status"] == "ok" for check in body["checks"].values())
 
 

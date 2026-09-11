@@ -380,6 +380,42 @@ def take_latency() -> float | None:
     return value
 
 
+# --- what this request has spent so far -------------------------------------------------------
+#
+# A DIFFERENT QUESTION FROM ``spend.py``, and the difference is the whole reason this exists.
+# ``spend.py`` accumulates the PLATFORM's day against a ceiling. This accumulates the money spent
+# serving THIS request, and the only thing that asks it is the content stores: when an answer is
+# written to ``content.turns`` the row records what it cost to make, and "every serve after the
+# first saved that much" (docs/CACHES.md §3) is unanswerable without the number.
+#
+# It ACCUMULATES rather than replacing, because one turn can be two model calls (the spoken-number
+# law gives a line one more try) and the row's cost is what the whole answer cost. It is TAKEN,
+# so a second request on a reused threadpool thread can never inherit the first one's money.
+
+_spend_note: contextvars.ContextVar[float | None] = contextvars.ContextVar(
+    "wobo_ledger_spend_note", default=None
+)
+
+
+def note_spend(cost_usd: float | None) -> None:
+    """Add what one model call cost to this request's running total. Never raises."""
+    if cost_usd is None:
+        return
+    with contextlib.suppress(Exception):
+        value = float(cost_usd)
+        if value >= 0:
+            _spend_note.set((_spend_note.get() or 0.0) + value)
+
+
+def take_spend() -> float | None:
+    """This request's model spend so far, consumed. ``None`` when nothing here was priced —
+    which is never rendered as zero, for the reason the whole of this module keeps repeating."""
+    value = _spend_note.get()
+    if value is not None:
+        _spend_note.set(None)
+    return value
+
+
 # --- the row -------------------------------------------------------------------------------------
 
 #: The COMPLETE list of what is written. This is the privacy promise in executable form: nothing

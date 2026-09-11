@@ -1,0 +1,392 @@
+/*
+ * The composer's own rules. Every class is prefixed `cx-` and every selector below is a CHILD
+ * selector or a single class (DESIGN.md §0 traps 1 and 3: a short name that means two things, and a
+ * descendant selector that reaches too far, have each cost this repo a visible bug).
+ *
+ * The floor for a finger: `--cx-hit: 48px` is the minimum height of everything a learner touches,
+ * and it is a token so the browser proof can read it back off the page rather than trust a comment.
+ * No drop shadows, no wash behind a section, one hairline (DESIGN.md §0 law v5).
+ */
+
+.cx {
+  --cx-hit: 48px;
+  --cx-gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* the prompt: what to do. never a description of the software (DESIGN.md §0.x) */
+.cx-prompt {
+  margin: 0;
+  font-size: clamp(1.02rem, 0.96rem + 0.4vw, 1.24rem);
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+/* the row above the play: how far along, the clock, the score. nothing here narrates. */
+.cx-meter {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 24px;
+  font-size: 0.82rem;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.cx-meter > .cx-pips {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+.cx-pips > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--paper-3);
+  transition:
+    background 0.25s ease,
+    transform 0.25s ease;
+}
+.cx-pips > i.cx-on {
+  background: var(--cx-hue, var(--pig));
+  transform: scale(1.15);
+}
+.cx-meter > .cx-clock.cx-low {
+  color: var(--rose);
+}
+.cx-meter > .cx-score {
+  margin-left: auto;
+  color: var(--ink-2);
+}
+
+/* the tray: the chips a learner picks up */
+.cx-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cx-gap);
+  min-width: 0;
+}
+
+.cx-chip {
+  appearance: none;
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  text-align: left;
+  color: var(--ink);
+  background: var(--paper-2);
+  border: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-height: var(--cx-hit);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.16s ease;
+}
+.cx-chip:disabled {
+  cursor: default;
+}
+.cx-chip.cx-held {
+  background: var(--ink);
+  color: var(--paper);
+}
+.cx-chip.cx-right {
+  background: var(--mint-w);
+  color: var(--ink);
+}
+.cx-chip.cx-miss {
+  background: var(--rose-w);
+  color: var(--ink);
+}
+.cx-chip.cx-gone {
+  visibility: hidden;
+}
+
+/* the bins: drop zones with rules */
+.cx-zones {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--cx-gap);
+  min-width: 0;
+}
+.cx-zone {
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: calc(var(--cx-hit) * 2);
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--paper-2);
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 0.2s ease,
+    outline-color 0.2s ease;
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+}
+.cx-zone.cx-armed {
+  outline-color: var(--cx-hue, var(--pig));
+  background: var(--paper-3);
+}
+.cx-zone > .cx-zone-label {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink-2);
+  text-wrap: pretty;
+}
+.cx-zone > .cx-zone-held {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.cx-zone-held > span {
+  font-size: 0.86rem;
+  line-height: 1.3;
+  padding: 7px 10px;
+  border-radius: 9px;
+  background: var(--mint-w);
+  color: var(--ink);
+}
+
+/* sort: one row, tap two to swap, arrows to move */
+.cx-sort {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.cx-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: var(--ink-3);
+  min-width: 0;
+}
+.cx-lane {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--cx-gap);
+  min-width: 0;
+}
+
+/* match: two columns that meet */
+.cx-match {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--cx-gap);
+  min-width: 0;
+}
+.cx-match > .cx-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cx-gap);
+  min-width: 0;
+}
+
+/* select: one stacked column, the whole row a hit area */
+.cx-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cx-gap);
+  min-width: 0;
+}
+.cx-options > .cx-chip {
+  width: 100%;
+}
+
+/* sequence: what has been built, and what is left to choose from */
+.cx-built {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.cx-built > li {
+  display: grid;
+  grid-template-columns: 26px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  min-height: var(--cx-hit);
+  border-radius: 11px;
+  background: var(--mint-w);
+  font-size: 0.92rem;
+  line-height: 1.35;
+  color: var(--ink);
+  min-width: 0;
+}
+.cx-built > li > b {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+/* sort: the place a card currently holds, so the order is readable without dragging anything */
+.cx-chip > .cx-place {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: var(--paper-3);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--ink-2);
+  vertical-align: middle;
+}
+.cx-sort.cx-across > .cx-lane {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.cx-check {
+  appearance: none;
+  font: inherit;
+  font-size: 0.92rem;
+  align-self: flex-start;
+  min-height: var(--cx-hit);
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--paper-3);
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.cx-check:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* the check a construction step opened: why the next move is allowed at all */
+.cx-built > li > span > em {
+  display: block;
+  font-style: normal;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--ink-2);
+  margin-top: 2px;
+}
+
+/* the stage: marks a finger can hit, on the 0..100 by 0..62 board Discovery uses */
+.cx-stage {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  border-radius: 16px;
+  background: var(--paper-2);
+  display: block;
+  touch-action: none;
+}
+.cx-stage .cx-hitspot {
+  cursor: pointer;
+}
+
+/* slide: the value, the picture, the control */
+.cx-slide {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.cx-value {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.cx-range {
+  appearance: none;
+  width: 100%;
+  height: var(--cx-hit);
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.cx-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--paper-3);
+}
+.cx-range::-moz-range-track {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--paper-3);
+}
+.cx-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  margin-top: -12px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--cx-hue, var(--pig));
+}
+.cx-range::-moz-range-thumb {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cx-hue, var(--pig));
+}
+
+/* what a wrong move teaches, and what the act reveals. both are about the idea, never about the app. */
+.cx-teach,
+.cx-reveal {
+  margin: 0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.cx-teach {
+  background: var(--rose-w);
+  color: var(--ink);
+}
+.cx-reveal {
+  background: var(--paper-2);
+  color: var(--ink);
+  border-left: 3px solid var(--cx-hue, var(--pig));
+}
+
+/* one column on a phone: two-column plays fold rather than scroll sideways */
+@media (max-width: 560px) {
+  .cx-match {
+    grid-template-columns: 1fr;
+  }
+  .cx-zones {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cx-chip,
+  .cx-zone,
+  .cx-pips > i {
+    transition: none;
+  }
+}

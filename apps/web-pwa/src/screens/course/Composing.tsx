@@ -17,7 +17,7 @@ import { glassLabel, meaningSlug, useRegisterTarget, useWoboBus } from '@wobo/wo
 import { AnimatePresence, motion } from 'framer-motion';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type GroundReport, groundFor, subscribeGround } from '../../curriculum/placement';
-import { topicById } from '../../curriculum/registry';
+import { chapterById, topicById } from '../../curriculum/registry';
 import type { Topic } from '../../data/model';
 import { AnatomyScene, parseAnatomyScene } from '../../engines/AnatomyScene';
 import { ArcadeShell, type ArcadeSpec, parseArcade } from '../../engines/ArcadeShell';
@@ -28,6 +28,9 @@ import {
   type CompareSpec,
   parseCompareSpec,
 } from '../../engines/CompareInteractive';
+import { Composer } from '../../engines/composition/Composer';
+import { floorFor } from '../../engines/composition/floors';
+import { type Design, parseDesign } from '../../engines/composition/parse';
 import { ConceptMap, type ConceptMapSpec, parseConceptMapSpec } from '../../engines/ConceptMap';
 import {
   DerivationCard,
@@ -82,6 +85,7 @@ import {
 import { topicNodeUuid } from '../learn/mastery';
 import { BridgeStep } from './BridgeStep';
 import { Greeting } from './Greeting';
+import { SideDoor } from './SideDoor';
 import type { BarState, LessonOutline } from './shared';
 import {
   CardBody,
@@ -95,6 +99,7 @@ import {
   whisper,
   writeCoursePos,
 } from './shared';
+import { offerFor } from './side-door';
 
 // --- The composed course (engine.compose output, validated before anything renders) ---------------
 
@@ -103,6 +108,13 @@ type ActKind = 'tap' | 'drag' | 'slide' | 'type';
 
 /** A physics-of-understanding renderer a card can carry — each owns its own shell + action bar. */
 type CardActivity =
+  /**
+   * The model's own interaction, designed for THIS concept as a composition of primitives
+   * (docs/CONTENT-INTERACTION.md §3). It comes first below: a designed interaction beats a
+   * template, and when the design is refused the concept's template floor takes its place, so the
+   * quality never falls under the floor and the learner never sees the difference.
+   */
+  | { type: 'design'; spec: Design }
   | { type: 'perturb'; spec: PerturbSpec }
   | { type: 'whatif'; spec: WhatIfSpec }
   | { type: 'compare'; spec: CompareSpec }
@@ -140,6 +152,15 @@ export function cardBeat(
 
 /** Try each activity parser in turn; the first field that yields a valid spec wins (refusal → none). */
 function parseActivity(c: Record<string, unknown>): CardActivity | undefined {
+  // The designed interaction first. `design` is the field the gateway carries an InteractionDesign
+  // on; a card that names its §2 row but whose design was refused falls to that row's floor, which
+  // is written in the same vocabulary and rendered by the same composer.
+  const design = parseDesign(c.design);
+  if (design) return { type: 'design', spec: design };
+  if (typeof c.interactionKind === 'string') {
+    const floor = parseDesign(floorFor(c.interactionKind));
+    if (floor) return { type: 'design', spec: floor };
+  }
   const perturb = parsePerturbSpec(c.perturbation);
   if (perturb) return { type: 'perturb', spec: perturb };
   const whatif = parseWhatIfSpec(c.whatIf);
@@ -1562,6 +1583,35 @@ export function Composing({
 
   const segments = (course?.cards.length ?? 4) + 4; // + video, workbook, boss, greeting
   const stops = course ? course.cards.length : 0;
+
+  /*
+   * THE SIDE DOOR, DECIDED (docs/CONTENT-INTERACTION.md §7).
+   *
+   * Everything the placement rule needs is already in hand at the end of a course: which chapter
+   * this topic belongs to, where it sits in that chapter, and whether the course carried a bonus
+   * level on one of its cards. `offerFor` says no to almost all of it — a door sits after every
+   * second or third topic and never after the last, because the boss is the summit — and a `null`
+   * here is the ordinary answer, not a failure.
+   *
+   * Nothing is fetched and nothing is generated: the level rode in with the course, which was paid
+   * for once and cached, so a play costs nobody anything.
+   */
+  const door = useMemo(() => {
+    const chapter = topic.chapterId ? chapterById(topic.chapterId) : undefined;
+    const list = chapter?.topics ?? [];
+    const position = list.findIndex((x) => x.id === topicId) + 1;
+    if (!chapter || position === 0) return null;
+    const spec =
+      course?.cards.map((c) => c.activity).find((a) => a?.type === 'arcade')?.spec ?? null;
+    return offerFor({
+      chapterId: chapter.id,
+      chapterName: chapter.name,
+      topicId,
+      position,
+      topics: list.length,
+      spec: spec && 'game' in spec ? spec : null,
+    });
+  }, [course, topic.chapterId, topicId]);
   const stage: 'cards' | 'video' | 'workbook' | 'boss' | 'greeting' = !course
     ? 'cards'
     : idx < stops
@@ -1667,6 +1717,15 @@ export function Composing({
           onContinue={onExit}
           replay={replay}
         />
+        {/*
+          THE SIDE DOOR (docs/CONTENT-INTERACTION.md §7). It hangs off the END of a topic that sits
+          in the middle of its chapter, never off the last one, because the boss is the summit. It
+          is rendered AFTER the greeting and outside its flow: the greeting keeps the action bar, so
+          "continue" is still the one primary thing on the screen and a bonus level is never in the
+          learner's path. A topic with no door, or a course that carried no level, renders nothing
+          and the ending is exactly what it was.
+        */}
+        {door ? <SideDoor offer={door} hue={hueForTopic(topicId)} /> : null}
       </Deck>
     );
   }
@@ -1745,6 +1804,9 @@ export function Composing({
     const a = card.activity;
     return (
       <Deck id={`gen-activity-${idx}`}>
+        {a.type === 'design' && (
+          <Composer design={a.spec} hue={hue} setBar={setBar} onDone={advance} />
+        )}
         {a.type === 'perturb' && (
           <PerturbationSandbox spec={a.spec} hue={hue} setBar={setBar} onDone={advance} />
         )}

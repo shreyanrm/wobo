@@ -26,13 +26,14 @@ learner's day, because the plan is still in the turn store.
 
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import re
 import secrets
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
@@ -65,6 +66,12 @@ MIN_INK_MS = 240
 #: pythagoras drew ten objects at 1064 ms each and took 10.8 s over a figure a teacher draws in
 #: three (the adversary, 2026-09-09, finding 5).
 MAX_INK_MS = 900
+
+#: How many marks the client may say it has standing on the glass, and how long each one's words
+#: may be. A turn draws at most ten marks (INK-FREEZE §3, Plan) and the instant mark is ONE; this
+#: is the ceiling on a field the client writes and Wobo then speaks, not a target.
+MAX_STANDING = 4
+MAX_STANDING_WORDS = 120
 
 MAX_SENTENCES = 10
 #: A finished turn is kept this long so a dropped connection can resume it without paying again.
@@ -308,6 +315,18 @@ def _authored(obj: dict[str, Any]) -> bool:
     return False
 
 
+def _sentence_index_of(obj: dict[str, Any], clock: list[tuple[int, int]]) -> int | None:
+    """WHICH sentence this object keeps time with, or None when it keeps time with none."""
+    for holder in (obj, obj.get("meta") if isinstance(obj.get("meta"), dict) else {}):
+        beat = holder.get("beat") if isinstance(holder, dict) else None
+        if not isinstance(beat, dict) or not clock:
+            continue
+        for key in ("with", "after"):
+            if isinstance(beat.get(key), int) and not isinstance(beat.get(key), bool):
+                return max(0, min(len(clock) - 1, beat[key]))
+    return None
+
+
 def _sentence_of(obj: dict[str, Any], clock: list[tuple[int, int]]) -> tuple[int, int] | None:
     """The window of the sentence this object keeps time with, or None when it keeps time with
     none of them."""
@@ -388,13 +407,25 @@ def _ink_clock(
     # choreography somebody chose, two marks may legitimately land on one beat, and the cursor
     # only reads past them (:func:`_authored`).
     cursor = lead
+    opened: set[int] = set()
     for index, (start, dur) in enumerate(out):
         if _authored(objects[index]):
             cursor = max(cursor, start + dur)
             continue
         begin = max(start, cursor)
         window = _sentence_of(objects[index], clock)
-        if window is not None:
+        which = _sentence_index_of(objects[index], clock)
+        if window is not None and which is not None and which not in opened:
+            # THE FIRST MARK OF A SENTENCE LANDS AS THE SENTENCE BEGINS (INK-FREEZE §3, Trace:
+            # "the first stroke of a sentence starts within 150 ms of its first word or ahead of
+            # it"). The word inside the sentence orders the marks AFTER it; applying it to the
+            # first one puts the pen down mid-sentence and nothing on the board before then. The
+            # graph is beaten entirely to one sentence whose first name falls on word four, so
+            # its first stroke landed at 1 194 ms — past BOARD.md §10's one second before the
+            # brain's own time is added (measured 2026-09-10).
+            opened.add(which)
+            begin = max(cursor, lead, window[0])
+        elif window is not None:
             # Inside its own sentence where it fits. THE CURSOR STILL WINS: a label pulled back
             # behind the leader it hangs off paints nothing at all (BOARD.md §4, a reference
             # always points backwards; measured on the plant cell at 1440, 2026-09-09). Late is a
@@ -405,11 +436,291 @@ def _ink_clock(
     # The law, enforced rather than assumed: something is on the board before Wobo finishes the
     # first sentence, whatever the plan or the beats asked for. Only the EARLIEST stroke is pulled
     # forward — shifting the whole plan would drag every other mark off the word it belongs to,
-    # and the choreography is the point of the beats.
+    # and the choreography is the point of the beats. It is pulled forward only if it hangs off
+    # NOTHING: a mark dragged in front of its own anchor is not an early mark, it is a lost one.
     if out and min(start for start, _ in out) >= first_end:
-        first = min(range(len(out)), key=lambda i: out[i][0])
-        out[first] = (lead, out[first][1])
+        loose = [
+            i
+            for i in range(len(out))
+            if not any(
+                other in {str(o.get("id")) for o in objects}
+                for other in naming.anchor_ids(objects[i])
+            )
+        ]
+        if loose:
+            first = min(loose, key=lambda i: out[i][0])
+            out[first] = (lead, out[first][1])
+    return _after_their_anchors(objects, out)
+
+
+def _after_their_anchors(
+    objects: list[dict[str, Any]], slots: list[tuple[int, int]]
+) -> list[tuple[int, int]]:
+    """A MARK NEVER STARTS BEFORE THE THING IT HANGS OFF HAS FINISHED.
+
+    BOARD.md §3: an anchor is resolved from the anchored object's real box. A label that starts on
+    the frame its leader begins is a label hung off a box one point wide, and one that starts
+    BEFORE it is hung off nothing at all — ``renderer.tsx`` resolves the anchor to null, caches the
+    empty geometry under a signature that can never change, and the mark is lost for good rather
+    than merely late (the adversary, wave 42, finding (a)). The plant cell rendered three labels
+    for a five-label ask, with two arrows pointing at empty space.
+
+    So the last word on the clock is this: every dependent is pushed to the end of what it hangs
+    off, relaxed to a fixed point because a plan may anchor forwards as well as back. It only ever
+    delays a mark. Late is a blemish; before the thing it is about is not a mark.
+    """
+    if not slots:
+        return slots
+    index_of = {str(o.get("id")): i for i, o in enumerate(objects) if o.get("id")}
+    out = list(slots)
+    for _ in range(len(out) + 1):
+        moved = False
+        for i, obj in enumerate(objects):
+            for other in naming.anchor_ids(obj):
+                j = index_of.get(other)
+                if j is None or j == i:
+                    continue
+                end = out[j][0] + out[j][1]
+                if out[i][0] < end:
+                    out[i] = (end, out[i][1])
+                    moved = True
+        if not moved:
+            break
     return out
+
+
+def _board_ids(on_board: Iterable[Any]) -> list[str]:
+    """The ids of everything already on the glass, however the caller named it.
+
+    Two shapes reach ``on_board`` and both are ids as far as anchoring is concerned: a bare string
+    (``board.drawn`` from the client, ``scaffold.ids()`` from phase one) and a whole mark the
+    client laid for THIS ask (:func:`_standing`).
+    """
+    out: list[str] = []
+    for entry in on_board:
+        if isinstance(entry, dict):
+            if entry.get("id"):
+                out.append(str(entry["id"]))
+        elif isinstance(entry, str) and entry:
+            out.append(entry)
+    return out
+
+
+def _standing(on_board: Iterable[Any]) -> list[dict[str, Any]]:
+    """THE MARKS THE CLIENT PUT ON THE GLASS FOR THIS ASK, in the client's own words.
+
+    The instant mark (docs/INK-FOUR.md, "the one thing we do not have"): the learner's question
+    named something the glass map declares, so ``apps/web-pwa/src/wobo/instant.ts`` resolves the
+    target with no model call and the pen starts inside 200 ms, while the request is still in
+    flight. The client reports what it laid at ``board.standing``, and this is where the brain
+    reads it.
+
+    Only a WHOLE mark counts. An id on its own (``board.drawn``, the scaffold's first phase) is
+    the older contract and stays exactly as it was: it anchors a mark, and it is never narrated,
+    because the sentence naming it was spoken on the turn — or the phase — that drew it. A mark
+    handed up here is one this turn owes words to and has not spoken yet.
+
+    IT IS REBUILT, NEVER TAKEN AS SENT. This is the only thing on the wire that a client writes
+    and Wobo then SAYS, so it is read the way the plan grammar reads the model: four marks at
+    most, one of the kinds a mark can be, an id and a target of a sane length, and words that are
+    words. Nothing else survives the read — a field this pass does not name cannot reach the say,
+    the ledger or the ink.
+    """
+    out: list[dict[str, Any]] = []
+    for entry in on_board:
+        if len(out) >= MAX_STANDING or not isinstance(entry, dict):
+            continue
+        mark_id = str(entry.get("id") or "")[:64]
+        kind = str(entry.get("kind") or "")
+        if not mark_id or kind not in naming.MARK_KINDS:
+            continue
+        anchor = entry.get("anchor")
+        target = str((anchor or {}).get("target") or "")[:120] if isinstance(anchor, dict) else ""
+        mark: dict[str, Any] = {"id": mark_id, "kind": kind}
+        if target:
+            mark["anchor"] = {"target": target}
+        words = str(entry.get("words") or "").strip()[:MAX_STANDING_WORDS]
+        if words:
+            mark["words"] = words
+        out.append(mark)
+    return out
+
+
+def _spoken_first(standing: list[dict[str, Any]], line: str) -> list[str]:
+    """A sentence for every mark already on the glass that the line never names — AT THE FRONT.
+
+    A standing mark is the turn's FIRST ink: it was down before the request left, and the model's
+    own mark may move it (``board-turn.ts``, "the ONE ring moves there and goes again from the new
+    box, the way a teacher corrects a stroke"). Measured live at 1440 on "circle the hypotenuse":
+    the ring lands on the square on the hypotenuse at 155 ms and moves to the right angle at
+    4 567 ms. A sentence about the square spoken third is spoken over a ring that has already
+    moved, which is the word/ink contradiction read from the other side. So it keeps time with the
+    first sentence, which is where the ink actually is.
+    """
+    out: list[str] = []
+    for obj in standing:
+        subject = naming.mark_subject(obj)
+        if not subject or naming.names(line, subject):
+            continue
+        if any(naming.names(said, subject) for said in out):
+            continue
+        sentence = naming.in_register(subject)
+        if sentence:
+            out.append(sentence)
+    return out
+
+
+def _shift_beats(objects: list[dict[str, Any]], by: int) -> None:
+    """Move every beat on by ``by`` sentences, in place, because that many went in ahead of them.
+
+    ``naming.rebeat_after_dropping`` is the same rule for sentences that GO; this is the rule for
+    sentences that arrive. Without it a mark the plan beat to its own first sentence keeps time
+    with a sentence about something else entirely.
+    """
+    if by <= 0:
+        return
+    for obj in objects:
+        for holder in (obj, obj.get("meta") if isinstance(obj.get("meta"), dict) else None):
+            beat = holder.get("beat") if isinstance(holder, dict) else None
+            if not isinstance(beat, dict):
+                continue
+            for key in ("with", "after"):
+                index = beat.get(key)
+                if isinstance(index, int) and not isinstance(index, bool):
+                    beat[key] = index + by
+
+
+def _on_the_wire(
+    objects: list[dict[str, Any]], on_board: Iterable[Any] = ()
+) -> tuple[list[dict[str, Any]], list[str]]:
+    """The objects that may be drawn, and one refusal for each that may not.
+
+    A mark hung off an id that is nowhere points at empty space, and the client cannot tell the
+    difference between "not yet" and "never" — ``renderer.tsx`` resolves the anchor once, caches
+    the emptiness under a signature that can never change, and the mark is gone for good.
+    ``planner._resolve_anchors`` already refuses a MARK whose anchor is missing and re-anchors a
+    shape to board space; nothing caught a mark hung off a mark that the planner then refused, or
+    off an object that never existed. A dangling chain goes down whole: if the leader is refused,
+    so is the label on the end of it.
+
+    ``on_board`` is what the learner is already looking at — the marks of an earlier turn, or of
+    the scaffold's own first phase. A mark may hang off those, and does: that is how the model's
+    half of a two-phase turn points at the figure the scaffold drew.
+    """
+    kept: list[dict[str, Any]] = []
+    refused: list[str] = []
+    alive = {str(o.get("id")) for o in objects if isinstance(o, dict) and o.get("id")}
+    alive |= set(_board_ids(on_board))
+    for _ in range(len(objects) + 1):
+        gone = {
+            str(o.get("id"))
+            for o in objects
+            if isinstance(o, dict)
+            and str(o.get("id")) in alive
+            and any(a not in alive for a in naming.anchor_ids(o))
+        }
+        if not gone:
+            break
+        alive -= gone
+    for obj in objects:
+        if not isinstance(obj, dict):
+            continue
+        if str(obj.get("id")) in alive:
+            kept.append(obj)
+            continue
+        missing = [a for a in naming.anchor_ids(obj) if a not in alive]
+        hangs_off = repr(missing[0]) if missing else "nothing"
+        refused.append(
+            f"{obj.get('kind', 'mark')} {obj.get('id', '?')} was not drawn: it hangs off "
+            f"{hangs_off}, which is not on this board"
+        )
+    return kept, refused
+
+
+def _signed(plan: Plan, drawn: list[dict[str, Any]]) -> tuple[list[str], list[str]]:
+    """The checks this turn may sign, and one refusal for each it may not.
+
+    INK-FOUR, correctness at 4: *"Nothing carries ``verified`` unless a check ran and passed."*
+    The ``done`` frame listed every check the ledger held — including the ones that came back
+    FALSE, because ``planner._run_intents`` records a refused draft's failed checks so the refusal
+    can be explained. The keyless plant cell therefore signed ``board.fact_supported`` verified on
+    every run while that check had failed (measured 2026-09-10). And a check is signed FOR a
+    thing: ``board.in_bounds:year 1922`` belongs to one number on the timeline, so if that number
+    never reaches the wire the signature goes with it. A check no object stands on — a fact about
+    the ask, or about the board as a whole — is signed for the board and stays signed.
+
+    AND ONE NAME IS THE WHOLE SIGNATURE, SO ONE FAILURE UNSIGNS IT. Most check names carry no
+    subject — every cell on a board runs ``board.fact_supported``, every formula runs
+    ``board.formula_readable`` — and two intents of the same family on one board is an ordinary
+    ask ("draw a plant cell and an animal cell"). Where one comes back True and the other False,
+    signing the name off the back of the one that passed tells the learner the board's facts are
+    verified while the other half's labels stand on the glass unsupported, and nothing in the
+    frame says which half was meant. So a name that failed ANYWHERE in this turn is signed
+    nowhere: it is refused once, with its reason.
+    """
+    claimed = {str(o["check"]) for o in plan.objects if isinstance(o, dict) and o.get("check")}
+    standing = {str(o["check"]) for o in drawn if o.get("check")}
+    fell = {str(c.name) for c in plan.ledger.checks if not c.passed}
+    verified: list[str] = []
+    refused: list[str] = []
+    for check in plan.ledger.checks:
+        if not check.passed:
+            refused.append(
+                f"not verified: {check.name} ran and did not pass"
+                + (f" ({check.detail})" if check.detail else "")
+            )
+            continue
+        if check.name in fell:
+            continue
+        if check.name in claimed and check.name not in standing:
+            refused.append(
+                f"not verified: {check.name} was signed for a mark that is not on the board"
+            )
+            continue
+        if check.name not in verified:
+            verified.append(check.name)
+    return verified, refused
+
+
+def _stamp_free_beats(
+    objects: list[dict[str, Any]],
+    paced: list[tuple[int, int]],
+    parts: list[str],
+    clock: list[tuple[int, int]],
+) -> None:
+    """NOTHING REACHES THE WIRE WITHOUT A SENTENCE TO KEEP TIME WITH.
+
+    The beat is the CLIENT's clock, not this module's: ``apps/web-pwa/src/wobo/beat.ts`` holds
+    every ink frame until the voice reaches the sentence its beat names, and a frame with NO beat
+    falls back to ``planned - 1`` — the last sentence queued so far, which on a fast wire is the
+    LAST sentence of the turn. A board nothing names (the number line, the circuit) therefore had
+    its whole figure waiting on Wobo's final full stop, and a board only PARTLY named had its
+    construction strokes waiting there while its labels went down first, which is how the plant
+    cell lost three of five labels for good (the adversary, wave 42, findings (a) and (b)).
+
+    ``board.naming.settle_beats`` beats everything a sentence names, and everything hanging off
+    it. This is the remainder: a mark the words never touch keeps time with the sentence the hand
+    is already drawing it under. It changes no timing — the schedule is settled by now — it only
+    tells the client the truth about it, and the sentence it names is never later than the one the
+    client would have guessed.
+    """
+    if not clock or not parts:
+        return
+    for obj, (start, _dur) in zip(objects, paced, strict=True):
+        if _sentence_index_of(obj, clock) is not None:
+            continue
+        index = 0
+        for i, (begin, _length) in enumerate(clock):
+            if start >= begin:
+                index = i
+        begin, length = clock[index]
+        words = max(1, len(parts[index].split()))
+        word = 0 if length <= 0 else max(0, min(words - 1, int(words * (start - begin) / length)))
+        meta = obj.get("meta")
+        if not isinstance(meta, dict):
+            meta = {}
+            obj["meta"] = meta
+        meta["beat"] = {"with": index, "word": word, "words": words}
 
 
 def build_events(
@@ -417,6 +728,7 @@ def build_events(
     *,
     actions: list[dict[str, Any]] | None = None,
     card: dict[str, Any] | None = None,
+    on_board: Iterable[Any] = (),
 ) -> list[Event]:
     """The whole turn as an ordered, timestamped event list (BOARD.md §4).
 
@@ -426,23 +738,92 @@ def build_events(
     so it is where the law is kept (``board/naming.py``): every drawn mark the say never named gets
     a sentence from its own words, every beat after an inserted sentence moves with it, and a line
     that came back as machinery rather than words is not spoken at all.
+
+    AND NOTHING IS SPOKEN OR SIGNED THAT WAS NOT DRAWN. The say and the ledger used to be built
+    from the PLAN; this is the wire, so it is where both are reconciled against what actually goes
+    out on it — a mark hung off nothing does not go, the sentence about it is not spoken, and no
+    check is signed for it (the adversary, wave 42, finding (b)).
+
+    AND NOTHING STANDS ON THE GLASS UNSPOKEN, which is the same law read the other way round. The
+    plan is not the only thing that draws: the client resolves what the learner named from the
+    glass map and puts the pen down inside 200 ms, with no model call at all (docs/INK-FOUR.md,
+    the instant mark). Live at 1440 "circle the hypotenuse" rang the square on the hypotenuse at
+    158 ms, the model came back with nothing to draw, both of its sentences were refused for want
+    of a mark — the refusal reads the model's own empty plan and never saw the ring — and the
+    turn went out with a ring standing on the glass and not one word about it. So the marks the
+    client laid for THIS ask (``board.standing``) are named here exactly as the plan's own are:
+    they are the board too. They are spoken, never re-streamed; the glass already has them.
     """
-    said, objects = naming.name_what_is_drawn(
-        plan.say,
-        plan.objects,
+    # On COPIES. A cached plan may be built twice (``board.scaffold`` streams a turn in two
+    # phases), and a pass that moved a beat on the caller's own objects would move it again.
+    planned = [copy.deepcopy(o) for o in plan.objects if isinstance(o, dict)]
+    on_wire, unmade = _on_the_wire(planned, on_board)
+    kept = {id(o) for o in on_wire}
+    # The glass is the plan's ink PLUS what the client already put down for this ask. Both halves
+    # are what the learner is looking at, so both are what the say is reconciled against.
+    #
+    # THE PLAN'S MARK IS THE SAME MARK. When the model rings what the client already ringed, the
+    # client swallows the second frame and one ring stands (``board-turn.ts``, "the model refines,
+    # it does not gate"). So the standing copy stands down here too, or the say would name the one
+    # ring twice, once in the plan's words and once in the client's.
+    on_wire_ids = {str(w.get("id")) for w in on_wire}
+    on_wire_targets = {
+        str(a["target"])
+        for w in on_wire
+        if isinstance(a := w.get("anchor"), dict) and isinstance(a.get("target"), str)
+    }
+    standing = [
+        o
+        for o in _standing(on_board)
+        if str(o.get("id")) not in on_wire_ids
+        and str((o.get("anchor") or {}).get("target") or "") not in on_wire_targets
+    ]
+    glass = [*on_wire, *standing]
+    line, cut = naming.only_what_is_drawn(
+        plan.say, glass, [o for o in planned if id(o) not in kept]
+    )
+    if cut:
+        naming.rebeat_after_dropping(on_wire, cut, len(sentences(plan.say)))
+    opening = _spoken_first(standing, line)
+    if opening:
+        _shift_beats([*on_wire, *standing], len(opening))
+        line = " ".join([*opening, line]).strip()
+    said, named = naming.name_what_is_drawn(
+        line,
+        glass,
         ask=str((plan.ask or {}).get("prompt") or "") or None,
     )
+    # A standing mark is spoken, not drawn again: it has been on the glass since before the
+    # request left, and a second ring beside the first is not a correction, it is a mess.
+    already = {str(o.get("id")) for o in standing}
+    objects = [o for o in named if str(o.get("id")) not in already]
     parts = sentences(said)
+    # AND THE VOICE IS TOLD WHAT IS COMING. These are the exact sentences the client will ask to
+    # be spoken, one paid round trip each, in this order — and the last thing it speaks is the
+    # ``ask``, as a question. Nowhere else knows the wire's own list (the naming law above adds
+    # sentences and drops them), so this is where the voice is told, and it buys the sentences
+    # behind the one being read while it is being read (``voice.buy_line_ahead``). Never raises:
+    # a turn is a turn whether or not anything is ever read aloud.
+    try:
+        from wobo_gateway import voice
+
+        voice.remember_parts(parts, ask=str((plan.ask or {}).get("prompt") or "") or None)
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("the voice was not told the line (%s: %s)", type(exc).__name__, exc)
     clock = sentence_clock(parts)
     paced = _ink_clock(objects, clock)
+
+    _stamp_free_beats(objects, paced, parts, clock)
 
     staged: list[tuple[int, int, str, dict[str, Any]]] = []
     for order, (part, (start, duration)) in enumerate(zip(parts, clock, strict=True)):
         staged.append((start, order, "say", {"text": part, "dur": duration}))
     for order, (obj, (start, dur)) in enumerate(zip(objects, paced, strict=True)):
-        drawn = {**obj, "t": {"start": start, "dur": dur}}
-        staged.append((start, 1000 + order, "ink", {"object": drawn}))
+        laid = {**obj, "t": {"start": start, "dur": dur}}
+        staged.append((start, 1000 + order, "ink", {"object": laid}))
 
+    verified, unsigned = _signed(plan, objects)
+    refused = [*plan.refusals, *unmade, *unsigned]
     tail = max([s + d for s, d in clock] + [s + d for s, d in paced] + [0])
     for order, action in enumerate(actions or []):
         if isinstance(action, dict):
@@ -464,9 +845,11 @@ def build_events(
             t=tail,
             data={
                 "presentation": plan.presentation,
-                "objects": len(plan.objects),
-                "verified": [c.name for c in plan.ledger.checks],
-                **({"refused": plan.refusals} if plan.refusals else {}),
+                # What went out, not what was planned: the two differ exactly when something was
+                # refused, which is the moment the count matters.
+                "objects": len(objects),
+                "verified": verified,
+                **({"refused": refused} if refused else {}),
                 **({"resumes_from": plan.resumes_from} if plan.resumes_from else {}),
             },
         )

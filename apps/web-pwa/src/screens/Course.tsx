@@ -31,6 +31,7 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { useRegistryRevision } from '../curriculum/hooks';
+import { usePool } from '../curriculum/pool';
 import { chapterById, subjectById, topicById } from '../curriculum/registry';
 import { ensureTopic, warmFromCache } from '../curriculum/warm';
 import { AppFrame } from '../shell/AppFrame';
@@ -215,7 +216,18 @@ export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?
   // every one of them. What it settles is handed to the tutor through the placement module's own
   // seam, so this screen only opens the door and gets out of the way. Free play and a course still
   // downloading are never gated.
-  const placement = usePlacementGate(topic, completed, !sandbox && !needsDownload && !resolving);
+  // THE CHAPTER'S POOL (docs/LEARNING-MODEL.md, curriculum/pool.ts). Null for a chapter the
+  // architect has not built one for, which is most of them today and changes nothing: the check
+  // falls back to the ground this client derives, and says that it derived it. When there IS a
+  // pool, the architect's own declared ground is what the learner is asked about, and what they
+  // answer is what pulls the prerequisite module into their group.
+  const pool = usePool(chapter, chapter ? subjectById(chapter.subjectId)?.name : undefined);
+  const placement = usePlacementGate(
+    topic,
+    completed,
+    !sandbox && !needsDownload && !resolving,
+    pool,
+  );
 
   // Gated: hold a plain paper screen for the single frame before router.back() lands — no cold
   // skeleton, no white flash. The learner returns to where they were, download in flight. The same

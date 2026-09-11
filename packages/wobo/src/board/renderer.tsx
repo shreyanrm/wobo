@@ -51,16 +51,19 @@ import {
   unitsWide,
   viewportToBoard,
 } from './anchors';
-import { geometryOf, type ObjectGeometry } from './geometry';
+import { geometryOf, MIN_TYPE_PX, type ObjectGeometry, tallestGlyphUnits } from './geometry';
 import { HAND_MASK_FACTOR, type HandFont, handFont, loadHandFont } from './handwriting';
 import {
   autoCameraTarget,
   blocksLayout,
+  CAMERA_FILL,
+  CAMERA_FILL_MAX,
   boardArea,
   type Camera,
   cameraArrived,
   contentBounds,
   easeCamera,
+  fitCamera,
   RESTING_CAMERA,
 } from './layout';
 import {
@@ -554,6 +557,8 @@ export interface BuildContext {
   occupied: BoardRect[];
   /** The page's own text near a subject, in viewport px, for a note to dodge. */
   avoid?: (near: RectLike) => readonly RectLike[];
+  /** The board's one written-type factor (`TYPE_LADDER`). 1 is the hand's own sizes. */
+  typeScale?: number;
 }
 
 /** The anchor-bearing side channels: an arrow starts somewhere, a line ends somewhere. */
@@ -668,6 +673,7 @@ export function liveObjectIds(
  */
 export function buildObjects(states: readonly BoardObjectState[], build: BuildContext): Built[] {
   const { frame, font, store, cache, boxes, occupied } = build;
+  const typeScale = build.typeScale ?? 1;
   const targetMap = new Map<string, BoardTarget>();
   for (const t of build.targets()) targetMap.set(t.id, t);
   const focusMap = new Map<string, RectLike | (() => RectLike | null)>();
@@ -685,6 +691,7 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
     objectBox: (id: string) => boxes.get(id) ?? null,
     font,
     occupied,
+    typeScale,
     // On the glass, placement is bounded by the glass itself, in px.
     ...(onGlass
       ? {
@@ -725,7 +732,9 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
       };
     }
     const sigBox = anchor ? resolveAnchorBox(anchor, ctx) : null;
-    const sig = `${anchorSignature(sigBox)}|${frame.zoom}`;
+    // The type factor is part of the signature: it is a stable scalar for the board, so this costs
+    // nothing per frame, and a board that grew its type rebuilds once rather than never.
+    const sig = `${anchorSignature(sigBox)}|${frame.zoom}|${typeScale}`;
     let entry: CacheEntry;
     if (hit && hit.sig === sig && hit.generation === state.generation && hit.font === font) {
       entry = hit;
@@ -801,6 +810,111 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
     if (b) out.push(b);
   }
   return out;
+}
+
+/**
+ * The largest the hand will grow its writing to reach the floor.
+ *
+ * Past this the board is no longer a drawing with words on it, and the honest answer is that the
+ * DRAWING is too dense for the surface — a pipeline's problem, not the hand's. A board that hits
+ * the cap is reported by the craft probe rather than silently rendered as a wall of type.
+ */
+export const MAX_TYPE_SCALE = 2;
+
+/**
+ * The rungs the hand will try, in order, when its own sizes fall under the floor.
+ *
+ * A LADDER, AND NOT A SOLVED NUMBER, because the thing being solved for is not monotone in the way
+ * arithmetic on boxes expects: growing a note moves where the next note can go, so a board can
+ * measure WORSE at a larger factor than at a smaller one. Measured, wave 49: the lens at 1440 read
+ * 12.8 px at a factor of about 1.5 and 11.6 px at 2. So every rung is laid for real and measured
+ * with the ruler the law is written in, the first that clears the floor wins, and if none does the
+ * best-measuring rung is kept. Five rungs, and only ever walked by a board that needs them.
+ */
+export const TYPE_LADDER = [1.25, 1.5, 1.75, MAX_TYPE_SCALE] as const;
+
+/**
+ * What the solver aims at, against a law of `MIN_TYPE_PX`.
+ *
+ * The solver works on the glyph boxes the hand laid; the lab measures the traced path the browser
+ * painted. They are the same quantity to within a rounding, and a board solved to land EXACTLY on
+ * twelve lands at 11.9 (measured: the plant cell at 390). A board can also settle a pixel either
+ * side of its own arithmetic depending on what else the surface is doing — the lens at 1440
+ * measured 12.8 with motion and 11.8 with reduced motion off the same solve. The headroom is the
+ * honest price of computing a thing the browser will re-measure, and it is set by that spread.
+ */
+const TYPE_FLOOR_PX = MIN_TYPE_PX + 1.2;
+
+/**
+ * THE ONE WRITTEN-TYPE FACTOR FOR A BOARD, SOLVED AGAINST THE INK AND NOT AGAINST THE CAMERA.
+ *
+ * `geometry.ts`'s note on `typeUnits` names the trap: a floor read off the live camera closes a
+ * loop, because the type it grows widens the ink the camera is fitted to. The algebra there shows
+ * the way out — under an auto fit the zoom cancels, and what decides legibility is the glyph's
+ * height as a fraction of the ink's own extent. So:
+ *
+ *  1. a PILOT build lays the board at the hand's own sizes, on the surface at zoom 1 (never the
+ *     gliding camera), and that build is memoised on the surface, not on the frame clock;
+ *  2. this function asks what factor would put the SMALLEST written glyph on the board at
+ *     `MIN_TYPE_PX`, allowing for the fact that growing the writing grows the ink the camera has
+ *     to fit — it re-fits the camera to the grown ink at each candidate, which is arithmetic on
+ *     boxes and costs no geometry;
+ *  3. the answer is one stable scalar, and every written size on the board is multiplied by it.
+ *
+ * Monotone and saturating in `k`, so a bisection lands on the smallest factor that clears the
+ * floor. Returns 1 when the hand's own sizes already do.
+ */
+/**
+ * What the SMALLEST written glyph on a built board actually measures on the glass, in px, under
+ * the camera that board would be fitted with. The one number the craft law is stated in, and the
+ * one the lab measures with `getBBox` × `getScreenCTM` — the same quantity, computed rather than
+ * screenshotted.
+ */
+export function smallestTypePx(
+  built: readonly Built[],
+  frame: BoardFrame,
+  autoCamera: boolean,
+  fill: number = CAMERA_FILL,
+): number {
+  let smallest = Infinity;
+  const boxes: BoardRect[] = [];
+  for (const b of built) {
+    const g = b.geometry;
+    if (!g) continue;
+    boxes.push(g.box);
+    const tall = tallestGlyphUnits(g);
+    if (tall > 0) smallest = Math.min(smallest, tall);
+  }
+  if (!Number.isFinite(smallest) || smallest <= 0) return Number.POSITIVE_INFINITY;
+  const k1 = pxPerUnit({ ...frame, zoom: 1 });
+  if (!(k1 > 0)) return Number.POSITIVE_INFINITY;
+  const zoom = autoCamera
+    ? fitCamera(contentBounds(boxes, 0), frame, { fill }).zoom
+    : frame.zoom > 0
+      ? frame.zoom
+      : 1;
+  return smallest * k1 * zoom;
+}
+
+
+/**
+ * THE FILL THE TYPE NEEDS, INSIDE THE LAW'S OWN BAND.
+ *
+ * `CAMERA_FILL` is 0.78 with a band of 0.70 to 0.85 — the margin is a law, and so is the 12 px
+ * floor. When the two pull against each other the margin is the one with give in it: a board whose
+ * smallest word is a tenth short is better read a little closer to the edge than a little too
+ * small. Never past 0.85, which is `fitCamera`'s own ceiling; a board that needs more than the
+ * band can give does not get it here, it gets reported.
+ */
+export function typeFillFor(
+  built: readonly Built[],
+  frame: BoardFrame,
+  autoCamera: boolean,
+): number {
+  if (!autoCamera) return CAMERA_FILL;
+  const px = smallestTypePx(built, frame, autoCamera, CAMERA_FILL);
+  if (!Number.isFinite(px) || px <= 0 || px >= TYPE_FLOOR_PX) return CAMERA_FILL;
+  return Math.min(CAMERA_FILL_MAX, (CAMERA_FILL * TYPE_FLOOR_PX) / px);
 }
 
 /**
@@ -1122,6 +1236,82 @@ export function BoardSurface(props: BoardSurfaceProps) {
     [rendered, liveIds],
   );
 
+  /**
+   * THE PILOT BUILD, and the board's one written-type factor (`typeScaleFor`).
+   *
+   * Its only job is to measure the ink, so it is laid on the SURFACE at zoom 1 and never on the
+   * gliding camera: that is what keeps the floor out of the loop `geometry.ts` warns about. It
+   * has its own cache, so the pilot and the real build never evict each other.
+   */
+  const pilotCache = useRef(new Map<string, CacheEntry>());
+  const pilotFrame = useMemo(() => ({ ...frame, zoom: 1, panX: 0, panY: 0 }), [frame]);
+  const pilot = useMemo(
+    () =>
+      buildObjects(rendered, {
+        frame: pilotFrame,
+        font,
+        store,
+        cache: pilotCache.current,
+        targets: targetsRef.current,
+        focus: focusRef.current,
+        boxes: new Map(),
+        occupied: [],
+      }),
+    [rendered, pilotFrame, font, store],
+  );
+  const fitFrame = autoCamera ? pilotFrame : liveFrame;
+  /**
+   * THE BOARD'S ONE WRITTEN-TYPE FACTOR, WALKED RATHER THAN SOLVED.
+   *
+   * `geometry.ts`'s note on `typeUnits` names the trap: a floor read off the live camera closes a
+   * loop, because the type it grows widens the ink the camera is fitted to. The algebra there
+   * shows the way out — under an auto fit the zoom cancels, and what decides legibility is the
+   * glyph's height as a fraction of the ink's own extent, against the surface's width in px. So
+   * the floor is settled on the SURFACE, at zoom 1, and never on the gliding camera.
+   *
+   * What arithmetic on boxes cannot settle is where a note LANDS: growing one moves where the next
+   * can go, so the answer is not monotone in the factor and a solved number lands wrong. Every
+   * rung of `TYPE_LADDER` is therefore laid for real and measured, the first that clears the floor
+   * wins, and the hand keeps its own sizes when it already does.
+   */
+  const ladderCaches = useRef(TYPE_LADDER.map(() => new Map<string, CacheEntry>()));
+  const typeScale = useMemo(() => {
+    const asIs = smallestTypePx(pilot, fitFrame, autoCamera, CAMERA_FILL_MAX);
+    // The common case, and the cheap one: the hand's own sizes already clear the floor.
+    if (!Number.isFinite(asIs) || asIs >= TYPE_FLOOR_PX) return 1;
+    let bestK = 1;
+    let bestPx = asIs;
+    for (let i = 0; i < TYPE_LADDER.length; i += 1) {
+      const k = TYPE_LADDER[i] as number;
+      const px = smallestTypePx(
+        buildObjects(rendered, {
+          frame: pilotFrame,
+          font,
+          store,
+          cache: ladderCaches.current[i] as Map<string, CacheEntry>,
+          targets: targetsRef.current,
+          focus: focusRef.current,
+          boxes: new Map(),
+          occupied: [],
+          typeScale: k,
+        }),
+        fitFrame,
+        autoCamera,
+        CAMERA_FILL_MAX,
+      );
+      // The first rung that clears the floor wins: the hand grows its writing as little as it can.
+      if (px >= TYPE_FLOOR_PX) return k;
+      if (px > bestPx + 0.05) {
+        bestPx = px;
+        bestK = k;
+      }
+    }
+    // Nothing on the ladder reaches the floor — this board's ink is mostly writing, so the fit
+    // gives back most of what the type gains (see MAX_TYPE_SCALE). Take the rung that measured
+    // best, and leave the rest to whoever owns how densely this board is drawn.
+    return bestK;
+  }, [rendered, pilot, pilotFrame, fitFrame, font, store, autoCamera]);
+
   /** The board- and object-anchored half: rebuilt only when the store, the frame or the font moves. */
   const settledBuild = useMemo(() => {
     const boxes = new Map<string, BoardRect>();
@@ -1135,11 +1325,12 @@ export function BoardSurface(props: BoardSurfaceProps) {
       focus: focusRef.current,
       boxes,
       occupied,
+      typeScale,
       ...(avoidRef.current ? { avoid: avoidRef.current } : {}),
     });
     return { objects, boxes, occupied };
     // `rendered` identity changes whenever the store emits, which is the correct trigger.
-  }, [anchored, liveFrame, font, store]);
+  }, [anchored, liveFrame, font, store, typeScale]);
 
   /** The half that hangs off the page: rebuilt every frame, because the page moves under it. */
   const floatingBuilt = useMemo(() => {
@@ -1157,9 +1348,10 @@ export function BoardSurface(props: BoardSurfaceProps) {
       // Seeded with the settled half's boxes so an object anchored across the two still resolves.
       boxes: new Map(settledBuild.boxes),
       occupied: [...settledBuild.occupied],
+      typeScale,
       ...(avoidRef.current ? { avoid: avoidRef.current } : {}),
     });
-  }, [floating, liveFrame, font, store, settledBuild, screenTick]);
+  }, [floating, liveFrame, font, store, settledBuild, screenTick, typeScale]);
 
   /** The two halves back in drawing order — z-order is the store's order, not the build order. */
   const built = useMemo(() => {
@@ -1194,11 +1386,23 @@ export function BoardSurface(props: BoardSurfaceProps) {
         : null,
     [autoCamera, settledBuild],
   );
+  /** The margin the ink keeps — inside the law's band, and only as tight as the type needs. */
+  const cameraFill = useMemo(
+    () =>
+      typeFillFor(
+        floatingBuilt.length ? [...settledBuild.objects, ...floatingBuilt] : settledBuild.objects,
+        pilotFrame,
+        autoCamera,
+      ),
+    [settledBuild, floatingBuilt, pilotFrame, autoCamera],
+  );
   const autoTarget = useMemo(() => {
     if (!autoCamera) return null;
     const boxes = floatingBuilt.flatMap((b) => (b.geometry ? [b.geometry.box] : []));
-    return autoCameraTarget(settledBounds ? [...boxes, settledBounds] : boxes, [], frame);
-  }, [autoCamera, settledBounds, floatingBuilt, frame]);
+    return autoCameraTarget(settledBounds ? [...boxes, settledBounds] : boxes, [], frame, {
+      fill: cameraFill,
+    });
+  }, [autoCamera, settledBounds, floatingBuilt, frame, cameraFill]);
   // The camera GLIDES to the fit rather than snapping to it: every new object changes the box the
   // ink has to fit into, and a hard cut on each stroke would read as the board flinching. Reduced
   // motion goes straight there, which is the same rule the ink itself follows.

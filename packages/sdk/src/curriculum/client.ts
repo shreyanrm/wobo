@@ -46,6 +46,7 @@ export const CURRICULUM_CAPABILITIES = {
   overlayGet: 'curriculum.overlay.get',
   overlayApply: 'curriculum.overlay.apply',
   status: 'curriculum.status',
+  blueprint: 'curriculum.blueprint',
   ownRead: 'curriculum.own.read',
   ownConfirm: 'curriculum.own.confirm',
   ownPublish: 'curriculum.own.publish',
@@ -184,6 +185,16 @@ export interface CurriculumClient {
     level?: string;
     subject?: string;
   }): Promise<CurriculumStatusView>;
+  /**
+   * The chapter's POOL of modules (docs/LEARNING-MODEL.md), or null when the architect has not
+   * built one for this cell.
+   *
+   * Deliberately `unknown`: the document's schema lives with the code that walks it
+   * (`curriculum/blueprint.ts` in the app, `isBlueprint`), so there is one parser and not two, and
+   * a pool the app cannot read is refused there rather than half-typed here. This never builds a
+   * pool — the architect is a platform-paid job — so a cell without one simply answers null.
+   */
+  blueprint(cell: BlueprintCell): Promise<{ blueprint: unknown | null; held: number }>;
   own: {
     /** Paste, photo or PDF in; a personal syllabus waiting for confirmation out (§6). */
     read(
@@ -195,6 +206,18 @@ export interface CurriculumClient {
     /** Offer it to the registry as community-contributed. Always the learner's choice. */
     offer(frameworkId: string, note?: string): Promise<OwnFrameworkView>;
   };
+}
+
+/** The syllabus cell a pool belongs to: one chapter, at one board, class and version. */
+export interface BlueprintCell {
+  node: string;
+  chapter: string;
+  board: string;
+  grade: string;
+  subject: string;
+  contentVersion: string;
+  topics: readonly { id: string; name: string }[];
+  minutesBudget?: number | null;
 }
 
 const clean = <T extends Record<string, unknown>>(payload: T): T =>
@@ -260,6 +283,20 @@ export function createCurriculumClient(
       const view = parseTopics(raw, frameworkId);
       if (!view) throw unreadable('that chapter');
       return view;
+    },
+
+    async blueprint(cell) {
+      const raw = (await post(C.blueprint, {
+        node: cell.node,
+        chapter: cell.chapter,
+        board: cell.board,
+        grade: cell.grade,
+        subject: cell.subject,
+        contentVersion: cell.contentVersion,
+        topics: cell.topics.map((t) => ({ id: t.id, name: t.name })),
+        ...(cell.minutesBudget ? { minutesBudget: cell.minutesBudget } : {}),
+      })) as { blueprint?: unknown; held?: number } | null;
+      return { blueprint: raw?.blueprint ?? null, held: Number(raw?.held ?? 0) };
     },
 
     async pin(frameworkId, versionId) {

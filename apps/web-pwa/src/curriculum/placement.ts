@@ -147,10 +147,36 @@ export interface PlacementSources {
   ontology?: (nodeId: string) => Promise<readonly { name: string }[]>;
   /** Every topic in memory, as candidates for an ontology name match. Defaults to the registry. */
   loaded?: () => Topic[];
+  /**
+   * The ARCHITECT's own statement of what this topic assumes: `groundUnder(blueprint, topicId)`
+   * from `curriculum/blueprint.ts`, when a blueprint exists for the chapter.
+   *
+   * It wins over everything below it and is labelled `blueprint` rather than laundered into a
+   * derived reason, because it is a different kind of claim. The graph in `curriculum/prereq.ts`
+   * is this client reading the board's printed order; this is the architect saying, in so many
+   * words, that the chapter leans on this and the board does not re-teach it, and putting a
+   * prerequisite module in the pool for it. What the learner answers here is what pulls that
+   * module into their group (`unmetAssumptions`), which is the whole point of asking.
+   */
+  assumptions?: (topic: Topic) => readonly PlacementAssumption[];
 }
+
+/** One thing the chapter assumes, as the blueprint declares it. */
+export interface PlacementAssumption {
+  id: string;
+  what: string;
+  fromChapter?: string | null;
+}
+
+/**
+ * How an assumption is named among the placements. Prefixed so it can never collide with a topic
+ * id, and so `unmetAssumptions` can pick its own rows back out of the one persisted store.
+ */
+export const ASSUMPTION_PREFIX = 'assume:';
 
 /** Cross-chapter ground is "past learning"; the lesson printed just before this one is not. */
 const PAST_LEARNING: ReadonlySet<PrereqReason> = new Set<PrereqReason>([
+  'blueprint',
   'ontology',
   'editorial',
   'name',
@@ -169,6 +195,21 @@ export async function planPlacement(
   completed: ReadonlySet<string>,
   sources: PlacementSources = {},
 ): Promise<PlacementPlan | null> {
+  // THE ARCHITECT FIRST. A blueprint states what the chapter assumes; nothing this client derives
+  // can outrank that, so when there is one it IS the check. It is still capped at three questions,
+  // and an assumption already settled is never asked twice.
+  const placedAlready = load();
+  const declared = (sources.assumptions?.(topic) ?? []).filter(
+    (a) => a.id && !placedAlready[ASSUMPTION_PREFIX + a.id],
+  );
+  if (declared.length > 0) {
+    return {
+      topicId: topic.id,
+      topicName: topic.name,
+      questions: declared.slice(0, MAX_PLACEMENT_QUESTIONS).map((a) => assumptionQuestion(topic, a)),
+    };
+  }
+
   // The platform's own edges first, when this topic reaches a concept the platform knows. Anything
   // it names that this learner's syllabus does not contain is dropped, never invented.
   if (topic.nodeId && sources.ontology) {
@@ -188,6 +229,43 @@ export async function planPlacement(
   const questions: PlacementQuestion[] = [];
   for (const step of chosen) questions.push(await question(step, sources));
   return { topicId: topic.id, topicName: topic.name, questions };
+}
+
+/**
+ * One question about one declared assumption.
+ *
+ * It is a `self` question and it can be nothing else: an assumption is a piece of past learning
+ * named in words ("area of a rectangle"), not a syllabus node with a verifier-frozen item behind
+ * it. Writing a question for it here would be inventing a syllabus fact, which is the one thing
+ * this module never does. The learner's own word about their own past is the honest instrument,
+ * and `fromChapter` is said out loud so they are placing a real memory and not a phrase.
+ */
+function assumptionQuestion(topic: Topic, assumption: PlacementAssumption): PlacementQuestion {
+  const where = assumption.fromChapter ? ` (${assumption.fromChapter})` : '';
+  return {
+    id: newId(),
+    prereqId: ASSUMPTION_PREFIX + assumption.id,
+    prereqName: assumption.what,
+    reason: 'blueprint',
+    depth: 1,
+    prompt: `Before ${topic.name.toLowerCase()}: how is ${assumption.what}${where} for you?`,
+    kind: 'self',
+    options: SELF_OPTIONS,
+  };
+}
+
+/**
+ * The assumption ids this learner has not shown, for `LearnerState.unmetAssumptions`.
+ *
+ * This is the loop closing: the check asked what the architect said the chapter leans on, and this
+ * hands the answer straight to `groupFor`, which pulls the matching prerequisite module into their
+ * group. A claim ("I know this") is not a gap, exactly as everywhere else in this module: it is
+ * recorded as a claim and taken at its word until something says otherwise.
+ */
+export function unmetAssumptions(): string[] {
+  return Object.values(load())
+    .filter((r) => r.prereqId.startsWith(ASSUMPTION_PREFIX) && gapFor(r.band) !== undefined)
+    .map((r) => r.prereqId.slice(ASSUMPTION_PREFIX.length));
 }
 
 async function question(step: GroundStep, sources: PlacementSources): Promise<PlacementQuestion> {

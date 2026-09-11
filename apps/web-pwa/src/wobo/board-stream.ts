@@ -111,6 +111,19 @@ export interface BoardContext {
   interrupted_at?: string;
   /** Ids already on the board, so Wobo does not redraw what is there. */
   drawn?: string[];
+  /**
+   * WHAT THIS TURN'S OWN PEN HAS ALREADY PUT DOWN — the instant mark (docs/INK-FOUR.md), resolved
+   * from the glass map and drawn before the request left. `drawn` is the turn BEFORE this one and
+   * is only ids; this carries the mark itself, because the brain owes it words: a mark on the
+   * glass that nothing is said about is the same broken law as a sentence about a mark that was
+   * never drawn (`services/gateway/src/wobo_gateway/board/stream.py`).
+   */
+  standing?: {
+    id: string;
+    kind: 'ring' | 'underline';
+    anchor: { target: string };
+    words?: string;
+  }[];
   /** Inside a lesson: the board is the screen. */
   lesson?: boolean;
   /**

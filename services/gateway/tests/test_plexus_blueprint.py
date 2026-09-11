@@ -21,7 +21,6 @@ from blueprint_fixture import blueprint as good_blueprint
 from blueprint_fixture import brief as good_brief
 from wobo_gateway.plexus import blueprint as bp
 
-
 # --- helpers ------------------------------------------------------------------------------------
 
 
@@ -232,6 +231,23 @@ def test_refuses_a_boss_that_is_not_the_summit() -> None:
     assert any("boss" in r for r in refusals(raw))
 
 
+def test_refuses_a_boss_that_does_not_test_across_every_topic() -> None:
+    """The boss is the only thing that tests more than one topic at a time, which is the point of
+    it (docs/LEARNING-MODEL.md section 3). A boss that skips a topic leaves the chapter untested."""
+    raw = draft()
+    module(raw, "b1")["serves"] = ["t1", "t2"]
+    assert any("boss" in r and "t5" in r for r in refusals(raw))
+
+
+def test_refuses_a_pool_that_reaches_for_one_mechanic_over_and_over() -> None:
+    """A pool whose every module is the same act is a quiz with a skin, whatever it is called."""
+    raw = draft()
+    for m in raw["modules"]:
+        for mech in m["mechanics"]:
+            mech["primitives"] = ["tap"]
+    assert any("mechanic" in r for r in refusals(raw))
+
+
 def test_refuses_a_side_door_that_sits_in_the_path() -> None:
     """Optional, never in the path, never a nag (docs/CONTENT-INTERACTION.md section 7)."""
     raw = draft()
@@ -314,7 +330,9 @@ def test_the_judge_reads_the_syllabus_node_it_is_scoring_against() -> None:
 # --- 6. build: one regeneration on the second rung, then the hold --------------------------------
 
 
-def test_a_clean_first_draft_is_stored_canonical_and_costs_one_create_call(tmp_path, monkeypatch) -> None:
+def test_a_clean_first_draft_is_stored_canonical_and_costs_one_create_call(
+    tmp_path, monkeypatch
+) -> None:
     monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path))
     caller = FakeCaller(good_blueprint())
     result = bp.build(
@@ -328,7 +346,9 @@ def test_a_clean_first_draft_is_stored_canonical_and_costs_one_create_call(tmp_p
     assert caller.models[0] == bp.create_primary()
 
 
-def test_a_refused_draft_is_regenerated_once_on_the_create_tier_s_second_rung(tmp_path, monkeypatch) -> None:
+def test_a_refused_draft_is_regenerated_once_on_the_create_tier_s_second_rung(
+    tmp_path, monkeypatch
+) -> None:
     monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path))
     bad = draft()
     module(bad, "p1")["serves"] = ["t9"]  # a level outside the node
@@ -348,11 +368,33 @@ def test_the_second_draft_is_told_what_the_first_was_refused_for(tmp_path, monke
     bad = draft()
     module(bad, "p1")["serves"] = ["t9"]
     caller = FakeCaller(bad, good_blueprint())
-    bp.build(brief(), caller=caller, judge_caller=FakeCaller(verdict(84)), judge_model="fake/verify")
-    assert "t9" in caller.prompts[1]
+    bp.build(
+        brief(), caller=caller, judge_caller=FakeCaller(verdict(84)), judge_model="fake/verify"
+    )
+    second = caller.prompts[1]
+    assert "t9" in second
+    # ON TOP, not appended. The first live Luna run came back with the same twelve refusals
+    # unchanged when the list sat after the brief; a cheap model reads the head of a long message.
+    assert second.index("t9") < second.index('"topics"')
 
 
-def test_a_second_refusal_is_held_for_the_superadmin_and_never_served(tmp_path, monkeypatch) -> None:
+def test_a_draft_the_schema_refuses_is_told_which_field_broke_it(tmp_path, monkeypatch) -> None:
+    """A refusal the next attempt cannot read is a refusal that buys nothing. The first live Luna
+    run spent a whole second rung on "the draft is not a blueprint" and learned nothing from it."""
+    monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path))
+    broken = draft()
+    module(broken, "p1")["minutes"] = "seven"
+    caller = FakeCaller(broken, good_blueprint())
+    bp.build(
+        brief(), caller=caller, judge_caller=FakeCaller(verdict(88)), judge_model="fake/verify"
+    )
+    second = caller.prompts[1]
+    assert "minutes" in second.split('"topics"')[0]
+
+
+def test_a_second_refusal_is_held_for_the_superadmin_and_never_served(
+    tmp_path, monkeypatch
+) -> None:
     monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path))
     bad = draft()
     module(bad, "p1")["serves"] = ["t9"]
@@ -481,7 +523,9 @@ def test_a_learner_who_shows_a_misconception_gets_its_repair_and_nobody_else_doe
     assert "r2" not in [m.id for m in clean]
 
 
-def test_a_learner_who_already_holds_the_topic_is_taken_to_the_stretch_not_the_confirmations() -> None:
+def test_a_learner_who_already_holds_the_topic_is_taken_to_the_stretch_not_the_confirmations() -> (
+    None
+):
     parsed = bp.parse(good_blueprint())
     assert parsed is not None
     fast = bp.group_for(parsed, "t4", bp.LearnerState(held_ideas=("i5",)))
@@ -530,3 +574,107 @@ def test_the_brief_carries_the_archetypes_we_teach_never_a_person() -> None:
 def test_a_node_with_no_name_is_refused_before_a_model_is_paid(bad: str) -> None:
     with pytest.raises(ValueError):
         bp.NodeBrief.from_dict({**good_brief(), "chapter": bad})
+
+
+# --- 10. the seam: a cell's course is built from the blueprint, not from a mechanical split -------
+
+
+def test_a_module_renders_through_the_ordinary_generate_tier_and_carries_its_cell() -> None:
+    """The blueprint is the platform's; RENDERING each module for the cell stays on generate and is
+    the learner's, exactly as it was (docs/LEARNING-MODEL.md section 4)."""
+    parsed = bp.parse(good_blueprint())
+    assert parsed is not None
+    payload = bp.compose_brief(parsed, parsed.modules[0], brief())
+    for key, value in (
+        ("board", "CBSE"),
+        ("grade", "8"),
+        ("subject", "Science"),
+        ("chapter", "Force and Pressure"),
+        ("contentVersion", "2026-27"),
+    ):
+        assert payload[key] == value
+
+
+def test_a_module_s_brief_carries_the_thread_the_idea_and_the_mechanic_it_must_embody() -> None:
+    parsed = bp.parse(good_blueprint())
+    assert parsed is not None
+    module_ = parsed.module_by_id("r2")
+    assert module_ is not None
+    payload = bp.compose_brief(parsed, module_, brief())
+    assert payload["thread"] == parsed.thread
+    assert "pressure is the force spread over the area it presses on" in payload["ideas"]
+    assert (
+        payload["misconception"] == "a heavier object always presses harder, whatever it stands on"
+    )
+    assert payload["mechanic"]["primitives"]
+    assert payload["cores"] == ["pressure"]
+
+
+def test_the_mechanic_rotates_through_the_stored_candidates_and_never_off_the_end() -> None:
+    """The ninety-day variety comes from the stored candidates, never from paying the create tier
+    again (docs/CONTENT-INTERACTION.md section 8)."""
+    parsed = bp.parse(good_blueprint())
+    assert parsed is not None
+    module_ = parsed.modules[0]
+    picks = [bp.mechanic_for(module_, i)["id"] for i in range(5)]
+    assert picks[0] != picks[1]
+    assert picks[2] == picks[0], "two candidates rotate with period two"
+    assert bp.mechanic_for(module_, -1)["id"] == picks[1]
+
+
+def test_the_free_text_goal_course_is_untouched_by_any_of_this() -> None:
+    """`generate.course` is a learner's own ask and stays theirs to pay for: a different tier, a
+    different capability, and nothing in this module reaches it."""
+    import inspect
+
+    from wobo_gateway import registry
+
+    assert registry.policy("generate.course").tier.value == "generate"
+    assert not registry.platform_paid("generate.course")
+    assert "generate.course" not in inspect.getsource(bp)
+
+
+# --- 11. the judge must see the whole blueprint --------------------------------------------------
+
+
+def test_the_judge_is_handed_the_whole_blueprint() -> None:
+    """Found live: the judge's payload was capped at 24,000 characters, so sol was scoring a
+    document cut off partway through and reported, correctly, that the blueprint was "truncated".
+    A judge that scores half an artifact is worse than no judge, because its verdict is believed."""
+    caller = FakeCaller(verdict(80))
+    whole = good_blueprint()
+    bp.judge(whole, brief(), caller=caller, judge_model="fake/verify")
+    asked = caller.prompts[0]
+    assert json.dumps(whole, ensure_ascii=False) in asked
+    for module_ in whole["modules"]:
+        assert f'"{module_["id"]}"' in asked, module_["id"]
+
+
+def test_a_blueprint_too_big_even_for_the_judge_says_so_out_loud() -> None:
+    """A cut can still happen on a monstrous pool. It is never silent: the prompt says the document
+    was shortened, so the verdict is read as a verdict on part of it."""
+    caller = FakeCaller(verdict(80))
+    huge = good_blueprint()
+    huge["modules"] = huge["modules"] * 60
+    bp.judge(huge, brief(), caller=caller, judge_model="fake/verify")
+    assert "shortened" in caller.prompts[0]
+
+
+def test_refuses_two_ways_in_that_are_the_same_way_twice() -> None:
+    """Two ways in "taught differently" (docs/LEARNING-MODEL.md section 5).
+
+    Two simulations of the same thing are one way in written out twice, and a learner the first one
+    lost is lost by the second for exactly the same reason."""
+    raw = draft()
+    module(raw, "p2")["kind"] = module(raw, "p1")["kind"]
+    assert any("i1" in r and "same way" in r for r in refusals(raw))
+
+
+def test_refuses_ground_laid_after_what_stands_on_it() -> None:
+    """The judge caught this twice on live Luna drafts: a prerequisite module sitting AFTER the
+    modules that need it. A pool can hold every prerequisite it owes and still be useless if the
+    learner meets them last, so the order carries the rule and not just the pool."""
+    raw = draft()
+    order = [m for m in raw["flow"]["order"] if m != "q2"]
+    raw["flow"]["order"] = [*order, "q2"] if order[-1] != "b1" else [*order[:-1], "q2", "b1"]
+    assert any("q2" in r and "before" in r for r in refusals(raw))

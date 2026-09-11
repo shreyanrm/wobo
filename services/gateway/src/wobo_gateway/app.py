@@ -29,6 +29,7 @@ actually work rather than only that the process is up.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import logging
@@ -101,6 +102,7 @@ from wobo_gateway.registry import (
     RoutingPolicy,
     canonical_capability,
     capabilities,
+    platform_paid,
     policy,
 )
 from wobo_gateway.reports import LIMITED_PATHS as REPORT_LIMITED_PATHS
@@ -846,20 +848,27 @@ def _scaffolded_words(
     have been an error before the first byte is therefore the same thing here: what was drawn
     stands, the question held in reserve is asked, and the turn closes honestly. A provider that
     falls over used to cost the whole turn; now it costs the words.
+
+    THE WORDS, AND ONLY THE WORDS (the adversary, wave 42, finding 10). Until 2026-09-10 this
+    asked ``board_plan_for`` for a whole board plan — the 14 428-character drawing grammar, the
+    glass map, 900 tokens on the generate tier — and every object it planned was then dropped by
+    ``scaffold.resume`` as a mark already on the board, on all five from-scratch boards. The
+    learner sat through that for a sentence. A turn that drew from a pipeline now asks the tiny
+    tier for words (``scaffold.words_brief``), which is the only part of it the model made.
     """
 
     def _words(turn: Any) -> None:
         from wobo_gateway.board import scaffold as board_scaffold
         from wobo_gateway.board.planner import plan_board
-        from wobo_gateway.wobo import board_plan_for
+        from wobo_gateway.wobo import board_words_for
 
         context = request.payload.get("context") or {}
         board_context = request.payload.get("board") or {}
-        # The model may anchor a mark to something the scaffold drew — it is on the board, so it
-        # is in the surface the planner resolves anchors against.
+        # The figure the scaffold drew is on the board, so it is in the surface the planner
+        # resolves anchors against — the words carry none, and a later phase may.
         drawn = [*(board_context.get("drawn") or []), *scaffold.ids()]
         try:
-            model_plan = board_plan_for(request.payload, live=True)
+            model_plan = board_words_for(request.payload, scaffold=scaffold)
             if model_plan is None:
                 turn.extend(board_scaffold.alone(scaffold))
                 return
@@ -868,9 +877,9 @@ def _scaffolded_words(
                 context=context,
                 board_context={**board_context, "drawn": drawn},
             )
-            # The spoken-number law reads the WHOLE drawing, so it runs before the marks the
-            # scaffold already laid are dropped from this phase.
-            spoken.enforce_board(planned, context)
+            # The spoken-number law reads the WHOLE drawing, and this phase holds none of it: the
+            # figure and its ledger are the scaffold's (``scaffold.say_the_drawing``).
+            board_scaffold.say_the_drawing(scaffold, planned, context)
             screened = screen_wobo_outbound(
                 {
                     "say": planned.say,
@@ -1112,8 +1121,25 @@ def stream_board_turn(
 
     if shaper is not None:
         plan = shaper.shape_plan(plan)
+    # A mark may hang off something an EARLIER turn drew and the learner is still looking at
+    # (``board.planner.Surface.drawn``), so those ids are on the board as far as the wire is
+    # concerned — see ``stream._on_the_wire``.
+    #
+    # ``standing`` is the other half, and it is this turn's own: the mark the CLIENT laid from the
+    # glass map before the request left (docs/INK-FOUR.md, the instant mark). It carries its words,
+    # so the wire can keep the law about it — nothing stands on the glass unspoken.
+    board_now = request.payload.get("board") or {}
     turn = board_stream.new_turn(
-        owner, board_stream.build_events(plan, actions=actions, card=card)
+        owner,
+        board_stream.build_events(
+            plan,
+            actions=actions,
+            card=card,
+            on_board=[
+                *(str(i) for i in (board_now.get("drawn") or []) if isinstance(i, str)),
+                *(m for m in (board_now.get("standing") or []) if isinstance(m, dict)),
+            ],
+        ),
     )
     return _stream(turn, -1, headers)
 
@@ -1580,6 +1606,23 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                     "message": "Send me the photo at /v1/doubt and I will read it there.",
                 },
             )
+        # The creative tier is the PLATFORM's (registry.PLATFORM_PAID): the concept core, the
+        # architect's blueprint. Each runs once per concept or per cell, on the most expensive
+        # model the product owns, out of the creative pool, and every learner of that cell is then
+        # served the cached result for nothing. Being in the registry is how a capability EXISTS
+        # here — it is what /v1/capabilities lists, what the consent gate reads, what the meter
+        # classifies — and it is NOT permission to be invoked off a body a caller wrote. Without
+        # this line any valid learner token could start an Astra call against the creative pool,
+        # as many times as it liked, and the spend would never appear on that learner's allowance
+        # because it is by design not theirs. Reached by the job that owns it, or not reached.
+        if platform_paid(name):
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "code": "not_a_learner_capability",
+                    "message": "That is not something you can ask for here.",
+                },
+            )
 
         # Derived, never declared: the tier comes from the learner's stored record, and the plan
         # from their subscription — which ends by itself when the period paid for does.
@@ -1645,6 +1688,48 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         # refunded — a learner never pays for a call we did not serve.
         snap = budget.charge(meter, name, plan, anonymous=principal.anonymous)
         headers = budget.headers(snap, budget.classify(name))
+
+        # THE GENERIC-TURN DOOR (docs/CACHES.md §2). A turn whose context packet carries nothing
+        # personal is one question asked by many learners in the same words, and the answer to it
+        # was written once. Read AFTER grounding, deliberately: `mind.ground_lifetime` above fills
+        # the dossier from the learner's own row, so this is the packet as the MODEL would have
+        # seen it, and a turn that grounding made personal is answered live.
+        #
+        # AFTER the meter and before the model: a cached turn still counts against the day's turns
+        # (it is a turn the learner took), and costs the platform nothing. `content.turns` is where
+        # the answer came from and `served()` strips that before it leaves the brain, exactly as it
+        # strips a model id.
+        #
+        # THE PLAIN TURN ONLY. The streaming board turn returned above, before the meter, and it is
+        # deliberately left alone this wave: its whole value is the first stroke arriving ahead of
+        # the first full stop (board/stream.py), and serving a stored plan through that machinery is
+        # a second design and wants its own proof. The ROW a plain turn writes already carries a
+        # plan, so the store is ready for it.
+        if name == "wobo.turn":
+            from wobo_gateway import generic_turn
+
+            # A CACHE MUST NEVER FAIL A TURN. Reading the store is an optimisation and a learner's
+            # answer is not: anything that goes wrong in there — a malformed packet the surface
+            # re-anchoring chokes on, a row that is not the shape it should be — is a miss and a
+            # live turn, never a 500. The write below carries the same suppression for the same
+            # reason.
+            cached_turn = None
+            with contextlib.suppress(Exception):
+                cached_turn = generic_turn.load(request.payload)
+            if cached_turn is not None:
+                return JSONResponse(
+                    status_code=200,
+                    content=CapabilityResponse(
+                        capability=name,
+                        track=policy(name).track.value,
+                        model="content.turns",
+                        cache_hit=True,
+                        latency_ms=0.0,
+                        tokens=0,
+                        output=cached_turn,
+                    ).served(),
+                    headers=headers,
+                )
 
         # The curriculum registry (CURRICULUM.md §8). It rides this route rather than a router of
         # its own so it inherits the one door, the one limiter and the one meter — but it never
@@ -1801,6 +1886,24 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             budget.refund(meter, name)
             snap = budget.snapshot(meter, plan, anonymous=principal.anonymous)
             headers = budget.headers(snap, budget.classify(name))
+
+        # THE OTHER HALF OF THE GENERIC-TURN DOOR: what was just answered live, written once for
+        # everybody who asks it in the same words at the same level. The safety gate's answer and
+        # the seed placeholder are excluded by the same test that refunds them — neither is an
+        # answer to the question, and caching either would serve it forever.
+        if name == "wobo.turn" and result.model not in ("safety.gate", "seed"):
+            from wobo_gateway import generic_turn
+
+            with contextlib.suppress(Exception):
+                generic_turn.save(
+                    request.payload,
+                    result.output,
+                    model=result.model,
+                    # What this request actually paid a provider, from the one funnel every live
+                    # model call passes through. None when nothing here could be priced, which the
+                    # stores desk shows as an unpriced row rather than as a free one.
+                    cost_usd=ledger.take_spend(),
+                )
 
         return JSONResponse(
             status_code=200,

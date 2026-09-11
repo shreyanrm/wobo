@@ -30,6 +30,7 @@ import logging
 import os
 import re
 import struct
+import threading
 from typing import Any
 
 from wobo_gateway.routing import Tier, provider_of, tier_chain
@@ -49,9 +50,19 @@ TTS_MODEL = "gemini-2.5-flash-preview-tts"
 _TTS_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{TTS_MODEL}:generateContent"
 _HTTP_TIMEOUT_S = 60.0
 #: The Gemini rung's deadline when OpenAI stands behind it. A line is at most 600 characters and
-#: Gemini's text-to-speech answers it in a few seconds; twenty without an answer is a hang, and
-#: the learner is better served by the other voice than by forty more seconds of waiting.
-_PRIMARY_TIMEOUT_S = 20.0
+#: Gemini's text-to-speech answers it in a few seconds; without an answer by then it is a hang, and
+#: the learner is better served by the other voice than by more seconds of waiting.
+#:
+#: TWELVE, NOT TWENTY (the adversary, wave 42, the spoken line). Measured live on 2026-09-10 off
+#: the wire, every browser muted: when Google answered it answered in 4.3, 4.7, 4.8, 5.2, 5.5, 6.1,
+#: 6.6, 8.0, 9.4 and 10.3 seconds; when it hung, the learner waited the whole twenty and THEN the
+#: 2.5 to 4 seconds OpenAI needed — 22.5, 22.6, 22.9, 23.4 and 24.2 seconds for ONE SENTENCE, five
+#: times in a four-minute battery. Twelve is above every answer Google actually gave, so no line
+#: that would have been spoken in Wobo's first voice is handed to the second one, and a hang now
+#: costs a learner about fifteen seconds instead of twenty-five. The four-to-ten seconds Google
+#: takes when it does answer is not a timeout's to fix: it is the desk's, and it is written up in
+#: the wave report.
+_PRIMARY_TIMEOUT_S = 12.0
 _VOICE = "Kore"
 
 #: The voice behind Gemini's, read from the router's ``voice`` row (``routing.DEFAULT_TABLE``,
@@ -115,7 +126,6 @@ def synthesize_narration(
             "tts: no key present (checked GEMINI_API_KEY, GOOGLE_AI_API_KEY, OPENAI_API_KEY)"
         )
         return None
-    from wobo_gateway import health, telemetry
 
     key = _cache_key(text, instruction)
     remembered = _cached(key)
@@ -123,6 +133,84 @@ def synthesize_narration(
         audio, spoke = remembered
         _record_cached(capability, audio, served=spoke)
         return audio
+
+    # ONE LINE, ONE BUY, HOWEVER MANY ASK AT ONCE. The disk above only catches a line already
+    # bought; two callers a moment apart both missed it and both paid, and the read-aloud path now
+    # buys the sentences behind the one being read while it reads it (``voice.buy_line_ahead``), so
+    # the client's own call for the next sentence lands squarely on a buy already in flight. The
+    # second caller waits on the first's answer instead of paying the vendor again — and if nothing
+    # comes of it, buys it themselves rather than leaving a learner in silence.
+    mine, waiting = _claim_buy(key)
+    if mine is None and waiting is not None:
+        waiting.wait(_INFLIGHT_WAIT_S)
+        remembered = _cached(key)
+        if remembered is not None:
+            audio, spoke = remembered
+            _record_cached(capability, audio, served=spoke)
+            return audio
+    try:
+        return _buy(
+            text,
+            instruction,
+            capability=capability,
+            key=key,
+            google=google,
+            key_name=key_name,
+            openai_key=openai_key,
+        )
+    finally:
+        _release_buy(key, mine)
+
+
+#: How long a caller waits on somebody else's buy of the same line before buying it themselves:
+#: the longest a buy can honestly take (the first voice's deadline, then the second voice's own
+#: few seconds) and no longer. A minute would pin a worker on a line whose listener left — the
+#: client gives a sentence eight seconds and then reads it in the device's voice (``speech.tsx``).
+_INFLIGHT_WAIT_S = _PRIMARY_TIMEOUT_S + 5.0
+_inflight: dict[str, threading.Event] = {}
+_inflight_lock = threading.Lock()
+
+
+def _claim_buy(key: str) -> tuple[threading.Event | None, threading.Event | None]:
+    """``(mine, waiting)``: the event to set when this caller's buy ends, or somebody else's."""
+    with _inflight_lock:
+        waiting = _inflight.get(key)
+        if waiting is not None:
+            return None, waiting
+        mine = _inflight[key] = threading.Event()
+        return mine, None
+
+
+def _release_buy(key: str, mine: threading.Event | None) -> None:
+    """Let go of a claimed buy, whichever way it ended, and wake everyone waiting on it."""
+    if mine is None:
+        return
+    with _inflight_lock:
+        if _inflight.get(key) is mine:
+            del _inflight[key]
+    mine.set()
+
+
+def reset_inflight() -> None:
+    """Test seam — forget every buy in flight."""
+    with _inflight_lock:
+        for event in _inflight.values():
+            event.set()
+        _inflight.clear()
+
+
+def _buy(
+    text: str,
+    instruction: str | None,
+    *,
+    capability: str,
+    key: str,
+    google: str | None,
+    key_name: str,
+    openai_key: str | None,
+) -> dict[str, str] | None:
+    """The paid half of :func:`synthesize_narration`: Gemini first, OpenAI behind it, then kept."""
+    from wobo_gateway import health, telemetry
 
     requested = GEMINI_TTS_ID if google else OPENAI_TTS_ID
     audio = None

@@ -14,6 +14,8 @@ import { pathToRoute, routeToPath } from '../../shell/router';
 
 const HERE = import.meta.dir;
 const read = (rel: string) => readFileSync(join(HERE, rel), 'utf8');
+/** A source with every space taken out: what the code says, not how the formatter wrapped it. */
+const packed = (source: string) => source.replace(/\s+/g, '');
 
 const SCREEN = read('DoubtScreen.tsx');
 const ENTRY = read('DoubtEntry.tsx');
@@ -69,8 +71,10 @@ describe('law 1 — the reading is shown before the answer', () => {
 
   it('the region a reading came from lights on the photo when tapped, in the text or on the page', () => {
     expect(STAGE).toContain("className={on ? 'db-region db-lit' : 'db-region'}");
-    expect(SCREEN).toContain(
-      "dispatch({ type: 'light', regionId: state.lit === r.id ? null : r.id })",
+    // read without whitespace: how deep the chip sits in the tree is the formatter's business, and
+    // pinning one line wrapping made a layout change look like a broken law
+    expect(packed(SCREEN)).toContain(
+      packed("dispatch({ type: 'light', regionId: state.lit === r.id ? null : r.id"),
     );
   });
 });
@@ -203,6 +207,69 @@ describe('law v5 and the six traps, at source', () => {
   });
 });
 
+/**
+ * THE PANE ENDS WHERE WOBO'S OWN FURNITURE BEGINS (the adversary, wave 42 re-judge, finding 1;
+ * docs/INK-FOUR.md, craft "nothing under a panel, sheet, toast or pill" and experience "after the
+ * turn the learner can act on what they see").
+ *
+ * Wave 49's finding 8 closed the CAPTURE step and nothing else. One step on, at 390x844 with a
+ * photo read, the reading sat under the fixed Tell Wobo pill, the instruction under the tab bar,
+ * and EXPLAIN at y 1302 in an 844 px viewport — 458 px below a fold nothing scrolled to.
+ *
+ * The rendered proof is `tests/doubt-confirm.spec.ts`, which measures the painted boxes and the
+ * hit test at both widths, both themes and with motion reduced. These are the two laws that file
+ * cannot see: that the height is MEASURED rather than copied from another sheet, and that the
+ * laptop layout is left exactly as it was.
+ */
+describe('the confirm step is whole on the glass (INK-FOUR, craft and experience)', () => {
+  it('the pane is measured against the live chrome, never against a number copied from it', () => {
+    expect(SCREEN).toContain('function bottomChrome()');
+    expect(SCREEN).toContain("style.position !== 'fixed'");
+    expect(SCREEN).toContain("setProperty('--db-pane'");
+    // and the main column's own bottom padding, which clears the same tab bar, is cancelled so the
+    // page does not scroll to nothing underneath the pane
+    expect(SCREEN).toContain("setProperty('--db-tail'");
+    expect(CSS).toContain('var(--db-pane,auto)');
+    expect(CSS).toContain('var(--db-tail,0px)');
+  });
+
+  it('the phone pane scrolls the reading inside itself and docks what comes next at its foot', () => {
+    // three rows: the photo keeps the top, the reading scrolls, the action is docked
+    expect(CSS).toContain('grid-template-rows:auto minmax(0,1fr) auto');
+    expect(CSS).toMatch(/\.db-read\{[^}]*overflow-y:auto/);
+    // and it fades over its last 20px, because the corrections are below the fold of that scroller
+    expect(CSS).toMatch(/\.db-read\{[^}]*mask-image:linear-gradient/);
+    // a grid with a definite height sizes a row to that row's minimum, which for the printed
+    // caption is one line of the four it holds: max-content rows are never shrunk under their words
+    expect(CSS).toMatch(/\.db-read\{[^}]*grid-auto-rows:max-content/);
+    expect(SCREEN).toContain('ref={readRef}');
+    expect(packed(SCREEN)).toContain(
+      packed('{phone && nextStep ? <div className="db-act">{nextStep}</div> : null}'),
+    );
+    // written once and put in one of two places, so a laptop keeps the action inside the reading
+    expect(SCREEN.match(/\{phone \? null : nextStep\}/g)).toHaveLength(2);
+  });
+
+  it('the photo keeps its place, so a line tapped in the reading lights somewhere the eye is', () => {
+    expect(STAGE).toContain("regionEls.current.get(lit)?.scrollIntoView?.({ block: 'nearest'");
+    expect(CSS).toContain('--db-photo-vh:26vh');
+    expect(STAGE).toContain('var(--db-photo-vh,');
+  });
+
+  it('the page holds still under the pen, and so does the one thing that scrolls', () => {
+    expect(SCREEN).toContain("scroller.style.overflowY = 'hidden'");
+    expect(SCREEN).toContain('scroller.style.overflowY = scrolledBefore');
+  });
+
+  it('the rendered proof measures the step a learner reaches with a photo', () => {
+    const spec = read('../../../tests/doubt-confirm.spec.ts');
+    expect(spec).toContain('elementsFromPoint');
+    expect(spec).toContain('there is nothing below the fold to reach');
+    expect(spec).toContain("{ name: '390', width: 390, height: 844 }");
+    expect(spec).toContain("{ name: '1440', width: 1440, height: 900 }");
+  });
+});
+
 describe("the fixer's pass, 2026-09-05, at source", () => {
   it('the door asks an anonymous session to sign in BEFORE any shutter, on the entry and on the screen', () => {
     expect(ENTRY).toContain('const door = doorFor(sdk.account)');
@@ -232,5 +299,35 @@ describe("the fixer's pass, 2026-09-05, at source", () => {
     expect(RUNTIME).toContain('if (doubt) doubtCaption.end();');
     expect(SCREEN).toContain('setCaption(doubtCaption.visible())');
     expect(SCREEN).toContain("{state.phase === 'explaining' ? caption || 'One moment.' : said}");
+  });
+});
+
+/**
+ * A REFUSAL THE LEARNER NEVER SEES IS NOT A REFUSAL (the adversary, wave 49, finding 8).
+ *
+ * Measured on a real screen at 1440x900: the sentence "I cannot see the page on this device..."
+ * sat at top 1382 with the page 1520 tall and scrollY 0 — 482 px below the fold, and the page did
+ * not scroll to it. The cause was the hero camera: a `<svg>` with a viewBox and no size is a
+ * replaced element with an intrinsic ratio, so it took the whole column's width and 1:1 of its
+ * height (1072 px at 1440), and the panel it sits in grew to 1390 px with the refusal at its foot.
+ *
+ * Two rules, so no future layout can bury one: the hero icon carries its own size, and a refusal
+ * that appears off the fold brings itself into view.
+ */
+describe('a refusal is in view (INK-FOUR, experience)', () => {
+  it('the hero camera carries its own size, so the panel cannot grow to the height of its column', () => {
+    const rule = CSS.split('\n').find((l) => /^\.db-drop\s*>\s*svg\{/.test(l));
+    expect(rule).toBeTruthy();
+    expect(rule).toMatch(/width:\d+px/);
+    expect(rule).toMatch(/height:\d+px/);
+  });
+
+  it('the refusal brings itself into view, and honours reduce motion when it does', () => {
+    expect(SCREEN).toContain('refusalRef');
+    expect(SCREEN).toContain('scrollIntoView');
+    expect(SCREEN).toContain("'(prefers-reduced-motion: reduce)'");
+    // both places a refusal can be printed carry the ref — the capture panel and the confirm step
+    expect(SCREEN.match(/ref=\{refusalRef\}/g)).toHaveLength(2);
+    expect(SCREEN.match(/className="db-error"/g)).toHaveLength(2);
   });
 });

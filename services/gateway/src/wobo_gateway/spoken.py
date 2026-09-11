@@ -252,15 +252,53 @@ def _side_ok(side: str) -> bool:
     return depth == 0
 
 
+#: One and two letter words a person writes, so "so 9 + 16 = 25" is a sum and "2x + 3 = 7" is not.
+_SHORT_WORDS = frozenset(
+    (
+        "a", "i", "is", "in", "of", "to", "at", "by", "or", "so", "as", "it", "we", "he",
+        "up", "do", "if", "on", "no", "be", "me", "my", "us", "am", "an", "and", "the",
+    )
+)
+
+_TOKEN_BEFORE = re.compile(r"([A-Za-z]+)\s*$")
+_TOKEN_AFTER = re.compile(r"^\s*([A-Za-z]+)")
+
+
+def _slice_of_algebra(sentence: str, start: int, end: int) -> bool:
+    """Is this run a piece cut out of an expression rather than a sum the say is claiming?
+
+    A SENTENCE THAT QUOTES THE LEARNER'S OWN EQUATION IS NOT MAKING AN ARITHMETIC CLAIM.
+    ``_SUM_RUN`` stops at every letter, so "2x + 3 = 7, line by line." handed the CAS the fragment
+    "+ 3 = 7", the CAS said it was false — it is — and :func:`audit` dropped the whole sentence.
+    Any line that quotes an equation with a letter in it was therefore unspeakable, which is most
+    of the mathematics on the board: the derivation's opening went silent on every keyless run
+    (measured 2026-09-10).
+
+    The tell is what the run touches. A run against a one or two letter word that is not an
+    English one — ``x``, ``y``, ``ax``, ``pi`` — is the middle of an expression. A run against a
+    real word ("it is 5 because 5 x 5 = 25") is a sum the sentence is writing out in full.
+    """
+    before = _TOKEN_BEFORE.search(sentence[:start])
+    after = _TOKEN_AFTER.search(sentence[end:])
+    for token in (before.group(1) if before else "", after.group(1) if after else ""):
+        if token and len(token) <= 2 and token.lower() not in _SHORT_WORDS:
+            return True
+    return False
+
+
 def statements_in(sentence: str) -> list[str]:
     """Every "a op b = c" the sentence writes out, verbatim, with digits on both sides of an =."""
     out: list[str] = []
     for match in _SUM_RUN.finditer(sentence):
-        run = match.group(0).strip(" .,;:")
+        raw = match.group(0)
+        run = raw.strip(" .,;:")
         if "=" not in run:
             continue
         sides = [s.strip(" .,;:") for s in run.split("=")]
         if len(sides) < 2 or not all(_side_ok(s) for s in sides):
+            continue
+        start = match.start() + raw.index(run)
+        if _slice_of_algebra(sentence, start, start + len(run)):
             continue
         out.append(run)
     return out

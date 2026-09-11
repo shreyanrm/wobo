@@ -29,6 +29,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type Blueprint, groundUnder } from '../../curriculum/blueprint';
 import {
   type GroundReport,
   type PlacementAnswer,
@@ -266,6 +267,15 @@ export function usePlacementGate(
   topic: Topic | undefined,
   completed: ReadonlySet<string>,
   enabled = true,
+  /**
+   * The chapter's pool, when the architect has built one (`curriculum/pool.ts`).
+   *
+   * THE ARCHITECT FIRST. `planPlacement` has always preferred the ground a blueprint DECLARES
+   * over the ground this client derives from a printed order. Until 2026-09-10 nothing passed it
+   * one, so that branch was unreachable and every check ran on the derived graph. What the learner
+   * answers here is what pulls the matching prerequisite module into their group.
+   */
+  pool: Blueprint | null = null,
 ): PlacementGate & { dismiss: () => void } {
   const sdk = useSdk();
   // A gate that is off, or has no topic to gate, is clear on the FIRST render: a course with
@@ -293,6 +303,7 @@ export function usePlacementGate(
     void planPlacement(here, done, {
       items: (nodeId) => sdk.content.getPracticeItems(nodeId),
       ontology: (nodeId) => sdk.kgtopg.ontology.getPrerequisites(nodeId),
+      ...(pool ? { assumptions: (t: Topic) => groundUnder(pool, t.id) } : {}),
     })
       .then((plan) => {
         if (!live) return;
@@ -305,7 +316,7 @@ export function usePlacementGate(
     return () => {
       live = false;
     };
-  }, [enabled, topicId, sdk]);
+  }, [enabled, topicId, sdk, pool]);
 
   return { ...gate, dismiss };
 }

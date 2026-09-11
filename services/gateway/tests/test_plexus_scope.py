@@ -179,11 +179,21 @@ def test_raster_false_is_the_plain_diagram_key() -> None:
 
 
 def _prompts_for(monkeypatch, payloads: list[dict]) -> list[str]:
-    """Every user message the composer would send for these payloads."""
+    """Every user message the composer would send FOR A READER, for these payloads.
+
+    Since the three layers landed (docs/CONTENT-INTERACTION.md §1) a compose generation is two
+    calls, and only one of them has a reader: the CONCEPT CORE is deliberately written with no
+    board and no class in its brief, because it is made once and rendered for every board and
+    every class. So the core's prompt is excluded here on purpose — a core that named the learner
+    would be the very defect this file exists to hold shut, one lesson pretending to be twelve.
+    What is asserted below is unchanged: the prompt the learner's lesson is written from carries
+    that learner's board, class, subject, chapter and syllabus version.
+    """
     seen: list[str] = []
 
-    def fake(_model, _modality, user, _fallbacks, **_k):
-        seen.append(user)
+    def fake(_model, _modality, user, _fallbacks, capability=None, **_k):
+        if capability != engines.CORE_CAPABILITY:
+            seen.append(user)
         raise RuntimeError("captured")  # _generate_live seeds; the prompt is what we want
 
     monkeypatch.setattr(engines, "_complete", fake)

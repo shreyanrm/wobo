@@ -15,6 +15,7 @@ import { loadedTopics } from '../../curriculum/registry';
 import { loadWorld } from '../../curriculum/world';
 import type { Topic } from '../../data/model';
 import type { Route } from '../../shell/router';
+import { BONUS_XP, openDoors } from '../../store/arcade';
 import type { ProgressStore } from '../../store/progress';
 import { XP_AWARDS } from '../../store/progress';
 import { hueForTopic } from '../../ui/hues';
@@ -188,7 +189,25 @@ export function deriveStops(p: Pick<ProgressStore, 'completed' | 'topicProgress'
   const mysteryTopic = worldTopics.find(
     (t) => (t.kind === 'mystery' || t.kind === 'bonus') && !completed.has(t.id),
   );
+  /*
+   * THE ARCADE'S QUEST (docs/CONTENT-INTERACTION.md §7). It is offered only when a side door is
+   * genuinely open: a bonus level the learner has actually been shown, not yet cleared, and the
+   * day's cap not yet spent (`store/arcade.ts` `openDoors`). An empty list means the quest is not
+   * in the rotation at all, so this never sends anybody to a game that does not exist.
+   *
+   * Its bounty is the arcade's own fifteen, and it is the arcade that pays it. This stop cannot
+   * award anything: the XP lands when the level is cleared, in the arcade's own ledger, where it
+   * stays out of the climb.
+   */
+  const door = openDoors()[0];
+
   const quests = {
+    arcade: {
+      title: 'Play a bonus level',
+      meta: 'Daily quest · a side door in the middle of a chapter',
+      bounty: BONUS_XP,
+      route: (door ? { name: 'arcade', topicId: door.topicId } : { name: 'learn' }) as Route,
+    },
     reviews: {
       title: 'Clear your reviews',
       meta: 'Daily quest · refresh what is fading',
@@ -213,6 +232,7 @@ export function deriveStops(p: Pick<ProgressStore, 'completed' | 'topicProgress'
   const eligible: (keyof typeof quests)[] = ['ask'];
   if (completed.size > 0) eligible.unshift('reviews');
   if (mysteryTopic) eligible.push('mystery');
+  if (door) eligible.push('arcade');
   const seed = Math.floor(Date.now() / 86_400_000);
   const pick = eligible[seed % eligible.length] as keyof typeof quests;
   const q = quests[pick];

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'bun:test';
-import { deviceCanSpeak, speakWithDevice, stopDeviceVoice } from './device-voice';
+import {
+  deviceCanSpeak,
+  scheduleDeviceVoiceWake,
+  speakWithDevice,
+  stopDeviceVoice,
+  wakeDeviceVoice,
+} from './device-voice';
 
 /** A browser speech engine that records what it was asked to say and ends each line at once. */
 function installFakeEngine(opts?: { fail?: boolean; silent?: boolean }) {
@@ -31,10 +37,37 @@ function installFakeEngine(opts?: { fail?: boolean; silent?: boolean }) {
   return { spoken, cancelled: () => cancelled };
 }
 
+/**
+ * An engine reached through a property, so a test can count who touched `speechSynthesis` at all —
+ * which is the whole of the wake law: the browser starts its speech service on the FIRST touch.
+ */
+function installCountedEngine() {
+  const engine = {
+    speak() {},
+    cancel() {},
+    getVoices() {
+      voices += 1;
+      return [] as SpeechSynthesisVoice[];
+    },
+  };
+  let reads = 0;
+  let voices = 0;
+  const g = globalThis as unknown as Record<string, unknown>;
+  Object.defineProperty(g, 'speechSynthesis', {
+    configurable: true,
+    get() {
+      reads += 1;
+      return engine;
+    },
+  });
+  return { reads: () => reads, voices: () => voices };
+}
+
 afterEach(() => {
   const g = globalThis as unknown as Record<string, unknown>;
   delete g.speechSynthesis;
   delete g.SpeechSynthesisUtterance;
+  delete g.requestIdleCallback;
 });
 
 describe('the device voice, the last resort behind the gateway voices', () => {
@@ -72,5 +105,53 @@ describe('the device voice, the last resort behind the gateway voices', () => {
     const fake = installFakeEngine();
     stopDeviceVoice();
     expect(fake.cancelled()).toBe(1);
+  });
+});
+
+/**
+ * THE WAKE (the adversary, wave 53, finding 1).
+ *
+ * Measured in the lab, keyless, on a warm gateway: the first drawing turn of a fresh browser
+ * session took 937-986 ms from Enter to the request even leaving the page, against 187-367 ms for
+ * every turn after it. The stall is the browser's speech service starting up on its FIRST touch of
+ * `speechSynthesis` — and the turn's own opening (`startUtterance` -> `stopSpeaking` ->
+ * `stopDeviceVoice`) was that first touch. Waking the engine at document start took the same first
+ * turn to 264-318 ms in four separate runs.
+ */
+describe('waking the engine, so no turn pays for the wake', () => {
+  it('touches the engine and asks for its voice list, once, however often it is woken', () => {
+    const counted = installCountedEngine();
+    wakeDeviceVoice();
+    expect(counted.reads()).toBeGreaterThan(0);
+    expect(counted.voices()).toBe(1);
+    wakeDeviceVoice();
+    wakeDeviceVoice();
+    expect(counted.voices()).toBe(1);
+  });
+
+  it('says nothing and throws nothing on a device with no speech engine', () => {
+    expect(() => wakeDeviceVoice()).not.toThrow();
+    expect(deviceCanSpeak()).toBe(false);
+  });
+
+  it('is scheduled off the critical path, on idle, and never left to an idle that never comes', () => {
+    const asked: { timeout?: number }[] = [];
+    let run: (() => void) | null = null;
+    const g = globalThis as unknown as Record<string, unknown>;
+    g.requestIdleCallback = (cb: () => void, opts?: { timeout?: number }) => {
+      asked.push(opts ?? {});
+      run = cb;
+      return 1;
+    };
+    const counted = installCountedEngine();
+    scheduleDeviceVoiceWake();
+    expect(asked).toHaveLength(1);
+    // A bounded idle: a busy boot must not hold the wake past the moment a learner can ask.
+    expect(asked[0]?.timeout).toBeGreaterThan(0);
+    expect(asked[0]?.timeout).toBeLessThanOrEqual(2000);
+    // Scheduling alone touches nothing; the wake happens when the idle comes.
+    expect(counted.reads()).toBe(0);
+    (run as unknown as () => void)();
+    expect(counted.reads()).toBeGreaterThan(0);
   });
 });
