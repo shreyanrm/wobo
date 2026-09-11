@@ -322,7 +322,20 @@ async function main(): Promise<void> {
   // navigation on this origin out of its own precache — including the card page, which it served
   // as the precached shell, so every share card came out as a blank white rectangle. Nothing here
   // wants the offline copy; it wants what the build just produced.
-  const browser = await chromium.launch();
+  // A build machine without the pinned browser is the one failure that looks like a code defect
+  // and is not: `bunx playwright` resolves the LATEST playwright and downloads a browser revision
+  // this version will not look for. Name both so the next person reads the answer rather than
+  // guessing at it (vercel.json's installCommand uses the pinned binary for exactly this reason).
+  const browser = await chromium.launch().catch((cause) => {
+    const where = process.env.PLAYWRIGHT_BROWSERS_PATH ?? '<the default browser cache>';
+    throw new Error(
+      `the pre-render needs a browser and could not start one from ${where}. ` +
+        'Install it with the PINNED playwright, not a fetched one: ' +
+        '`bun run --cwd apps/web-pwa playwright install chromium`. ' +
+        `The underlying failure was: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause: cause instanceof Error ? cause : undefined },
+    );
+  });
   const context = await browser.newContext({
     reducedMotion: 'reduce',
     serviceWorkers: 'block',
