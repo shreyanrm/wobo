@@ -90,3 +90,20 @@ platform; wave 32 and wave 35 verified, committed and deployed to both ends.
 Anything decided in conversation is written here before the conversation moves on. A plan with no row
 here does not exist. A row that sits in `TO WRITE` for more than a few days is either written or struck
 out on purpose, never left to rot.
+
+## The honest audit, 2026-09-11
+
+Asked whether everything discussed is ready. It is not, and this is measured rather than remembered.
+
+| | |
+|---|---|
+| the twelve orb moves, the move sheet, the renderer | **not built** |
+| the earned-moment component, the levels curve, the wait game | **not built** |
+| the mail law's 26 assertions, and the five new mail kinds | **not built** (24 templates are written) |
+| the allowance, the free pool cap, growth attribution, Plausible | **not built** |
+| the parent's account screens, push notifications | **not built** |
+| the discovery worker | **not switched on** |
+| the blueprint and the per-learner module pool | **built** (wave 37) |
+| the content's three layers, the interaction vocabulary | **built** (wave 37) |
+| the public site, 440 pages, the closed door, the syllabus door | **built and live** |
+| mail, verified and delivering to Primary | **built and live** |
