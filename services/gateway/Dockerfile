@@ -59,8 +59,15 @@ COPY --chown=gateway:gateway docs/copy/about.md /app/content/copy/
 # directory is created and owned here because a volume mounts onto it and the process that writes
 # it is `gateway`, and /healthz reports `persistence.durable: false` while no volume is attached,
 # so an image running without one says so rather than quietly costing money.
+# NO `VOLUME` INSTRUCTION HERE. Railway refuses a Dockerfile that carries one outright, with
+# "dockerfile invalid: docker VOLUME at Line 63 is not supported, use Railway Volumes", and the
+# deploy never starts: the image builds, the push succeeds, and the deployment fails with an empty
+# runtime log, which reads like a crash and is not one. Attaching the volume is a platform action
+# (`railway volume add --mount-path /data`), and nothing in the image needs to declare it: the
+# mount lands on this directory, and `store.cache_dir()` follows RAILWAY_VOLUME_MOUNT_PATH anyway.
+# While no volume is attached the cache lives in the container's own layer and /healthz says so
+# with `persistence.durable: false`, which is honest rather than quietly expensive.
 RUN mkdir -p /data/plexus/images && chown -R gateway:gateway /data
-VOLUME ["/data"]
 ENV PATH="/app/.venv/bin:$PATH" \
     PLEXUS_CACHE_DIR=/data/plexus \
     WOBO_IMAGE_CACHE_DIR=/data/plexus/images \
