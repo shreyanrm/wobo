@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "bun install && bun run --cwd apps/web-pwa playwright install chromium",
+  "installCommand": "bun install && bun run --cwd apps/web-pwa browser",
   "buildCommand": "bun run --cwd apps/web-pwa build",
   "outputDirectory": "apps/web-pwa/dist",
   "framework": null,
