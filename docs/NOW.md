@@ -37,6 +37,7 @@ updated in the same breath as the decision, not later.
 | The board changes once, then a person handles it | docs/CONSOLE-ROLES-AND-BOARD.md |
 | One owner, and the owner shapes every other role | docs/CONSOLE-ROLES-AND-BOARD.md |
 | The growth desk: gather, make, post, measure | docs/GROWTH-DESK.md |
+| Suggestions inside the product, and notices outside it (push is last) | docs/SUGGESTIONS-AND-NOTICES.md |
 | The mail law enforced: 26 assertions over every rendered template, the eight subjects and openings rewritten | docs/MAIL-PRIMARY.md |
 | The press page and the launch assets | docs/GROWTH-PRESS.md, docs/copy/press-kit.md |
 | The adaptive line on the public pages | docs/copy/growth/lines.md, WOBO-TASKS 10.47 |
@@ -84,6 +85,13 @@ press, awards and the press kit's exact words; the entity plan and the handle au
 surface; the board cold start; the console roles and the board-change rule; the platforms order; the
 free tier's rule that quality is shared and quantity is sold; the create tier on Astra paid by the
 platform; wave 32 and wave 35 verified, committed and deployed to both ends.
+
+## Every law has a row
+
+`docs/LEDGER.md` indexes every law in `docs/` with the owner's own words behind it, generated rather
+than remembered. A decision goes three places in one action: the law file that settles it, a row in
+the ledger, and a row here. Nothing is held in anyone's head. If a thing was decided and not written,
+it did not happen.
 
 ## The rule about this file
 
