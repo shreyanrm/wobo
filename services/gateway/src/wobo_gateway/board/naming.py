@@ -106,6 +106,8 @@ _TERMINALS = ".?"
 _EXPRESSION = re.compile(r"[=^⁰¹²³⁴⁵⁶⁷⁸⁹]|\d\s*[+*/]|[+*/]\s*\d")
 
 
+
+
 #: A POWER IS THE SAME POWER IN BOTH HANDS. The board writes ``x^2`` — the handwriting layer
 #: raises the caret as a superscript — and the say writes ``x²``, because a voice reading "x caret
 #: 2" to a child is not reading mathematics. They are one line, and the pass that matches a mark
@@ -208,6 +210,27 @@ def mark_subject(
     if not head:
         head = _subject_head(_anchored_to(obj, by_id))
     return head or None
+
+
+def on_the_page(obj: dict[str, Any]) -> bool:
+    """Is this mark on the LEARNER'S OWN PAGE, rather than on something Wobo drew?
+
+    THE PAGE IS NOT WOBO'S TO READ BACK (the adversary, wave 57; docs/INK-FOUR.md, experience).
+    This pass gives every mark the say does not name a sentence built from the mark's own words,
+    which is right for a board Wobo drew: nobody but Wobo knows what that ring is around. On a
+    photograph of the learner's exercise book it is wrong twice over. The model writes a TAG on
+    such a mark — "Starting equation", "Wrong sign", "Correct first step" — and live at 390 on
+    2026-09-10 all three were spliced into the middle of the teaching line as though they were
+    sentences. Give the mark its line's own words instead (``doubt.DoubtShaper._about_the_line``)
+    and the splice becomes the other forbidden thing: "3x = 20 + 5 ?" read aloud to the child who
+    wrote it.
+
+    So a mark on the page is owed no sentence. What it is about is under it, in the learner's own
+    handwriting, and the say's job is to teach about it — which is what the say already does.
+    ``doubt.DoubtShaper`` sets the flag; nothing else in the product does.
+    """
+    meta = obj.get("meta")
+    return isinstance(meta, dict) and meta.get("page") is True
 
 
 def part_name(obj: dict[str, Any]) -> str | None:
@@ -394,6 +417,60 @@ def in_register(words: str) -> str:
     if not _EXPRESSION.search(body):
         body = body[0].upper() + body[1:]
     return body if body[-1] in _TERMINALS else f"{body}."
+
+
+#: A word that makes the words a CLAUSE — something Wobo can say as it is. Without one, the words
+#: are a label: the caption a teacher writes beside their ink, not a thing they say out loud.
+#: Only the forms that can ONLY be a verb here: the copulas, the auxiliaries, and third-person
+#: singular endings. The bare forms are left out on purpose — "the sign flip", "the step count",
+#: "the end point" and "the cross section" are all labels, and a verb list that claimed them would
+#: read a noun phrase as a clause and leave it read out as a caption.
+_FINITE_VERB = re.compile(
+    r"\b(?:is|are|was|were|be|been|being|am|has|have|had|does|did|can|could|will|would|shall|"
+    r"should|must|may|might|means|gives|shows|makes|keeps|holds|leaves|moves|goes|comes|stays|"
+    r"adds|cancels|equals|becomes|needs|takes|turns|starts|ends|flips|swaps|drops|falls|rises|"
+    r"points|counts|carries|sits|lands|runs|works|happens|changes|grows|splits|joins|meets|"
+    r"crosses|divides|multiplies)\b",
+    re.IGNORECASE,
+)
+#: The longest run of words still read as a label rather than as a line of its own.
+_LABEL_WORDS = 6
+_HAS_ARTICLE = ("the ", "a ", "an ", "this ", "that ", "these ", "those ", "your ", "my ", "its ")
+
+
+def _plural(label: str) -> bool:
+    """Is the thing this label names more than one? "The numbered steps" are, "the axis" is not."""
+    last = label.split()[-1].lower() if label.split() else ""
+    return last.endswith("s") and not last.endswith(("ss", "us", "is", "as", "os"))
+
+
+def as_a_sentence(words: str) -> str:
+    """A mark's words as something SAID, not as a caption read out (the adversary, wave 47, finding 7).
+
+    Live at 390 the doubt caption carried "Starting equation.", "Wrong sign." and "Correct first
+    step." in the middle of the teaching — the marks' own labels, spoken as if they were sentences.
+    The law that puts them there is right: nothing stands on the glass unspoken. What was wrong is
+    the grammar. A teacher pointing at their ink says "this is the wrong sign"; they do not read
+    the caption out.
+
+    Words that already say something are left exactly as they are, and so is a line of working: a
+    mark on ``3x = 20 - 5`` is read, not pointed at.
+    """
+    body = (words or "").strip().strip(" .;:,")
+    if not body:
+        return ""
+    if _EXPRESSION.search(body) or _FINITE_VERB.search(body):
+        return body
+    if len(body.split()) > _LABEL_WORDS:
+        return body
+    head = body.split(" ", 1)[0]
+    # "TT" and "DNA" keep their case; an ordinary capital at the front of a label does not, because
+    # it is going into the middle of a sentence now.
+    if head[:1].isupper() and head[1:].islower():
+        body = body[0].lower() + body[1:]
+    if not body.lower().startswith(_HAS_ARTICLE):
+        body = f"the {body}"
+    return f"These are {body}" if _plural(body) else f"This is {body}"
 
 
 def narrates(text: str) -> bool:
@@ -723,7 +800,7 @@ def unnamed(say: str, objects: list[dict[str, Any]]) -> list[str]:
         if subject is not None:
             beat = _beat_of(obj)
             where = parts[beat] if beat is not None and beat < len(parts) else say
-            if not names(where, subject):
+            if not names(where, subject) and not on_the_page(obj):
                 out.append(subject)
             continue
         name = part_name(obj)
@@ -864,9 +941,13 @@ def name_what_is_drawn(
         where = parts[beat] if beat is not None and beat < len(parts) else so_far
         if names(where, subject):
             continue
+        if on_the_page(obj):
+            continue
         at = beat if beat is not None and beat < question else question - 1
         at = max(at, -1)
-        sentence = in_register(_own_words(obj, "words") or subject)
+        # In register FIRST (a model that narrated has its narration taken off), then as a thing
+        # said rather than a caption read out, then terminated.
+        sentence = in_register(as_a_sentence(in_register(_own_words(obj, "words") or subject)))
         if not sentence:
             continue
         key = flat(sentence)

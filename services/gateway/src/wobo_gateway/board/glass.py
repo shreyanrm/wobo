@@ -103,6 +103,14 @@ _MARK_IT = re.compile(
 #: pipelines or the spoken turn, never a ring round the nearest thing the words happen to name
 #: ("draw the triangle and show me why the squares add" is not "circle the hypotenuse").
 _BUILD_IT = re.compile(r"\b(draw|construct|graph|plot|build|sketch|make)\b", re.IGNORECASE)
+#: WHAT THE LEARNER QUOTED OFF THEIR OWN PAGE (the adversary, wave 47, finding 3). A lasso hands
+#: its words back inside the ask: ``explain this: "2 feel the rule · 3 make a move"``. Those words
+#: are the SUBJECT of the question and never its instruction — "make" inside them is the page's
+#: word, not a request to build anything. Only paired quotes count, so an apostrophe in "don't"
+#: never swallows half a sentence.
+_QUOTED = re.compile(
+    "\u201c[^\u201d]{1,240}\u201d|\u2018[^\u2019]{1,240}\u2019|\"[^\"]{1,240}\"|\u00ab[^\u00bb]{1,240}\u00bb"
+)
 _MARK_WORD = re.compile(
     r"\b(ring|circle|mark|highlight|underline|point (?:at|to))\b", re.IGNORECASE
 )
@@ -403,6 +411,95 @@ def names_nothing(question: str) -> bool:
     """A question that asks for a VALUE names no place on the glass. "What is 2 to the power 5?"
     became a drawing turn in wave 39 and rang the learner's own bubble."""
     return bool(_COMPUTE_RE.search(question or ""))
+
+
+def instruction_of(question: str, entries: Sequence[Entry] | None = None) -> str:
+    """The learner's own words, with anything they quoted off their page taken out.
+
+    The region they circled rides the map as a ``focus`` entry carrying its text, and a lasso's
+    text is pasted straight into the ask, so both are removed here. What is left is what they
+    actually asked for.
+    """
+    said = question or ""
+    for entry in entries or ():
+        if entry.role == _FOCUS_ROLE and entry.text and entry.text in said:
+            said = said.replace(entry.text, " ")
+    return _QUOTED.sub(" ", said)
+
+
+def builds_from_scratch(question: str, entries: Sequence[Entry] | None = None) -> bool:
+    """This ask wants something BUILT, and says so in the learner's own words.
+
+    Read on :func:`instruction_of` rather than on the raw question: under a 4x-slowed CPU a lasso
+    crossed two lines of the course outline and the ask came through as ``explain this: "2 feel the
+    rule · 3 make a move"``. "make" is the page's word there, and reading it as a request to build
+    threw the whole turn away — no marks, no plan, and "Which step feels shaky? Start there." said
+    over a page the learner had just drawn on (the adversary, wave 47, finding 3).
+    """
+    said = instruction_of(question, entries)
+    return bool(_BUILD_IT.search(said)) and not _MARK_WORD.search(said)
+
+
+#: The verbs that ask for a mark, with the thing they ask for right behind them.
+_MARK_VERB = re.compile(
+    r"\b(?:ring|circle|mark|highlight|underline|point\s+(?:at|to)|show\s+me|"
+    r"where\s+is|where's)\b",
+    re.IGNORECASE,
+)
+#: Where the name of the thing ends: a preposition ("in the diagram"), a clause, or punctuation.
+_THING_ENDS = re.compile(
+    r"\b(?:in|on|of|at|from|inside|under|over|above|below|next|for|to|with|that|which|is|are)\b"
+    r"|[,.;:?!]"
+)
+_LEADING_ARTICLE = re.compile(r"^(?:the|a|an|my|this|that|these|those)\s+", re.IGNORECASE)
+
+
+def asked_for(question: str) -> str:
+    """The thing this ask wants marked, in the learner's own words, or "" if it asks for no mark."""
+    verb = _MARK_VERB.search(question or "")
+    if verb is None:
+        return ""
+    rest = _LEADING_ARTICLE.sub("", question[verb.end() :].strip())
+    end = _THING_ENDS.search(rest)
+    if end is not None:
+        rest = rest[: end.start()]
+    return " ".join(rest.split()[:4]).strip(" .,;:?!\"'\u201c\u201d")
+
+
+def _whats_here(entries: Sequence[Entry]) -> str:
+    """What this card IS, in the words it shows: its heading, else the card's own name."""
+    for role in ("heading", "card"):
+        for entry in entries:
+            if entry.role == role:
+                name = _SPACE_RE.sub(" ", (entry.text or "").strip())
+                if name and len(name) <= 48:
+                    return name
+    return ""
+
+
+def absent_line(question: str, entries: Sequence[Entry]) -> str:
+    """THE THING ASKED ABOUT IS NOT ON THIS CARD, SAID PLAINLY (docs/INK-FOUR.md, relevance).
+
+    "A question that names nothing on the glass gets no ink AND A USEFUL SENTENCE." Keyless, "circle
+    the effect circle in the diagram" — asked on the "make a move" card, which carries no diagram at
+    all — was answered "Which step feels shaky? Start there.", a sentence about a different
+    question that names nothing Wobo could see (the adversary, wave 47, finding 3).
+
+    Empty when the ask wants no mark, when there is no glass to speak of, or when something on the
+    glass DOES answer it: then the mark is the answer and this line is not needed.
+    """
+    entries = list(entries)
+    if not entries:
+        return ""
+    thing = asked_for(question)
+    if not thing:
+        return ""
+    if named_entry(question, [e for e in entries if e.role != _FOCUS_ROLE]) is not None:
+        return ""
+    here = _whats_here(entries)
+    if here:
+        return f"There's no {thing} on this card. This one is {here}. Which part of it do you mean?"
+    return f"There's no {thing} on this page. Tell me which part you mean and we start there."
 
 
 def named_entry(
@@ -1118,7 +1215,7 @@ def keyless_plan(body: dict[str, Any]) -> dict[str, Any] | None:
         return None
     if not (_ABOUT_THIS.search(question) or question.endswith("?") or _MARK_IT.search(question)):
         return None  # a statement is not a drawing
-    if _BUILD_IT.search(question) and not _MARK_WORD.search(question):
+    if builds_from_scratch(question, entries):
         return None  # something to build is the plane's, or the spoken answer's, never a ring
     if names_nothing(question):
         return None  # "what is 2 to the power 5?" is arithmetic, not a place on the glass

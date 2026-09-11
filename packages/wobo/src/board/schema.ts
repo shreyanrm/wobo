@@ -106,6 +106,16 @@ const common = {
   /** Variable names; when a bound control moves, the brain recomputes these objects. */
   depends: z.array(z.string().min(1)).max(16).optional(),
   /**
+   * THE CHECK THAT SIGNED THIS MARK, when one did — `cas.step_chain`, `board.in_bounds:year 1922`.
+   *
+   * The hand draws nothing differently for it. It is carried because the TURN reconciles the
+   * ledger against the glass once the pen has stopped (`board-turn.ts`, `settleSignatures`): a
+   * check signed for a mark the renderer never laid is dropped, which it could not be while the
+   * client threw the provenance away at the door (the adversary, wave 47, finding 9). `number`
+   * declares it too, where it has always been part of that kind's own grammar.
+   */
+  check: z.string().max(80).optional(),
+  /**
    * What the mark means, spoken with it (docs/INK-FREEZE-PLAN-TRACE.md §3, Plan: a mark is
    * `{kind, target, words}`). The say names what it draws; this is the words for the ear and the
    * screen reader, never a label read back.

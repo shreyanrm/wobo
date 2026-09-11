@@ -46,6 +46,16 @@ enum (:data:`BEATS`: ``win``, ``miss``, ``ask``, ``step``, ``crisis``), and the 
 that way by a degree (:func:`beat_instruction`). The voice never infers the beat from the words;
 it is told, and a beat it was not told is the step. It rides the one-shot body (``beat``) and the
 read-aloud socket's URL beside the token, and like the accent it is only ever an instruction.
+
+**One voice per turn (2026-09-11).** "Wobo's voice is one voice everywhere" was true of the
+accent and false of the mouth. Which vendor read a line was decided per SENTENCE, deep inside
+``plexus.media``, so an answer whose first sentence Google spoke and whose second it hung on
+reached a learner in two voices — 63 percent of the live voice spend on 2026-09-10 went to the
+voice standing behind, and two of six boards fell through to the PHONE's own voice mid-answer.
+An answer is one performance, so the mouth is now the turn's: the sentences of a turn are known
+here the moment its words are decided, the voice for all of them is decided ONCE from live
+provider health, and the whole plan is synthesised then and there rather than one round trip at
+a time behind the learner. See the turn registry below.
 """
 
 from __future__ import annotations
@@ -53,6 +63,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import contextlib
+import contextvars
 import json
 import logging
 import os
@@ -60,7 +71,8 @@ import re
 import secrets
 import threading
 import time
-from collections.abc import Iterator, Mapping
+import uuid
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Literal
 
@@ -657,7 +669,7 @@ def sentences_of(say: str) -> list[str]:
     return sentences(say)
 
 
-def remember_line(say: str, *, ask: str | None = None) -> None:
+def remember_line(say: str, *, ask: str | None = None, accent: str | None = None) -> None:
     """Remember what Wobo is about to say, so the voice can buy it ahead of the ask.
 
     Called from ``wobo.py`` the moment a turn's words are decided. ``ask`` is the question that
@@ -669,12 +681,14 @@ def remember_line(say: str, *, ask: str | None = None) -> None:
     the learner hears exactly what they hear today.
     """
     try:
-        remember_parts(sentences_of(say), ask=ask)
+        remember_parts(sentences_of(say), ask=ask, accent=accent)
     except Exception as exc:  # noqa: BLE001 — a line we cannot split is one we do not buy ahead
         logger.debug("voice: line not remembered (%s: %s)", type(exc).__name__, exc)
 
 
-def remember_parts(said: list[str], *, ask: str | None = None) -> None:
+def remember_parts(
+    said: list[str], *, ask: str | None = None, accent: str | None = None
+) -> None:
     """The same, for a caller that has already split the line — ``board.stream.build_events``
     holds the EXACT sentences the client will ask for, in order, after the naming law has had its
     say, so what it hands over is the wire's own list rather than the plan's."""
@@ -682,6 +696,13 @@ def remember_parts(said: list[str], *, ask: str | None = None) -> None:
     question = (ask or "").strip()
     if question and (not parts or parts[-1][0] != question):
         parts.append((question, "ask"))
+    if not parts:
+        return
+    # THE ANSWER IS ONE PERFORMANCE. Registered before anything is bought, so the voice every
+    # sentence of it will be read in is decided once, here, rather than per sentence behind the
+    # learner — and so the whole plan can be synthesised now, while the words are being drawn.
+    _register_turn(parts)
+    _speak_turn_ahead(parts, accent=accent)
     if len(parts) < 2:
         return
     now = time.monotonic()
@@ -712,17 +733,185 @@ def line_ahead(text: str) -> tuple[tuple[str, Beat | None], ...]:
 
 
 def forget_lines() -> None:
-    """Test seam — forget every remembered line."""
+    """Test seam — forget every remembered line, and every turn's voice with it."""
     with _ahead_lock:
         _ahead.clear()
+    with _turn_lock:
+        _turns.clear()
+        _turn_of.clear()
 
 
-def _buy_ahead(text: str, instruction: str) -> None:
-    """One sentence, bought and kept. Runs off the request thread; never raises, never speaks."""
+# --- ONE VOICE, ONE TURN ------------------------------------------------------------------------
+#
+# Wobo had two voices and which one a learner heard depended on whether Google hung. Measured live
+# on 2026-09-10 across twelve turns, every browser muted, off the synthesis call and the wire: 63
+# percent of the voice spend went to the FALLBACK voice after four timeouts marked Google out, and
+# on two of six boards the answer fell through to the DEVICE's own voice at 21.4 and 25.3 seconds —
+# in the MIDDLE of the answer. INK-FOUR experience asks for one voice.
+#
+# The choice was being made per SENTENCE, inside ``plexus.media._buy``, which knows one line and
+# nothing about the answer it belongs to. It belongs to the TURN, and the turn is known here: the
+# sentences are remembered above the moment the words are decided, seconds before a syllable of
+# them is asked for. So each remembered turn carries its own voice, decided once from live provider
+# health, and every sentence of it is read in that voice — including the closing question.
+#
+# One re-decision is allowed and it is the one nobody hears: a turn that has not yet spoken may
+# change voice, because that is a choice made BEFORE the answer rather than inside it. Once a
+# syllable of the turn has been served the voice is frozen, and a sentence the voice cannot speak
+# is silence on the client's reading clock rather than a second voice for one line.
+
+
+@dataclass
+class _Turn:
+    """One answer's sentences, and the one voice they are all read in."""
+
+    at: float
+    parts: tuple[tuple[str, Beat | None], ...]
+    voice: str | None = None
+    heard: bool = False
+
+
+#: turn id -> the turn. Small and short-lived: these are the turns in flight, not a history.
+_turns: dict[str, _Turn] = {}
+#: a sentence -> the turn it belongs to. The client presents a sentence; this is how we know.
+_turn_of: dict[str, str] = {}
+_turn_lock = threading.Lock()
+
+
+def _sweep_turns(now: float) -> None:
+    """Drop what has gone stale. Caller holds ``_turn_lock``."""
+    stale = [tid for tid, turn in _turns.items() if now - turn.at > _AHEAD_TTL_S]
+    while len(_turns) - len(stale) >= _AHEAD_MAX:
+        oldest = min(_turns, key=lambda tid: _turns[tid].at)
+        if oldest in stale:
+            break
+        stale.append(oldest)
+    for tid in stale:
+        _turns.pop(tid, None)
+    if stale:
+        gone = set(stale)
+        for sentence in [s for s, tid in _turn_of.items() if tid in gone]:
+            del _turn_of[sentence]
+
+
+def _register_turn(parts: list[tuple[str, Beat | None]]) -> str:
+    """Remember these sentences as ONE answer. Returns the turn's id."""
+    tid = uuid.uuid4().hex
+    now = time.monotonic()
+    logger.debug("voice: turn remembered (%d sentences)", len(parts))
+    with _turn_lock:
+        _sweep_turns(now)
+        # ONE ANSWER CAN BE REMEMBERED TWICE. ``wobo.py`` tells the voice what the model decided,
+        # and ``board.stream.build_events`` tells it again once the naming and number laws have
+        # rewritten the list — same answer, two records. If the second one pinned its own voice,
+        # a learner could hear the sentence the first record owns in one voice and the rest in
+        # another, and each record would be innocent. So a new record inherits the voice of any
+        # record already holding one of its sentences: the answer, not the bookkeeping, is what
+        # keeps a voice.
+        inherited: str | None = None
+        for part, _beat in parts:
+            prior = _turns.get(_turn_of.get(part, ""))
+            if prior is not None and prior.voice is not None:
+                inherited = prior.voice
+                break
+        _turns[tid] = _Turn(at=now, parts=tuple(parts), voice=inherited)
+        for part, _beat in parts:
+            _turn_of[part] = tid
+    return tid
+
+
+def _turn_for(text: str) -> tuple[str, _Turn] | None:
+    key = (text or "").strip()
+    if not key:
+        return None
+    with _turn_lock:
+        tid = _turn_of.get(key)
+        turn = _turns.get(tid) if tid else None
+        if tid is None or turn is None:
+            return None
+        if time.monotonic() - turn.at > _AHEAD_TTL_S:
+            _turns.pop(tid, None)
+            del _turn_of[key]
+            return None
+        return tid, turn
+
+
+def turn_voice_for(text: str) -> str | None:
+    """The one voice the answer this sentence belongs to is read in, deciding it on first ask.
+
+    ``None`` for a sentence that belongs to no remembered turn — a card's narration, a line off
+    the street — which keeps exactly the behaviour it has today: Gemini, then OpenAI behind it.
+    """
+    found = _turn_for(text)
+    if found is None:
+        return None
+    tid, turn = found
+    with _turn_lock:
+        if turn.voice is None:
+            from wobo_gateway.plexus.media import pick_voice
+
+            turn.voice = pick_voice()
+            logger.info(
+                "voice: turn %s pinned to %s (%d sentences)",
+                tid[:8],
+                turn.voice,
+                len(turn.parts),
+            )
+        return turn.voice
+
+
+def turn_heard(text: str) -> bool:
+    """Has a syllable of the answer this sentence belongs to reached the learner yet?"""
+    found = _turn_for(text)
+    return bool(found and found[1].heard)
+
+
+def note_heard(text: str) -> None:
+    """A syllable of this turn has been served. From here the voice is frozen: whatever else
+    happens in this answer, the learner will not be handed a different mouth for one sentence."""
+    found = _turn_for(text)
+    if found is not None:
+        with _turn_lock:
+            found[1].heard = True
+
+
+def repin_unheard_turn(text: str, *, failed: str | None) -> str | None:
+    """The voice would not speak and NOTHING of this turn has been heard yet, so it may be
+    re-decided whole. Returns the new voice, or ``None`` when there is no other one to try.
+
+    This is the only place a turn's voice changes after it is set, and it is deliberately the one
+    moment a learner cannot tell: no audio of this answer has reached them.
+    """
+    from wobo_gateway.plexus.media import other_voice
+
+    found = _turn_for(text)
+    if found is None:
+        return None
+    tid, turn = found
+    with _turn_lock:
+        if turn.heard or turn.voice != failed:
+            return None
+        nxt = other_voice(failed)
+        if nxt is None:
+            return None
+        turn.voice = nxt
+        logger.info("voice: turn %s re-decided to %s before it was heard", tid[:8], nxt)
+        return nxt
+
+
+def turn_parts(text: str) -> tuple[tuple[str, Beat | None], ...]:
+    """Every sentence of the answer this one belongs to, in the order the client asks for them."""
+    found = _turn_for(text)
+    return found[1].parts if found is not None else ()
+
+
+def _buy_ahead(text: str, instruction: str, voice: str | None = None) -> None:
+    """One sentence, bought and kept, in the voice its answer is read in. Runs off the request
+    thread; never raises, never speaks."""
     try:
         from wobo_gateway.plexus.media import synthesize_narration
 
-        synthesize_narration(text, instruction=instruction)
+        synthesize_narration(text, instruction=instruction, voice=voice)
     except Exception as exc:  # noqa: BLE001 — a line not bought ahead is a line bought on the ask
         logger.debug("voice: line ahead not bought (%s: %s)", type(exc).__name__, exc)
     finally:
@@ -744,16 +933,153 @@ def buy_line_ahead(text: str, *, accent: str, beat: Beat = DEFAULT_BEAT) -> int:
 
     if spend.verdict(spend.Priority.STRANGER) is not spend.Verdict.SERVE:
         return 0
+    # In the answer's own voice: a clip bought in the other one is a clip under a key nobody
+    # presents — paid for, never heard, and the learner still waits the whole round trip.
+    return _buy_parts(line_ahead(text), accent=accent, beat=beat, voice=turn_voice_for(text))
+
+
+# --- THE WHOLE PLAN, BOUGHT WHEN THE SENTENCES ARE KNOWN ----------------------------------------
+#
+# The buy-ahead above works and its SCOPE was wrong. It buys the sentences behind the one being
+# asked for, at the moment it is asked for — so when the first sentence came off the disk in
+# milliseconds (it did: 8 to 21 ms on five of six live boards on 2026-09-10), the client asked for
+# the second one twenty milliseconds later, while that buy had only just started, and paid the
+# whole round trip for it: 4.6 to 7.8 seconds, measured off the wire, muted.
+#
+# The sentences are known SECONDS EARLIER — at ``remember_parts``, where the turn's words are
+# decided and before one frame of them is on the wire. That is when the whole plan is bought, all
+# of it at once, in the turn's own voice. By the time the client asks, the audio is on the disk.
+#
+# The accent is the one thing this moment does not know on its own: it is the learner's, resolved
+# at the door from the verified record, and buying on the wrong accent would be a second key
+# nobody presents — paid for and never heard. So it rides a contextvar set at the door
+# (:func:`mark_accent`), and a turn decided without one is simply not bought ahead: the read-aloud
+# route still buys the rest of its plan on the first ask, which is where it happens today.
+
+_accent_ctx: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "wobo_voice_accent", default=None
+)
+
+
+def mark_accent(accent: str | None) -> None:
+    """Name the accent this request's spoken lines are to be read in, for the rest of it."""
+    _accent_ctx.set((accent or "").strip() or None)
+
+
+def current_accent() -> str | None:
+    """The accent marked at the door for this request, or ``None`` outside one."""
+    return _accent_ctx.get()
+
+
+def _speak_turn_ahead(parts: list[tuple[str, Beat | None]], *, accent: str | None = None) -> bool:
+    """Buy every sentence of this turn now, in one voice. True when the buy was started.
+
+    THE FIRST SENTENCE DECIDES. It is bought on its own first, because a voice that will not speak
+    is a thing to find out BEFORE the rest of the plan is paid for in it and before the learner has
+    heard a syllable — while the turn can still be re-decided whole, silently. Then the rest go
+    together, in whichever voice the first one proved.
+    """
+    # Told by the caller where the caller knows it (the board's own streaming frame, which is a
+    # different context from the door it came through), otherwise read from the door's mark.
+    accent = accent or current_accent()
+    if accent is None:
+        logger.debug("voice: plan not bought ahead — no accent at this seam")
+        return False
+    # No key, no voice, nothing to buy: a keyless box (and every test that is not about the voice)
+    # must not spawn a thread to discover that again.
+    if turn_voice_for(parts[0][0]) is None:
+        logger.debug("voice: plan not bought ahead — no voice has a key")
+        return False
+    from wobo_gateway import spend
+
+    if spend.verdict(spend.Priority.STRANGER) is not spend.Verdict.SERVE:
+        logger.debug("voice: plan not bought ahead — the day is trimming")
+        return False
+    logger.debug("voice: buying the whole plan ahead (%d sentences)", len(parts))
+    threading.Thread(
+        target=_buy_the_plan, args=(list(parts), accent), name="voice-plan", daemon=True
+    ).start()
+    return True
+
+
+def _buy_the_plan(parts: list[tuple[str, Beat | None]], accent: str) -> None:
+    """Off the request thread: the opening sentence, then the rest. Never raises, never speaks."""
+    try:
+        from wobo_gateway.plexus.media import synthesize_narration
+
+        opening, opening_beat = parts[0]
+        pinned = turn_voice_for(opening)
+        if pinned is None:
+            return
+        audio = synthesize_narration(
+            opening,
+            instruction=spoken_instruction(accent, opening_beat or DEFAULT_BEAT),
+            voice=pinned,
+            deadline_s=_unheard_deadline(),
+        )
+        if audio is None:
+            # The voice would not speak and nothing of this turn has been heard: re-decide it
+            # whole, here, seconds before the client asks — the one voice change nobody can hear.
+            second = repin_unheard_turn(opening, failed=pinned)
+            if second is None:
+                return
+            pinned = second
+            synthesize_narration(
+                opening,
+                instruction=spoken_instruction(accent, opening_beat or DEFAULT_BEAT),
+                voice=pinned,
+                deadline_s=_unheard_deadline(),
+            )
+        _buy_parts(parts[1:], accent=accent, beat=DEFAULT_BEAT, voice=pinned)
+    except Exception as exc:  # noqa: BLE001 — a plan not bought ahead is a plan bought on the ask
+        logger.debug("voice: plan not bought ahead (%s: %s)", type(exc).__name__, exc)
+
+
+def _unheard_deadline() -> float:
+    from wobo_gateway.plexus.media import _UNHEARD_TIMEOUT_S
+
+    return _UNHEARD_TIMEOUT_S
+
+
+def _buy_parts(
+    parts: Sequence[tuple[str, Beat | None]], *, accent: str, beat: Beat, voice: str | None
+) -> int:
+    """Start one buy per sentence, off this thread, bounded by the service's own slot count.
+
+    NOT ON A DAY THE PLATFORM IS ALREADY TRIMMING — the same strict lane :func:`buy_line_ahead`
+    asks in, for the same reason: anticipation is a kindness to the ear, never the answer itself.
+    """
+    from wobo_gateway import spend
+
+    if spend.verdict(spend.Priority.STRANGER) is not spend.Verdict.SERVE:
+        return 0
     started = 0
-    for part, other in line_ahead(text):
+    for part, other in parts:
+        if not part.strip():
+            continue
         if not _ahead_slots.acquire(blocking=False):
             break
         instruction = spoken_instruction(accent, other or beat)
         threading.Thread(
-            target=_buy_ahead, args=(part, instruction), name="voice-ahead", daemon=True
+            target=_buy_ahead, args=(part, instruction, voice), name="voice-ahead", daemon=True
         ).start()
         started += 1
     return started
+
+
+def buy_turn_ahead(text: str, *, accent: str, beat: Beat = DEFAULT_BEAT) -> int:
+    """Buy the REST of the answer this sentence belongs to, in the answer's own voice.
+
+    The safety net under :func:`_speak_turn_ahead` for every path that reaches the read-aloud
+    route without an accent having been marked at the door, and the re-buy after a turn that had
+    not been heard yet changed its voice.
+    """
+    parts = turn_parts(text)
+    if not parts:
+        return 0
+    key = (text or "").strip()
+    rest = [p for p in parts if p[0] != key]
+    return _buy_parts(rest, accent=accent, beat=beat, voice=turn_voice_for(key))
 
 
 # The only frame kinds a browser may put on the wire to Gemini Live. The gateway sends the
@@ -957,13 +1283,36 @@ def register_voice(app: FastAPI) -> None:
             request.state.principal.claims, request.headers.get("accept-language")
         )
         instruction = spoken_instruction(accent, body.beat)
-        # THE LINE AHEAD. The sentences behind this one in the line Wobo decided are bought while
-        # this one is being synthesised, on this learner's own accent and this line's own beat, so
-        # the client's next call — which it makes only once it holds this sentence's audio — is a
-        # disk read of milliseconds rather than another four-to-ten-second round trip. Started
-        # BEFORE the blocking call below, because the point is that the two run together.
-        buy_line_ahead(body.text, accent=accent, beat=body.beat)
-        audio = synthesize_narration(body.text, instruction=instruction)
+        # ONE VOICE FOR THE WHOLE ANSWER. The turn this sentence belongs to was remembered when
+        # its words were decided; its voice is decided once, here, on the first sentence anybody
+        # asks for, and every sentence after it is read in that same voice whatever the providers
+        # do in between. A sentence that belongs to no remembered turn pins nothing and keeps the
+        # behaviour it has today.
+        pinned = turn_voice_for(body.text)
+        # A turn nobody has heard a syllable of may still be re-decided, so its voice is given the
+        # shorter deadline: what a hang costs there is the learner's first sentence, not a gap.
+        deadline = _unheard_deadline() if pinned and not turn_heard(body.text) else None
+        # THE REST OF THE ANSWER. Every remaining sentence of the plan is bought while this one is
+        # being synthesised, on this learner's own accent and in this answer's own voice, so the
+        # client's next call — which it makes as soon as it holds this sentence's audio — is a disk
+        # read of milliseconds rather than another four-to-ten-second round trip. Started BEFORE
+        # the blocking call below, because the point is that they run together.
+        if buy_turn_ahead(body.text, accent=accent, beat=body.beat) == 0:
+            buy_line_ahead(body.text, accent=accent, beat=body.beat)
+        audio = synthesize_narration(
+            body.text, instruction=instruction, voice=pinned, deadline_s=deadline
+        )
+        if audio is None and pinned is not None:
+            # THE ONE RE-DECISION NOBODY HEARS. Nothing of this answer has reached the learner
+            # yet, so the turn may change voice whole — before the answer rather than inside it —
+            # and the rest of the plan is re-bought in the new one. Once a syllable has been
+            # served this returns None and the sentence is silence on the client's reading clock.
+            second = repin_unheard_turn(body.text, failed=pinned)
+            if second is not None:
+                buy_turn_ahead(body.text, accent=accent, beat=body.beat)
+                audio = synthesize_narration(
+                    body.text, instruction=instruction, voice=second, deadline_s=deadline
+                )
         if audio is None:
             # Both voices failed: the client reads the same words with the device's own voice,
             # and the call is GIVEN BACK. A learner never pays for a call we did not serve; until
@@ -973,6 +1322,14 @@ def register_voice(app: FastAPI) -> None:
                 status_code=502,
                 detail="tts failed",
                 headers=budget.headers(snap, budget.classify("voice.tts")),
+            )
+        # A syllable of this answer is now on its way, so the voice it is read in is frozen: from
+        # here nothing can hand the learner a different mouth for one sentence of it.
+        note_heard(body.text)
+        heard = _turn_for(body.text)
+        if heard is not None:
+            logger.info(
+                "voice: turn %s spoke a sentence in %s", heard[0][:8], heard[1].voice
             )
         # The accent and the beat are reported beside the audio: the honest statement of what
         # the learner is about to hear. Never which vendor spoke: that is the ledger's to know.

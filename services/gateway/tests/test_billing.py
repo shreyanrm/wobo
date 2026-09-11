@@ -180,7 +180,7 @@ def test_the_voice_meter_follows_the_subscription_too(
     capability route and not this one would cut a paying learner off mid-sentence."""
     monkeypatch.setattr(
         "wobo_gateway.plexus.media.synthesize_narration",
-        lambda text, *, instruction=None: {"mime": "audio/wav", "b64": "AAAA"},
+        lambda text, *, instruction=None, **_: {"mime": "audio/wav", "b64": "AAAA"},
     )
     monkeypatch.setenv("GEMINI_API_KEY", "test-key-not-a-real-one")
     monkeypatch.setenv("FREE_DAILY_TURNS", "1")

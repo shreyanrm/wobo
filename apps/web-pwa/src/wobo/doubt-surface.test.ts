@@ -13,18 +13,21 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { SurfaceRegistry } from '@wobo/wobo';
+import { type Rect, SurfaceRegistry } from '@wobo/wobo';
 import {
   checkBeats,
   contentRect,
   doubtSurfaceId,
   frameRecorder,
+  MIN_HIT_PX,
   offPageStrokes,
   photoSurface,
+  placeRegions,
   type RecordedFrame,
   readingLine,
   regionRect,
   regionTargetId,
+  strayMarks,
   strokeHold,
 } from './doubt-surface';
 
@@ -244,5 +247,143 @@ describe('law 1 — Wobo says what it read before it says anything else', () => 
     );
     expect(readingLine('')).toBe('I could not read anything on this page. Tell me what it says?');
     expect(readingLine('a — b')).not.toContain('—');
+  });
+});
+
+
+// --- the wave-57 page, at 390, to the pixel -------------------------------------------------------
+
+/**
+ * The six lines of the photographed exercise the adversary drove live at 390 on 2026-09-10, with
+ * the boxes the reader gave them and the photo box the harness measured
+ * (adv-lab/turns/doubt/w57-live-doubt-390/turn.json).
+ */
+const PAGE = { rect: { x: 112.703, y: 94, width: 164.578, height: 219.438 }, rotation: 0 as const };
+const LINES = [
+  { id: 'r1', box: { x: 0.16, y: 0.11, w: 0.22, h: 0.03 } },
+  { id: 'r2', box: { x: 0.16, y: 0.16, w: 0.4, h: 0.03 } },
+  { id: 'r3', box: { x: 0.16, y: 0.22, w: 0.48, h: 0.03 } },
+  { id: 'r4', box: { x: 0.16, y: 0.28, w: 0.22, h: 0.03 } },
+  { id: 'r5', box: { x: 0.16, y: 0.34, w: 0.23, h: 0.03 } },
+  { id: 'r6', box: { x: 0.16, y: 0.4, w: 0.23, h: 0.03 } },
+];
+
+describe('a line keeps its own box, and the thumb gets a band around it', () => {
+  it('lays the button out on the line itself, never on the thumb\'s slab', () => {
+    const placed = placeRegions(LINES, PAGE, { bounds: PAGE.rect });
+    for (const [i, p] of placed.entries()) {
+      // The button IS the line: the same rect the registry hands the pen, to the thousandth.
+      expect(p.box).toEqual(regionRect(LINES[i] as { box: typeof LINES[0]['box'] }, PAGE));
+    }
+    // ... and that box is about seven pixels tall at 390, not forty-four.
+    expect((placed[1] as { box: { height: number } }).box.height).toBeCloseTo(6.583, 2);
+  });
+
+  it('reaches to the thumb\'s floor where there is room, and stops at the halfway line', () => {
+    const placed = placeRegions(LINES, PAGE, { bounds: PAGE.rect });
+    const band = (p: (typeof placed)[number]) => ({
+      top: p.box.y - p.reach.top,
+      bottom: p.box.y + p.box.height + p.reach.bottom,
+    });
+    // Six lines about 13 px apart: no band may cross into the next one's half of the gap.
+    for (let i = 1; i < placed.length; i += 1) {
+      const above = band(placed[i - 1] as (typeof placed)[number]);
+      const here = band(placed[i] as (typeof placed)[number]);
+      expect(here.top).toBeGreaterThanOrEqual(above.bottom - 0.001);
+    }
+    // The bands still partition the page: no gap between two of them either.
+    for (let i = 1; i < placed.length; i += 1) {
+      const above = band(placed[i - 1] as (typeof placed)[number]);
+      const here = band(placed[i] as (typeof placed)[number]);
+      expect(here.top - above.bottom).toBeLessThan(0.001);
+    }
+    // Sideways there is room, so the short lines reach the thumb's floor.
+    const r1 = placed[0] as (typeof placed)[number];
+    expect(r1.box.width + r1.reach.left + r1.reach.right).toBeGreaterThanOrEqual(MIN_HIT_PX - 0.001);
+    // And never past the photo.
+    for (const p of placed) {
+      expect(p.box.x - p.reach.left).toBeGreaterThanOrEqual(PAGE.rect.x - 0.001);
+      expect(p.box.x + p.box.width + p.reach.right).toBeLessThanOrEqual(
+        PAGE.rect.x + PAGE.rect.width + 0.001,
+      );
+    }
+  });
+
+  it('a lone line takes the whole floor in both directions', () => {
+    const [only] = placeRegions([LINES[1] as (typeof LINES)[0]], PAGE, { bounds: PAGE.rect });
+    const it_ = only as NonNullable<typeof only>;
+    expect(it_.box.height + it_.reach.top + it_.reach.bottom).toBeCloseTo(MIN_HIT_PX, 3);
+  });
+});
+
+describe('the probe: every mark on the line it names', () => {
+  const lines = placeRegions(LINES, PAGE, { bounds: PAGE.rect }).map((p) => ({
+    id: p.id,
+    rect: p.box,
+  }));
+  const rectOf = (id: string) => (lines.find((l) => l.id === id) as { rect: Rect }).rect;
+  /** A mark drawn around a rect, with the pen's own padding. */
+  const around = (rect: Rect, pad: number): Rect => ({
+    x: rect.x - pad,
+    y: rect.y - pad,
+    width: rect.width + pad * 2,
+    height: rect.height + pad * 2,
+  });
+
+  it('passes a ring drawn on its own line', () => {
+    const marks = [
+      { id: 's0m0', target: 'r2', rect: around(rectOf('r2'), 4) },
+      { id: 's1m0', target: 'r3', rect: around(rectOf('r3'), 4) },
+    ];
+    expect(strayMarks(marks, lines)).toEqual([]);
+  });
+
+  it('passes an underline drawn beneath its line, and a note beside it', () => {
+    const line = rectOf('r3');
+    const marks = [
+      // an underline sits UNDER the words; it never contains them
+      {
+        id: 'u',
+        target: 'r3',
+        rect: { x: line.x, y: line.y + line.height + 2, width: line.width, height: 3 },
+      },
+      // a note in the margin, within the note law's own 24 px
+      {
+        id: 'n',
+        target: 'r3',
+        rect: { x: line.x + line.width + 10, y: line.y - 4, width: 30, height: 14 },
+      },
+    ];
+    expect(strayMarks(marks, lines)).toEqual([]);
+  });
+
+  it('catches the wave-57 sprawl: a slab-anchored ring over the two lines beside it', () => {
+    // What the bug drew: the anchor was the 44 px hit slab centred on r2, so the ellipse swallowed
+    // r1 and r3 whole while the caption named r2 and r3.
+    const slab = (id: string): Rect => {
+      const r = rectOf(id);
+      return {
+        x: r.x,
+        y: r.y + r.height / 2 - MIN_HIT_PX / 2,
+        width: r.width,
+        height: MIN_HIT_PX,
+      };
+    };
+    const marks = [{ id: 's0m0', target: 'r2', rect: around(slab('r2'), 6) }];
+    const stray = strayMarks(marks, lines);
+    expect(stray).toHaveLength(1);
+    expect(stray[0]?.why).toBe('over another line');
+    expect(['r1', 'r3']).toContain(stray[0]?.over as string);
+  });
+
+  it('catches a mark that missed its line entirely, and a target the reading never had', () => {
+    const marks = [
+      { id: 'a', target: 'r2', rect: around(rectOf('r5'), 2) },
+      { id: 'b', target: 'r9', rect: around(rectOf('r2'), 2) },
+    ];
+    expect(strayMarks(marks, lines).map((s) => [s.id, s.why])).toEqual([
+      ['a', 'off its line'],
+      ['b', 'unknown target'],
+    ]);
   });
 });

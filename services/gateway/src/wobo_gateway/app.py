@@ -857,7 +857,17 @@ def _scaffolded_words(
     tier for words (``scaffold.words_brief``), which is the only part of it the model made.
     """
 
+    # THE ACCENT, CARRIED INTO PHASE TWO BY HAND. This closure is made on the request's own
+    # thread and RUN inside the response body — another thread, which inherits no contextvar. The
+    # whole plan's speech is bought where the words are decided (``voice.remember_parts``), and
+    # that happens down there: without this the buy has no accent to buy on and every sentence is
+    # paid for again, one round trip at a time, behind the learner.
+    from wobo_gateway import voice as _v
+
+    accent_here = _v.current_accent()
+
     def _words(turn: Any) -> None:
+        _v.mark_accent(accent_here)
         from wobo_gateway.board import scaffold as board_scaffold
         from wobo_gateway.board.planner import plan_board
         from wobo_gateway.wobo import board_words_for
@@ -937,6 +947,15 @@ def stream_board_turn(
     # carries the plan, the anonymity and the learner pseudonym without an argument being threaded
     # through them. The learner reaches the ledger only as a salted digest of the meter key.
     ledger.mark(plan=plan, anonymous=principal.anonymous, meter_key=meter)
+    # AND THE ACCENT THIS LEARNER'S SPOKEN LINES ARE READ IN, for the same reason and from the
+    # same verified record. A turn's words are decided here, seconds before one syllable of them
+    # is asked for, and that is when the whole plan's speech is bought (``voice.remember_parts``)
+    # — which can only be done on the accent the client's own call will present, or the audio is
+    # paid for under a key nobody ever asks for.
+    from wobo_gateway import voice as _voice
+
+    spoken_accent = _voice.learner_accent(principal.claims, http.headers.get("accept-language"))
+    _voice.mark_accent(spoken_accent)
 
     resume = board_stream.parse_last_event_id(http.headers.get("last-event-id"))
     if resume is not None:
@@ -1135,6 +1154,10 @@ def stream_board_turn(
             plan,
             actions=actions,
             card=card,
+            # The accent resolved at the door, carried by hand: this frame is a different context
+            # from the one that marked it, and buying a whole plan's speech on the wrong accent is
+            # audio paid for under a key nobody ever presents.
+            accent=spoken_accent,
             on_board=[
                 *(str(i) for i in (board_now.get("drawn") or []) if isinstance(i, str)),
                 *(m for m in (board_now.get("standing") or []) if isinstance(m, dict)),
@@ -1683,6 +1706,17 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         # key. Set here rather than passed down: the model call happens six frames away, inside a
         # provider, and threading an argument through would touch files other waves are editing.
         ledger.mark(plan=plan, anonymous=principal.anonymous, meter_key=meter)
+        # AND THE ACCENT THIS LEARNER'S LINES ARE READ IN, for the same reason and from the same
+        # verified record. A turn's words are decided here, seconds before one syllable of them is
+        # asked for, and that is when the whole plan's speech is bought
+        # (``voice.remember_parts``) — which can only be done on the accent the client's own call
+        # will present, or the audio is paid for under a key nobody ever asks for.
+        from wobo_gateway import voice as _voice
+
+        _voice.mark_accent(
+            _voice.learner_accent(principal.claims, http.headers.get("accept-language"))
+        )
+
         # Counted ONCE, after the door and before the model. Anything that fails before the
         # provider is reached (a closed consent door, a busy queue, a provider error) is
         # refunded — a learner never pays for a call we did not serve.

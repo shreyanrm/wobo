@@ -729,6 +729,7 @@ def build_events(
     actions: list[dict[str, Any]] | None = None,
     card: dict[str, Any] | None = None,
     on_board: Iterable[Any] = (),
+    accent: str | None = None,
 ) -> list[Event]:
     """The whole turn as an ordered, timestamped event list (BOARD.md §4).
 
@@ -807,7 +808,9 @@ def build_events(
     try:
         from wobo_gateway import voice
 
-        voice.remember_parts(parts, ask=str((plan.ask or {}).get("prompt") or "") or None)
+        voice.remember_parts(
+            parts, ask=str((plan.ask or {}).get("prompt") or "") or None, accent=accent
+        )
     except Exception as exc:  # noqa: BLE001
         logger.debug("the voice was not told the line (%s: %s)", type(exc).__name__, exc)
     clock = sentence_clock(parts)

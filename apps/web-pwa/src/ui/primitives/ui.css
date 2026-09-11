@@ -31,8 +31,10 @@ button.wk-chip{border:0;cursor:pointer}
 /* a fact ("Streak · 7") never breaks across two lines; a question chip may wrap on a phone */
 span.wk-chip{white-space:nowrap}
 
-/* Tag (uppercase ink-3) and Label (uppercase pig) */
-.wk-tag{font:500 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+/* Tag (uppercase ink-3) and Label (uppercase pig). TWELVE PIXELS IS THE FLOOR, in the app's own
+   chrome as well as in the ink (docs/INK-FOUR.md, craft; the adversary, wave 47, finding 11):
+   the tag and the phone tab rail both read 11 px until then, the smallest type a learner met. */
+.wk-tag{font:500 12px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
 .wk-label{font:500 12px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase;color:var(--pig)}
 
 /* Card — a tonal surface; one leading pigment as a wash */
@@ -95,7 +97,7 @@ button.wk-tile{border:0;cursor:pointer;text-align:left;font:inherit;color:inheri
 .wk-streak .wk-n{font:700 40px/1 var(--sans);font-variant-numeric:tabular-nums}
 .wk-streak b{font-weight:600}
 .wk-streak .wk-days{display:flex;gap:6px;margin-top:8px}
-.wk-streak .wk-days i{width:26px;height:26px;border-radius:50%;background:var(--paper-3);display:grid;place-items:center;font:600 11px/1 var(--sans);color:var(--ink-3)}
+.wk-streak .wk-days i{width:26px;height:26px;border-radius:50%;background:var(--paper-3);display:grid;place-items:center;font:600 12px/1 var(--sans);color:var(--ink-3)}
 .wk-streak .wk-days i.wk-on{background:var(--marigold);color:var(--ink)}
 .wk-streak .wk-note{font-size:13px;color:var(--ink-3);display:block;margin-top:8px}
 
@@ -175,7 +177,7 @@ button.wk-tile{border:0;cursor:pointer;text-align:left;font:inherit;color:inheri
   .wk-shell{grid-template-columns:1fr;min-height:100vh}
   .wk-rail{position:fixed;left:0;right:0;bottom:0;z-index:10;flex-direction:row;justify-content:space-around;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--paper);box-shadow:0 -10px 30px rgba(20,20,43,.08);gap:0}
   .wk-rail .wk-wm,.wk-rail .wk-spacer,.wk-rail .wk-bottom{display:none}
-  .wk-rail a{flex-direction:column;gap:4px;font-size:11px;padding:8px 12px;border-radius:12px}
+  .wk-rail a{flex-direction:column;gap:4px;font-size:12px;padding:8px 12px;border-radius:12px}
   .wk-rail a svg{width:24px;height:24px}
   .wk-main{padding:16px 16px 110px;gap:20px;min-width:0}
   /* a long crumb keeps to one line and ends in an ellipsis; min-width:0 up the chain lets it shrink */

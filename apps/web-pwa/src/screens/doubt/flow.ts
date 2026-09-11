@@ -131,6 +131,13 @@ export interface DoubtPacket {
   id: string;
   lines: { id: string; text: string }[];
   words?: string;
+  /**
+   * The line lit on the photo when Explain was pressed. It never goes on the wire (`answerBody`
+   * sends the lines and the words); it is what the INSTANT MARK aims at, so the pen starts on the
+   * line the learner tapped while the answer is still being thought about
+   * (docs/INK-FOUR.md, timing; wobo/instant.ts, `resolveDoubtInstant`).
+   */
+  lit?: string | null;
 }
 
 export function doubtPacket(state: DoubtFlow, words: string = state.words): DoubtPacket | null {
@@ -139,6 +146,7 @@ export function doubtPacket(state: DoubtFlow, words: string = state.words): Doub
     id: state.result.id,
     lines: state.lines.map((l) => ({ id: l.id, text: l.text.trim() })),
     ...(words?.trim() ? { words: words.trim() } : {}),
+    ...(state.lit ? { lit: state.lit } : {}),
   };
 }
 

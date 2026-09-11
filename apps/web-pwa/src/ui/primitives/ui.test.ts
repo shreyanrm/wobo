@@ -79,9 +79,24 @@ const FLOOR = new Set([
   'text-overflow:ellipsis',
   'min-width:0',
   'font-size:13px',
+  // The twelve pixel floor in the chrome (see LIFTED below for why): the kit writes these where
+  // the prototype wrote eleven, so they are declarations the kit adds rather than drift.
+  'font-size:12px',
+  'font:500 12px/1 var(--sans)',
+  'font:600 12px/1 var(--sans)',
 ]);
 /** A prototype declaration the 13px floor lifts. */
-const LIFTED: Record<string, string> = { 'font-size:12px': 'font-size:13px' };
+const LIFTED: Record<string, string> = {
+  'font-size:12px': 'font-size:13px',
+  // TWELVE PIXELS IS THE FLOOR IN THE CHROME TOO (wave 47, the adversary's finding on label size).
+  // The prototypes set 11 px on the uppercase tag, the streak's day pips and the phone tab rail,
+  // which was the smallest type a learner ever met, and this product is read on a cheap Android
+  // phone by a child. The lift is recorded here rather than made silently, because the prototype
+  // is the source of truth for everything not on this list.
+  'font-size:11px': 'font-size:12px',
+  'font:500 11px/1 var(--sans)': 'font:500 12px/1 var(--sans)',
+  'font:600 11px/1 var(--sans)': 'font:600 12px/1 var(--sans)',
+};
 
 /** kit selector → prototype selector, for the rules that are a straight port. */
 const PORT: Record<string, string> = {

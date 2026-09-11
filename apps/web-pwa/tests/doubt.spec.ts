@@ -294,9 +294,44 @@ function timeline(page: Page, ms: number): Promise<Timeline> {
   );
 }
 
-/** Every visible control the feature draws, with its size. */
+/** Every visible control the feature draws, with the size a FINGER meets. */
 async function tapTargets(page: Page): Promise<{ name: string; w: number; h: number }[]> {
   return page.evaluate(() => {
+    /**
+     * WHAT A FINGER CAN PRESS, which is not always the element's own box.
+     *
+     * A control may reach past its border box with an absolutely positioned pseudo-element, and that
+     * is sometimes the only honest way to build one: a line of a photographed page is seven pixels
+     * tall at 390, and the button over it must BE the line, because that box is what Wobo's ink
+     * anchors to (the adversary, wave 57 — a button grown to 44 px drew one ellipse across three
+     * lines at once). The thumb's 44 px is then reached by `.db-region::after`, which has no box on
+     * the glass of its own. A probe that measures only `getBoundingClientRect` reads such a control as
+     * seven pixels tall and is wrong about the thing it exists to measure.
+     *
+     * The insets are read off the pseudo-element's computed style, which resolves `calc()` and
+     * variables to px, and are relative to the element's padding box.
+     */
+    const pressableBox = (el: Element): { width: number; height: number } => {
+      const r = el.getBoundingClientRect();
+      let left = r.left;
+      let top = r.top;
+      let right = r.right;
+      let bottom = r.bottom;
+      for (const pseudo of ['::before', '::after']) {
+        const cs = getComputedStyle(el, pseudo);
+        if (!cs || cs.content === 'none' || cs.content === 'normal') continue;
+        if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+        if (cs.position !== 'absolute' && cs.position !== 'fixed') continue;
+        const n = (v: string) => (v === 'auto' ? Number.NaN : Number.parseFloat(v));
+        const [t, rr, b, l] = [n(cs.top), n(cs.right), n(cs.bottom), n(cs.left)];
+        if ([t, rr, b, l].some((v) => Number.isNaN(v))) continue;
+        left = Math.min(left, r.left + l);
+        top = Math.min(top, r.top + t);
+        right = Math.max(right, r.right - rr);
+        bottom = Math.max(bottom, r.bottom - b);
+      }
+      return { width: right - left, height: bottom - top };
+    };
     const out: { name: string; w: number; h: number }[] = [];
     const nodes = document.querySelectorAll(
       '.db-wrap button, .db-wrap label.db-take, .db-wrap textarea, .db-wrap input[type="file"], .db-entry, .db-mem button',
@@ -305,10 +340,18 @@ async function tapTargets(page: Page): Promise<{ name: string; w: number; h: num
       const r = el.getBoundingClientRect();
       if (r.width === 0 && r.height === 0) continue; // hidden
       if (el instanceof HTMLInputElement) continue; // the visually hidden input lives inside its label
+      // A LINE OF THE PHOTOGRAPH IS NOT A CONTROL WE LAID OUT. Its size and its spacing are the
+      // learner's page's, not ours: three lines thirty pixels apart cannot each be forty-four
+      // pixels tall without one stealing another's tap, and the version that tried drew one
+      // ellipse across three lines at once (the adversary, wave 57). Each line takes every pixel
+      // its neighbours leave and no more, which is WCAG 2.5.8's own spacing exception; that the
+      // bands partition the page with no overlap and no gap is measured in doubt-marks.spec.ts.
+      if (el.classList.contains('db-region')) continue;
+      const press = pressableBox(el);
       out.push({
         name: (el.getAttribute('aria-label') ?? el.textContent ?? el.className).trim().slice(0, 40),
-        w: Math.round(r.width),
-        h: Math.round(r.height),
+        w: Math.round(press.width),
+        h: Math.round(press.height),
       });
     }
     return out;
@@ -402,7 +445,10 @@ for (const size of WIDTHS) {
     await page.getByRole('textbox', { name: /Your own words about this doubt/ }).fill(OWN_WORDS);
 
     // --- LAW 5: it explains while it draws --------------------------------------------------------
-    const run = timeline(page, 8500);
+    // Long enough for all three of the plan's sentences AND the strokes beaten to them: the
+    // instant mark lands at once, and the plan's own marks still keep time with the voice, whose
+    // first sentence does not begin until the answer has arrived.
+    const run = timeline(page, 11_000);
     // TAP 2: Explain.
     await explain.click();
     taps += 1;
@@ -433,11 +479,19 @@ for (const size of WIDTHS) {
           .map(([id, at]) => `${id}@${at}ms`)
           .join(', ')}`,
     );
-    // the words are there before the first stroke, and the strokes come one by one with the
-    // sentences (seconds apart), never all at once and never after the words are over
-    expect(arrivals.map(([id]) => id)).toEqual(['c-five', 'c-rhs', 'c-eq']);
+    // THE FIRST STROKE IS ON THE GLASS WITHIN A SECOND OF THE ASK, NOT OF WOBO'S FIRST WORD
+    // (docs/INK-FOUR.md, timing; the adversary, wave 57, finding 4: live at 390 the doubt turn's
+    // first stroke landed 8 193 ms after the confirm, and it was the one turn of the 59 that
+    // failed timing outright). The learner's confirmed lines are registered targets by the time
+    // they press Explain, so the pen starts on one of them with no model call at all, and the
+    // plan's own first mark then takes that same id — the ONE mark moves to the line the plan
+    // names, the way a teacher corrects a stroke, rather than a second ring appearing beside it.
+    const firstStroke = arrivals[0];
+    expect(firstStroke?.[0]).toMatch(/^instant-/);
+    expect(firstStroke?.[1] ?? Number.POSITIVE_INFINITY).toBeLessThan(1000);
+    expect(arrivals.slice(1).map(([id]) => id)).toEqual(['c-rhs', 'c-eq']);
+    // ... and the rest come one by one with the sentences (seconds apart), never all at once
     expect(firstSaid).toBeGreaterThanOrEqual(0);
-    expect(firstSaid).toBeLessThanOrEqual(arrivals[0]?.[1] ?? 0);
     expect((arrivals[1]?.[1] ?? 0) - (arrivals[0]?.[1] ?? 0)).toBeGreaterThan(1200);
     expect((arrivals[2]?.[1] ?? 0) - (arrivals[1]?.[1] ?? 0)).toBeGreaterThan(1200);
     // and the PRINTED caption follows the same beat: it grows in steps, and at the first stroke it

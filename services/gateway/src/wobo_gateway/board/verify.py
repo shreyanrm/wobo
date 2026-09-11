@@ -144,6 +144,37 @@ def _monic_worker(equation: Any, var: str) -> str | None:
     return str(sp.Poly(sp.expand(expression / lead), symbol).as_expr())
 
 
+def _working_worker(equation: Any, var: str) -> list[str]:
+    """The lines BETWEEN a linear equation and its answer, as text.
+
+    ``2*x + 3 = 7`` gives ``["2*x = 4", "x = 2"]``: the constant moved, then the coefficient
+    divided out — the two lines a teacher writes and the ones a learner who asked "step by step"
+    came for. Empty for anything that is not linear in ``var`` with ordinary numbers in it; the
+    caller then keeps the route it had.
+    """
+    import sympy as sp
+
+    symbol = sp.Symbol(var)
+    expression = sp.expand(equation.lhs - equation.rhs)
+    try:
+        polynomial = sp.Poly(expression, symbol)
+    except sp.PolynomialError:
+        return []
+    if polynomial.degree() != 1:
+        return []
+    lead, constant = polynomial.all_coeffs()
+    if not (lead.is_number and constant.is_number) or lead == 0:
+        return []
+    moved = sp.nsimplify(-constant)
+    root = sp.nsimplify(moved / lead)
+    lines: list[str] = []
+    if constant != 0 and lead != 1:
+        lines.append(f"{sp.sstr(sp.expand(lead * symbol))} = {sp.sstr(moved)}")
+    if lead != 1 or constant != 0:
+        lines.append(f"{var} = {sp.sstr(root)}")
+    return lines
+
+
 def _equal_worker(a: Any, b: Any) -> bool:
     import sympy as sp
 
@@ -229,6 +260,25 @@ def monic(equation: str, var: str = "x") -> str:
     if not line:
         raise Unverified(f"{equation!r} has no leading coefficient to divide out")
     return f"{line} = 0"
+
+
+def working(equation: str, var: str = "x") -> list[str]:
+    """THE LINE BETWEEN THE ASK AND THE ANSWER (the adversary, wave 47, finding 6).
+
+    "solve 2x + 3 = 7 step by step" drew two lines — the equation and ``x = 2`` — and skipped the
+    one the learner asked for. The middle line is not a rearrangement written by hand: SymPy
+    computes it in the sandbox like every other value here, and the chain check proves each line
+    keeps the solution set whole before a character is drawn.
+
+    Empty when the equation is not a linear one in ordinary numbers, which is how every other
+    derivation keeps the route it had.
+    """
+    try:
+        parsed = parse_equation(equation)
+    except (CasError, sandbox.SandboxError) as exc:
+        raise Unverified(f"could not read the equation {equation!r}: {exc}") from exc
+    lines = _bounded(_working_worker, (parsed, var), f"the working for {equation!r}")
+    return [str(line) for line in (lines or [])]
 
 
 def readable(label: str, text: str) -> CheckResult:

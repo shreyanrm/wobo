@@ -171,7 +171,13 @@ export function FlyingWobo({
       style={{
         position: 'fixed',
         right: 22,
-        bottom: 26,
+        // ABOVE THE TAB RAIL, NEVER INSIDE IT (the adversary, wave 47, finding 8). At 390 on
+        // /doubt this control sat at [298,740,68,68] with the rail at [0,773,390,71]: its bottom
+        // 35 px behind the one bar a child uses to move between screens, in light, dark and
+        // reduced motion alike. The rail publishes `--rail-h` so that everything pinned to the
+        // foot of a phone can stand above it; this now reads it, and the safe-area strip the rail
+        // pads itself with on top of that. On a laptop there is no rail and the token is 0px.
+        bottom: 'calc(26px + var(--rail-h, 0px) + env(safe-area-inset-bottom))',
         opacity: op,
         zIndex: 'var(--wobo-z-woboPresence)' as unknown as number,
         pointerEvents: flying ? 'none' : 'auto',

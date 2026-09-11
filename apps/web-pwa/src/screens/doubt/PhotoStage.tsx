@@ -11,26 +11,33 @@
  * still where the ink lands. The target ids are the gateway's line ids, untouched, because that is
  * what its ink frames anchor to.
  *
+ * THE BUTTON IS THE LINE, AND THE THUMB GETS A BAND AROUND IT. A region's hit area is never under
+ * the thumb's 44 px, but the hit area is not the line: the button's own box is the line as
+ * `regionRect` resolves it, because that box is what the glass walk reads for this target and
+ * therefore what Wobo's ink anchors to. The reach past it is painted by `.db-region::after`, which
+ * has no box on the glass of its own (`wobo/doubt-surface.ts`, `placeRegions`; the adversary,
+ * wave 57, finding 1 — a 44 px slab on a 7 px line drew one ellipse across three lines at once).
+ *
  * Wobo's ink itself is not drawn here. The stage's fixed screen surface (wobo/Stage.tsx) paints
  * `screenStore` over the whole viewport, anchored to `surfaceRegistry.getTargets()` — which now
  * includes these lines. This component consumes the registry; it edits nothing in it.
  */
 
 import { useSurface } from '@wobo/wobo';
+import type { CSSProperties } from 'react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '../../ui/primitives';
 import {
   type DoubtRegion,
+  MIN_HIT_PX,
   type PhotoFrame,
   photoSurface,
+  placeRegions,
   type Rotation,
-  regionRect,
 } from '../../wobo/doubt-surface';
 import type { Capture } from './api';
 import { captureUrl } from './capture';
 
-/** A region's hit area is never under the thumb's 44px, whatever the brain read. */
-const MIN_HIT = 44;
 /**
  * The photo never takes more than this much of the viewport's height; the reading needs room.
  * On a phone the sheet cuts it further still (`doubt.css`, `--db-photo-vh`): there the reading and
@@ -38,6 +45,9 @@ const MIN_HIT = 44;
  * learner had to scroll past the fold to reach Explain at all.
  */
 const MAX_VH = 0.7;
+
+/** A region that has not been measured yet reaches nowhere. */
+const ZERO = { top: 0, right: 0, bottom: 0, left: 0 } as const;
 
 export interface PhotoStageProps {
   /** The gateway's doubt id: the surface is `doubt:<id>`. */
@@ -118,17 +128,10 @@ export function PhotoStage(props: PhotoStageProps) {
     rect: { x: 0, y: 0, width: size.width, height: size.height },
     rotation,
   };
-  const hit = (region: DoubtRegion) => {
-    const r = regionRect(region, local);
-    const width = Math.max(r.width, MIN_HIT);
-    const height = Math.max(r.height, MIN_HIT);
-    return {
-      left: r.x + r.width / 2 - width / 2,
-      top: r.y + r.height / 2 - height / 2,
-      width,
-      height,
-    };
-  };
+  const placed = placeRegions(regions, local, {
+    minHit: MIN_HIT_PX,
+    bounds: local.rect,
+  });
 
   const turn = (by: 90 | -90) => props.onRotate(((rotation + by + 360) % 360) as Rotation);
 
@@ -153,9 +156,9 @@ export function PhotoStage(props: PhotoStageProps) {
           }}
         />
         {size.width > 0 &&
-          regions.map((region) => {
+          regions.map((region, index) => {
             const on = region.id === lit;
-            const at = hit(region);
+            const at = placed[index] ?? { box: { x: 0, y: 0, width: 0, height: 0 }, reach: ZERO };
             return (
               <button
                 key={region.id}
@@ -168,7 +171,18 @@ export function PhotoStage(props: PhotoStageProps) {
                 aria-label={region.text ? `${region.label}: ${region.text}` : region.label}
                 aria-pressed={on}
                 data-region={region.id}
-                style={{ left: at.left, top: at.top, width: at.width, height: at.height }}
+                style={
+                  {
+                    left: at.box.x,
+                    top: at.box.y,
+                    width: at.box.width,
+                    height: at.box.height,
+                    '--db-reach-t': `${at.reach.top}px`,
+                    '--db-reach-r': `${at.reach.right}px`,
+                    '--db-reach-b': `${at.reach.bottom}px`,
+                    '--db-reach-l': `${at.reach.left}px`,
+                  } as CSSProperties
+                }
                 onClick={() => props.onLight(on ? null : region.id)}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') props.onLight(null);

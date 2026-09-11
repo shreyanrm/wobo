@@ -250,6 +250,22 @@ def _number_line(intent: dict[str, Any], draft: Draft) -> Draft:
         style=faint(1),
         hint="ticks",
     )
+    # A NUMBER LINE CARRIES ITS NUMBERS (the adversary, wave 47, finding 6). The axis above rules
+    # ticks and nothing else, so the board taught about -5 and 5 with neither of them anywhere on
+    # the glass — and the spoken-number law rightly ate the sentence that named them, leaving "The
+    # number line. Numbers have an order." Each end and the origin are written under the rule,
+    # each behind the same bounds check every mark on this line goes through.
+    for value in ([lo, hi] if not lo < 0 < hi else [lo, 0.0, hi]):
+        draft.ledger.record(verify.in_bounds("tick", value, lo, hi))
+        tick = draft.add("point", anchor=board(*frame.at(value, 0)), style=faint(1), hint="end")
+        draft.number(
+            value,
+            "board.in_bounds:tick",
+            anchor=on(tick, "bottom"),
+            decimals=0,
+            style=faint(1),
+        )
+
     marks = intent.get("marks") or []
     if not isinstance(marks, list):
         raise Unverified("marks must be a list of values or expressions")
@@ -348,6 +364,16 @@ def _derivation(intent: dict[str, Any], draft: Draft) -> Draft:
             steps = [verify.monic(equation, var_name)]
         except Unverified:
             steps = []
+        # STEP BY STEP MEANS THE STEPS (the adversary, wave 47, finding 6). A linear equation
+        # solved straight to its answer drew "2x + 3 = 7" and "x = 2" and nothing between, so the
+        # sentence that taught the move — "so 2x = 4" — named a line that was not on the glass and
+        # the spoken-number law took it. The working is computed in the verifier's sandbox and
+        # proved by the chain check below, exactly like the answer it ends on.
+        if not steps:
+            try:
+                steps = verify.working(equation, var_name)
+            except Unverified:
+                steps = []
         if not steps:
             roots = verify.solve_equation(equation, var_name)
             if len(roots) == 1:

@@ -612,6 +612,41 @@ export function measureText(font: HandFont, text: string, size: number): number 
   return w;
 }
 
+/**
+ * THE TALLEST GLYPH IN A PHRASE, AS A FRACTION OF THE TYPE SIZE (wave 58, finding 2).
+ *
+ * The twelve-pixel law is stated of the tallest glyph a mark actually writes, and that is not a
+ * fixed fraction of the size: 'recessive' has no ascender and no cap, 'greatest height' has both,
+ * and in Caveat they differ by about a third. A placement solver choosing between legible sizes
+ * has to know which is which, and it has to know without laying the glyphs — so the ratio is
+ * measured off the font's own outlines and cached per character.
+ *
+ * A phrase with nothing measurable in it (all spaces) reports zero, and the caller keeps whatever
+ * size it asked for.
+ */
+const HEIGHT_RATIOS = new WeakMap<HandFont, Map<string, number>>();
+
+export function tallestGlyphRatio(font: HandFont, text: string): number {
+  let byChar = HEIGHT_RATIOS.get(font);
+  if (!byChar) {
+    byChar = new Map();
+    HEIGHT_RATIOS.set(font, byChar);
+  }
+  let tall = 0;
+  for (const ch of text) {
+    if (ch === ' ' || ch === '\n') continue;
+    let ratio = byChar.get(ch);
+    if (ratio === undefined) {
+      // Measured at a large size and divided out: one lay per character, for the life of the font.
+      const { glyph } = glyphAt(font, ch, 100, [0, 0]);
+      ratio = glyph ? glyph.box.h / 100 : 0;
+      byChar.set(ch, ratio);
+    }
+    if (ratio > tall) tall = ratio;
+  }
+  return tall;
+}
+
 /** Break a phrase into lines that fit `maxWidth`, never splitting a word that fits on its own. */
 export function wrapText(
   font: HandFont,

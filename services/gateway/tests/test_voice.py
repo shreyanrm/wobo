@@ -256,7 +256,7 @@ def test_the_one_shot_spoken_line_is_in_the_learners_own_english(
     reading the very same sentence back."""
     asked: dict[str, Any] = {}
 
-    def fake(text: str, *, instruction: str | None = None) -> dict[str, str]:
+    def fake(text: str, *, instruction: str | None = None, **_: object) -> dict[str, str]:
         asked["text"], asked["instruction"] = text, instruction
         return {"mime": "audio/wav", "b64": "AAAA"}
 
@@ -276,7 +276,7 @@ def test_a_learner_we_know_nothing_about_still_hears_american_english(
 ) -> None:
     asked: dict[str, Any] = {}
 
-    def fake(text: str, *, instruction: str | None = None) -> dict[str, str]:
+    def fake(text: str, *, instruction: str | None = None, **_: object) -> dict[str, str]:
         asked["instruction"] = instruction
         return {"mime": "audio/wav", "b64": "AAAA"}
 
@@ -546,7 +546,7 @@ def test_the_one_shot_line_carries_its_beat_and_says_which_it_read(
 ) -> None:
     asked: dict[str, Any] = {}
 
-    def fake(text: str, *, instruction: str | None = None) -> dict[str, str]:
+    def fake(text: str, *, instruction: str | None = None, **_: object) -> dict[str, str]:
         asked["text"], asked["instruction"] = text, instruction
         return {"mime": "audio/wav", "b64": "AAAA"}
 

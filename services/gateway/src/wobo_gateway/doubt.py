@@ -97,6 +97,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any, Protocol
@@ -1587,7 +1588,9 @@ def join_the_climb(doubt: Doubt, *, now: datetime | None = None) -> bool:
 # --- the answer: the existing board turn, over the photo -----------------------------------------
 
 
-def turn_payload(doubt: Doubt, words: str) -> dict[str, Any]:
+def turn_payload(
+    doubt: Doubt, words: str, standing: "list[StandingMark] | None" = None
+) -> dict[str, Any]:
     """The context packet for the board turn: the photo as the surface, its lines as the only
     targets, the reading as the learner's working, the learner's words as the question.
 
@@ -1606,6 +1609,8 @@ def turn_payload(doubt: Doubt, words: str) -> dict[str, Any]:
     page has no equation and never did).
     """
     targets = [{"id": line.id, "kind": "line", "label": line.text} for line in doubt.targets]
+    by_id = {line.id: line.text for line in doubt.targets}
+    standing = standing or []
     # The photo's lines ARE the glass map (docs/INK-FREEZE-PLAN-TRACE.md section 3, Freeze): the
     # same plan grammar marks a line of the page by id, with the box the vision read gave it.
     glass = [
@@ -1625,6 +1630,17 @@ def turn_payload(doubt: Doubt, words: str) -> dict[str, Any]:
             f"{', '.join(gap)} — the learner asked about this and it is NOT in the working below, "
             "so the working is incomplete: say that, and never call a step right or wrong on it"
         )
+    standing_now = [
+        {
+            "id": mark.id,
+            "kind": mark.kind,
+            "anchor": {"target": mark.target},
+            "words": text,
+            "meta": {"page": True},
+        }
+        for mark in standing
+        if (text := by_id.get(mark.target, ""))
+    ]
     return {
         "context": {
             "turn": {"lastUserInput": (words or DEFAULT_WORDS)[:MAX_WORDS_CHARS]},
@@ -1637,12 +1653,22 @@ def turn_payload(doubt: Doubt, words: str) -> dict[str, Any]:
             "targets": targets,
             "packet": {"v": 1, "glass": glass},
         },
-        "board": {"presentation": "screen"},
+        "board": {
+            "presentation": "screen",
+            **({"standing": standing_now} if standing_now else {}),
+        },
     }
 
 
 #: How many marks were refused for landing off the page, in this process. The harness reads it.
 OFF_PAGE = {"count": 0}
+
+#: What counts as a mark on the page — the same list ``board.naming`` holds a mark to. A mark is
+#: the one object whose whole meaning is the thing it is about, so on a photograph it is called by
+#: the line it sits on (:meth:`DoubtShaper._about_the_line`).
+_MARK_KINDS = frozenset(
+    {"ring", "circle", "underline", "tick", "cross", "strike", "note", "arrow", "bracket", "point"}
+)
 
 
 @dataclass
@@ -1650,9 +1676,51 @@ class DoubtShaper:
     """Laws 3 and 5 on a board turn over a photo. ``app.stream_board_turn`` calls both halves."""
 
     region_ids: frozenset[str]
+    #: What each line of the page says, by its id. A mark on a photograph is ABOUT one of these
+    #: lines, so this is what the mark is called (:meth:`_about_the_line`).
+    region_text: Mapping[str, str] = field(default_factory=dict)
     off_page: int = 0
     shaped: bool = False
     kept: list[str] = field(default_factory=list)
+    relabelled: int = 0
+
+    def _about_the_line(self, obj: dict[str, Any]) -> None:
+        """A MARK'S WORDS ARE THE LINE IT SITS ON, NEVER THE TAG THE MODEL WROTE ON IT.
+
+        The adversary, wave 57, live at 390: the caption read *"Start with the equation, because
+        we keep both sides balanced while removing the extra 5. Starting equation. The first step
+        is 3x = 20 - 5, not 20 + 5, because subtracting 5 cancels the +5 on the left. Wrong sign.
+        Correct first step."* Three of those sentences are mark labels read out as prose in the
+        middle of the teaching line. They got there honestly: ``board/naming.py`` gives every mark
+        the say does not name a sentence built from the mark's own ``words``, and the model had
+        written ``words: "Wrong sign"`` — a tag for a margin, not a sentence for a voice.
+
+        **A label is what a mark says, never a sentence in the speech.** On a photograph the mark
+        is about a line of the learner's own page and that line is what it is called, so ``words``
+        becomes the line's own text. The model's tag is kept where a tag belongs: on a ``note``,
+        which draws its ``text`` in the margin. Nothing a learner wrote is invented over, and
+        nothing a model wrote about a mark is spoken as though it were teaching.
+        """
+        if obj.get("kind") not in _MARK_KINDS:
+            return
+        # EVERY MARK IN A DOUBT PLAN IS ON THE PAGE, by law 3: it anchors to a line of the
+        # photograph or to another mark that does, or it was refused above.
+        # AND THE SAY OWES IT NO SENTENCE. ``board.naming.on_the_page`` reads this flag: the line
+        # under the mark is the learner's own handwriting, and reading it back to them is the
+        # label read back the law forbids just as much as speaking the model's tag was.
+        meta = obj.get("meta")
+        if not isinstance(meta, dict):
+            meta = {}
+            obj["meta"] = meta
+        meta["page"] = True
+        anchor = obj.get("anchor")
+        target = anchor.get("target") if isinstance(anchor, dict) else None
+        text = self.region_text.get(str(target), "") if isinstance(target, str) else ""
+        if not text:
+            return
+        if str(obj.get("words") or "").strip() != text:
+            self.relabelled += 1
+        obj["words"] = text
 
     def _anchor_on_the_page(self, anchor: Any, known: set[str]) -> dict[str, Any] | None:
         """The anchor as it may be drawn, or None when it is a pixel guess."""
@@ -1692,6 +1760,7 @@ class DoubtShaper:
             if not on_page:
                 self.off_page += 1
                 continue
+            self._about_the_line(shaped)
             kept.append(shaped)
         plan["objects"] = kept
         self.kept = [str(o.get("id")) for o in kept]
@@ -1772,9 +1841,21 @@ class LineCorrection(BaseModel):
     text: str = Field(max_length=MAX_LINE_CHARS * 2)
 
 
+class StandingMark(BaseModel):
+    """The mark the CLIENT already laid, before this request left (docs/INK-FOUR.md, the instant
+    mark). The learner's confirmed lines are registered targets the moment they press Explain, so
+    the pen starts on the line they tapped while the brain is still thinking. The brain is told,
+    or it plans against a page it believes is unmarked and the standing mark stands unspoken."""
+
+    id: str = Field(min_length=1, max_length=40)
+    kind: str = Field(min_length=1, max_length=20)
+    target: str = Field(min_length=1, max_length=8)
+
+
 class AnswerRequest(BaseModel):
     lines: list[LineCorrection] = Field(default_factory=list, max_length=MAX_LINES)
     words: str | None = Field(default=None, max_length=MAX_WORDS_CHARS)
+    standing: list[StandingMark] = Field(default_factory=list, max_length=4)
 
 
 def _refusal(exc: DoubtRefused, headers: dict[str, str] | None = None) -> JSONResponse:
@@ -2023,6 +2104,17 @@ def register_doubt(app: FastAPI, gateway: Any) -> None:
         priority = spend.priority_for(anonymous=False, signed_in=True, plan=plan)
         meter = request.state.meter_key
         ledger.mark(plan=plan, anonymous=False, meter_key=meter)
+        # AND THE ACCENT THIS LEARNER'S LINES ARE READ IN, for the same reason and from the same
+        # verified record. A turn's words are decided here, seconds before one syllable of them is
+        # asked for, and that is when the whole plan's speech is bought
+        # (``voice.remember_parts``) — which can only be done on the accent the client's own call
+        # will present, or the audio is paid for under a key nobody ever asks for.
+        from wobo_gateway import voice as _voice
+
+        _voice.mark_accent(
+            _voice.learner_accent(principal.claims, request.headers.get("accept-language"))
+        )
+
         try:
             raw = decode_image_field(body.image.data)
         except DoubtRefused as exc:
@@ -2107,10 +2199,13 @@ def register_doubt(app: FastAPI, gateway: Any) -> None:
             )
         profile = consent.get_profile(principal.subject, anonymous=False)
         plan = billing.metered_plan(principal, profile)
-        payload = turn_payload(doubt, doubt.words)
+        payload = turn_payload(doubt, doubt.words, body.standing)
         # THE RECORD REACHES THE PROMPT, exactly as the capability route does for wobo.turn.
         mind.ground_lifetime(payload, subject=principal.subject, anonymous=False)
-        shaper = DoubtShaper(region_ids=frozenset(line.id for line in doubt.targets))
+        shaper = DoubtShaper(
+            region_ids=frozenset(line.id for line in doubt.targets),
+            region_text={line.id: line.text for line in doubt.targets},
+        )
         response = stream_board_turn(
             gateway,
             "wobo.turn",

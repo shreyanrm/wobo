@@ -12,13 +12,25 @@ import type { WoboAction, WoboMood } from '@wobo/wobo';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { currentFidelity, isOffline } from '../shell/resilience';
 import { type ChatTurn, useWoboChat } from './chat';
-import { speakWithDevice, stopDeviceVoice } from './device-voice';
+import { deviceCanSpeak, speakWithDevice, stopDeviceVoice } from './device-voice';
 import { base64ToFloat32 } from './voice';
 
 // Family N: a stalled 2G link must never leave the narration gate hanging on a fetch that never
 // resolves. Bound every TTS request; on timeout it aborts → synth returns null → the words already
 // on screen carry the turn and any gate waiting on us releases on its own clock.
+//
+// TWELVE SECONDS ON THE SENTENCE THAT DECIDES THE TURN'S VOICE, eight on every one after it.
+// The gateway decides a turn's voice once and holds it, and when its first voice will not speak it
+// re-decides the whole turn silently — which costs its own short deadline (six seconds) and then
+// the second voice's two-to-four. Measured live on 2026-09-11 with Google's text-to-speech hanging
+// on a majority of calls: at eight seconds flat this file gave up on the FIRST sentence a second or
+// two before that re-decision landed, so the phone's own voice took a turn Wobo was about to speak
+// — and, by the one-voice law below, then had to finish it. A learner who waits ten seconds and
+// hears Wobo is better served than one who hears a stranger at eight. Every sentence AFTER the
+// first should be a disk read of milliseconds (the whole plan is bought when its words are
+// decided), so their budget stays where it was: past it, something is wrong and silence is kinder.
 const TTS_TIMEOUT_MS = 8000;
+const FIRST_TTS_TIMEOUT_MS = 12000;
 
 const GATEWAY_URL = import.meta.env.VITE_GATEWAY_URL;
 const MUTE_KEY = 'wobo-voice-muted-v1';
@@ -245,12 +257,16 @@ export function withBeat(url: string, beat: VoiceBeat): string {
 async function synth(
   text: string,
   beat: VoiceBeat = 'step',
+  opts?: { deciding?: boolean },
 ): Promise<{ samples: Float32Array<ArrayBuffer>; rate: number } | null> {
   // Offline (or keyless): don't burn the timeout on a fetch that can't land — fall straight to
   // text. The reply is already on screen; Wobo's voice is the grace, not the help.
   if (!GATEWAY_URL || !text.trim() || isOffline()) return null;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), TTS_TIMEOUT_MS);
+  const timer = setTimeout(
+    () => ctrl.abort(),
+    opts?.deciding ? FIRST_TTS_TIMEOUT_MS : TTS_TIMEOUT_MS,
+  );
   try {
     // Identity rides every gateway call (gatewayFetch); the brain decides whether this learner has
     // a voice left today. A refusal is just silence here — the words are already on screen.
@@ -473,20 +489,30 @@ export async function speakLine(
     // the rest stays on screen. Grace degrades, the words don't.
     const all = sentences(text);
     const parts = currentFidelity() === 'low' ? all.slice(0, 2) : all;
-    let pending = synth(parts[0] as string, beat);
+    const turn = voiceOfTheTurn();
+    let pending = synth(parts[0] as string, beat, { deciding: true });
     for (let i = 0; i < parts.length; i++) {
-      const cur = await pending;
+      let cur = await pending;
       if (gen !== speechGen) {
         finish(); // a newer utterance took over
         return;
       }
-      pending = i + 1 < parts.length ? synth(parts[i + 1] as string, beat) : Promise.resolve(null);
+      pending =
+        i + 1 < parts.length
+          ? synth(parts[i + 1] as string, beat, { deciding: turn.chosen() === null })
+          : Promise.resolve(null);
       if (isMuted()) {
         finish(); // muted mid-flight — respect it, but never strand the gate
         return;
       }
-      if (cur) await playSamples(cur.samples, cur.rate, gen);
-      else await lastResort(parts[i] as string, gen);
+      if (!cur) cur = await synthAgain(parts[i] as string, beat, gen, turn);
+      // A turn the phone began is the phone's to the end: a gateway clip that arrives late into
+      // one is the same defect wearing the other coat, and a learner hears the answer change
+      // mouths halfway through either way.
+      if (cur && turn.chosen() !== 'device') {
+        turn.spoke();
+        await playSamples(cur.samples, cur.rate, gen);
+      } else await lastResort(parts[i] as string, gen, turn);
       if (gen !== speechGen) {
         finish();
         return;
@@ -523,18 +549,88 @@ function waitMs(ms: number): Promise<void> {
   });
 }
 
+// --- ONE VOICE, ONE TURN ------------------------------------------------------------------------
+//
+// Measured live on 2026-09-10, twelve turns, every browser muted, timings off the synthesis call
+// and the wire: on two of six boards the answer fell through to the DEVICE's own voice in the
+// MIDDLE of itself — the plant cell's second sentence spoke at 25 271 ms and the projectile's at
+// 21 428 ms, after this file's eight-second abandon. A learner heard Wobo say the first sentence
+// of an answer and the phone say the second. INK-FOUR experience asks for ONE voice, and an answer
+// is one performance: the voice belongs to the turn, not to the sentence.
+//
+// The gateway now decides ITS voice once per turn and holds it (``wobo_gateway.voice``). This is
+// the same law on the last voice there is. The device may read a turn Wobo never began — that is
+// one voice, the only one available — and it may never finish a turn Wobo started.
+
+/** Which voice is reading this turn, once anything has read a sentence of it. */
+export type TurnVoice = 'gateway' | 'device';
+
+export interface VoiceOfTheTurn {
+  /** The voice this turn is being read in, or ``null`` while nothing has read a sentence yet. */
+  chosen: () => TurnVoice | null;
+  /** Wobo's own voice read a sentence of this turn. From here the device is out. */
+  spoke: () => void;
+  /** Nothing came back for this sentence. Who reads it: the device, or the reading clock? */
+  whenSilent: (deviceAvailable: boolean) => 'device' | 'clock';
+}
+
+/** One turn's voice. Made per utterance, never shared, never carried into the next answer. */
+export function voiceOfTheTurn(): VoiceOfTheTurn {
+  let chosen: TurnVoice | null = null;
+  return {
+    chosen: () => chosen,
+    spoke() {
+      // A turn the device has begun stays the device's: handing it back to Wobo halfway is the
+      // same defect wearing the other coat.
+      if (chosen === null) chosen = 'gateway';
+    },
+    whenSilent(deviceAvailable: boolean) {
+      if (chosen === 'gateway') return 'clock'; // silence is a pause; a second voice is a stranger
+      if (!deviceAvailable) return 'clock';
+      chosen = 'device';
+      return 'device';
+    },
+  };
+}
+
 /**
- * The gateway had no voice for this sentence (both of its voices failed, or the network did):
- * the device reads the same words. When the device cannot either, the sentence is held on the
- * reading clock as before, so the ink stays paced. Never while muted, never offline-only text.
+ * The gateway had no voice for this sentence (its voice failed, or the network did). The device
+ * reads the same words ONLY when it is this turn's voice — a turn Wobo has already spoken in holds
+ * the sentence on the reading clock instead, in silence, so the ink stays paced and the answer
+ * keeps the one voice it started in. Never while muted, never offline-only text.
  */
-async function lastResort(sentence: string, gen: number): Promise<void> {
+async function lastResort(sentence: string, gen: number, turn: VoiceOfTheTurn): Promise<void> {
   if (gen !== speechGen || isMuted() || !GATEWAY_URL || isOffline()) {
+    await waitMs(estimateReadMs(sentence));
+    return;
+  }
+  if (turn.whenSilent(deviceCanSpeak()) !== 'device') {
     await waitMs(estimateReadMs(sentence));
     return;
   }
   const spoke = await speakWithDevice(sentence);
   if (!spoke && gen === speechGen) await waitMs(estimateReadMs(sentence));
+}
+
+/**
+ * One sentence, asked for again. The gateway buys a whole plan's speech the moment its sentences
+ * are decided and reads every sentence of a turn in one voice — so an empty answer here is
+ * usually a sentence that was still in flight when this call's own budget ran out, or a turn whose
+ * voice the gateway has just re-decided (it does that silently, while nothing has been heard).
+ * Either way the audio is seconds from the disk, and one more ask is cheaper for the ear than a
+ * gap and far cheaper than a second voice.
+ *
+ * Asked at most once per sentence, and never with the long deciding budget: this is the ask that
+ * keeps the phone's own voice from taking a turn Wobo was about to speak.
+ */
+async function synthAgain(
+  text: string,
+  beat: VoiceBeat,
+  gen: number,
+  turn: VoiceOfTheTurn,
+): Promise<{ samples: Float32Array<ArrayBuffer>; rate: number } | null> {
+  if (turn.chosen() === 'device' || gen !== speechGen || isMuted()) return null;
+  return synth(text, beat);
 }
 
 /** A tiny timing trail the live verifier reads off `window` — proves ink lands on its beat. */
@@ -601,6 +697,10 @@ export function startUtterance(
   const gen = ++speechGen;
   clock?.()?.beginUtterance();
   const queue: { text: string; beat: VoiceBeat }[] = [];
+  // ONE VOICE FOR THE WHOLE UTTERANCE, every line of it — the say frames and the closing question
+  // alike. An utterance IS the turn as the learner hears it, so this is where the turn's voice
+  // lives, and the device can only be it from the very first sentence.
+  const turn = voiceOfTheTurn();
   /** Sentences begun so far, across every line: the index the hand's gate waits on. */
   let spoken = 0;
   let ended = false;
@@ -627,17 +727,31 @@ export function startUtterance(
       // Low-fi (reduced motion, Data Saver, 2G): voice the first couple of sentences, read the rest
       // on the clock. Grace degrades; the timing the ink is paced against does not.
       const voiceCount = currentFidelity() === 'low' ? Math.min(2, segs.length) : segs.length;
-      let pending = canVoice && segs.length > 0 ? synth(segs[0] as string, next.beat) : null;
+      let pending =
+        canVoice && segs.length > 0
+          ? synth(segs[0] as string, next.beat, { deciding: turn.chosen() === null })
+          : null;
       for (let i = 0; i < segs.length; i++) {
-        const cur = pending ? await pending : null;
+        let cur = pending ? await pending : null;
         if (gen !== speechGen) return;
-        pending = canVoice && i + 1 < voiceCount ? synth(segs[i + 1] as string, next.beat) : null;
+        pending =
+          canVoice && i + 1 < voiceCount
+            ? synth(segs[i + 1] as string, next.beat, { deciding: turn.chosen() === null })
+            : null;
+        // One ask more for a sentence of an answer Wobo is already speaking: the gateway bought
+        // the whole plan when its words were decided, so an empty answer here is usually a
+        // sentence that was still in flight, and a gap is cheaper to close than a voice is to keep.
+        if (!cur && canVoice && i < voiceCount) {
+          cur = await synthAgain(segs[i] as string, next.beat, gen, turn);
+        }
         // The beat the ink waits on: this sentence is starting now, voiced or read.
         const voicedMs = cur ? (cur.samples.length / cur.rate) * 1000 : undefined;
         traceBeat('sentence', spoken, 0, voicedMs);
         hooks?.onSentence?.(spoken++, voicedMs);
-        if (cur && !isMuted()) await playSamples(cur.samples, cur.rate, gen);
-        else if (canVoice && i < voiceCount) await lastResort(segs[i] as string, gen);
+        if (cur && !isMuted() && turn.chosen() !== 'device') {
+          turn.spoke();
+          await playSamples(cur.samples, cur.rate, gen);
+        } else if (canVoice && i < voiceCount) await lastResort(segs[i] as string, gen, turn);
         else await waitMs(estimateReadMs(segs[i] as string));
         if (gen !== speechGen) return;
       }

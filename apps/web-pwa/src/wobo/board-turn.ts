@@ -52,6 +52,47 @@ const DEFAULT_STROKE_MS = 900;
  */
 export const INSTANT_ID = 'instant';
 
+/** How long after the last stroke the turn re-reads its own glass, and the longest it will wait. */
+const SIGNATURE_SETTLE_GRACE_MS = 260;
+const SIGNATURE_SETTLE_MAX_MS = 8000;
+
+/**
+ * The check names this turn may no longer sign: every name carried by a mark that is not on the
+ * glass. One name is the whole signature, so one missing mark unsigns it everywhere — the same
+ * rule `board/stream.py` `_signed` applies to a check that failed anywhere on the turn. A check no
+ * mark stands on is the board's, not a mark's, and is never dropped here.
+ */
+export function unsignedMarks(
+  objects: readonly { id: string; check?: string }[],
+  onGlass: (id: string) => boolean,
+): string[] {
+  const lost: string[] = [];
+  for (const object of objects) {
+    const check = object.check;
+    if (!check || lost.includes(check)) continue;
+    if (!onGlass(object.id)) lost.push(check);
+  }
+  return lost;
+}
+
+/**
+ * Every mark the renderer has actually put in the page, by id — `data-wobo-object` is written as
+ * `<id>#<generation>`, and it is the only way to ask the DOM what is really on the glass. Null
+ * when there is no document to read (a server render, a test): no evidence is not evidence.
+ */
+function idsOnGlass(): Set<string> | null {
+  const doc = (
+    globalThis as { document?: { querySelectorAll?: (s: string) => Iterable<Element> } }
+  ).document;
+  if (!doc?.querySelectorAll) return null;
+  const ids = new Set<string>();
+  for (const el of doc.querySelectorAll('[data-wobo-object]')) {
+    const raw = el.getAttribute?.('data-wobo-object') ?? '';
+    ids.add(raw.split('#')[0] ?? raw);
+  }
+  return ids;
+}
+
 /**
  * A NEW TURN'S MARK IS A NEW MARK (the adversary, 2026-09-09, finding 7).
  *
@@ -188,6 +229,12 @@ export interface RunBoardTurn {
      * plan sentence that repeats it is dropped rather than said twice.
      */
     say?: string;
+    /**
+     * THE REST OF WHAT ONE GESTURE CROSSED (the adversary, wave 47, finding 3). A lasso can land on
+     * two lines of the outline; each gets its own mark now, and the whole group moves aside
+     * together if the plan turns out to mean something else.
+     */
+    also?: { target: string; kind: 'ring' | 'underline'; words: string }[];
   } | null;
 }
 
@@ -260,8 +307,17 @@ class BoardConductor {
    */
   private instantTarget: string | null = null;
   private instantKind: 'ring' | 'underline' | null = null;
+  /** The turn has been told it is over; the pen may still be finishing what it was given. */
+  private doneSeen = false;
+  /** When the glass is next re-read for signatures (`settleSignatures`). */
+  private settleTimer: ReturnType<typeof setTimeout> | null = null;
   /** The id this turn's instant mark lives under; the plan's first anchored mark is rewritten to it. */
   private instantId: string | null = null;
+  /**
+   * The rest of one gesture's marks — the second line a lasso crossed — by store id, so the plan's
+   * correction takes the whole guess off the glass rather than leaving half of it beside the answer.
+   */
+  private instantAlso: { id: string; target: string; kind: 'ring' | 'underline' }[] = [];
   /** True once the last turn's ink has been taken off the glass for this one. */
   private handedOver = false;
   /** The BOARD surface's store. Screen-anchored marks always go to `screenStore` instead. */
@@ -603,6 +659,10 @@ class BoardConductor {
     this.instantTarget = null;
     this.instantKind = null;
     this.instantId = null;
+    this.instantAlso = [];
+    this.doneSeen = false;
+    if (this.settleTimer !== null) clearTimeout(this.settleTimer);
+    this.settleTimer = null;
     this.handedOver = false;
     this.choice = new PresentationChoice({
       ...(override ? { override } : {}),
@@ -640,18 +700,32 @@ class BoardConductor {
     this.instantTarget = mark.target;
     this.instantKind = mark.kind;
     this.instantId = nextInstantId();
-    const object = {
-      id: this.instantId,
-      kind: mark.kind,
-      anchor: { target: mark.target },
-      ...(mark.words ? { words: mark.words } : {}),
+    this.instantAlso = (mark.also ?? []).map((m, i) => ({
+      id: `${this.instantId as string}b${i + 1}`,
+      target: m.target,
+      kind: m.kind,
+    }));
+    const objectFor = (id: string, m: { target: string; kind: string; words?: string }) => ({
+      id,
+      kind: m.kind,
+      anchor: { target: m.target },
+      ...(m.words ? { words: m.words } : {}),
       t: { start: 0, dur: INSTANT_STROKE_MS },
-    };
+    });
     this.handOver();
     screenStore.beginUtterance(screenStore.time());
-    screenStore.applyEvent({ type: 'ink', t: 0, object } as BoardEvent);
+    screenStore.applyEvent({
+      type: 'ink',
+      t: 0,
+      object: objectFor(this.instantId, mark),
+    } as BoardEvent);
+    (mark.also ?? []).forEach((m, i) => {
+      const id = this.instantAlso[i]?.id;
+      if (!id) return;
+      screenStore.applyEvent({ type: 'ink', t: 0, object: objectFor(id, m) } as BoardEvent);
+    });
     this.strokesGovern = true;
-    this.set({ objects: Math.max(this.state.objects, 1) });
+    this.set({ objects: Math.max(this.state.objects, 1 + this.instantAlso.length) });
     this.traceGlass();
   }
 
@@ -674,11 +748,19 @@ class BoardConductor {
     const wasTarget = this.instantTarget;
     const wasKind = this.instantKind;
     const wasId = this.instantId ?? INSTANT_ID;
+    const also = this.instantAlso;
     this.instantTarget = null;
     this.instantKind = null;
     this.instantId = null;
+    this.instantAlso = [];
     // The plan agrees, in the same hand: the mark the learner is looking at IS the plan's mark.
+    // A gesture's OTHER marks count as agreement too — the learner circled those lines, and the
+    // plan naming one of them is the plan meeting the gesture, not overruling it.
     if (target === wasTarget && object.kind === wasKind) return null;
+    if (also.some((m) => m.target === target && m.kind === object.kind)) return null;
+    // The plan means something else. The whole guess goes, in one beat, and the one mark that
+    // remains is the plan's own — the way a teacher wipes a stroke and draws the right one.
+    for (const m of also) screenStore.ink({ id: m.id, kind: 'remove' } as never);
     return { ...event, object: { ...(event.object as object), id: wasId } } as InkFrame;
   }
 
@@ -690,6 +772,9 @@ class BoardConductor {
     const reconciled = this.reconcileInstant(event);
     if (reconciled === null) return;
     event = reconciled;
+    // Ink that arrives after `done` pushes the signature settle back behind itself.
+    const stroke = (event.object as { t?: { dur?: number } } | undefined)?.t?.dur;
+    this.scheduleSettle(typeof stroke === 'number' ? stroke : 0);
     let surface = this.choice.offer(event.object as never);
     const pinned = this.choice.pinned;
     // A DRAWING NEVER REPLACES THE PAGE A MARK IS ABOUT (the adversary's finding 6, the plane
@@ -808,6 +893,14 @@ class BoardConductor {
           anchor: { target: options.instant.target },
           ...(options.instant.words ? { words: options.instant.words } : {}),
         },
+        ...this.instantAlso.map((m, i) => ({
+          id: m.id,
+          kind: m.kind,
+          anchor: { target: m.target },
+          ...(options.instant?.also?.[i]?.words
+            ? { words: options.instant.also[i]?.words as string }
+            : {}),
+        })),
       ];
     }
     const controller = new AbortController();
@@ -940,7 +1033,28 @@ class BoardConductor {
         board,
         signal: controller.signal,
         ...(options.endpoint ? { endpoint: options.endpoint } : {}),
-        ...(options.body ? { body: options.body } : {}),
+        // A DOOR OF ITS OWN STILL HEARS ABOUT THE INSTANT MARK. The doubt's answer goes to
+        // `/v1/doubt/{id}/answer` with its own body rather than the turn payload, so `board`
+        // above never reaches it; without this the brain plans against a photo it believes is
+        // unmarked and the mark already standing on it is one nothing says a word about
+        // (docs/INK-FOUR.md, the instant mark; the gateway's half is `doubt.StandingMark`).
+        ...(options.body
+          ? {
+              body:
+                options.instant && board.standing?.length
+                  ? {
+                      ...options.body,
+                      standing: board.standing.map((mark) => ({
+                        id: String(mark.id),
+                        kind: String(mark.kind),
+                        target: String(
+                          (mark as { anchor?: { target?: unknown } }).anchor?.target ?? '',
+                        ),
+                      })),
+                    }
+                  : options.body,
+            }
+          : {}),
         handlers,
         // BOARD.md §4: "on resume the brain continues from the last acknowledged event". The id is
         // recorded as each frame lands rather than read off the return value, because a network
@@ -1009,6 +1123,31 @@ class BoardConductor {
   }
 
   /**
+   * THE LAST STEP OF THE SIGNATURE: WIRE → GLASS (the adversary, wave 47, finding 9).
+   *
+   * `_signed` (board/stream.py) reconciles the plan against the WIRE — a check signed for a mark
+   * the gateway never emitted is refused there. Nothing checked the half after that: whether the
+   * client actually LAID it. Wave 47 measured 27 board turns where streamed == store == DOM == on
+   * screen, so the guarantee held by luck; wave 42 is what it looks like when the luck runs out —
+   * the plant cell's "vacuole" and "chloroplast" never reached the DOM and the ledger signed them.
+   *
+   * So the turn reads its own glass once the ink has finished landing, and drops the signature of
+   * anything that is not on it. It runs after the pen, never at `done`: at `done` most of this
+   * turn's ink has not been drawn yet, and a mark that is merely still coming is not a mark that
+   * was lost.
+   */
+  private settleSignatures(): void {
+    if (this.state.verified.length === 0) return;
+    const live = [...screenStore.snapshot(), ...(this.store === screenStore ? [] : this.store.snapshot())];
+    const onGlass = idsOnGlass();
+    if (onGlass === null) return; // no page to read: no evidence, and nothing is unsigned on a guess
+    const objects = live.map((s) => s.object as { id: string; check?: string });
+    const lost = unsignedMarks(objects, (id) => onGlass.has(id));
+    if (lost.length === 0) return;
+    this.set({ verified: this.state.verified.filter((c) => !lost.includes(c)) });
+  }
+
+  /**
    * The plan closed. The surface was decided object by object as the ink landed (`PresentationChoice`:
    * a mark about something on the screen stays on the screen, something built from scratch opens
    * the plane), and the `done` frame does not reopen that decision. It used to: an empty plan that
@@ -1025,6 +1164,24 @@ class BoardConductor {
       ...(done.objects !== undefined ? { objects: done.objects } : {}),
     });
     this.traceGlass();
+    // And once the pen has finished, the signatures are reconciled against the glass itself.
+    this.doneSeen = true;
+    this.scheduleSettle(0);
+  }
+
+  /**
+   * Re-read the glass a beat after the ink stops arriving. `done` is not that moment: the wire
+   * closes while the pen is still drawing what it was given, so the settle is pushed back by every
+   * mark that lands after it and only fires once the page has really stopped changing.
+   */
+  private scheduleSettle(strokeMs: number): void {
+    if (!this.doneSeen || typeof setTimeout !== 'function') return;
+    if (this.settleTimer !== null) clearTimeout(this.settleTimer);
+    const wait = Math.min(SIGNATURE_SETTLE_MAX_MS, Math.max(0, strokeMs)) + SIGNATURE_SETTLE_GRACE_MS;
+    this.settleTimer = setTimeout(() => {
+      this.settleTimer = null;
+      this.settleSignatures();
+    }, wait);
   }
 
   /**

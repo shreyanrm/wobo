@@ -36,9 +36,11 @@ import { GATEWAY_URL } from '../../store/app-sdk';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { Button, Chip, Tag, TopBar, usePhone } from '../../ui/primitives';
+import { createFocus, EMPTY_RECT, surfaceRegistry } from '@wobo/wobo';
 import { screenStore } from '../../wobo/board-turn';
+import { setTurnFocus, turnFocus } from '../../wobo/capabilities';
 import { useWoboChat } from '../../wobo/chat';
-import { type Rotation, readingLine, strokeHold } from '../../wobo/doubt-surface';
+import { type Rotation, doubtSurfaceId, readingLine, strokeHold } from '../../wobo/doubt-surface';
 import {
   type Capture,
   DoubtUnreadable,
@@ -70,6 +72,23 @@ import {
   reduce,
 } from './flow';
 import { PhotoStage } from './PhotoStage';
+
+/**
+ * Keep the newest words of the printed caption in view, the way a transcript does.
+ *
+ * Only when the learner is already at the foot of the reading: a learner who scrolled back up to
+ * the photo's second line is reading that, and yanking them down is worse than a fade. The jump is
+ * instant rather than smooth — the pen owns motion on this screen, and a scroll animation under a
+ * stroke is the drift the freeze exists to prevent.
+ */
+export function followTheCaption(scroller: HTMLElement | null, slack = 48): void {
+  if (!scroller) return;
+  const room = scroller.scrollHeight - scroller.clientHeight;
+  if (room <= 0) return;
+  const fromBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+  if (fromBottom > slack) return;
+  scroller.scrollTop = scroller.scrollHeight;
+}
 import './doubt.css';
 
 export const DOUBT_TITLE = 'Take a photo of the doubt';
@@ -360,6 +379,52 @@ export function DoubtScreen() {
       );
     }
   };
+
+  // THE LINE THEY LIT IS THE THING THEY ARE ASKING ABOUT (the adversary, wave 47, finding 4;
+  // docs/INK-FOUR.md, timing). The doubt photo is the one turn of the 59 that fails timing — the
+  // first stroke landed 8 193 ms after the learner confirmed the reading, because every mark on
+  // this screen waits on a model that reads a photograph and then thinks. But a learner who has
+  // TAPPED a line has already said which one they mean, and the line is a registered target whose
+  // id is the gateway's own (`doubt-surface.ts`). So it rides the packet as the turn's focus, and
+  // `wobo/instant.ts` underlines it while the request is still in flight, with no model call at
+  // all. Ours is the only focus this screen makes, so ours is the only one it clears.
+  const litFocus = useRef<string | null>(null);
+  useEffect(() => {
+    const mine = litFocus.current;
+    const lit = state.lit;
+    if (!lit) {
+      if (mine && turnFocus()?.id === mine) setTurnFocus(null);
+      litFocus.current = null;
+      return;
+    }
+    const rect = surfaceRegistry.getTarget(lit)?.rect() ?? null;
+    const focus = createFocus({
+      kind: 'longpress',
+      targetIds: [lit],
+      text: liveLines(state).find((l) => l.id === lit)?.text ?? '',
+      rect: rect ?? EMPTY_RECT,
+      surfaceId: doubtSurfaceId(state.result?.id ?? 'photo'),
+    });
+    litFocus.current = focus.id;
+    setTurnFocus(focus);
+  }, [state]);
+
+  useEffect(
+    () => () => {
+      if (litFocus.current && turnFocus()?.id === litFocus.current) setTurnFocus(null);
+    },
+    [],
+  );
+
+  // AND THE PANE FOLLOWS THE CAPTION (the adversary, wave 47, finding 8). At 390 the last live
+  // doubt ended "… removing the extra 5. Starting": the scroller's fade, and the rest of Wobo's
+  // answer under it. The caption prints sentence by sentence on the beat, so the one thing that
+  // scrolls keeps the newest sentence in view — unless the learner has scrolled up themselves
+  // (then it is their place, not ours) or the pen is holding the page still mid-stroke.
+  useEffect(() => {
+    if (state.phase !== 'explaining' || held) return;
+    followTheCaption(readRef.current);
+  }, [caption, state.phase, held]);
 
   // The caption follows the beat: a sentence is printed when it is spoken, so with the sound off
   // the words and the strokes still arrive together (law 5).

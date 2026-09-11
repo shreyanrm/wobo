@@ -364,3 +364,76 @@ describe("the last turn's ink hands over", () => {
     await running;
   });
 });
+
+/**
+ * ONE GESTURE, EVERY LINE IT CROSSED (the adversary, wave 47, finding 3).
+ *
+ * A lasso on a slow machine crossed two lines of the outline. The learner is owed a mark on both,
+ * and when the plan arrives with an aim of its own the whole gesture's ink moves out of its way in
+ * one go, so nothing of the guess is left standing beside the answer.
+ */
+describe('a lasso that crossed two lines', () => {
+  const GROUP = {
+    target: 'course-outline-2',
+    kind: 'underline' as const,
+    words: 'feel the rule',
+    also: [
+      { target: 'course-outline-3', kind: 'underline' as const, words: 'make a move' },
+    ],
+  };
+  const runGroup = () =>
+    boardTurn.run({
+      gatewayUrl: 'http://brain.test',
+      payload: {},
+      route: 'learn',
+      title: 't',
+      instant: GROUP,
+    });
+
+  const liveTargets = (): string[] =>
+    screenStore
+      .snapshot()
+      .filter((s) => !s.removed)
+      .map((s) => anchorTarget(s) ?? '')
+      .filter(Boolean);
+
+  it('puts a mark on both of them while the request is still in flight', async () => {
+    serveAfter(300, done);
+    const running = runGroup();
+    await tick(40);
+    expect(liveTargets().sort()).toEqual(['course-outline-2', 'course-outline-3']);
+    await running;
+  });
+
+  it('draws no second underline when the plan agrees with either of them', async () => {
+    serveAfter(
+      60,
+      ink({
+        id: 'u1',
+        kind: 'underline',
+        anchor: { target: 'course-outline-3' },
+        t: { start: 0, dur: 1 },
+      }),
+      done,
+    );
+    await runGroup();
+    await tick(40);
+    expect(liveTargets().sort()).toEqual(['course-outline-2', 'course-outline-3']);
+  });
+
+  it('takes the whole gesture off the glass when the plan names something else', async () => {
+    serveAfter(
+      60,
+      ink({
+        id: 'u1',
+        kind: 'underline',
+        anchor: { target: 'course-outline-5' },
+        t: { start: 0, dur: 1 },
+      }),
+      done,
+    );
+    await runGroup();
+    await tick(60);
+    expect(liveTargets()).toEqual(['course-outline-5']);
+  });
+});

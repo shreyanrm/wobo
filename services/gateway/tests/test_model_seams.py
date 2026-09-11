@@ -337,7 +337,7 @@ def test_the_tts_route_answers_503_only_when_no_voice_has_a_key(
     _keys(monkeypatch, google=False, openai=True)
     monkeypatch.setattr(
         "wobo_gateway.plexus.media.synthesize_narration",
-        lambda text, *, instruction=None: {"mime": "audio/wav", "b64": "AAAA"},
+        lambda text, *, instruction=None, **_: {"mime": "audio/wav", "b64": "AAAA"},
     )
     resp = client.post("/v1/voice/tts", json={"text": "A line."}, headers=auth())
     assert resp.status_code == 200

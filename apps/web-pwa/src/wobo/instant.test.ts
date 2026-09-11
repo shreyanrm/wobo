@@ -5,6 +5,7 @@ import {
   type ConceptCore,
   type CoreCard,
   EMPTY_CORE,
+  resolveDoubtInstant,
   resolveInstant,
 } from './instant';
 import { LAB_GLASS } from './instant-lab';
@@ -403,5 +404,171 @@ describe('the 59 turns', () => {
       if (!hit) continue;
       expect(map.entries.some((e) => e.id === hit.target)).toBe(true);
     }
+  });
+});
+
+/**
+ * THE LEARNER'S OWN HAND (the adversary, wave 47, finding 3; docs/INK-FOUR.md, relevance).
+ *
+ * Live on a 4x-slowed machine the lasso drag crossed TWO lines of the course outline, so the focus
+ * went with `targetIds: ['course-outline-2','course-outline-3']` and the text of both — and the
+ * turn drew nothing and said "Which step feels shaky? Start there." The words tie (each line
+ * answers half of them), so rule 2 fell silent; and the deixis branch could not save it because
+ * `AppRuntime` handed it `focus.id` — "focus-1", the gesture's own id, which is never a glass id.
+ * A learner who circles two lines of their own page is answered as if nothing was seen.
+ */
+describe('what the learner circled is not a guess', () => {
+  const outline = LAB_GLASS.courseCard0();
+
+  it('marks BOTH lines the lasso crossed, in the order they read', () => {
+    const hit = resolveInstant({
+      question: 'explain this: “2 feel the rule · 3 make a move”',
+      map: outline,
+      core: EMPTY_CORE,
+      focusTargets: ['course-outline-2', 'course-outline-3'],
+    });
+    expect(hit?.target).toBe('course-outline-2');
+    expect(hit?.by).toBe('focus');
+    expect(hit?.kind).toBe('underline');
+    expect(hit?.also?.map((m) => m.target)).toEqual(['course-outline-3']);
+    expect(hit?.also?.[0]?.kind).toBe('underline');
+  });
+
+  it('aims at the one thing the gesture landed on', () => {
+    const hit = resolveInstant({
+      question: 'explain this: “2 feel the rule”',
+      map: outline,
+      core: EMPTY_CORE,
+      focusTargets: ['course-outline-2'],
+    });
+    expect(hit?.target).toBe('course-outline-2');
+    expect(hit?.by).toBe('focus');
+    expect(hit?.also).toBeUndefined();
+  });
+
+  it('still falls silent on the same words with no gesture behind them', () => {
+    expect(
+      resolveInstant({
+        question: 'explain this: “2 feel the rule · 3 make a move”',
+        map: outline,
+        core: EMPTY_CORE,
+      }),
+    ).toBeNull();
+  });
+
+  it('stands down when the gesture swept half the page', () => {
+    expect(
+      resolveInstant({
+        question: 'explain this',
+        map: outline,
+        core: EMPTY_CORE,
+        focusTargets: [
+          'course-outline-1',
+          'course-outline-2',
+          'course-outline-3',
+          'course-outline-4',
+        ],
+      }),
+    ).toBeNull();
+  });
+
+  it('never aims at a gesture id that is not on the glass', () => {
+    expect(
+      resolveInstant({
+        question: 'explain this: “2 feel the rule · 3 make a move”',
+        map: outline,
+        core: EMPTY_CORE,
+        focusTargets: ['focus-1'],
+      }),
+    ).toBeNull();
+  });
+});
+
+/**
+ * THE INSTANT MARK ON A PHOTOGRAPH (docs/INK-FOUR.md, timing; the adversary, wave 57: the doubt
+ * turn is the one turn of the 59 that fails timing outright, first stroke 8 193 ms after the
+ * confirm). The six lines are the page the adversary photographed, as the learner confirmed them.
+ */
+describe('the instant mark on a photograph', () => {
+  const LINES = [
+    { id: 'r1', text: 'Ex 2.3 Q4' },
+    { id: 'r2', text: 'Solve: 3x + 5 = 20' },
+    { id: 'r3', text: '3x = 20 + 5 ?' },
+    { id: 'r4', text: '3x = 25' },
+    { id: 'r5', text: 'x = 25/3' },
+    { id: 'r6', text: 'x = 8.33' },
+  ];
+
+  it('marks the line the learner tapped, at once, in their own words', () => {
+    expect(resolveDoubtInstant({ lines: LINES, lit: 'r3' })).toEqual({
+      target: 'r3',
+      kind: 'underline',
+      words: '3x = 20 + 5 ?',
+      by: 'focus',
+    });
+  });
+
+  it('with no tap and no words, marks the equation and not the exercise heading', () => {
+    const aim = resolveDoubtInstant({ lines: LINES });
+    expect(aim?.target).toBe('r2');
+    expect(aim?.by).toBe('photo-line');
+    // never r1: "Ex 2.3 Q4" is a heading, and nobody is asking about it
+    expect(aim?.words).toBe('Solve: 3x + 5 = 20');
+  });
+
+  it('marks the line the learner’s own words name, when they name exactly one', () => {
+    expect(resolveDoubtInstant({ lines: LINES, words: 'how did 8.33 come out of this' })?.target).toBe(
+      'r6',
+    );
+  });
+
+  it('falls to the equation rather than guessing between two lines that answer equally', () => {
+    // "the +5" is on r2 and on r3; a token count cannot choose, so the aim is the line the page
+    // is about — which is also the line the model opens on, so the ink never has to move.
+    expect(resolveDoubtInstant({ lines: LINES, words: 'I am not sure about the +5' })?.target).toBe(
+      'r2',
+    );
+  });
+
+  it('draws nothing on a page with no relation and nothing pointed at', () => {
+    expect(
+      resolveDoubtInstant({ lines: [{ id: 'r1', text: 'The Non-Cooperation Movement' }] }),
+    ).toBeNull();
+    expect(resolveDoubtInstant({ lines: [] })).toBeNull();
+    // a tap on a line the reading no longer has is not a target
+    expect(resolveDoubtInstant({ lines: [{ id: 'r1', text: 'A heading' }], lit: 'r9' })).toBeNull();
+  });
+});
+
+/**
+ * THE DOUBT'S OWN FIRST STROKE (the adversary, wave 47, finding 4; docs/INK-FOUR.md, timing).
+ *
+ * The doubt photo is the one turn of the 59 that fails timing outright: the first stroke landed
+ * 8 193 ms after the learner confirmed the reading. The photo's lines are already on the glass as
+ * `photo-line` entries the moment the reading is shown, so a learner who has TAPPED a line has
+ * already said which one they mean — and that is a lookup, not an inference. It is underlined
+ * while the request is still in flight, like any other thing under their hand.
+ */
+describe('the line the learner lit on their own photo', () => {
+  it('underlines it at once, with no model call', () => {
+    const hit = resolveInstant({
+      question: 'Is my step 2 right? I am not sure about the +5',
+      map: LAB_GLASS.photo(),
+      core: EMPTY_CORE,
+      focusTargets: ['r-2'],
+    });
+    expect(hit?.target).toBe('r-2');
+    expect(hit?.kind).toBe('underline');
+    expect(hit?.by).toBe('focus');
+  });
+
+  it('and aims at nothing when they lit nothing', () => {
+    expect(
+      resolveInstant({
+        question: 'Is my step 2 right? I am not sure about the +5',
+        map: LAB_GLASS.photo(),
+        core: EMPTY_CORE,
+      }),
+    ).toBeNull();
   });
 });

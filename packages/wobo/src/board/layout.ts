@@ -215,6 +215,18 @@ export const NOTE_GAP = 8;
 /** The farthest a note may sit from what it is about, in units (px on the glass). */
 export const NOTE_REACH = 24;
 
+/**
+ * WHAT THE SOLVER AIMS AT, against a law of `NOTE_REACH` — the sibling of `TYPE_FLOOR_PX`.
+ *
+ * The solver works in board units and converts with `glassScale`, which is settled against the ink
+ * a moment before the ink is finally laid; the camera then re-fits what the solver's own tightening
+ * produced. That last move is small — under a percent after two steps of `settleGlassScale` — but
+ * a board solved to land EXACTLY on twenty-four lands at twenty-five (measured: 'sideways speed'
+ * on the projectile at 1440). Two pixels of headroom is the honest price of solving a thing the
+ * camera will re-measure.
+ */
+export const REACH_AIM = NOTE_REACH - 2;
+
 function gapBetween(a: BoardRect, b: BoardRect): number {
   const dx = Math.max(0, a.x - (b.x + b.w), b.x - (a.x + a.w));
   const dy = Math.max(0, a.y - (b.y + b.h), b.y - (a.y + a.h));
@@ -475,4 +487,374 @@ export function needsCamera(bounds: BoardRect | null, frame: BoardFrame): boolea
   return (
     bounds.x < 0 || bounds.y < 0 || bounds.x + bounds.w > BOARD_UNITS || bounds.y + bounds.h > viewH
   );
+}
+
+// --- The joint solver: a written mark's SIZE and its POSITION, decided together -----------------
+
+/**
+ * ONE SOLVER, TWO LAWS (the adversary, wave 57, finding 2; INK-FOUR craft).
+ *
+ * The craft lens asks for two things of a written mark and they are not independent: "labels at
+ * least 12 px on the glass", and "a note in the margin within 24 px of its subject". Wave 51
+ * closed the first by growing the type. Growing the type is what broke the second — `geometry.ts`
+ * picked a size, `placeLabel` then went looking for somewhere a box that large would fit, and
+ * settled for far away. Measured on the sixteen from-scratch boards: 29 of the 60 marks that hang
+ * off something landed past 24 px, worst 'Chauri Chaura, called off' at 111 px from its own tick.
+ *
+ * A person laying out a diagram does not do this in two steps. They look at the room beside the
+ * thing and choose a size that fits there — wrapping a long note onto two lines, writing a little
+ * smaller, tucking the words inside the shape's own region — and only when none of that works do
+ * they go to the margin and draw a leader. So:
+ *
+ *  1. The legible SIZES and the legible MEASURES are candidates, not a decision already taken.
+ *     The bottom of the size band is the LAW — the size at which this phrase's own tallest glyph
+ *     measures twelve pixels on this board (`geometry.ts`, `typeFloorFor`) — so the size law is
+ *     kept by construction and never traded away. The measures are fractions of the phrase's own
+ *     natural width, so every phrase has a narrow, wrapped form to fall back on.
+ *  2. The POSITIONS are the side the pipeline asked for, then the eight around the subject at two
+ *     margins, then a fine ring round its outline, then inside the subject's own region where the
+ *     words fit there, then a bounded sweep along each side — and every one of them is generated
+ *     INSIDE the reach, so the reach is a constraint on the search rather than a check after it.
+ *  3. A LARGER size close beats a larger size far: sizes are tried largest first, and the first
+ *     size that has ANY within-reach answer wins. Prefer a smaller legible size near the subject
+ *     over a larger one that has drifted.
+ *  4. The AIR between one mark and the next is the one thing that gives before distance does, and
+ *     it gives in three steps, never past nought.
+ *  5. There is no unbounded walk. `placeLabel` stepped down 200 times and `placeLabelAt` 60; both
+ *     could end anywhere. When nothing at all fits inside the reach, the solver takes the NEAREST
+ *     clear spot and says so — `withinReach: false` — instead of quietly walking away.
+ */
+export interface WrittenFit {
+  /** Where the mark goes, at the size and measure that let it go there. */
+  box: BoardRect;
+  size: number;
+  maxWidth: number;
+  /** Clear air between the mark and its subject, in board units. */
+  gap: number;
+  /** True when the mark honours the reach law at the size it was written. */
+  withinReach: boolean;
+  /** True when the mark sits inside the subject's own region rather than beside it. */
+  inside: boolean;
+}
+
+export interface WrittenSolve {
+  /** What the mark names — the box the reach law is measured to. */
+  subject: BoardRect;
+  /** The side the pipeline asked for, when it named one. */
+  at?: Exclude<AnchorAt, readonly number[]> | undefined;
+  /**
+   * WHERE THE PIPELINE NUDGED THE MARK TO, when it asked for an `offset`.
+   *
+   * An offset is a nudge, and the solver honours it FIRST — but it is not a relocation. The
+   * timeline pipeline shifts its last event 260 units left of the tick it belongs to, to keep the
+   * words on the board; that is the pipeline doing placement, badly, because the drift this solver
+   * exists to stop used to be the only other outcome. So the nudge biases the search and the
+   * SUBJECT still decides the law: a nudge that puts a mark out of reach of what it names loses.
+   */
+  nudge?: readonly [number, number] | undefined;
+  /** The real wrap: the box this text takes at a size, held to a measure. */
+  measure: (size: number, maxWidth: number) => Size;
+  /** Type sizes to try, LARGEST FIRST. The last is the legible floor. */
+  sizes: readonly number[];
+  /** The widest a line may be — the pipeline's measure, or the surface's. */
+  maxWidth: number;
+  occupied: readonly BoardRect[];
+  /**
+   * THE SUBJECT'S OWN BOX, AS IT SITS IN `occupied` — so the solver can take it out.
+   *
+   * Being beside the thing you name is the whole point, and `occupied` holds the thing you name.
+   * Counting it as crowd meant every hugged candidate clashed with its own subject and the search
+   * fell through to the escape hatch: measured, it is why 'greatest height' could not sit next to
+   * the apex at any size. The candidates are generated outside the subject anyway (or knowingly
+   * inside it), so the subject never needs to be dodged twice.
+   */
+  subjectBox?: BoardRect;
+  area?: BoardRect;
+  margin: number;
+  /** The reach law in board units — 24 px, converted by the board's own scale. */
+  reach: number;
+  /** May the words sit inside the subject's own region? False for a mark on a thin leader. */
+  allowInside?: boolean;
+}
+
+/** The clear air between two boxes, in units. */
+export function boxGap(a: BoardRect, b: BoardRect): number {
+  const dx = Math.max(0, a.x - (b.x + b.w), b.x - (a.x + a.w));
+  const dy = Math.max(0, a.y - (b.y + b.h), b.y - (a.y + a.h));
+  return Math.hypot(dx, dy);
+}
+
+/** How tightly a tutor writes when the ordinary margin will not do. */
+const HUG_MARGIN = 4;
+
+/**
+ * The positions a tutor would try for a box of this size beside this subject, in the order they
+ * would try them, and NONE of them further than `reach`.
+ *
+ * The side the anchor named comes first — `{object: "cell", at: "bottom"}` is the tutor saying
+ * "write this under it", not a hint. Then the eight around it at the ordinary margin, then the
+ * same eight hugged in close, then inside the subject where the words fit inside it, then a
+ * bounded slide along each side. The slide is what `placeLabel`'s unbounded walk was reaching
+ * for; here it takes at most two steps and every step is still inside the reach.
+ */
+function writtenCandidates(
+  subject: BoardRect,
+  size: Size,
+  margin: number,
+  reach: number,
+  at: WrittenSolve['at'],
+  allowInside: boolean,
+  nudge: WrittenSolve['nudge'],
+): BoardRect[] {
+  const out: BoardRect[] = [];
+  const seen = new Set<string>();
+  const push = (box: BoardRect) => {
+    const key = `${Math.round(box.x * 4)},${Math.round(box.y * 4)}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(box);
+  };
+  const around = (m: number): Record<string, BoardRect> => {
+    const midY = subject.y + subject.h / 2 - size.h / 2;
+    const midX = subject.x + subject.w / 2 - size.w / 2;
+    const right = subject.x + subject.w + m;
+    const left = subject.x - m - size.w;
+    const below = subject.y + subject.h + m;
+    const above = subject.y - m - size.h;
+    // Under and over are aligned to the subject's own margin; beside is centred on it — a caption
+    // reads from the same edge as the thing it captions.
+    return {
+      right: { x: right, y: midY, ...size },
+      left: { x: left, y: midY, ...size },
+      bottom: { x: subject.x, y: below, ...size },
+      bottomLeft: { x: subject.x, y: below, ...size },
+      bottomRight: { x: subject.x + subject.w - size.w, y: below, ...size },
+      top: { x: subject.x, y: above, ...size },
+      topLeft: { x: subject.x, y: above, ...size },
+      topRight: { x: subject.x + subject.w - size.w, y: above, ...size },
+      centerBelow: { x: midX, y: below, ...size },
+      centerAbove: { x: midX, y: above, ...size },
+    };
+  };
+  const ORDER = [
+    'right',
+    'top',
+    'bottom',
+    'left',
+    'centerAbove',
+    'centerBelow',
+    'topRight',
+    'bottomRight',
+    'topLeft',
+    'bottomLeft',
+  ] as const;
+  for (const m of [margin, HUG_MARGIN]) {
+    const sides = around(m);
+    // The named side, nudged the way the pipeline asked, before anything else.
+    if (at && sides[at]) {
+      const asked = sides[at] as BoardRect;
+      if (nudge) push({ ...asked, x: asked.x + nudge[0], y: asked.y + nudge[1] });
+      push(asked);
+    }
+    for (const name of ORDER) push(sides[name] as BoardRect);
+  }
+  /**
+   * INSIDE THE SUBJECT'S OWN REGION. A note written on a shape big enough to hold it is not a note
+   * that has drifted — it is a label on a map, a total under a table's last row, a word written
+   * across a wide band. Only where the words genuinely fit with air around them, so this never
+   * turns into writing over a small mark.
+   */
+  if (allowInside && subject.w >= size.w + margin * 2 && subject.h >= size.h + margin * 2) {
+    const cx = subject.x + subject.w / 2 - size.w / 2;
+    const cy = subject.y + subject.h / 2 - size.h / 2;
+    push({ x: cx, y: cy, ...size });
+    push({ x: subject.x + margin, y: subject.y + margin, ...size });
+    push({ x: subject.x + subject.w - size.w - margin, y: subject.y + margin, ...size });
+    push({ x: subject.x + margin, y: subject.y + subject.h - size.h - margin, ...size });
+    push({
+      x: subject.x + subject.w - size.w - margin,
+      y: subject.y + subject.h - size.h - margin,
+      ...size,
+    });
+    push({ x: cx, y: subject.y + margin, ...size });
+    push({ x: cx, y: subject.y + subject.h - size.h - margin, ...size });
+  }
+  /**
+   * A BOUNDED SWEEP ALONG EACH SIDE. Beside the subject, moved along its own side to find air.
+   *
+   * This is what `placeLabel`'s unbounded walk was reaching for, done as a search instead of a
+   * fall: the whole legal band along each side — everything the reach allows and nothing past it —
+   * sampled finely enough to find a packing that exists. Four notes of 160 × 116 units around a
+   * 46 × 38 apex have exactly one arrangement that keeps them all inside the reach and clear of
+   * each other, and it is a vertical stack on one side; a slide of one note-height per step walks
+   * straight past it.
+   */
+  const SWEEP = 12;
+  /** The band walked OUTWARD from where the side naturally sits, so the least move wins. */
+  const outward = (from: number, lo: number, hi: number): number[] => {
+    const out: number[] = [];
+    const step = Math.max((hi - lo) / SWEEP, 1);
+    for (let i = 1; i <= SWEEP; i += 1) {
+      for (const d of [from + i * step, from - i * step]) if (d >= lo && d <= hi) out.push(d);
+    }
+    return out;
+  };
+  for (const m of [margin, HUG_MARGIN]) {
+    const sides = around(m);
+    for (const name of ['right', 'left'] as const) {
+      const base = sides[name] as BoardRect;
+      for (const y of outward(base.y, subject.y - reach - size.h, subject.y + subject.h + reach))
+        push({ ...base, y });
+    }
+    for (const name of ['top', 'bottom'] as const) {
+      const base = sides[name] as BoardRect;
+      for (const x of outward(base.x, subject.x - reach - size.w, subject.x + subject.w + reach))
+        push({ ...base, x });
+    }
+  }
+  return out.filter((box) => boxGap(box, subject) <= reach);
+}
+
+/**
+ * Solve a written mark's size, measure and position together. See `WrittenFit`.
+ *
+ * THREE PHASES, AND THEY ARE THE LAWS IN PRIORITY ORDER.
+ *
+ *  1. THE LAW. Sizes largest first, measures widest first, positions in the order a tutor tries
+ *     them, everything inside the reach: the first that is on the surface and clear of what is
+ *     already drawn wins. This is the answer on every board that has one.
+ *  2. CLEAR BEATS CLOSE. Nothing inside the reach is free. "Never over the text it explains" is
+ *     the same craft sentence as "within 24 px of its subject", and of the two, writing ON the
+ *     working is the one a learner cannot read past — so the search widens and takes the NEAREST
+ *     clear spot, and says `withinReach: false` about it. That is a reportable exception, not a
+ *     silent drift: the old code walked two hundred steps down the board and said nothing.
+ *  3. Nothing is clear anywhere. The least-crowded box inside the reach, at the smallest legible
+ *     size — beside the subject and slightly crowded beats out of sight.
+ */
+export function solveWritten(solve: WrittenSolve): WrittenFit {
+  const bounds = solve.area ?? { x: 0, y: 0, w: BOARD_UNITS, h: Number.POSITIVE_INFINITY };
+  const gapCheck = solve.margin * 0.5;
+  const allowInside = solve.allowInside ?? true;
+  /**
+   * THE SHAPES THIS MARK MAY TAKE, in the order a person would try them: full size on one line,
+   * then full size WRAPPED, then smaller, then smaller and wrapped.
+   *
+   * THE WRAP IS MEASURED AGAINST THE WORDS, NOT AGAINST THE SURFACE. Held to fractions of the
+   * surface's own measure — 704 units on a 1440 plane — a 202-unit phrase never wrapped at all,
+   * which is why 'greatest height' had no narrow shape to fall back on and went 33 px from the
+   * apex. The fractions are of the phrase's own natural width, so every phrase has a narrow form.
+   */
+  const usable: { size: number; maxWidth: number; shape: Size }[] = [];
+  for (const size of solve.sizes) {
+    const wide = solve.measure(size, solve.maxWidth);
+    if (!(wide.w > 0) || !(wide.h > 0)) continue;
+    usable.push({ size, maxWidth: solve.maxWidth, shape: wide });
+    for (const k of [0.62, 0.42]) {
+      // Never narrower than a couple of characters: a quantity broken into a column of digits is
+      // not a quantity any more.
+      const mw = Math.max(size * 2.2, wide.w * k);
+      if (mw >= wide.w * 0.95) continue;
+      const shape = solve.measure(size, mw);
+      if (shape.w > 0 && shape.h > 0) usable.push({ size, maxWidth: mw, shape });
+    }
+  }
+  const others = solve.subjectBox
+    ? solve.occupied.filter((o) => o !== solve.subjectBox)
+    : solve.occupied;
+  const crowdOf = (box: BoardRect, clearance: number) =>
+    others.reduce((sum, o) => sum + overlapArea(padBy(box, clearance), o), 0);
+  /**
+   * THE AIR BETWEEN TWO MARKS IS THE MOST EXPENDABLE THING HERE.
+   *
+   * Half a margin of clear air between one mark and the next is a nicety; twelve pixels of type
+   * and twenty-four pixels of reach are laws. So the clearance is a ladder too, tried roomy first
+   * and tightened only when roomy has no answer inside the reach — and never past nought, because
+   * two marks written over each other is a third law broken. Measured on the projectile at 1440:
+   * 'greatest height' clears the reach by two tenths of a unit at a clearance of two, and misses
+   * it by two tenths at a clearance of five. That is the whole of the difference.
+   */
+  const clearances = [gapCheck, gapCheck * 0.4, 0];
+  const fit = (box: BoardRect, size: number, maxWidth: number): WrittenFit => {
+    const gap = boxGap(box, solve.subject);
+    return { box, size, maxWidth, gap, withinReach: gap <= solve.reach, inside: gap === 0 };
+  };
+
+  // 1 — inside the reach, clear, the first a tutor would try.
+  for (const { size, maxWidth, shape } of usable) {
+    const candidates = writtenCandidates(
+      solve.subject,
+      shape,
+      solve.margin,
+      solve.reach,
+      solve.at,
+      allowInside,
+      solve.nudge,
+    ).filter((box) => contains(bounds, box));
+    for (const clearance of clearances) {
+      for (const box of candidates) {
+        if (crowdOf(box, clearance) === 0) return fit(box, size, maxWidth);
+      }
+    }
+  }
+
+  // 2 — nothing inside the reach is free. The nearest clear spot, however far that is.
+  let nearest: WrittenFit | null = null;
+  for (const { size, maxWidth, shape } of usable) {
+    for (const box of writtenCandidates(
+      solve.subject,
+      shape,
+      solve.margin,
+      solve.reach * ESCAPE_REACH,
+      solve.at,
+      allowInside,
+      solve.nudge,
+    )) {
+      if (!contains(bounds, box)) continue;
+      if (crowdOf(box, 0) > 0) continue;
+      const candidate = fit(box, size, maxWidth);
+      if (!nearest || candidate.gap < nearest.gap) nearest = candidate;
+    }
+  }
+  if (nearest) return nearest;
+
+  // 3 — nothing is clear anywhere. Beside the subject and a little crowded, at the smallest
+  //     legible size, beats out of sight.
+  let best: WrittenFit | null = null;
+  let least = Number.POSITIVE_INFINITY;
+  for (const { size, maxWidth, shape } of usable) {
+    for (const box of writtenCandidates(
+      solve.subject,
+      shape,
+      solve.margin,
+      solve.reach,
+      solve.at,
+      allowInside,
+      solve.nudge,
+    )) {
+      const cost = crowdOf(box, 0) + (contains(bounds, box) ? 0 : 1e6);
+      if (cost < least) {
+        least = cost;
+        best = fit(box, size, maxWidth);
+      }
+    }
+  }
+  if (best) return best;
+  const last = usable[usable.length - 1];
+  const size = last?.size ?? (solve.sizes[solve.sizes.length - 1] as number) ?? 0;
+  const shape = last?.shape ?? { w: 0, h: 0 };
+  const box = { x: solve.subject.x, y: solve.subject.y + solve.subject.h + solve.margin, ...shape };
+  return fit(box, size, last?.maxWidth ?? Number.POSITIVE_INFINITY);
+}
+
+/**
+ * How much further than the law the escape hatch may look, when nothing inside the reach is free.
+ *
+ * Four times twenty-four pixels is about a hundred, which on every board measured is enough to
+ * clear the crowd by going round it, and still tight enough that the answer reads as belonging to
+ * the subject rather than as a note in the margin of a different drawing.
+ */
+const ESCAPE_REACH = 4;
+
+function padBy(box: BoardRect, pad: number): BoardRect {
+  return { x: box.x - pad, y: box.y - pad, w: box.w + pad * 2, h: box.h + pad * 2 };
 }

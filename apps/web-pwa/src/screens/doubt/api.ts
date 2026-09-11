@@ -245,6 +245,9 @@ export function answerBody(
       text: l.text.replace(/\s+/g, ' ').trim().slice(0, MAX_LINE_CHARS),
     })),
     ...(words?.trim() ? { words: words.trim().slice(0, 500) } : {}),
+    // ONE FIELD IS ADDED LATER, and deliberately not here: `standing`, the mark the pen laid on
+    // the photo before the request left. Only `wobo/board-turn.ts` knows the id it drew it under,
+    // so it puts it on this body on the way out (docs/INK-FOUR.md, the instant mark).
   };
 }
 

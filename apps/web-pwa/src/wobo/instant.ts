@@ -60,6 +60,15 @@ export interface InstantAim {
   say?: string;
   /** True when the whole answer came from the level's own store rather than from the map. */
   fromCache?: boolean;
+  /**
+   * THE REST OF WHAT THE LEARNER'S OWN HAND CROSSED (the adversary, wave 47, finding 3).
+   *
+   * A lasso is one gesture and it can land on more than one thing: a drag across the outline on a
+   * slow machine crossed two lines, and the learner is owed a mark on both of them, not on the one
+   * that happened to score higher. Only ever from a gesture — the WORDS aim at one thing or at
+   * nothing (rule 2), and this is never a way around that.
+   */
+  also?: { target: string; kind: 'ring' | 'underline'; words: string }[];
 }
 
 // --- The concept core, cached with the level ------------------------------------------------------
@@ -239,13 +248,43 @@ export interface ResolveInstant {
   map: GlassMap | null;
   /** The level's own core, cached beside it. Absent, the mark still lands with the thing's name. */
   core?: ConceptCore;
-  /** The thing the learner tapped or circled. It wins outright when it is a thing at all. */
+  /**
+   * THE GLASS IDS THE LEARNER'S GESTURE LANDED ON (`FocusObject.targetIds`). It wins outright when
+   * any of them is a thing at all.
+   *
+   * It is the targets and never the focus's own id: a focus is minted as "focus-1" and that is the
+   * gesture's name, not a thing on the glass, so a caller that handed over `focus.id` aimed the
+   * deixis branch at an id no map has ever held and every lasso fell through to the words.
+   */
+  focusTargets?: readonly string[] | null;
+  /** A focus that IS a glass id (a tap straight on a declared thing). */
   focusId?: string | null;
 }
 
 interface Scored {
   entry: GlassEntry;
   score: number;
+}
+
+/**
+ * Most marks one gesture puts down at once. A lasso across two lines of working is a learner
+ * asking about both; a sweep down half the page names nothing in particular, and the pen waits for
+ * the plan rather than striping the screen.
+ */
+const FOCUS_MARKS_MAX = 3;
+
+/** The things the learner's gesture landed on, in the order the glass holds them. */
+function touchedBy(input: ResolveInstant, map: GlassMap, question: string): GlassEntry[] {
+  const under = new Set<string>(input.focusTargets ?? []);
+  if (input.focusId) under.add(input.focusId);
+  if (under.size === 0) return [];
+  return map.entries.filter(
+    (e) =>
+      under.has(e.id) &&
+      !(e.meaning && OWN_MEANING.test(e.meaning)) &&
+      !echoes(e.text, question) &&
+      (e.text.trim().length > 0 || Boolean(e.meaning)),
+  );
 }
 
 /**
@@ -283,17 +322,33 @@ export function resolveInstant(input: ResolveInstant): InstantAim | null {
   }
 
   if (FROM_SCRATCH.test(text)) return null;
+
+  // THE THING UNDER THE LEARNER'S HAND. They tapped a chip, lit a line of their own photograph, or
+  // circled two lines of the outline, and then said something about it: the deixis has an answer
+  // and it is not a guess. It is read off the map itself rather than off `candidates`, because a
+  // gesture does not need the content model to have declared a thing — the learner pointed at it —
+  // and it marks EVERY thing it crossed.
+  //
+  // AND IT IS ASKED BEFORE THE GRAMMAR. A gesture is what makes the message an ask: "Is my step 2
+  // right? I am not sure about the +5" is a question a child types and `ASKS_OR_MARKS` does not
+  // recognise one word of it, so the doubt photo — the one turn of the 59 that fails timing, first
+  // stroke at 8 193 ms — had no local aim even with the line lit under their finger. A request to
+  // BUILD still stands down above: the plane makes those, and nothing on the glass is the answer.
+  const touched = touchedBy(input, map, text);
+  if (touched.length > 0 && touched.length <= FOCUS_MARKS_MAX) {
+    const first = touched[0] as GlassEntry;
+    const rest = touched.slice(1).map((e) => ({
+      target: e.id,
+      kind: kindFor(e),
+      words: wordsFor(e, core),
+    }));
+    return { ...aimAt(first, core, 'focus'), ...(rest.length > 0 ? { also: rest } : {}) };
+  }
+
   if (!ASKS_OR_MARKS.test(text)) return null;
 
   const candidates = map.entries.filter((e) => aimable(e, text));
   if (candidates.length === 0) return null;
-
-  // THE THING UNDER THE LEARNER'S HAND. They tapped a chip, or circled a part, and then said
-  // "explain this": the deixis has an answer and it is not a guess.
-  if (input.focusId) {
-    const focused = candidates.find((e) => e.id === input.focusId);
-    if (focused) return aimAt(focused, core, 'focus');
-  }
 
   const { words, numbers } = questionWords(text);
   if (words.length === 0 && numbers.length === 0) return null;
@@ -444,4 +499,88 @@ export function buildCore(cards: readonly CoreCard[]): ConceptCore {
     }
   }
   return { sentences, asks };
+}
+
+// --- The instant mark on a photograph -------------------------------------------------------------
+
+/** The same relation the gateway seats as the equation (`doubt.py`, `_RELATION_RE`). */
+const RELATION = /[=<>≤≥≠]/;
+
+/** A number as a whole number, decimal point and all (`doubt.py`, `_NUMBER_RE`). */
+const NUMBER = /\d+(?:\.\d+)?/g;
+
+/**
+ * THE INSTANT MARK APPLIED TO A PHOTOGRAPH (docs/INK-FOUR.md, timing; the adversary, wave 57).
+ *
+ * The doubt turn is the one turn of the 59 that fails timing outright: live at 390 the first
+ * stroke landed 8 193 ms after the learner confirmed the reading, against a one-second law, and
+ * the first word at 16 185 ms. The reading itself is a vision call on a photograph and will never
+ * be instant — so this does not pretend otherwise. It uses what is true by the time the learner
+ * presses Explain: **their own confirmed lines are already on the glass, each one a registered
+ * target under the id the ink anchors to.** Nothing has to be inferred and no model has to answer
+ * for the pen to mark the line the learner is asking about.
+ *
+ * The order is the order of certainty, exactly as `resolveInstant`'s is:
+ *
+ * 1. **The line they tapped.** They lit it on the confirm step and then pressed Explain: the
+ *    deixis has an answer and it is not a guess.
+ * 2. **The line their own words name.** Scored on content words against the lines only — never
+ *    against Wobo's own chrome — and a tie aims at nothing, because a wrong instant mark is worse
+ *    than a late right one.
+ * 3. **The equation.** With no tap and no words, the line the page is about is the first one that
+ *    states a relation — the same seat `doubt.py` gives `canvas.equation`, so the local aim and
+ *    the model's first mark are looking at the same line and the ink never has to move.
+ *
+ * A page with no relation and nothing pointed at gets NO instant mark: an exercise heading is not
+ * what the learner is asking about, and underlining it would be ink for the sake of speed.
+ */
+export function resolveDoubtInstant(input: {
+  lines: readonly { id: string; text: string }[];
+  /** The line lit on the photo when Explain was pressed. */
+  lit?: string | null;
+  /** The learner's own words about the doubt, if they typed any. */
+  words?: string;
+}): InstantAim | null {
+  const lines = input.lines.filter((l) => l.id && l.text.trim());
+  if (lines.length === 0) return null;
+  const aim = (line: { id: string; text: string }, by: InstantBy): InstantAim => ({
+    target: line.id,
+    kind: 'underline',
+    words: line.text.trim(),
+    by,
+  });
+
+  if (input.lit) {
+    const lit = lines.find((l) => l.id === input.lit);
+    if (lit) return aim(lit, 'focus');
+  }
+
+  const said = (input.words ?? '').trim();
+  if (said) {
+    const { words, numbers } = questionWords(said);
+    const wanted = [...words, ...numbers];
+    if (wanted.length > 0) {
+      const scored = lines
+        .map((line) => {
+          // A number on a page is written whole: the 8.33 of "x = 8.33" is one number, not an 8
+          // and a 33, and the 5 of "+5" is not the 5 of "25" (`doubt.py`, `_NUMBER_RE`).
+          const have = new Set([...tokensOf(line.text), ...(line.text.match(NUMBER) ?? [])]);
+          let score = 0;
+          for (const word of wanted) if (have.has(word)) score += 1;
+          return { line, score };
+        })
+        .filter((s) => s.score > 0)
+        .sort((a, b) => b.score - a.score);
+      const best = scored[0];
+      const runnerUp = scored[1];
+      // ONE LINE, OR THE EQUATION. "I am not sure about the +5" names two lines of working
+      // equally, and a token count cannot tell them apart. On a page that is not a reason to draw
+      // nothing: the tie falls to rule 3 below, which is the line the page is about and the line
+      // the model opens on — never an arbitrary pick between the two.
+      if (best && (!runnerUp || runnerUp.score < best.score)) return aim(best.line, 'photo-line');
+    }
+  }
+
+  const equation = lines.find((line) => RELATION.test(line.text));
+  return equation ? aim(equation, 'photo-line') : null;
 }

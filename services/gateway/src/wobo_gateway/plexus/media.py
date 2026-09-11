@@ -17,6 +17,16 @@ whole HTTP timeout on every line. The Gemini rung also gets a short deadline of 
 (:data:`_PRIMARY_TIMEOUT_S`) whenever OpenAI stands behind it, so a hang costs seconds, not a
 minute, before the fallback speaks.
 
+**ONE VOICE PER TURN, since 2026-09-11.** Everything above describes a choice made per SENTENCE,
+and a sentence is not what a learner hears: an answer is. Measured live on 2026-09-10, 63 percent
+of the voice spend went to the voice standing behind, after four timeouts marked Google out
+mid-battery — so answers arrived in two mouths, the swap landing wherever Google happened to hang.
+A turn's voice is therefore decided ONCE, above this file (``wobo_gateway.voice``, the turn
+registry), and handed down as ``voice=``: a pinned line is asked of that voice and no other, and a
+pinned line it cannot speak comes back ``None`` so the client holds it in silence rather than
+finishing somebody else's answer. The two-voice ladder below still serves everything nobody decided
+in advance — a card's narration, a video's line, anything with no turn behind it.
+
 stdlib urllib only — neither path runs keyless, so tests and CI never touch the network.
 """
 
@@ -63,6 +73,12 @@ _HTTP_TIMEOUT_S = 60.0
 #: takes when it does answer is not a timeout's to fix: it is the desk's, and it is written up in
 #: the wave report.
 _PRIMARY_TIMEOUT_S = 12.0
+#: The deadline on a turn NOBODY HAS HEARD A SYLLABLE OF. Shorter than the one above on purpose:
+#: while a turn is unheard its voice can still be re-decided whole, silently, so the cost of
+#: waiting is the learner's whole first sentence rather than one gap inside an answer. Six seconds
+#: covers the middle of the range Google actually answers in (4.3 to 10.3 s, measured 2026-09-10)
+#: and leaves the second voice's own two-to-four seconds inside the patience the client has.
+_UNHEARD_TIMEOUT_S = 6.0
 _VOICE = "Kore"
 
 #: The voice behind Gemini's, read from the router's ``voice`` row (``routing.DEFAULT_TABLE``,
@@ -97,8 +113,51 @@ def speakers_configured() -> bool:
     return bool(_google_key()[0] or os.getenv("OPENAI_API_KEY"))
 
 
+def pick_voice() -> str | None:
+    """The ONE voice a whole turn is to be read in, decided from live health and the keys present.
+
+    Called once per turn, before a syllable of it is heard (``voice.pin_turn_voice``), and never
+    again inside it. Until 2026-09-11 there was no such moment: :func:`_buy` asked Gemini for THIS
+    sentence and, when Gemini did not answer, asked OpenAI for THIS sentence — so a turn whose
+    first sentence Google spoke and whose second it hung on reached the learner in two voices.
+    Measured live on 2026-09-10, that was the majority case: 63 percent of the voice spend went to
+    the fallback, in the middle of answers whose first sentence was Wobo's own voice.
+
+    ``None`` only when there is no key at all, which the routes refuse long before this.
+    """
+    from wobo_gateway import health
+
+    google, _ = _google_key()
+    openai_key = os.getenv("OPENAI_API_KEY")
+    for candidate, keyed in ((GEMINI_TTS_ID, bool(google)), (OPENAI_TTS_ID, bool(openai_key))):
+        if keyed and health.provider_available(candidate):
+            return candidate
+    # Every voice is marked out: the turn still needs ONE of them rather than two, so it takes the
+    # first one that has a key and the whole turn lives or dies with it.
+    if google:
+        return GEMINI_TTS_ID
+    return OPENAI_TTS_ID if openai_key else None
+
+
+def other_voice(voice_id: str | None) -> str | None:
+    """The voice that is not this one, when it has a key. Used only to re-decide a turn that has
+    not yet spoken a syllable — never inside an answer a learner is already hearing."""
+    google, _ = _google_key()
+    openai_key = os.getenv("OPENAI_API_KEY")
+    if voice_id == GEMINI_TTS_ID:
+        return OPENAI_TTS_ID if openai_key else None
+    if voice_id == OPENAI_TTS_ID:
+        return GEMINI_TTS_ID if google else None
+    return None
+
+
 def synthesize_narration(
-    text: str, *, instruction: str | None = None, capability: str = "voice.tts"
+    text: str,
+    *,
+    instruction: str | None = None,
+    capability: str = "voice.tts",
+    voice: str | None = None,
+    deadline_s: float | None = None,
 ) -> dict[str, str] | None:
     """One spoken line: Gemini first, OpenAI behind it. ``{"mime", "b64"}`` or ``None``.
 
@@ -127,7 +186,7 @@ def synthesize_narration(
         )
         return None
 
-    key = _cache_key(text, instruction)
+    key = _cache_key(text, instruction, voice)
     remembered = _cached(key)
     if remembered is not None:
         audio, spoke = remembered
@@ -157,6 +216,8 @@ def synthesize_narration(
             google=google,
             key_name=key_name,
             openai_key=openai_key,
+            pinned=voice,
+            deadline_s=deadline_s,
         )
     finally:
         _release_buy(key, mine)
@@ -208,9 +269,33 @@ def _buy(
     google: str | None,
     key_name: str,
     openai_key: str | None,
+    pinned: str | None = None,
+    deadline_s: float | None = None,
 ) -> dict[str, str] | None:
-    """The paid half of :func:`synthesize_narration`: Gemini first, OpenAI behind it, then kept."""
+    """The paid half of :func:`synthesize_narration`.
+
+    Unpinned (a one-off line nobody decided in advance): Gemini first, OpenAI behind it.
+
+    PINNED — every sentence of a turn, which is every sentence a learner hears in an answer — that
+    one voice and no other. A pinned sentence the voice cannot speak comes back ``None`` and the
+    route says 502: the client holds the sentence on its reading clock, in silence, in the one
+    voice the turn has. Silence inside an answer is a pause; a second voice inside an answer is a
+    different tutor finishing somebody else's sentence.
+    """
     from wobo_gateway import health, telemetry
+
+    if pinned is not None:
+        return _buy_in_one_voice(
+            text,
+            instruction,
+            capability=capability,
+            key=key,
+            google=google,
+            key_name=key_name,
+            openai_key=openai_key,
+            pinned=pinned,
+            deadline_s=deadline_s,
+        )
 
     requested = GEMINI_TTS_ID if google else OPENAI_TTS_ID
     audio = None
@@ -241,6 +326,50 @@ def _buy(
     return None
 
 
+def _buy_in_one_voice(
+    text: str,
+    instruction: str | None,
+    *,
+    capability: str,
+    key: str,
+    google: str | None,
+    key_name: str,
+    openai_key: str | None,
+    pinned: str,
+    deadline_s: float | None = None,
+) -> dict[str, str] | None:
+    """One sentence of a turn, in the turn's own voice. No other voice is asked, ever.
+
+    ``deadline_s`` is how long that voice may take. The default is the primary's own short one:
+    there is nothing standing behind a pinned voice, so a hang has nothing to hand over to and
+    waiting a minute on it only widens the gap in an answer the learner is already hearing.
+
+    A turn NOBODY HAS HEARD YET passes :data:`_UNHEARD_TIMEOUT_S`, which is shorter still, because
+    the only thing that can be done about a hang at that point is to re-decide the whole turn's
+    voice — and that is free, silent and invisible until the moment a syllable is served. Measured
+    live on 2026-09-11, Google's text-to-speech hung on a majority of calls on this network: with
+    twelve seconds of patience the re-decision landed after the client had already given up on the
+    sentence and read it in the phone's own voice.
+    """
+    if pinned == GEMINI_TTS_ID:
+        if not google:
+            return None
+        audio = _gemini_speak(
+            text, instruction, google, key_name, timeout_s=deadline_s or _PRIMARY_TIMEOUT_S
+        )
+    elif pinned == OPENAI_TTS_ID:
+        if not openai_key:
+            return None
+        audio = _openai_speak(text, instruction, openai_key)
+    else:
+        return None
+    if audio is None:
+        return None
+    _record_spoken(capability, audio, served=pinned, requested=pinned)
+    _remember(key, audio, served=pinned)
+    return audio
+
+
 # --- the spoken-line cache ---------------------------------------------------------------------
 #
 # Tier 1 of the content economy already keeps every generated artifact on disk (``plexus/store``);
@@ -253,7 +382,14 @@ def _buy(
 _CACHE_VERSION = "tts-v1"
 
 
-def _cache_key(text: str, instruction: str | None) -> str:
+def _cache_key(text: str, instruction: str | None, voice: str | None = None) -> str:
+    """Everything that changes the SOUND, the turn's own voice included.
+
+    A pinned line is kept under a key that names the voice that spoke it, so a clip bought in the
+    OTHER voice — the same words, the same instruction, a different mouth — can never be served
+    into a turn that has already been heard in this one. An unpinned line keeps exactly the key it
+    has always had, so nothing already on the disk is orphaned by this.
+    """
     identity = "\x00".join(
         [
             _CACHE_VERSION,
@@ -261,6 +397,7 @@ def _cache_key(text: str, instruction: str | None) -> str:
             _VOICE,
             OPENAI_TTS_ID,
             _OPENAI_VOICE,
+            *([voice] if voice else []),
             text.strip(),
             (instruction or "").strip(),
         ]
@@ -307,6 +444,7 @@ def _record_cached(capability: str, audio: dict[str, str], *, served: str) -> No
     """A cache hit is still a spoken line the learner received — the seconds are recorded, the
     money is not. Without the row, the ledger would only ever see the expensive half of the
     traffic and every per-minute figure drawn from it would be wrong."""
+    logger.info("voice: %s spoke a line (%s, from the disk)", served, capability)
     try:
         from wobo_gateway import ledger
 
@@ -597,6 +735,11 @@ def _record_spoken(
 
     Never raises. An accounting line is worth less than the audio a child is waiting for.
     """
+    # WHICH MOUTH SPOKE, in the operator's log and nowhere else. A learner is never told which
+    # vendor read their answer (the route returns the accent and the beat and no vendor name), but
+    # "did this whole answer come back in one voice" is not answerable from a spend total, and it
+    # is the thing INK-FOUR's experience lens asks for. One line per spoken line, no words in it.
+    logger.info("voice: %s spoke a line (%s, on the wire)", served, capability)
     try:
         from wobo_gateway import ledger
 

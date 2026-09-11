@@ -204,3 +204,27 @@ Each of these is checked over every rendered template by `test_mail_law.py`.
 - Whether the ten shell templates are still live or superseded by the paper set. They carry every promotional tell listed above and every missing unsubscribe header. If they are dead, the fix is deletion, not rewriting, and it is a smaller job than it looks.
 - The From address disagrees with itself in the repo: docs/copy/emails/README.md:17 says hello@heywobo.com, while all 23 spec headers, email.py:83 and the reasoned argument in docs/EMAILS-AND-ANIMATIONS.md say hello@mail.heywobo.com. One line is stale and an owner should say which.
 - Which legal entity appears in the postal line. The default in code names one company; receipt.md:35 still carries owner placeholders. That is a question for the owner, not a code decision, and no mail can ship without it because the send path holds on a missing postal address.
+
+## What we have actually measured
+
+Everything above is research. This is evidence, and the file grows here rather than in the theory.
+
+| When | What was sent | From | To | Where it landed |
+|---|---|---|---|---|
+| 2026-09-11 | the first message Wobo ever delivered (plain text, one paragraph, no image, no link, no tracking) | `Wobo <hello@mail.heywobo.com>`, reply-to `support@heywobo.com` | a Gmail-hosted inbox | **Primary** |
+
+The send id was `6f83f8fa-d869-4f09-b1b0-5f5df1d90d75`. One landing is not a placement rate, and a
+message from an unknown sender to an inbox that has never seen it is the hardest case we will face,
+so this is the right first test and the wrong thing to generalise from. What it does establish:
+
+- The identity is sound end to end. `mail.heywobo.com` verified in Resend with DKIM, SPF and the
+  bounce MX; open tracking and click tracking are both **off** on the domain, which the law requires
+  and which we can now see rather than assume.
+- The shape the law asks for reaches Primary on its first attempt with no reputation at all: plain
+  text, one paragraph, no image, no link, no tracking pixel, a real reply-to, and a subject that is
+  a fact rather than a pitch.
+
+What to measure next, in this table, as each is sent for the first time: a message with the orb
+image, one with a deep link, the Sunday note to a parent, and the launch mail. Each is a different
+shape and each earns its own row. A kind that lands outside Primary gets its row and its diagnosis
+here, not a rewrite of the theory above.

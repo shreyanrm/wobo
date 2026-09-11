@@ -238,3 +238,87 @@ describe('the caches re-key the moment the anonymous session lands', () => {
     }
   });
 });
+
+/**
+ * A REFUSED SIGN-IN IS NOT ASKED AGAIN (the adversary, wave 47, finding 12).
+ *
+ * The client mints one anonymous session per device, single-flight — but it cleared the flight on
+ * SETTLE, so an attempt that failed was made again by the next caller. With anonymous sign-ins
+ * turned off on the project the browser fired `POST /auth/v1/signup` THREE times per page load and
+ * every one came back 422: three failed cross-internet round trips before the learner had asked
+ * anything, and the "Failed to load resource: 422" console error on all 59 keyless turns.
+ *
+ * The auth server ANSWERING no is an answer. A failure with no answer at all is the network, and
+ * that may come back, so it stays askable.
+ */
+describe('a door that said no is not knocked on again', () => {
+  const serve = (
+    calls: string[],
+    signup: () => Promise<Response>,
+  ): void => {
+    globalThis.fetch = ((url: string | URL | Request) => {
+      calls.push(String(url));
+      if (String(url).endsWith(DOORS_PATH)) {
+        return Promise.resolve(Response.json({ [DOORS_KEY]: true }));
+      }
+      if (String(url).endsWith('/auth/v1/signup')) return signup();
+      return Promise.resolve(
+        Response.json({ capability: 'wobo.turn', output: {}, track: 'track_2', cache_hit: false }),
+      );
+    }) as typeof fetch;
+  };
+
+  const boot = () =>
+    createSdk({
+      llmMode: 'live',
+      gatewayUrl: 'https://brain.test',
+      supabaseUrl: 'https://project.supabase.co',
+      supabaseAnonKey: 'sb_publishable_test',
+    });
+
+  it('asks the auth server exactly once when it answers 422', async () => {
+    const calls: string[] = [];
+    serve(calls, () =>
+      Promise.resolve(
+        Response.json({ code: 422, error_code: 'anonymous_provider_disabled' }, { status: 422 }),
+      ),
+    );
+    const sdk = boot();
+    for (let i = 0; i < 3; i += 1) {
+      await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
+    }
+    expect(calls.filter((c) => c.endsWith('/auth/v1/signup'))).toHaveLength(1);
+  });
+
+  it('still asks the door only once, too', async () => {
+    const calls: string[] = [];
+    serve(calls, () => Promise.resolve(new Response(null, { status: 422 })));
+    const sdk = boot();
+    for (let i = 0; i < 3; i += 1) {
+      await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
+    }
+    expect(calls.filter((c) => c.endsWith(DOORS_PATH)).length).toBeLessThanOrEqual(1);
+  });
+
+  it('a device that was merely offline may try again', async () => {
+    const calls: string[] = [];
+    let attempt = 0;
+    serve(calls, () => {
+      attempt += 1;
+      if (attempt === 1) return Promise.reject(new TypeError('Failed to fetch'));
+      return Promise.resolve(
+        Response.json({
+          access_token: fakeJwt(ANON, { is_anonymous: true }),
+          refresh_token: 'r-anon',
+          expires_in: 3600,
+          user: { id: ANON },
+        }),
+      );
+    });
+    const sdk = boot();
+    await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
+    await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
+    expect(sdk.account?.isAnonymous()).toBe(true);
+    expect(calls.filter((c) => c.endsWith('/auth/v1/signup'))).toHaveLength(2);
+  });
+});

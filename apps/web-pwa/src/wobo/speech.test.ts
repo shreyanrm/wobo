@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'bun:test';
 import type { WoboAction, WoboMood } from '@wobo/wobo';
-import { beatOfMood, beatOfTurn, onceCallback, sentences, speakLine, withBeat } from './speech';
+import {
+  beatOfMood,
+  beatOfTurn,
+  onceCallback,
+  sentences,
+  speakLine,
+  voiceOfTheTurn,
+  withBeat,
+} from './speech';
 
 describe('the sentence splitter — where a period really ends a breath', () => {
   it('keeps decimals in one piece', () => {
@@ -110,5 +118,52 @@ describe('the beat travels with the line', () => {
     expect(withBeat('wss://brain.test/v1/voice/tts/stream?token=abc', 'step')).toBe(
       'wss://brain.test/v1/voice/tts/stream?token=abc&beat=step',
     );
+  });
+});
+
+// --- ONE VOICE, ONE TURN ------------------------------------------------------------------------
+//
+// Measured live on 2026-09-10, twelve turns, every browser muted, timings off the synthesis call
+// and the wire: on two of six boards the answer fell through to the DEVICE's own voice in the
+// MIDDLE of itself — the plant cell's second sentence at 25 271 ms, the projectile's at 21 428 ms,
+// after this file's eight-second abandon. So a learner heard Wobo say the first sentence and the
+// phone say the second. INK-FOUR experience asks for one voice, and a turn is one performance.
+//
+// The device voice is the LAST voice and it is a whole turn's voice or none of it: a turn that has
+// already been spoken aloud by Wobo holds a sentence it cannot get in silence, on the reading
+// clock, rather than finishing in a different mouth.
+
+describe('one voice for a whole turn — the device is never reached mid-answer', () => {
+  it('holds a failed sentence on the clock once Wobo has spoken in this turn', () => {
+    const turn = voiceOfTheTurn();
+    expect(turn.chosen()).toBe(null);
+    turn.spoke(); // the gateway's voice read the first sentence
+    expect(turn.chosen()).toBe('gateway');
+    expect(turn.whenSilent(true)).toBe('clock'); // the device could — and must not
+    expect(turn.whenSilent(true)).toBe('clock');
+    expect(turn.chosen()).toBe('gateway');
+  });
+
+  it('lets the device read the turn when Wobo has not spoken a syllable of it', () => {
+    const turn = voiceOfTheTurn();
+    expect(turn.whenSilent(true)).toBe('device');
+    expect(turn.chosen()).toBe('device');
+    expect(turn.whenSilent(true)).toBe('device'); // and it keeps reading it, to the end
+  });
+
+  it('falls to the reading clock when the device cannot speak either', () => {
+    const turn = voiceOfTheTurn();
+    expect(turn.whenSilent(false)).toBe('clock');
+    expect(turn.chosen()).toBe(null); // nothing was chosen, so Wobo may still take the turn
+    turn.spoke();
+    expect(turn.chosen()).toBe('gateway');
+  });
+
+  it('never hands a device-voiced turn back to Wobo halfway through', () => {
+    const turn = voiceOfTheTurn();
+    expect(turn.whenSilent(true)).toBe('device');
+    turn.spoke(); // a late sentence arrives from the gateway
+    expect(turn.chosen()).toBe('device');
+    expect(turn.whenSilent(true)).toBe('device');
   });
 });

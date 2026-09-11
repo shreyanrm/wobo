@@ -259,12 +259,23 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   // gateway never sees and therefore cannot refuse. So while `doors_open` is false nothing is
   // minted here at all. A session that already exists is untouched, because the line above returns
   // before any of this: closing the door to new accounts is not locking anybody out (§2).
+  //
+  // AND A NO IS NOT ASKED AGAIN (the adversary, wave 47, finding 12). The flight was cleared on
+  // SETTLE, so an attempt that FAILED was made again by the next caller: with anonymous sign-in
+  // turned off on the project the browser fired `POST /auth/v1/signup` three times per page load
+  // and every one came back 422, three failed cross-internet round trips before the learner had
+  // asked anything. A door that answered no is shut for this page; a device that was merely
+  // offline gets to try again, because that is not an answer.
   let establishing: Promise<void> | null = null;
+  let refused = false;
   const establishSession = async (): Promise<void> => {
-    if (!supabaseAuth || supabaseAuth.isAuthenticated()) return;
+    if (!supabaseAuth || supabaseAuth.isAuthenticated() || refused) return;
     establishing ??= mayCreateAccount(config.gatewayUrl)
       .then(async (may) => {
-        if (!may) return;
+        if (!may) {
+          refused = true;
+          return;
+        }
         await supabaseAuth.auth.signInAnonymously();
         // THE CACHES FOLLOW. Built before the session existed, they were keyed to nobody and
         // writing the plain keys; from here on they are this learner's, and what was written
@@ -272,7 +283,10 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
         const subject = supabaseAuth.subjectId;
         if (subject) rekeyCaches(subject);
       })
-      .catch(() => undefined) // refused or offline — the device stays local, never broken
+      .catch((err: unknown) => {
+        // The server answered and said no: the device stays local for this page, never broken.
+        if (err instanceof Error && err.name === 'SessionRefusedError') refused = true;
+      })
       .finally(() => {
         establishing = null;
       });

@@ -94,7 +94,7 @@ import {
   showMe,
 } from './wobo/hands';
 import { holdToTalkEnd, holdToTalkStart } from './wobo/hold';
-import { resolveInstant } from './wobo/instant';
+import { resolveDoubtInstant, resolveInstant } from './wobo/instant';
 import { lookingAt } from './wobo/looking';
 import { modeDraws, modeFromText, modePrompt } from './wobo/modes';
 import { resolveTurnExtras, type TurnExtras } from './wobo/paths';
@@ -558,7 +558,10 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       takeGlass({
         question: text,
         route: route.name,
-        focusId: turnFocus()?.id ?? null,
+        // The GLASS ID under their hand, never the gesture's own name: a focus is minted
+        // "focus-1", which no map has ever held, so the boost went nowhere (the adversary, wave
+        // 47, finding 3). `targetIds` is what the gesture actually landed on.
+        focusId: turnFocus()?.targetIds[0] ?? null,
       });
     let glass = read();
     // The thing the words name may be off the glass (the effect circle above the fold at 390):
@@ -573,12 +576,24 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     // name something the content model declared, the target is known NOW, with no model call, and
     // the pen starts on it while the request is in flight. `resolveInstant` aims at nothing when
     // nothing is named, and then no ink starts.
-    const aim = resolveInstant({
-      question: text,
-      map: glass,
-      core: currentCore(),
-      focusId: turnFocus()?.id ?? null,
-    });
+    // ON A PHOTOGRAPH THE MAP IS THE LEARNER'S OWN LINES (docs/INK-FOUR.md, timing; the
+    // adversary, wave 57). The doubt turn's question is "Explain this to me: <the first line>",
+    // which names an exercise heading and nothing else, so the map-scored resolve aims at the
+    // wrong line or at none, and live at 390 the first stroke landed 8 193 ms after the confirm.
+    // The confirmed lines are registered targets by the time Explain is pressed: the line the
+    // learner lit — or the equation they are working on — is known here with no model call.
+    const aim = doubt
+      ? resolveDoubtInstant({
+          lines: doubt.lines,
+          lit: doubt.lit ?? null,
+          ...(doubt.words ? { words: doubt.words } : {}),
+        })
+      : resolveInstant({
+          question: text,
+          map: glass,
+          core: currentCore(),
+          focusTargets: turnFocus()?.targetIds ?? null,
+        });
     // THE READ IS DONE (docs/INK-FOUR.md, timing; the adversary, wave 47, finding 7). The freeze
     // was taken for the read, and the read has just finished. With no local aim nothing will be
     // drawn on this tick, so the page goes straight back rather than sitting frozen for the whole
@@ -614,6 +629,8 @@ function AppInner({ sdk }: { sdk: Sdk }) {
                 // advance with the level; otherwise the words ride with the mark and the model
                 // does the talking, so there is never a second voice.
                 ...(aim.fromCache && aim.say ? { say: aim.say } : {}),
+                // Everything else the same gesture crossed, each with its own mark.
+                ...(aim.also ? { also: aim.also } : {}),
               },
             }
           : {}),
@@ -954,7 +971,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       const glass = takeGlass({
         question: text,
         route: route.name,
-        focusId: turnFocus()?.id ?? null,
+        focusId: turnFocus()?.targetIds[0] ?? null,
       });
       const onRung = { glass, ...(mode ? { task: { mode } } : {}) };
       const result = await sdk.llm.invoke('wobo.turn', woboTurnPayload(context, onRung), {

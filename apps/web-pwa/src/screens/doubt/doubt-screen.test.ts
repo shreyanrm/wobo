@@ -170,8 +170,25 @@ describe('law v5 and the six traps, at source', () => {
       expect(CSS).toContain(rule);
     }
     expect(CSS).toContain('width:52px;height:52px');
-    expect(STAGE).toContain('const MIN_HIT = 44');
+    // A LINE OF THE PHOTO IS THE ONE CONTROL WHOSE BOX IS NOT ITS HIT AREA (the adversary, wave
+    // 57, finding 1). The button IS the line, because that box is what Wobo's ink anchors to; the
+    // thumb's 44 px is reached by a pseudo-element with no box on the glass.
+    expect(STAGE).toContain('placeRegions');
+    expect(STAGE).toContain('MIN_HIT_PX');
+    expect(STAGE).not.toContain('const MIN_HIT = 44');
+    expect(packed(CSS)).toContain('.db-region::after{content:');
+    expect(packed(CSS)).toContain('var(--db-reach-t,0px)');
     expect(CSS.match(/min-height:44px/g)?.length ?? 0).toBeGreaterThanOrEqual(4);
+  });
+
+  it('the pen starts on the line the learner tapped, with no model call', () => {
+    // THE INSTANT MARK ON A PHOTOGRAPH (docs/INK-FOUR.md, timing; the adversary, wave 57: the
+    // doubt turn is the one turn of the 59 that fails timing, first stroke 8 193 ms after the
+    // confirm). The confirmed lines are registered targets, so the aim is a lookup.
+    expect(RUNTIME).toContain('resolveDoubtInstant');
+    expect(packed(RUNTIME)).toContain('lines:doubt.lines');
+    // the line lit on the photo rides the packet so the aim can use it
+    expect(packed(read('flow.ts'))).toContain('...(state.lit?{lit:state.lit}:{})');
   });
 
   it('the one pointer per view is the primary action', () => {
@@ -331,3 +348,49 @@ describe('a refusal is in view (INK-FOUR, experience)', () => {
     expect(SCREEN.match(/className="db-error"/g)).toHaveLength(2);
   });
 });
+
+/**
+ * THE EXPLANATION IS NOT CLIPPED MID-WORD (the adversary, wave 47, finding 8; docs/INK-FOUR.md,
+ * experience: "after the turn the learner can act on what they see").
+ *
+ * At the end of a live doubt at 390 the caption ended "… removing the extra 5. Starting" — the
+ * scroller's last 20 px faded and the rest of Wobo's answer was below it, with only that fade to
+ * say so. The pane holds: the words are all there and reachable. But the caption prints sentence
+ * by sentence ON THE BEAT, so the one thing that scrolls has to follow its own words, the way a
+ * transcript does — unless the learner has scrolled up themselves, or the pen is holding the page
+ * still mid-stroke, in which case nothing moves under either of them.
+ */
+describe('the reading follows the words as they are printed', () => {
+  it('scrolls its own pane to the newest sentence while Wobo is explaining', () => {
+    expect(SCREEN).toContain('function followTheCaption(');
+    expect(SCREEN).toMatch(/scroller\.scrollTop\s*=\s*scroller\.scrollHeight/);
+  });
+
+  it('never moves the page under a stroke, and never against the learner', () => {
+    const body = SCREEN.slice(SCREEN.indexOf('function followTheCaption('));
+    expect(body.slice(0, 1200)).toContain('held');
+    // "near the bottom" is what earns the follow: a learner who scrolled up keeps their place.
+    expect(body.slice(0, 1200)).toMatch(/scrollHeight - scroller\.scrollTop - scroller\.clientHeight/);
+  });
+})
+
+/**
+ * THE LINE THEY LIT RIDES THE TURN (the adversary, wave 47, finding 4; docs/INK-FOUR.md, timing).
+ *
+ * The doubt photo is the one turn of the fifty-nine that fails the first-stroke law outright —
+ * 8 193 ms after the confirm, because every mark here waits on a model that reads a photograph and
+ * then thinks. A learner who has tapped a line has already said which one they mean, and that is a
+ * lookup: the lit region is published as the turn's focus, and `wobo/instant.ts` underlines it
+ * while the request is still in flight. Ours is the only focus this screen makes, so ours is the
+ * only one it takes back.
+ */
+describe('the lit line is the thing the next question is about', () => {
+  it('publishes it as the turn focus, by the gateway line id', () => {
+    expect(SCREEN).toContain('setTurnFocus(focus)');
+    expect(SCREEN).toContain('targetIds: [lit]');
+  });
+
+  it('clears only the focus it set', () => {
+    expect(SCREEN).toMatch(/turnFocus\(\)\?\.id === (mine|litFocus\.current)/);
+  });
+})

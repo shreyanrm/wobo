@@ -587,6 +587,105 @@ def test_no_ink_frame_lands_without_a_say_frame_in_the_same_beat(
     assert min(e["t"] for e in ink) == first_say["t"]
 
 
+def tagged(payload: dict[str, Any], *, live: bool) -> dict[str, Any] | None:
+    """The wave-57 plan, as Luna wrote it live at 390 on 2026-09-10: a teaching line, and marks
+    carrying TAGS rather than sentences."""
+    return {
+        "say": (
+            "Start with the perimeter, because it is the way round the whole shape. The first "
+            "step is P = 8 + 3 = 11 cm, and it counts only two sides, because a perimeter adds "
+            "all four."
+        ),
+        "intents": [],
+        "objects": [
+            {
+                "id": "m0",
+                "kind": "underline",
+                "anchor": {"target": "r1"},
+                "words": "Starting equation",
+            },
+            {"id": "m1", "kind": "cross", "anchor": {"target": "r3"}, "words": "Wrong sign"},
+            {
+                "id": "m2",
+                "kind": "ring",
+                "anchor": {"target": "r2"},
+                "words": "Correct first step",
+            },
+        ],
+    }
+
+
+def test_a_label_is_never_a_sentence_in_the_speech(
+    client: TestClient, auth, eyes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The adversary, wave 57: the caption spliced three mark labels into the teaching line —
+    "... removing the extra 5. Starting equation. The first step is ... Wrong sign. Correct first
+    step." A label is what a mark says on the glass, never a sentence in the speech."""
+    monkeypatch.setattr("wobo_gateway.wobo.board_plan_for", tagged)
+    doubt_id = read(client, auth).json()["doubt"]
+    events = frames(answer(client, auth, doubt_id).text)
+    said = " ".join(e[2]["text"] for e in events if e[1] == "say")
+    for tag in ("Starting equation", "Wrong sign", "Correct first step"):
+        assert tag not in said, said
+    # the teaching the model wrote is untouched
+    assert said.startswith("Start with the perimeter, because it is the way round"), said
+    # and every mark is called by the line it sits on, which is what it is about
+    ink = {e[2]["object"]["id"]: e[2]["object"] for e in events if e[1] == "ink"}
+    assert ink["m0"]["words"] == "Find the perimeter of the rectangle"
+    assert ink["m1"]["words"] == "P = 8 + 3 = 11 cm"
+    assert ink["m2"]["words"] == "length 8 cm and breadth 3 cm"
+    # ... and that line is never read back either: nothing of the page is in the speech
+    assert "length 8 cm and breadth 3 cm" not in said
+
+
+def test_the_brain_is_told_about_the_mark_the_pen_already_laid(
+    client: TestClient, auth, eyes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """THE INSTANT MARK (docs/INK-FOUR.md). The learner's confirmed lines are registered targets
+    the moment they press Explain, so the client's pen starts on one of them with no model call —
+    and the brain has to be told, or it plans against a photo it believes is unmarked."""
+    seen: dict[str, Any] = {}
+
+    def spy(payload: dict[str, Any], *, live: bool) -> dict[str, Any] | None:
+        seen.update(payload)
+        return tagged(payload, live=live)
+
+    monkeypatch.setattr("wobo_gateway.wobo.board_plan_for", spy)
+    doubt_id = read(client, auth).json()["doubt"]
+    res = answer(
+        client,
+        auth,
+        doubt_id,
+        standing=[{"id": "instant-1", "kind": "underline", "target": "r1"}],
+    )
+    assert res.status_code == 200, res.text
+    standing = (seen.get("board") or {}).get("standing")
+    assert standing == [
+        {
+            "id": "instant-1",
+            "kind": "underline",
+            "anchor": {"target": "r1"},
+            # ... called by the line it sits on, and owed no sentence of its own
+            "words": "Find the perimeter of the rectangle",
+            "meta": {"page": True},
+        }
+    ]
+    said = " ".join(e[2]["text"] for e in frames(res.text) if e[1] == "say")
+    assert "Find the perimeter of the rectangle" not in said, said
+
+
+def test_a_standing_mark_on_a_line_the_reading_does_not_have_is_dropped(
+    client: TestClient, auth, eyes
+) -> None:
+    """A client may not name a target the page never had: the standing list is the page's own
+    lines or it is nothing."""
+    doubt_id = read(client, auth).json()["doubt"]
+    res = answer(
+        client, auth, doubt_id, standing=[{"id": "x", "kind": "ring", "target": "r9"}]
+    )
+    assert res.status_code == 200, res.text
+
+
 def test_the_keyless_answer_rings_the_line_the_learner_named(
     client: TestClient, auth, eyes
 ) -> None:

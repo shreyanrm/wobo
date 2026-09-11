@@ -27,12 +27,22 @@ import {
   layoutTex,
   measureText,
   scriptText,
+  tallestGlyphRatio,
   texPlainText,
   wrapText,
   writeScripted,
   writeText,
 } from './handwriting';
-import { LABEL_MARGIN, placeLabel, placeLabelAt, placeNote } from './layout';
+import {
+  LABEL_MARGIN,
+  REACH_AIM,
+  placeLabel,
+  placeLabelAt,
+  placeNote,
+
+  solveWritten,
+  type WrittenFit,
+} from './layout';
 import { fillStroke, penRng, penStroke, polylineLength, ruledStroke, type Stroke } from './pen';
 import { type AnchorAt, BOARD_UNITS, type BoardObject, type BoardPoint } from './schema';
 
@@ -93,6 +103,18 @@ export const LABEL_SIZE = 22;
  * 1440.
  */
 export const MIN_TYPE_PX = 12;
+
+/**
+ * WHAT THE HAND AIMS AT, against a law of `MIN_TYPE_PX`.
+ *
+ * The solvers work on the glyph boxes the hand laid and the board's settled scale; the browser
+ * then re-measures the traced path it painted under the camera that actually arrived. They are the
+ * same quantity to within a rounding, and a board solved to land EXACTLY on twelve lands at 11.9.
+ * A pixel and a bit of headroom is the honest price of computing a thing the browser re-measures,
+ * and it is set by the spread wave 49 measured (the lens at 1440: 12.8 with motion, 11.8 with
+ * reduced motion, off one solve).
+ */
+export const TYPE_AIM = MIN_TYPE_PX + 1.2;
 
 /**
  * The board-unit type size that renders at least `MIN_TYPE_PX` on this frame.
@@ -244,6 +266,19 @@ interface BuildContext extends AnchorContext {
    * asked for lazily and only for the neighbourhood of a subject, in units.
    */
   avoid?: (near: BoardRect) => BoardRect[];
+  /**
+   * SCREEN PIXELS PER BOARD UNIT ON THIS BOARD, AS THE BOARD IS ACTUALLY SEEN (wave 58, finding 2).
+   *
+   * Both craft laws about a written mark are stated in pixels — at least twelve tall, no more than
+   * twenty-four from its subject — and the solver that has to satisfy them both works in board
+   * units. This is the one number that converts between them, and it is resolved OUTSIDE the
+   * geometry for exactly the reason `typeUnits` gives: a scale read off the live camera closes a
+   * loop, because what the geometry does with it moves the camera. The renderer settles it against
+   * the ink the same way it settles `typeScale`, and hands it down. Unset, the frame's own
+   * `pxPerUnit` stands — which is exact on the glass, where one unit is one pixel and no camera
+   * ever moves it.
+   */
+  glassScale?: number;
 }
 
 /** The relative-points convention: a shape's `points` are offsets from its resolved anchor point. */
@@ -406,11 +441,21 @@ function written(
 }
 
 /**
- * Where a written note goes when it hangs off something.
+ * WHERE A WRITTEN MARK GOES, AND HOW BIG — DECIDED TOGETHER (the adversary, wave 57, finding 2).
  *
- * When the anchor NAMED a side — `{object: "cell", at: "bottom"}` — that side is the answer: under
- * the box, left-aligned to it. Only an anchor that named nothing gets the search for the first
- * free side. Either way it keeps a real margin and never lands on the thing it names.
+ * This used to be a sequence: `sized()` chose a size, then `placeLabelAt`/`placeLabel` went looking
+ * for somewhere a box that large would fit and, failing, walked away down the board. That is how
+ * closing the twelve-pixel floor broke the twenty-four-pixel reach — the writing grew, the boxes
+ * grew with it, and 29 of the 60 marks that hang off something ended up past the reach, worst
+ * 'Chauri Chaura, called off' 111 px from its own tick.
+ *
+ * Now the legible sizes, the measures the line may be wrapped to, and the positions around the
+ * subject are ONE search (`solveWritten`), and the reach is a constraint on every candidate rather
+ * than something checked afterwards. The size never goes under the board's own floor, so the
+ * twelve-pixel law is kept by construction; what gives instead is the line length (a long note
+ * wraps), then the size within its legible band, and only then the distance.
+ *
+ * The side the anchor named is still the first thing tried, at both margins, before anything else.
  */
 function notePlacement(
   ctx: BuildContext,
@@ -419,27 +464,135 @@ function notePlacement(
   size: number,
   maxWidth?: number,
   at?: AnchorAt,
-): BoardPoint {
-  if (anchorBox.w === 0 && anchorBox.h === 0) return [anchorBox.x, anchorBox.y];
-  const occupied = ctx.occupied ?? [];
-  const box = noteSize(ctx, text, size, maxWidth);
-  const taken = (r: BoardRect) => occupied.some((o) => boxesOverlap(r, o, LABEL_MARGIN * 0.5));
-  const asked = placeLabelAt(anchorBox, box, at, occupied, LABEL_MARGIN, ctx.area);
+  opts?: {
+    allowInside?: boolean;
+    floor?: number;
+    /** The pipeline's `offset`, when the anchor named an OBJECT — see `WrittenSolve.nudge`. */
+    nudge?: readonly [number, number];
+    /** The subject's box as it sits in `occupied` — see `WrittenSolve.subjectBox`. */
+    subjectBox?: BoardRect;
+  },
+): WrittenFit {
+  const asked = maxWidth ?? measureOn(ctx.frame);
+  if (anchorBox.w === 0 && anchorBox.h === 0) {
+    const shape = noteSize(ctx, text, size, asked);
+    return {
+      box: { x: anchorBox.x, y: anchorBox.y, ...shape },
+      size,
+      maxWidth: asked,
+      gap: 0,
+      withinReach: true,
+      inside: false,
+    };
+  }
   /**
-   * A SIDE THAT IS TAKEN IS NOT A SIDE (the adversary, wave 51, finding 1, the second time round).
-   *
-   * `placeLabelAt` slides the note along the side it was asked for until it clears what is already
-   * down, and gives up at the edge of the board — returning the clashing box rather than nothing.
-   * Two notes hung off the same small mark at `topLeft` and `topRight`, written large enough to
-   * clear the 12 px law, run out of board and land on each other; measured on the projectile at
-   * 390, 46 × 146 units of one number written through another. The pipeline's `at` is a
-   * preference and it is kept while it is free; when it is not, the free-side search answers, and
-   * only if that is no better does the asked side stand.
+   * A FRACTION PAIR IS A POINT, NOT A SIDE. `{at: [0.43, 0.39]}` is a pipeline writing in a named
+   * cell of its own table; there is nothing to solve and nothing to dodge.
    */
-  if (asked && !taken(asked)) return [asked.x, asked.y];
-  const placed = placeLabel(anchorBox, box, occupied, ctx.area, LABEL_MARGIN);
-  if (asked && taken({ ...placed, ...box })) return [asked.x, asked.y];
-  return [placed.x, placed.y];
+  if (Array.isArray(at)) {
+    const placed = placeLabelAt(anchorBox, noteSize(ctx, text, size, asked), at, [], LABEL_MARGIN);
+    if (placed) {
+      return {
+        box: placed,
+        size,
+        maxWidth: asked,
+        gap: 0,
+        withinReach: true,
+        inside: true,
+      };
+    }
+  }
+  const occupied = ctx.occupied ?? [];
+  const floor = typeFloorFor(ctx, text, size);
+  return solveWritten({
+    subject: anchorBox,
+    at: at as Exclude<AnchorAt, readonly number[]> | undefined,
+    measure: (s, mw) => noteSize(ctx, text, s, mw),
+    sizes: sizeLadder(size, floor),
+    maxWidth: asked,
+    occupied,
+    ...(opts?.subjectBox ? { subjectBox: opts.subjectBox } : {}),
+    area: ctx.area,
+    margin: LABEL_MARGIN,
+    reach: reachUnits(ctx),
+    allowInside: opts?.allowInside ?? true,
+    ...(opts?.nudge ? { nudge: opts.nudge } : {}),
+  });
+}
+
+/**
+ * THE REACH LAW IN BOARD UNITS: twenty-four pixels, converted by how big a unit actually is on
+ * this board. See `BuildContext.glassScale`.
+ */
+function reachUnits(ctx: BuildContext): number {
+  const k = ctx.glassScale ?? pxPerUnit(ctx.frame);
+  return k > 0 ? REACH_AIM / k : REACH_AIM;
+}
+
+/**
+ * THE LEGIBLE BAND FOR ONE MARK, largest first.
+ *
+ * The top is what the hand (or the pipeline) asked for; the bottom is the LAW — the size at which
+ * this phrase's own tallest glyph measures `MIN_TYPE_PX` on this board (`typeFloorFor`). Nothing
+ * here can take a mark under that, so the solver trades line length and distance, never
+ * legibility; and nothing above it is defended, so there is real room to come down.
+ *
+ * WHY THE LAW AND NOT `MIN_WRITTEN_UNITS × typeScale`, which is what wave 51 left behind. That
+ * proxy scales with the board's type factor, so a board the ladder had grown to a factor of two
+ * offered the solver a band of 56 to 60 units — a seven per cent shrink, which is no room at all.
+ * Measured on the projectile at 390: at a factor of two the true floor for 'greatest height' is
+ * 44 units against an asked 60, and it is those sixteen units that let the note sit beside the
+ * apex instead of 194 units under it.
+ *
+ * THE BAND GOES UP AS WELL AS DOWN. When the size a pipeline asked for would land UNDER the law,
+ * the floor is above it and the floor is what gets written: a mark too small to read is not a
+ * mark, whatever was asked. That is the whole of what `typeScale`'s ladder was for, done per mark
+ * and against the measured law instead of as one global guess — which is why most boards now
+ * settle at a factor of one.
+ */
+function sizeLadder(asked: number, floor: number): number[] {
+  const low = Math.max(floor, 1);
+  const top = Math.max(asked, low);
+  if (!(top > low + 0.5)) return [low];
+  const out = [top];
+  for (const k of [0.88, 0.76, 0.64]) {
+    const next = top * k;
+    if (next > low + 0.5) out.push(next);
+  }
+  out.push(low);
+  return out;
+}
+
+/**
+ * THE SMALLEST THIS PHRASE MAY BE WRITTEN ON THIS BOARD, IN UNITS — the twelve-pixel law itself.
+ *
+ * The law is about the tallest glyph a mark actually writes, and that is a property of the phrase:
+ * 'recessive' carries neither ascender nor cap and 'greatest height' carries both. So the floor is
+ * measured off the phrase (`tallestGlyphRatio`) and converted by how big a unit is on this board
+ * (`glassScale`). With neither a font nor a scale to measure with, the hand's own written floor
+ * stands.
+ */
+function typeFloorFor(ctx: BuildContext, text: string, asked: number): number {
+  const k = ctx.glassScale;
+  if (!ctx.font || !k || !(k > 0)) return asked;
+  const ratio = tallestGlyphRatio(ctx.font, text);
+  if (!(ratio > 0)) return asked;
+  /**
+   * NEVER MORE THAN `MAX_GROWTH` TIMES WHAT WAS ASKED. Growing a mark widens the ink the camera is
+   * fitted to, so on a board whose ink is mostly writing the camera gives back what the growth
+   * won — `typeUnits`'s loop, seen from the one side where it is real. The cap is where that
+   * stops being worth trying; a board that hits it is a drawing too dense for its surface, and it
+   * is reported as such rather than rendered as a wall of type.
+   */
+  return Math.min(TYPE_AIM / (ratio * k), asked * MAX_GROWTH);
+}
+
+/** How much bigger than the size it was asked for a mark may be written to clear the law. */
+export const MAX_GROWTH = 2.5;
+
+/** The width a line of writing is held to on a surface, with no pipeline measure to narrow it. */
+function measureOn(frame: BoardFrame): number {
+  return lineMeasure(frame);
 }
 
 /**
@@ -499,8 +652,26 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
   // board's floor (`MIN_WRITTEN_UNITS`), then the board's one factor (`scaledType`).
   const sized = (asked: number | undefined, base: number) =>
     scaledType(ctx, Math.max(asked ?? base, onBoard(ctx.frame) ? MIN_WRITTEN_UNITS : 0));
+  /**
+   * THE SMALLEST THIS BOARD WRITES, and the bottom of every solved mark's legible band. On a board
+   * it is `MIN_WRITTEN_UNITS` under the board's own type factor — the size the ladder settled as
+   * twelve pixels. On the glass a unit is a pixel, so the law is the law.
+   */
+  const typeFloor = onBoard(ctx.frame) ? scaledType(ctx, MIN_WRITTEN_UNITS) : MIN_TYPE_PX;
   const LABEL = sized(undefined, LABEL_SIZE);
   const WRITE = sized(undefined, WRITE_SIZE);
+  /**
+   * THE LAW APPLIES TO EVERY WRITTEN GLYPH, NOT ONLY TO THE ONES THE SOLVER PLACES (wave 58).
+   *
+   * An axis's own label, a table's cells, a control's caption and a plotted title are all written
+   * by hand right here rather than through `notePlacement`, and every one of them was outside the
+   * twelve-pixel floor. Measured on the projectile at 390: the word 'ground' on the ground axis
+   * came out at 7.8 px, and because the board's type ladder is settled on the SMALLEST glyph, that
+   * one unsolved word was what dragged the whole board up to a factor of two — which is what then
+   * pushed the notes off the apex. One law, applied wherever the hand writes.
+   */
+  const legible = (text: string, asked: number) =>
+    Math.max(asked, Math.min(typeFloorFor(ctx, text, asked), asked * MAX_GROWTH));
   // The width a line of writing is held to on this surface (`lineMeasure`), never wider than what
   // the pipeline itself asked for.
   const measure = (asked?: number) =>
@@ -512,6 +683,25 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
   const at = anchor && 'at' in anchor ? anchor.at : undefined;
   const anchorBox = box as BoardRect;
   const p = pointOn(anchorBox, at);
+  /**
+   * THE SUBJECT, BEFORE THE PIPELINE NUDGED IT (the adversary, wave 57, finding 2).
+   *
+   * `resolveAnchorBox` folds an `offset` into the box it returns, so a written mark asking for
+   * `{object: "tick", at: "bottom", offset: [-260, 0]}` used to be solved against a phantom box
+   * 260 units from the tick it names — and 260 units is not a nudge on a board 1000 wide, it is
+   * the timeline pipeline doing its own placement to stop the drift this solver now stops. The
+   * reach law is measured to the THING, so the thing is what the solver is given; the nudge comes
+   * along as a preference. Only for an `{object: …}` anchor: a nudge off a bare board coordinate
+   * IS the position, and there is no subject behind it.
+   */
+  const nudge =
+    anchor && 'object' in anchor && 'offset' in anchor && anchor.offset ? anchor.offset : undefined;
+  const drawnBox = anchor && 'object' in anchor ? ctx.objectBox(anchor.object) : null;
+  const subjectBox = nudge
+    ? { ...anchorBox, x: anchorBox.x - nudge[0], y: anchorBox.y - nudge[1] }
+    : anchorBox;
+  /** What the subject is in `occupied`: the very box the renderer pushed when it drew it. */
+  const drawn = drawnBox ?? undefined;
 
   switch (object.kind) {
     case 'point': {
@@ -734,15 +924,19 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         const labelBox: BoardRect = vertical
           ? { x: side === 'left' ? b.x - 16 : b.x + b.w, y: b.y, w: 1, h: b.h }
           : { x: b.x, y: side === 'top' ? b.y - 16 : b.y + b.h, w: b.w, h: 1 };
-        const origin = notePlacement(ctx, labelBox, object.label, LABEL);
-        const w = written(ctx, object.label, origin, LABEL);
+        const fit = notePlacement(ctx, labelBox, object.label, LABEL, undefined, undefined, {
+          floor: typeFloor,
+          allowInside: false,
+        });
+        const origin: BoardPoint = [fit.box.x, fit.box.y];
+        const w = written(ctx, object.label, origin, fit.size, fit.maxWidth);
         glyphs = w.glyphs;
         boxes = [...boxes, w.box];
         text = {
           lines: w.lines,
           x: origin[0],
           y: origin[1],
-          size: LABEL,
+          size: fit.size,
           lineHeight: w.lineHeight,
         };
       }
@@ -766,17 +960,22 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         ? measureText(ctx.font, full, WRITE) <= mw
         : full.length * WRITE * 0.42 <= mw;
       const laid = fits || !object.label ? full : `${object.label}\n${label}`;
-      const origin = notePlacement(ctx, anchorBox, laid, WRITE, mw, at);
-      const w = written(ctx, laid, origin, WRITE, mw);
+      const fit = notePlacement(ctx, subjectBox, laid, WRITE, mw, at, {
+        floor: typeFloor,
+        ...(nudge ? { nudge } : {}),
+        ...(drawn ? { subjectBox: drawn } : {}),
+      });
+      const origin: BoardPoint = [fit.box.x, fit.box.y];
+      const w = written(ctx, laid, origin, fit.size, fit.maxWidth);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
-        size: WRITE,
+        size: fit.size,
         text: {
           lines: w.lines,
           x: origin[0],
           y: origin[1],
-          size: WRITE,
+          size: fit.size,
           lineHeight: w.lineHeight,
         },
         box: w.box,
@@ -786,13 +985,24 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
     case 'write': {
       const size = sized(object.size, WRITE_SIZE);
       const mw = measure(object.maxWidth);
-      const origin = notePlacement(ctx, anchorBox, object.text, size, mw, at);
-      const w = written(ctx, object.text, origin, size, mw);
+      const fit = notePlacement(ctx, subjectBox, object.text, size, mw, at, {
+        floor: typeFloor,
+        ...(nudge ? { nudge } : {}),
+        ...(drawn ? { subjectBox: drawn } : {}),
+      });
+      const origin: BoardPoint = [fit.box.x, fit.box.y];
+      const w = written(ctx, object.text, origin, fit.size, fit.maxWidth);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
-        size,
-        text: { lines: w.lines, x: origin[0], y: origin[1], size, lineHeight: w.lineHeight },
+        size: fit.size,
+        text: {
+          lines: w.lines,
+          x: origin[0],
+          y: origin[1],
+          size: fit.size,
+          lineHeight: w.lineHeight,
+        },
         box: w.box,
         length: totalLength(w.strokes, w.glyphs),
       };
@@ -800,13 +1010,24 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
     case 'label': {
       const size = sized(object.size, LABEL_SIZE);
       const mw = measure();
-      const origin = notePlacement(ctx, anchorBox, object.text, size, mw, at);
-      const w = written(ctx, object.text, origin, size, mw);
+      const fit = notePlacement(ctx, subjectBox, object.text, size, mw, at, {
+        floor: typeFloor,
+        ...(nudge ? { nudge } : {}),
+        ...(drawn ? { subjectBox: drawn } : {}),
+      });
+      const origin: BoardPoint = [fit.box.x, fit.box.y];
+      const w = written(ctx, object.text, origin, fit.size, fit.maxWidth);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
-        size,
-        text: { lines: w.lines, x: origin[0], y: origin[1], size, lineHeight: w.lineHeight },
+        size: fit.size,
+        text: {
+          lines: w.lines,
+          x: origin[0],
+          y: origin[1],
+          size: fit.size,
+          lineHeight: w.lineHeight,
+        },
         box: w.box,
         length: totalLength(w.strokes, w.glyphs),
       };
@@ -939,7 +1160,8 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         const beside: BoardPoint = horizontal
           ? [end[0] + 10, end[1] + 4]
           : [end[0] + 10, end[1] - 8];
-        let written = writeText(ctx.font, object.label, beside, { size: LABEL });
+        const axisType = legible(object.label, LABEL);
+        let written = writeText(ctx.font, object.label, beside, { size: axisType });
         // How far the GLYPHS actually reach, plus the pad this box reports, minus the board. An
         // estimated width is not good enough here: it is the measured ink that either fits or does
         // not, and a label two units over the edge is still a label over the edge.
@@ -949,8 +1171,8 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
           written = writeText(
             ctx.font,
             object.label,
-            [Math.max(0, beside[0] - over), end[1] + LABEL + 10],
-            { size: LABEL },
+            [Math.max(0, beside[0] - over), end[1] + axisType + 10],
+            { size: axisType },
           );
         }
         glyphs.push(...written.glyphs);
@@ -1032,7 +1254,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
             const origin: BoardPoint = [p[0] + c * cw + 8, p[1] + r * rowHeight + rowHeight * 0.16];
             glyphs.push(
               ...writeText(ctx.font as HandFont, cell, origin, {
-                size: LABEL,
+                size: legible(cell, LABEL),
                 maxWidth: cw - 16,
               }).glyphs,
             );
@@ -1048,7 +1270,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       };
     }
     case 'tex': {
-      const size = sized(object.size, WRITE_SIZE);
+      const size = legible(texPlainText(object.tex), sized(object.size, WRITE_SIZE));
       if (!ctx.font) {
         // No Caveat: Wobo still shows the EQUATION, with its powers and indices as real characters
         // (a² + b² = c²), never the TeX source Wobo would never say out loud.
@@ -1187,7 +1409,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       if (object.title && ctx.font) {
         glyphs.push(
           ...writeText(ctx.font, object.title, [b.x + 12, b.y + 10], {
-            size: LABEL,
+            size: legible(object.title, LABEL),
             maxWidth: b.w - 24,
           }).glyphs,
         );
@@ -1230,7 +1452,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       if (object.label && ctx.font) {
         glyphs.push(
           ...writeText(ctx.font, object.label, [p[0], p[1] - LABEL * 1.6], {
-            size: LABEL,
+            size: legible(object.label, LABEL),
           }).glyphs,
         );
       }
@@ -1277,7 +1499,9 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       const glyphs: HandGlyph[] = [];
       if (object.label && ctx.font) {
         glyphs.push(
-          ...writeText(ctx.font, object.label, [b.x + w + 12, b.y], { size: LABEL }).glyphs,
+          ...writeText(ctx.font, object.label, [b.x + w + 12, b.y], {
+            size: legible(object.label, LABEL),
+          }).glyphs,
         );
       }
       return {
@@ -1301,7 +1525,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         if (object.label)
           glyphs.push(
             ...writeText(ctx.font, object.label, [p[0], p[1] - LABEL * 1.4], {
-              size: LABEL,
+              size: legible(object.label, LABEL),
             }).glyphs,
           );
         if (object.value)
@@ -1345,7 +1569,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       if (object.label && ctx.font) {
         glyphs.push(
           ...writeText(ctx.font, object.label, [handle[0] + 18, handle[1] - LABEL * 0.6], {
-            size: LABEL,
+            size: legible(object.label, LABEL),
           }).glyphs,
         );
       }

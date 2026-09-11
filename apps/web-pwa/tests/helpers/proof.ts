@@ -420,13 +420,38 @@ const AUDIT = (opts: { tapTargets: boolean }): Finding[] => {
       const TEXT_FLOW = 'p, li, label, blockquote, figcaption, dd, dt, td, th, h1, h2, h3, h4';
       const display = getComputedStyle(el).display;
       if ((display === 'inline' || display === 'inline-block') && el.closest(TEXT_FLOW)) continue;
+      //     AND THE SECOND EXCEPTION, measured rather than declared: a control may reach past its
+      //     own border box with an absolutely positioned pseudo-element, and that is sometimes the
+      //     only honest way to build one. A line of a photographed page is seven pixels tall at
+      //     390 and the button over it must BE the line, because that box is what Wobo's ink
+      //     anchors to — a button grown to the floor drew one ellipse across three lines at once
+      //     (the adversary, wave 57). What a finger meets is the union, so that is what is
+      //     measured; the insets come off the pseudo's computed style, in px.
       const r = el.getBoundingClientRect();
-      if (r.width >= 44 - EPS && r.height >= 44 - EPS) continue;
+      let left = r.left;
+      let top = r.top;
+      let right = r.right;
+      let bottom = r.bottom;
+      for (const pseudo of ['::before', '::after']) {
+        const cs = getComputedStyle(el, pseudo);
+        if (!cs || cs.content === 'none' || cs.content === 'normal') continue;
+        if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+        if (cs.position !== 'absolute' && cs.position !== 'fixed') continue;
+        const px = (v: string) => (v === 'auto' ? Number.NaN : Number.parseFloat(v));
+        const [pt, pr, pb, pl] = [px(cs.top), px(cs.right), px(cs.bottom), px(cs.left)];
+        if ([pt, pr, pb, pl].some((v) => Number.isNaN(v))) continue;
+        left = Math.min(left, r.left + pl);
+        top = Math.min(top, r.top + pt);
+        right = Math.max(right, r.right - pr);
+        bottom = Math.max(bottom, r.bottom - pb);
+      }
+      const press = { width: right - left, height: bottom - top };
+      if (press.width >= 44 - EPS && press.height >= 44 - EPS) continue;
       push(
         'tap-target',
         el,
-        `${Math.round(r.width)}×${Math.round(r.height)} px, below the 44×44 floor`,
-        `${r.width.toFixed(3)}x${r.height.toFixed(3)}`,
+        `${Math.round(press.width)}×${Math.round(press.height)} px, below the 44×44 floor`,
+        `${press.width.toFixed(3)}x${press.height.toFixed(3)}`,
       );
     }
   }

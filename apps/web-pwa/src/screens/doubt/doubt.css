@@ -22,9 +22,13 @@ button.db-entry:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
    and while the phone sheet is Wobo's board — and comes back the moment the ink does. */
 [data-glass-held] .db-entry,[data-wobo-ink] .db-entry,[data-wobo-sheet] .db-entry,
 [data-glass-held] .db-entry-note,[data-wobo-ink] .db-entry-note,[data-wobo-sheet] .db-entry-note{visibility:hidden}
+/* AND THE CAMERA STACKS ABOVE WOBO (the adversary, wave 47, finding 8). Wobo's own dock now clears
+   the tab rail as this did — 26 px above it, 68 px tall — so the corner is a stack of three from
+   the bottom up: the rail, Wobo, then the camera, each reading the one below it rather than a
+   number somebody measured once. 104px is 26 + 68 + 10 of air. */
 @media (max-width:900px){
-  .db-entry{right:12px;bottom:calc(84px + var(--wst-height,0px) + env(safe-area-inset-bottom))}
-  .db-entry-note{right:12px;bottom:calc(146px + var(--wst-height,0px) + env(safe-area-inset-bottom))}
+  .db-entry{right:12px;bottom:calc(104px + var(--rail-h,0px) + var(--wst-height,0px) + env(safe-area-inset-bottom))}
+  .db-entry-note{right:12px;bottom:calc(166px + var(--rail-h,0px) + var(--wst-height,0px) + env(safe-area-inset-bottom))}
 }
 
 /* the screen */
@@ -104,7 +108,12 @@ label.db-take:focus-within{outline:3px solid var(--pig);outline-offset:2px}
 .db-photo{position:relative;max-width:100%;border-radius:14px;overflow:hidden;background:var(--paper-3);touch-action:pan-y;overscroll-behavior:contain}
 .db-photo.db-held{touch-action:none}
 .db-photo > img{position:absolute;left:50%;top:50%;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
-.db-region{position:absolute;border:0;background:transparent;padding:0;margin:0;border-radius:10px;cursor:pointer;color:transparent;font-size:0;outline:2.5px solid transparent}
+.db-region{position:absolute;border:0;background:transparent;padding:0;margin:0;border-radius:4px;cursor:pointer;color:transparent;font-size:0;outline:2.5px solid transparent}
+/* the thumb's band. The BUTTON is the line — that box is what Wobo's ink anchors to — and the
+   pressable area reaches past it here, in a pseudo-element with no box on the glass of its own.
+   The reach is measured per line so a band never crosses the halfway mark to its neighbour
+   (wobo/doubt-surface.ts, placeRegions). */
+.db-region::after{content:'';position:absolute;top:calc(-1 * var(--db-reach-t,0px));right:calc(-1 * var(--db-reach-r,0px));bottom:calc(-1 * var(--db-reach-b,0px));left:calc(-1 * var(--db-reach-l,0px))}
 .db-region.db-lit{background:color-mix(in srgb,var(--marigold) 32%,transparent);outline-color:var(--marigold)}
 .db-region:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
 .db-tools{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}

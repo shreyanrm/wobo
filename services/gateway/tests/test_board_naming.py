@@ -103,9 +103,9 @@ def test_the_inserted_sentence_shifts_every_later_beat() -> None:
     parts = naming.split(say)
     assert parts == [
         "Start here.",
-        "The sign flip.",
+        "This is the sign flip.",
         "Now this bit.",
-        "The second step.",
+        "This is the second step.",
     ]
     assert [o["beat"]["with"] for o in objects] == [1, 3]
 
@@ -124,7 +124,8 @@ def test_an_unbeaten_mark_is_named_by_the_line_as_a_whole() -> None:
     say, _objects = naming.name_what_is_drawn(
         "Read it through once.", [ring(words="the missing minus sign")]
     )
-    assert say.endswith("The missing minus sign.")
+    # A label is pointed at rather than read out (the adversary, wave 47, finding 7).
+    assert say.endswith("This is the missing minus sign.")
 
 
 # --- the register (docs/copy/voice.md 10a, 10c) ---------------------------------------------------
@@ -135,7 +136,9 @@ def test_the_naming_sentence_never_narrates() -> None:
         "Have a look.", [ring(words="I'll circle the hypotenuse for you")]
     )
     assert "I'll" not in say and "circle" not in say
-    assert say.endswith("The hypotenuse for you.") or say.endswith("The hypotenuse.")
+    assert say.endswith("This is the hypotenuse for you.") or say.endswith(
+        "This is the hypotenuse."
+    )
 
 
 def test_the_naming_sentence_carries_no_em_dash_and_no_exclamation() -> None:
@@ -145,7 +148,7 @@ def test_the_naming_sentence_carries_no_em_dash_and_no_exclamation() -> None:
 
 def test_a_naming_sentence_ends_on_a_full_stop() -> None:
     say, _ = naming.name_what_is_drawn("Look.", [ring(words="the sign flip")])
-    assert say.endswith("The sign flip.")
+    assert say.endswith("This is the sign flip.")
 
 
 # --- a figure names its own parts ------------------------------------------------------------------
@@ -267,7 +270,7 @@ def test_a_plan_whose_say_is_machinery_says_nothing_and_still_draws() -> None:
         '{"say":"the hypotenuse"}', [ring(words="the hypotenuse", beat={"with": 0})]
     )
     assert "{" not in say and '"say"' not in say
-    assert say == "The hypotenuse."
+    assert say == "This is the hypotenuse."
     assert len(objects) == 1
 
 
@@ -290,7 +293,7 @@ def test_the_ask_survives_a_naming_sentence_going_in_after_it() -> None:
         ask="What do you notice about it?",
     )
     assert say.endswith("What do you notice about it?")
-    assert "The sign flip." in say
+    assert "This is the sign flip." in say
     assert naming.already_asked(say, "What do you notice about it?")
 
 
@@ -370,7 +373,7 @@ def test_two_marks_that_share_words_are_named_once() -> None:
             ring(id="m2", words="the numbered steps", meta={"beat": {"with": 0}}),
         ],
     )
-    assert say.count("The numbered steps.") == 1, say
+    assert say.count("These are the numbered steps.") == 1, say
     beats = [o["meta"]["beat"]["with"] for o in objects]
     assert beats[0] == beats[1], objects
     assert not naming.unnamed(say, objects)
@@ -411,3 +414,46 @@ def test_a_mark_written_as_an_operator_is_not_a_sentence() -> None:
         [{"id": "p1", "kind": "label", "text": "+"}],
     )
     assert say == "Each part goes on in the order you'd draw it yourself."
+
+
+# --- a label is not a sentence (the adversary, wave 47, finding 7) --------------------------------
+
+
+def test_a_marks_label_is_spoken_as_a_sentence_not_read_out() -> None:
+    """Live at 390, the doubt caption read: "Start with the equation, because we keep both sides
+    balanced while removing the extra 5. STARTING EQUATION. The first step is 3x = 20 - 5, not
+    20 + 5, because subtracting 5 cancels the +5 on the left. WRONG SIGN. CORRECT FIRST STEP.
+    Then divide both sides by 3..." Three of those sentences are the marks' own labels, read out
+    as prose in the middle of the teaching. The law stands — nothing stands on the glass unspoken —
+    but what is said about a mark is a thing a teacher says, not a caption spoken aloud.
+    """
+    say, _ = naming.name_what_is_drawn(
+        "Start with the equation, because we keep both sides balanced.",
+        [ring(words="starting equation", beat={"with": 0})],
+    )
+    assert "This is the starting equation." in say, say
+    assert " Starting equation." not in say
+
+
+def test_the_label_keeps_its_own_article_when_it_has_one() -> None:
+    say, _ = naming.name_what_is_drawn("Look.", [ring(words="the wrong sign", beat={"with": 0})])
+    assert say == "Look. This is the wrong sign."
+
+
+def test_words_that_already_say_something_are_left_exactly_as_they_are() -> None:
+    say, _ = naming.name_what_is_drawn(
+        "Look again at that line.",
+        [ring(words="the hypotenuse is the longest side", beat={"with": 0})],
+    )
+    assert say == "Look again at that line. The hypotenuse is the longest side."
+
+
+def test_a_line_of_working_is_read_as_working_not_pointed_at() -> None:
+    say, _ = naming.name_what_is_drawn("Watch.", [ring(words="3x = 20 - 5", beat={"with": 0})])
+    assert say == "Watch. 3x = 20 - 5."
+
+
+def test_the_pointing_sentence_still_names_the_mark() -> None:
+    objects = [ring(words="wrong sign", beat={"with": 0})]
+    say, drawn = naming.name_what_is_drawn("Start here.", objects)
+    assert not naming.unnamed(say, drawn)

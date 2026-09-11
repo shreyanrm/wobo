@@ -48,6 +48,22 @@ export class NoSuchAccountError extends Error {
   }
 }
 
+/**
+ * THE AUTH SERVER ANSWERED, AND THE ANSWER WAS NO (the adversary, wave 47, finding 12).
+ *
+ * Anonymous sign-in can be off on the project, and then `POST /signup` comes back 422 every time.
+ * That is an ANSWER, and asking it again on the next call is a failed cross-internet round trip
+ * the learner waits through for nothing. A failure with no answer at all — the device is in a
+ * tunnel — is not this error, and stays worth another go. Named rather than `instanceof`, for the
+ * same reason as above: a second copy of this module must not turn it back into the catch-all.
+ */
+export class SessionRefusedError extends Error {
+  constructor(said: string) {
+    super(`could not start a session: ${said}`);
+    this.name = 'SessionRefusedError';
+  }
+}
+
 /** How a phone-OTP request should behave when the number has no account yet. */
 export interface PhoneOtpOptions {
   /**
@@ -367,7 +383,7 @@ export class SupabaseAuthIdentity implements IdentityProvider {
       headers: { apikey: this.cfg.anonKey, 'content-type': 'application/json' },
       body: JSON.stringify({}),
     });
-    if (!res.ok) throw new Error(`could not start a session: ${await gotrueError(res)}`);
+    if (!res.ok) throw new SessionRefusedError(await gotrueError(res));
     this.adopt((await res.json()) as TokenResponse);
     return this.getSession();
   }

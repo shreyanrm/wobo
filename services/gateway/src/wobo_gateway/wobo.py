@@ -836,7 +836,11 @@ def keyless_inline(text: str, node: str = "") -> str:
 
 
 def _mock_say(
-    out: dict[str, Any], classification: dict[str, Any], node: str, text: str = ""
+    out: dict[str, Any],
+    classification: dict[str, Any],
+    node: str,
+    text: str = "",
+    payload: dict[str, Any] | None = None,
 ) -> str:
     """The line beside the path the turn ENDED on, about its subject. Chosen after hydration, so a
     drawing that could not be drawn is never read aloud ("start at the left and follow it across"
@@ -854,6 +858,16 @@ def _mock_say(
         honest = keyless_inline(text, c)
         if honest:
             return honest
+        # THE THING THEY ASKED ABOUT IS NOT ON THIS CARD (the adversary, wave 47, finding 3).
+        # "circle the effect circle in the diagram", asked on a card with no diagram, was answered
+        # with a sentence about a step. Say what is true: there is no such thing here, and here is
+        # what there is.
+        if payload is not None:
+            from wobo_gateway.board import glass
+
+            absent = glass.absent_line(text, glass.entries_of(payload))
+            if absent:
+                return absent
         return f"Take {c} one step at a time. Which step feels shaky?" if c else _MOCK_SAY[path]
     return _MOCK_SAY[path]
 
@@ -993,7 +1007,7 @@ def mock_wobo_turn(payload: dict[str, Any]) -> dict[str, Any]:
         "handed_answer": False,
     }
     out = _apply_classification(out, classification, live=False)
-    out["say"] = _mock_say(out, classification, node, text)
+    out["say"] = _mock_say(out, classification, node, text, payload)
     _tell_the_voice(out["say"])
     return out
 
@@ -2218,7 +2232,7 @@ def mock_board_plan(payload: dict[str, Any]) -> dict[str, Any] | None:
     # The glass first. "circle the hypotenuse" with the square on the map is a ring on it, never
     # the pythagoras plane over it; "which step is wrong here?" is never a number line. Only a
     # request to BUILD with no mark word in it goes straight to the pipelines' keyword reading.
-    builds = bool(glass._BUILD_IT.search(text)) and not glass._MARK_WORD.search(text)
+    builds = glass.builds_from_scratch(text, glass.entries_of(payload))
     marked = None if builds else glass.keyless_plan(payload)
     # A PLAN OF MARKS THAT MARKS NOTHING IS NOT AN ANSWER TO A REQUEST FOR A DRAWING. The keyless
     # plan used to win outright whenever the ask carried no build word, so "prove Pythagoras
