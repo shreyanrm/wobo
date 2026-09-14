@@ -44,16 +44,24 @@ import secrets
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from wobo_gateway.email_templates import HAND_KINDS, KINDS, postal_address_is_set, render
+from wobo_gateway.email_templates import (
+    HAND_KINDS,
+    KINDS,
+    SUBSCRIBED_KINDS,
+    postal_address_is_set,
+    render,
+)
 
 logger = logging.getLogger("wobo.gateway.email")
 
@@ -177,9 +185,189 @@ class MailLog:
             ]
         return max(times) if times else None
 
+    def sent_today(self, moment: datetime) -> int:
+        """How many mails have actually LEFT on the UTC day of ``moment``.
+
+        A queued would-send and a console render are not sends: they cost the day's allowance
+        nothing, because nothing reached an inbox.
+        """
+        day = moment.astimezone(UTC).date()
+        with self._lock:
+            return sum(
+                1
+                for r in self._by_key.values()
+                if r.provider_id not in {"queued", "console"}
+                and datetime.fromisoformat(r.sent_at).astimezone(UTC).date() == day
+            )
+
     def records(self) -> list[MailRecord]:
         with self._lock:
             return list(self._by_key.values())
+
+
+# --- the log in the database (migration 0032_mail_log.sql) --------------------------------------
+_SCHEMA = "ops"
+_TABLE = "mail_log"
+#: How much of the table an instance reads into memory when it starts. Every rule that reads the
+#: log looks backwards by hours or days (the inbox gap is one day, the win gap seven), so forty
+#: covers all of them with room for a clock that disagrees, and bounds the read.
+PRIME_DAYS = 40
+
+
+def _rest(url: str, key: str, method: str, *, body: Any = None) -> Any:
+    """One PostgREST call with the service-role key. Split out so tests need no database."""
+    headers = {
+        "apikey": key,
+        "Authorization": f"Bearer {key}",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Accept-Profile": _SCHEMA,
+        "Content-Profile": _SCHEMA,
+        "Prefer": "return=minimal",
+    }
+    data = json.dumps(body).encode() if body is not None else None
+    request = urllib.request.Request(url, data=data, headers=headers, method=method)
+    with urllib.request.urlopen(request, timeout=_HTTP_TIMEOUT_S) as response:  # noqa: S310
+        raw = response.read().decode()
+    return json.loads(raw) if raw.strip() else []
+
+
+class DatabaseMailLog(MailLog):
+    """The mail log with ``ops.mail_log`` behind it: the same interface, and it survives a deploy.
+
+    The file this replaces lived on an instance with no volume, so every record of a send and
+    every would-send held back by a missing DNS record died on each redeploy — and with them the
+    inbox law, idempotency and the daily cap, all three of which are read from this log.
+
+    Reads stay in memory: the instance primes itself with the last :data:`PRIME_DAYS` of rows at
+    startup and keeps what it writes, so no rule costs a network hop. Writes go both places, and
+    a write that fails is a warning, never an exception into a learner's turn: the send already
+    happened, and losing the record of it must not also lose the mail.
+    """
+
+    def __init__(
+        self,
+        base_url: str,
+        service_key: str,
+        *,
+        request: Callable[..., Any] | None = None,
+        path: str | os.PathLike[str] | None = None,
+        now: datetime | None = None,
+    ) -> None:
+        super().__init__(path)
+        self.base = base_url.rstrip("/")
+        self._key = service_key
+        self._request = request or _rest
+        self._prime(now or datetime.now(UTC))
+
+    def _url(self, params: dict[str, str] | None = None) -> str:
+        query = f"?{urllib.parse.urlencode(params, quote_via=urllib.parse.quote)}" if params else ""
+        return f"{self.base}/rest/v1/{_TABLE}{query}"
+
+    def _prime(self, now: datetime) -> None:
+        floor = (now.astimezone(UTC) - timedelta(days=PRIME_DAYS)).isoformat()
+        try:
+            rows = self._request(
+                self._url(
+                    {
+                        "select": "key,learner_id,kind,to_hash,period,sent_at,provider_id",
+                        "sent_at": f"gte.{floor}",
+                        "event": "in.(sent,console,queued)",
+                        "order": "sent_at.desc",
+                        "limit": "5000",
+                    }
+                ),
+                self._key,
+                "GET",
+            )
+        except Exception as exc:  # an unreachable table is an empty memory, never a dead gateway
+            logger.warning("mail log: could not prime", extra={"fields": {"error": str(exc)}})
+            return
+        for row in rows if isinstance(rows, list) else []:
+            if not isinstance(row, dict) or not row.get("key"):
+                continue
+            try:
+                record = MailRecord(
+                    key=str(row["key"]),
+                    learner_id=row.get("learner_id"),
+                    kind=str(row.get("kind") or ""),
+                    to_hash=str(row.get("to_hash") or ""),
+                    period=str(row.get("period") or ""),
+                    sent_at=str(row.get("sent_at") or ""),
+                    provider_id=str(row.get("provider_id") or ""),
+                )
+            except (TypeError, ValueError):
+                continue
+            self._by_key.setdefault(record.key, record)
+
+    @staticmethod
+    def _event_of(provider_id: str) -> str:
+        if provider_id == "queued":
+            return "queued"
+        return "console" if provider_id == "console" else "sent"
+
+    def record(self, record: MailRecord) -> None:
+        super().record(record)
+        self._write(
+            {
+                "event": self._event_of(record.provider_id),
+                "kind": record.kind,
+                "key": record.key,
+                "learner_id": record.learner_id,
+                "to_hash": record.to_hash,
+                "period": record.period,
+                "sent_at": record.sent_at,
+                "provider_id": record.provider_id,
+            }
+        )
+
+    def note_event(
+        self,
+        event: str,
+        *,
+        kind: str,
+        to: str,
+        at: datetime | None = None,
+        detail: dict[str, Any] | None = None,
+    ) -> None:
+        """A click at our own deep-link landing, an unsubscribe honoured, a seed's tab placement.
+
+        These carry no idempotency key: two clicks on one mail are two facts, not a duplicate.
+        """
+        self._write(
+            {
+                "event": event,
+                "kind": kind,
+                "to_hash": to_hash(to),
+                "sent_at": (at or datetime.now(UTC)).astimezone(UTC).isoformat(),
+                "detail": detail or {},
+            }
+        )
+
+    def _write(self, row: dict[str, Any]) -> None:
+        try:
+            self._request(self._url(), self._key, "POST", body=[row])
+        except Exception as exc:  # the send happened; the record of it must not raise
+            logger.warning(
+                "mail log: could not write through",
+                extra={"fields": {"error": str(exc), "kind": row.get("kind")}},
+            )
+
+
+def build_mail_log() -> MailLog:
+    """The database log when a project is configured, the file (or memory) otherwise.
+
+    ``MAIL_LOG_STORE=file`` asks for the file BY NAME, which is what the suite and a local run
+    use. The default is the database precisely because the default is what production gets, and
+    production is where a forgotten send costs somebody a second mail about their child.
+    """
+    if (os.getenv("MAIL_LOG_STORE") or "").strip().lower() == "file":
+        return MailLog(os.getenv("MAIL_LOG_PATH") or None)
+    base = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
+    if base and key:
+        return DatabaseMailLog(base, key, path=os.getenv("MAIL_LOG_PATH") or None)
+    return MailLog(os.getenv("MAIL_LOG_PATH") or None)
 
 
 _mail_log: MailLog | None = None
@@ -187,12 +375,12 @@ _mail_log_lock = threading.Lock()
 
 
 def mail_log() -> MailLog:
-    """The process's one mail log, built on first use from ``MAIL_LOG_PATH`` (memory-only when
-    unset)."""
+    """The process's one mail log, built on first use: ``ops.mail_log`` when a project is
+    configured, the JSONL file when ``MAIL_LOG_PATH`` is set, memory otherwise."""
     global _mail_log
     with _mail_log_lock:
         if _mail_log is None:
-            _mail_log = MailLog(os.getenv("MAIL_LOG_PATH") or None)
+            _mail_log = build_mail_log()
         return _mail_log
 
 
@@ -295,6 +483,79 @@ def _post(body: bytes, key: str, idem: str | None) -> _Reply:
         if attempt < _ATTEMPTS - 1:
             _sleep(_BACKOFF_S[min(attempt, len(_BACKOFF_S) - 1)])
     return last
+
+
+# --- the daily cap (docs/MAIL-PRIMARY.md §5, docs/EMAILS-AND-ANIMATIONS.md §6) ----------------
+#: The dial's name in ``ops.settings``. The owner raises it in one statement, with nothing
+#: released and nothing restarted, which is the whole point: warm-up is a schedule, and a
+#: schedule that needs a deploy is a schedule nobody keeps.
+DAILY_CAP_DIAL = "mail_daily_cap"
+#: What the gateway does before anybody has set the dial. Small on purpose. A domain with no
+#: sending history is judged on its first week, and the one day this law can be undone is the day
+#: the waiting list is mailed: a burst from a cold domain is the documented way a domain is
+#: burned. A hundred is enough for every real day we have and far too few for an accident.
+DEFAULT_DAILY_CAP = 100
+
+
+def daily_cap() -> int:
+    """The live cap: the dial when the project can answer, the warm-up default when it cannot.
+
+    A store that cannot be reached is NOT an excuse to send without a ceiling — it is the same
+    posture as the door (``doors.py``): the safe answer to a question you cannot ask is the
+    careful one.
+    """
+    raw = os.getenv("MAIL_DAILY_CAP")
+    if raw:
+        try:
+            return max(0, int(raw))
+        except ValueError:
+            return DEFAULT_DAILY_CAP
+    try:
+        from wobo_gateway import doors
+
+        value = doors.get_store().read(DAILY_CAP_DIAL)
+    except Exception:  # a dial we cannot read is the default, never "no ceiling"
+        return DEFAULT_DAILY_CAP
+    if isinstance(value, bool) or value is None:
+        return DEFAULT_DAILY_CAP
+    try:
+        return max(0, int(value))
+    except (TypeError, ValueError):
+        return DEFAULT_DAILY_CAP
+
+
+#: The superadmin's switch per kind, in ``ops.settings``: a list of kind names that are off.
+#: §1's last law — "a kind that nobody opens in a month is switched off by the superadmin, not by
+#: a guess" — and the switch the mail desk offers.
+KINDS_OFF_DIAL = "mail_kinds_off"
+
+
+def kind_is_off(kind: str) -> bool:
+    """Has the superadmin switched this kind off? A dial we cannot read is not a switch: mail of
+    a kind nobody turned off still goes, because failing closed here would silence the product
+    every time the database blinked."""
+    try:
+        from wobo_gateway import doors
+
+        value = doors.get_store().read(KINDS_OFF_DIAL)
+    except Exception:
+        return False
+    if not isinstance(value, list):
+        return False
+    return kind in {str(v) for v in value}
+
+
+def over_the_daily_cap(*, at: datetime | None = None) -> str | None:
+    """``"daily_cap"`` when today's sends have reached the ceiling, else ``None``.
+
+    Counted on the log, by the day the send is stamped with, so a pass replayed at a fixed moment
+    counts against that day and not against the container's. Only sends that actually left are
+    counted: a would-send never used any of the day's allowance.
+    """
+    cap = daily_cap()
+    if mail_log().sent_today(at or datetime.now(UTC)) >= cap:
+        return "daily_cap"
+    return None
 
 
 def send_email(
@@ -411,8 +672,20 @@ def send_email(
     # signed, is a would-send until the deploy is finished.
     if not postal_address_is_set():
         return queued("no_postal_address")
+    # Every SUBSCRIBED kind is owed a way out that a client can act on, not just the paper set
+    # (docs/MAIL-PRIMARY.md §2: the hold used to cover HAND_KINDS alone, so seven subscribed
+    # messages could go out with no unsubscribe header and nothing stopped them). A missing
+    # ``List-Unsubscribe`` holds the send; a missing one-click POST holds the hand-drawn kinds,
+    # whose footers promise a single tap.
+    if kind in SUBSCRIBED_KINDS and "List-Unsubscribe" not in mail_headers:
+        return queued("no_stop_link")
     if kind in HAND_KINDS and "List-Unsubscribe-Post" not in mail_headers:
         return queued("no_stop_link")
+    if kind_is_off(kind):
+        return queued("kind_switched_off")
+    over = over_the_daily_cap(at=at)
+    if over is not None:
+        return queued(over)
 
     envelope: dict[str, Any] = {
         "from": _FROM,

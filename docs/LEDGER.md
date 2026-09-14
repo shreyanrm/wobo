@@ -22,6 +22,7 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 | [CONSOLE-MODELS.md](CONSOLE-MODELS.md) | The models desk: what answers what, at what price, changed from one pl | In the superadmin make sure I see what models are being used for what |
 | [CONSOLE-ROLES-AND-BOARD.md](CONSOLE-ROLES-AND-BOARD.md) | The board a learner may change once, and who may see what in the conso | A constraint in the database, not a convention: at most one row |
 | [CONTENT-INTERACTION.md](CONTENT-INTERACTION.md) | Interactive content: the concept is cached, the level and the interact | For interactive content, think of the quality gate where you decide it |
+| [CONTENT-INTERACTION.md 5b](CONTENT-INTERACTION.md) | A concept core is keyed on concept x depth band, never class-neutral, never per class | Decided 2026-09-11 rather than asked: one core cannot be honest for a class 4 child and a class 11 student at once, and bending the fidelity bar would lower quality for exactly the learners we promised not to |
 | [CURRICULUM-OBSERVER.md](CURRICULUM-OBSERVER.md) | The syllabus observer | it's worth verifying from the web the first time a user selects a board |
 | [CURRICULUM.md](CURRICULUM.md) | CURRICULUM.md — every board on earth, on demand |  |
 | [DOORS-CLOSED.md](DOORS-CLOSED.md) | The door is closed, and what stands in its place | Block any account creations for now until further notice, because we have |

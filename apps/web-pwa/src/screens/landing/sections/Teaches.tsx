@@ -9,6 +9,9 @@
  * do the second job. A doubt is any time; learning is a bit at a time, across weeks (owner,
  * 2026-09-04; docs/SELL.md §2).
  *
+ * Under the title, the adaptive line (owner, 2026-09-09; docs/copy/growth/lines.md): the thesis the
+ * six things substantiate, with its proof set beside the second beat's drawing, the re-teach ladder.
+ *
  * Then three beats, alternating side to side: it finds the hole under a chapter before building on
  * it, it changes route rather than repeating itself louder, and it does not call a chapter finished
  * until the chapter comes back right without a hint.
@@ -44,6 +47,7 @@ export function Teaches() {
           <span className="hl">{TEACHES.title.mark}</span>
           {TEACHES.title.trail}
         </h2>
+        <p className="lede reveal">{TEACHES.adapts}</p>
         <p className="lede reveal">{TEACHES.lede}</p>
 
         {/* THE TWO MODES (owner, 2026-09-04; docs/SELL.md §2). A doubt is any time; learning is a
@@ -105,6 +109,7 @@ export function Teaches() {
               </div>
               <div className="beat-art">
                 <BeatArt index={i} />
+                {beat.proof ? <div className="said">{beat.proof}</div> : null}
               </div>
             </div>
           ))}

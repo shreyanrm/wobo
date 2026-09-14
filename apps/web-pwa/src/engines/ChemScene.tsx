@@ -1207,9 +1207,10 @@ function Molecule3D({ spec, hue }: { spec: ChemMolecule3DSpec; hue: string }) {
                   >
                     {spec.label ?? 'molecule'}
                   </div>
-                  <div style={{ ...whisper, marginTop: 6 }}>
-                    3D view is still loading — carry on; it turns when it lands.
-                  </div>
+                  {/* This is the FAILED branch, so "still loading" was never true here as well as
+                      being a caption for a wait. What is true is said instead, and the lesson
+                      carries on around it. */}
+                  <div style={{ ...whisper, marginTop: 6 }}>This one did not open. Carry on.</div>
                 </div>
               </div>
             )}

@@ -14,11 +14,13 @@ import { describe, expect, it } from 'bun:test';
 import type { Economics, UsageDay, UsageWindow } from './contract';
 import { usd } from './panels';
 import {
+  byRollupSpend,
   droppedRows,
   groupBy,
   modelPanels,
   pacingPanels,
   rollupNote,
+  rollupSpent,
   spendPanels,
   summary,
   toneOfFallback,
@@ -461,5 +463,35 @@ describe('the pacing desk shows the rates the day was built from', () => {
     const panels = pacingPanels(windowOf([row({ calls: 1 })]), clean, null);
     const day = panels.find((panel) => panel.id === 'pacing-free-day');
     expect(day?.kind === 'figure' && day.tone).toBe('plain');
+  });
+});
+
+describe('a figure the gateway already summed is read in this file and nowhere else', () => {
+  // honesty.test.ts holds every desk module to touching no money figure at all. The models desk
+  // therefore comes here for the two things it needs: the words for one total, and the order.
+  const sums = (cost_usd: unknown, calls = 1) =>
+    ({ calls, cost_usd, cache_hits: 0, unpriced_calls: 0, tokens_in: 0, tokens_out: 0 }) as never;
+
+  it('says "cannot say" for an absent grouping and never a zero', () => {
+    expect(rollupSpent(null)).toBe('cannot say');
+    expect(rollupSpent(undefined)).toBe('cannot say');
+  });
+
+  it('prints the money, parsing the string PostgREST hands back for numeric', () => {
+    expect(rollupSpent(sums(1.5))).toBe(usd(1.5));
+    expect(rollupSpent(sums('0.0042'))).toBe(usd(0.0042));
+  });
+
+  it('prints a dash, not $0.00, when the figure arrived and could not be read', () => {
+    expect(rollupSpent(sums('not a number'))).toBe('—');
+  });
+
+  it('orders groupings by spend and then by calls, exactly as groupBy does', () => {
+    const ordered = byRollupSpend([
+      ['quiet', sums(0.1, 9)],
+      ['busy', sums('2.0', 1)],
+      ['tied-fewer', sums(0.1, 2)],
+    ]);
+    expect(ordered.map(([name]) => name)).toEqual(['busy', 'quiet', 'tied-fewer']);
   });
 });

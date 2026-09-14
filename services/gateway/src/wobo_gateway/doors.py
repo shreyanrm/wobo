@@ -54,7 +54,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any, Protocol
@@ -146,6 +146,18 @@ class SettingsStore(Protocol):
 
     def read(self, key: str) -> Any | None: ...
 
+    def read_many(self, keys: Sequence[str]) -> dict[str, Any]:
+        """Several dials in ONE round trip. Missing keys are simply absent from the answer.
+
+        The door needs one dial and could live on :meth:`read`. The models desk and the allowance
+        (``docs/CONSOLE-MODELS.md``, ``docs/ALLOWANCE.md``) need about twenty every refresh
+        interval, and twenty round trips a minute against the project is a cost the table does not
+        need to carry. Optional in practice: :mod:`wobo_gateway.dials` reaches for it with
+        ``getattr`` and falls back to one read per key, so a store written before this existed
+        still works.
+        """
+        return {key: value for key in keys if (value := self.read(key)) is not None}
+
     def write(self, key: str, value: Any, *, actor: str | None, note: str | None) -> None: ...
 
     def record_refusal(
@@ -184,6 +196,12 @@ class InMemorySettingsStore:
         with self._lock:
             return self.values.get(key)
 
+    def read_many(self, keys: Sequence[str]) -> dict[str, Any]:
+        with self._lock:
+            return {
+                key: self.values[key] for key in keys if self.values.get(key) is not None
+            }
+
     def write(self, key: str, value: Any, *, actor: str | None, note: str | None) -> None:
         with self._lock:
             self.values[key] = value
@@ -213,6 +231,9 @@ class UnconfiguredSettingsStore:
 
     def read(self, key: str) -> Any | None:
         return None
+
+    def read_many(self, keys: Sequence[str]) -> dict[str, Any]:
+        return {}
 
     def changed_at(self, key: str) -> datetime | None:
         return None
@@ -272,6 +293,32 @@ class PostgrestSettingsStore:
         if not isinstance(rows, list) or not rows or not isinstance(rows[0], dict):
             return None
         return rows[0].get("value")
+
+    def read_many(self, keys: Sequence[str]) -> dict[str, Any]:
+        """One ``key=in.(...)`` for every dial the gateway holds. See the Protocol above."""
+        wanted = [key for key in keys if key]
+        if not wanted:
+            return {}
+        rows = self._request(
+            self._url(
+                TABLE,
+                {
+                    "select": "key,value",
+                    "key": f"in.({','.join(wanted)})",
+                    "limit": str(len(wanted)),
+                },
+            ),
+            self.key,
+            "GET",
+        )
+        if not isinstance(rows, list):
+            return {}
+        found: dict[str, Any] = {}
+        for row in rows:
+            if isinstance(row, dict) and isinstance(row.get("key"), str):
+                if row.get("value") is not None:
+                    found[row["key"]] = row["value"]
+        return found
 
     def changed_at(self, key: str) -> datetime | None:
         """``ops.settings.updated_at``, which a trigger moves with the value (migration 0024).

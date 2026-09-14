@@ -465,9 +465,15 @@ export const SITE_CSS = `
 }
 `;
 
-/** Inject the sheet once per document. Idempotent; a no-op wherever there is no document. */
+/**
+ * Inject the sheet once per document. Idempotent; a no-op wherever there is no document, and
+ * wherever the document cannot hold a sheet (a page still mounting, or a stand-in some test left
+ * behind; the same tolerance `themeNow` in wobo/glass.ts gives such a document). The chunk that
+ * imports this IS the page being opened, so it runs at import time and must never throw there.
+ */
 export function ensureSiteStyles(): void {
-  if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) return;
+  if (typeof document === 'undefined' || typeof document.getElementById !== 'function') return;
+  if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = SITE_CSS;

@@ -58,13 +58,14 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, Protocol
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
 from fastapi.routing import APIRoute
 
+from wobo_gateway import console_panels
 from wobo_gateway.auth import dev_auth_requested
 
 logger = logging.getLogger("wobo.admin")
@@ -166,6 +167,17 @@ class AdminDenied(Exception):
 #: What a caller who is not in the register is told. One sentence, no detail, same for every cause.
 NOT_FOR_YOU = "This area is not available on this account."
 
+#: THE ONE REFUSAL CODE for a registered caller who may not do this. The panel gate (a desk they
+#: do not hold) and the permission gate (an action their seat does not carry) both answer with it,
+#: because docs/CONSOLE-ROLES-AND-BOARD.md §2 makes "what they can see" and "what they can do" one
+#: list, and a console that says two words for one rule teaches its own client two code paths.
+NOT_PERMITTED = "not_permitted"
+
+#: The audit action every such refusal is written under. The law: "the audit records every
+#: attempt". The detail row says which gate refused (a ``capability`` or a ``permission``), so
+#: one action is enough to read the trail by.
+DENIED_ACTION = f"admin.denied.{NOT_PERMITTED}"
+
 
 class StoreUnavailable(Exception):
     """The register or the trail could not be reached. The door stays shut; nothing is assumed."""
@@ -190,18 +202,50 @@ class BadIdentifier(StoreUnavailable):
 @dataclass(frozen=True)
 class Admin:
     id: str
-    subject_id: str
+    #: The Supabase auth user id. ``None`` while this row is an INVITATION — a seat the owner has
+    #: created by address, which grants nothing until the account that proves that address signs
+    #: in and :func:`open_session` binds it. See migration 0029.
+    subject_id: str | None
     email: str
     role: str
     status: str = "active"
     mfa_required: bool = True
+    #: What the owner has explicitly added to this person's role, and taken away from it. Two sets
+    #: rather than one map so the record stays frozen and hashable; ``ops.admin_capabilities``
+    #: holds one row per pair and :func:`console_panels.effective` does the arithmetic.
+    grants: frozenset[str] = frozenset()
+    revokes: frozenset[str] = frozenset()
+    #: Who added this person. Null only for the first row, which by definition nobody granted.
+    granted_by: str | None = None
 
     @property
     def active(self) -> bool:
         return self.status == "active"
 
+    @property
+    def invited(self) -> bool:
+        """A seat that exists and has never been used. It opens nothing until it is accepted."""
+        return self.status == "invited"
+
+    @property
+    def capabilities(self) -> frozenset[str]:
+        """The EFFECTIVE set: the role's defaults, plus the grants, minus the revocations.
+
+        The screen shows this rather than the theory of a role, which is the law's own wording,
+        and the guard asks this rather than the role for every panel.
+        """
+        return console_panels.effective(self.role, grants=self.grants, revokes=self.revokes)
+
     def may(self, permission: str) -> bool:
         return permission in permissions_for(self.role)
+
+    def may_panel(self, capability: str) -> bool:
+        return capability in self.capabilities
+
+
+def capabilities_of(admin: Admin | None) -> frozenset[str]:
+    """The effective set, or nothing at all. A convenience for callers holding a maybe-admin."""
+    return admin.capabilities if admin is not None else frozenset()
 
 
 @dataclass(frozen=True)
@@ -234,7 +278,7 @@ class AdminContext:
 
     def require(self, permission: str) -> None:
         if not self.admin.may(permission):
-            raise AdminDenied("not_permitted", f"Your access does not include {permission}.")
+            raise AdminDenied(NOT_PERMITTED, f"Your access does not include {permission}.")
         if permission in WRITE_PERMISSIONS and not self.session.stepped_up(
             datetime.now(UTC), reauth_window_s()
         ):
@@ -419,13 +463,38 @@ class AdminStore(Protocol):
 
     def admin_by_id(self, admin_id: str) -> Admin | None: ...
 
+    def admin_by_email(self, email: str) -> Admin | None: ...
+
     def list_admins(self) -> list[Admin]: ...
 
     def upsert_admin(
-        self, *, subject_id: str, email: str, role: str, granted_by: str | None, mfa_required: bool
+        self,
+        *,
+        subject_id: str | None,
+        email: str,
+        role: str,
+        granted_by: str | None,
+        mfa_required: bool,
+        status: str = "active",
     ) -> Admin: ...
 
+    def bind_subject(self, admin_id: str, subject_id: str) -> Admin | None: ...
+
     def set_admin_status(self, admin_id: str, status: str) -> Admin | None: ...
+
+    def set_capability(
+        self,
+        *,
+        admin_id: str,
+        capability: str,
+        effect: str,
+        granted_by: str | None,
+        note: str | None = None,
+    ) -> None: ...
+
+    def count_active_owners(self) -> int: ...
+
+    def revoke_sessions_for_admin(self, admin_id: str, when: datetime, reason: str) -> int: ...
 
     def touch_admin(self, admin_id: str, when: datetime) -> None: ...
 
@@ -479,66 +548,132 @@ class InMemoryAdminStore:
         self.admins: dict[str, Admin] = {}
         self.sessions: dict[str, dict[str, Any]] = {}
         self.audit: list[dict[str, Any]] = []
+        #: ``admin_id -> {capability: 'grant' | 'revoke'}``. The in-memory shape of
+        #: ``ops.admin_capabilities``; a capability with no row here is whatever the role starts
+        #: with, which is why "put it back" deletes rather than writing a third value.
+        self.capabilities: dict[str, dict[str, str]] = {}
 
     # -- register
+    def _held(self, admin: Admin) -> Admin:
+        """One record with its capability rows folded in. The store never hands out a bare role."""
+        rows = self.capabilities.get(admin.id, {})
+        return replace(
+            admin,
+            grants=frozenset(c for c, e in rows.items() if e == "grant"),
+            revokes=frozenset(c for c, e in rows.items() if e == "revoke"),
+        )
+
     def admin_by_subject(self, subject: str) -> Admin | None:
         with self._lock:
             for admin in self.admins.values():
-                if admin.subject_id == subject:
-                    return admin
+                if subject and admin.subject_id == subject:
+                    return self._held(admin)
         return None
 
     def admin_by_id(self, admin_id: str) -> Admin | None:
         with self._lock:
-            return self.admins.get(admin_id)
+            found = self.admins.get(admin_id)
+            return self._held(found) if found else None
+
+    def admin_by_email(self, email: str) -> Admin | None:
+        wanted = (email or "").strip().lower()
+        with self._lock:
+            for admin in self.admins.values():
+                if wanted and admin.email.lower() == wanted and admin.status != "suspended":
+                    return self._held(admin)
+        return None
 
     def list_admins(self) -> list[Admin]:
         with self._lock:
-            return sorted(self.admins.values(), key=lambda a: a.email)
+            return [self._held(a) for a in sorted(self.admins.values(), key=lambda a: a.email)]
 
     def upsert_admin(
-        self, *, subject_id: str, email: str, role: str, granted_by: str | None, mfa_required: bool
+        self,
+        *,
+        subject_id: str | None,
+        email: str,
+        role: str,
+        granted_by: str | None,
+        mfa_required: bool,
+        status: str = "active",
     ) -> Admin:
         with self._lock:
             for existing in self.admins.values():
-                if existing.subject_id == subject_id:
-                    updated = Admin(
-                        id=existing.id,
-                        subject_id=subject_id,
+                same_account = bool(subject_id) and existing.subject_id == subject_id
+                same_address = existing.email.lower() == email.lower() != ""
+                if same_account or (same_address and existing.status != "suspended"):
+                    updated = replace(
+                        existing,
+                        subject_id=subject_id or existing.subject_id,
                         email=email,
                         role=role,
-                        status="active",
+                        status=status,
                         mfa_required=mfa_required,
+                        granted_by=granted_by or existing.granted_by,
                     )
                     self.admins[existing.id] = updated
-                    return updated
+                    return self._held(updated)
             admin_id = secrets.token_hex(16)
             admin = Admin(
                 id=admin_id,
                 subject_id=subject_id,
                 email=email,
                 role=role,
-                status="active",
+                status=status,
                 mfa_required=mfa_required,
+                granted_by=granted_by,
             )
             self.admins[admin_id] = admin
-            return admin
+            return self._held(admin)
+
+    def bind_subject(self, admin_id: str, subject_id: str) -> Admin | None:
+        with self._lock:
+            current = self.admins.get(admin_id)
+            if current is None:
+                return None
+            updated = replace(current, subject_id=subject_id, status="active")
+            self.admins[admin_id] = updated
+            return self._held(updated)
 
     def set_admin_status(self, admin_id: str, status: str) -> Admin | None:
         with self._lock:
             current = self.admins.get(admin_id)
             if current is None:
                 return None
-            updated = Admin(
-                id=current.id,
-                subject_id=current.subject_id,
-                email=current.email,
-                role=current.role,
-                status=status,
-                mfa_required=current.mfa_required,
-            )
+            updated = replace(current, status=status)
             self.admins[admin_id] = updated
-            return updated
+            return self._held(updated)
+
+    def set_capability(
+        self,
+        *,
+        admin_id: str,
+        capability: str,
+        effect: str,
+        granted_by: str | None,
+        note: str | None = None,
+    ) -> None:
+        with self._lock:
+            rows = self.capabilities.setdefault(admin_id, {})
+            if effect == "default":
+                rows.pop(capability, None)
+            else:
+                rows[capability] = effect
+
+    def count_active_owners(self) -> int:
+        with self._lock:
+            return sum(1 for a in self.admins.values() if a.role == OWNER and a.status == "active")
+
+    def revoke_sessions_for_admin(self, admin_id: str, when: datetime, reason: str) -> int:
+        ended = 0
+        with self._lock:
+            for key, held in self.sessions.items():
+                session: AdminSession = held["session"]
+                if session.admin_id != admin_id or session.revoked_at is not None:
+                    continue
+                self.sessions[key]["session"] = replace(session, revoked_at=when)
+                ended += 1
+        return ended
 
     def touch_admin(self, admin_id: str, when: datetime) -> None:
         return None
@@ -666,16 +801,39 @@ def _iso(moment: datetime | None) -> str | None:
 
 
 def _admin_from_row(row: dict[str, Any]) -> Admin | None:
-    subject = str(row.get("subject_id") or "")
-    if not subject:
+    """One register row, with its capability rows folded in where the select embedded them.
+
+    ``subject_id`` may be null now: an invitation is a seat that exists before its account does
+    (migration 0029). What cannot be missing is the row's own id — without it nothing downstream
+    can name this person in the trail — so that, and not the subject, is the test for a usable row.
+    """
+    admin_id = str(row.get("id") or "")
+    if not admin_id:
         return None
+    subject = str(row.get("subject_id") or "") or None
+    held = row.get("admin_capabilities")
+    grants: set[str] = set()
+    revokes: set[str] = set()
+    if isinstance(held, list):
+        for entry in held:
+            if not isinstance(entry, dict):
+                continue
+            name = str(entry.get("capability") or "")
+            effect = str(entry.get("effect") or "")
+            if effect == "grant":
+                grants.add(name)
+            elif effect == "revoke":
+                revokes.add(name)
     return Admin(
-        id=str(row.get("id") or ""),
+        id=admin_id,
         subject_id=subject,
         email=str(row.get("email") or ""),
         role=str(row.get("role") or VIEWER),
         status=str(row.get("status") or "active"),
         mfa_required=row.get("mfa_required") is not False,
+        grants=frozenset(grants),
+        revokes=frozenset(revokes),
+        granted_by=str(row.get("granted_by") or "") or None,
     )
 
 
@@ -740,45 +898,101 @@ class PostgrestAdminStore:
         return value
 
     @staticmethod
+    def _capability(value: str) -> str:
+        """A capability name is put into a filter, so it is checked against the vocabulary.
+
+        Not a character class but the LIST: only a name this console actually has can be written,
+        so a row that grants something nobody implemented can never exist to be misread later.
+        """
+        if value not in console_panels.CAPABILITIES:
+            raise BadIdentifier("that is not a capability this console has")
+        return value
+
+    @staticmethod
     def _digest(value: str) -> str:
         if not re.fullmatch(r"[0-9a-f]{64}", value or ""):
             raise BadIdentifier("that is not a token I can look up")
         return value
 
+    #: The register row AND its capability rows in one call. PostgREST embeds the child table
+    #: through the foreign key, so the guard still makes one request per admin lookup rather than
+    #: two — a door that costs two round trips on every request is a door people route around.
+    _WITH_CAPABILITIES = "*,admin_capabilities(capability,effect)"
+
     def admin_by_subject(self, subject: str) -> Admin | None:
         rows = self._call(
             "GET",
             "admins",
-            {"select": "*", "subject_id": f"eq.{self._uuid(subject)}", "limit": "1"},
+            {
+                "select": self._WITH_CAPABILITIES,
+                "subject_id": f"eq.{self._uuid(subject)}",
+                "limit": "1",
+            },
         )
         return _admin_from_row(rows[0]) if rows else None
 
     def admin_by_id(self, admin_id: str) -> Admin | None:
         rows = self._call(
-            "GET", "admins", {"select": "*", "id": f"eq.{self._uuid(admin_id)}", "limit": "1"}
+            "GET",
+            "admins",
+            {"select": self._WITH_CAPABILITIES, "id": f"eq.{self._uuid(admin_id)}", "limit": "1"},
         )
         return _admin_from_row(rows[0]) if rows else None
 
+    def admin_by_email(self, email: str) -> Admin | None:
+        """Used only to accept an invitation, so a suspended row can never be matched into life."""
+        wanted = (email or "").strip().lower()
+        if not wanted or "@" not in wanted or any(c in wanted for c in ",.()"):
+            # The address goes into a PostgREST filter, whose grammar uses these as operators.
+            # An address that carries one is not looked up at all.
+            raise BadIdentifier("that is not an address I can look up")
+        rows = self._call(
+            "GET",
+            "admins",
+            {
+                "select": self._WITH_CAPABILITIES,
+                "email": f"ilike.{wanted}",
+                "status": "neq.suspended",
+                "limit": "2",
+            },
+        )
+        found = [a for a in (_admin_from_row(r) for r in rows) if a is not None]
+        return found[0] if len(found) == 1 else None
+
     def list_admins(self) -> list[Admin]:
-        rows = self._call("GET", "admins", {"select": "*", "order": "email.asc", "limit": "200"})
+        rows = self._call(
+            "GET",
+            "admins",
+            {"select": self._WITH_CAPABILITIES, "order": "email.asc", "limit": "200"},
+        )
         return [a for a in (_admin_from_row(r) for r in rows) if a is not None]
 
     def upsert_admin(
-        self, *, subject_id: str, email: str, role: str, granted_by: str | None, mfa_required: bool
+        self,
+        *,
+        subject_id: str | None,
+        email: str,
+        role: str,
+        granted_by: str | None,
+        mfa_required: bool,
+        status: str = "active",
     ) -> Admin:
         body = {
-            "subject_id": self._uuid(subject_id),
+            "subject_id": self._uuid(subject_id) if subject_id else None,
             "email": email,
             "role": role,
-            "status": "active",
+            "status": status,
             "mfa_required": mfa_required,
             "granted_by": granted_by,
             "updated_at": _iso(datetime.now(UTC)),
         }
+        # An invitation has no subject to conflict on, so the conflict target is the address; a
+        # re-grant to somebody who already has an account still keys on the account.
+        conflict = "subject_id" if subject_id else "email"
         rows = self._call(
             "POST",
             "admins",
-            {"select": "*", "on_conflict": "subject_id"},
+            {"select": "*", "on_conflict": conflict},
             body=[body],
         )
         admin = _admin_from_row(rows[0]) if rows else None
@@ -786,14 +1000,95 @@ class PostgrestAdminStore:
             raise StoreUnavailable("the grant did not land")
         return admin
 
+    def bind_subject(self, admin_id: str, subject_id: str) -> Admin | None:
+        """Accepting an invitation: the seat gets its account, and only the first time.
+
+        ``subject_id=is.null`` is in the filter rather than in a read-then-write, so two people
+        racing the same invitation cannot both bind it: the second PATCH matches no row.
+        """
+        rows = self._call(
+            "PATCH",
+            "admins",
+            {
+                "id": f"eq.{self._uuid(admin_id)}",
+                "subject_id": "is.null",
+                "select": self._WITH_CAPABILITIES,
+            },
+            body={
+                "subject_id": self._uuid(subject_id),
+                "status": "active",
+                "updated_at": _iso(datetime.now(UTC)),
+            },
+        )
+        return _admin_from_row(rows[0]) if rows else None
+
     def set_admin_status(self, admin_id: str, status: str) -> Admin | None:
         rows = self._call(
             "PATCH",
             "admins",
-            {"id": f"eq.{self._uuid(admin_id)}", "select": "*"},
+            {"id": f"eq.{self._uuid(admin_id)}", "select": self._WITH_CAPABILITIES},
             body={"status": status, "updated_at": _iso(datetime.now(UTC))},
         )
         return _admin_from_row(rows[0]) if rows else None
+
+    def set_capability(
+        self,
+        *,
+        admin_id: str,
+        capability: str,
+        effect: str,
+        granted_by: str | None,
+        note: str | None = None,
+    ) -> None:
+        """Write one grant or revocation, or delete the row to put the role's default back."""
+        if effect == "default":
+            self._call(
+                "DELETE",
+                "admin_capabilities",
+                {
+                    "admin_id": f"eq.{self._uuid(admin_id)}",
+                    "capability": f"eq.{self._capability(capability)}",
+                    "select": "id",
+                },
+            )
+            return
+        self._call(
+            "POST",
+            "admin_capabilities",
+            {"select": "id", "on_conflict": "admin_id,capability"},
+            body=[
+                {
+                    "admin_id": self._uuid(admin_id),
+                    "capability": self._capability(capability),
+                    "effect": effect,
+                    "granted_by": granted_by,
+                    "at": _iso(datetime.now(UTC)),
+                    "note": (note or None),
+                }
+            ],
+        )
+
+    def count_active_owners(self) -> int:
+        rows = self._call(
+            "GET",
+            "admins",
+            {"select": "id", "role": "eq.owner", "status": "eq.active", "limit": "10"},
+        )
+        return len(rows)
+
+    def revoke_sessions_for_admin(self, admin_id: str, when: datetime, reason: str) -> int:
+        """Suspending is instant: every live session of theirs is revoked in one statement."""
+        rows = self._call(
+            "PATCH",
+            "admin_sessions",
+            {
+                "admin_id": f"eq.{self._uuid(admin_id)}",
+                "revoked_at": "is.null",
+                "select": "id",
+            },
+            body={"revoked_at": _iso(when), "revoked_reason": reason[:200]},
+        )
+        return len(rows)
 
     def touch_admin(self, admin_id: str, when: datetime) -> None:
         self._call(
@@ -1014,6 +1309,44 @@ def _claim_aal(principal: Any) -> str:
     return str(claims.get("aal") or "")
 
 
+def _claim_email(principal: Any) -> str:
+    """The address this token proves, or nothing.
+
+    An unconfirmed address is not proof of anything — anybody can type somebody else's into a
+    sign-up form — so a token whose ``email_verified`` is explicitly false is treated as carrying
+    no address at all. Supabase writes that claim into ``user_metadata``; older projects put it at
+    the top level, and both are read.
+    """
+    claims = getattr(principal, "claims", None) or {}
+    email = str(claims.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return ""
+    metadata = claims.get("user_metadata")
+    verified = claims.get("email_verified")
+    if isinstance(metadata, dict) and "email_verified" in metadata:
+        verified = metadata.get("email_verified")
+    return "" if verified is False else email
+
+
+def _invitation_for(store: AdminStore, principal: Any) -> Admin | None:
+    """An unaccepted seat waiting for the address this token proves. Never an active one.
+
+    The check that it is still ``invited`` is what keeps this from being a way IN: a row that
+    already has an account is matched by subject or not at all, so proving somebody else's address
+    can never reach somebody else's seat.
+    """
+    email = _claim_email(principal)
+    if not email:
+        return None
+    try:
+        found = store.admin_by_email(email)
+    except BadIdentifier:
+        return None
+    if found is None or not found.invited or found.subject_id is not None:
+        return None
+    return found
+
+
 def _refuse_stranger(request: Request, code: str, subject: str | None) -> AdminDenied:
     """One refusal, one log line, and NO audit row.
 
@@ -1163,10 +1496,63 @@ def _audit_denial(
         logger.error("admin: could not record a denial")
 
 
+def _require_panel(ctx: AdminContext) -> None:
+    """The panel gate: "its route refuses them with the same message a stranger gets".
+
+    The law is explicit that hiding a desk is not closing it — "the navigation, the search and the
+    deep links all obey the same list, so nothing leaks by way of a URL somebody remembers" — so
+    this runs on the SERVER, on every guarded request, before the endpoint does anything.
+
+    Two reasons to refuse, and both are the stranger's refusal, word for word:
+
+    * the caller does not hold this panel's capability;
+    * NOBODY HAS SAID which panel this path belongs to. That is the fail-closed half, and it is
+      why ``console_panels`` is a map rather than a decorator: a desk mounted tomorrow without a
+      line in that file answers to nobody, and ``test_console_roles`` walks the built app so the
+      omission is a red test rather than a quiet hole.
+
+    ONE CODE. The console has exactly one refusal code for "you may not", ``not_permitted``, and
+    this gate speaks it too: the panel gate and the permission gate (:meth:`AdminContext.require`)
+    are two checks of the same rule, a person's effective set, and the web client, the desks'
+    tests and the audit all key off that one word. The MESSAGE is the stranger's, unchanged, so the
+    body still tells a remembered link nothing. The audit action is the same for both gates,
+    ``admin.denied.not_permitted``, and the detail says which: the panel that was missing, or the
+    path nobody mapped.
+
+    The attempt is audited because this caller IS in the register — that is the interesting case,
+    and the one an investigation reads. A stranger's knock still writes nothing (see
+    :func:`_refuse_stranger`), so a denial cannot be used to flood the trail.
+    """
+    path = ctx.request.url.path
+    if console_panels.is_identity_path(path):
+        return
+    capability = console_panels.capability_for(path, ctx.request.method)
+    if capability is None:
+        logger.error(
+            "admin: no panel claims this route, refusing",
+            extra={"fields": {"path": path[:512], "method": ctx.request.method}},
+        )
+        _try_audit(ctx, DENIED_ACTION, {"reason": "unmapped", "path": path[:512]})
+        raise AdminDenied(NOT_PERMITTED, NOT_FOR_YOU)
+    if not ctx.admin.may_panel(capability):
+        _try_audit(ctx, DENIED_ACTION, {"capability": capability})
+        raise AdminDenied(NOT_PERMITTED, NOT_FOR_YOU)
+
+
+def _try_audit(ctx: AdminContext, action: str, detail: dict[str, Any]) -> None:
+    """Record a refusal, and never let an unwritable trail turn a refusal into an allowance."""
+    try:
+        ctx.audit(action, decision="denied", detail=detail)
+    except StoreUnavailable:
+        logger.error("admin: could not record a denial", extra={"fields": {"action": action}})
+
+
 def guard(request: Request) -> AdminContext:
     """The one dependency. Carried by :func:`admin_router`, so no route can be added without it."""
     try:
-        return resolve_context(request)
+        ctx = resolve_context(request)
+        _require_panel(ctx)
+        return ctx
     except AdminDenied as denied:
         raise denied.http() from denied
 
@@ -1369,12 +1755,19 @@ def open_session(request: Request) -> OpenedSession:
     store = get_store()
     try:
         admin = store.admin_by_subject(subject)
+        if admin is None:
+            # NOBODY IS IN THE REGISTER UNDER THIS ACCOUNT. Before refusing, one question: is there
+            # an INVITATION waiting for the address this token proves? That is how a person the
+            # owner added by email becomes a seat (migration 0029) — and it is the only way a row
+            # ever acquires an account id, so it happens here, once, at a sign-in the door has
+            # already verified rather than anywhere a client could reach.
+            admin = _invitation_for(store, principal)
     except StoreUnavailable as exc:
         raise AdminDenied(
             "register_unavailable", "I could not check your access just now.", status=503
         ) from exc
 
-    if admin is None or not admin.active:
+    if admin is None or not (admin.active or admin.invited):
         raise _refuse_stranger(request, "not_registered", subject)
 
     aal = _claim_aal(principal)
@@ -1385,6 +1778,37 @@ def open_session(request: Request) -> OpenedSession:
             "This console needs your second factor. Enrol it in your account, then sign in again.",
             status=401,
         )
+
+    if admin.invited:
+        # The factor is proved by the time we are here (in prod the check above refuses without
+        # it), which is exactly what the law asks: "they set up a second factor before their first
+        # sign-in". Binding is conditional on the row still having no account, so two people
+        # racing one invitation cannot both take it.
+        try:
+            bound = store.bind_subject(admin.id, subject)
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "I could not open the console just now.", status=503
+            ) from exc
+        if bound is None:
+            raise _refuse_stranger(request, "invitation_taken", subject)
+        admin = bound
+        try:
+            record_audit(
+                store,
+                action="admin.invite.accepted",
+                actor=admin,
+                request=request,
+                ip_hash=ip_hash,
+                user_agent=ua,
+                resource_type="admin",
+                resource_id=admin.id,
+                detail={"granted_by": admin.granted_by, "aal": aal or "unknown"},
+            )
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "audit_unavailable", "I could not open the console just now.", status=503
+            ) from exc
 
     token = secrets.token_urlsafe(32)
     expires = now + timedelta(seconds=session_ttl_s())
@@ -1460,9 +1884,7 @@ def step_up(ctx: AdminContext) -> AdminSession:
 
 # --- the routes this module owns -----------------------------------------------------------------
 _ROLE_WORDS = {
-    VIEWER: (
-        "You can see the console's figures and queues, change nothing, and identify nobody."
-    ),
+    VIEWER: ("You can see the console's figures and queues, change nothing, and identify nobody."),
     OPERATOR: "You can see everything, and act on a learner's case, plan or flag.",
     OWNER: "You can see everything, act, and change who else has access.",
 }
@@ -1480,6 +1902,9 @@ def _identity_view(admin: Admin) -> dict[str, Any]:
         "id": admin.id,
         "display": display,
         "scopes": sorted(permissions_for(admin.role)),
+        # The EFFECTIVE set, never the role's theory: the law says the screen shows what a person
+        # actually holds, and the shell is the first place that has to be true.
+        "capabilities": sorted(admin.capabilities),
     }
 
 
@@ -1491,6 +1916,13 @@ def _admin_view(admin: Admin) -> dict[str, Any]:
         "status": admin.status,
         "mfa_required": admin.mfa_required,
         "permissions": sorted(permissions_for(admin.role)),
+        # What they hold, and — separately — what was moved for them by hand. Both, because "the
+        # screen always shows the effective set rather than the theory" and an owner deciding
+        # whether to put something back has to see which half of it was their own doing.
+        "capabilities": sorted(admin.capabilities),
+        "granted": sorted(admin.grants),
+        "revoked": sorted(admin.revokes),
+        "granted_by": admin.granted_by,
     }
 
 
@@ -1566,9 +1998,7 @@ def register_admin(app: FastAPI) -> None:
         return _who(ctx)
 
     @router.delete("/session")
-    def close_console_session(
-        response: Response, ctx: Guarded
-    ) -> dict[str, Any]:
+    def close_console_session(response: Response, ctx: Guarded) -> dict[str, Any]:
         """Close the console. The row is revoked, so the token is dead on the next request."""
         ctx.audit("admin.session.end")
         try:
@@ -1627,7 +2057,13 @@ def register_admin(app: FastAPI) -> None:
         if it were the whole one.
         """
         asked = (request.query_params.get("actor") or "").strip() or None
-        may_read_all = ctx.admin.may(ADMIN_MANAGE)
+        # Two locks on the whole trail, and they are different questions: ``admin.manage`` is the
+        # owner's level, and the register PANEL is the capability an owner can move per person.
+        # Reading everybody's day is the register's own panel, so a seat that does not hold it
+        # reads its own rows however it asks.
+        may_read_all = ctx.admin.may(ADMIN_MANAGE) and ctx.admin.may_panel(
+            console_panels.panel("register").read
+        )
         actor = asked if may_read_all else ctx.admin.subject_id
         if actor and not _UUID_RE.match(actor):
             # A typo is not an outage. 400 here, and the operator is told which of the two it is.
@@ -1666,71 +2102,255 @@ def register_admin(app: FastAPI) -> None:
             "actor": actor,
         }
 
+    @router.get("/panels")
+    def panels(ctx: Guarded) -> dict[str, Any]:
+        """What this seat may see, and where it may also act.
+
+        ONLY THE PANELS THEY HOLD ARE IN THE ANSWER. "A panel they cannot read is not greyed out,
+        it is not there" — a console cannot grey out what it was never sent, and a rail built from
+        this list cannot accidentally advertise a desk. The refusal at the route is the other half
+        (:func:`_require_panel`); this is the half that means nobody has to meet it.
+        """
+        held = ctx.admin.capabilities
+        return {
+            "panels": console_panels.view(held),
+            "capabilities": sorted(held),
+            "role": ctx.admin.role,
+        }
+
     @router.get("/admins")
     def list_admins(ctx: CanManage) -> dict[str, Any]:
-        """Who has access. Owner only: a viewer does not need the list of people to target."""
+        """Who has access, what each holds, and everything that is grantable.
+
+        Owner only: a viewer does not need the list of people to target. The vocabulary rides with
+        it because the screen that changes a capability must offer the real list rather than one
+        typed into a browser bundle that could drift from the guard's.
+        """
         ctx.audit("admin.register.read")
+        store = get_store()
         try:
-            rows = get_store().list_admins()
+            rows = store.list_admins()
+            owners = store.count_active_owners()
         except StoreUnavailable as exc:
             raise AdminDenied(
                 "register_unavailable", "I could not read the register just now.", status=503
             ).http() from exc
-        return {"admins": [_admin_view(a) for a in rows], "roles": list(ROLES)}
+        return {
+            "admins": [_admin_view(a) for a in rows],
+            "roles": list(ROLES),
+            "vocabulary": console_panels.vocabulary(),
+            "defaults": {role: sorted(console_panels.defaults_for(role)) for role in ROLES},
+            "owner_count": owners,
+        }
+
+    def _capability_changes(raw: Any) -> list[tuple[str, str]]:
+        """Read a list of ``{capability, effect}`` from a body, refusing anything unknown.
+
+        Checked against the vocabulary rather than against a shape: a grant of something nobody
+        implemented is a row that will be misread by whoever finds it later.
+        """
+        changes: list[tuple[str, str]] = []
+        if raw in (None, ""):
+            return changes
+        if not isinstance(raw, list):
+            raise AdminDenied("not_a_capability", "Capabilities come as a list.", status=400).http()
+        for entry in raw[:64]:
+            if not isinstance(entry, dict):
+                raise AdminDenied(
+                    "not_a_capability", "Each capability is an object.", status=400
+                ).http()
+            name = str(entry.get("capability") or "").strip()
+            effect = str(entry.get("effect") or "grant").strip()
+            if name not in console_panels.CAPABILITIES or effect not in {
+                "grant",
+                "revoke",
+                "default",
+            }:
+                raise AdminDenied(
+                    "not_a_capability",
+                    f"{name!r} with {effect!r} is not something this console can grant.",
+                    status=400,
+                ).http()
+            changes.append((name, effect))
+        return changes
 
     @router.post("/admins")
-    def grant_admin(
-        body: dict[str, Any], ctx: CanManage
-    ) -> dict[str, Any]:
-        """Add somebody, or change their level. Owner only, stepped up, and always audited."""
+    def grant_admin(body: dict[str, Any], ctx: CanManage) -> dict[str, Any]:
+        """Add somebody. The owner's action alone, stepped up, and always audited.
+
+        "An email, a starting role, the capabilities; they receive an invitation, set up a second
+        factor before their first sign-in, and appear in the register with who granted them."
+
+        So the ADDRESS is what is required and the account id is not: a person the owner wants to
+        add has usually never signed in, and asking an owner to go and find a uuid in the Supabase
+        dashboard is how a register ends up with the wrong person in it. The row is created
+        ``invited``, which opens nothing, and binds to whichever account proves that address at
+        its first sign-in — where the factor is demanded by the door that already exists.
+
+        THE OWNER IS NEVER GRANTED HERE. One account holds that seat (migration 0029 makes it a
+        constraint), and the way it ever moves is the break-glass in docs/OPERATIONS.md, which
+        needs a direct SQL connection and nobody's cooperation but the owner's.
+        """
         subject = str(body.get("subject_id") or "").strip()
         email = str(body.get("email") or "").strip()
         role = str(body.get("role") or VIEWER).strip()
-        if role not in ROLES or not _UUID_RE.match(subject) or "@" not in email:
+        changes = _capability_changes(body.get("capabilities"))
+        if role == OWNER:
+            ctx.audit(
+                "admin.denied.owner",
+                decision="denied",
+                resource_type="admin",
+                detail={"reason": "second_owner"},
+            )
             raise AdminDenied(
-                "not_a_grant",
-                "I need the person's account id, their address, and one of: "
-                + ", ".join(ROLES)
-                + ".",
+                "one_owner",
+                "There is one owner account and it cannot be granted from here. "
+                "Moving it is the break-glass in docs/OPERATIONS.md.",
                 status=400,
             ).http()
+        if role not in ROLES or "@" not in email or len(email) > 320:
+            raise AdminDenied(
+                "not_a_grant",
+                "I need the person's address and one of: " + ", ".join(ROLES) + ".",
+                status=400,
+            ).http()
+        if subject and not _UUID_RE.match(subject):
+            raise AdminDenied(
+                "not_an_id", "That is not an account id, so nobody was added.", status=400
+            ).http()
+        store = get_store()
         try:
-            admin = get_store().upsert_admin(
-                subject_id=subject,
+            admin = store.upsert_admin(
+                subject_id=subject or None,
                 email=email,
                 role=role,
                 granted_by=ctx.admin.id,
-                # Never granted without a second factor. The new admin's first sign-in will be
-                # refused until they enrol one, which is the correct order.
+                # Never granted without a second factor. Their first sign-in is refused until
+                # they enrol one, which is the correct order.
                 mfa_required=True,
+                status="active" if subject else "invited",
             )
+            for name, effect in changes:
+                store.set_capability(
+                    admin_id=admin.id,
+                    capability=name,
+                    effect=effect,
+                    granted_by=ctx.admin.id,
+                )
+            if changes:
+                admin = store.admin_by_id(admin.id) or admin
+        except BadIdentifier as exc:
+            raise AdminDenied(
+                "not_an_id", "That is not an id, so nobody was added.", status=400
+            ).http() from exc
         except StoreUnavailable as exc:
             raise AdminDenied(
                 "register_unavailable", "Nothing has changed.", status=503
             ).http() from exc
         ctx.audit(
-            "admin.grant",
+            "admin.invite" if admin.invited else "admin.grant",
             resource_type="admin",
             resource_id=admin.id,
-            detail={"role": role},
+            detail={
+                "role": role,
+                "status": admin.status,
+                "capabilities": [{"capability": n, "effect": e} for n, e in changes],
+            },
         )
         return {"admin": _admin_view(admin), "granted": True}
 
+    @router.post("/admins/{admin_id}/capabilities")
+    def set_capability(admin_id: str, body: dict[str, Any], ctx: CanManage) -> dict[str, Any]:
+        """Grant or revoke ONE capability for ONE person, with a row to show for it.
+
+        Three effects and not two: ``grant`` adds it to whatever the role starts with, ``revoke``
+        takes it away, and ``default`` deletes the row so the person follows their role again. A
+        console that could only grant and revoke would turn every role into a frozen copy of
+        itself the first time anybody touched it.
+        """
+        changes = _capability_changes(
+            [{"capability": body.get("capability"), "effect": body.get("effect") or "grant"}]
+        )
+        name, effect = changes[0]
+        store = get_store()
+        try:
+            target = store.admin_by_id(admin_id)
+        except BadIdentifier as exc:
+            raise AdminDenied(
+                "not_an_id", "That is not an admin id, so nothing was changed.", status=400
+            ).http() from exc
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "Nothing has changed.", status=503
+            ).http() from exc
+        if target is None:
+            raise AdminDenied(
+                "no_such_admin", "There is no such person in the register.", status=404
+            ).http()
+        if target.role == OWNER:
+            # The owner's seat is not hollowed out one capability at a time — including by the
+            # owner, whose mistake here would need the break-glass to undo.
+            ctx.audit(
+                "admin.denied.owner",
+                decision="denied",
+                resource_type="admin",
+                resource_id=target.id,
+                detail={"capability": name, "effect": effect},
+            )
+            raise AdminDenied(
+                "not_the_owners",
+                "The owner holds every panel and that cannot be changed from here.",
+                status=400,
+            ).http()
+        before = sorted(target.capabilities)
+        try:
+            store.set_capability(
+                admin_id=target.id,
+                capability=name,
+                effect=effect,
+                granted_by=ctx.admin.id,
+                note=str(body.get("note") or "")[:500] or None,
+            )
+            updated = store.admin_by_id(target.id) or target
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "Nothing has changed.", status=503
+            ).http() from exc
+        ctx.audit(
+            "admin.capability",
+            resource_type="admin",
+            resource_id=target.id,
+            # What the value was before, which is what the law asks the trail to carry.
+            detail={
+                "capability": name,
+                "effect": effect,
+                "before": before,
+                "after": sorted(updated.capabilities),
+            },
+        )
+        return {"admin": _admin_view(updated), "changed": True}
+
     @router.post("/admins/{admin_id}/suspend")
-    def suspend_admin(
-        admin_id: str, ctx: CanManage
-    ) -> dict[str, Any]:
-        """Take access away. The row stays, suspended, so their trail keeps a name beside it."""
+    def suspend_admin(admin_id: str, ctx: CanManage) -> dict[str, Any]:
+        """Take access away. "Suspending is instant and ends their sessions."
+
+        Instant is the word that does the work. Marking the row alone would leave every console
+        session they hold live until its own clock ran out, so the sessions are revoked in the
+        same breath and their next request — on the token already in their browser — is refused.
+
+        The row itself stays, suspended, so their trail keeps a name beside it.
+        """
         if admin_id == ctx.admin.id:
             # Not a safety rail for its own sake: an owner who suspends themselves locks the last
-            # door in the building, and there is no way back in except a hand-run SQL statement.
+            # door in the building, and there is no way back in except the break-glass.
             raise AdminDenied(
                 "not_yourself",
                 "You cannot suspend your own access. Ask another owner to do it.",
                 status=400,
             ).http()
+        store = get_store()
         try:
-            admin = get_store().set_admin_status(admin_id, "suspended")
+            target = store.admin_by_id(admin_id)
         except BadIdentifier as exc:
             # "That is not an id" and "the register is unreachable" are different facts, and an
             # owner mid-incident needs to know which one they are looking at.
@@ -1741,12 +2361,43 @@ def register_admin(app: FastAPI) -> None:
             raise AdminDenied(
                 "register_unavailable", "Nothing has changed.", status=503
             ).http() from exc
+        if target is None:
+            raise AdminDenied(
+                "no_such_admin", "There is no such person in the register.", status=404
+            ).http()
+        if target.role == OWNER:
+            ctx.audit(
+                "admin.denied.owner",
+                decision="denied",
+                resource_type="admin",
+                resource_id=target.id,
+                detail={"reason": "suspend"},
+            )
+            raise AdminDenied(
+                "not_the_owners",
+                "The owner's access cannot be taken away from here.",
+                status=400,
+            ).http()
+        try:
+            admin = store.set_admin_status(target.id, "suspended")
+            ended = store.revoke_sessions_for_admin(
+                target.id, datetime.now(UTC), "access suspended"
+            )
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "Nothing has changed.", status=503
+            ).http() from exc
         if admin is None:
             raise AdminDenied(
                 "no_such_admin", "There is no such person in the register.", status=404
             ).http()
-        ctx.audit("admin.suspend", resource_type="admin", resource_id=admin.id)
-        return {"admin": _admin_view(admin), "suspended": True}
+        ctx.audit(
+            "admin.suspend",
+            resource_type="admin",
+            resource_id=admin.id,
+            detail={"sessions_ended": ended},
+        )
+        return {"admin": _admin_view(admin), "suspended": True, "sessions_ended": ended}
 
     app.include_router(router)
 

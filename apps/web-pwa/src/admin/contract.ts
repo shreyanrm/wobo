@@ -65,6 +65,30 @@ export const ENDPOINT = {
   /** POST: move one report through its states, on `support.act`, so the guard demands a step-up.
    *  The id rides in the body because this transport calls static endpoint names — see api.ts. */
   reportState: '/v1/admin/reports/state',
+  /** GET: every promo code with its real use count, from `ops.promo_codes` (migration 0027). */
+  promo: '/v1/admin/promo',
+  /** GET: who has taken a code, as a keyed digest, and what it granted. `?code=&limit=`. */
+  promoRedemptions: '/v1/admin/promo/redemptions',
+  /** POST: mint one code. On `admin.manage`, which ONLY an owner carries and which the guard
+   *  demands a step-up for: a code is money, and minting one is the console's only route that
+   *  creates something a learner can spend. */
+  promoCreate: '/v1/admin/promo/create',
+  /** POST: switch one code off. Also `admin.manage`. A code is never deleted — the redemptions
+   *  point at it, and a grant whose code has vanished is a row nobody can explain. */
+  promoDisable: '/v1/admin/promo/disable',
+  /** GET: the router's whole table — every tier's primary and chain, the vendor's price beside
+   *  each id, the jobs that ride it, who is carrying it right now, the generation ladder and the
+   *  creative pool. POST on the SAME path moves a tier, moves the ladder, or clears every
+   *  override; it needs `admin.manage`, which only an owner carries and which the guard demands a
+   *  step-up for, because it changes what every child is answered by and what it costs. */
+  models: '/v1/admin/models',
+  /** GET: generosity per plan, the free plan's rupees, the INR rate, what each buys a learner in
+   *  a day, and the pace across learners. POST on the same path turns those dials; owner only.
+   *  MONEY IS INTERNAL ONLY (docs/ALLOWANCE.md §5): nothing read here may reach a learner or a
+   *  parent surface, and no screen outside this console may call it. */
+  allowance: '/v1/admin/allowance',
+  /** POST: re-read every dial from `ops.settings` NOW rather than at the end of the interval. */
+  settingsApply: '/v1/admin/settings/apply',
 } as const;
 
 export type EndpointName = keyof typeof ENDPOINT;
@@ -72,6 +96,12 @@ export type EndpointName = keyof typeof ENDPOINT;
 /** The three seats. A support seat that can work a queue has no business reading the money, so
  *  the console hides a desk the seat's permissions do not carry rather than showing a refusal. */
 export const CONSOLE_READ = 'console.read';
+
+/** The one permission ONLY an owner carries (`admin_auth.PERMISSIONS`). The console uses it to
+ *  decide whether to draw the promo desk's minting form at all: a seat that cannot create a code
+ *  is shown the list and not a form that would only ever answer 403. This is a courtesy, never a
+ *  control — the gateway refuses the write whatever this bundle renders. */
+export const ADMIN_MANAGE = 'admin.manage';
 
 /** Who the SERVER says is looking. Minted by the guard, never constructed in this bundle. */
 export interface AdminIdentity {
@@ -134,6 +164,20 @@ export interface UsageDay {
    * prints the moment it fetched, which reads as live, so it prints this beside it.
    */
   readonly rolled_at?: string | null;
+}
+
+/**
+ * One grouping of the rollup, SUMMED BY THE GATEWAY (`models_api.group`) before it reaches this
+ * console: what a tier, a model or a payer cost over a window. Declared here and read in
+ * `readings.ts` only, so no desk module parses or orders a money figure on its own.
+ */
+export interface RollupTotals {
+  readonly calls: number;
+  readonly cost_usd: number;
+  readonly cache_hits: number;
+  readonly unpriced_calls: number;
+  readonly tokens_in: number;
+  readonly tokens_out: number;
 }
 
 /**

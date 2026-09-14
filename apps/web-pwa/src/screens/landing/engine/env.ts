@@ -58,9 +58,17 @@ export function finePointer(win?: Window): boolean {
   return media('(pointer: fine)', win ?? safeWindow());
 }
 
-/** True while the page wears its night theme. */
+/**
+ * True while the page wears its night theme. A document that is missing, or one that is only a
+ * partial stand-in (no root element, no attribute reader), answers white paper rather than throwing;
+ * the same quiet fallback `media` gives when `matchMedia` is absent.
+ */
 export function isDark(doc: Document | undefined = safeDocument()): boolean {
-  return doc?.documentElement.getAttribute('data-theme') === 'dark';
+  try {
+    return doc?.documentElement?.getAttribute?.('data-theme') === 'dark';
+  } catch {
+    return false;
+  }
 }
 
 /** The document, or undefined outside a browser. */

@@ -21,9 +21,16 @@
  *     an account. Nobody else in this market offers one on a page like this.
  *  6. **The way on.** Up to the subject and the class, and sideways to the chapter either side.
  *
- * WHAT THE PAGE NEVER DOES. It never claims an explanation it does not have. The drawn explanation
- * from the concept cores is tier two of this family and the cores are not built, so no line here
- * implies one exists. When it does, it goes in above the provenance and this comment changes.
+ * TIER TWO, WHERE THE CHAPTER HAS IT. Between the topics and the provenance a chapter page may
+ * carry the concept's own explanation, an original figure drawn for that concept, and three
+ * questions taken out of the concept's own misconceptions (`explained.ts`,
+ * docs/GROWTH-SEARCH.md §6). It is the thing no competitor in this market ships on a chapter page
+ * at all, and it is generated from cached content at build time, so it costs a visitor nothing.
+ *
+ * WHAT THE PAGE NEVER DOES. It never claims an explanation it does not have. A chapter with no
+ * concept core behind it renders every one of the six parts above and not one word about a
+ * seventh: no heading for an empty block, no note that something is coming, nothing. That is why
+ * the whole tier two block is one conditional and not six.
  */
 
 import { lazy, type ReactNode, Suspense } from 'react';
@@ -42,11 +49,14 @@ import {
   linkNote,
   linkText,
   NO_TOPICS,
+  OURS_LINE,
   provenance,
+  QUESTIONS_LABEL,
   shortHash,
   summary,
   title,
 } from './copy';
+import { type Explained, explainedFor, figureSrc } from './explained';
 import { type Handmade, handmade } from './handmade';
 import { ensureSyllabusStyles } from './styles';
 import {
@@ -211,6 +221,60 @@ function Children({ place, wide }: { place: Place; wide?: boolean }) {
           );
         })}
       </ul>
+    </section>
+  );
+}
+
+/**
+ * TIER TWO: THE DRAWN EXPLANATION, AND THE THREE QUESTIONS UNDER IT.
+ *
+ * Everything a reader reads in here came out of the concept core or off the board's own syllabus.
+ * The heading is the board's own name for the topic this explains; the paragraph is the core's own
+ * idea; the line under it is the core's own reason it matters; the three questions are the core's
+ * own check and its own two misconceptions, each answered by its own counter-example. This
+ * component writes one word of its own, and it is the word "Questions".
+ *
+ * THE FIGURE IS A REAL FILE, not markup inlined into the page, and that is three decisions at once:
+ * a visitor's bundle never carries the bytes of a picture; the `ImageObject` the page declares can
+ * name the same address a reader's browser fetched (`shell/jsonld.ts`), which is what makes the
+ * markup a description of the page rather than a claim about it; and a reviewer can open the file
+ * before it ships. Its own width and height are declared so the space is reserved and the page does
+ * not shift under the reader as it loads, which is the one vital this site measured as poor.
+ *
+ * THE ALT TEXT IS THE TOPIC'S NAME and nothing else. Describing a drawing nobody has read would be
+ * an invention, and it would be a bad one; what the figure shows is said in words immediately
+ * beneath it, in the core's own paragraph, so a reader who cannot see it loses nothing.
+ *
+ * THE ANSWERS ARE FOLDED AWAY, which is progressive disclosure (DESIGN.md §3, law 6) and not
+ * concealment: a `details` element carries its answer in the markup, so an engine reading this page
+ * with nothing executed reads all three answers, and a reader who wants to think first may.
+ */
+function Explanation({ explained }: { explained: Explained }) {
+  const art = explained.figure;
+  return (
+    <section className="sy-explain" aria-labelledby="sy-explain">
+      <h2 id="sy-explain">{explained.name}</h2>
+      <figure className="sy-figure">
+        <img
+          src={figureSrc(art)}
+          alt={art.alt}
+          width={art.width}
+          height={art.height}
+          loading="lazy"
+          decoding="async"
+        />
+      </figure>
+      <p className="sy-idea">{explained.idea}</p>
+      <p className="sy-why">{explained.why}</p>
+      <h3 className="sy-qlabel">{QUESTIONS_LABEL}</h3>
+      <div className="sy-qs">
+        {explained.questions.map((asked) => (
+          <details key={asked.q}>
+            <summary>{asked.q}</summary>
+            <p>{asked.a}</p>
+          </details>
+        ))}
+      </div>
     </section>
   );
 }

@@ -42,6 +42,24 @@ job-search app (wobo.ai). Sameness is the lever. Nothing here is a draft to be i
 >
 > Wobo is made by Dot eVentures Pvt Ltd, Hyderabad, India, at heywobo.com.
 
+## The founder
+
+> Shreyan Reddy, founder of Wobo.
+
+One name, spelled the same way on every listing, in every byline and in the press page's Organization
+markup. A photograph belongs beside it and there is not one yet; the page names the founder without
+one rather than inventing a placeholder, and the photograph drops in when the owner supplies it.
+
+## The contact a person reads
+
+> support@heywobo.com
+
+Not a form and not a no-reply. It is the one mailbox the legal set publishes
+(`apps/web-pwa/src/screens/site/identity.ts` reads it back rather than typing it), so a journalist,
+a parent and a regulator all write to the same place and a person answers. A press@ box would be a
+second address for the same human and one more thing to go unread, so there is not one until there
+is somebody whose job it is to read it.
+
 ## The facts, for the box in every article
 
 | | |
@@ -74,3 +92,28 @@ Listings the owner creates, pasting the one line and the hundred words unchanged
 shells ship, **G2 and Capterra**. The press page at heywobo.com/press is ours to build: the same copy,
 the logo in SVG and PNG, three screenshots, a sixty-second film of a lesson being drawn, the facts
 box, and a contact address that a person reads.
+
+## The page, and what it actually carries (built 2026-09-11)
+
+`/press` is live in the tree and pre-renders like every other public page, so a journalist with
+JavaScript off and an answer engine that never runs any both read the whole kit off the file. It
+carries, in this order: the one line, the hundred words, the three hundred words, the facts box, the
+founder, the downloads, the screenshots, and the contact address. Every string on it is read from
+`apps/web-pwa/src/screens/press/copy.ts`, which is held to THIS FILE by
+`apps/web-pwa/src/screens/press/press.test.ts`: change a word here and the test fails until the page
+agrees, which is the only way sameness survives a year of edits.
+
+**The downloads.** `public/press/wobo-wordmark.svg`, `wobo-wordmark.png` (2048px wide, transparent)
+and `wobo-mark.svg` (the drawn face), written by `scripts/press-assets.ts` from the same wordmark the
+site's own header wears, so the logo a journalist prints and the logo on the site can never be two
+different drawings.
+
+**The screenshots.** Three, written by the same script from the REAL built site rather than drawn for
+the occasion: the answer being drawn, the four forms of one answer, and the re-teach ladder. Each is
+captured at 1440 on the pre-rendered page it lives on, and each is labelled on the press page with
+what it shows and where it came from.
+
+**The film is not there yet**, and the page does not pretend otherwise: the sixty seconds of a real
+lesson being drawn is the one item of this kit that has to be recorded rather than built, and the
+page says so in one line rather than leaving a dead link. That is the only gap.
+

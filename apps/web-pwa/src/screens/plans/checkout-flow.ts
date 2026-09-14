@@ -194,6 +194,14 @@ function refusalCode(body: unknown): string | null {
 export async function startCheckout(
   plan: PaidTier,
   period: Period,
+  /**
+   * A promo code the gateway has ALREADY honoured on this account (`screens/promo/promo.ts`), sent
+   * so the session it creates can carry the discount that code names. The browser never works out
+   * what it is worth and never shows one: a percentage off a first payment is arithmetic the
+   * gateway does with its own secret, and the figures on the card are the gateway's answer.
+   * Omitted when there is no code, so the body is byte-for-byte what it was before.
+   */
+  code: string | null = null,
   gatewayUrl: string | undefined = import.meta.env.VITE_GATEWAY_URL,
   fetcher: Fetch = gatewayFetch,
 ): Promise<CheckoutStart> {
@@ -202,7 +210,7 @@ export async function startCheckout(
     const res = await fetcher(`${gatewayUrl}${CHECKOUT_PATHS.start}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ plan, period }),
+      body: JSON.stringify(code ? { plan, period, code } : { plan, period }),
     });
     const body: unknown = await res.json().catch(() => null);
     if (!res.ok) {

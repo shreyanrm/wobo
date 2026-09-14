@@ -61,6 +61,14 @@ export const PUBLIC_ROUTES: readonly PublicRoute[] = [
   { path: '/gift', changefreq: 'monthly', priority: '0.5' },
   { path: '/donate', changefreq: 'monthly', priority: '0.5' },
   { path: '/contact', changefreq: 'monthly', priority: '0.5' },
+  /**
+   * The press kit (docs/GROWTH-PRESS.md §2). It is published for two readers at once: a journalist
+   * who wants the boilerplate without writing to ask for it, and the answer engines that decide
+   * what the name "Wobo" refers to by walking from a site to the sources that agree with it. It
+   * changes only when the kit does, which is rarely, and it is not a page anyone searches for, so
+   * it is listed at the priority of the other company pages rather than above them.
+   */
+  { path: '/press', changefreq: 'yearly', priority: '0.5' },
 ];
 
 /** The addresses that exist only once the copy has been compiled. */
@@ -281,6 +289,7 @@ const LLMS_LINES: readonly (readonly [path: string, name: string, line: string])
   ['/legal', 'Legal', 'Every legal document, each in plain words first.'],
   ['/blog', 'Blog', 'What we are building, and what we are learning.'],
   ['/about', 'About', 'Who makes Wobo, and why.'],
+  ['/press', 'Press kit', 'The one line, the boilerplate, the facts, the logo and the screenshots.'],
   ['/contact', 'Contact', 'How to reach a person here.'],
   ['/gift', 'Gift', 'Buying a place for someone else.'],
   ['/donate', 'Donate', 'Paying for a place for a family who cannot.'],

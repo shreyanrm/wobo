@@ -216,6 +216,11 @@ export interface Beat {
   said: { lead: string; em: string };
   /** What the drawing beside it is, for anyone who cannot see it. */
   art: string;
+  /**
+   * A line set beside the drawing rather than in the text column. Only the re-teach ladder carries
+   * one: the adaptive line's proof (docs/copy/growth/lines.md, 2026-09-09, form 3).
+   */
+  proof?: string;
 }
 
 export const TEACHES = {
@@ -252,6 +257,16 @@ export const TEACHES = {
    * told us they are into (`reteach.ts`'s `their_world` rung, `store/mind.ts`).
    */
   lede: 'Drawing it while explaining, so you watch the idea appear. Trying a completely different way when the first one does not land. Knowing what is missing underneath before building on top of it. Not moving on until it stays learnt. Bringing back what slipped. Building the example out of what you already care about. Six things, and Wobo does all six. Three of them are drawn here, and the rest are further down the page.',
+  /**
+   * THE ADAPTIVE LINE (owner, 2026-09-09: *"not a fixed course or content, adapts and changes to
+   * your learning style and pace, and it doesn't stop until the topic is mastered"*), in the form
+   * docs/copy/growth/lines.md sets for a section line. This is the chapter that argues Wobo is a
+   * tutor rather than a course, so the line is its thesis and the six above are its substantiation.
+   * "Yours" is the word for mastered: a school-report word never lands on a learner-facing surface.
+   * Its proof is beat 02's `proof`, beside the ladder.
+   */
+  adapts:
+    'No two learners get the same lesson. It changes to your pace and your way of thinking, and it does not stop until the topic is yours.',
   /**
    * THE TWO MODES (owner, 2026-09-04; docs/SELL.md §2, and DESIGN.md §0's copy law).
    *
@@ -305,6 +320,9 @@ export const TEACHES = {
       title: 'If one way does not land, it tries a different one.',
       body: 'Not the same explanation, louder. A second attempt is a different route: a drawing instead of a definition, a worked example instead of a rule, a thing to drag instead of a thing to read, and an analogy built from what you already care about.',
       said: { lead: 'The same idea, ', em: 'explained the way you happen to think.' },
+      /** The adaptive line's proof, beside the ladder it describes (lines.md, 2026-09-09, form 3). */
+      proof:
+        'When one explanation does not land, it tries another. And another. It stays until it lands.',
       art: 'One idea, three different routes into it',
     },
     {
@@ -505,7 +523,15 @@ export interface SubjectFamily {
 }
 
 export const SUBJECTS = {
-  eyebrow: 'Every subject your board sets',
+  /**
+   * THE ADAPTIVE LINE, SHORTEST FORM (owner, 2026-09-09; docs/copy/growth/lines.md, "Not a fixed
+   * course"): the eyebrow on the landing's second chapter, which is this one. It belongs over
+   * "Whatever your school sets, Wobo teaches it" because that is the claim in one breath: not a
+   * course with content of its own, a tutor that teaches the syllabus your own board set. The
+   * prototype's eyebrow, "Every subject your board sets", is not lost: the hero's eyebrow, this
+   * title and the close's fine print still say it, and voice.md §8.2 is still kept.
+   */
+  eyebrow: 'Not a fixed course. A tutor.',
   title: { lead: 'Whatever your school sets, ', mark: 'Wobo teaches it.' },
   lede: 'Tell Wobo the board and the class once, and it follows that syllabus chapter by chapter, in the order your own textbook uses. The official chapter lists for CBSE, ICSE, ISC and NIOS are already loaded; for any other board you hand over your school\u2019s syllabus once and Wobo builds the plan from that.',
   families: [

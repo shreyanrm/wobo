@@ -18,12 +18,15 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { claimNextForge, settleForge, useForged } from '../screens/practice/forge-store';
 import { composeWorkbook } from '../screens/practice/pools';
-// The staged labels live with the loading scene, not here: the toast and the long-wait screen are
-// two views of one wait, and a learner who taps the toast has to see the same sentence continue.
-import { composeStage, isLongWait } from '../screens/states/generation';
+// A wait says nothing (docs/EMAILS-AND-ANIMATIONS.md §3). The toast used to carry the stage of the
+// work in words — "Writing the lesson… Wobo will let you know the moment it's ready" — and the
+// screen behind it carried the same sentence. Both are gone: the toast names the course and moves,
+// and the screen shows the orb doing that subject's own thing.
+import { isLongWait } from '../screens/states/generation';
 import { GenerationWait } from '../screens/states/Scene';
 import { failureFromError, reportFailure } from '../screens/states/select';
 import { useRouter } from '../shell/router';
+import { hueForTopic, subjectForTopic } from '../ui/hues';
 import { sfx } from '../ui/sound';
 import { speakLine } from '../wobo/speech';
 import {
@@ -71,17 +74,8 @@ export function DownloadCenter() {
 
   // The one compose the learner has chosen to sit and watch, if any.
   const [waitingFor, setWaitingFor] = useState<string | null>(null);
-  // A gentle clock so the composing toast's staged label advances while Wobo works. Only ticks while
-  // something is actually composing, then stops — no idle timers.
-  const [now, setNow] = useState(() => Date.now());
-  const composingCount = items.filter(
-    (d) => d.status === 'downloading' || d.status === 'queued',
-  ).length;
-  useEffect(() => {
-    if (composingCount === 0) return;
-    const t = setInterval(() => setNow(Date.now()), 1200);
-    return () => clearInterval(t);
-  }, [composingCount]);
+  // The second-by-second clock that used to live here is gone with the staged label it advanced:
+  // nothing on this toast changes with the seconds any more, so nothing needs to be told the time.
 
   // The runner loop: self-driving. Claiming flips a course to `downloading` and fans a store event,
   // which re-runs this effect; the running ref plus claimNext's one-in-flight guard keep it to a
@@ -185,9 +179,9 @@ export function DownloadCenter() {
   const open = (d: Download) => {
     if (d.status === 'downloading' || d.status === 'queued') {
       // Still composing. Tapping it used to do nothing at all, which read as a dead control; now a
-      // learner who has been waiting a while can choose to wait WITH Wobo, and gets the loading
-      // scene with the same staged line the toast was showing. It replaces the toast rather than
-      // stacking on it, and the work carries on either way.
+      // learner who has been waiting a while can choose to wait WITH Wobo, and gets the orb doing
+      // their subject's own thing. It replaces the toast rather than stacking on it, and the work
+      // carries on either way.
       if (isLongWait(d.at, Date.now())) setWaitingFor(d.topicId);
       return;
     }
@@ -231,7 +225,6 @@ export function DownloadCenter() {
       <AnimatePresence>
         {toasts.map((d) => {
           const composing = d.status === 'downloading' || d.status === 'queued';
-          const stage = composing ? composeStage(Math.max(0, now - d.at)) : '';
           return (
             <motion.button
               key={d.topicId}
@@ -310,25 +303,25 @@ export function DownloadCenter() {
                 <span style={{ fontSize: '0.9375rem', fontWeight: 600, lineHeight: 1.25 }}>
                   {d.title}
                 </span>
+              {!composing && (
                 <span style={{ fontSize: '0.8125rem', opacity: 0.82, lineHeight: 1.35 }}>
-                  {composing
-                    ? `${stage}… Wobo will let you know the moment it's ready`
-                    : d.status === 'ready'
-                      ? READY_TOAST
-                      : SLIPPED_TOAST}
+                  {d.status === 'ready' ? READY_TOAST : SLIPPED_TOAST}
                 </span>
+              )}
               </span>
-              <span
-                style={{
-                  flexShrink: 0,
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                  opacity: 0.9,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {composing ? `${stage}…` : d.status === 'ready' ? 'Open' : 'Retry'}
-              </span>
+              {!composing && (
+                <span
+                  style={{
+                    flexShrink: 0,
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    opacity: 0.9,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {d.status === 'ready' ? 'Open' : 'Retry'}
+                </span>
+              )}
             </motion.button>
           );
         })}
@@ -336,7 +329,8 @@ export function DownloadCenter() {
       {waiting ? (
         <GenerationWait
           title={waiting.title}
-          stage={composeStage(Math.max(0, now - waiting.at))}
+          subject={subjectForTopic(waiting.topicId)}
+          pigment={hueForTopic(waiting.topicId)}
           onLeave={() => setWaitingFor(null)}
         />
       ) : null}

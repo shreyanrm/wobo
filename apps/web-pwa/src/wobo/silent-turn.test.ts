@@ -29,6 +29,16 @@ const encode = (frames: Frame[]): string =>
   frames.map((f) => `data: ${JSON.stringify(f)}\n\n`).join('');
 
 let realFetch: typeof globalThis.fetch;
+/**
+ * The gateway address as the process had it before this file, put back after. Bun maps
+ * `import.meta.env` onto the process environment, and another file in the same run leaves
+ * `VITE_GATEWAY_URL` set; with an address to ask, the voice asks the wire for each sentence's
+ * sound and rides the whole first-sound ladder (`REASK_RUNGS_MS`, 9.5 s of rungs) before it gives
+ * up on a wire that only ever answers with events. This file is about the WIRE, not the voice: a
+ * keyless turn reads its lines on the clock (docs/BOARD.md, the muted reading clock), which is the
+ * same beat the ink lands on, and `completed` is decided by the stream, never by the voice.
+ */
+let realGatewayUrl: string | undefined;
 
 /** A wire that sends `frames`, then closes — with no `done` unless one is passed. */
 function serveThenCloses(frames: Frame[], options: { body?: 'stream' | 'none' } = {}): void {
@@ -94,12 +104,16 @@ const owesAnAnswer = (outcome: BoardTurnOutcome): boolean =>
 
 beforeEach(() => {
   realFetch = globalThis.fetch;
+  realGatewayUrl = process.env.VITE_GATEWAY_URL;
+  delete process.env.VITE_GATEWAY_URL;
   screenStore.reset();
   glassHold.reset();
 });
 
 afterEach(() => {
   globalThis.fetch = realFetch;
+  if (realGatewayUrl === undefined) delete process.env.VITE_GATEWAY_URL;
+  else process.env.VITE_GATEWAY_URL = realGatewayUrl;
   plane.close();
 });
 

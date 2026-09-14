@@ -11,6 +11,10 @@ export * from './actions';
 export * from './answers';
 // The board — Wobo's hand and its three presentations (docs/BOARD.md).
 export * from './board';
+// The wait — the orb doing the subject's thing while the thing arrives, and the geometry of every
+// scene in one pure place (docs/EMAILS-AND-ANIMATIONS.md §3, docs/THE-WAIT.md §1).
+export * from './body/wait';
+export * from './body/WaitScene';
 export * from './body/WoboBody';
 // The boot loader (the loader IS the character, WOBO-PLAN §16) and the living wordmark.
 export * from './body/WoboLoader';

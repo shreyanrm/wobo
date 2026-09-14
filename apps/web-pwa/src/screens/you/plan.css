@@ -17,6 +17,30 @@
 .wp-lines > b{color:var(--ink);font-weight:600;font-size:15px}
 .wp-bad{color:var(--rose);font-size:14px;line-height:1.5;font-weight:500}
 
+/* TODAY — one bar, no number, no money (docs/ALLOWANCE.md §2).
+ *
+ * THE FILL IS `--ink-2`, NOT THE RAIL'S MARIGOLD, and it is a measured choice rather than a taste
+ * one: marigold on `--paper-3` is 1.35:1 by day, and this bar is the ONLY drawing of how much of
+ * the day is left on this screen, which makes it meaningful non-text content and puts it under
+ * WCAG 1.4.11's 3:1. `--ink-2` measures 5.9:1 by day and 8.1:1 at night against the same track
+ * (`today.test.ts` computes both), and it is quieter than full ink, which would read as an alarm
+ * on a bar that is simply a day going by. Marigold keeps its law-v5 job: the earned moment.
+ *
+ * No transition on the width: a scrubbed layout property is the second of law v5's three causes
+ * of jitter, and this bar moves once per read anyway. */
+.wp-today{display:grid;gap:6px;padding:14px;border-radius:16px;background:var(--paper-2)}
+.wp-today > b{font:600 14px/1.2 var(--sans);color:var(--ink)}
+.wp-today > span{font-size:13px;line-height:1.5;color:var(--ink-2)}
+.wp-bar{height:8px;border-radius:4px;background:var(--paper-3);overflow:hidden}
+.wp-bar > i{display:block;height:100%;border-radius:4px;background:var(--ink-2)}
+
+/* The sentence the bar is, for somebody who cannot see it. Off screen, never `display:none`. */
+.wp-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* The promo field brings its own sheet (screens/promo/promo.css); this only sets it apart from
+   the control above it on the card. */
+.wp-promo{margin-top:4px}
+
 /* the confirmation — the one thing on this screen that floats */
 .wp-scrim{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;background:rgba(10,11,14,.34)}
 .wp-dialog{width:min(440px,100%);box-sizing:border-box;background:var(--paper);border-radius:24px;padding:24px;display:grid;gap:14px;box-shadow:var(--shadow)}

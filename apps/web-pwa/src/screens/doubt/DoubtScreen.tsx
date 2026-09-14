@@ -36,7 +36,7 @@ import { GATEWAY_URL } from '../../store/app-sdk';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { Button, Chip, Tag, TopBar, usePhone } from '../../ui/primitives';
-import { createFocus, EMPTY_RECT, surfaceRegistry } from '@wobo/wobo';
+import { createFocus, EMPTY_RECT, surfaceRegistry, WaitScene } from '@wobo/wobo';
 import { screenStore } from '../../wobo/board-turn';
 import { setTurnFocus, turnFocus } from '../../wobo/capabilities';
 import { useWoboChat } from '../../wobo/chat';
@@ -724,14 +724,19 @@ export function DoubtScreen() {
             />
 
             <section className="db-read" aria-label="What Wobo read" ref={readRef}>
+              {/* The page being read. The orb turns a page and underlines a line while it does,
+                  and says nothing about it (docs/EMAILS-AND-ANIMATIONS.md §3). Past SLOW_READ_MS a
+                  line arrives, and it is help rather than a caption: what makes a photo quicker to
+                  read, and the way out that is already on the screen. */}
               {state.phase === 'reading' ? (
                 <>
-                  <Tag>Reading</Tag>
-                  <p className="db-busy" role="status">
-                    {slowRead
-                      ? 'Still reading this one. A straighter or brighter photo is often quicker, and Another photo is right there.'
-                      : 'Reading the page, one moment.'}
-                  </p>
+                  <WaitScene subject="doubt" width={236} style={{ alignSelf: 'center' }} />
+                  {slowRead ? (
+                    <p className="db-note" role="status">
+                      A straighter or brighter photo is often quicker, and Another photo is right
+                      there.
+                    </p>
+                  ) : null}
                 </>
               ) : null}
 
@@ -809,7 +814,7 @@ export function DoubtScreen() {
                   <Tag>{state.phase === 'explaining' ? 'Explaining' : 'Explained'}</Tag>
                   <p className="db-line">{reading}</p>
                   <p className="db-said" aria-live="polite" data-testid="doubt-said">
-                    {state.phase === 'explaining' ? caption || 'One moment.' : said}
+                    {state.phase === 'explaining' ? caption : said}
                   </p>
                 </>
               ) : null}

@@ -30,7 +30,12 @@ describe('the state family on palette v4', () => {
       ).toBe(true);
     }
     expect(STATES_CSS).toContain('background: var(--paper)');
-    expect(STATES_CSS).toContain('color: var(--pig)');
+    // The pigment used to enter this sheet through the handwritten line under the loader. That line
+    // is gone (a wait says nothing, docs/EMAILS-AND-ANIMATIONS.md §3), and the pigment went with it:
+    // the scenes are ink on paper, and the one hit of colour on a wait is the orb's own, drawn by
+    // the rig rather than by this stylesheet.
+    expect(STATES_CSS).not.toContain('var(--pig)');
+    expect(STATES_CSS).toContain('color: var(--ink)');
     expect(ART).not.toMatch(/--wobo-/);
   });
   it('draws no hairline, no border and no corner under 10px', () => {

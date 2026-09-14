@@ -59,7 +59,21 @@ const VIEWS: readonly { id: LessonView; label: string }[] = [
   { id: 'notes', label: 'Notes' },
 ];
 
-export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?: boolean }) {
+export function Course({
+  topicId,
+  cardId,
+  sandbox = false,
+}: {
+  topicId: string;
+  /**
+   * THE LINK THAT LANDS (docs/EMAILS-AND-ANIMATIONS.md §4). `/course/<course>/card/<card>` opens
+   * the course ON that card. The segment is passed straight through to the player, which is the
+   * only thing that knows how its own cards are named; a card that means nothing to this course
+   * changes nothing at all, and the course opens where it always opens.
+   */
+  cardId?: string | undefined;
+  sandbox?: boolean;
+}) {
   const router = useRouter();
   const sdk = useSdk();
   const bus = useWoboBus();
@@ -303,6 +317,7 @@ export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?
                 <AtomJourney
                   topic={topic}
                   nodeId={nodeId}
+                  openAt={cardId}
                   setBar={setBar}
                   setProgress={setProgress}
                   onExit={exit}
@@ -314,6 +329,7 @@ export function Course({ topicId, sandbox = false }: { topicId: string; sandbox?
                 <Composing
                   topicId={topicId}
                   title={title}
+                  openAt={cardId}
                   setBar={setBar}
                   setProgress={setProgress}
                   onExit={exit}

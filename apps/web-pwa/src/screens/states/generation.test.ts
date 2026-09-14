@@ -1,43 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import {
-  COMPOSE_STAGES,
-  composeStage,
-  isLongWait,
-  LOADING_LINE_MS,
-  LOADING_LINES,
-  LONG_WAIT_MS,
-  loadingLine,
-} from './generation';
-
-describe('what Wobo is doing while a lesson is being made', () => {
-  it('walks the stages in order and never runs out of them', () => {
-    expect(composeStage(0)).toBe('Writing the lesson');
-    expect(composeStage(8_999)).toBe('Writing the lesson');
-    expect(composeStage(9_000)).toBe('Drawing the visuals');
-    expect(composeStage(19_999)).toBe('Drawing the visuals');
-    expect(composeStage(20_000)).toBe('Checking every answer');
-    expect(composeStage(34_000)).toBe('Almost ready');
-    expect(composeStage(10 * 60_000)).toBe('Almost ready');
-  });
-
-  it('never goes backwards', () => {
-    let last = '';
-    const seen: string[] = [];
-    for (let t = 0; t < 60_000; t += 500) {
-      const label = composeStage(t);
-      if (label !== last) seen.push(label);
-      last = label;
-    }
-    expect(seen).toEqual(COMPOSE_STAGES.map((s) => s.label));
-  });
-
-  it('names a stage in sentence case, with no promise of a percentage', () => {
-    for (const { label } of COMPOSE_STAGES) {
-      expect(label).toMatch(/^[A-Z][^!]*$/);
-      expect(label).not.toMatch(/\d/);
-    }
-  });
-});
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { WAIT_GAME_AT_MS, WAIT_SCENE_AT_MS, waitLength } from '@wobo/wobo';
+import { isLongWait, LONG_WAIT_MS } from './generation';
 
 describe('when a wait is worth the whole screen', () => {
   it('leaves a short wait to the toast in the corner', () => {
@@ -51,18 +16,33 @@ describe('when a wait is worth the whole screen', () => {
   });
 });
 
-describe('the handwritten line under the loader', () => {
-  it('starts on the first line and rotates through them all', () => {
-    expect(loadingLine(0)).toBe(LOADING_LINES[0] as string);
-    expect(loadingLine(LOADING_LINE_MS)).toBe(LOADING_LINES[1] as string);
-    expect(loadingLine(LOADING_LINE_MS * LOADING_LINES.length)).toBe(LOADING_LINES[0] as string);
+describe('what a wait is owed, by its length', () => {
+  it('is the one law from docs/THE-WAIT.md, read from the library rather than restated here', () => {
+    expect(waitLength(WAIT_SCENE_AT_MS - 1)).toBe('breath');
+    expect(waitLength(WAIT_SCENE_AT_MS)).toBe('scene');
+    expect(waitLength(WAIT_GAME_AT_MS)).toBe('game');
   });
 
-  it('is written the way a hand writes, not the way a machine reports', () => {
-    for (const line of LOADING_LINES) {
-      expect(line).toBe(line.toLowerCase());
-      expect(line).not.toContain('!');
-      expect(line.length).toBeLessThan(30);
+  it('puts a real compose — thirty to forty-five seconds — past the point a scene alone covers', () => {
+    expect(waitLength(35_000)).toBe('game');
+  });
+});
+
+describe('the words a wait used to say', () => {
+  it('are not here any more, and nothing in words replaced them', () => {
+    const source = readFileSync(join(import.meta.dir, 'generation.ts'), 'utf8')
+      // the file's own note about what it lost is the one place those words may still appear
+      .replace(/\/\*[\s\S]*?\*\//g, ' ');
+    for (const gone of [
+      'COMPOSE_STAGES',
+      'composeStage',
+      'LOADING_LINES',
+      'loadingLine',
+      'Writing the lesson',
+      'Almost ready',
+      'sharpening the pencil',
+    ]) {
+      expect(source).not.toContain(gone);
     }
   });
 });

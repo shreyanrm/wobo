@@ -860,6 +860,13 @@ def register_hospitality(app: FastAPI) -> None:
         report = run_sunday(moment, dry_run=body.dry_run)
         return {"ok": True, **report}
 
+    # The five nudges of docs/EMAILS-AND-ANIMATIONS.md §1 mount their own door here, so the cron
+    # has one place to call and this module stays the four hospitality jobs it was written for.
+    # Imported inside the function because :mod:`.nudges` reads this module's clock and gap rules.
+    from wobo_gateway.hospitality.nudges import register_nudges
+
+    register_nudges(app)
+
     @app.post("/v1/internal/mail/wishes")
     def wishes(request: Request, body: RunRequest | None = None) -> dict[str, Any]:
         """The festival wish pass. Hourly from the same cron; the calendar decides, the log

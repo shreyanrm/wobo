@@ -182,6 +182,11 @@ export const PUBLIC_ROUTE_CASES: readonly RouteCase[] = [
     path: '/security',
     ready: 'Every row here has a purpose, a shelf life and a delete button.',
   },
+  {
+    id: 'press',
+    path: '/press',
+    ready: 'Three lengths, and every one of them is the one we use everywhere else.',
+  },
   { id: 'help', path: '/help', ready: /articles, in three groups/i },
   {
     id: 'help-article',

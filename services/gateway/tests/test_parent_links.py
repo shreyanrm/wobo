@@ -158,14 +158,23 @@ def test_the_invite_renders_in_the_hand_with_no_vendor_and_no_gendered_pronoun(
     assert out["subject"] == "Learner asked me to send you their Sunday notes"
     assert out["preheader"] == "One page a week. No dashboard, nothing to check daily."
     html, text = out["html"], out["text"]
-    # the same paper as the welcome, one button each way, and nothing to unsubscribe from
+    # the same paper as the welcome, one button each way, and no unsubscribe link in the body:
+    # "Not me" is the way out a person reads
     assert "background:#FAF7F0;border-radius:24px" in html and ">wobo<" in html
     assert "background:#14142B;border-radius:22px" in html and "color:#FFB629" in html
     assert ">See how it works<" in html and ">Not me<" in html
     assert "What you will not get" in html and "a window into the work, not a monitor" in html
     assert f'href="{data["accept_url"]}"' in html and f'href="{data["decline_url"]}"' in html
     assert data["accept_url"] in text and data["decline_url"] in text
-    assert out["headers"] == {} and "unsubscribe" not in html.lower()
+    # docs/MAIL-PRIMARY.md §2: the invite is a cold message to an adult who never gave us their
+    # address, so it gets the subscribed treatment: List-Unsubscribe pointing at the signed
+    # decline route, one-click because that route honours a bare POST with no login. It used to
+    # ship headers: {} and the law names that as the single riskiest mail we send.
+    assert out["headers"] == {
+        "List-Unsubscribe": f"<{data['decline_url']}>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    }
+    assert "unsubscribe" not in html.lower()
     assert "<img" not in html and "http://" not in html and "<script" not in html
     for blob in (out["subject"], out["preheader"], text, html):
         assert not VENDOR.search(blob), VENDOR.search(blob)

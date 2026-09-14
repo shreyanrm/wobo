@@ -8,18 +8,23 @@
  * carries the state's name and the wordmark, so a screenshot of any of them is self-describing.
  *
  * The loading scene is the one the owner directed (`scratchpad/design/states.html`): the pen draws
- * the hairline, the line loops into the orb, Wobo settles, a handwritten line rotates underneath,
- * and the last word is always "Your place is saved". The pen-and-settle half is the product's real
- * loader (`WoboLoader` in `@wobo/wobo`) rather than a copy of it, so the boot animation a learner
- * sees is the same animation everywhere it appears.
+ * the hairline, the line loops into the orb, Wobo settles, and the last word is "Your place is
+ * saved". The pen-and-settle half is the product's real loader (`WoboLoader` in `@wobo/wobo`)
+ * rather than a copy of it, so the boot animation a learner sees is the same animation everywhere
+ * it appears. The boot is under a second, which is the shortest of the three wait lengths: it gets
+ * the breath and nothing else (docs/THE-WAIT.md §1). The rotating handwritten line that used to sit
+ * under it — "sharpening the pencil", "reading your syllabus" — is gone: it was the software
+ * telling a child what it was doing, which is the one thing a wait may never do.
+ *
+ * The long wait a learner chose to watch is the second length, and it gets the orb doing their
+ * subject's own thing: a number line drawn and marked, a pendulum, a cell dividing, beakers pouring,
+ * a map filling in, a page turning (`WaitScene`, docs/EMAILS-AND-ANIMATIONS.md §3).
  */
 
-import { useReducedMotion } from '@wobo/motion';
-import { WoboLoader } from '@wobo/wobo';
-import { type ReactNode, useEffect, useState } from 'react';
+import { WaitScene, WoboLoader } from '@wobo/wobo';
+import { type ReactNode, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { WORDMARK_PATHS, WORDMARK_VIEWBOX } from '../landing/wordmark';
-import { LOADING_LINE_MS, LOADING_LINES } from './generation';
 import { ensureStateStyles } from './styles';
 
 // The chunk arriving IS the page being shown, so the stylesheet goes in at import time — an effect
@@ -126,54 +131,13 @@ export function StateScene({
 }
 
 /**
- * A line written letter by letter, the way a hand writes it. Under reduced motion it is simply
- * there — the words are the point, and they are legible either way.
- */
-function Handwritten({ line }: { line: string }) {
-  const reduced = useReducedMotion();
-  if (reduced) {
-    return (
-      <span className="ws-hand" aria-live="polite">
-        {line}
-      </span>
-    );
-  }
-  return (
-    <span className="ws-hand" aria-live="polite">
-      {[...line].map((ch, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: the letters of a line ARE their positions
-        <span key={`${line}-${i}`} style={{ animationDelay: `${i * 28}ms` }}>
-          {ch}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-/**
  * The loading scene: Wobo drawing the page.
  *
- * `line` pins the handwritten line to something true (a generation says which stage it is at);
- * left alone, the lines rotate. `onDone` fires when the pen-and-settle animation has finished, so
- * the boot loader can take itself away.
+ * `onDone` fires when the pen-and-settle animation has finished, so the boot loader can take itself
+ * away. There is no line under it: the only words on the screen are the promise that survives a
+ * boot, and a promise is not a caption for a wait.
  */
-export function LoadingScene({
-  line,
-  onDone,
-  width = 300,
-}: {
-  line?: string;
-  onDone?: () => void;
-  width?: number;
-}) {
-  const [tick, setTick] = useState(0);
-  const pinned = line !== undefined;
-  useEffect(() => {
-    if (pinned) return;
-    const id = setInterval(() => setTick((t) => t + 1), LOADING_LINE_MS);
-    return () => clearInterval(id);
-  }, [pinned]);
-  const shown = pinned ? line : ((LOADING_LINES[tick % LOADING_LINES.length] as string) ?? '');
+export function LoadingScene({ onDone, width = 300 }: { onDone?: () => void; width?: number }) {
   return (
     <div className="ws">
       <span className="ws-mark">
@@ -181,7 +145,6 @@ export function LoadingScene({
       </span>
       <div className="ws-card">
         <WoboLoader width={width} {...(onDone ? { onDone } : {})} />
-        <Handwritten line={shown} />
         <p className="ws-tiny">Your place is saved</p>
       </div>
     </div>
@@ -201,11 +164,15 @@ export function LoadingScene({
  */
 export function GenerationWait({
   title,
-  stage,
+  subject,
+  pigment,
   onLeave,
 }: {
   title: string;
-  stage: string;
+  /** The subject being waited for, so the scene is theirs rather than one house animation. */
+  subject: string;
+  /** That subject's own pigment, as a CSS variable (`ui/hues.ts`). */
+  pigment?: string;
   onLeave: () => void;
 }) {
   useEffect(() => {
@@ -221,7 +188,7 @@ export function GenerationWait({
       className="ws-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label={`Wobo is building ${title}`}
+      aria-label={title}
     >
       <div className="ws">
         <span className="ws-code">{title}</span>
@@ -229,11 +196,9 @@ export function GenerationWait({
           <StateWordmark />
         </span>
         <div className="ws-card">
-          <WoboLoader width={300} />
-          <Handwritten line={stage.toLowerCase()} />
-          <p className="ws-tiny">
-            It carries on if you leave, and Wobo will tell you the moment it is ready.
-          </p>
+          <WaitScene subject={subject} width={300} {...(pigment ? { pigment } : {})} />
+          {/* The one thing a learner cannot see for themselves: they are free to go. */}
+          <p className="ws-tiny">It carries on if you leave.</p>
           <div className="ws-row">
             <button type="button" className="ws-btn ws-btn--quiet" onClick={onLeave}>
               Keep browsing

@@ -12,10 +12,21 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { type AllowanceDesk, allowancePanels, isAllowanceDesk } from './allowance';
 import { read } from './api';
 import type { AdminIdentity, Economics, HealthSnapshot, UsageWindow } from './contract';
 import { DESKS, type DeskId, desk as deskById } from './desks';
 import { asOf, type Panel } from './panels';
+import {
+  isPromoPage,
+  isRedemptionPage,
+  type PromoPage,
+  promoPanels,
+  type RedemptionPage,
+} from './promo';
+import { PromoActions } from './PromoActions';
+import { AllowanceActions, mayTurn, ModelsActions } from './DialActions';
+import { isModelsDesk, type ModelsDesk, routerPanels } from './models';
 import { QueueActions } from './QueueActions';
 import {
   type DeskSummary,
@@ -68,25 +79,56 @@ export function Console({
   // read together so an operator switching desks is not waiting on a fetch.
   const [deskSummary, setDeskSummary] = useState<DeskSummary | null>(null);
   const [queues, setQueues] = useState<Partial<Record<QueueKind, QueuePage>>>({});
+  // The promo desk (ops.promo_codes, migration 0027): the codes, and the trail of who took one.
+  // Two reads because they are two tables and either can fail on its own, and a failure of one
+  // must not be able to empty the other.
+  // The models desk and the allowance (docs/CONSOLE-MODELS.md, docs/ALLOWANCE.md §3): the
+  // router's own table, and how generous a day is. Two reads, because the router is known from
+  // the gateway's memory even on a day the ledger cannot be reached.
+  const [models, setModels] = useState<ModelsDesk | null>(null);
+  const [allowance, setAllowance] = useState<AllowanceDesk | null>(null);
+  const [promo, setPromo] = useState<PromoPage | null>(null);
+  const [redeemed, setRedeemed] = useState<RedemptionPage | null>(null);
   const [at, setAt] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
 
   const refresh = useCallback(async () => {
-    const [gotHealth, gotUsage, gotEconomics, gotDesks, ...gotQueues] = await Promise.all([
-      read('health', isHealthSnapshot),
-      read('usage', isUsageWindow, { query: { days: WINDOW_DAYS } }),
-      read('economics', isEconomics, { query: { days: WINDOW_DAYS } }),
-      read('deskSummary', isDeskSummary),
-      ...QUEUE_KINDS.map((kind) =>
-        read('reports', isQueuePage, { query: { kind, limit: QUEUE_PAGE } }),
-      ),
-    ]);
+    const [
+      gotHealth,
+      gotUsage,
+      gotEconomics,
+      gotDesks,
+      gotModels,
+      gotAllowance,
+      gotPromo,
+      gotRedeemed,
+      ...gotQueues
+    ] =
+      await Promise.all([
+        read('health', isHealthSnapshot),
+        read('usage', isUsageWindow, { query: { days: WINDOW_DAYS } }),
+        read('economics', isEconomics, { query: { days: WINDOW_DAYS } }),
+        read('deskSummary', isDeskSummary),
+        read('models', isModelsDesk),
+        read('allowance', isAllowanceDesk),
+        read('promo', isPromoPage, { query: { limit: QUEUE_PAGE } }),
+        read('promoRedemptions', isRedemptionPage, { query: { limit: QUEUE_PAGE } }),
+        ...QUEUE_KINDS.map((kind) =>
+          read('reports', isQueuePage, { query: { kind, limit: QUEUE_PAGE } }),
+        ),
+      ]);
     // A reading that failed is DROPPED, never kept. A stale figure with a fresh timestamp beside
     // it is worse than no figure: it is a number that looks current.
     setHealth(gotHealth.ok ? gotHealth.value : null);
     setUsage(gotUsage.ok ? gotUsage.value : null);
     setEconomics(gotEconomics.ok ? gotEconomics.value : null);
     setDeskSummary(gotDesks.ok ? gotDesks.value : null);
+    setModels(gotModels.ok ? gotModels.value : null);
+    setAllowance(gotAllowance.ok ? gotAllowance.value : null);
+    // Dropped rather than kept, exactly as the money reads are: a stale code list under a fresh
+    // timestamp is a code somebody has already switched off, still looking live.
+    setPromo(gotPromo.ok ? gotPromo.value : null);
+    setRedeemed(gotRedeemed.ok ? gotRedeemed.value : null);
     const pages: Partial<Record<QueueKind, QueuePage>> = {};
     QUEUE_KINDS.forEach((kind, index) => {
       const got = gotQueues[index];
@@ -98,9 +140,15 @@ export function Console({
     setAt(new Date().toISOString());
     // A console session is short and revocable. When the guard starts refusing, the console
     // closes rather than sitting there refreshing into a wall.
-    const refused = [gotHealth, gotUsage, gotEconomics, gotDesks, ...gotQueues].some(
-      (result) => !result.ok && result.reason === 'not_permitted',
-    );
+    const refused = [
+      gotHealth,
+      gotUsage,
+      gotEconomics,
+      gotDesks,
+      gotPromo,
+      gotRedeemed,
+      ...gotQueues,
+    ].some((result) => !result.ok && result.reason === 'not_permitted');
     setEnded(refused);
   }, []);
 
@@ -121,6 +169,10 @@ export function Console({
     economics,
     deskSummary,
     queues,
+    models,
+    allowance,
+    promo,
+    redeemed,
     at,
     permitted,
   });
@@ -199,13 +251,31 @@ export function Console({
             {panels.map((panel) => (
               <PanelView panel={panel} key={panel.id} />
             ))}
-            {/* The only thing on this console that changes anything, and only on a queue desk. */}
+            {/* The two things on this console that change anything: working a queue, and minting
+                a code. Each is mounted with the desk id as its key, so switching desks throws the
+                component and its half-typed state away rather than carrying it somewhere else. */}
             {isQueueKind(desk.id) && (
               <QueueActions
                 key={desk.id}
                 kind={desk.id}
                 page={queues[desk.id] ?? null}
                 onMoved={() => void refresh()}
+              />
+            )}
+            {/* Owner only. A seat without admin.manage sees the desk and no controls, rather
+                than a control that answers 403: the seat already knows what it is. */}
+            {desk.id === 'models' && mayTurn(admin.permissions) && (
+              <ModelsActions key={desk.id} desk={models} onSaved={() => void refresh()} />
+            )}
+            {desk.id === 'allowance' && mayTurn(admin.permissions) && (
+              <AllowanceActions key={desk.id} desk={allowance} onSaved={() => void refresh()} />
+            )}
+            {desk.id === 'promo' && permitted && (
+              <PromoActions
+                key={desk.id}
+                admin={admin}
+                page={promo}
+                onChanged={() => void refresh()}
               />
             )}
           </div>
@@ -225,6 +295,10 @@ function panelsFor(
     economics: Economics | null;
     deskSummary: DeskSummary | null;
     queues: Partial<Record<QueueKind, QueuePage>>;
+    models: ModelsDesk | null;
+    allowance: AllowanceDesk | null;
+    promo: PromoPage | null;
+    redeemed: RedemptionPage | null;
     at: string | null;
     permitted: boolean;
   },
@@ -259,9 +333,15 @@ function panelsFor(
     case 'spend':
       return spendPanels(ctx.usage, ctx.at);
     case 'models':
-      return modelPanels(ctx.usage, ctx.at);
+      // The router's table first — what answers what, and who is carrying it — then the same
+      // window's rollup grouped by the model that actually answered.
+      return [...routerPanels(ctx.models, ctx.at), ...modelPanels(ctx.usage, ctx.at)];
+    case 'allowance':
+      return allowancePanels(ctx.allowance, ctx.at);
     case 'pacing':
       return pacingPanels(ctx.usage, ctx.economics, ctx.at);
+    case 'promo':
+      return promoPanels(ctx.promo, ctx.redeemed, ctx.at);
     default:
       return healthPanels(ctx.health, ctx.at);
   }

@@ -48,6 +48,7 @@ from pydantic import BaseModel, Field
 from wobo_gateway import (
     admin_auth,
     alerts,
+    allowance,
     billing,
     budget,
     consent,
@@ -76,6 +77,7 @@ from wobo_gateway.billing import register_billing
 from wobo_gateway.billing.payments import LIMITED_PATHS as PAYMENTS_LIMITED_PATHS
 from wobo_gateway.billing.payments import OPEN_PATHS as PAYMENTS_OPEN_PATHS
 from wobo_gateway.billing.payments import register_billing_desk, register_payments
+from wobo_gateway.board_change import register_board_change
 from wobo_gateway.cache import CacheBackend, CacheEntry, InMemoryCache, cache_key
 from wobo_gateway.console_api import register_console
 from wobo_gateway.curriculum.public import LIMITED_PATHS as SYLLABUS_LIMITED_PATHS
@@ -90,6 +92,7 @@ from wobo_gateway.email import register_email
 from wobo_gateway.hospitality.api import register_mail_preferences
 from wobo_gateway.hospitality.jobs import welcome_after_first_meeting
 from wobo_gateway.mind import register_mind
+from wobo_gateway.models_api import register_models_desk
 from wobo_gateway.model_call import ProviderUnavailable, is_provider_failure
 from wobo_gateway.parent_api import LIMITED_PATHS as PARENT_API_LIMITED_PATHS
 from wobo_gateway.parent_api import register_parent_api
@@ -105,6 +108,8 @@ from wobo_gateway.registry import (
     platform_paid,
     policy,
 )
+from wobo_gateway.promo import LIMITED_PATHS as PROMO_LIMITED_PATHS
+from wobo_gateway.promo import register_promo, register_promo_desk
 from wobo_gateway.reports import LIMITED_PATHS as REPORT_LIMITED_PATHS
 from wobo_gateway.reports import register_reports
 from wobo_gateway.routing import resolve, resolve_any, tier_fallbacks, tier_primary
@@ -546,6 +551,10 @@ _OPEN_PATHS = frozenset(
     {
         "/healthz",
         "/v1/mail/stop",
+        # The link that lands (docs/EMAILS-AND-ANIMATIONS.md §4). Pressed from an inbox, by
+        # somebody who by definition has no session yet — the whole point of the route is to tell
+        # the app where they were going before they go through the door.
+        "/v1/mail/land",
         *ASK_OPEN_PATHS,
         # The syllabus read (curriculum/public.py). No learner data behind it, nothing personal
         # in it, and every public chapter page is built from it.
@@ -560,10 +569,17 @@ _OPEN_PATHS = frozenset(
     }
 )
 # Authenticated when we can, never refused here: the route itself is the door (internal key).
-# The two cron doors (hospitality/jobs.py: the Sunday note, the festival wishes) share that key
-# and that posture.
+# The three cron doors (hospitality/jobs.py: the Sunday note, the festival wishes;
+# hospitality/nudges.py: the five nudges of docs/EMAILS-AND-ANIMATIONS.md §1) share that key and
+# that posture — refused by the shared key with a 403, never by the token with a 401, because a
+# cron carries no learner.
 _SOFT_AUTH_PATHS = frozenset(
-    {"/v1/email/send", "/v1/internal/mail/sunday", "/v1/internal/mail/wishes"}
+    {
+        "/v1/email/send",
+        "/v1/internal/mail/sunday",
+        "/v1/internal/mail/wishes",
+        "/v1/internal/mail/nudges",
+    }
 )
 
 # A request body is a context packet, not a file. Past this it is either a mistake or an attempt
@@ -754,13 +770,20 @@ def board_key(principal: Principal | None, request: Request) -> str:
 class MeResponse(BaseModel):
     """What the client is allowed to know about itself: who, what tier, how much is left.
 
-    No model, no provider, no price, no limit — only what remains today."""
+    No model, no provider, no price, no limit — only what remains today.
+
+    ``allowance`` is the day itself (docs/ALLOWANCE.md §2): ``used`` is a fraction between 0 and
+    1 and ``resets_at`` is the learner's own midnight. NO CURRENCY, on this surface or any other
+    a learner or a parent can reach — the rupees are the gateway's arithmetic and the owner's
+    desk, and the You page draws one bar from this fraction and the line "Resets at midnight."
+    """
 
     subject: str
     anonymous: bool
     plan: str
     consent_tier: str
     budget: dict[str, Any]
+    allowance: dict[str, Any] = Field(default_factory=dict)
 
 
 class InterruptRequest(BaseModel):
@@ -1285,6 +1308,14 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         # The identity the meter and the limiter count against — one derivation, read by the
         # capability route and by both voice routes so nothing meters on a different key.
         request.state.meter_key = meter_key(principal, request)
+        # WHERE THIS LEARNER IS, for the money meter's day (allowance.py, docs/ALLOWANCE.md §4.6).
+        # The device sends a zone NAME and the first one of the local day stands; the boundary
+        # itself is computed server-side from it, because a client that can declare its own day
+        # can declare an infinite allowance. A family record's zone, when there is one, wins over
+        # this (``allowance.set_zone_resolver``). Nonsense is dropped rather than believed.
+        allowance.note_zone(
+            request.state.meter_key, request.headers.get(allowance.ZONE_HEADER)
+        )
         # Ownership of a remembered board turn is the meter key AND the subject, so two
         # anonymous children on one address are two learners (board_key).
         request.state.board_key = board_key(principal, request)
@@ -1331,6 +1362,10 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             # refund request. Each writes a row to ops.reports and every one of them is reachable
             # by anyone holding a token, so all four are bounded per caller (reports.py).
             or path in REPORT_LIMITED_PATHS
+            # Redeeming a promo code (promo.py): a database write, reachable by anyone holding a
+            # token, and the one route in the product where guessing at a string pays. Bounded
+            # per caller, so a script cannot work through an alphabet at speed.
+            or path in PROMO_LIMITED_PATHS
             # The operator console. Behind its own door (admin_auth.guard) and its own stricter
             # bucket, and in the shared limiter too: the door itself must not be free to knock on.
             or path.startswith(ADMIN_PREFIX)
@@ -1540,12 +1575,19 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         snap = budget.snapshot(
             request.state.meter_key, plan, anonymous=principal.anonymous
         )
+        # The day's allowance, as a fraction and a time (allowance.py). The limit a learner
+        # actually meets is this one; the counters above are the abuse caps behind it.
+        meter = allowance.state(
+            request.state.meter_key,
+            budget.resolve_plan(plan, anonymous=principal.anonymous),
+        )
         return MeResponse(
             subject=principal.subject,
             anonymous=principal.anonymous,
             plan=plan,
             consent_tier=profile.tier.value,
             budget=snap.as_dict(),
+            allowance=meter.as_dict(),
         )
 
     @app.post("/v1/me/erase")
@@ -1965,9 +2007,23 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     # register_admin for the same reason register_console is: the desks hang off the same
     # guarded router factory, and the door must exist before anything is mounted behind it.
     register_desks(app)
+    # The models desk and the pace: what answers what, at what price, and how generous the day
+    # is (docs/CONSOLE-MODELS.md, docs/ALLOWANCE.md §3). Mounted after the desks so every route
+    # under /v1/admin is behind the one guard.
+    register_models_desk(app)
     # The subscriptions desk's ledger read (billing/payments.py), behind the same guarded router
     # factory as the other desks and for the same reason placed after register_admin.
     register_billing_desk(app)
+    # The board a learner may change once, and the queue an operator clears when they ask for
+    # another (docs/CONSOLE-ROLES-AND-BOARD.md §1). Two learner routes and two console ones;
+    # AFTER register_admin for the same reason every other desk is.
+    register_board_change(app)
+    # Promo codes: the learner's redeem door and the owner's desk (promo.py). AFTER
+    # register_admin, because the desk hangs off the same guarded router factory and the door has
+    # to exist before anything is mounted behind it; and beside register_payments, because the
+    # percentage a code takes off a first payment is applied inside that file's checkout.
+    register_promo(app)
+    register_promo_desk(app)
     register_reports(app)
     # The door and the list it opens onto (doors.py, waiting_list.py). The refusal itself lives
     # in the middleware above; these two are only what a visitor can still reach: the dial, so

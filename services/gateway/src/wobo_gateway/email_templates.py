@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import html
 import os
+import re
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
@@ -151,10 +152,13 @@ BODY = "#43444B"       # comfortable reading body
 SECONDARY = "#5C5E66"  # supporting text
 FOOTER = "#9A9BA2"     # quiet footer
 HAIRLINE = "#E9E9EE"   # dividers
+# The stop link is the one footer element the law sizes and colours by hand: Google asks for
+# "clearly visible" and docs/MAIL-PRIMARY.md turns that into 13px and 4.5:1. #9A9BA2 at 12px,
+# which every footer used to draw, measures 2.8:1 on white and was the named defect.
+FOOT_INK = "#5C5E66"   # the stop link: 6.5:1 on the white card, 6.0:1 on the cream paper
 TRACK = "#F1F1F5"      # empty bar track
 ULTRA = "#1F35E0"      # signature pigment: brand + mastery, and the one button
 MOLTEN = "#FF5A1F"     # earned accent — a streak flame, an XP number
-MAGENTA = "#CC1E7A"    # earned accent — the gift
 ACID = "#66B300"       # earned accent — growth
 
 _esc = html.escape
@@ -216,62 +220,11 @@ def _bullets(items: list[str]) -> str:
     )
 
 
-def _stats(cells: list[tuple[str, str, str]]) -> str:
-    """A row of headline numbers — (value, label, color) each. Table cells, never flex."""
-    tds = "".join(
-        f'<td width="33%" valign="top" style="padding:0 8px;">'
-        f'<div style="font-family:{FONT};font-size:26px;font-weight:700;color:{color};'
-        f'line-height:1.1;">{_esc(value)}</div>'
-        f'<div style="font-family:{FONT};font-size:12px;color:{SECONDARY};'
-        f'padding-top:4px;">{_esc(label)}</div></td>'
-        for value, label, color in cells
-    )
-    return (
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="margin:4px 0 22px 0;"><tr>{tds}</tr></table>'
-    )
-
-
-def _bar(label: str, value: str, pct: int, color: str = ULTRA) -> str:
-    """One horizontal bar built from two colored table cells — no image, glanceable."""
-    pct = max(2, min(100, int(pct)))
-    rest = 100 - pct
-    fill = (
-        f'<td width="{pct}%" style="background-color:{color};height:10px;border-radius:3px;'
-        'font-size:0;line-height:0;">&nbsp;</td>'
-    )
-    gap = (
-        f'<td width="{rest}%" style="font-size:0;line-height:0;">&nbsp;</td>' if rest > 0 else ""
-    )
-    return (
-        '<tr>'
-        f'<td width="128" valign="middle" style="padding:7px 12px 7px 0;font-family:{FONT};'
-        f'font-size:13px;color:{SECONDARY};">{_esc(label)}</td>'
-        '<td valign="middle" style="padding:7px 0;">'
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="background-color:{TRACK};border-radius:3px;"><tr>{fill}{gap}</tr></table></td>'
-        f'<td width="48" align="right" valign="middle" style="padding:7px 0 7px 12px;'
-        f'font-family:{FONT};font-size:13px;font-weight:600;color:{INK};">{_esc(value)}</td>'
-        '</tr>'
-    )
-
-
-def _bars(rows: list[str]) -> str:
-    return (
-        '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" '
-        f'style="margin:2px 0 20px 0;">{"".join(rows)}</table>'
-    )
-
-
-def _chips(items: list[str]) -> str:
-    """Soft gray pills for focus areas — table cells, wrap via inline-block spans."""
-    pills = "".join(
-        f'<span style="display:inline-block;margin:0 6px 6px 0;padding:6px 12px;'
-        f'font-family:{FONT};font-size:13px;color:{SECONDARY};background-color:{TRACK};'
-        f'border-radius:3px;">{_esc(str(it))}</span>'
-        for it in items
-    )
-    return f'<div style="margin:2px 0 20px 0;">{pills}</div>'
+# The stat row, the progress bars and the chip row used to live here. They are gone rather than
+# unused: docs/MAIL-PRIMARY.md names them as the visual grammar of a newsletter, and the
+# percentages they carried broke our own rule that a mastery figure is never a percentage. A
+# summary is sentences, and the two templates that drew them now write the word the number stood
+# for (solid, growing, started).
 
 
 def _shell(
@@ -325,30 +278,85 @@ def _shell(
         # footer
         '<tr><td style="padding:22px 44px 36px 44px;">'
         f'<p style="margin:0 0 6px 0;font-family:{FONT};font-size:12px;color:{FOOTER};">'
-        f"{_esc(APP_NAME)} &middot; made for curious minds</p>"
+        f"You get this because you have a {_esc(APP_NAME)} account. "
+        f"Reply to it and a person answers.</p>"
         f'<p style="margin:0 0 6px 0;font-family:{FONT};font-size:12px;color:{FOOTER};">'
         f"{_esc(postal_address)}</p>"
-        f'<p style="margin:0;font-family:{FONT};font-size:12px;color:{FOOTER};">'
-        f'<a href="{_esc(_safe_url(unsubscribe_url, UNSUBSCRIBE_URL), quote=True)}" style="color:{FOOTER};'
-        'text-decoration:underline;">unsubscribe</a></p>'
+        f'<p style="margin:0;font-family:{FONT};font-size:13px;color:{FOOT_INK};">'
+        f'<a href="{_esc(_safe_url(unsubscribe_url, UNSUBSCRIBE_URL), quote=True)}" '
+        f'style="font-size:13px;color:{FOOT_INK};text-decoration:underline;">unsubscribe</a></p>'
         "</td></tr></table></td></tr></table></body></html>"
     )
 
 
-def _name(data: dict[str, Any], key: str = "name", default: str = "there") -> str:
+def _name(data: dict[str, Any], key: str = "name", default: str = "") -> str:
+    """The reader's own name, escaped, or "" when we were not given one.
+
+    The default used to be "there", which produced "your week, there" and "welcome, there".
+    docs/copy/voice.md:219 names that as the anti-pattern and docs/MAIL-PRIMARY.md §4 repeats it:
+    a missing name means the sentence is REWRITTEN without a name, never filled with a word that
+    tells the reader a template ran. Every caller now goes through :func:`_comma_name`.
+    """
     return _esc(str(data.get(key) or default))
+
+
+def _comma_name(data: dict[str, Any], key: str = "name") -> str:
+    """", {name}" when there is a name, and nothing at all when there is not."""
+    name = _name(data, key)
+    return f", {name}" if name else ""
+
+
+#: The first words of every footer in the fleet. :func:`body_text` cuts here, because the word
+#: count law is measured on the body and the character floor is measured on the whole thing.
+FOOTER_OPENERS: tuple[str, ...] = (
+    "You get this",
+    "You are getting this",
+    "You’re getting this",
+    "You got this",
+    f"{APP_NAME} writes when",
+)
+
+
+def _shell_foot_text(data: dict[str, Any]) -> str:
+    """The shell footer, in the plain-text twin, link for link with the html.
+
+    The html footer has carried the reason, the postal line and the stop link since the shell was
+    written and the text part carried none of it. That failed two of the law's assertions at once
+    (docs/MAIL-PRIMARY.md: the 500-character floor, which is the one length threshold with data
+    behind it, and the twin that must contain every destination in full) and it left a reader of
+    the text part with no way out at all.
+    """
+    return "\n".join(
+        [
+            "",
+            f"You get this because you have a {APP_NAME} account. Reply to it and a person answers.",
+            f"unsubscribe: {_unsubscribe(data)}",
+            f"{APP_NAME} · {_APP_HOST}",
+            _postal(data),
+        ]
+    )
+
+
+#: A subject a phone can show whole. docs/MAIL-PRIMARY.md: at most 60 characters, and a phone
+#: shows roughly 40, so a subject built from a learner's own words falls back rather than clips.
+SUBJECT_LIMIT = 60
+
+
+def _fits(subject: str, fallback: str) -> str:
+    """``subject`` when it fits the law's 60 characters, else the short form of the same fact."""
+    return subject if len(subject) <= SUBJECT_LIMIT else fallback
 
 
 # --- the ten templates ----------------------------------------------------------------
 def account_created(data: dict[str, Any]) -> dict[str, str]:
-    name = _name(data)
     body = (
-        _p("i'm Wobo. there's nothing to set up: pick something you're curious about and "
+        _p("I'm Wobo. there's nothing to set up: pick something you're curious about and "
            "we'll start there. your first course is on me, written the moment you open it.")
     )
+    preheader = "your account is ready, and so am I."
     html_out = _shell(
-        preheader="your account is ready, and so am i.",
-        heading=f"welcome, {name}",
+        preheader=preheader,
+        heading=f"welcome{_comma_name(data)}",
         body=body,
         cta_label="start your first course",
         cta_url=_link(data, "cta_url", "/learn"),
@@ -356,13 +364,18 @@ def account_created(data: dict[str, Any]) -> dict[str, str]:
         postal_address=_postal(data),
     )
     text = (
-        f"welcome, {data.get('name') or 'there'}\n\n"
-        "i'm Wobo. there's nothing to set up: pick something you're curious about and we'll "
+        f"welcome{_comma_name(data)}\n\n"
+        "I'm Wobo. there's nothing to set up: pick something you're curious about and we'll "
         "start there. your first course is on me.\n\n"
         f"start your first course: {_link(data, 'cta_url', '/learn')}\n\n"
-        "— Wobo\nWobo · made for curious minds"
-    )
-    return {"subject": "welcome to Wobo", "html": html_out, "text": text}
+        "— Wobo"
+    ) + _shell_foot_text(data)
+    return {
+        "subject": "welcome to Wobo",
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 def verify_email(data: dict[str, Any]) -> dict[str, str]:
@@ -379,8 +392,11 @@ def verify_email(data: dict[str, Any]) -> dict[str, str]:
         + _p("or enter that code if you'd rather. if you didn't ask for this, you can ignore "
              "it, nothing happens until the link is used.", color=SECONDARY)
     )
+    # Not a restatement of the subject: the preheader says the one thing the subject cannot,
+    # which is that there is a code as well as a link and that both die quickly.
+    preheader = "the link works once, and there is a code if you would rather type it."
     html_out = _shell(
-        preheader="confirm your email to finish signing in.",
+        preheader=preheader,
         heading="let's confirm it's you",
         body=body,
         cta_label="verify email",
@@ -393,8 +409,13 @@ def verify_email(data: dict[str, Any]) -> dict[str, str]:
         "tap the link below to confirm your email and open your account. it works once and "
         f"expires shortly.\n\nverify: {link}\n\nor enter this code: {data.get('code', '482913')}"
         "\n\nif you didn't ask for this, you can ignore it.\n\n— Wobo"
-    )
-    return {"subject": "confirm your email", "html": html_out, "text": text}
+    ) + _shell_foot_text(data)
+    return {
+        "subject": "confirm your email",
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 def course_ready(data: dict[str, Any]) -> dict[str, str]:
@@ -405,13 +426,14 @@ def course_ready(data: dict[str, Any]) -> dict[str, str]:
         "a boss battle waiting at the end",
     ]
     body = (
-        _p("i built it for you just now, grounded on the real syllabus and shaped to how "
+        _p("I built it for you just now, grounded on the real syllabus and shaped to how "
            "you learn. here's what's inside:")
         + _bullets(inside)
         + _p("come in when you have ten quiet minutes. we'll take it one screen at a time.")
     )
+    preheader = "one idea per screen, and something to try at the end of each."
     html_out = _shell(
-        preheader=f"your course on {data.get('topic', 'your topic')} is ready to open.",
+        preheader=preheader,
         heading=f"your course on {topic} is ready",
         body=body,
         cta_label="open your course",
@@ -421,30 +443,38 @@ def course_ready(data: dict[str, Any]) -> dict[str, str]:
     )
     text = (
         f"your course on {data.get('topic', 'your topic')} is ready\n\n"
-        "i built it for you just now. inside:\n"
+        "I built it for you just now. inside:\n"
         + "".join(f"- {i}\n" for i in inside)
         + "\ncome in when you have ten quiet minutes.\n\n"
         f"open your course: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
-    )
-    return {"subject": f"your course on {data.get('topic', 'your topic')} is ready",
-            "html": html_out, "text": text}
+    ) + _shell_foot_text(data)
+    raw_topic = str(data.get("topic", "your topic"))
+    return {
+        "subject": _fits(f"your course on {raw_topic} is ready", "your course is ready"),
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 def boss_victory(data: dict[str, Any]) -> dict[str, str]:
     # heading reads "you beat the {topic} boss" — pass a bare noun phrase, no leading article
     raw_topic = str(data.get("topic", "topic")).removeprefix("the ")
     topic = _esc(raw_topic)
-    xp = _esc(str(data.get("xp", 250)))
+    # "+250 XP" at 34px in molten orange used to open this mail. docs/MAIL-PRIMARY.md names it
+    # twice: a large coloured numeral above the fold is the most reliable promotional tell in a
+    # rendered preview, and the register praises the behaviour, not the score. The score is still
+    # the learner's; it lives on the screen where they earned it, not in the first thing they see
+    # in an inbox.
     body = (
-        f'<div style="margin:0 0 18px 0;font-family:{FONT};font-size:34px;font-weight:700;'
-        f'color:{MOLTEN};line-height:1;">+{xp} XP</div>'
-        + _p("that wasn't a quiz, it was the real thing, and you worked it out yourself. "
+        _p("that wasn't a quiz, it was the real thing, and you worked it out yourself. "
              "that's the part that stays with you.")
-        + _p("i've marked what you're solid on and what's worth a revisit later, so nothing "
+        + _p("I've marked what you're solid on and what's worth a revisit later, so nothing "
              "you earned quietly slips away.")
     )
+    preheader = "you worked it out yourself, and that is the part that stays."
     html_out = _shell(
-        preheader=f"you beat the {raw_topic} boss.",
+        preheader=preheader,
         heading=f"you beat the {topic} boss",
         body=body,
         cta_label="see what's next",
@@ -453,12 +483,17 @@ def boss_victory(data: dict[str, Any]) -> dict[str, str]:
         postal_address=_postal(data),
     )
     text = (
-        f"you beat the {raw_topic} boss\n\n+{data.get('xp', 250)} XP\n\n"
+        f"you beat the {raw_topic} boss\n\n"
         "that wasn't a quiz, it was the real thing, and you worked it out yourself.\n\n"
-        "i've marked what you're solid on and what's worth a revisit later.\n\n"
+        "I've marked what you're solid on and what's worth a revisit later.\n\n"
         f"see what's next: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
-    )
-    return {"subject": f"you beat the {raw_topic} boss", "html": html_out, "text": text}
+    ) + _shell_foot_text(data)
+    return {
+        "subject": _fits(f"you beat the {raw_topic} boss", "you beat the boss"),
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 def level_up(data: dict[str, Any]) -> dict[str, str]:
@@ -469,14 +504,17 @@ def level_up(data: dict[str, Any]) -> dict[str, str]:
         "the perturbation sandbox, where you break a law to understand it",
     ]
     body = (
+        # Sentence case, and no uppercase transform: ALL CAPS above the fold is on the law's
+        # never list (docs/MAIL-PRIMARY.md "What must never appear"), rendered or typed.
         f'<div style="margin:0 0 18px 0;font-family:{FONT};font-size:14px;font-weight:600;'
-        f'letter-spacing:1px;text-transform:uppercase;color:{ACID};">level {level}</div>'
+        f'letter-spacing:0.4px;color:{ACID};">Level {level}</div>'
         + _p("you've been showing up, and it shows. here's what just opened up for you:")
         + _bullets(unlocked)
         + _p("no rush to use all of it today. it'll be here when you're curious.")
     )
+    preheader = "three roads opened from exactly where you are standing."
     html_out = _shell(
-        preheader=f"you reached level {data.get('level', 4)}.",
+        preheader=preheader,
         heading=f"level {level}",
         body=body,
         cta_label="keep going",
@@ -489,22 +527,29 @@ def level_up(data: dict[str, Any]) -> dict[str, str]:
         "opened up:\n" + "".join(f"- {u}\n" for u in unlocked)
         + "\nno rush to use all of it today.\n\n"
         f"keep going: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
-    )
-    return {"subject": f"you reached level {data.get('level', 4)}", "html": html_out, "text": text}
+    ) + _shell_foot_text(data)
+    return {
+        "subject": f"you reached level {data.get('level', 4)}",
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 def streak_milestone(data: dict[str, Any]) -> dict[str, str]:
     days = _esc(str(data.get("days", 24)))
+    # The heading already says the number in the reader's own sentence. The 34px molten repeat
+    # above it was a large coloured numeral above the fold, which the law forbids for the same
+    # reason as boss_victory's.
     body = (
-        f'<div style="margin:0 0 18px 0;font-family:{FONT};font-size:34px;font-weight:700;'
-        f'color:{MOLTEN};line-height:1;">&#9650; {days} days</div>'
-        + _p(f"that's {days} days you chose to think a little harder than you had to. that "
+        _p(f"that's {days} days you chose to think a little harder than you had to. that "
              "isn't a number, it's who you're becoming.")
-        + _p("if you need a rest day, take it. a planned pause keeps this honest, and i'll "
+        + _p("if you need a rest day, take it. a planned pause keeps this honest, and I'll "
              "hold your place. the streak is the habit, not the pressure.")
     )
+    preheader = "a rest day is part of it, and I hold your place while you take it."
     html_out = _shell(
-        preheader=f"{data.get('days', 24)} days of being a learner.",
+        preheader=preheader,
         heading=f"{days} days of being a learner",
         body=body,
         cta_label="continue your streak",
@@ -515,16 +560,21 @@ def streak_milestone(data: dict[str, Any]) -> dict[str, str]:
     text = (
         f"{data.get('days', 24)} days of being a learner\n\n"
         f"that's {data.get('days', 24)} days you chose to think a little harder than you had "
-        "to.\n\nif you need a rest day, take it. i'll hold your place.\n\n"
+        "to.\n\nif you need a rest day, take it. I'll hold your place.\n\n"
         f"continue: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
-    )
-    return {"subject": f"{data.get('days', 24)} days of being a learner",
-            "html": html_out, "text": text}
+    ) + _shell_foot_text(data)
+    return {
+        "subject": f"{data.get('days', 24)} days of being a learner",
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 def weekly_digest(data: dict[str, Any]) -> dict[str, str]:
-    name = _name(data)
-    xp = _esc(str(data.get("xp", 640)))
+    # No XP here. docs/MAIL-PRIMARY.md: the text part of every kind carries no percent sign and
+    # no digit-plus-XP token, because a raw score in a summary is the newsletter's stat row in
+    # another font. What a week was is said in topics and in minutes of thinking.
     minutes = _esc(str(data.get("minutes", 82)))
     topics = data.get("topics") or ["acids and bases", "the mole concept", "electric circuits"]
     bars = data.get("bars") or [
@@ -534,19 +584,20 @@ def weekly_digest(data: dict[str, Any]) -> dict[str, str]:
     ]
     line = _esc(str(data.get("line",
         "the circuits work is the one to keep warm this week, you're closer than it feels.")))
-    bar_rows = [_bar(lbl, val, pct, ULTRA) for lbl, val, pct in bars]
+    # A summary is sentences. The stat row and the progress bars that used to stand here are the
+    # visual grammar of a newsletter, and the percentages under them broke our own rule that a
+    # mastery figure is never a percentage (docs/MAIL-PRIMARY.md §4). Each number is now the word
+    # it stood for: solid, growing, started.
     body = (
-        _p(f"here's your week in one glance, {name}. you touched {len(topics)} topics and "
-           "kept the habit alive.")
-        + _stats([(f"+{xp}", "xp earned", MOLTEN),
-                  (str(len(topics)), "topics touched", INK),
-                  (f"{minutes}m", "time thinking", INK)])
-        + _bars(bar_rows)
+        _p(f"here's your week{_comma_name(data)}. {_words(len(topics))} topics, and "
+           f"{minutes} minutes of thinking.")
+        + _bullets([f"{lbl}: {val}" for lbl, val, _pct in bars])
         + _p(line, color=SECONDARY)
     )
+    preheader = "three topics, and the one worth keeping warm."
     html_out = _shell(
-        preheader="your week of learning, in one glance.",
-        heading=f"your week, {name}",
+        preheader=preheader,
+        heading=f"your week{_comma_name(data)}",
         body=body,
         cta_label="pick up where you left off",
         cta_url=_link(data, "cta_url", "/learn"),
@@ -554,17 +605,21 @@ def weekly_digest(data: dict[str, Any]) -> dict[str, str]:
         postal_address=_postal(data),
     )
     text = (
-        f"your week, {data.get('name') or 'there'}\n\n"
-        f"+{data.get('xp', 640)} xp · {len(topics)} topics · {data.get('minutes', 82)}m\n\n"
-        + "".join(f"- {lbl}: {val} ({pct}%)\n" for lbl, val, pct in bars)
+        f"your week{_comma_name(data)}\n\n"
+        f"{_words(len(topics))} topics, and {data.get('minutes', 82)} minutes of thinking.\n\n"
+        + "".join(f"- {lbl}: {val}\n" for lbl, val, _pct in bars)
         + f"\n{data.get('line', '')}\n\n"
         f"pick up: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
-    )
-    return {"subject": f"your week, {data.get('name') or 'there'}", "html": html_out, "text": text}
+    ) + _shell_foot_text(data)
+    return {
+        "subject": _fits(f"your week{_comma_name(data)}", "your week"),
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 def parent_report(data: dict[str, Any]) -> dict[str, str]:
-    parent = _name(data, "parent_name", "there")
     learner = _esc(str(data.get("learner_name", "your child")))
     strengths = data.get("strengths") or [
         ("independent problem-solving", "strong", 86),
@@ -574,16 +629,18 @@ def parent_report(data: dict[str, Any]) -> dict[str, str]:
     focus = data.get("focus") or ["speed under time pressure", "revising older topics"]
     trajectory = _esc(str(data.get("trajectory",
         "on track to master this term's core science ahead of the exam window")))
-    strength_rows = [_bar(lbl, val, pct, ACID) for lbl, val, pct in strengths]
+    # Sentences and sentence case. The bars, the chips and the percentages are gone for the
+    # reason docs/MAIL-PRIMARY.md gives: a bar chart is the grammar of a newsletter, and a
+    # mastery figure written as a percentage is forbidden by our own voice law (§6).
     body = (
-        _p(f"a quiet look at {learner}'s week, {parent}, drawn from their own work, not a "
-           "test. this is who they're becoming.")
+        _p(f"a quiet look at {learner}'s week{_comma_name(data, 'parent_name')}, drawn from "
+           "their own work, not a test. this is who they're becoming.")
         + f'<p style="margin:0 0 8px 0;font-family:{FONT};font-size:13px;font-weight:600;'
-          f'letter-spacing:0.5px;text-transform:uppercase;color:{SECONDARY};">strengths</p>'
-        + _bars(strength_rows)
+          f'letter-spacing:0.4px;color:{SECONDARY};">Strengths</p>'
+        + _bullets([f"{lbl}: {val}" for lbl, val, _pct in strengths])
         + f'<p style="margin:0 0 8px 0;font-family:{FONT};font-size:13px;font-weight:600;'
-          f'letter-spacing:0.5px;text-transform:uppercase;color:{SECONDARY};">worth a nudge</p>'
-        + _chips(focus)
+          f'letter-spacing:0.4px;color:{SECONDARY};">Worth a nudge</p>'
+        + _bullets(list(focus))
         + f'<div style="margin:0 0 20px 0;padding:16px 18px;background-color:{TRACK};'
           f'border-radius:3px;font-family:{FONT};font-size:15px;line-height:1.5;color:{INK};">'
           f'<span style="color:{ULTRA};font-weight:700;">trajectory &nbsp;</span>{trajectory}'
@@ -600,8 +657,9 @@ def parent_report(data: dict[str, Any]) -> dict[str, str]:
         "this note is the whole report for now. a parent does not have a login yet, so there is "
         f"no fuller view to open. reply to this, or write to {REPLY_TO}, and a person answers."
     )
+    preheader = "drawn from their own work, not from a test."
     html_out = _shell(
-        preheader=f"{data.get('learner_name', 'your child')}'s week, in one calm view.",
+        preheader=preheader,
         heading=f"{learner}'s week",
         body=body,
         cta_label="write to us",
@@ -611,19 +669,23 @@ def parent_report(data: dict[str, Any]) -> dict[str, str]:
     )
     text = (
         f"{data.get('learner_name', 'your child')}'s week\n\nstrengths:\n"
-        + "".join(f"- {lbl}: {val} ({pct}%)\n" for lbl, val, pct in strengths)
+        + "".join(f"- {lbl}: {val}\n" for lbl, val, _pct in strengths)
         + "\nworth a nudge: " + ", ".join(focus) + "\n\n"
         f"trajectory: {data.get('trajectory', '')}\n\n"
         "this note is the whole report for now: a parent does not have a login yet. "
         f"reply to this, or write to {REPLY_TO}, and a person answers.\n\n"
         "— Wobo"
-    )
-    return {"subject": f"{data.get('learner_name', 'your child')}'s week at Wobo",
-            "html": html_out, "text": text}
+    ) + _shell_foot_text(data)
+    raw_learner = str(data.get("learner_name", "your child"))
+    return {
+        "subject": _fits(f"{raw_learner}'s week at {APP_NAME}", f"the week at {APP_NAME}"),
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 def reengage(data: dict[str, Any]) -> dict[str, str]:
-    name = _name(data)
     hook = _esc(str(data.get("hook",
         "you were one screen away from cracking why the missing 2ab rectangles complete the square")))
     body = (
@@ -632,11 +694,12 @@ def reengage(data: dict[str, Any]) -> dict[str, str]:
         + f'<div style="margin:0 0 20px 0;padding:16px 18px;border-left:3px solid {ULTRA};'
           f'background-color:{TRACK};border-radius:3px;font-family:{FONT};font-size:15px;'
           f'line-height:1.5;color:{INK};">{hook}</div>'
-        + _p("give it ten minutes. i'll pick up exactly where we stopped, nothing to retrace.")
+        + _p("give it ten minutes. I'll pick up exactly where we stopped, nothing to retrace.")
     )
+    preheader = "it picks up exactly where the two of us stopped."
     html_out = _shell(
-        preheader="you left something half-finished, the good kind.",
-        heading=f"it's been a minute, {name}",
+        preheader=preheader,
+        heading=f"it's been a minute{_comma_name(data)}",
         body=body,
         cta_label="come back to it",
         cta_url=_link(data, "cta_url", "/learn"),
@@ -644,46 +707,61 @@ def reengage(data: dict[str, Any]) -> dict[str, str]:
         postal_address=_postal(data),
     )
     text = (
-        f"it's been a minute, {data.get('name') or 'there'}\n\n"
+        f"it's been a minute{_comma_name(data)}\n\n"
         "no guilt here. but you left something half-finished, the good kind.\n\n"
-        f"{data.get('hook', '')}\n\ngive it ten minutes. i'll pick up where we stopped.\n\n"
+        f"{data.get('hook', '')}\n\ngive it ten minutes. I'll pick up where we stopped.\n\n"
         f"come back: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
-    )
-    return {"subject": f"it's been a minute, {data.get('name') or 'there'}",
-            "html": html_out, "text": text}
+    ) + _shell_foot_text(data)
+    return {
+        "subject": _fits(f"it's been a minute{_comma_name(data)}", "it's been a minute"),
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
-def premium_surprise(data: dict[str, Any]) -> dict[str, str]:
-    name = _name(data)
-    days = _esc(str(data.get("days", 14)))
-    reason = _esc(str(data.get("reason",
-        "you've shown up with real curiosity and earned mastery the honest way")))
+def plan_opened(data: dict[str, Any]) -> dict[str, str]:
+    """The whole plan is on for a while, said as a fact. Account mail, and it belongs in Updates.
+
+    This kind used to be ``premium_surprise``: a large magenta numeral, "a gift", "I've
+    unlocked", "no strings", and a button reading "enjoy premium". docs/MAIL-PRIMARY.md §4 names
+    it exactly: a coupon mail written in four registers of offer language, and no shaping saves
+    it. The law offers two ways out, delete it or rewrite it as a plain account fact. This is the
+    second. What the reader is owed is the date it ends and the fact that nothing is to be
+    entered; everything else was salesmanship about a decision we had already made.
+    """
+    until = _esc(str(data.get("until", "")).strip())
+    days = _count(data, "days")
+    when = f"until {until}" if until else (f"for {_words(days)} more days" if days else "for now")
     body = (
-        f'<div style="margin:0 0 18px 0;font-family:{FONT};font-size:34px;font-weight:700;'
-        f'color:{MAGENTA};line-height:1;">{days} days of premium</div>'
-        + _p(f"this one's a gift, {name}. {reason}, so i've unlocked {days} days of premium "
-             "for you, no strings and nothing to enter.")
-        + _p("go deeper, follow a rabbit hole, build something out of syllabus. see how far "
-             "it goes while it's yours.")
+        _p(f"your plan is open {when}. nothing to enter and nothing to set up: it is already on "
+           "the account you are signed in to.")
+        + _p("follow a rabbit hole, build something out of syllabus, take a harder road through "
+             "a chapter. it is the same Wobo, with the ceiling lifted.")
     )
+    preheader = "nothing to enter, and nothing to set up."
     html_out = _shell(
-        preheader=f"a gift: {data.get('days', 14)} days of premium, on us.",
-        heading=f"a gift for you, {name}",
+        preheader=preheader,
+        heading=f"your plan is open {when}",
         body=body,
-        cta_label="enjoy premium",
+        cta_label="open Wobo",
         cta_url=_link(data, "cta_url", "/learn"),
         unsubscribe_url=_unsubscribe(data),
         postal_address=_postal(data),
     )
     text = (
-        f"a gift for you, {data.get('name') or 'there'}\n\n{data.get('days', 14)} days of "
-        f"premium\n\n{data.get('reason', '')}, so i've unlocked {data.get('days', 14)} days "
-        "of premium for you, no strings.\n\ngo deeper, follow a rabbit hole, build something "
-        "out of syllabus.\n\n"
-        f"enjoy premium: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
-    )
-    return {"subject": f"a gift: {data.get('days', 14)} days of premium",
-            "html": html_out, "text": text}
+        f"your plan is open {when}\n\n"
+        "nothing to enter and nothing to set up: it is already on the account you are signed "
+        "in to.\n\nfollow a rabbit hole, build something out of syllabus, take a harder road "
+        "through a chapter.\n\n"
+        f"open Wobo: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
+    ) + _shell_foot_text(data)
+    return {
+        "subject": _fits(f"your plan is open {when}", "your plan is open"),
+        "preheader": preheader,
+        "html": html_out,
+        "text": text,
+    }
 
 
 # --- the hand-drawn three (design/email-v1.html, ported verbatim), and the wish -----------
@@ -704,7 +782,9 @@ _MUTED = "#4E4E66"
 _QUIET = "#8A8A9E"
 _TONAL = "#F1EDE3"
 
-_HAND_FOOT_LINK = 'style="color:#4E4E66"'
+# 13px and #4E4E66: 7.0:1 on the cream paper. The size is the law's, the colour was already
+# right and only the size was wrong.
+_HAND_FOOT_LINK = 'style="color:#4E4E66;font-size:13px"'
 
 
 def _privacy_url() -> str:
@@ -742,6 +822,26 @@ def _hand_head(stamp: str) -> str:
         f'<td style="font:700 26px/1 {_HAND};letter-spacing:-1px;color:{_NAVY}">{_esc(APP_NAME.lower())}</td>'
         f'<td align="right" style="font:400 13px/1 {_HAND};color:{_QUIET}">{_esc(stamp)}</td>'
         "</tr></table></td></tr>"
+    )
+
+
+def _orb_signature(margin_top: int) -> str:
+    """The orb and the sign-off, drawn ONCE for every mail on the paper.
+
+    The library's first rule (docs/EMAILS-AND-ANIMATIONS.md §8): one source, and a move drawn by
+    hand a second time is a bug. The moving orb belongs to the app (`wobo/Companion.tsx`) and mail
+    gets it as a GIF rendered from that component; until those frames exist this still mark is the
+    orb mail has, and it exists in exactly one function so a sixth template cannot redraw it.
+    """
+    return (
+        f'<table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:{margin_top}px"><tr>'
+        f'<td style="width:36px;height:36px;border-radius:18px;background:{_NAVY};text-align:center;vertical-align:middle">'
+        f'<span style="display:inline-block;width:24px;height:11px;border-radius:6px;background:{_PAPER};position:relative;top:1px;text-align:center">'
+        f'<span style="display:inline-block;width:5px;height:5px;border-radius:3px;background:{_WOBO_BLUE};margin:3px 2px 0"></span>'
+        f'<span style="display:inline-block;width:5px;height:5px;border-radius:3px;background:{_WOBO_BLUE};margin:3px 2px 0"></span>'
+        "</span></td>"
+        f'<td style="padding-left:10px;font:700 22px/1 {_HAND_CURSIVE};color:{_NAVY}">&mdash; {_esc(APP_NAME)}</td>'
+        "</tr></table>"
     )
 
 
@@ -842,14 +942,8 @@ def sunday_note(data: dict[str, Any]) -> dict[str, Any]:
             '<tr><td style="padding:22px 32px 0">'
             f'<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#FFF1D6;border-radius:18px"><tr><td style="padding:22px 24px">'
             f'<div style="font:600 27px/1.2 {_HAND_CURSIVE};color:{_NAVY}">{note_html}</div>'
-            '<table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:14px"><tr>'
-            f'<td style="width:36px;height:36px;border-radius:18px;background:{_NAVY};text-align:center;vertical-align:middle">'
-            f'<span style="display:inline-block;width:24px;height:11px;border-radius:6px;background:{_PAPER};position:relative;top:1px;text-align:center">'
-            f'<span style="display:inline-block;width:5px;height:5px;border-radius:3px;background:{_WOBO_BLUE};margin:3px 2px 0"></span>'
-            f'<span style="display:inline-block;width:5px;height:5px;border-radius:3px;background:{_WOBO_BLUE};margin:3px 2px 0"></span>'
-            '</span></td>'
-            + f'<td style="padding-left:10px;font:700 22px/1 {_HAND_CURSIVE};color:{_NAVY}">&mdash; {_esc(APP_NAME)}</td>'
-            "</tr></table></td></tr></table></td></tr>"
+            + _orb_signature(14)
+            + "</td></tr></table></td></tr>"
         )
 
     # the tiles — each drawn only when its number was given
@@ -1183,14 +1277,8 @@ def wish(data: dict[str, Any]) -> dict[str, Any]:
         '<tr><td style="padding:32px 32px 0">'
         f'<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#FFF1D6;border-radius:18px"><tr><td style="padding:26px 24px">'
         f'<div style="font:600 30px/1.2 {_HAND_CURSIVE};color:{_NAVY}">{_esc(line)}</div>'
-        '<table role="presentation" cellspacing="0" cellpadding="0" style="margin-top:16px"><tr>'
-        f'<td style="width:36px;height:36px;border-radius:18px;background:{_NAVY};text-align:center;vertical-align:middle">'
-        f'<span style="display:inline-block;width:24px;height:11px;border-radius:6px;background:{_PAPER};position:relative;top:1px;text-align:center">'
-        f'<span style="display:inline-block;width:5px;height:5px;border-radius:3px;background:{_WOBO_BLUE};margin:3px 2px 0"></span>'
-        f'<span style="display:inline-block;width:5px;height:5px;border-radius:3px;background:{_WOBO_BLUE};margin:3px 2px 0"></span>'
-        "</span></td>"
-        f'<td style="padding-left:10px;font:700 22px/1 {_HAND_CURSIVE};color:{_NAVY}">&mdash; {_esc(APP_NAME)}</td>'
-        "</tr></table></td></tr></table></td></tr>"
+        + _orb_signature(16)
+        + "</td></tr></table></td></tr>"
     )
     rows += (
         '<tr><td style="padding:22px 32px 0">'
@@ -1254,12 +1342,24 @@ _NOT_GIVEN: tuple[str, ...] = (
 )
 
 
+def _decline_headers(decline: str) -> dict[str, str]:
+    """RFC 8058 headers for the parent invite, keyed on the signed decline route."""
+    if not decline or "token=" not in decline or not decline.startswith(parent_route_url("decline")):
+        return {}
+    return {
+        "List-Unsubscribe": f"<{decline}>",
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    }
+
+
 def parent_invite(data: dict[str, Any]) -> dict[str, Any]:
     """05 · The parent invite, to the parent, the moment a learner types their address.
 
-    Account mail, sent once: no dial and no List-Unsubscribe header, because there is no list —
-    nothing else ever comes unless the parent says yes on the accept page, and "Not me" is the
-    parent's way out with no login (``decline_url``, signed and single-use, parents.py). No plan
+    Account mail, sent once, with no dial: nothing else ever comes unless the parent says yes on
+    the accept page, and "Not me" is the parent's way out with no login (``decline_url``, signed
+    and single-use, parents.py). It is also a cold message to an adult who never gave us their
+    address, so docs/MAIL-PRIMARY.md §2 gives it the subscribed treatment: List-Unsubscribe
+    points at that same decline route, one-click (:func:`_decline_headers`). No plan
     pitch, nothing that implies the learner is behind (the spec's rules). The learner is named,
     and where a pronoun is unavoidable it is "they": we do not know, and §20's plain English is
     everyone's rule.
@@ -1363,8 +1463,375 @@ def parent_invite(data: dict[str, Any]) -> dict[str, Any]:
         "preheader": preheader,
         "html": _hand_doc(preheader=preheader, rows=rows),
         "text": text,
-        "headers": {},
+        # A cold message to an adult who never gave us their address is the one mail that most
+        # needs a header the client can act on (docs/MAIL-PRIMARY.md §2 calls it the single
+        # riskiest mail we send). The target is the signed decline route, which is a page under
+        # GET and only declines under POST — exactly what RFC 8058 requires — so the one-click
+        # promise is made only when a token is actually on the link.
+        "headers": _decline_headers(decline),
     }
+
+
+# --- the five nudges (docs/EMAILS-AND-ANIMATIONS.md §1, in the Brilliant shape) ---------------
+# One animated character doing ONE thing, a headline of two to four words, one line, one button
+# that lands on the exact card, a hairline, and a footer that says why it came. Nothing else
+# above the fold, and nothing that sells: docs/MAIL-PRIMARY.md is the law these are written to.
+#
+# THE ORB. Each kind names its move (§8's library) and carries no other. The moving GIF is
+# rendered from the app's own orb and is not in the tree yet, so these mails ship with the still
+# mark from :func:`_orb_signature` and read complete with images off — which is also what
+# MAIL-PRIMARY §3 requires of the day the GIF arrives: at most one image, with alt text, and the
+# message whole without it. ``orb_url`` is the seam; a template never draws a move itself.
+
+#: The five kinds, in the order §1 lists them.
+NUDGE_KINDS: tuple[str, ...] = ("quick_one", "mid_chapter", "streak", "bonus_level", "doubt")
+
+#: The one move each nudge carries (§2, §8). One thing at a time, never two.
+ORB_MOVES: dict[str, str] = {
+    "quick_one": "hover",
+    "mid_chapter": "wave",
+    "streak": "bounce",
+    "bonus_level": "spark",
+    "doubt": "reading",
+}
+
+_HAIRLINE_MARK = "<!--hairline-->"
+
+
+def _note_doc(*, preheader: str, rows: str) -> str:
+    """The paper, told what it is in the dark.
+
+    Gmail, Outlook and Apple all darken a mail that does not declare a scheme, and what they do
+    to a cream card with navy ink on it is not a choice anybody made. So the document declares
+    both schemes and repaints the four things that must move — the ground, the card, the ink and
+    the quiet text — by class, under ``prefers-color-scheme``. Everything else is a tonal tile
+    with its own inline colour and reads in both.
+    """
+    return (
+        "<!DOCTYPE html>"
+        '<html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        '<meta name="x-apple-disable-message-reformatting">'
+        '<meta name="color-scheme" content="light dark">'
+        '<meta name="supported-color-schemes" content="light dark">'
+        "<style>:root{color-scheme:light dark;supported-color-schemes:light dark}"
+        "@media (prefers-color-scheme: dark){"
+        f".wobo-paper{{background:#0F1020!important}}"
+        f".wobo-card{{background:#17182C!important}}"
+        f".wobo-ink{{color:#F4F2EC!important}}"
+        f".wobo-quiet{{color:#A9A9BC!important}}"
+        f".wobo-quiet a{{color:#A9A9BC!important}}"
+        "}</style>"
+        f"<title>{_esc(APP_NAME)}</title></head>"
+        f'<body class="wobo-paper" style="margin:0;padding:0;background:{_PAPER_EDGE};font-family:{_HAND}">'
+        f'<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;color:{_PAPER_EDGE};font-size:1px;line-height:1px;">{_esc(preheader)}</div>'
+        '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" '
+        f'class="wobo-paper" style="background:{_PAPER_EDGE}"><tr><td align="center" style="padding:32px 0">'
+        '<table role="presentation" width="640" cellspacing="0" cellpadding="0" class="wobo-card" '
+        f'style="width:100%;max-width:640px;background:{_PAPER};border-radius:24px;overflow:hidden;font-family:{_HAND};color:{_NAVY}">'
+        f"{rows}"
+        "</table></td></tr></table></body></html>"
+    )
+
+
+def _note_head(stamp: str) -> str:
+    """The wordmark and the moment, in the dark-aware ink."""
+    return (
+        '<tr><td style="padding:28px 32px 0">'
+        '<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>'
+        f'<td class="wobo-ink" style="font:700 26px/1 {_HAND};letter-spacing:-1px;color:{_NAVY}">{_esc(APP_NAME.lower())}</td>'
+        f'<td align="right" class="wobo-quiet" style="font:400 13px/1 {_HAND};color:{_QUIET}">{_esc(stamp)}</td>'
+        "</tr></table></td></tr>"
+    )
+
+
+def _audience(data: dict[str, Any]) -> str:
+    """Who is reading: the learner, or the parent who holds an under-13's account.
+
+    ``parent`` is not a style: it is the children's privacy law (docs/legal/childrens-privacy.md
+    §2, docs/copy/childrens-privacy). Below thirteen the mail goes to the parent, about the
+    child, and nothing in it addresses the child or asks the parent to push them.
+    """
+    return "parent" if str(data.get("audience") or "").strip().lower() == "parent" else "learner"
+
+
+def _learner_name(data: dict[str, Any]) -> str:
+    """The learner's first name as the copy may use it, or "" when we do not have one.
+
+    Never "there": a missing name means the sentence is rewritten without a name
+    (docs/copy/voice.md §10a, docs/MAIL-PRIMARY.md §4).
+    """
+    for key in ("learner_name", "name"):
+        value = str(data.get(key) or "").strip()
+        if value:
+            return value.split()[0][:40]
+    return ""
+
+
+def _subject_with(name: str, learner_first: str, rest: str) -> str:
+    """The subject: the name and a verb, and the sentence rewritten when there is no name."""
+    if name:
+        return f"{name}, {rest}"
+    if learner_first:
+        return f"{learner_first} {rest}"
+    return rest[0].upper() + rest[1:] if rest else APP_NAME
+
+
+def _note(
+    *,
+    kind: str,
+    data: dict[str, Any],
+    headline: str,
+    line: str,
+    cta_label: str,
+    cta_url: str,
+    subject: str,
+    why: str,
+) -> dict[str, Any]:
+    """One nudge, drawn. Every kind above is this function with five different sentences."""
+    stamp = str(data.get("stamp") or "Just now")
+    prefs, unsub = _preferences(data), _unsubscribe(data)
+    orb = _safe_url(data.get("orb_url"), "")
+    move = ORB_MOVES[kind]
+
+    rows = _note_head(stamp)
+    rows += (
+        '<tr><td style="padding:30px 32px 0">'
+        # The character, doing one thing. A rendered GIF when the library has one, the still mark
+        # when it does not; the mail is whole either way.
+        + (
+            f'<img src="{_esc(orb, quote=True)}" width="96" height="96" alt="" '
+            f'style="display:block;border:0;outline:none;text-decoration:none;margin:0 0 18px 0" />'
+            if orb
+            else _orb_signature(0) + '<div style="height:18px;font-size:0;line-height:0">&nbsp;</div>'
+        )
+        + f'<div class="wobo-ink" style="font:700 32px/1.1 {_HAND};letter-spacing:-1px;color:{_NAVY}">{_esc(headline)}</div>'
+        + f'<div class="wobo-ink" style="font:400 17px/1.55 {_HAND};color:{_MUTED};margin-top:12px">{_esc(line)}</div>'
+        "</td></tr>"
+    )
+    rows += (
+        '<tr><td style="padding:24px 32px 0">'
+        '<table role="presentation" cellspacing="0" cellpadding="0"><tr>'
+        f'<td style="background:{_WOBO_BLUE};border-radius:12px"><a href="{_esc(cta_url, quote=True)}" style="display:inline-block;padding:14px 22px;font:500 15px/1 {_HAND};color:#FFFFFF;text-decoration:none">{_esc(cta_label)}</a></td>'
+        "</tr></table></td></tr>"
+    )
+    rows += (
+        f'<tr><td style="padding:28px 32px 0">{_HAIRLINE_MARK}'
+        f'<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td style="border-top:1px solid {_PAPER_EDGE};font-size:0;line-height:0">&nbsp;</td></tr></table>'
+        "</td></tr>"
+    )
+    rows += (
+        f'<tr><td class="wobo-quiet" style="padding:18px 32px 26px;font:400 12px/1.6 {_HAND};color:{_QUIET}">'
+        f"{_esc(why)} "
+        f'<a href="{_esc(prefs, quote=True)}" {_HAND_FOOT_LINK}>Fewer emails</a> &middot; '
+        f'<a href="{_esc(unsub, quote=True)}" {_HAND_FOOT_LINK}>Stop this one</a><br>'
+        f"{_esc(APP_NAME)} &middot; {_esc(_APP_HOST)} &middot; "
+        f'<a href="{_esc(_privacy_url(), quote=True)}" {_HAND_FOOT_LINK}>Privacy</a><br>'
+        f"{_esc(_postal(data))}"
+        "</td></tr>"
+    )
+
+    text = "\n".join(
+        [
+            headline,
+            line,
+            "",
+            f"{cta_label}: {cta_url}",
+            "",
+            why,
+            f"Fewer emails: {prefs}",
+            f"Stop this one: {unsub}",
+            f"{APP_NAME} · {_APP_HOST} · Privacy: {_privacy_url()}",
+            _postal(data),
+        ]
+    )
+    return {
+        "subject": subject,
+        "preheader": line,
+        "headline": headline,
+        "line": line,
+        "orb_move": move,
+        "html": _note_doc(preheader=line, rows=rows),
+        "text": text,
+        "headers": _list_unsubscribe(data),
+    }
+
+
+def _why(kind_line: str, audience: str, learner: str) -> str:
+    """Why this arrived, in the reader's own register.
+
+    Three sentences, and every one of them earns its place: why this mail exists, the cadence it
+    is held to (the inbox law, said plainly rather than promised vaguely), and the way to a
+    person. The third is not a courtesy: a reply is what tells a mailbox provider that this is
+    correspondence, and a parent who cannot answer a mail about their child has been sent a
+    leaflet. It is also what carries the rendered text part over the 500-character floor that
+    docs/MAIL-PRIMARY.md §3 names, which is the one length threshold with evidence behind it.
+    """
+    if audience == "parent":
+        who = learner or "your child"
+        return (
+            f"You get this because {who} is under thirteen, so mail about their learning comes "
+            f"to you. {kind_line} It comes at most once a day, and never on a day they came in. "
+            f"Reply to this note and a person answers."
+        )
+    return (
+        f"You get this because {kind_line[0].lower()}{kind_line[1:]} It comes at most once a "
+        f"day, and never on a day you came in. Reply to this note and a person answers."
+    )
+
+
+def quick_one(data: dict[str, Any]) -> dict[str, Any]:
+    """A quick one: forty-eight hours without a lesson, at the hour they usually learn."""
+    audience = _audience(data)
+    learner = _learner_name(data)
+    name = "" if audience == "parent" else str(data.get("name") or "").strip().split(" ")[0][:40]
+    chapter = str(data.get("chapter") or "").strip()
+    minutes = _count(data, "minutes") or 5
+    spoken = _words(minutes)
+    headline = f"{spoken.capitalize()} minutes."
+    if audience == "parent":
+        line = (
+            f"{learner or 'Your child'} left {chapter} waiting. It takes {spoken} minutes."
+            if chapter
+            else f"{learner or 'Your child'} has a card waiting. It takes {spoken} minutes."
+        )
+        subject_rest = f"left {chapter} waiting" if chapter else "has a card waiting"
+        cta_label = "See the card"
+    else:
+        line = (
+            f"{chapter} is waiting. It takes {spoken}."
+            if chapter
+            else f"The next card is waiting. It takes {spoken}."
+        )
+        subject_rest = f"pick up {chapter}" if chapter else "pick up where you stopped"
+        cta_label = "Open the card"
+    return _note(
+        kind="quick_one",
+        data=data,
+        headline=headline,
+        line=line,
+        cta_label=cta_label,
+        cta_url=_link(data, "cta_url", "/learn"),
+        subject=_subject_with(name, learner, subject_rest),
+        why=_why("you asked me to say when a card is waiting.", audience, learner),
+    )
+
+
+def mid_chapter(data: dict[str, Any]) -> dict[str, Any]:
+    """Mid-chapter: a chapter left half done, a day later."""
+    audience = _audience(data)
+    learner = _learner_name(data)
+    name = "" if audience == "parent" else str(data.get("name") or "").strip().split(" ")[0][:40]
+    chapter = str(data.get("chapter") or "").strip()
+    left = _count(data, "cards_left")
+    spoken = _words(left) if left else "a few"
+    cards = "card" if left == 1 else "cards"
+    where = f" in {chapter}" if chapter else ""
+    if audience == "parent":
+        headline = f"{spoken.capitalize()} {cards} left."
+        line = f"{learner or 'Your child'} has {spoken} {cards} left{where}."
+        subject_rest = f"has {spoken} {cards} left{where}"
+        cta_label = "See the card"
+    else:
+        headline = "You were here."
+        line = f"{spoken.capitalize()} {cards} are left{where}."
+        subject_rest = f"{spoken} {cards} are left{where}"
+        cta_label = "Finish the chapter"
+    return _note(
+        kind="mid_chapter",
+        data=data,
+        headline=headline,
+        line=line,
+        cta_label=cta_label,
+        cta_url=_link(data, "cta_url", "/learn"),
+        subject=_subject_with(name, learner, subject_rest),
+        why=_why("you asked me to say when a chapter is nearly done.", audience, learner),
+    )
+
+
+def streak(data: dict[str, Any]) -> dict[str, Any]:
+    """The streak: day three, day seven, day thirty, the morning after."""
+    audience = _audience(data)
+    learner = _learner_name(data)
+    name = "" if audience == "parent" else str(data.get("name") or "").strip().split(" ")[0][:40]
+    days = _count(data, "days") or 3
+    spoken = _words(days)
+    headline = f"{spoken.capitalize()} days."
+    if audience == "parent":
+        line = f"{learner or 'Your child'} has come in {spoken} days running."
+        subject_rest = f"is on {spoken} days"
+        cta_label = "See the week"
+    else:
+        line = f"{spoken.capitalize()} days in a row. Today makes {_words(days + 1)}."
+        subject_rest = f"you are on {spoken} days"
+        cta_label = "Keep it going"
+    return _note(
+        kind="streak",
+        data=data,
+        headline=headline,
+        line=line,
+        cta_label=cta_label,
+        cta_url=_link(data, "cta_url", "/"),
+        subject=_subject_with(name, learner, subject_rest),
+        why=_why("you asked me to mark the days you come in.", audience, learner),
+    )
+
+
+def bonus_level(data: dict[str, Any]) -> dict[str, Any]:
+    """A bonus level: a side door opened on the climb. Optional, and said to be optional."""
+    audience = _audience(data)
+    learner = _learner_name(data)
+    name = "" if audience == "parent" else str(data.get("name") or "").strip().split(" ")[0][:40]
+    between = str(data.get("between") or data.get("chapter") or "").strip()
+    where = f" between {between}" if between else ""
+    headline = "A side door."
+    if audience == "parent":
+        line = f"A game opened{where} for {learner or 'your child'}. Optional."
+        subject_rest = f"has a side door open{where}"
+        cta_label = "See the side door"
+    else:
+        line = f"There is a game{where}. Optional."
+        subject_rest = f"a side door opened{where}"
+        cta_label = "Open the side door"
+    return _note(
+        kind="bonus_level",
+        data=data,
+        headline=headline,
+        line=line,
+        cta_label=cta_label,
+        cta_url=_link(data, "cta_url", "/learn"),
+        subject=_subject_with(name, learner, subject_rest),
+        why=_why("you asked me to say when a side door opens.", audience, learner),
+    )
+
+
+def doubt(data: dict[str, Any]) -> dict[str, Any]:
+    """Your doubt: a photographed page is answered, and the answer was not read live."""
+    audience = _audience(data)
+    learner = _learner_name(data)
+    name = "" if audience == "parent" else str(data.get("name") or "").strip().split(" ")[0][:40]
+    chapter = str(data.get("chapter") or "").strip()
+    about = f" on {chapter}" if chapter else ""
+    if audience == "parent":
+        headline = "The page, solved."
+        line = f"The page {learner or 'your child'} photographed{about}, explained."
+        subject_rest = f"has an answer waiting{about}"
+        cta_label = "See the answer"
+    else:
+        headline = "Your page, solved."
+        line = f"The page you photographed{about}, explained."
+        subject_rest = f"your page{about} is explained"
+        cta_label = "Read the answer"
+    return _note(
+        kind="doubt",
+        data=data,
+        headline=headline,
+        line=line,
+        cta_label=cta_label,
+        cta_url=_link(data, "cta_url", "/doubt"),
+        subject=_subject_with(name, learner, subject_rest),
+        why=_why("you asked me to say when a photographed page is answered.", audience, learner),
+    )
 
 
 # --- registry -------------------------------------------------------------------------
@@ -1378,12 +1845,21 @@ TEMPLATES: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "weekly_digest": weekly_digest,
     "parent_report": parent_report,
     "reengage": reengage,
-    "premium_surprise": premium_surprise,
+    # ``premium_surprise`` was renamed ``plan_opened`` when the coupon copy was taken out of it
+    # (docs/MAIL-PRIMARY.md §4). The old key is not kept as an alias: nothing sends it, and a
+    # name that says "surprise" would invite the copy back.
+    "plan_opened": plan_opened,
     "sunday_note": sunday_note,
     "welcome": welcome,
     "win": win,
     "wish": wish,
     "parent_invite": parent_invite,
+    # the five nudges
+    "quick_one": quick_one,
+    "mid_chapter": mid_chapter,
+    "streak": streak,
+    "bonus_level": bonus_level,
+    "doubt": doubt,
 }
 
 KINDS = tuple(TEMPLATES)
@@ -1397,8 +1873,141 @@ HAND_KINDS = frozenset({"sunday_note", "welcome", "win", "wish"})
 PAPER_KINDS = HAND_KINDS | {"parent_invite"}
 
 
+# --- who is owed a way out (docs/MAIL-PRIMARY.md §2) -------------------------------------------
+# TRANSACTIONAL mail carries no List-Unsubscribe and no List-Id: Google excludes password resets,
+# receipts, confirmations and one-time codes, and an unsubscribe link on a verification code is a
+# way for a person to lock themselves out of their own account.
+TRANSACTIONAL_KINDS: frozenset[str] = frozenset(
+    {"verify_email", "account_created", "plan_opened"}
+)
+
+# Everything else is SUBSCRIBED and carries both headers. This used to be true of the paper set
+# alone, which meant seven subscribed messages went out with no unsubscribe header at all and
+# nothing held them: the largest defect the mail law found in this file. :func:`render` now
+# attaches the headers for every kind here, and ``email.send_email`` holds a live send whose
+# rendered headers still lack one.
+SUBSCRIBED_KINDS: frozenset[str] = frozenset(set(TEMPLATES) - TRANSACTIONAL_KINDS)
+
+
 def render(kind: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
     """Render one template to {subject, html, text[, preheader, headers]}. Raises KeyError on an
     unknown kind. ``headers`` (List-Unsubscribe) and ``preheader`` are present on the hand-drawn
-    kinds; the send path forwards ``headers`` to the provider verbatim."""
-    return TEMPLATES[kind](data or {})
+    kinds; the send path forwards ``headers`` to the provider verbatim.
+
+    Every SUBSCRIBED kind gets its unsubscribe headers here when its own template did not build
+    them, so a template can never be the reason a reader has no way out but Block.
+    """
+    out = TEMPLATES[kind](data or {})
+    if kind in SUBSCRIBED_KINDS and not out.get("headers"):
+        out = {**out, "headers": _list_unsubscribe(data or {})}
+    return out
+
+
+# --- the register, scanned (docs/MAIL-PRIMARY.md "What must never appear") --------------------
+# The law's own list, as a function every template is run through in the suite. Register first:
+# this is not how Wobo talks. Category second: Google's model of a promotion is deals, discount
+# codes and product imagery, so this vocabulary tells a classifier what the mail IS rather than
+# tricking it. The list is not a spam-word blocklist and must never be defended as one.
+PROMOTIONAL_WORDS: tuple[str, ...] = (
+    "free",
+    "offer",
+    "deal",
+    "deals",
+    "discount",
+    "save",
+    "exclusive",
+    "limited",
+    "gift",
+    "unlock",
+    "unlocked",
+    "on us",
+    "no strings",
+    "act now",
+    "last chance",
+    "don't miss",
+    "hurry",
+    "premium",
+)
+
+#: The exceptions, each a fact rather than an offer. The law names the first; the second is the
+#: daily allowance, which the copy law (DESIGN.md §0, voice.md §8) forbids us to COUNT, so the
+#: word is the only honest way left to say what the plan is.
+_PROMO_EXCEPTIONS: tuple[str, ...] = ("the free plan", "free every day")
+
+#: The sign-off is a mark, not a sentence: "— Wobo" under what Wobo said is the design's own
+#: signature (design/email-v1.html), and the em dash law is about prose a person reads. Every
+#: other em dash is still a finding.
+_SIGN_OFF = re.compile(rf"(?:&mdash;|—)\s*{re.escape(APP_NAME)}")
+
+_TAG = re.compile(r"<[^>]+>")
+_ENTITY = re.compile(r"&(#\d+|[a-z]+);")
+_EMOJI = re.compile(
+    "[\U0001f000-\U0001faff☀-➿←-⇿⬀-⯿️]", re.UNICODE
+)
+_CAPS = re.compile(r"\b[A-Z]{3,}\b")
+
+
+def text_of(email: dict[str, Any]) -> str:
+    """The plain-text part a person reads. What every length and register rule is measured on."""
+    return str(email.get("text") or "")
+
+
+def _visible(html_out: str) -> str:
+    """The words a reader sees, with the markup taken out."""
+    stripped = _TAG.sub(" ", html_out)
+    return _ENTITY.sub(" ", stripped)
+
+
+def promotional_problems(email: dict[str, Any], kind: str | None = None) -> list[str]:
+    """Everything in this rendered mail that the mail law forbids. Empty is the only pass.
+
+    Run over EVERY template and every subject by the suite. A new kind cannot be added without
+    meeting the same bar as the five nudges, which is the whole point of scanning rather than
+    reviewing.
+    """
+    subject = str(email.get("subject") or "")
+    text = _SIGN_OFF.sub(" ", text_of(email))
+    html_out = _SIGN_OFF.sub(" ", str(email.get("html") or ""))
+    visible = _visible(html_out)
+    problems: list[str] = []
+
+    def scan(where: str, blob: str) -> None:
+        lowered = blob.lower()
+        for exception in _PROMO_EXCEPTIONS:
+            lowered = lowered.replace(exception, " ")
+        for word in PROMOTIONAL_WORDS:
+            if re.search(rf"(?<![a-z]){re.escape(word)}(?![a-z])", lowered):
+                problems.append(f"{where}: promotional word {word!r}")
+        if "!" in blob:
+            problems.append(f"{where}: an exclamation mark")
+        if "%" in blob:
+            problems.append(f"{where}: a percent sign")
+        if "—" in blob or "&mdash;" in blob.lower():
+            # The sign-off "— Wobo" is the one place a dash is drawn, and it is drawn as an
+            # entity inside markup rather than written in a sentence; prose is checked here.
+            problems.append(f"{where}: an em dash")
+        if _EMOJI.search(blob):
+            problems.append(f"{where}: an emoji")
+        if re.search(r"\b(hi|hello|hey)\s+there\b", lowered) or ", there" in lowered:
+            problems.append(f"{where}: 'there' standing in for a name")
+        if re.search(r"(?<![\w'])i(?![\w'])", blob):
+            problems.append(f"{where}: a lowercase 'i' for Wobo")
+
+    scan("subject", subject)
+    scan("text", text)
+    if _CAPS.search(subject) or _CAPS.search(str(email.get("preheader") or "")):
+        problems.append("subject: ALL CAPS")
+    # The law forbids ALL CAPS in a subject, a preheader or a first line, and keeps the
+    # small-caps eyebrow deeper in the paper set, which is the owner's own design ported verbatim
+    # from design/email-v1.html. So the transform is a finding everywhere but there.
+    if "text-transform:uppercase" in html_out and (kind is None or kind not in PAPER_KINDS):
+        problems.append("html: ALL CAPS rendered by text-transform")
+    if _EMOJI.search(visible):
+        problems.append("html: an emoji")
+    if "%" in visible:
+        problems.append("html: a percent sign")
+    if "made for curious minds" in visible.lower():
+        problems.append("html: a slogan in the footer")
+    if re.search(r"app\s*store|google\s*play", visible, re.IGNORECASE):
+        problems.append("html: an app store badge")
+    return problems

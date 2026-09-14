@@ -10,14 +10,28 @@ model reads the results itself and hands back the candidate documents it judged 
 provider is the router's own model, called with its native search tool:
 
 ===========  =========================================  ==============================
-flavour      tool                                       model (from the router's tiers)
+flavour      how search is asked for                    model (from the router's tiers)
 ===========  =========================================  ==============================
-``openai``   ``{"type": "web_search"}``                 the ``generate`` tier (discovery
-                                                        jobs are a generate-tier job,
+``openai``   ``/v1/responses`` with the ``web_search``  the ``generate`` tier (discovery
+             tool                                       jobs are a generate-tier job,
                                                         WOBO-PLAN §9)
-``anthropic````{"type": "web_search_20250305"}``        the ``verify`` tier — the other
+``anthropic````tools=[{"type": "web_search_20250305"}]`` the ``verify`` tier — the other
                                                         provider, for the same key set
 ===========  =========================================  ==============================
+
+**Why the two shapes differ, and why this cost us the whole pipeline.** OpenAI's
+``{"type": "web_search"}`` is a **Responses API** tool. Everything in this gateway calls through
+litellm's chat-completions path, where OpenAI accepts only ``function`` and ``custom`` tool types,
+so every OpenAI search this module ever attempted came back ``Invalid value: 'web_search'.
+Supported values are: 'function' and 'custom'`` — and since ``openai`` is what ``auto`` resolves
+to first, stage one of discovery refused on every board, always, from the day it was written.
+The first end-to-end run (2026-09-11) is what found it. Chat completions also accepts a
+``web_search_options`` field — and this model family **ignores it silently**: same latency, same
+cost, no annotations, and urls that are the model's recollection rather than search results, one
+of which was a 404. So the OpenAI flavour searches on ``/v1/responses``, where the API reports
+each ``web_search_call`` it ran and a reply with none behind it can be thrown away
+(:func:`_responses_search`). Anthropic's Messages API does take a server-side tool on the
+chat-completions shape, so that flavour is unchanged.
 
 Neither branch names a model here: both ask :mod:`wobo_gateway.routing` for the tier's model, so
 a routing change moves discovery with it and no model id is written twice.
@@ -115,6 +129,32 @@ class SearchProvider(Protocol):
 
 
 # --- query planning --------------------------------------------------------------------
+#: How many of a board's aliases ride in the alias query. Three names is what a person would
+#: type; a list of seven is a worse brief than a list of three.
+MAX_ALIASES_IN_QUERY = 3
+
+
+def _alias_clause(framework_name: str, aliases: Sequence[str]) -> str:
+    """``"UPMSP" OR "UP board" OR "Uttar Pradesh board"`` — the names the board publishes under.
+
+    A board's registry name is its legal one ("Board of High School and Intermediate Education
+    Uttar Pradesh"), and nobody on the web writes it. Its aliases are what its own documents,
+    its press and every learner call it, and the seed already holds them. An alias that is only
+    the registry name again in different case adds nothing and is dropped.
+    """
+    folded = framework_name.strip().lower()
+    kept: list[str] = []
+    for alias in aliases:
+        name = (alias or "").strip()
+        lowered = name.lower()
+        if not name or lowered == folded or lowered in {k.lower() for k in kept}:
+            continue
+        kept.append(name)
+        if len(kept) >= MAX_ALIASES_IN_QUERY:
+            break
+    return " OR ".join(f'"{name}"' for name in kept)
+
+
 def plan_queries(
     *,
     framework_name: str,
@@ -123,12 +163,16 @@ def plan_queries(
     version: str | None = None,
     official_site: str | None = None,
     country: str | None = None,
+    aliases: Sequence[str] = (),
 ) -> tuple[str, ...]:
-    """The board's own site first, then the open web (``docs/CURRICULUM.md`` §4.1).
+    """The board's own site first, then its own names, then the open web (``CURRICULUM.md`` §4.1).
 
     Ordered cheapest-to-truest: if the registry knows the framework's official site we ask that
     host directly, because a document on the board's own domain is the only thing we would call
-    official anyway.
+    official anyway. The alias query comes second because the first live run showed it is the one
+    that decides: three Indian state boards were searched for under their registry names and two
+    of them returned nothing at all, while the names their syllabi are actually published under
+    ("UPMSP", "Samacheer Kalvi") sat unused in the request the whole time.
     """
     year = (version or "").strip()
     base = f"{framework_name} {level} {subject}".strip()
@@ -136,6 +180,9 @@ def plan_queries(
     host = _site_host(official_site)
     if host:
         queries.append(f"site:{host} {level} {subject} syllabus {year}".strip())
+    clause = _alias_clause(framework_name, aliases)
+    if clause:
+        queries.append(f"{clause} {level} {subject} syllabus {year} official pdf".strip())
     queries.append(f'"{framework_name}" {level} {subject} syllabus {year} official pdf'.strip())
     queries.append(f'"{framework_name}" {level} {subject} curriculum document {year}'.strip())
     tail = f"{base} syllabus"
@@ -240,6 +287,12 @@ def run_search(
         collected.extend(found)
         if len({_canonical(r.url) for r in collected if _usable(r.url)}) >= budget.max_results:
             break
+    if not collected and getattr(provider, "searches_run", None) == 0:
+        # Nothing was found AND nothing was ever looked up. "I could not find an official
+        # syllabus" would be a lie about a search that never ran; this is the other line.
+        raise SearchUnavailable(
+            f"{provider.name} answered every query without running a web search"
+        )
     return rank_results(collected, official_site=official_site)[: budget.max_results]
 
 
@@ -286,14 +339,28 @@ _SEARCH_SYSTEM = (
     "Reply with strict JSON only, no prose outside it:\n"
     '{"results":[{"url":"<exact url>","title":"<document title>","why":"<one short reason it '
     'is official>"}]}\n'
-    "If you find nothing official, reply {\"results\":[]}. An empty list is a correct answer."
+    'If you find nothing official, reply {"results":[]}. An empty list is a correct answer.'
 )
 
-# The native web-search tool for each provider. Nothing else in the gateway knows these shapes.
-_TOOL_SPECS: dict[str, dict[str, Any]] = {
-    "openai": {"type": "web_search"},
-    "anthropic": {"type": "web_search_20250305", "name": "web_search"},
-}
+#: The flavours that can search at all. The shape each one needs is :func:`search_kwargs`.
+_FLAVOURS: tuple[str, ...] = ("openai", "anthropic")
+
+#: Anthropic's server-side search tool, bound on the request. OpenAI has no equivalent TOOL on
+#: chat completions; see the module docstring.
+_ANTHROPIC_TOOL: dict[str, Any] = {"type": "web_search_20250305", "name": "web_search"}
+
+
+def search_kwargs(flavour: str, *, max_uses: int) -> dict[str, Any]:
+    """The request fields that make this flavour search. One shape per provider, in one place.
+
+    OpenAI: ``web_search_options``, because chat completions refuses a ``web_search`` tool.
+    Anthropic: a bound server tool, capped at ``max_uses`` so one query cannot become twenty.
+    """
+    if flavour == "anthropic":
+        return {"tools": [{**_ANTHROPIC_TOOL, "max_uses": max_uses}]}
+    if flavour == "openai":
+        return {"web_search_options": {}}
+    raise ValueError(f"unknown search flavour {flavour!r}")
 
 
 def _model_for(flavour: str) -> str:
@@ -314,13 +381,17 @@ _KEY_FOR: dict[str, str] = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_
 
 
 def _tool_search(
-    *, model: str, tools: list[dict[str, Any]], query: str, timeout_s: float
-) -> str:
-    """One completion with the provider's own search tool bound. Returns the raw reply text.
+    *, model: str, call: dict[str, Any], query: str, timeout_s: float
+) -> tuple[str, int]:
+    """One completion with this provider's own search bound. ``(reply text, searches run)``.
 
     Through ``model_call``, never ``litellm.completion`` directly. There is no litellm fallback
-    list here on purpose: each provider's search tool has its own shape, so the chain across
+    list here on purpose: each provider asks for search in its own shape, so the chain across
     providers is run by :meth:`NativeToolSearchProvider.search`, one flavour at a time.
+
+    The count is what makes the reply admissible: a model that answered without searching is
+    remembering, and :meth:`NativeToolSearchProvider.search` throws that away. Anthropic reports
+    each server-side search as a ``server_tool_use`` block, which is what is counted here.
     """
     from wobo_gateway.model_call import complete
     from wobo_gateway.telemetry import record_cost
@@ -331,12 +402,114 @@ def _tool_search(
             {"role": "system", "content": _SEARCH_SYSTEM},
             {"role": "user", "content": f"Find the official document for: {query}"},
         ],
-        tools=tools,
         max_tokens=1500,
         timeout=timeout_s,
+        **call,
     )
     record_cost(capability="curriculum.discovery", model=model, response=response)
-    return response.choices[0].message.content or ""
+    return (response.choices[0].message.content or ""), _searches_in(response)
+
+
+def _searches_in(response: Any) -> int:
+    """How many web searches a chat-completions reply actually ran, as far as it will say.
+
+    Anthropic surfaces ``server_tool_use`` blocks for its own search tool; litellm carries them
+    on the message. Nothing is inferred: a reply that says nothing about searching counts zero,
+    which is the strict reading and the safe one.
+    """
+    try:
+        message = response.choices[0].message
+    except Exception:  # pragma: no cover — a provider object shaped unlike any we call
+        return 0
+    count = 0
+    for name in ("server_tool_use", "tool_calls", "provider_specific_fields"):
+        blob = getattr(message, name, None)
+        if isinstance(blob, list):
+            count += sum(
+                1
+                for item in blob
+                if "search" in str(getattr(item, "type", "") or (item or {})).lower()
+            )
+        elif isinstance(blob, dict):
+            count += sum(1 for key in blob if "search" in str(key).lower() and blob[key])
+    return count
+
+
+def _responses_search(*, model: str, query: str, timeout_s: float) -> tuple[str, int]:
+    """OpenAI's search, on ``/v1/responses``. ``(reply text, searches actually run)``.
+
+    **Why this one call does not ride** :mod:`wobo_gateway.model_call`. OpenAI's web search is a
+    Responses API tool; chat completions — the only shape ``model_call.complete`` speaks — refuses
+    it outright (``Invalid value: 'web_search'``) and accepts ``web_search_options`` while
+    silently ignoring it, which is the trap the first live run fell into: plausible urls, no
+    search behind them, one of them a 404. So the OpenAI flavour calls ``litellm.responses``
+    here, records its cost through the same funnel every other call uses, and counts the
+    ``web_search_call`` items the API reports so the caller can tell a search from a memory.
+    """
+    import litellm
+
+    from wobo_gateway.routing import token_cost
+
+    response = litellm.responses(
+        model=model,
+        input=[
+            {"role": "system", "content": _SEARCH_SYSTEM},
+            {"role": "user", "content": f"Find the official document for: {query}"},
+        ],
+        tools=[{"type": "web_search"}],
+        max_output_tokens=1500,
+        timeout=timeout_s,
+    )
+    raw = response.model_dump() if hasattr(response, "model_dump") else dict(response)
+    output = raw.get("output") or []
+    searches = sum(1 for item in output if item.get("type") == "web_search_call")
+    text = "".join(
+        part.get("text", "")
+        for item in output
+        if item.get("type") == "message"
+        for part in (item.get("content") or [])
+    )
+    # ``litellm.completion_cost`` does not price a Responses object, so the catalogue does it
+    # from the usage the API reports. An unpriced search would be a hole in the day's ceiling.
+    usage = raw.get("usage") or {}
+    tokens_in, tokens_out = usage.get("input_tokens"), usage.get("output_tokens")
+    cost = token_cost(model, tokens_in, tokens_out)
+    try:
+        from wobo_gateway import ledger, spend
+
+        if cost is not None:
+            spend.record(cost, capability="curriculum.discovery", model=model)
+            ledger.note_spend(cost)
+        # The DURABLE record, priced or not: ``telemetry.record_cost`` writes this row for every
+        # chat-completions call, and a search that left no row would be the one call an operator
+        # could not see. Served is the model that answered: no fallback list rides on this call.
+        ledger.record(
+            capability="curriculum.discovery",
+            model_requested=model,
+            model_served=str(raw.get("model") or "") or model,
+            tokens_in=tokens_in,
+            tokens_out=tokens_out,
+            cost_usd=cost,
+            cost_source=ledger.FROM_CATALOGUE if cost is not None else ledger.UNPRICED,
+        )
+    except Exception:  # noqa: BLE001 — accounting must never be able to fail a search
+        logger.debug("discovery.search cost not recorded", exc_info=True)
+    logger.info(
+        "discovery.search ran",
+        extra={
+            "fields": {
+                "model": model,
+                "searches": searches,
+                "cost_usd": cost,
+                "queries": [
+                    (item.get("action") or {}).get("query")
+                    for item in output
+                    if item.get("type") == "web_search_call"
+                ],
+            }
+        },
+    )
+    return text, searches
 
 
 class NativeToolSearchProvider:
@@ -354,14 +527,19 @@ class NativeToolSearchProvider:
         max_uses: int = 5,
         timeout_s: float = 40.0,
         complete: Callable[[str], str] | None = None,
+        respond: Callable[[str], tuple[str, int]] | None = None,
     ) -> None:
-        if flavour not in _TOOL_SPECS:
+        if flavour not in _FLAVOURS:
             raise ValueError(f"unknown search flavour {flavour!r}")
         self.name = flavour
         self.max_uses = max_uses
         self.timeout_s = timeout_s
         self._model = model
         self._complete = complete
+        self._respond = respond
+        #: How many web searches this provider has actually run. Zero after a whole plan means
+        #: nothing was looked up, whatever the replies said, and :func:`run_search` refuses.
+        self.searches_run = 0
 
     @property
     def model(self) -> str:
@@ -369,40 +547,46 @@ class NativeToolSearchProvider:
             self._model = _model_for(self.name)
         return self._model
 
-    def _tools(self) -> list[dict[str, Any]]:
-        spec = dict(_TOOL_SPECS[self.name])
-        if self.name == "anthropic":
-            spec["max_uses"] = self.max_uses
-        return [spec]
+    def search_call(self) -> dict[str, Any]:
+        """The request fields this flavour searches with (:func:`search_kwargs`)."""
+        return search_kwargs(self.name, max_uses=self.max_uses)
 
     def _others(self, env: Mapping[str, str] | None = None) -> list[NativeToolSearchProvider]:
         """The other flavours this deploy holds a key for, in table order: the chain behind us."""
         env = env if env is not None else os.environ
         return [
-            NativeToolSearchProvider(
-                flavour, max_uses=self.max_uses, timeout_s=self.timeout_s
-            )
-            for flavour in _TOOL_SPECS
+            NativeToolSearchProvider(flavour, max_uses=self.max_uses, timeout_s=self.timeout_s)
+            for flavour in _FLAVOURS
             if flavour != self.name and env.get(_KEY_FOR[flavour])
         ]
 
-    def search(self, query: str, *, limit: int = 5) -> list[SearchResult]:
+    def _ask(self, query: str) -> tuple[str, int]:
+        """One query to THIS flavour. ``(reply text, searches actually run)``."""
+        if self._respond is not None:
+            return self._respond(query)
         if self._complete is not None:
-            text = self._complete(query)
-            return parse_results(text, provider=self.name)[:limit]
-        # The cross-provider chain, run here because litellm cannot: OpenAI's search tool and
-        # Anthropic's are different objects, so a fallback needs the other provider's tool bound,
-        # not just the other provider's model. The first flavour that answers wins; when every
-        # one is down the LAST error is raised, honestly, and the job refuses in Wobo's voice.
+            # The older one-string seam: a test that scripts a reply is asserting about parsing,
+            # not about whether a search happened, so its reply counts as one search.
+            return self._complete(query), 1
+        if self.name == "openai":
+            return _responses_search(model=self.model, query=query, timeout_s=self.timeout_s)
+        return _tool_search(
+            model=self.model,
+            call=self.search_call(),
+            query=query,
+            timeout_s=self.timeout_s,
+        )
+
+    def search(self, query: str, *, limit: int = 5) -> list[SearchResult]:
+        # The cross-provider chain, run here because litellm cannot: OpenAI searches on the
+        # Responses API and Anthropic through a bound server tool, so a fallback needs the other
+        # provider's whole call shape, not just the other provider's model. The first flavour
+        # that answers wins; when every one is down the LAST error is raised, honestly, and the
+        # job refuses in Wobo's voice.
         failure: Exception | None = None
         for flavour in (self, *self._others()):
             try:
-                text = _tool_search(
-                    model=flavour.model,
-                    tools=flavour._tools(),
-                    query=query,
-                    timeout_s=flavour.timeout_s,
-                )
+                text, searches = flavour._ask(query)
             except Exception as exc:  # noqa: BLE001 — the next provider gets its turn
                 logger.warning(
                     "curriculum search: %s did not answer (%s); trying the next provider",
@@ -411,6 +595,16 @@ class NativeToolSearchProvider:
                 )
                 failure = exc
                 continue
+            self.searches_run += searches
+            if not searches:
+                # A reply with no search behind it is the model REMEMBERING a url. The first law
+                # of this stage is that we never return a url we did not see in a search result,
+                # so it is discarded whatever it says — the run refuses, and that is honest.
+                logger.warning(
+                    "curriculum search: %s answered without searching; its urls are discarded",
+                    flavour.name,
+                )
+                return []
             return parse_results(text, provider=flavour.name)[:limit]
         assert failure is not None  # the loop always runs at least once
         raise failure

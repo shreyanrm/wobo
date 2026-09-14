@@ -42,6 +42,11 @@ const SHEETS: Record<string, string> = {
   // the highlighter over the part of the page being read, and that is a color-mix of marigold,
   // not a wash token: a wash is opaque and would cover the very text it is meant to light.
   'doubt/doubt.css': readFileSync(join(HERE, 'doubt', 'doubt.css'), 'utf8'),
+  // "Have a code?" — one field on two surfaces (the checkout card and the plan panel), so it
+  // brings its own sheet rather than being written twice. That is exactly the shape this list
+  // exists to police: a component sheet that lands inside two other sheets' screens is the most
+  // likely place for a short class name to come to mean two things (DESIGN.md §0, trap 1).
+  'promo/promo.css': readFileSync(join(HERE, 'promo', 'promo.css'), 'utf8'),
 };
 
 const SCREENS = [

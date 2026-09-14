@@ -1,0 +1,67 @@
+{
+  "version": "test-depth-bands",
+  "note": "The three concepts docs/CONTENT-INTERACTION.md 5b names by name, and nothing else. The shipped registry (content/catalogs/concepts.json) carries 3948 of these; this fixture carries the three the law argues from, so the test asserts the law rather than today's catalogue.",
+  "derivation": "conceptId = slug(topic.name)",
+  "concepts": {
+    "the-nature-of-roots": {
+      "canonicalName": "The nature of roots",
+      "subjects": [
+        "math"
+      ],
+      "boards": [
+        "CBSE"
+      ],
+      "grades": [
+        "Class 9"
+      ],
+      "occurrences": 1
+    },
+    "fractions": {
+      "canonicalName": "Fractions",
+      "subjects": [
+        "math"
+      ],
+      "boards": [
+        "CBSE",
+        "ICSE"
+      ],
+      "grades": [
+        "Class 4",
+        "Class 6",
+        "Class 8"
+      ],
+      "occurrences": 3
+    },
+    "the-senior-only-one": {
+      "canonicalName": "The senior only one",
+      "subjects": [
+        "science"
+      ],
+      "boards": [
+        "ISC"
+      ],
+      "grades": [
+        "Class 11",
+        "Class 12"
+      ],
+      "occurrences": 2
+    },
+    "electric-current": {
+      "canonicalName": "Electric current",
+      "subjects": [
+        "science"
+      ],
+      "boards": [
+        "CBSE",
+        "ISC"
+      ],
+      "grades": [
+        "Class 7",
+        "Class 10",
+        "Class 12"
+      ],
+      "occurrences": 3
+    }
+  },
+  "overrides": {}
+}

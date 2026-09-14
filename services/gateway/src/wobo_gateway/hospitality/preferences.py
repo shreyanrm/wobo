@@ -54,7 +54,12 @@ _REGION = re.compile(r"^[A-Z]{2}-[A-Z0-9]{1,3}$")
 _TIMEZONE = re.compile(r"^[A-Za-z_+-]+(/[A-Za-z0-9_+-]+)*$")
 _CALENDAR = re.compile(r"^[a-z][a-z0-9-]*$")
 
-MAIL_KINDS: tuple[str, ...] = ("sunday_note", "wins", "festivals")
+#: The five nudges (docs/EMAILS-AND-ANIMATIONS.md §1). Each is its own dial with its own
+#: one-click stop, because a family that wants the doubt answered but not the streak must be able
+#: to say exactly that: a single "fewer emails" switch is how a reader ends up pressing Block.
+NUDGE_KINDS: tuple[str, ...] = ("quick_one", "mid_chapter", "streak", "bonus_level", "doubt")
+
+MAIL_KINDS: tuple[str, ...] = ("sunday_note", "wins", "festivals", *NUDGE_KINDS)
 
 
 @dataclass(frozen=True)
@@ -62,6 +67,12 @@ class MailPreferences:
     sunday_note: bool = True
     wins: bool = True
     festivals: bool = True
+    # The five nudges, each its own dial (§1, "cadence is the learner's").
+    quick_one: bool = True
+    mid_chapter: bool = True
+    streak: bool = True
+    bonus_level: bool = True
+    doubt: bool = True
     festival_calendar: tuple[str, ...] = ()
     country: str | None = None
     region: str | None = None
@@ -83,9 +94,7 @@ class MailPreferences:
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "sunday_note": self.sunday_note,
-            "wins": self.wins,
-            "festivals": self.festivals,
+            **{kind: bool(getattr(self, kind)) for kind in MAIL_KINDS},
             "festival_calendar": list(self.festival_calendar),
             "country": self.country,
             "region": self.region,
@@ -221,9 +230,7 @@ def from_row(row: dict[str, Any]) -> MailPreferences:
     if isinstance(calendars, str):  # PostgREST renders text[] as JSON; a raw pg literal is "{a,b}"
         calendars = [c for c in calendars.strip("{}").split(",") if c]
     return MailPreferences(
-        sunday_note=row.get("sunday_note") is not False,
-        wins=row.get("wins") is not False,
-        festivals=row.get("festivals") is not False,
+        **{kind: row.get(kind) is not False for kind in MAIL_KINDS},
         festival_calendar=tuple(str(c) for c in (calendars or [])),
         country=str(row["country"]).upper() if row.get("country") else None,
         region=str(row["region"]).upper() if row.get("region") else None,
@@ -236,9 +243,7 @@ def from_row(row: dict[str, Any]) -> MailPreferences:
 def to_row(learner_id: str, prefs: MailPreferences) -> dict[str, Any]:
     return {
         _ID_COLUMN: learner_id,
-        "sunday_note": prefs.sunday_note,
-        "wins": prefs.wins,
-        "festivals": prefs.festivals,
+        **{kind: bool(getattr(prefs, kind)) for kind in MAIL_KINDS},
         "festival_calendar": list(prefs.festival_calendar),
         "country": prefs.country,
         "region": prefs.region,

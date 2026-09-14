@@ -118,6 +118,10 @@ export const SCOPED_PREFIXES = [
  */
 export const SCOPED_SESSION_KEYS = [
   'wobo-sky-seen-v1', // which stars have already caught light for this learner this session
+  // The suggestions this learner has waved away (suggest/session.ts). It resets with the tab on
+  // purpose: "a suggestion declined is not offered again that session", and a session is not a
+  // lifetime, because remembering a no for ever is punishing the no.
+  'wobo-suggest-v1',
 ] as const;
 
 /**
@@ -191,6 +195,11 @@ export const DEVICE_KEYS: readonly DeviceKey[] = [
     key: 'wobo-signin-source-v1',
     file: 'apps/web-pwa/src/screens/auth/source.ts',
     why: 'written at the door before there is a subject, read once on the next boot, then gone',
+  },
+  {
+    key: 'wobo-arrival-v1',
+    file: 'apps/web-pwa/src/shell/arrival.ts',
+    why: 'sessionStorage: the card a mail link was pressed for, held across the door before there is a subject, taken once on the far side, then gone',
   },
   {
     key: 'wobo-auth-session-v1',

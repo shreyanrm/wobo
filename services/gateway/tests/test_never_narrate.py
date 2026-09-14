@@ -70,9 +70,10 @@ SHAPES: list[tuple[str, re.Pattern[str]]] = [
 ALLOWED: list[tuple[str, str, str]] = [
     (
         "email_templates.py",
-        "i'm Wobo",
+        "I'm Wobo",
         "the account-created email is the first meeting, like the sign-up door: said once, to "
-        "someone who has not met Wobo, in a message whose subject is the account itself",
+        "someone who has not met Wobo, in a message whose subject is the account itself. The "
+        "capital I is docs/MAIL-PRIMARY.md: a lowercase i for Wobo reads as a mail-merge artefact",
     ),
 ]
 

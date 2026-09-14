@@ -70,12 +70,24 @@ def test_a_cache_inside_the_mount_is_durable_however_it_was_named(
 
 
 def test_the_image_caches_onto_the_mount_path_and_not_the_writable_layer() -> None:
+    """The Dockerfile carries NO ``VOLUME`` instruction, on purpose. Railway rejects the whole file
+    when one is present ("dockerfile invalid: docker VOLUME at Line 63 is not supported, use
+    Railway Volumes"); two production deploys failed on exactly that line before it was removed,
+    and the Dockerfile says so in its own comment. The volume is attached on the platform
+    (``railway volume add --mount-path /data``) and mounts onto a directory the image already
+    owns. What makes the cache durable is therefore: the cache env vars point under /data, the
+    mount point is created and chowned to the user that writes it, and the comment names Railway
+    Volumes so nobody puts the instruction back."""
     dockerfile = (REPO / "services/gateway/Dockerfile").read_text(encoding="utf-8")
     assert "PLEXUS_CACHE_DIR=/data/plexus" in dockerfile
     assert "WOBO_IMAGE_CACHE_DIR=/data/plexus/images" in dockerfile
     # The mount point exists in the image and belongs to the user that writes it, or an attached
     # volume mounts onto a directory the gateway cannot write and every save fails at runtime.
-    assert 'VOLUME ["/data"]' in dockerfile
+    assert "mkdir -p /data/plexus/images" in dockerfile
+    assert "chown -R gateway:gateway /data" in dockerfile
+    # A VOLUME line would make Railway refuse the entire Dockerfile; the comment records why.
+    assert "VOLUME [" not in dockerfile
+    assert "use Railway Volumes" in dockerfile
     assert "PLEXUS_CACHE_DIR=/home/gateway/cache" not in dockerfile
 
 

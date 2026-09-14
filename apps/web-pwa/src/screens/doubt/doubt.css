@@ -138,7 +138,6 @@ label.db-take:focus-within{outline:3px solid var(--pig);outline-offset:2px}
 .db-said{font:400 16px/1.55 var(--sans);color:var(--ink-2);min-height:1.55em}
 .db-said > b{color:var(--ink);font-weight:600}
 .db-note{font-size:14px;color:var(--ink-3);line-height:1.45}
-.db-busy{display:flex;align-items:center;gap:10px;color:var(--ink-2)}
 .db-place{display:grid;gap:10px}
 .db-place > p{color:var(--ink-2)}
 

@@ -13,7 +13,7 @@
  * choosing one. None of the three shows a subject the learner's board does not teach.
  */
 
-import { useWoboBus, WoboBody, type WoboMood } from '@wobo/wobo';
+import { useWoboBus, WaitScene, WoboBody, type WoboMood } from '@wobo/wobo';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ONBOARDED_KEY } from '../App';
@@ -206,20 +206,19 @@ export function FrameBuilding() {
   const [phase, setPhase] = useState<Phase>(world ? 'building' : 'empty');
   const [subjects, setSubjects] = useState<string[]>(world?.subjects ?? []);
   const [mood, setMood] = useState<WoboMood>('thinking');
-  const [narration, setNarration] = useState(0);
   const [trouble, setTrouble] = useState<string | null>(null);
   const ran = useRef(false);
 
-  // Honest narration, in this learner's own words for their own board.
-  const lines = useMemo(
-    () => [
-      label ? `Opening the ${label} shelf for ${level}` : 'Opening your shelf',
-      'Laying your subjects out in a constellation',
-      'Wiring the chapters into a map I can teach from',
-      'Almost there — tidying the edges',
-    ],
-    [label, level],
-  );
+  /**
+   * The wait a learner pays once for their whole board (docs/BOARD-COLD-START.md §2, step 2): "a
+   * designed wait, not a spinner... the orb draws something from their subject. It never says what
+   * it is doing, never shows a percentage, and never mentions a syllabus." The four rotating lines
+   * that used to be here — opening your shelf, laying your subjects out, wiring the chapters,
+   * almost there — were the software describing itself to a child on their first screen.
+   *
+   * The scene is their FIRST subject's, because that is the one they are most likely to open.
+   */
+  const waitSubject = subjects[0] ?? world?.subjects?.[0] ?? '';
 
   useEffect(() => {
     bus.publishPage({
@@ -227,12 +226,6 @@ export function FrameBuilding() {
       state: { board: world?.frameworkId ?? null, grade: level, phase },
     });
   }, [bus, world?.frameworkId, level, phase]);
-
-  useEffect(() => {
-    if (phase !== 'building') return;
-    const id = window.setInterval(() => setNarration((n) => (n + 1) % lines.length), 2100);
-    return () => window.clearInterval(id);
-  }, [phase, lines.length]);
 
   // The one real job: ask the learner's own framework for the subjects of their class.
   // biome-ignore lint/correctness/useExhaustiveDependencies: run-once, guarded by the ran ref
@@ -243,7 +236,6 @@ export function FrameBuilding() {
       setPhase('empty');
       return;
     }
-    void speakLine(lines[0] as string);
     const startedAt = performance.now();
     const already = world.subjects.length > 0;
     const settle = (found: string[], error: string | null) => {
@@ -368,28 +360,12 @@ export function FrameBuilding() {
               transition={{ duration: 0.3 }}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}
             >
-              <div
-                style={{
-                  fontSize: 'clamp(1.2rem, 1rem + 1vw, 1.55rem)',
-                  fontWeight: 600,
-                  letterSpacing: '-0.02em',
-                  color: 'var(--wobo-ink-900)',
-                }}
-              >
-                Opening your world
-              </div>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={narration}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  style={{ fontSize: '0.95rem', color: 'var(--wobo-ink-500)', lineHeight: 1.5 }}
-                >
-                  {lines[narration]}
-                </motion.div>
-              </AnimatePresence>
+              <WaitScene
+                subject={waitSubject}
+                pigment={toneForSubject(waitSubject).hue}
+                orb={false}
+                width={240}
+              />
             </motion.div>
           )}
 

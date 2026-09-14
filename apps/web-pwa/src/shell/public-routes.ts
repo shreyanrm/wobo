@@ -37,6 +37,7 @@ export function isPublicSite(name: Route['name']): boolean {
     name === 'contact' ||
     name === 'sitemap' ||
     name === 'security' ||
+    name === 'press' ||
     name === 'meet-wobo' ||
     name === 'for-parents' ||
     name === 'for-students' ||

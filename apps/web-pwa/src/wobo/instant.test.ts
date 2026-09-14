@@ -34,9 +34,39 @@ describe('the local resolve: what it aims at', () => {
     expect(hit?.by).toBe('part');
   });
 
-  it('finds the hypotenuse inside a part slug that is longer than the word', () => {
+  /**
+   * A NAME'S TAIL IS WHAT THE THING STANDS ON (the adversary, wave 58, finding 1).
+   *
+   * Live at 1440 and at 390, "circle the hypotenuse" rang the SQUARE ON the hypotenuse — the
+   * client's own instant mark, `instant-1#0`, and the sentence the gateway then built from it
+   * ("The square on the hypotenuse is this one."). The learner named a side and got the figure
+   * standing on it, which is the relevance law read backwards: "a question that names a part gets
+   * the part, not its figure".
+   *
+   * Two things were wrong and both are fixed here: the drawing declared no part for the side at
+   * all (`ui/courseIntro.tsx`), and the resolver read "square on the hypotenuse" as a name for the
+   * hypotenuse. The side now has its own declaration, and a name is only ever matched on its own
+   * head.
+   */
+  it('rings the side the learner named, not the figure standing on it', () => {
     const hit = aim('circle the hypotenuse', LAB_GLASS.courseCard0());
+    expect(hit?.target).toBe('course-intro-mathematics.hypotenuse');
+    expect(hit?.kind).toBe('ring');
+    expect(hit?.by).toBe('part');
+  });
+
+  it('still rings the square when the square is what was named', () => {
+    const hit = aim('circle the square on the hypotenuse', LAB_GLASS.courseCard0());
     expect(hit?.target).toBe('course-intro-mathematics.square-on-the-hypotenuse');
+  });
+
+  it('aims at nothing when only the FIGURE standing on the named thing is declared', () => {
+    // The glass as it was before the side had a declaration of its own: the square is the only
+    // thing whose words carry "hypotenuse", and it is not the hypotenuse. No ink, and the useful
+    // sentence is the turn's to give.
+    const map = LAB_GLASS.courseCard0();
+    map.entries = map.entries.filter((e) => e.id !== 'course-intro-mathematics.hypotenuse');
+    expect(resolveInstant({ question: 'circle the hypotenuse', map, core: EMPTY_CORE })).toBeNull();
   });
 
   it('names the right angle without ringing the triangle beside it', () => {
@@ -97,8 +127,11 @@ describe('the local resolve: what it refuses to aim at', () => {
 
   it('aims at nothing when the words are pure deixis and nothing is focused', () => {
     nothing('why does that step work?');
-    nothing('show me why');
     nothing('explain this');
+    // "show me why" names nothing either, but the card the learner is on declares its own idea
+    // and the level's store holds the sentence for it — see "the ask that names nothing at all".
+    // With no core there is no sentence to underline, so it is silent here too.
+    nothing('show me why');
   });
 
   it('leaves a from-scratch drawing to the plane', () => {
@@ -186,7 +219,7 @@ describe('the words come from the core', () => {
   };
 
   it('carries the architect true sentence with the mark', () => {
-    const hit = aim('circle the hypotenuse', LAB_GLASS.courseCard0(), core);
+    const hit = aim('circle the square on the hypotenuse', LAB_GLASS.courseCard0(), core);
     expect(hit?.say).toBe(
       'The square on the hypotenuse has the area of the other two put together.',
     );

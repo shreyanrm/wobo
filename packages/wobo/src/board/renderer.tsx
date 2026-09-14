@@ -53,6 +53,7 @@ import {
 } from './anchors';
 import {
   geometryOf,
+  inkBoxOf,
   MIN_TYPE_PX,
   type ObjectGeometry,
   tallestGlyphUnits,
@@ -264,6 +265,8 @@ interface NodeProps {
   anchor?: string;
   /** The BOARD OBJECT this mark hangs off, when it hangs off one — its subject. */
   on?: string;
+  /** The type size, in board units, when this mark is WRITING rather than drawing. */
+  written?: number;
 }
 
 /** Progress within one stroke of an object, given the object's own 0..1. */
@@ -418,6 +421,16 @@ const BoardObjectNode = memo(function BoardObjectNode(props: NodeProps) {
        * it.
        */
       {...(props.on ? { 'data-wobo-on': props.on } : {})}
+      /**
+       * AND WHETHER IT IS WRITING, with the size the hand settled on.
+       *
+       * The twelve-pixel law is about WRITING; the reach law is about a written note beside the
+       * thing it names. Neither can be checked from the DOM while a written mark and a drawn one
+       * are the same `<g>` of `<path>`s: a probe measuring "the tallest glyph" on every mark on
+       * the board measures the height of an arrow and calls it type. Presentational; nothing in
+       * the product reads it.
+       */
+      {...(props.written !== undefined ? { 'data-wobo-written': String(props.written) } : {})}
       opacity={opacity}
       {...(props.ariaLabel ? { 'aria-label': props.ariaLabel } : {})}
     >
@@ -716,6 +729,22 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
   for (const f of build.focus()) focusMap.set(f.id, f.rect);
   const onGlass = frame.scale !== undefined;
   const avoid = build.avoid;
+  /**
+   * THE INK OF AN ALREADY-BUILT MARK, memoised (`inkBoxOf`). Only a mark that is somebody's
+   * SUBJECT is ever measured, so a board of two thousand strokes pays for the handful of things
+   * that carry a note.
+   */
+  const inked = new Map<string, BoardRect>();
+  const geometries = new Map<string, ObjectGeometry>();
+  const objectInk = (id: string): BoardRect | null => {
+    const hit = inked.get(id);
+    if (hit) return hit;
+    const g = geometries.get(id);
+    if (!g) return null;
+    const box = inkBoxOf(g);
+    inked.set(id, box);
+    return box;
+  };
   const ctx = {
     frame,
     targetRect: (id: string) => targetMap.get(id)?.getRect() ?? null,
@@ -728,6 +757,7 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
     font,
     occupied,
     typeScale,
+    objectInk,
     ...(glassScale !== undefined && glassScale > 0 ? { glassScale } : {}),
     // On the glass, placement is bounded by the glass itself, in px.
     ...(onGlass
@@ -802,6 +832,8 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
     }
     if (entry.geometry) {
       boxes.set(key, entry.geometry.box);
+      geometries.set(key, entry.geometry);
+      inked.delete(key);
       // Ground rather than ink: a plotted grid must not push the notes written over it out of the
       // plot (layout.blocksLayout). Every other kind takes its space.
       if (blocksLayout(String(state.object.kind))) occupied.push(entry.geometry.box);
@@ -1175,6 +1207,7 @@ function inkNode(
       id={key}
       {...(typeof anchored === 'string' && anchored ? { anchor: anchored } : {})}
       {...(typeof on === 'string' && on ? { on } : {})}
+      {...(geometry.text && geometry.size !== undefined ? { written: geometry.size } : {})}
       geometry={geometry}
       ink={ink}
       weight={style?.weight ?? 1}

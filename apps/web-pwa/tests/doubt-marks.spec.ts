@@ -69,7 +69,10 @@ const TURN = [
     t: 120,
     object: {
       id: 'm0',
-      kind: 'underline',
+      // A RING, deliberately: the pen's own pad and its smallest loop are a hand's numbers on a
+      // card whose rows are thirty-six units apart, and on a photographed exercise book the rows
+      // are fifteen. Live at 390 that is what drew one ellipse over three lines at once.
+      kind: 'ring',
       anchor: { target: 'r2' },
       words: 'Solve: 3x + 5 = 20',
       t: { start: 120, dur: 480 },
@@ -213,12 +216,38 @@ for (const c of CONDITIONS) {
     await expect(explain).toBeEnabled();
 
     // THE CLOCK. The answer is four seconds away; the ink is not.
-    const asked = await page.evaluate(() => performance.now());
+    //
+    // MEASURED IN THE PAGE, not by polling from here. A poll round-trip over the debugging
+    // protocol is tens of milliseconds on an idle machine and hundreds under a full suite, and
+    // what it measures is the harness, not the pen: the same turn read 268 ms alone and 1 008 ms
+    // as the twenty-sixth test of a run. An observer inside the page stamps the moment the first
+    // mark enters the DOM, on the same clock as the click.
+    await page.evaluate(() => {
+      const w = window as unknown as { __firstStroke?: number; __asked?: number };
+      w.__firstStroke = undefined;
+      w.__asked = performance.now();
+      const seen = new MutationObserver(() => {
+        if (w.__firstStroke !== undefined) return;
+        if (!document.querySelector('[data-wobo-object]')) return;
+        w.__firstStroke = performance.now();
+        seen.disconnect();
+      });
+      seen.observe(document.body, { childList: true, subtree: true });
+    });
     await explain.click();
     await expect
-      .poll(async () => (await measure(page)).marks.length, { timeout: 3_000, intervals: [16] })
+      .poll(
+        () =>
+          page.evaluate(
+            () => (window as unknown as { __firstStroke?: number }).__firstStroke ?? -1,
+          ),
+        { timeout: 3_000, intervals: [50] },
+      )
       .toBeGreaterThan(0);
-    const firstStroke = (await page.evaluate(() => performance.now())) - asked;
+    const firstStroke = await page.evaluate(() => {
+      const w = window as unknown as { __firstStroke: number; __asked: number };
+      return w.__firstStroke - w.__asked;
+    });
     await page.screenshot({ path: join(SHOTS, `${c.name}-first-stroke.png`) });
     expect(firstStroke, 'the first stroke is on the glass within a second of the ask').toBeLessThan(
       1_000,

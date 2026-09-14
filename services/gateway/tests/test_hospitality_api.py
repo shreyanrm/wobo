@@ -69,6 +69,12 @@ def test_defaults_and_the_closed_list_of_calendars(client: TestClient, auth: Any
         "sunday_note": True,
         "wins": True,
         "festivals": True,
+        # The five nudges, each its own dial (docs/EMAILS-AND-ANIMATIONS.md §1).
+        "quick_one": True,
+        "mid_chapter": True,
+        "streak": True,
+        "bonus_level": True,
+        "doubt": True,
         "festival_calendar": [],
         "country": None,
         "region": None,

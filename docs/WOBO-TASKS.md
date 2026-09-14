@@ -1934,3 +1934,65 @@ solved and the Sunday note to a parent. We never promise Primary to anyone, incl
 The file carries 26 assertions a test can run over every rendered template, eight subject lines and
 eight opening lines for the real family, the envelope headers to set and to omit, and 15 things the
 readers could not establish that we have to measure ourselves.
+
+### 10.67 The doubt page: the mark on its line, the instant mark on a photograph, and a label that is never a sentence (wave 58, 2026-09-11)
+
+The adversary's wave-57 judgement left the doubt photo failing three lenses at once at 390, live: craft
+1 ("the marks sprawl across the whole page instead of on the two lines they name"), timing 1 (the one
+turn of the 59 that fails outright — first stroke 8 193 ms after the confirm against a one-second law),
+experience 2 (mark labels spliced into the teaching line as prose). Three defects, one surface, and
+each needed designing rather than patching.
+
+**The marks. One measurement, and the button IS the line.** A line of a photographed page is about
+seven pixels tall at 390. `PhotoStage` grew each region button to the thumb's 44 px floor, and the
+glass walk reads a registered target's own ELEMENT by identity — so `{target: "r2"}` resolved to a 44 px
+slab centred on a 7 px line and a ring on line 2 covered lines 1 and 3 as well. `offPage` read 0 the
+whole time, because a slab inside the photo is inside the photo. Now the button's box is the line
+exactly as `regionRect` resolves it, and the thumb gets a BAND around it (`placeRegions`,
+`.db-region::after`) which has no box on the glass of its own. The bands partition the photo: each
+reaches toward 44 px and stops at the halfway mark to the next line's centre, so no two overlap, none
+leaves a gap, and no tap is stolen — six 44 px slabs 13 px apart used to overlap three ways and the
+topmost in the DOM took every tap. Two tap-target probes learned to measure the pressable area
+(`::before`/`::after` insets) rather than the border box.
+
+**And the pen learned the pitch.** With the anchor fixed the ring still covered the line above, because
+every padding number in `board/geometry.ts` is a hand's number on a CARD whose rows are 36 units apart:
+nine of pad, a smallest loop of ten. `rowRoom` measures the real pitch off the glass map and caps both —
+half the way to the nearest neighbouring row, never below three. A ring on a photographed line went from
+37 units tall to 25; on a card, where no row is near, nothing changed.
+
+**The probe that would have caught it.** `offPageStrokes` asks whether a mark is inside the photo.
+`strayMarks` asks the question a learner asks: *which line is it about?* — off its line (further than a
+note's 24 px reach) or over another line (covering 60% of one it does not name). Not nearest-centre:
+at a 13 px pitch an underline lands in the gap and nearest is a coin toss. The renderer now writes
+`data-wobo-anchor` beside `data-wobo-object`, so any probe can read what a mark is ABOUT off the DOM
+rather than going back to the plan. `tests/doubt-marks.spec.ts` runs it on a real screen at 390 and
+1440, light and dark, with motion reduced.
+
+**The clock. The instant mark applied to a photograph.** The reading is a vision call and will never be
+instant, so the design is around it rather than against it: the learner's confirmed lines are
+registered targets the moment they press Explain, so `resolveDoubtInstant` picks one with no model call
+— the line they TAPPED, else the line their own words name, else the equation (the same seat `doubt.py`
+gives `canvas.equation`, so the local aim and the model's opening mark are the same line and the ink
+never has to move). A page with no relation and nothing pointed at still gets no ink. The mark rides
+to the gateway on the answer body (`standing`) so the brain plans against the page as the learner sees
+it. Measured live at 390 on Luna: **first stroke 88, 91 and 188 ms after the confirm**, against 8 193.
+
+**The words. A label is what a mark says, never a sentence in the speech.** `board/naming.py` gives
+every mark the say does not name a sentence from the mark's own `words`, which is right for a board
+Wobo drew and wrong twice over on a photograph: the model writes a TAG ("Starting equation", "Wrong
+sign", "Correct first step") and all three were spliced into the middle of the teaching line. The
+shaper now gives each mark the text of the line it sits on — what it is actually about — and flags it
+`meta.page`, which `naming.on_the_page` reads: a mark on the learner's own page is owed no sentence,
+because reading their own handwriting back to them is the other forbidden thing. Live captions after
+the change carry no label at all.
+
+Suites: typecheck clean across seven packages, @wobo/wobo 912, web-pwa 3361, gateway green but for two
+pre-existing Dockerfile assertions unrelated to this work (`VOLUME` was deliberately removed in
+`2ba6478`), build and gate clean. Live spend $0.010 on Luna with the ladder pinned, every browser muted.
+
+**Named and not closed, with evidence:** the PEN'S WEIGHT is a card's weight. `NIB_PX` is 3 screen px
+and a photographed line is 6.6 px tall at 390, so a mark is nearly half the height of the words it is
+about and the text under a ring is hard to read. Frames: the live end frames under
+`adv-lab/turns/doubt/w58*-live-doubt-390/end.png`. That is a pen law across every surface, not a doubt
+fix, and it wants its own brief.

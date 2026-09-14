@@ -216,16 +216,54 @@ export const NOTE_GAP = 8;
 export const NOTE_REACH = 24;
 
 /**
+ * THE NIB HAS WIDTH, AND IT IS THE SAME WIDTH AT EVERY ZOOM (renderer `NIB_PX`).
+ *
+ * Every solver in this file reasons about boxes. The browser paints paths, with a three-pixel
+ * non-scaling stroke, so every painted edge stands half a nib proud of the geometry it traces —
+ * on both sides of both marks. Two boxes that merely touch therefore paint a three-pixel overlap,
+ * which is how the wave 57 solver, whose last rung was "boxes may touch", printed 'magnification
+ * -1.00' through 'image' with 53 px² of shared glyph and left 'apex' 2.4 px from 'up-speed is
+ * zero here' — one word, as far as a learner is concerned.
+ *
+ * So the nib is part of the arithmetic, not a rendering detail downstream of it.
+ */
+export const INK_NIB_PX = 3;
+
+/**
+ * THE THIRD LAW IN THE CRAFT SENTENCE: the clear air between one written mark and the next, in px
+ * on the glass (the adversary, wave 58).
+ *
+ * INK-FOUR asks for three things of a written mark in one breath — "labels at least 12 px on the
+ * glass, ... within 24 px of its subject and never over the text it explains" — and the third is
+ * the one nobody was counting, so it is the one a solver under pressure spends. It has to be a
+ * number here for the same reason the other two are: a law that is not measured is a law that is
+ * traded.
+ *
+ * WHY SIX. It is twice the nib and half the type floor, and it is the width at which two marks
+ * stop being one. The space INSIDE a line of this hand measures three to four pixels at the
+ * twelve-pixel floor, which is exactly why 'apex' at 2.4 px from the next note read as
+ * 'apexup-speed is zero here'; air between two marks has to be plainly wider than the air between
+ * two words of one mark, and six is. It is also the floor the boards that read well already keep:
+ * the tightest pair on wave 57's frames measured 9 px box to box, which is 6 px of painted ink.
+ */
+export const MARK_AIR_PX = 6;
+
+/**
  * WHAT THE SOLVER AIMS AT, against a law of `NOTE_REACH` — the sibling of `TYPE_FLOOR_PX`.
  *
  * The solver works in board units and converts with `glassScale`, which is settled against the ink
  * a moment before the ink is finally laid; the camera then re-fits what the solver's own tightening
- * produced. That last move is small — under a percent after two steps of `settleGlassScale` — but
- * a board solved to land EXACTLY on twenty-four lands at twenty-five (measured: 'sideways speed'
- * on the projectile at 1440). Two pixels of headroom is the honest price of solving a thing the
- * camera will re-measure.
+ * produced, at its own fill, and the browser then paints paths with a nib that has width. Three
+ * separate rulers, all agreeing to within a few pixels and none of them exactly.
+ *
+ * SIX, MEASURED ON THE RUNNING APP AND NOT GUESSED. Across the sixteen from-scratch boards at 390
+ * and 1440, in light, dark and reduced motion, marks the solver had placed at or under its own aim
+ * came back off the glass up to 3.8 px further out — `inkBoxOf` reads a quadratic's control point
+ * as ink, the live camera fills 0.78 where the settle measured 0.85, and a painted path is half a
+ * nib wider on each side than the path it traces. Six pixels covers that spread with room, and the
+ * cost of the headroom is a slightly tighter hand, which is the right way to be wrong.
  */
-export const REACH_AIM = NOTE_REACH - 2;
+export const REACH_AIM = NOTE_REACH - 6;
 
 function gapBetween(a: BoardRect, b: BoardRect): number {
   const dx = Math.max(0, a.x - (b.x + b.w), b.x - (a.x + a.w));
@@ -569,6 +607,15 @@ export interface WrittenSolve {
    * inside it), so the subject never needs to be dodged twice.
    */
   subjectBox?: BoardRect;
+  /**
+   * WHAT THE REACH IS MEASURED TO, when that is not the same box the candidates are built around.
+   *
+   * A subject's layout box is what it RESERVES; its ink is what it PAINTS, and half the grammar
+   * pads the first on purpose (`geometry.ts`, `inkBoxOf`). The law is about the ink — so the
+   * candidates still keep their margin from the reservation, and the distance that decides whether
+   * a candidate is legal is the distance to the drawing.
+   */
+  reachTo?: BoardRect;
   area?: BoardRect;
   margin: number;
   /** The reach law in board units — 24 px, converted by the board's own scale. */
@@ -591,6 +638,13 @@ const HUG_MARGIN = 4;
  * The positions a tutor would try for a box of this size beside this subject, in the order they
  * would try them, and NONE of them further than `reach`.
  *
+ * AROUND THE RESERVATION, MEASURED TO THE INK. The box a mark reports is padded on purpose — an
+ * arrow keeps `ARROW_GAP` clear of what it points at, a ring six units past its loop — and a note
+ * written inside that padding is a note written on the arrowhead. Tried the other way (candidates
+ * built around the ink), the projectile's 'greatest height' landed on the ground axis, because the
+ * padding is also what keeps the next mark off a long thin rule. So the ring keeps its distance
+ * from what is RESERVED, and the law is measured to what is DRAWN (`WrittenSolve.reachTo`).
+ *
  * The side the anchor named comes first — `{object: "cell", at: "bottom"}` is the tutor saying
  * "write this under it", not a hint. Then the eight around it at the ordinary margin, then the
  * same eight hugged in close, then inside the subject where the words fit inside it, then a
@@ -605,6 +659,7 @@ function writtenCandidates(
   at: WrittenSolve['at'],
   allowInside: boolean,
   nudge: WrittenSolve['nudge'],
+  reachTo: BoardRect,
 ): BoardRect[] {
   const out: BoardRect[] = [];
   const seen = new Set<string>();
@@ -712,7 +767,7 @@ function writtenCandidates(
         push({ ...base, x });
     }
   }
-  return out.filter((box) => boxGap(box, subject) <= reach);
+  return out.filter((box) => boxGap(box, reachTo) <= reach);
 }
 
 /**
@@ -774,25 +829,37 @@ export function solveWritten(solve: WrittenSolve): WrittenFit {
    * it by two tenths at a clearance of five. That is the whole of the difference.
    */
   const clearances = [gapCheck, gapCheck * 0.4, 0];
+  const measuredTo = solve.reachTo ?? solve.subject;
   const fit = (box: BoardRect, size: number, maxWidth: number): WrittenFit => {
-    const gap = boxGap(box, solve.subject);
+    const gap = boxGap(box, measuredTo);
     return { box, size, maxWidth, gap, withinReach: gap <= solve.reach, inside: gap === 0 };
   };
 
-  // 1 — inside the reach, clear, the first a tutor would try.
-  for (const { size, maxWidth, shape } of usable) {
-    const candidates = writtenCandidates(
-      solve.subject,
-      shape,
-      solve.margin,
-      solve.reach,
-      solve.at,
-      allowInside,
-      solve.nudge,
-    ).filter((box) => contains(bounds, box));
-    for (const clearance of clearances) {
-      for (const box of candidates) {
-        if (crowdOf(box, clearance) === 0) return fit(box, size, maxWidth);
+  /**
+   * 1 — inside the reach, clear, the first a tutor would try.
+   *
+   * THE AIM FIRST, THEN THE LAW. `solve.reach` carries the headroom the three rulers cost
+   * (`REACH_AIM`); the law itself is that headroom back. A mark that has no answer inside the aim
+   * very often has one a pixel or two further out, and taking it is strictly better than the
+   * escape below — which is free to go four times as far. Measured: aiming and then escaping put
+   * 'cell wall' 31 px from its leader where the law's own reach had an answer at 20.
+   */
+  for (const reach of [solve.reach, solve.reach * (NOTE_REACH / REACH_AIM)]) {
+    for (const { size, maxWidth, shape } of usable) {
+      const candidates = writtenCandidates(
+        solve.subject,
+        shape,
+        solve.margin,
+        reach,
+        solve.at,
+        allowInside,
+        solve.nudge,
+        measuredTo,
+      ).filter((box) => contains(bounds, box));
+      for (const clearance of clearances) {
+        for (const box of candidates) {
+          if (crowdOf(box, clearance) === 0) return fit(box, size, maxWidth);
+        }
       }
     }
   }
@@ -808,6 +875,7 @@ export function solveWritten(solve: WrittenSolve): WrittenFit {
       solve.at,
       allowInside,
       solve.nudge,
+      measuredTo,
     )) {
       if (!contains(bounds, box)) continue;
       if (crowdOf(box, 0) > 0) continue;
@@ -830,6 +898,7 @@ export function solveWritten(solve: WrittenSolve): WrittenFit {
       solve.at,
       allowInside,
       solve.nudge,
+      measuredTo,
     )) {
       const cost = crowdOf(box, 0) + (contains(bounds, box) ? 0 : 1e6);
       if (cost < least) {

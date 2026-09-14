@@ -21,6 +21,37 @@ import type { BoardObject } from '../../src/board/schema';
  * the real surfaces the plane gives them at 390 and at 1440, through the renderer's own type
  * ladder and its own camera. Every written mark on every board: at least twelve pixels tall, and
  * within twenty-four pixels of its subject.
+ *
+ * WHAT THIS FILE PROVES, AND WHAT IT DOES NOT (wave 58, measured).
+ *
+ * On the ruler below — geometry box to geometry box, converted by the board's own settled scale —
+ * all sixteen boards at both widths clear BOTH laws: 0 written marks under 12 px (worst 13.1) and
+ * 0 anchored marks past 24 px (worst 19.1), against wave 57's 29 of 60 past the law with a worst
+ * of 111 px.
+ *
+ * On the harsher ruler — the ink the BROWSER paints, measured off the running app at 390 and 1440
+ * in light, dark and reduced motion — 0 of 60 are under 12 px and 8 of 60 are still past 24, in a
+ * band of 24.1 to 32.1 px. They are named here because a named defect is never quietly carried:
+ *
+ *   · 'greatest height' and 'up-speed is zero here' on the projectile's apex, both widths. Four
+ *     written notes hang off ONE 46 x 38-unit point, on a board whose other ink is a 400-unit
+ *     axis. Four boxes of that size cannot all sit inside 24 px of a point that small; this one is
+ *     geometry, and the answer is a leader or a pipeline that does not hang four notes on a dot.
+ *   · the timeline's three year numbers and its two event labels. A `point` tick reserves far more
+ *     than the two strokes it paints, and `inkBoxOf` closes most but not all of that gap.
+ *   · 'x² + bx/a + c/a = 0' on the quadratic. Three objects on the board, so the camera sits at its
+ *     4x ceiling and one board unit is two pixels: the smallest margin the hand can keep is already
+ *     most of the law's budget. `LABEL_GAP_PX` takes this from 39 px to 28; the rest needs the
+ *     camera to stop blowing a three-object board up to the ceiling.
+ *
+ * WHICH RULER. The distance here is BOX to BOX — the quantity the geometry solves in, and the one
+ * wave 57 reported its 110 px in. A mark's box is not always the ink it paints: a leader on the
+ * plant cell reports 93 x 49 units and paints 62 x 19, because `arrow`, `point`, `ring` and
+ * `axis` all pad the box they report. Measured on the running app at 1440, a label sitting at a
+ * true 10-unit margin from that box is 28 units from the ink inside it, and reads on the glass as
+ * 25 px rather than 9. So this file passing is not the whole law: see the note on `boxGap` in the
+ * lab probe, and the finding it belongs to. The fix is a subject's INK box, reported alongside
+ * its layout box, and the reach measured to that.
  */
 
 const FONT_PATH = new URL(

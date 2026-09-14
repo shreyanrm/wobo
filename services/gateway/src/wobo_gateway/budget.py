@@ -133,7 +133,7 @@ _lock = threading.Lock()
 #: does: a learner out of spoken lines still has their questions, and the client reads the words
 #: with the device's own voice (``speech.tsx``: a refusal is silence, never a stopped answer).
 _EXHAUSTED: dict[str, str] = {
-    TURN: "We have talked a lot today. I will be right here again tomorrow.",
+    TURN: "We have talked a lot today. Tomorrow there is room for more.",
     GENERATION: (
         "That is all the lessons I can build for you today. I will be ready again tomorrow."
     ),
@@ -271,7 +271,19 @@ def charge(
     ``subject`` is the METER KEY the door derived (:func:`app.meter_key`), not necessarily a
     Supabase subject: an anonymous learner is counted per device address, because a fresh
     anonymous subject is one public HTTP call away and a counter you can mint your way out of
-    is arithmetic, not a limit."""
+    is arithmetic, not a limit.
+
+    THE MONEY METER IS ASKED FIRST (``allowance.py``, docs/ALLOWANCE.md §4.1). These counters
+    count ACTS and cannot tell a two-paisa Luna turn from a sixty-paisa one on Terra; the day's
+    allowance counts what the models actually charged. The learner meets that first, and these
+    numbers stay as abuse caps far above it — a hundred turns a day is a bot, not a child. Both
+    refuse with the same exception and therefore with the same Wobo line: there is one honest
+    refusal in this product, and no price is ever named to a learner. Imported here rather than
+    at the top of the file because ``allowance`` reads this module's exception and its
+    classification, and two modules cannot import each other at import time."""
+    from wobo_gateway import allowance
+
+    allowance.check(subject, capability, resolve_plan(plan, anonymous=anonymous))
     kind = classify(capability)
     limits = limits_for(plan, anonymous=anonymous)
     with _lock:  # read, compare and increment are one operation or they are not a limit

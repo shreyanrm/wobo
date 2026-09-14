@@ -350,7 +350,7 @@ def test_native_tool_provider_parses_its_own_reply_without_a_network():
         complete=lambda query: json.dumps({"results": [{"url": CBSE_URL, "title": "Maths"}]}),
     )
     assert [result.url for result in provider.search("cbse maths")] == [CBSE_URL]
-    assert provider._tools()[0]["type"] == "web_search_20250305"
+    assert provider.search_call()["tools"][0]["type"] == "web_search_20250305"
 
 
 # --- fetch -----------------------------------------------------------------------------------

@@ -1200,9 +1200,18 @@ def compose_brief(
 
     The money does not move. The blueprint was the platform's, made once for the cell; rendering
     stays on the generate tier and is the learner's, exactly as it was before any of this existed.
+
+    THE CORES ARE ASKED FOR BY BAND (docs/CONTENT-INTERACTION.md §5b). A module lives in the
+    chapter's pool, and the pool is made once per chapter, board, class and syllabus version
+    (docs/LEARNING-MODEL.md §4), so the class the pool was made for is the class every module in
+    it is rendered for, and that class resolves each core's depth band through the store's own
+    resolver. ``coreBands`` says which band's core each concept wants, so the compose engine and
+    the pool agree by construction and a module can never be rendered from a neighbouring band's
+    core: the key carries the band and the pool names the band.
     """
     ideas = {i.id: i.what for i in bp.ideas}
     misconceptions = {m.id: m.what for m in bp.misconceptions}
+    cell = brief.scope()
     payload: dict[str, Any] = {
         "concept": module.aim,
         "difficulty": difficulty,
@@ -1218,6 +1227,7 @@ def compose_brief(
         "thread": bp.thread,
         "ideas": [ideas[i] for i in module.teaches if i in ideas],
         "cores": list(module.cores),
+        "coreBands": {core: store.band_for(core, cell) for core in module.cores},
         "mechanic": mechanic_for(module, pick),
     }
     if module.repairs and module.repairs in misconceptions:

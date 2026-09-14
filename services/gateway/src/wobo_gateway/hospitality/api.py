@@ -33,6 +33,7 @@ from pydantic import BaseModel, ConfigDict
 
 from wobo_gateway.hospitality import preferences as prefs_mod
 from wobo_gateway.hospitality.festivals import get_calendar
+from wobo_gateway.hospitality.links import parse_card_link, redeem_sign_in
 from wobo_gateway.hospitality.preferences import (
     DEFAULT_PREFERENCES,
     MailPreferences,
@@ -63,7 +64,48 @@ _STOP_COPY: dict[str, tuple[str, str, str, str]] = {
         "No more wins and no more wishes to this address. Account mail still comes when "
         "something about the account needs saying.",
     ),
+    # One page per nudge. Each says the name of the one thing it stops, because a reader who
+    # clicked the streak mail wants the streak mail stopped and would be right to distrust a
+    # page that answered about "emails" in general.
+    "quick_one": (
+        "Stop the five-minute nudge?",
+        "Stop it",
+        "Done. No more five-minute nudges.",
+        "That one will not come again. The rest of your mail is unchanged.",
+    ),
+    "mid_chapter": (
+        "Stop the half-finished chapter note?",
+        "Stop it",
+        "Done. No more chapter notes.",
+        "That one will not come again. The rest of your mail is unchanged.",
+    ),
+    "streak": (
+        "Stop the streak note?",
+        "Stop it",
+        "Done. No more streak notes.",
+        "That one will not come again. The rest of your mail is unchanged.",
+    ),
+    "bonus_level": (
+        "Stop the side door note?",
+        "Stop it",
+        "Done. No more side door notes.",
+        "That one will not come again. The rest of your mail is unchanged.",
+    ),
+    "doubt": (
+        "Stop the note when a doubt is answered?",
+        "Stop it",
+        "Done. No more notes about answered doubts.",
+        "That one will not come again. The rest of your mail is unchanged.",
+    ),
 }
+
+
+class MailLanding(BaseModel):
+    """The pressed link, handed back to us by the app that it landed on."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    token: str | None = None
 
 
 class MailPreferencesUpdate(BaseModel):
@@ -74,6 +116,11 @@ class MailPreferencesUpdate(BaseModel):
     sunday_note: bool | None = None
     wins: bool | None = None
     festivals: bool | None = None
+    quick_one: bool | None = None
+    mid_chapter: bool | None = None
+    streak: bool | None = None
+    bonus_level: bool | None = None
+    doubt: bool | None = None
     festival_calendar: list[str] | None = None
     country: str | None = None
     region: str | None = None
@@ -257,6 +304,47 @@ def register_mail_preferences(app: FastAPI) -> None:
         if claim is None:
             return _bad_link()
         return _stop(claim)
+
+    @app.post("/v1/mail/land")
+    def land_from_mail(body: MailLanding) -> dict[str, Any]:
+        """THE LINK THAT LANDS (docs/EMAILS-AND-ANIMATIONS.md §4).
+
+        The app reads the token out of the address a mail link opened, hands it here, and gets
+        back where to land and whether this press may open the door. POST, not GET, for the same
+        reason the stop route's GET changes nothing: a mail-security scanner and a link prefetcher
+        open every URL in a mail before a person ever sees it, and neither may spend a learner's
+        one sign-in.
+
+        The destination comes back on every press; the sign-in on the first only
+        (:mod:`.arrival` says why at length). A learner already signed in on the device never
+        needs this route at all — the address IS the destination.
+        """
+        claim = parse_card_link(body.token)
+        if claim is None:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "link_not_live",
+                    # The register (voice.md 10a): what to do next, no exclamation, and nothing
+                    # about links, tokens or signatures, which are ours to worry about.
+                    "message": (
+                        "That one has expired. Open Wobo and your place is where you left it."
+                    ),
+                },
+            )
+        sign_in = redeem_sign_in(claim)
+        logger.info(
+            "mail link landed",
+            extra={
+                "fields": {
+                    "subject": claim.learner_id,
+                    "course": claim.course_id,
+                    "card": claim.card_id,
+                    "sign_in": sign_in,
+                }
+            },
+        )
+        return {"destination": claim.path, "sign_in": sign_in}
 
 
 __all__ = ["register_mail_preferences", "stop_url"]

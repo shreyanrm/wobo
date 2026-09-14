@@ -1,0 +1,8354 @@
+[
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "From the Rulers to the Ruled: Types of Governments",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us",
+"name": "From Barter to Money",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 2",
+"name": "Fractions in Disguise",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "Family and Community",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Elections",
+"name": "Factors of importance of elections",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us",
+"name": "Factors of Production",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Exploring the Investigative World of Science",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Matter - Its Nature and Behaviour",
+"name": "Exploring Mixtures and their Separation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Equilibrium in Physical Processes",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past (Part 2)",
+"name": "Empires and Kingdoms: 6th to 10th Centuries",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electromagnetic Waves",
+"name": "Electromagnetic Waves",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electromagnetic Induction and Alternating Currents",
+"name": "Electromagnetic Induction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Electrochemical Cells",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Effects of Current",
+"name": "Electric current",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electrostatics",
+"name": "Electric Charges and Fields",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electricity and Magnetism",
+"name": "Electric Charge and Electric Field",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Mechanics of Solids and Fluids",
+"name": "Elastic Properties of Solids",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Earth as a system",
+"name": "Earth as a System: Energy, Matter & Life",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us (Part 2)",
+"name": "Dynamics of Population",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Dual Nature of Radiation and Matter",
+"name": "Dual Nature of Radiation and Matter",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry in Everyday Life",
+"name": "Drugs and Medicines",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Structure of Atom",
+"name": "Discovery of Sub-atomic Particles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Economics (Understanding Economic Development)",
+"name": "Development",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Statistics",
+"name": "Data and their Representation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Current Electricity",
+"name": "Current Electricity",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Cultural development from 2 million years ago",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Coordinate Geometry",
+"name": "Coordinate Geometry",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Coordinate geometry",
+"name": "Coordinate Geometry",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Continuity and Differentiability",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "Constitutional Values and Political System in India",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Complex Numbers and Quadratic Equations",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-I",
+"name": "Complex Numbers",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Alcohols, Phenols and Ethers",
+"name": "Classification, Nomenclature",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Classification, Nomenclature",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Hydrocarbons",
+"name": "Classification, Alkanes",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "The Living World",
+"name": "Classification of Living Organisms",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Redox Reactions",
+"name": "Classical Idea of Redox Reactions \u2013 Oxidation and Reduction Reactions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Energetics",
+"name": "Chemical Thermodynamics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Chemical Substances - Nature and Behaviour",
+"name": "Chemical Reactions and Equations",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Dynamics",
+"name": "Chemical Equilibrium",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Contemporary India: Issues and Goals",
+"name": "Challenges to Indian Democracy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Cell: Structure and Function",
+"name": "Cell-The Unit of Life",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Cell",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Co-ordinate Geometry",
+"name": "Cartesian System of Rectangular Co-ordinates",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Biomolecules",
+"name": "Carbohydrates, Proteins",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Human Physiology",
+"name": "Breathing and Exchange of Gases",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Biotechnology and its Applications",
+"name": "Biotechnology - Principles and Processes",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Life on Earth",
+"name": "Biomes: Distribution and characteristics; biosphere reserves in India",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Some Basic concepts of Chemistry",
+"name": "Atoms, Molecules and Chemical Arithmetic",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Atoms",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Atomic Structure and Chemical Bonding",
+"name": "Atomic Structure",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Areas related to circles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Area and Perimeter",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Natural Resources",
+"name": "Air and Water",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 1",
+"name": "A Square and A Cube",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+"name": "A Journey Through Indian Architecture",
+"kind": "topic"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Commercial Mathematics",
+"name": "Commercial Mathematics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Curiosity, Grade 6",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Curiosity, Grade 7",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Curiosity, Grade 8",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Diversity and Evolution of Life",
+"name": "Diversity and Evolution of Life",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Diversity of Living Organisms",
+"name": "Diversity of Living Organisms",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Diversity of Living Organisms",
+"name": "Diversity of Living Organisms",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electrostatics",
+"name": "Electrostatics",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electrostatics",
+"name": "Electrostatics",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Force and Energy",
+"name": "Force and Energy",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Physics",
+"unit": "Force, Work, Power and Energy",
+"name": "Force, Work, Power and Energy",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Ganita Prakash, Grade 6",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "Ganita Prakash, Grade 7, Part 1",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 1",
+"name": "Ganita Prakash, Grade 8, Part 1",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "History (India and the Contemporary World-II)",
+"name": "History (India and the Contemporary World-II)",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "India and World through Ages",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Interpretation of Topographical Maps",
+"name": "Interpretation of Topographical Maps",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Measurement in Science",
+"name": "Measurement in Science",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Physics",
+"unit": "Measurements and Experimentation",
+"name": "Measurements and Experimentation",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Number System",
+"name": "Number System",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Number systems",
+"name": "Number systems",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Geography",
+"unit": "Our World",
+"name": "Our World",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Periodic Properties and variations of Properties",
+"name": "Periodic Properties and variations of Properties",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Physical World and Measurement",
+"name": "Physical World and Measurement",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Physical World and Measurement",
+"name": "Physical World and Measurement",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Pure Arithmetic",
+"name": "Pure Arithmetic",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Relations and Functions",
+"name": "Relations and Functions",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Relations and Functions",
+"name": "Relations and Functions",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction",
+"name": "Reproduction",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction",
+"name": "Reproduction",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Sets and Functions",
+"name": "Sets and Functions",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Sets and Functions",
+"name": "Sets and Functions",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sets, Relations and Functions",
+"name": "Sets, Relations and Functions",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Solutions",
+"name": "Solutions",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Solutions",
+"name": "Solutions",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Some Basic Concepts of Chemistry",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Some Basic Concepts of Chemistry",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Some Basic concepts of Chemistry",
+"name": "Some Basic concepts of Chemistry",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Chemistry",
+"unit": "The Language of Chemistry",
+"name": "The Language of Chemistry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Theme A - India and the World: Land and the People",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Theme A - India and the World: Land and the People",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Theme A - India and the World: Land and the People",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Understanding Social Science",
+"name": "Understanding Social Science",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "World of Living",
+"name": "World of Living",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Biology",
+"unit": "Basic Biology",
+"name": "Basic Biology",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Biology",
+"unit": "Basic Biology",
+"name": "Basic Biology",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Chemical Substances - Nature and Behaviour",
+"name": "Chemical Substances - Nature and Behaviour",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "Civics: Our Constitution",
+"name": "Civics: Our Constitution",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "History and Civics",
+"unit": "Civics: The Union Legislature",
+"name": "Civics: The Union Legislature",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People (Part 2)",
+"name": "World Geography: Some Glimpses",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Work, Energy and Power",
+"name": "Work, Energy and Power",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Classification of Elements and Periodicity in Properties",
+"name": "Why we Need to Classify Elements? Genesis of Periodic Classification",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "From Ideas to Startups",
+"name": "What is entrepreneurship and explain the resources required to start a business",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Werner\u2019s Theory of Coordination Compound",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "State and Society (upto 1000 CE)",
+"name": "Vedic Age - geography; texts; rituals; political institutions, and social order",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vectors and Three-dimensional Geometry",
+"name": "Vectors",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "Universal Franchise and India's Electoral System",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Physical World and Measurement",
+"name": "Units and Measurements",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Force and Energy",
+"name": "Units Dimensions and Vectors",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Solutions",
+"name": "Types of Solutions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Triangles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "India and the World-I (1900 bce - 1200 ce)",
+"name": "Trade and commerce - trade with Mesopotamia, Greece, Roman Empire, China and Southeast Asia",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "Timeline and Sources of History",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Thermodynamics",
+"name": "Thermodynamics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Thermodynamics",
+"name": "Thermodynamic Terms",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Shaping of the Earth's Surface",
+"name": "Theory of plate tectonics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "The Wonderful World of Science",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us",
+"name": "The Value of Work",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People (Part 2)",
+"name": "The Story of Indian Farming",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy (Part 2)",
+"name": "The State, the Government, and You",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Authority",
+"name": "The Roots of Authority: in Kautilya and shukraniti - danda and relationship with nyaya and bala; the types of nyaya and bala",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy (Part 2)",
+"name": "The Role of the Judiciary in Our Society",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "History (India and the Contemporary World-II)",
+"name": "The Rise of Nationalism in Europe",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Diversity of Living Organisms",
+"name": "The Living World",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "States of Matter",
+"name": "The Gaseous State and Liquid State",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "The Ever-Evolving World of Science",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Motion of System of Particles and Rigid Body",
+"name": "System of Particles and Rotational Motion",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Structure of Atoms",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Structure of Amines",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Atmosphere and Climate",
+"name": "Structure and composition; elements of weather and climate",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Coordinate Geometry",
+"name": "Straight Lines",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Statistics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Statistics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Statistics and probability",
+"name": "Statistics",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Oscillations and Waves",
+"name": "Simple Harmonic Motion",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction",
+"name": "Sexual Reproduction in Flowering Plants",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sets, Relations and Functions",
+"name": "Sets",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Sets and Functions",
+"name": "Sets",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sequences and Series",
+"name": "Sequences and Series",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Semiconductor Devices and Communication",
+"name": "Semiconductors and Semiconducting Devices",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electronic Devices",
+"name": "Semiconductor Electronics: Materials, Devices and Simple Circuits",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Building Blocks in Economics",
+"name": "Scarcity of resources, opportunity cost and the need for making choice. What do economists do?",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Resistance and Resilience (1000 ce - 1700 ce)",
+"name": "Safeguarding sovereignty: resistance, alliances and confederacies",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Root system",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Geography (Contemporary India-II)",
+"name": "Resources and Development",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "Reshaping India's Political Map",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction and Heredity",
+"name": "Reproduction in Plants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Smart Ways to Manage Your Finances",
+"name": "Relevance of personal financial management in daily life",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Relations and Functions",
+"name": "Relations and Functions-II",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Relations and Functions",
+"name": "Relations and Functions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Natural Phenomena",
+"name": "Reflection of light by curved surfaces",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics and Optical Instruments",
+"name": "Reflection and Refraction of Light",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Number systems",
+"name": "Real numbers",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics",
+"name": "Ray Optics and Optical Instruments",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Kinetics",
+"name": "Rate of a Chemical reaction, factors influencing rate of reaction, integrated rate equations",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Probability",
+"name": "Probability",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Genetics and Evolution",
+"name": "Principles of Inheritance and Variation",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Environment and Health",
+"name": "Principles of Ecology",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Political Science (Democratic Politics-II)",
+"name": "Power-sharing",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d and f Block Elements",
+"name": "Position in the Periodic Table",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Polynomials",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India: Natural Environment, Resources and Development",
+"name": "Physiography of India",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Plant Physiology",
+"name": "Photosynthesis in Higher Plants",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Perimeter and Area of Plane Figure",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Commercial Mathematics",
+"name": "Percentage and its Applications",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Energy",
+"name": "Sources of Energy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Patterns in Mathematics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Natural Resources",
+"name": "Our environment",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Oscillations and Waves",
+"name": "Oscillations",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Diversity and Evolution of Life",
+"name": "Origin and Evolution of Life and Introduction to Classification",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Ecology and Environment",
+"name": "Organisms and Populations",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Elements",
+"name": "Occurrence and Extraction of Metals",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Number system",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Number System",
+"name": "Number System",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Nomenclature and Structure of Carbonyl Group",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Organic Compounds",
+"name": "Nomenclature and General Principles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "New Beginnings: Cities and States",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Natural Resources and Their Use",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Human Environment",
+"name": "Natural Environment",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Magnetic Effects of Current and Magnetism",
+"name": "Moving Charges and Magnetism",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Kinematics",
+"name": "Motion in a Straight Line",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Moving Things",
+"name": "Motion and its Description",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Motion, Force, Work and Sound",
+"name": "Motion",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Structural Organization in Plants and Animals",
+"name": "Morphology of Flowering Plants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Properties of Bulk Matter",
+"name": "Mechanical Properties of Solids",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Measures of Dispersion",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Measurement in Science",
+"name": "Measurement in Science and Technology",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Understanding Social Science",
+"name": "Meaning, scope and relevance of Social Science",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Democracy",
+"name": "Meaning features and types of democracy",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Matter in our Surroundings",
+"name": "Matter in our Surroundings",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-II",
+"name": "Matrices",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Matrices",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Locating Places on the Earth",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Lines and Angle",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Linear Programming and Mathematical Reasoning",
+"name": "Linear Programming",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Linear Programming Problem",
+"name": "Linear Programming",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Limits and Derivatives",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Limits and Continuity",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Life processes",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "The Price Puzzle: What Drives the Market",
+"name": "Laws of demand and supply",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Laws of Motion",
+"name": "Laws of Motion",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "Large Numbers Around Us",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "Kossel-Lewis Approach to Chemical Bonding",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Thermal Physics",
+"name": "Kinetic Theory of Gases",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Behaviour of Perfect Gases and Kinetic Theory of Gases",
+"name": "Kinetic Theory",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Introduction to trigonometry",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Oceans and Life",
+"name": "Introduction to ocean relief, movement of ocean water - waves, tides and currents",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Introduction to Trigonometry",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vectors and Three Dimensional Geometry",
+"name": "Introduction to Three Dimensional Geometry",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Introduction to Social Science",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Introduction to Polynomials",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Introduction to Euclid's Geometry: Axioms and Postulates",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us (Part 2)",
+"name": "Infrastructure: Engine of India's Development",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+"name": "India, a Home to Many",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past (Part 2)",
+"name": "India's Long Road to Independence",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+"name": "India's Cultural Roots",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Importance of Chemistry",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Emerging Areas in Biology",
+"name": "Immunobiology: An Introduction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Biology and Human Welfare",
+"name": "Human Health and Diseases",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+"name": "How the Land Becomes Sacred",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Gravitation",
+"name": "Gravitation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 2",
+"name": "Geometric Twins",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Geographical Diversity of India",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "General Introduction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Kinematics",
+"name": "Kinematics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Atomic Structure and Chemical Bonding",
+"name": "Atomic Structure and Chemical Bonding",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Chemical Bonding",
+"name": "Chemical Bonding",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Chemistry",
+"unit": "Chemical changes and reactions",
+"name": "Chemical changes and reactions",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "Civics: Elections",
+"name": "Civics: Elections",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "History and Civics",
+"unit": "Civics: The Union Executive",
+"name": "Civics: The Union Executive",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Commercial Mathematics",
+"name": "Commercial Mathematics",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Commercial Mathematics",
+"name": "Commercial Mathematics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Current Electricity",
+"name": "Current Electricity",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Current Electricity",
+"name": "Current Electricity",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Electrochemistry",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Electrochemistry",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Biology",
+"unit": "Flowering Plants",
+"name": "Flowering Plants",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Forms and Functions of Plants and Animals",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 2",
+"name": "Ganita Prakash, Grade 7, Part 2",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 2",
+"name": "Ganita Prakash, Grade 8, Part 2",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Genetics and Evolution",
+"name": "Genetics and Evolution",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Genetics and Evolution",
+"name": "Genetics and Evolution",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Geography (Contemporary India-II)",
+"name": "Geography (Contemporary India-II)",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India: Natural Environment, Resources and Development",
+"name": "India: Natural Environment, Resources and Development",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Kinematics",
+"name": "Kinematics",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Physics",
+"unit": "Light",
+"name": "Light",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Map of India",
+"name": "Map of India",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Matter - Its Nature and Behaviour",
+"name": "Matter - Its Nature and Behaviour",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Matter in our Surroundings",
+"name": "Matter in our Surroundings",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Mechanics of Solids and Fluids",
+"name": "Mechanics of Solids and Fluids",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Physics",
+"unit": "Motion in One Dimension",
+"name": "Motion in One Dimension",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Biology",
+"unit": "Plant Physiology",
+"name": "Plant Physiology",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sequences and Series",
+"name": "Sequences and Series",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Shaping of the Earth's Surface",
+"name": "Shaping of the Earth's Surface",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Structural Organisation in Animals and Plants",
+"name": "Structural Organisation in Animals and Plants",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Structural Organization in Plants and Animals",
+"name": "Structural Organization in Plants and Animals",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Structure of Atom",
+"name": "Structure of Atom",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Structure of Atom",
+"name": "Structure of Atom",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Geography",
+"unit": "Structure of the Earth",
+"name": "Structure of the Earth",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "Theme B - Tapestry of the Past",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "Theme B - Tapestry of the Past",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "Theme B - Tapestry of the Past",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "World of Living",
+"name": "World of Living",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "State and Society (upto 1000 CE)",
+"name": "Administrative structure of early empires",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Hydrocarbons",
+"name": "Alkenes, Alkynes",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electromagnetic Induction and Alternating Currents",
+"name": "Alternating Current",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Structural Organization in Plants and Animals",
+"name": "Anatomy of Flowering Plants",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Ancient World",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Applications of Derivatives",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Semiconductor Devices and Communication",
+"name": "Applications of Semiconductor Devices",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Thermodynamics",
+"name": "Applications, Measurement of \u2206U and \u2206H: Calorimetry",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "Arithmetic Expressions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Matter in our Surroundings",
+"name": "Atom and Molecules",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Structure of Atom",
+"name": "Atomic Models",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us (Part 2)",
+"name": "Banks and the Magic of Finance",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Diversity of Living Organisms",
+"name": "Biological Classification",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Cell: Structure and Function",
+"name": "Biomolecules",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Emerging Areas in Biology",
+"name": "Biotechnology",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Biotechnology and its Applications",
+"name": "Biotechnology and its Applications",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Human Physiology",
+"name": "Body Fluids and Circulation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "From Ideas to Startups",
+"name": "Case studies of successful entrepreneurs",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Circles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy (Part 2)",
+"name": "Citizenship: Rights and Duties",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Classification, Nomenclature",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India: Natural Environment, Resources and Development",
+"name": "Climate",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Congruence of Triangle",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Coordinate Geometry",
+"name": "Conic Sections",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Environment and Health",
+"name": "Conservation and Use of Natural Resources",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Authority",
+"name": "Constitutional status of justice and security since ancient times",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Control and co-ordination in animals and plants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "India and the World-I (1900 bce - 1200 ce)",
+"name": "Cultural Connections - Interactions with Greece and Rome, Central Asia, China, and Influence on South East Asia",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Definition of Some important terms pertaining to Coordination Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Determinants",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-II",
+"name": "Determinants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Resistance and Resilience (1000 ce - 1700 ce)",
+"name": "Development of art and architecture, languages and literature",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Differentiation",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics and Optical Instruments",
+"name": "Dispersion and Scattering of Light",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Diversity in the Living World",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Dual Nature of Radiation and Matter",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Early human history, periodisation: Archaeological ages",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us",
+"name": "Economic Activities Around Us",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Ecology and Environment",
+"name": "Ecosystem",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Elections",
+"name": "Electoral systems",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electricity and Magnetism",
+"name": "Electric Potential and Capacitors",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d and f Block Elements",
+"name": "Electronic configuration of the d-Block Elements",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electrostatics",
+"name": "Electrostatic Potential and Capacitance",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Biomolecules",
+"name": "Enzymes, Vitamins Nucleic Acids",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Equilibrium in Chemical Processes \u2013 Dynamic Equilibrium",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Exploring Substances: Acidic, Basic, and Neutral",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Exponent and Radicals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Solutions",
+"name": "Expression of Concentration of Solutions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Political Science (Democratic Politics-II)",
+"name": "Federalism",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Motion, Force, Work and Sound",
+"name": "Force and Laws of Motion",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Moving Things",
+"name": "Force and motion",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Geography (Contemporary India-II)",
+"name": "Forest and Wildlife Resources",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Life on Earth",
+"name": "Forest and ecotourism; forest dwellers, their livelihoods, and challenges",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "Fundamental Rights and Fundamental Duties",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Galvanic Cells",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "Grassroots Democracy - Part 1: Governance",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction and Heredity",
+"name": "Growth and Development in Plants",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "The Living World",
+"name": "History of Life on Earth",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction",
+"name": "Human Reproduction",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Human Environment",
+"name": "Human impact on Environment",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Organic Compounds",
+"name": "Hydrocarbons",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Elements",
+"name": "Hydrogen and s-Block Elements",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People (Part 2)",
+"name": "India and Her Neighbours",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us (Part 2)",
+"name": "India's Urban Landscape",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "India, That Is Bharat",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Smart Ways to Manage Your Finances",
+"name": "Inflation and its impact on purchasing power",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Commercial Mathematics",
+"name": "Installment Buying",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Shaping of the Earth's Surface",
+"name": "Interior of the Earth",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Introduction to Probability",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Relations and Functions",
+"name": "Inverse Trigonometric Functions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Relations and Functions",
+"name": "Inverse Trigonometric Functions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Dynamics",
+"name": "Ionic Equilibrium",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "Ionic or Electrovalent Bond",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Linear Inequalities",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Lines and Angles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Lines and Angles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Effects of Current",
+"name": "Magnetic effects of current",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Magnetic Effects of Current and Magnetism",
+"name": "Magnetism and Matter",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Oceans and Life",
+"name": "Marine resources and their significance; open seas, navigation, fishing, and livelihood concerns and challenges",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Linear Programming and Mathematical Reasoning",
+"name": "Mathematical Reasoning",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Statistics",
+"name": "Measure of Central Tendency",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Properties of Bulk Matter",
+"name": "Mechanical Properties of Fluids",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Natural Resources",
+"name": "Metals and Non-metals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Biology and Human Welfare",
+"name": "Microbes in Human Welfare",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Classification of Elements and Periodicity in Properties",
+"name": "Modern Periodic Law and the Present Form of Periodic Table",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Genetics and Evolution",
+"name": "Molecular Basis of Inheritance",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Kinematics",
+"name": "Motion in a Plane",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Force and Energy",
+"name": "Motion in a Straight Line",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Contemporary India: Issues and Goals",
+"name": "National Integration and Secularism",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "History (India and the Contemporary World-II)",
+"name": "Nationalism in India",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Nature of C\u2013X bond",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Nature of Matter",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Nuclei",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Oceans and Continents",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 2",
+"name": "Operations with Integers",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Pair of linear equations in two variables",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Chemical Substances - Nature and Behaviour",
+"name": "Periodic Classification of Elements",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Atomic Structure and Chemical Bonding",
+"name": "Periodic Table and Periodicity in Properties",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 1",
+"name": "Power Play",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Preparation of Aldehydes and Ketones",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Statistics and probability",
+"name": "Probability",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Probability",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Mechanics of Solids and Fluids",
+"name": "Properties of Fluids",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-I",
+"name": "Quadratic Equations and Linear Inequalities",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Random Experiments and Events",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "The Price Puzzle: What Drives the Market",
+"name": "Real-world deviations from textbook theory, such as in case of necessities, luxury goods, perishable items, and expectations",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Redox Reactions",
+"name": "Redox Reactions in Terms of Electron Transfer Reactions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Natural Phenomena",
+"name": "Refraction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Sets and Functions",
+"name": "Relations & Functions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sets, Relations and Functions",
+"name": "Relations and Functions-I",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Plant Physiology",
+"name": "Respiration in Plants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Democracy",
+"name": "Roots of democracy in India",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Atmosphere and Climate",
+"name": "Seasons of India and monsoons",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Economics (Understanding Economic Development)",
+"name": "Sectors of the Indian Economy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Sequences and Progressions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Shoot system",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry in Everyday Life",
+"name": "Soaps, Detergents and Polymers",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sequences and Series",
+"name": "Some Special Sequences",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Energetics",
+"name": "Spontaneity of Chemical Reactions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Co-ordinate Geometry",
+"name": "Straight Lines",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Matter - Its Nature and Behaviour",
+"name": "Structure of an Atom",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Alcohols, Phenols and Ethers",
+"name": "Structures of Functional Groups",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Surface Area and Volume",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Surface Area and Volume",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Surface areas and volumes",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Kinetics",
+"name": "Temperature Dependence of the rate of a reaction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Tetravalence of Carbon: Shapes of Organic Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 2",
+"name": "The Baudhayana-Pythagoras Theorem",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "The Constitution of India - An Introduction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "The Invisible Living World: Beyond Our Naked Eye",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Diversity and Evolution of Life",
+"name": "The Kingdom Monera, Protoctista and Fungi",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "The Parliamentary System: Legislature and Executive",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "The Rise of Empires",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "The Rise of the Marathas",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "States of Matter",
+"name": "The Solid State",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Thermal Physics",
+"name": "Thermodynamics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vectors and Three-dimensional Geometry",
+"name": "Three-dimensional Geometry",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Tissues",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Trigonometric Ratio of Some Special Angle",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Trigonometric identities",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past (Part 2)",
+"name": "Turning Tides: 11th and 12th Centuries",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us",
+"name": "Understanding Markets",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Understanding Social Science",
+"name": "Understanding Social Science from an Indian perspective",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Understanding the Weather",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+"name": "Unity in Diversity, or 'Many in the One'",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vectors and Three Dimensional Geometry",
+"name": "Vectors",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics",
+"name": "Wave Optics",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Oscillations and Waves",
+"name": "Wave Phenomena",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Oscillations and Waves",
+"name": "Waves",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Building Blocks in Economics",
+"name": "What to produce, how to produce, and for whom to produce?",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Energy",
+"name": "Work and Energy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Hydrocarbons",
+"name": "Aromatic Hydrocarbon",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Matter - Its Nature and Behaviour",
+"name": "Atoms and Molecules",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India: Natural Environment, Resources and Development",
+"name": "Bio-diversity",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Ecology and Environment",
+"name": "Biodiversity and its Conservation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "Bond Parameters",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "The Living World",
+"name": "Building Blocks of Life \u2013 Cell and Tissues",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Natural Resources",
+"name": "Carbon and Its Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Cell: Structure and Function",
+"name": "Cell Cycle and Cell Division",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Democracy",
+"name": "Challenges to democracy in India",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Atomic Structure and Chemical Bonding",
+"name": "Chemical Bonding",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Matter in our Surroundings",
+"name": "Chemical Reaction and Equations",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Co-ordinate Geometry",
+"name": "Circles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Atmosphere and Climate",
+"name": "Climate change",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Climates of India",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Kinetics",
+"name": "Collision theory of Chemical Reactions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Semiconductor Devices and Communication",
+"name": "Communication System",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Organic Compounds",
+"name": "Compounds of Carbon Containing Halogens",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Concurrent Lines",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "From Ideas to Startups",
+"name": "Creative destruction with examples",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us (Part 2)",
+"name": "Cultural Currents: 13th to 17th Centuries",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Oceans and Life",
+"name": "Cyclones and Tsunamis - early warning systems",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Elections",
+"name": "Delimitation Commission",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Structure of Atom",
+"name": "Developments Leading to the Bohr\u2019s Model of Atom",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Building Blocks in Economics",
+"name": "Difference between market, centrally planned, and mixed economic systems",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Differentiation of Trigonometric functions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electricity and Magnetism",
+"name": "Electric Current",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Electricity: Circuits and their Components",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Dynamics",
+"name": "Electrochemistry",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Thermodynamics",
+"name": "Enthalpy Change, and \u2206H of a Reaction \u2013 Reaction Enthalpy",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry in Everyday Life",
+"name": "Environmental Chemistry",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Genetics and Evolution",
+"name": "Evolution",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Human Physiology",
+"name": "Excretory Products and their Elimination",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Exploring Algebraic Identities",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 2",
+"name": "Finding Common Ground",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Human Environment",
+"name": "Food Production",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Life on Earth",
+"name": "Forest and wildlife conservation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "History (India and the Contemporary World-II)",
+"name": "The Making of a Global World",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "The Colonial Era in India",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Resistance and Resilience (1000 ce - 1700 ce)",
+"name": "The Bhakti tradition",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "The Beginnings of Indian Civilisation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "The Age of Reorganisation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Structural Representations of Organic Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Structural Organization in Plants and Animals",
+"name": "Structural Organisation in Animals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "The Price Puzzle: What Drives the Market",
+"name": "Some related concepts - price ceilings and market failures (externalities, information asymmetry, public goods)",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "States of Matter",
+"name": "Solutions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Solutions",
+"name": "Solubility, Vapour Pressure of Liquid Solutions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Contemporary India: Issues and Goals",
+"name": "Socio-Economic Development And Empowerment of Disadvantaged Groups",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Smart Ways to Manage Your Finances",
+"name": "Simple vs. compound interest rate",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Shaping of the Earth's Surface",
+"name": "Role of weathering and erosion; agents of gradation - river, waves and currents, wind, glaciers, and underground water",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction",
+"name": "Reproductive Health",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction and Heredity",
+"name": "Reproduction and Population Control",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Reproduction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Reproduction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Natural Phenomena",
+"name": "Refraction of light by spherical lens",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "State and Society (upto 1000 CE)",
+"name": "Quest for knowledge - educational heritage, institutions, knowledge traditions, and cultural practices",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Quadratic equations",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 2",
+"name": "Proportional Reasoning-2",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Properties of Matter and their Measurement",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Probability",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-I",
+"name": "Principle of Mathematical Induction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Preparation of Amines",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Environment and Health",
+"name": "Pollution",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Diversity of Living Organisms",
+"name": "Plant Kingdom",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Plant Physiology",
+"name": "Plant - Growth and Development",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vectors and Three Dimensional Geometry",
+"name": "Plane",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Physical Properties and Chemical Reactions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Permutations and Combinations",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Redox Reactions",
+"name": "Oxidation Number",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Number Play",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Nuclei and Radioactivity",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Classification of Elements and Periodicity in Properties",
+"name": "Nomenclature of Elements with Atomic Number > 100",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Nomenclature of Coordination Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Nernst Equation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Effects of Current",
+"name": "Motor, Electromagnetic Induction, Electric Generator",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Economics (Understanding Economic Development)",
+"name": "Money and Credit",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Mindful Eating: A Path to a Healthy Body",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Methods of Preparation of Haloalkanes",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Medieval World",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Authority",
+"name": "Links the role of citizens with the elections and the democratic institutions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Force and Energy",
+"name": "Laws of Motion",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Law of Chemical Equilibrium and Equilibrium Constant",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People",
+"name": "Landforms and Life",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Diversity and Evolution of Life",
+"name": "Kingdom Plantae and Animalia",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-II",
+"name": "Inverse of a Matrix and its Applications",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Statistics",
+"name": "Introduction to Probability",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Integrals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "India and the World-I (1900 bce - 1200 ce)",
+"name": "Indian Knowledge Systems - Medicine, Mathematics and Astronomy, Medicine, Religion",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "India: A Welfare State",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Biomolecules",
+"name": "Hormones",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Heights and distances: Angle of elevation, Angle of Depression",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Thermal Physics",
+"name": "Heat Transfer and Solar Energy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Health: The Ultimate Treasure",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Moving Things",
+"name": "Gravitation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "Grassroots Democracy - Part 2: Local Government in Rural Areas",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d and f Block Elements",
+"name": "General properties of the Transition Elements (d-Block)",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Elements",
+"name": "General Characteristics of p-Block Elements",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Political Science (Democratic Politics-II)",
+"name": "Gender, Religion and Caste",
+"kind": "topic"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Study of Acids, Bases and Salts",
+"name": "Study of Acids, Bases and Salts",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "States of Matter",
+"name": "States of Matter",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Physics",
+"unit": "Sound",
+"name": "Sound",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction and Heredity",
+"name": "Reproduction and Heredity",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Political Science (Democratic Politics-II)",
+"name": "Political Science (Democratic Politics-II)",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Biology",
+"unit": "Plant Physiology",
+"name": "Plant Physiology",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Natural Phenomena",
+"name": "Natural Phenomena",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Moving Things",
+"name": "Moving Things",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Motion, Force, Work and Sound",
+"name": "Motion, Force, Work and Sound",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Magnetic Effects of Current and Magnetism",
+"name": "Magnetic Effects of Current and Magnetism",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Magnetic Effects of Current and Magnetism",
+"name": "Magnetic Effects of Current and Magnetism",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Laws of Motion",
+"name": "Laws of Motion",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Physics",
+"unit": "Laws of Motion",
+"name": "Laws of Motion",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Laws of Motion",
+"name": "Laws of Motion",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Geography",
+"unit": "Hydrosphere",
+"name": "Hydrosphere",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Biology",
+"unit": "Human Anatomy and Physiology",
+"name": "Human Anatomy and Physiology",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Geometry",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Geometry",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "Democracy at Work",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Coordinate geometry",
+"name": "Coordinate geometry",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Coordinate Geometry",
+"name": "Coordinate Geometry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Coordinate Geometry",
+"name": "Coordinate Geometry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Coordinate Geometry",
+"name": "Coordinate Geometry",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Climate",
+"name": "Climate",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Classification of Elements and Periodicity in Properties",
+"name": "Classification of Elements and Periodicity in Properties",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Classification of Elements and Periodicity in Properties",
+"name": "Classification of Elements and Periodicity in Properties",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "Civics: The State Legislatures",
+"name": "Civics: The State Legislatures",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "History and Civics",
+"unit": "Civics: The Judiciary",
+"name": "Civics: The Judiciary",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Kinetics",
+"name": "Chemical Kinetics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Kinetics",
+"name": "Chemical Kinetics",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Cell: Structure and Function",
+"name": "Cell: Structure and Function",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Cell: Structure and Function",
+"name": "Cell: Structure and Function",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Calculus",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Calculus",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Chemistry",
+"unit": "Water",
+"name": "Water",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Thermal Physics",
+"name": "Thermal Physics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "Theme D - Governance and Democracy",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+"name": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+"name": "Theme C - Our Cultural Heritage and Knowledge Traditions",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Motion, Force, Work and Sound",
+"name": "Work, Energy and Simple Machines",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Who are human ancestors?",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics and Optical Instruments",
+"name": "Wave Phenomena and Light",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Geography (Contemporary India-II)",
+"name": "Water resources",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sets, Relations and Functions",
+"name": "Trigonometric Functions-I",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Sets and Functions",
+"name": "Trigonometric Functions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Triangles - Congruence Theorems",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Properties of Bulk Matter",
+"name": "Thermal Properties of Matter",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Energy",
+"name": "Thermal Energy",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-I",
+"name": "Algebra-I",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebra",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Biology and Human Welfare",
+"name": "Biology and Human Welfare",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Biology and Human Welfare",
+"name": "Biology and Human Welfare",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Atmosphere and Climate",
+"name": "Atmosphere and Climate",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "A Peek Beyond the Point",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 1",
+"name": "A Story of Numbers",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Absorption, Transport and Water Loss in Plants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Chemical Substances - Nature and Behaviour",
+"name": "Acids, Bases and Salts",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Alcohols, Phenols and Ethers",
+"name": "Alcohols and Phenols",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Algebraic Expression and Polynomials",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Environment and Health",
+"name": "Environment and Health",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Energy",
+"name": "Energy",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electromagnetic Induction and Alternating Currents",
+"name": "Electromagnetic Induction and Alternating Currents",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electromagnetic Induction and Alternating Currents",
+"name": "Electromagnetic Induction and Alternating Currents",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Physics",
+"unit": "Electricity and Magnetism",
+"name": "Electricity and Magnetism",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Effects of Current",
+"name": "Effects of Current",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Economics (Understanding Economic Development)",
+"name": "Economics (Understanding Economic Development)",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Earth as a system",
+"name": "Earth as a system",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Early Humans and Beginning of Civilisation",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Biology",
+"unit": "Diversity in living organisms",
+"name": "Diversity in living organisms",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Contemporary India: Issues and Goals",
+"name": "Contemporary India: Issues and Goals",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Co-ordinate Geometry",
+"name": "Co-ordinate Geometry",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Energetics",
+"name": "Chemical Energetics",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular structure",
+"name": "Chemical Bonding and Molecular structure",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "Chemical Bonding and Molecular Structure",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Calculus",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Calculus",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Biotechnology and its Applications",
+"name": "Biotechnology and its Applications",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Biotechnology and its Applications",
+"name": "Biotechnology and its Applications",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Chemistry",
+"unit": "Atomic Structure and Chemical bonding",
+"name": "Atomic Structure and Chemical bonding",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Geography",
+"unit": "Atmosphere",
+"name": "Atmosphere",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Analytical Chemistry",
+"name": "Analytical Chemistry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "4-gons (Quadrilaterals)",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Geography (Contemporary India-II)",
+"name": "Agriculture",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India: Natural Environment, Resources and Development",
+"name": "Agriculture in India",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Organic Compounds",
+"name": "Alcohols, Phenols and Ethers",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Diversity of Living Organisms",
+"name": "Animal Kingdom",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 2",
+"name": "Another Peek Beyond the Point",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Application of the Integrals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Arithmetic progressions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Matter in our Surroundings",
+"name": "Atomic Structure",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Binomial Theorem",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Structure of Atom",
+"name": "Bohr\u2019s Model for Hydrogen Atom",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Smart Ways to Manage Your Finances",
+"name": "Budgeting",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Hydrocarbons",
+"name": "Carcinogenic and Toxicity",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Diversity and Evolution of Life",
+"name": "Cell Structure and Function",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Dynamics",
+"name": "Chemical Kinetics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Classification of Organic Compounds",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "States of Matter",
+"name": "Colloidal",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Conductance of Electrolytic solutions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Co-ordinate Geometry",
+"name": "Conic Sections",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Data Handling and Presentation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Democracy",
+"name": "Democratic systems in the world",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Differentiation of Exponential and Logarithmic functions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Diversity",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Elections",
+"name": "Election Commission of India and its role",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Electricity: Magnetic and Heating Effects",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Classification of Elements and Periodicity in Properties",
+"name": "Electronic Configuration of Elements and the Periodic Table",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Thermodynamics",
+"name": "Enthalpies for Different Types of Reactions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Contemporary India: Issues and Goals",
+"name": "Environmental Degradation and Disaster Management",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Exploring Magnets",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 2",
+"name": "Exploring Some Geometric Themes",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "Expressions using Letter-Numbers",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Atmosphere and Climate",
+"name": "Floods",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Resistance and Resilience (1000 ce - 1700 ce)",
+"name": "Forts and fortifications",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Natural Phenomena",
+"name": "Functioning of a lens in human eye",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Economics (Understanding Economic Development)",
+"name": "Globalisation and the Indian Economy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Life on Earth",
+"name": "Government efforts to support forest dwellers",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "Grassroots Democracy - Part 3: Local Government in Urban Areas",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Human Environment",
+"name": "Health and Hygiene",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Heredity",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Homogeneous Equilibria",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Solutions",
+"name": "Ideal and Non \u2013Ideal Solutions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Oceans and Life",
+"name": "International maritime rules and regulations",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Isomerism in Coordination Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Shaping of the Earth's Surface",
+"name": "Landforms and disasters: earthquakes, landslides, avalanches, Glacial Lake Outburst Flood (GLOF) and duststroms",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "The Living World",
+"name": "Life Processes \u2013 I : Nutrition, Transportation, Respiration and Excretion",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Energy",
+"name": "Light Energy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Linear Equations in Two Variables",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "Local Government and Field Administration",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Human Physiology",
+"name": "Locomotion and Movement",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electricity and Magnetism",
+"name": "Magnetism and Magnetic Effect of Electric Current",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Chemical Substances - Nature and Behaviour",
+"name": "Metals and Non-metals",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Modern World \u2013 I",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Force and Energy",
+"name": "Motion in a Plane",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Nuclear Fission and Fusion",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Environment and Health",
+"name": "Nutrition and Health",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Nutrition in plants - Mineral Nutrition",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics and Optical Instruments",
+"name": "Optical Instruments",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Palaeolithic hunter-gatherers and use of stone tools",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-I",
+"name": "Permutations and Combinations",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Physical Properties",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Political Science (Democratic Politics-II)",
+"name": "Political Parties",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Preparation of Haloarenes",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction and Heredity",
+"name": "Principles of Genetics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 1",
+"name": "Quadrilaterals",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Quadrilaterals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Redox Reactions",
+"name": "Redox Reactions and Electrode Processes",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d and f Block Elements",
+"name": "Some Important Compounds of Transition Elements",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Alcohols, Phenols and Ethers",
+"name": "Some commercially Important Alcohols",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Science",
+"unit": "Motion, Force, Work and Sound",
+"name": "Sound",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Special Product and Factorisation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "From Ideas to Startups",
+"name": "Start-up ecosystem in India",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vectors and Three Dimensional Geometry",
+"name": "Straight Line",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "History (India and the Contemporary World-II)",
+"name": "The Age of Industrialisation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past",
+"name": "The Gupta Era: An Age of Tireless Creativity",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "The Valence Shell Electron Pair Repulsion (VSEPR) Theory",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "The World of Metals and Non-metals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "State and Society (upto 1000 CE)",
+"name": "Traders and trade routes, guilds and merchants, crafts and industries",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sets, Relations and Functions",
+"name": "Trigonometric Functions-II",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Authority",
+"name": "Types of authority - functional, sensitive, and welfare-oriented",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Uncertainty in Measurement",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Uses of Aldehydes and Ketones Nomenclature Structure of Carboxyl Group",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Building Blocks in Economics",
+"name": "Welfare economy",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Elements",
+"name": "p-Block Elements and Their Compounds-I",
+"kind": "topic"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d-and f- Block Elements",
+"name": "d-and f- Block Elements",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d and f Block Elements",
+"name": "d and f Block Elements",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Work, Power and Energy",
+"name": "Work, Power and Energy",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Work, Energy and Power",
+"name": "Work, Energy and Power",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vectors and Three-dimensional Geometry",
+"name": "Vectors and Three-dimensional Geometry",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vector Algebra",
+"name": "Vector Algebra",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us",
+"name": "Theme E - Economic Life Around Us",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "Theme D - Governance and Democracy",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy",
+"name": "Theme D - Governance and Democracy",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Soil Resources",
+"name": "Soil Resources",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Biology",
+"unit": "Population",
+"name": "Population",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Plant Physiology",
+"name": "Plant Physiology",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Plant Physiology",
+"name": "Plant Physiology",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Oscillations and Waves",
+"name": "Oscillations and Waves",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Mensuration",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Mensuration",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "History and Civics",
+"unit": "History: The Indian National Movement (1857 - 1917)",
+"name": "History: The Indian National Movement (1857 - 1917)",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "History: The Harappan Civilisation",
+"name": "History: The Harappan Civilisation",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Geometry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Geometry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Geometry",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Physics",
+"unit": "Fluids",
+"name": "Fluids",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Linear Programming Problem",
+"name": "Linear Programming Problem",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Human Physiology",
+"name": "Human Physiology",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Human Physiology",
+"name": "Human Physiology",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Biology",
+"unit": "Human Evolution",
+"name": "Human Evolution",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Biology",
+"unit": "Human Anatomy and Physiology",
+"name": "Human Anatomy and Physiology",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "History: The Vedic Period",
+"name": "History: The Vedic Period",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Dynamics",
+"name": "Adsorption and Catalysis",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Organic Compounds",
+"name": "Aldehydes, Ketones and Carboxylic Acids",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Application of Derivatives",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-I",
+"name": "Binomial Theorem",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Bonding in coordination compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Chemical Substances - Nature and Behaviour",
+"name": "Carbon and its Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Atmosphere and Climate",
+"name": "Carbon footprint",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Changes Around Us: Physical and Chemical",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Chemical Reactions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Circles",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Solutions",
+"name": "Colligative Properties and Determination of Molar Mass",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 2",
+"name": "Connecting the Dots",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Elections",
+"name": "Constituency, electoral rolls, enumerators",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Differential Equations",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Elements",
+"name": "p-Block Elements and their Compounds-II",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Smart Ways to Manage Your Finances",
+"name": "Various savings and investment options like fixed deposit, stocks, bonds, mutual funds, etc",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "Valence Bond Theory",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India: Natural Environment, Resources and Development",
+"name": "Transport and Communication",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Structure of Atom",
+"name": "Towards Quantum Mechanical Model of the Atom",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Diversity and Evolution of Life",
+"name": "Tissues and other Level of Organization",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d and f Block Elements",
+"name": "The Lanthanoids",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 2",
+"name": "Tales by Dots and Lines",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Thermodynamics",
+"name": "Spontaneity, Gibbs Energy Change and Equilibrium",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Environment and Health",
+"name": "Some Common Human Diseases",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Similarity of Triangle",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Sequence and Series",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Sets, Relations and Functions",
+"name": "Relation between Sides and Angles of A triangle",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Natural Phenomena",
+"name": "Refraction of light through a prism",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "History (India and the Contemporary World-II)",
+"name": "Print Culture and the Modern world",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Prime Time",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Physical Properties",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Matter in our Surroundings",
+"name": "Periodic Classification of Elements",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Contemporary India: Issues and Goals",
+"name": "Peace and security",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "Parallel and Intersecting Lines",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Political Science (Democratic Politics-II)",
+"name": "Outcomes of Democracy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 1",
+"name": "Number Play",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Nomenclature of Organic Compounds",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Nitrogen Metabolism",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Human Physiology",
+"name": "Neural Control and Coordination",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction and Heredity",
+"name": "Molecular Inheritance and Gene Expression",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Modern World \u2013 II",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Geography (Contemporary India-II)",
+"name": "Minerals and energy Resources",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Methods of Preparation of Carboxylic Acids",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Energy",
+"name": "Electrical Energy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Electrolytic Cells and Electrolysis",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electricity and Magnetism",
+"name": "Electromagnetic Induction and Alternating Current",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Classification of Elements and Periodicity in Properties",
+"name": "Electronic Configuration of Elements and Types of Elements: s-, p-, d-, f- Blocks",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Alcohols, Phenols and Ethers",
+"name": "Ethers",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "World of Living",
+"name": "Evolution",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Resistance and Resilience (1000 ce - 1700 ce)",
+"name": "Expansion of Indian economy and state",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Exploring Forces",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "Governance at the State Level",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Force and Energy",
+"name": "Gravitation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Heterogeneous Equilibria",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Laws of Chemical Combination",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "The Living World",
+"name": "Life Processes \u2013 II : Control and Coordination",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Linear Equation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "From Ideas to Startups",
+"name": "Make in India initiative, role of MSMEs and the unorganised sector in India's economic growth",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Measurement of Length and Motion",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Mesolithic transition to food production: Mesolithic sites and tools",
+"kind": "topic"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "History and Civics",
+"unit": "History: Mass Phase of the National Movement (1915-1947)",
+"name": "History: Mass Phase of the National Movement (1915-1947)",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Physics",
+"unit": "Heat and Energy",
+"name": "Heat and Energy",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Physics",
+"unit": "Heat",
+"name": "Heat",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Emerging Areas in Biology",
+"name": "Emerging Areas in Biology",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electromagnetic Waves",
+"name": "Electromagnetic Waves",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electromagnetic Waves",
+"name": "Electromagnetic Waves",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electricity and Magnetism",
+"name": "Electricity and Magnetism",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Ecology and Environment",
+"name": "Ecology and Environment",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Ecology and Environment",
+"name": "Ecology and Environment",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Coordination Compounds",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Coordination Compounds",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Thermodynamics",
+"name": "Chemical Thermodynamics",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemical Dynamics",
+"name": "Chemical Dynamics",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Trigonometry",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Trigonometry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Trigonometry",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Three - dimensional Geometry",
+"name": "Three - dimensional Geometry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Thermodynamics",
+"name": "Thermodynamics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us",
+"name": "Theme E - Economic Life Around Us",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us",
+"name": "Theme E - Economic Life Around Us",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People (Part 2)",
+"name": "Theme A - India and the World: Land and the People (Part 2)",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Chemistry",
+"unit": "The Periodic Table",
+"name": "The Periodic Table",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "The Living World",
+"name": "The Living World",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Statistics and Probability",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Statistics and Probability",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Statistics and Probability",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Statistics",
+"name": "Statistics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "State and Society (upto 1000 CE)",
+"name": "State and Society (upto 1000 CE)",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Geography",
+"unit": "Pollution",
+"name": "Pollution",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Natural Vegetation",
+"name": "Natural Vegetation",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Science",
+"unit": "Natural Resources",
+"name": "Natural Resources",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Motion of System of Particles and Rigid Body",
+"name": "Motion of System of Particles and Rigid Body",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Motion of System of Particles and Rigid Body",
+"name": "Motion of System of Particles and Rigid Body",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Mole Concept and Stoichiometry",
+"name": "Mole Concept and Stoichiometry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Mensuration",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Gravitation",
+"name": "Gravitation",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Equilibrium",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Equilibrium",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Electrolysis",
+"name": "Electrolysis",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Democracy",
+"name": "Democracy",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Elements",
+"name": "Chemistry of Elements",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Algebra-II",
+"name": "Algebra-II",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Elements",
+"name": "d-Block and f-Block Elements",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Force and Energy",
+"name": "Work, Energy and Power",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 1",
+"name": "We Distribute, Yet Things Multiply",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d and f Block Elements",
+"name": "The Actinoids",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "From Ideas to Startups",
+"name": "Stages of starting and executing a business idea through a business plan",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Smart Ways to Manage Your Finances",
+"name": "Risk and insurance",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Structure of Atom",
+"name": "Quantum Mechanical Model of Atom",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Quadratic Equation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Pressure, Winds, Storms, and Cyclones",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India: Natural Environment, Resources and Development",
+"name": "Population Our Greatest Resource",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Physical Properties and Chemical Reactions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Photosynthesis",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Classification of Elements and Periodicity in Properties",
+"name": "Periodic Trends in Properties of Elements",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Perimeter and Area",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Elections",
+"name": "Party system in India",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "Number Play",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Neolithic and the beginning of farming: Neolithic revolution, domestication of plants and animals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Methods of Preparation of Diazonium Salts",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Materials Around Us",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Geography (Contemporary India-II)",
+"name": "Manufacturing Industries",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Energy",
+"name": "Magnetic Effect of Electric Current",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "The Living World",
+"name": "Life Processes \u2013 III : Reproduction",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Isomerism, Fundamental Concepts in Organic Reaction Mechanism",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Integration",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Impact of British Rule on India: Economic Social and Cultural (1757-1857)",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "Hybridisation, Molecular Orbital Theory",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "Governance at the Union Level",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Reproduction and Heredity",
+"name": "Genetics and Society",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Dalton's Atomic Theory",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 2",
+"name": "Constructions and Tilings",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Organic Compounds",
+"name": "Compounds of Carbon Containing Nitrogen",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Circle",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Chemical Reactions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Biology",
+"unit": "Human Physiology",
+"name": "Chemical Coordination and Integration",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Matter in our Surroundings",
+"name": "Chemical Bonding",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Bonding in Metal Carbonyls",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Batteries, Fuel Cells",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Applications of Equilibrium Constants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 2",
+"name": "Algebra Play",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Adolescence: A Stage of Growth and Change",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Solutions",
+"name": "Abnormal Molecular Masses",
+"kind": "topic"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Water Resources",
+"name": "Water Resources",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past (Part 2)",
+"name": "Theme B - Tapestry of the Past (Part 2)",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme A - India and the World: Land and the People (Part 2)",
+"name": "Theme A - India and the World: Land and the People (Part 2)",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Chemistry",
+"unit": "Study of the First Element - Hydrogen",
+"name": "Study of the First Element - Hydrogen",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Statistics and Probability",
+"name": "Statistics and Probability",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Statistics",
+"name": "Statistics",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Statistics",
+"name": "Statistics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Probability",
+"name": "Probability",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Biology",
+"unit": "Pollution",
+"name": "Pollution",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics and Optical Instruments",
+"name": "Optics and Optical Instruments",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics",
+"name": "Optics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Optics",
+"name": "Optics",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Natural Resources",
+"name": "Natural Resources",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Physics",
+"unit": "Modern Physics",
+"name": "Modern Physics",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Mensuration",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Mensuration",
+"name": "Mensuration",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Linear Programming",
+"name": "Linear Programming",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Physics",
+"unit": "Light",
+"name": "Light",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "History and Civics",
+"unit": "History: The Contemporary World",
+"name": "History: The Contemporary World",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "History: Jainism and Buddhism",
+"name": "History: Jainism and Buddhism",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Biology",
+"unit": "Health and Hygiene",
+"name": "Health and Hygiene",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Haloalkanes and Haloarenes",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Haloalkanes and Haloarenes",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Gravitation",
+"name": "Gravitation",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Alcohols, Phenols and Ethers",
+"name": "Alcohols, Phenols and Ethers",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Alcohols, Phenols and Ethers",
+"name": "Alcohols, Phenols and Ethers",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Atoms and Nuclei",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Organic Compounds",
+"name": "Chemistry of Organic Compounds",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Dual Nature of Radiation and Matter",
+"name": "Dual Nature of Radiation and Matter",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Dual Nature of Radiation and Matter",
+"name": "Dual Nature of Radiation and Matter",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Elections",
+"name": "Elections",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "History: The Mauryan Empire",
+"name": "History: The Mauryan Empire",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Human Environment",
+"name": "Human Environment",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Metallurgy",
+"name": "Metallurgy",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Mineral and Energy Resources",
+"name": "Mineral and Energy Resources",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Probability",
+"name": "Probability",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Probability",
+"name": "Probability",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Properties of Bulk Matter",
+"name": "Properties of Bulk Matter",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Properties of Bulk Matter",
+"name": "Properties of Bulk Matter",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Redox Reactions",
+"name": "Redox Reactions",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Redox Reactions",
+"name": "Redox Reactions",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Relations and Functions",
+"name": "Relations and Functions",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Physics",
+"unit": "Sound",
+"name": "Sound",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Statistics and probability",
+"name": "Statistics and probability",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Chemistry",
+"unit": "Study of Gas Laws",
+"name": "Study of Gas Laws",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme B - Tapestry of the Past (Part 2)",
+"name": "Theme B - Tapestry of the Past (Part 2)",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+"name": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Trigonometry",
+"name": "Trigonometry",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Biology",
+"unit": "Waste generation and management",
+"name": "Waste generation and management",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "A Tale of Three Intersecting Lines",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Matter in our Surroundings",
+"name": "Acids, Bases and Salts",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Angle in a Circle and Cyclic Quadrilaterals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 2",
+"name": "Area",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Algebra",
+"name": "Arithmetic Progression",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Atomic and Molecular Masses",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Organic Compounds",
+"name": "Biomolecules",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "Bonding in Some Homonuclear Diatomic Molecules",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry of Elements",
+"name": "Coordination Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Electrochemistry",
+"name": "Corrosion",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Definite Integrals",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 2",
+"name": "Finding the Unknown",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Fractions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Harappan and contemporary cultures",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Heat Transfer in Nature",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "The Living World",
+"name": "Heredity",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Coordination Compounds",
+"name": "Importance and Applications of Coordination Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Geography (Contemporary India-II)",
+"name": "Lifelines of National Economy",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Methods of Purification of Organic Compounds",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Force and Energy",
+"name": "Motion of a Rigid Body",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Particulate Nature of Matter",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Smart Ways to Manage Your Finances",
+"name": "Personal income tax",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Physical Propeties",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "Political Parties and Pressure Groups",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Haloalkanes and Haloarenes",
+"name": "Polyhalogen Compounds",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 8, Part 1",
+"name": "Proportional Reasoning-1",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Relationship between Equilibrium Constant K",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Religious and Social Awakening in Colonial India",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Respiration in Plants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "d and f Block Elements",
+"name": "Some Applications of d-and f- Block Elements",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "From Ideas to Startups",
+"name": "Some basic accounting concepts",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Science and Technology",
+"unit": "Energy",
+"name": "Sound and Communication",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Temperature and its Measurement",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Uses of Carboxylic Acids",
+"kind": "topic"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Study of Compounds",
+"name": "Study of Compounds",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Semiconductor Devices and Communication",
+"name": "Semiconductor Devices and Communication",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry - Some Basic Principles and Techniques",
+"name": "Organic Chemistry - Some Basic Principles and Techniques",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "History: The Sangam Age",
+"name": "History: The Sangam Age",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Heat and Thermodynamics",
+"name": "Heat and Thermodynamics",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Physics",
+"unit": "Electricity and Magnetism",
+"name": "Electricity and Magnetism",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Mathematics",
+"unit": "Coordinate Geometry",
+"name": "Coordinate Geometry",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Chemistry in Everyday Life",
+"name": "Chemistry in Everyday Life",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Calculus",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Building Blocks in Economics",
+"name": "Building Blocks in Economics",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Atoms and Nuclei",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Atoms and Nuclei",
+"name": "Atoms and Nuclei",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "Chemistry",
+"unit": "Atmospheric pollution",
+"name": "Atmospheric pollution",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Aldehydes, Ketones and Carboxylic Acids",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Aldehydes, Ketones and Carboxylic Acids",
+"name": "Aldehydes, Ketones and Carboxylic Acids",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Agriculture",
+"name": "Agriculture",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Qualitative Analysis of Organic Compounds",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Popular Resistance to the British Rule",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Playing with Constructions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "Democracy at Work",
+"name": "People\u2019s Participation in the Democratic Process",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Nutrition and Digestion",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Nature of Matter: Elements, Compounds, and Mixtures",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Mole Concept and Molar Masses",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Early Humans and Beginning of Civilisation",
+"name": "Mesopotamian, egyptian, and chinese civilisation",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Measurement of Time and Motion",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Chemical Bonding and Molecular Structure",
+"name": "Hydrogen Bonding",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Calculus",
+"name": "Differential Equations",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Chemical Reactions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "A Journey through States of Water",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 7, Part 1",
+"name": "Working with Fractions",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Secants, tangents and their Properties",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Reaction Quotient Q and Gibbs Energy G",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Thermodynamics",
+"name": "Thermodynamics",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy (Part 2)",
+"name": "Theme D - Governance and Democracy (Part 2)",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+"name": "Theme C - Our Cultural Heritage and Knowledge Traditions (Part 2)",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Chemical Reactions Importance of Diazonium Salts in Synthesis of Aromatic Compounds",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Respiration and Elimination of Nitrogenous Wastes",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "Symmetry",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "The Amazing World of Solutes, Solvents, and Solutions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Percentage Composition",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Methods of Separation in Everyday Life",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Life Processes in Animals",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Vectors and Three Dimensional Geometry",
+"name": "Vectors and Three Dimensional Geometry",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us (Part 2)",
+"name": "Theme E - Economic Life Around Us (Part 2)",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme D - Governance and Democracy (Part 2)",
+"name": "Theme D - Governance and Democracy (Part 2)",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "The Price Puzzle: What Drives the Market",
+"name": "The Price Puzzle: What Drives the Market",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Organic compounds containing Nitrogen",
+"name": "Organic compounds containing Nitrogen",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Chemistry",
+"unit": "Organic Chemistry",
+"name": "Organic Chemistry",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Manufacturing Industries",
+"name": "Manufacturing Industries",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Hydrocarbons",
+"name": "Hydrocarbons",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Hydrocarbons",
+"name": "Hydrocarbons",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "History: The Age of the Guptas",
+"name": "History: The Age of the Guptas",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electronic Devices",
+"name": "Electronic Devices",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Physics",
+"unit": "Electronic Devices",
+"name": "Electronic Devices",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Behaviour of Perfect Gases and Kinetic Theory of Gases",
+"name": "Behaviour of Perfect Gases and Kinetic Theory of Gases",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Behaviour of Perfect Gases and Kinetic Theory of Gases",
+"name": "Behaviour of Perfect Gases and Kinetic Theory of Gases",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Amines",
+"name": "Amines",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Social Science",
+"unit": "India and World through Ages",
+"name": "Indian National Movement",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Factors Affecting Equilibria",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Constructions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Organic Chemistry \u2013 Some Basic Principles and Techniques",
+"name": "Quantitative Analysis",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Oscillations and Waves",
+"name": "Oscillations and Waves",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 11",
+"subject": "Physics",
+"unit": "Oscillations and Waves",
+"name": "Oscillations and Waves",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Social Science",
+"unit": "Theme E - Economic Life Around Us (Part 2)",
+"name": "Theme E - Economic Life Around Us (Part 2)",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Transport",
+"name": "Transport",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 10",
+"subject": "Mathematics",
+"unit": "Geometry",
+"name": "Co-ordinate Geometry",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Circulation of Body Fluids",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Mathematics",
+"unit": "Ganita Prakash, Grade 6",
+"name": "The Other Side of Zero",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Some Basic Concepts of Chemistry",
+"name": "Stoichiometry and Stoichiometric Calculations",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Living Creatures: Exploring their Characteristics",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Light: Mirrors and Lenses",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Life Processes in Plants",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Ionic Equilibrium in Solution",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Biomolecules",
+"name": "Biomolecules",
+"kind": "unit"
+},
+{
+"board": "ISC",
+"class": "Class 12",
+"subject": "Chemistry",
+"unit": "Biomolecules",
+"name": "Biomolecules",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "History: Medieval India",
+"name": "History: Medieval India",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Mathematics",
+"unit": "Linear Programming and Mathematical Reasoning",
+"name": "Linear Programming and Mathematical Reasoning",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Oceans and Life",
+"name": "Oceans and Life",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 10",
+"subject": "Geography",
+"unit": "Waste Management",
+"name": "Waste Management",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Life on Earth",
+"name": "Life on Earth",
+"kind": "unit"
+},
+{
+"board": "ICSE",
+"class": "Class 9",
+"subject": "History and Civics",
+"unit": "History: The Modern Age in Europe",
+"name": "History: The Modern Age in Europe",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Nature's Treasures",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Locomotion and Movement",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Light: Shadows and Reflections",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Keeping Time with the Skies",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Acids, Bases and Salts",
+"kind": "topic"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Coordination and Control - The Nervous and Endocrine Systems",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 6",
+"subject": "Science",
+"unit": "Curiosity, Grade 6",
+"name": "Beyond Earth",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Resistance and Resilience (1000 ce - 1700 ce)",
+"name": "Resistance and Resilience (1000 ce - 1700 ce)",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Ionization of Acids and Bases",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "How Nature Works in Harmony",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 7",
+"subject": "Science",
+"unit": "Curiosity, Grade 7",
+"name": "Earth, Moon, and the Sun",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Buffer Solutions",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "India and the World-I (1900 bce - 1200 ce)",
+"name": "India and the World-I (1900 bce - 1200 ce)",
+"kind": "unit"
+},
+{
+"board": "NIOS",
+"class": "Class 12",
+"subject": "Biology",
+"unit": "Forms and Functions of Plants and Animals",
+"name": "Homeostasis: The Steady State",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 8",
+"subject": "Science",
+"unit": "Curiosity, Grade 8",
+"name": "Our Home: Earth, a Unique Life Sustaining Planet",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Authority",
+"name": "Authority",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 11",
+"subject": "Chemistry",
+"unit": "Equilibrium",
+"name": "Solubility Equilibria of Sparingly Soluble Salts",
+"kind": "topic"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "From Ideas to Startups",
+"name": "From Ideas to Startups",
+"kind": "unit"
+},
+{
+"board": "CBSE",
+"class": "Class 9",
+"subject": "Social Science",
+"unit": "Smart Ways to Manage Your Finances",
+"name": "Smart Ways to Manage Your Finances",
+"kind": "unit"
+}
+]

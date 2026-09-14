@@ -42,11 +42,6 @@ export const STATES_CSS = `
   text-wrap: balance;
 }
 .ws-body { color: var(--ink-2); margin: 0; max-width: 42ch; text-wrap: pretty; }
-.ws-hand {
-  color: var(--pig);
-  font: 600 clamp(22px, 3vw, 28px)/1.2 var(--hand);
-  min-height: 1.4em;
-}
 .ws-tiny { color: var(--ink-3); font-size: 13px; margin: 12px 0 0; max-width: 46ch; }
 .ws-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 24px; }
 
@@ -111,9 +106,6 @@ export const STATES_CSS = `
 .ws-spiral { animation: ws-spin 1.4s linear 1.1s 2; }
 @keyframes ws-spin { to { transform: rotate(360deg); } }
 
-/* The handwritten line arrives letter by letter, the way a hand writes it. */
-.ws-hand span { animation: ws-fade 250ms ease forwards; display: inline-block; opacity: 0; white-space: pre; }
-
 /* A state that happened TO the screen the learner already had covers everything — header, Wobo,
    board — because each scene carries its own wordmark and a second one underneath reads as two
    products at once. */
@@ -160,13 +152,13 @@ export const STATES_CSS = `
    nothing loops. The scenes still read — they were composed as still pictures first. */
 @media (prefers-reduced-motion: reduce) {
   .ws-draw { animation: none; stroke-dashoffset: 0; }
-  .ws-fade, .ws-hand span { animation: none; opacity: 1; }
+  .ws-fade { animation: none; opacity: 1; }
   .ws-sand, .ws-turn, .ws-plane, .ws-spanner, .ws-spiral { animation: none; }
   .ws-seal { animation: none; opacity: 0.18; }
   .ws-btn { transition: none; }
 }
 :root[data-motion="reduce"] .ws-draw { animation: none; stroke-dashoffset: 0; }
-:root[data-motion="reduce"] .ws-fade, :root[data-motion="reduce"] .ws-hand span { animation: none; opacity: 1; }
+:root[data-motion="reduce"] .ws-fade { animation: none; opacity: 1; }
 :root[data-motion="reduce"] .ws-sand, :root[data-motion="reduce"] .ws-turn, :root[data-motion="reduce"] .ws-plane, :root[data-motion="reduce"] .ws-spanner, :root[data-motion="reduce"] .ws-spiral { animation: none; }
 :root[data-motion="reduce"] .ws-seal { animation: none; opacity: 0.18; }
 :root[data-motion="reduce"] .ws-btn { transition: none; }

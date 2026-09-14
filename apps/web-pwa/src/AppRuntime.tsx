@@ -33,10 +33,17 @@ import { answerBody, doubtAnswerPath } from './screens/doubt/api';
 import { doubtCaption } from './screens/doubt/caption';
 import { StateLayer } from './screens/states/StateHost';
 import { boardName, loadProfile, mergeAccount } from './screens/you/profile';
+import {
+  arrivalFrom,
+  redeemMailLink,
+  rememberArrival,
+  takeArrival,
+  withoutToken,
+} from './shell/arrival';
 import { resolveDestination } from './shell/destinations';
 import { isPublicSite } from './shell/public-routes';
 import { useConnectivity } from './shell/resilience';
-import { type Route, useRouter } from './shell/router';
+import { type Route, routeFromPath, useRouter } from './shell/router';
 import { publicScreen } from './site/PublicRoutes';
 import { appSdk, GATEWAY_URL } from './store/app-sdk';
 import { machineRoomSnapshot } from './store/machine-room';
@@ -195,6 +202,7 @@ const OWN_VIEWPORT_ROUTES = new Set([
   'contact',
   'sitemap',
   'security',
+  'press',
   'meet-wobo',
   'for-parents',
   'for-students',
@@ -342,7 +350,7 @@ function Screen() {
           {route.name === 'subject' && (
             <SubjectScreen subjectId={route.subjectId} intent={route.intent} />
           )}
-          {route.name === 'course' && <Course topicId={route.topicId} />}
+          {route.name === 'course' && <Course topicId={route.topicId} cardId={route.cardId} />}
           {route.name === 'sandbox' && <Course topicId={route.topicId ?? ''} sandbox />}
           {route.name === 'arcade' && <Arcade topicId={route.topicId} />}
           {route.name === 'progress' && <ProgressScreen />}
@@ -1198,6 +1206,57 @@ function AppInner({ sdk }: { sdk: Sdk }) {
   // on a public page), so a started-but-signed-out boot lands on `home` and the lock above shows
   // onboarding over it. The bar is corrected here, once, to the address the sign-in beat lives at
   // — nothing re-renders, because onboarding is already what is on screen.
+  /**
+   * THE LINK THAT LANDS (docs/EMAILS-AND-ANIMATIONS.md §4), read once at boot.
+   *
+   * A mail's one button opens `/course/<course>/card/<card>?k=<token>`. Two things happen here and
+   * nowhere else:
+   *
+   *  · **The token leaves the bar.** It is a credential minted for one inbox, and left in the
+   *    address it would sit in the history of a shared tablet, ride out in the referrer of the
+   *    next outbound link, and appear in every screenshot of the page. One `replaceState` onto the
+   *    same address without it: no reload, no flash, nothing re-renders.
+   *  · **The destination is held for the far side of the door.** Signed in on this device there is
+   *    nothing to hold — the address IS the destination and the course is already opening. Locked,
+   *    the sign-in beat is about to cover the screen, and in live mode the way out of it reloads
+   *    the document, so where they were going is written down on the device (`shell/arrival.ts`)
+   *    and taken back once, below.
+   *
+   * The token is handed to the brain in the same breath, which is what SPENDS it: the sign-in half
+   * of a link works once, so a mail forwarded to a family group is a link to a lesson and not to
+   * somebody's account. It is best-effort and silent — with no brain to ask, the address in the
+   * bar is still the destination, and the learner still lands.
+   */
+  const mailLink = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the link is read once, on mount
+  useEffect(() => {
+    if (mailLink.current || typeof window === 'undefined') return;
+    mailLink.current = true;
+    const link = arrivalFrom(window.location.href);
+    if (!link) return;
+    if (link.token) {
+      window.history.replaceState(window.history.state, '', withoutToken(window.location.href));
+    }
+    if (!locked) return;
+    rememberArrival(link.destination);
+    void redeemMailLink(link.token, { gatewayUrl: GATEWAY_URL });
+  }, []);
+
+  /**
+   * The far side of the door. The destination a mail link was pressed for, honoured the moment
+   * there is an app to honour it in — never over the sign-in beat or the frame-building theatre,
+   * which are the two screens a learner is in the middle of rather than looking at.
+   *
+   * `takeArrival` clears as it reads, so this lands a learner once and never again: a second boot
+   * in the same tab must not drag them back into a card they already left.
+   */
+  useEffect(() => {
+    if (locked || route.name === 'onboarding' || route.name === 'building') return;
+    const destination = takeArrival();
+    if (!destination) return;
+    router.replace(routeFromPath(destination));
+  }, [locked, route.name, router]);
+
   const bootAddress = useRef(false);
   // biome-ignore lint/correctness/useExhaustiveDependencies: the boot address is corrected once, on mount
   useEffect(() => {

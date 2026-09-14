@@ -68,8 +68,10 @@ MIN_INK_MS = 240
 MAX_INK_MS = 900
 
 #: How many marks the client may say it has standing on the glass, and how long each one's words
-#: may be. A turn draws at most ten marks (INK-FREEZE §3, Plan) and the instant mark is ONE; this
-#: is the ceiling on a field the client writes and Wobo then speaks, not a target.
+#: may be. A turn draws at most ten marks (INK-FREEZE §3, Plan) and the instant mark is one — or
+#: the two or three of ONE GESTURE, when a lasso crossed more than one line and the learner is owed
+#: a mark on each (`wobo/instant.ts`, `FOCUS_MARKS_MAX`; the adversary, wave 47, finding 3). This is
+#: the ceiling on a field the client writes and Wobo then speaks, not a target.
 MAX_STANDING = 4
 MAX_STANDING_WORDS = 120
 

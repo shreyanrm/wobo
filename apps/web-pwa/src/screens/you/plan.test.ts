@@ -656,9 +656,21 @@ describe('a plan that renews says so, and one that does not never does', () => {
 
 describe('the You screen mounts it', () => {
   it('puts the panel on the page, under Settings, with the plans page as its door', () => {
-    expect(YOU).toContain('<PlanPanel planId={planId}');
+    expect(YOU).toContain('<PlanPanel');
+    expect(YOU).toContain('planId={planId}');
     expect(YOU).toContain("router.navigate({ name: 'plans' })");
     expect(YOU.indexOf('<PlanPanel')).toBeGreaterThan(YOU.indexOf('<Tag>Settings</Tag>'));
+  });
+
+  /**
+   * AND HANDS IT THE DAY. The bar under the plan is filled from the same `GET /v1/me` the tier
+   * comes from (docs/ALLOWANCE.md §2), so the heading and the bar are one answer about one learner
+   * rather than two reads that can disagree.
+   */
+  it('hands the panel today, read off the same answer as the tier', () => {
+    expect(YOU).toContain('today={readToday(me)}');
+    expect(YOU).toContain("import { readToday } from './you/today'");
+    expect(YOU).toContain('const planId = me?.plan ?? null');
   });
 
   it('says "Your plan" exactly once on the screen, so the sentence points at one thing', () => {

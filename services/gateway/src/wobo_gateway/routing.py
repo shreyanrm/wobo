@@ -249,6 +249,25 @@ _ESCALATION: dict[Tier, Tier] = {
 }
 
 
+# THE OWNER'S RULE (2026-09-08): top quality at the lowest cost; better models only where needed.
+# Generated content is judged and cached, so it STARTS at the cheapest model and climbs one rung
+# per rejection: luna, then terra, then sol. A live turn cannot be re-judged, so it starts one
+# rung up (terra); the judge is sol from the first, because a weak judge passes weak content.
+# Other tiers keep the tier ladder above.
+_GENERATION_LADDER: tuple[str, ...] = (
+    "openai/gpt-5.6-luna",
+    "openai/gpt-5.6-terra",
+    "openai/gpt-5.6-sol",
+)
+
+#: The ladder is overridable exactly as a tier is, by one variable, comma-separated, cheapest
+#: first: ``WOBO_GENERATION_LADDER=openai/gpt-5.6-luna,openai/gpt-5.6-sol``. The console's models
+#: desk writes the same override into ``ops.settings`` under ``generation.ladder`` and feeds it in
+#: through :func:`configure` (``wobo_gateway.dials``), so the variable and the dial are one path
+#: and can never mean two different things. docs/CONSOLE-MODELS.md §2 and §3.
+LADDER_ENV = "WOBO_GENERATION_LADDER"
+
+
 # --- the plan lanes (owner, 2026-09-08) ----------------------------------------------------------
 # "For the free tier by default we only give them 5 rupees a day; use models like luna for them to
 # get slightly longer use, lower quality comparatively, but we don't compromise on quality." The
@@ -315,8 +334,34 @@ def _read_table(environ: Mapping[str, str]) -> dict[Tier, tuple[str, ...]]:
     return table
 
 
+def _read_ladder(environ: Mapping[str, str]) -> tuple[str, ...]:
+    """The generation ladder with the environment's override applied, cheapest rung first.
+
+    Refused for the same three reasons a chain is, and with the same consequence — a line naming
+    the variable, so a typo is a failed boot rather than every lesson quietly starting on the
+    wrong rung. Pure: reads its argument, touches no module state.
+    """
+    raw = (environ.get(LADDER_ENV) or "").strip()
+    if not raw:
+        return _GENERATION_LADDER
+    rungs = tuple(m.strip() for m in raw.split(",") if m.strip())
+    if len(rungs) < 2:
+        raise RuntimeError(f"{LADDER_ENV} needs at least two rungs; a ladder of one is not a ladder")
+    if len(set(rungs)) != len(rungs):
+        raise RuntimeError(f"{LADDER_ENV} repeats a model: {', '.join(rungs)}")
+    for model in rungs:
+        if model not in CATALOGUE:
+            raise RuntimeError(
+                f"{LADDER_ENV} names {model!r}, which is not a model this router knows. "
+                f"Known: {', '.join(sorted(CATALOGUE))}"
+            )
+    return rungs
+
+
 # --- module state: built at import from the environment, rebuilt by configure() ------------------
 _TABLE: dict[Tier, tuple[str, ...]] = {}
+#: The generation ladder in force, rebuilt by :func:`configure` from the environment it is handed.
+_LADDER: tuple[str, ...] = ()
 _TRACK_1: dict[str, str] = {}
 _TIER_CHAIN: dict[Tier, tuple[str, tuple[str, ...]]] = {}
 _REGISTRY: dict[Track, dict[str, ModelSpec]] = {}
@@ -328,8 +373,10 @@ def configure(environ: Mapping[str, str] | None = None) -> None:
     Called once at import, which is startup: a bad override refuses the boot with a clear line
     and leaves the previous table untouched. Tests call it with a mapping and again with ``{}``.
     """
-    global _TABLE, _TRACK_1, _TIER_CHAIN, _REGISTRY
-    table = _read_table(os.environ if environ is None else environ)
+    global _TABLE, _LADDER, _TRACK_1, _TIER_CHAIN, _REGISTRY
+    source = os.environ if environ is None else environ
+    table = _read_table(source)
+    ladder = _read_ladder(source)
     track_1: dict[str, str] = {}
     chains: dict[Tier, tuple[str, tuple[str, ...]]] = {}
     for tier, chain in table.items():
@@ -343,7 +390,7 @@ def configure(environ: Mapping[str, str] | None = None) -> None:
     # REBUILD target of a judge rejection is one rung up from generate, which is the reason tier.
     track_1["frontier.reason"] = table[Tier.VERIFY][0]
     track_1["openai.frontier"] = table[Tier.REASON][0]
-    _TABLE, _TRACK_1, _TIER_CHAIN = table, track_1, chains
+    _TABLE, _LADDER, _TRACK_1, _TIER_CHAIN = table, ladder, track_1, chains
     _REGISTRY = {
         Track.TRACK_1: {n: ModelSpec(n, m, Track.TRACK_1) for n, m in track_1.items()},
         Track.TRACK_2: {n: ModelSpec(n, m, Track.TRACK_2) for n, m in _TRACK_2.items()},
@@ -420,16 +467,6 @@ def escalation_tier(tier: Tier) -> Tier | None:
     return _ESCALATION.get(tier)
 
 
-# THE OWNER'S RULE (2026-09-08): top quality at the lowest cost; better models only where needed.
-# Generated content is judged and cached, so it STARTS at the cheapest model and climbs one rung
-# per rejection: luna, then terra, then sol. A live turn cannot be re-judged, so it starts one
-# rung up (terra); the judge is sol from the first, because a weak judge passes weak content.
-# Other tiers keep the tier ladder above.
-_GENERATION_LADDER: tuple[str, ...] = (
-    "openai/gpt-5.6-luna",
-    "openai/gpt-5.6-terra",
-    "openai/gpt-5.6-sol",
-)
 
 
 def _spec_for_provider(provider_model: str) -> ModelSpec:
@@ -444,9 +481,12 @@ def _spec_for_provider(provider_model: str) -> ModelSpec:
 def generation_ladder() -> tuple[str, ...]:
     """The rungs generation climbs, cheapest first, with the tier's configured primary at the
     bottom so an override still starts where the operator said."""
+    rungs = _LADDER or _GENERATION_LADDER
     first = tier_model(Tier.GENERATE).provider_model
-    rest = tuple(m for m in _GENERATION_LADDER if m != first)
-    return (first, *rest)
+    if first in rungs:
+        # The operator set a ladder that already starts where the tier does; theirs, in their order.
+        return tuple(rungs) if rungs[0] == first else (first, *(m for m in rungs if m != first))
+    return (first, *rungs)
 
 
 def escalate(

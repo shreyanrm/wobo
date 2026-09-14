@@ -507,6 +507,7 @@ def _search(
         version=request.version,
         official_site=request.official_site,
         country=request.country,
+        aliases=request.aliases,
     )
     try:
         results = search_stage.run_search(

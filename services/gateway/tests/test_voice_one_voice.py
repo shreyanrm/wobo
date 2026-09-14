@@ -259,3 +259,24 @@ def test_one_answer_remembered_twice_still_has_one_voice(voices: tuple[Vendor, V
     assert voice.turn_voice_for(rewritten) == first, "the same answer took a second voice"
     assert voice.turn_voice_for(SECOND) == first
     assert voice.turn_voice_for(FIRST) == first, "and the sentence only the first record holds"
+
+
+def test_a_sentence_follows_a_re_decision_somebody_else_made(
+    client: TestClient, voices: tuple[Vendor, Vendor], one_at_a_time: None
+) -> None:
+    """The buy that runs the moment a turn's words are decided re-decides an unheard turn's voice
+    itself, seconds before the client asks. The read-aloud route has to FOLLOW that decision: a
+    sentence asked for on the voice the turn no longer has must come back in the voice it does,
+    not as a failure the client has to ask around."""
+    google, openai = voices
+    google.silent.update({FIRST, SECOND, THIRD})
+    voice.remember_line(LINE)
+
+    first = voice.turn_voice_for(FIRST)
+    assert first == media.GEMINI_TTS_ID
+    assert voice.repin_unheard_turn(FIRST, failed=first) == media.OPENAI_TTS_ID
+
+    status, _ = _say(client, FIRST)
+    assert status == 200, "the sentence failed on a voice its own turn had already dropped"
+    assert google.asked == [], "and it was not asked of the dropped voice at all"
+    assert openai.asked == [FIRST]

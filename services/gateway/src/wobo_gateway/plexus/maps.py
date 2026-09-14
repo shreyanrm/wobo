@@ -26,21 +26,171 @@ kind), never a hard failure. Pure stdlib, deterministic — ``python maps.py`` r
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NamedTuple
 
-# --- region catalog: id -> bounding box (lonMin, lonMax, latMin, latMax) ------------------
-# Mirror of india-lite.json (8 hand-authored states). Bboxes computed from the polygon vertices.
-_REGION_BBOX: dict[str, tuple[float, float, float, float]] = {
-    "rajasthan": (69.6, 77.0, 24.6, 29.4),
-    "gujarat": (68.6, 74.0, 21.5, 24.2),
-    "maharashtra": (72.7, 80.3, 15.7, 21.2),
-    "madhya-pradesh": (74.2, 81.8, 21.6, 24.3),
-    "uttar-pradesh": (77.3, 83.9, 24.8, 29.3),
-    "karnataka": (74.2, 77.0, 12.9, 15.3),
-    "kerala": (74.9, 77.0, 8.3, 12.5),
-    "tamil-nadu": (77.3, 80.2, 8.2, 13.3),
+# --- region catalog: id -> the bundle's own polygon ----------------------------------------
+# Mirror of india-lite.json (8 hand-authored states), VERTEX FOR VERTEX rather than corner for
+# corner. It was a table of bounding boxes until 2026-09-11, and a box is all the board could draw
+# with it: "draw a labelled map of india and mark maharashtra" came out as one rectangle with the
+# word inside it and a ring around the rectangle — no coastline, no neighbour, nothing that made it
+# a place (the adversary, wave 58). The ring is what a map is drawn from; the box is derived from
+# the ring here, so the two can never disagree and there is one thing to keep in step with the
+# bundle (`tests/test_board_map.py` proves this table IS the bundle, vertex for vertex).
+#
+# Coordinates are (lon, lat) in degrees, the ring closed (last vertex == first), wound as GeoJSON
+# ships it. If a state is added to india-lite.json, paste its ring here.
+
+
+class Region(NamedTuple):
+    """One catalog region: the name a learner reads, and the ring the map is drawn from."""
+
+    name: str
+    ring: tuple[tuple[float, float], ...]
+
+
+_REGION: dict[str, Region] = {
+    "rajasthan": Region(
+        "Rajasthan",
+        (
+            (70, 25),
+            (69.6, 26.2),
+            (71, 28),
+            (73.5, 29.4),
+            (76, 28.5),
+            (77, 26),
+            (75, 24.7),
+            (72.5, 24.6),
+            (70, 25),
+        ),
+    ),
+    "gujarat": Region(
+        "Gujarat",
+        (
+            (68.7, 22.6),
+            (68.6, 23),
+            (69.3, 23.4),
+            (70.8, 24),
+            (73, 24.2),
+            (74, 23.4),
+            (72.6, 22.9),
+            (72.9, 22),
+            (72, 21.5),
+            (70.2, 21.5),
+            (68.7, 22.6),
+        ),
+    ),
+    "maharashtra": Region(
+        "Maharashtra",
+        (
+            (72.8, 17),
+            (72.7, 18.6),
+            (73.5, 20.5),
+            (76, 21.2),
+            (79, 21),
+            (80.3, 19),
+            (80, 16.5),
+            (77, 15.7),
+            (74.5, 16),
+            (72.8, 17),
+        ),
+    ),
+    "madhya-pradesh": Region(
+        "Madhya Pradesh",
+        (
+            (74.3, 22.2),
+            (74.2, 23.4),
+            (76.5, 24.2),
+            (79, 24.3),
+            (81.5, 23.8),
+            (81.8, 22.5),
+            (80, 21.7),
+            (77, 21.6),
+            (74.3, 22.2),
+        ),
+    ),
+    "uttar-pradesh": Region(
+        "Uttar Pradesh",
+        (
+            (77.4, 26),
+            (77.3, 27),
+            (78.5, 28),
+            (80.5, 29.3),
+            (83, 28.2),
+            (83.9, 26),
+            (82.5, 24.9),
+            (80, 24.8),
+            (77.4, 26),
+        ),
+    ),
+    "karnataka": Region(
+        "Karnataka",
+        (
+            (74.2, 13.8),
+            (74.3, 14.7),
+            (75.3, 15.3),
+            (76.8, 15.2),
+            (77, 14),
+            (76.5, 13),
+            (75.2, 12.9),
+            (74.2, 13.8),
+        ),
+    ),
+    "kerala": Region(
+        "Kerala",
+        (
+            (74.9, 9),
+            (75, 10.6),
+            (75.6, 12.2),
+            (76.7, 12.5),
+            (77, 10.5),
+            (76.3, 8.9),
+            (75.6, 8.3),
+            (74.9, 9),
+        ),
+    ),
+    "tamil-nadu": Region(
+        "Tamil Nadu",
+        (
+            (77.4, 9.5),
+            (77.3, 11.5),
+            (78.5, 13),
+            (80, 13.3),
+            (80.2, 11.5),
+            (79.5, 9.5),
+            (78.5, 8.2),
+            (77.4, 9.5),
+        ),
+    ),
 }
-_REGION_IDS = frozenset(_REGION_BBOX)
+
+_REGION_IDS = frozenset(_REGION)
+#: The catalog in the bundle's own order — the land a map of India is drawn on.
+CATALOG_IDS: tuple[str, ...] = tuple(_REGION)
+
+
+def _bbox_of(ring: tuple[tuple[float, float], ...]) -> tuple[float, float, float, float]:
+    lons = [p[0] for p in ring]
+    lats = [p[1] for p in ring]
+    return (min(lons), max(lons), min(lats), max(lats))
+
+
+#: id -> bounding box (lonMin, lonMax, latMin, latMax), computed from the ring above.
+_REGION_BBOX: dict[str, tuple[float, float, float, float]] = {
+    rid: _bbox_of(r.ring) for rid, r in _REGION.items()
+}
+
+
+def region_ring(region_id: str) -> tuple[tuple[float, float], ...] | None:
+    """The closed (lon, lat) ring of a catalog region, or None if it is not on the map."""
+    found = _REGION.get(str(region_id or "").strip().lower())
+    return found.ring if found else None
+
+
+def region_name(region_id: str) -> str | None:
+    """The name a learner reads for a catalog region ("Madhya Pradesh"), never the slug."""
+    found = _REGION.get(str(region_id or "").strip().lower())
+    return found.name if found else None
+
 
 # India bounding box — a locate pin outside this is a data error, not a geography answer.
 _INDIA_BBOX = (68.0, 98.0, 6.0, 37.0)
@@ -101,7 +251,9 @@ def verify_map_scene(raw: Any) -> dict[str, Any] | None:
             return None
         if not _in_bbox(float(lon), float(lat), _INDIA_BBOX):
             return None
-        if "toleranceKm" in it and not (_num(it.get("toleranceKm")) and float(it["toleranceKm"]) > 0):
+        if "toleranceKm" in it and not (
+            _num(it.get("toleranceKm")) and float(it["toleranceKm"]) > 0
+        ):
             return None
         in_region = it.get("inRegionId")
         if in_region is not None:
@@ -152,10 +304,15 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
     assert verify_map_scene(good_label) is good_label, "exact label scene should pass"
 
     # RIGGED STRUCTURAL CASE: the target isn't a region shown on the map — REJECTED
-    rigged_label = {**good_label, "interaction": {"mode": "label", "prompt": "tap Kerala", "targetId": "kerala"}}
+    rigged_label = {
+        **good_label,
+        "interaction": {"mode": "label", "prompt": "tap Kerala", "targetId": "kerala"},
+    }
     assert verify_map_scene(rigged_label) is None, "label target not on the map slipped through!"
     # an unknown region id anywhere is refused
-    assert verify_map_scene({**good_label, "regions": ["atlantis"]}) is None, "unknown region slipped through"
+    assert verify_map_scene({**good_label, "regions": ["atlantis"]}) is None, (
+        "unknown region slipped through"
+    )
 
     # a well-formed locate task with the pin genuinely inside Maharashtra passes
     good_locate = {
@@ -176,12 +333,25 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
 
     # RIGGED COMPUTATIONAL CASE (the flagship, coarsened): the SAME Mumbai coordinate claimed to be in
     # Gujarat — the pin does not fall in Gujarat's bbox, so it is REJECTED.
-    rigged_locate = {**good_locate, "interaction": {**good_locate["interaction"], "inRegionId": "gujarat"}}
+    rigged_locate = {
+        **good_locate,
+        "interaction": {**good_locate["interaction"], "inRegionId": "gujarat"},
+    }
     assert verify_map_scene(rigged_locate) is None, "Mumbai-in-Gujarat pin slipped through!"
 
     # a pin outside India is refused
     assert (
-        verify_map_scene({**good_locate, "interaction": {**good_locate["interaction"], "lon": 0.0, "lat": 0.0, "inRegionId": None}})
+        verify_map_scene(
+            {
+                **good_locate,
+                "interaction": {
+                    **good_locate["interaction"],
+                    "lon": 0.0,
+                    "lat": 0.0,
+                    "inRegionId": None,
+                },
+            }
+        )
         is None
     ), "null-island pin slipped through"
 
@@ -206,7 +376,15 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
     assert verify_map_scene(good_choro) is good_choro, "exact choropleth scene should pass"
     # fewer than two usable values → refused
     assert (
-        verify_map_scene({**good_choro, "interaction": {**good_choro["interaction"], "values": [{"id": "gujarat", "value": 6}]}})
+        verify_map_scene(
+            {
+                **good_choro,
+                "interaction": {
+                    **good_choro["interaction"],
+                    "values": [{"id": "gujarat", "value": 6}],
+                },
+            }
+        )
         is None
     ), "single-value choropleth slipped through"
     # a value over a region NOT on the map is ignored, dropping below the 2-value floor → refused
@@ -265,4 +443,6 @@ if __name__ == "__main__":  # runnable self-check — no framework, no network
     }
     assert verify_map_scene(tie_off_extreme) is tie_off_extreme, "unique max wrongly refused"
 
-    print("maps.py self-check passed: catalog, label target, locate bbox (MH vs GJ flagship), choropleth")
+    print(
+        "maps.py self-check passed: catalog, label target, locate bbox (MH vs GJ flagship), choropleth"
+    )

@@ -35,7 +35,7 @@
  * there. A test that renders its own stand-in cannot see that, which is why this one does not.
  */
 
-import { useRegisterTarget } from '@wobo/wobo';
+import { useRegisterTarget, WaitScene } from '@wobo/wobo';
 import { type Ref, useMemo } from 'react';
 import { useRegistryRevision } from '../../curriculum/hooks';
 import type { Chapter } from '../../data/model';
@@ -43,6 +43,7 @@ import { routeToPath, useRouter } from '../../shell/router';
 import { useMastery } from '../../store/mastery';
 import { useProgress } from '../../store/progress';
 import { ChapterTestMark, RewardMark, VibeSwitch } from '../../ui/vibe';
+import { subjectForTopic } from '../../ui/hues';
 import { useVibe, vibeWords } from '../../ui/viewPref';
 import {
   bridgeLine,
@@ -188,7 +189,9 @@ export function ClimbView({ map, open, pathRef }: ClimbViewProps) {
       <section className="cl-climb cl-head" aria-label="This chapter">
         <span className="cl-eyebrow">Chapter {map.chapterIndex}</span>
         <h2>{map.chapterName}</h2>
-        <p className="cl-empty">I am fetching the topics of this chapter.</p>
+        {/* The topics are on their way. The orb does this subject's own thing while they come,
+            and says nothing about it (docs/EMAILS-AND-ANIMATIONS.md §3). */}
+        <WaitScene subject={subjectForTopic(map.chapterId)} width={220} />
       </section>
     );
   }

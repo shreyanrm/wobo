@@ -192,7 +192,16 @@ def test_the_discovery_search_crosses_to_the_other_providers_own_search_tool(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Each provider's web-search tool has its own shape, so litellm cannot run this chain: the
-    seam runs it, one provider's tool at a time."""
+    seam runs it, one provider's tool at a time.
+
+    Law (docs/CURRICULUM.md section 4.1 and the search module's own docstring, from the first
+    end-to-end run of 2026-09-11): OpenAI's ``web_search`` is a Responses API tool, so that
+    flavour searches on ``litellm.responses`` and not on chat completions, which refuses the tool
+    and silently ignores ``web_search_options``; and a reply with no search behind it is the model
+    remembering a url, so it is discarded whatever it says. The fake litellm therefore answers
+    the Responses API too, and a reply to a request that bound a search tool carries the search
+    the vendor would report, which is what makes the anthropic answer admissible here.
+    """
     from wobo_gateway.curriculum.discovery import search
 
     monkeypatch.setenv("OPENAI_API_KEY", "not-a-real-key")

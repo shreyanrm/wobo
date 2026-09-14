@@ -1,0 +1,40 @@
+/* biome-ignore-all format: one rule per line, like the kit and the rest of the app's sheets */
+/*
+ * The promo field, on both of its surfaces.
+ *
+ * ONE SHEET FOR ONE COMPONENT. The field sits on the plans page (inside the site's stylesheet) and
+ * on You (inside the kit's), which style their own controls very differently. Rather than write it
+ * twice and let the two drift, the component brings its own rules and names every class `pm-`,
+ * which appears nowhere else in `src/` (DESIGN.md §0, trap 1: a short class name that means two
+ * things). Everything it paints with is a law-v5 token, so it is theme-correct on both surfaces
+ * without a single theme selector of its own.
+ *
+ * THE RESULT LINE CARRIES NO COLOUR. A code that worked and a code that did not are told apart by
+ * the sentence, never by a hue: state is a word (DESIGN.md §0), and a mint or rose sentence at
+ * 14px would be the one line on the card under 4.5:1 in both themes. The line is `--ink` in every
+ * state and is announced, which is what a screen reader and a colour-blind reader both need.
+ *
+ * NO TRANSITION ON TRANSFORM OR OPACITY: nothing here is scrubbed and one owner per property is
+ * the law (DESIGN.md §0, motion).
+ */
+
+.pm{display:grid;gap:8px}
+.pm > label{font:600 14px/1.2 var(--sans);color:var(--ink)}
+.pm-row{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.pm-row > input{flex:1 1 12ch;min-width:0;box-sizing:border-box;min-height:46px;padding:0 14px;border:0;border-radius:12px;background:var(--paper-2);color:var(--ink);font:500 16px/1.4 var(--sans);letter-spacing:.04em;text-transform:uppercase}
+.pm-row > input:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
+/* Quiet, and a shade apart from the field beside it: `--paper-3` against the field's `--paper-2`,
+   so the two are told apart without a border line, which law v5 allows only between list rows.
+   Never the pig and never the ink door: on the checkout card the pay button is the action and one
+   pointer per view is the law, and on You the Cancel control is the largest thing on the panel. */
+.pm-row > button{flex:0 0 auto;font:500 15px/1 var(--sans);padding:14px 20px;min-height:46px;border:0;border-radius:12px;background:var(--paper-3);color:var(--ink);display:inline-flex;align-items:center;cursor:pointer}
+.pm-row > button:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
+.pm-row > button[aria-disabled="true"]{cursor:default}
+.pm-said{font-size:14px;line-height:1.5;color:var(--ink);margin:0}
+
+/* Phone: the button drops under the field at full width, so neither control is squeezed to a tap
+   target smaller than the other. 390 is the narrow end of the contract (DESIGN.md §0). */
+@media (max-width:520px){
+  .pm-row{display:grid;grid-template-columns:1fr}
+  .pm-row > button{justify-content:center;width:100%}
+}

@@ -43,6 +43,14 @@ _MAX_LEARNER_ID = 128
 AUDIENCES: dict[str, tuple[str, ...]] = {
     "sunday_note": ("sunday_note",),
     "learner": ("wins", "festivals"),
+    # One audience per nudge, so a click on the streak mail stops the streak mail and nothing
+    # else. The five kinds are their own dials (docs/EMAILS-AND-ANIMATIONS.md §1) and a stop link
+    # that took more than the reader asked for would be the same lie as a dead one.
+    "quick_one": ("quick_one",),
+    "mid_chapter": ("mid_chapter",),
+    "streak": ("streak",),
+    "bonus_level": ("bonus_level",),
+    "doubt": ("doubt",),
 }
 
 
@@ -56,6 +64,17 @@ class StopClaim:
     @property
     def kinds(self) -> tuple[str, ...]:
         return AUDIENCES[self.audience]
+
+
+def derived_secret(label: bytes) -> bytes | None:
+    """The mail key under a label of its own, or ``None`` when the gateway has none.
+
+    One key material, one derivation, a different key per job: the stop token's key and the card
+    link's key (:mod:`.links`) are both HMAC of the same secret under different labels, so a
+    token minted for one job can never be read as the other's.
+    """
+    base = _secret()
+    return hmac.new(base, label, hashlib.sha256).digest() if base else None
 
 
 def _secret() -> bytes | None:

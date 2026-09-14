@@ -64,6 +64,7 @@ def record(
     capability: str,
     model: str | None = None,
     scope: dict[str, str] | None = None,
+    band: str = "",
     cost_usd: float | None = None,
     tokens: int = 0,
     cached: bool = False,
@@ -74,7 +75,11 @@ def record(
     ``cached`` is the row that costs nothing and is the whole point of the design: a level served
     from a stored core, or a core read instead of made. A cached row carries ``costUsd: 0.0``
     because a read genuinely cost no model money, which is different from ``null`` (a call whose
-    price nobody has)."""
+    price nobody has).
+
+    ``band`` is the depth band a core row is for (docs/CONTENT-INTERACTION.md §5b): a concept
+    that recurs has one core per band that teaches it, and the multiplication has to be a number
+    on the console rather than a surprise on the bill, so the row says which band paid."""
     if layer not in LAYERS:
         return None
     s = scope or {}
@@ -82,6 +87,7 @@ def record(
         "at": datetime.now(UTC).isoformat(timespec="seconds"),
         "layer": layer,
         "concept": str(concept)[:200],
+        "band": str(band or ""),
         "board": str(s.get("board") or ""),
         "grade": str(s.get("grade") or ""),
         "contentVersion": str(s.get("contentVersion") or ""),
@@ -199,6 +205,40 @@ def _break_even(
     return int(math.ceil(core_unit / per_level_saving)), ""
 
 
+def cores_by_band(data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Cost per concept PER BAND (docs/CONTENT-INTERACTION.md §5b), one entry per pair that has
+    a row, ordered by concept and then shallowest band first.
+
+    This is the number §5b promises the console: fractions shows two entries (foundation and
+    middle) and a concept taught once shows one, so "one extra core for a recurring concept" can
+    be read off a table rather than believed. A pre-band row (no band on it) is reported under
+    an empty band rather than dropped, because it was paid for too."""
+    from wobo_gateway.plexus.store import BANDS
+
+    order = {band: i for i, band in enumerate(BANDS)}
+    groups: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for r in data:
+        if r.get("layer") != CORE:
+            continue
+        key = (str(r.get("concept") or ""), str(r.get("band") or ""))
+        groups.setdefault(key, []).append(r)
+    out: list[dict[str, Any]] = []
+    for (concept, band), subset in sorted(
+        groups.items(), key=lambda kv: (kv[0][0], order.get(kv[0][1], len(order)), kv[0][1])
+    ):
+        totals = _totals(subset)
+        out.append(
+            {
+                "concept": concept,
+                "band": band,
+                "made": totals["made"],
+                "cacheHits": totals["cacheHits"],
+                "costUsd": totals["costUsd"],
+            }
+        )
+    return out
+
+
 def summary(rows_in: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Per-layer totals, and the saving where it can honestly be computed.
 
@@ -238,6 +278,9 @@ def summary(rows_in: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         "totalUsd": total,
         "levelsMade": levels_made,
         "coresMade": by_layer[CORE]["made"],
+        # One entry per concept per band (§5b), so a recurring concept's second core is visible
+        # as its own line and not folded into a mean.
+        "coresByBand": cores_by_band(data),
         "baselineUnitUsd": baseline_unit,
         "baselineUsd": baseline,
         "savedUsd": None if baseline is None else round(baseline - total, 6),

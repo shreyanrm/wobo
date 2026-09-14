@@ -680,9 +680,15 @@ a.st-tile:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(20,20,43,.
 [data-motion="reduce"] .sb-find .sb-in,[data-motion="reduce"] .sb-find .sb-opt{transition:none}
 `;
 
-/** Inject the sheet once per document. Idempotent; a no-op wherever there is no document. */
+/**
+ * Inject the sheet once per document. Idempotent; a no-op wherever there is no document, and
+ * wherever the document cannot hold a sheet (a page still mounting, or a stand-in some test left
+ * behind; the same tolerance `ensureSiteStyles` in site/styles.ts and `themeNow` in wobo/glass.ts
+ * give such a document). Every pitch page calls this at import time, so it must never throw there.
+ */
 export function ensurePitchStyles(): void {
-  if (typeof document === 'undefined' || document.getElementById(STYLE_ID)) return;
+  if (typeof document === 'undefined' || typeof document.getElementById !== 'function') return;
+  if (document.getElementById(STYLE_ID)) return;
   const style = document.createElement('style');
   style.id = STYLE_ID;
   style.textContent = PITCH_CSS;

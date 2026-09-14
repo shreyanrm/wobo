@@ -261,9 +261,14 @@ export async function showMe(targetId: string, options: ShowMeOptions = {}): Pro
       const at = fresh && (fresh.width > 0 || fresh.height > 0) ? tapPoint(fresh) : to;
       if (at.x !== to.x || at.y !== to.y) showCursor.set({ at });
       const owner = target.element?.() ?? null;
+      // Duck-typed like the rest of this branch: the document here may be a real one, a partial
+      // stand-in another test left on the global, or absent. Only a document that can answer
+      // "what is under this point" is asked; otherwise the target's own element is pressed.
+      const fromPoint = (globalThis as { document?: { elementFromPoint?: unknown } }).document
+        ?.elementFromPoint;
       const element =
-        typeof document !== 'undefined'
-          ? (document.elementFromPoint(at.x, at.y) as HTMLElement | null)
+        typeof fromPoint === 'function'
+          ? (fromPoint.call(document, at.x, at.y) as HTMLElement | null)
           : null;
       const pressable = element?.closest?.(
         'button, [role="button"], a, input, select, textarea, [tabindex]',

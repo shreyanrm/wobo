@@ -127,6 +127,49 @@ the feedback lines (a wrong sort says WHY the order matters, in this concept's w
 6. The ledger: cost per concept core, per level rendering, per interaction, so the saving is a
    number on the console and not a claim.
 
+## 5b. The one thing a concept core cannot be: class-neutral
+
+Decided 2026-09-11. The core layer was specified as "keyed on the concept alone", and for most of the
+syllabus that holds: a concept is taught in exactly one class, so it has exactly one core and nothing
+multiplies. It breaks for the concepts that RECUR. "Fractions" is taught in class 4, again in 6, again
+in 8. The class 11 treatment of "electric current" contains the class 7 one. A single core written to
+satisfy class 11 patronises nobody but loses the class 7 child inside its first sentence; a single core
+written for class 7 is useless at 11. There is no sentence that is honest at both.
+
+Two ways out were on the table. Bend the fidelity bar by class, so the level rendering is allowed to
+drift further from its core for distant classes, which is cheap and quietly lowers quality for exactly
+the learners we say we will not lower it for. Or key the core deeper, which costs more. We key deeper.
+
+**The rule.** The core is keyed on `concept x depth band`, where the band is read from the syllabus
+rather than invented: for each concept, the discovery pass already knows which classes teach it, and
+those classes are grouped into the bands they fall in (foundation 1 to 5, middle 6 to 8, senior 9 to
+12). A concept gets one core PER BAND THAT ACTUALLY TEACHES IT, and not one per class. Concretely:
+
+- A concept taught only in class 9: one core. The common case, and it costs exactly what it costs today.
+- "Fractions", taught in 4, 6 and 8: two cores, foundation and middle, not three and not twelve.
+- "Electric current", taught in 7 and in 10 and 12: two cores, middle and senior.
+
+**Why bands and not classes.** Within a band the difference between two classes is what has been
+covered, not how a mind reaches for the idea, and "what has been covered" is exactly what the level
+rendering already carries (board, grade, chapter, syllabus version). Across bands the difference IS
+how the mind reaches for the idea, and no amount of level rendering repairs that. The band boundary
+is where the level layer stops being able to do the work.
+
+**What it costs.** Nothing for the concepts that appear once, which is most of them. For a recurring
+concept it is one extra core, priced like the first (docs/OPERATIONS.md 11.2), against a level layer
+that is unchanged. Break-even moves per band, not per concept: a band's core pays for itself over
+that band's own levels.
+
+**What it forbids.** A level rendering may never be asked to carry a core from another band. A cache
+miss for a band with no core yet makes that band's core; it does not borrow the neighbour's and
+paper over the distance. The store enforces this: the core key carries the band, so borrowing is not
+expressible.
+
+**Where it lives in code.** `plexus/store.py` core key becomes `concept x band`; the band resolver
+reads the curriculum's class list for the concept and is pure, testable and offline; `plexus/blueprint.py`
+asks for the band's core; the ledger reports cost per concept per band so the multiplication is a
+number on the console rather than a surprise on the bill.
+
 ## 6. What a 4 looks like
 
 A CBSE class 6 child opening "equivalent fractions" gets: a slider where they stretch a chocolate

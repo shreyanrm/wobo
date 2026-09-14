@@ -20,7 +20,14 @@
  *   readable, rows           a number, with its unpriced calls beside it.
  */
 
-import type { Economics, HealthCheck, HealthSnapshot, UsageDay, UsageWindow } from './contract';
+import type {
+  Economics,
+  HealthCheck,
+  HealthSnapshot,
+  RollupTotals,
+  UsageDay,
+  UsageWindow,
+} from './contract';
 import { asOf, count, type Panel, percent, rank, seconds, type Tone, usd } from './panels';
 
 const LEDGER_SOURCE = 'GET /v1/admin/usage — ops.usage_daily, the daily rollup';
@@ -159,6 +166,30 @@ export function groupBy(rows: readonly UsageDay[], key: keyof UsageDay): [string
     held.set(name, add(held.get(name) ?? ZERO, row));
   }
   return [...held.entries()].sort((a, b) => b[1].cost - a[1].cost || b[1].calls - a[1].calls);
+}
+
+// --- figures the gateway already summed ------------------------------------------------------
+// GET /v1/admin/models hands back groupings the gateway rolled up itself. Nothing is added here;
+// the parse and the ordering live in this file all the same, so the console reads a money figure
+// in exactly one place and two desks cannot come to disagree about what a total says.
+
+/** The money in one gateway-summed grouping, as words. `cannot say` when the grouping is absent
+ *  (the ledger could not be reached), `—` when the figure arrived and could not be read. */
+export function rollupSpent(sums: RollupTotals | null | undefined): string {
+  if (!sums) return 'cannot say';
+  const cost = reading(sums.cost_usd);
+  return cost.readable ? usd(cost.value) : '—';
+}
+
+/** Gateway-summed groupings, biggest spend first, then most calls: the order `groupBy` uses. */
+export function byRollupSpend<Name extends string>(
+  entries: readonly (readonly [Name, RollupTotals])[],
+): (readonly [Name, RollupTotals])[] {
+  return [...entries].sort(
+    (a, b) =>
+      reading(b[1].cost_usd).value - reading(a[1].cost_usd).value ||
+      reading(b[1].calls).value - reading(a[1].calls).value,
+  );
 }
 
 /** The unpriced note that rides every money total. Empty when everything could be priced. */

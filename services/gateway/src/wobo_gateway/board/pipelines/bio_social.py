@@ -10,6 +10,7 @@ survive an ordering and plausibility check before a single tick is drawn.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
@@ -719,10 +720,118 @@ def known_region(name: str) -> bool:
     )
 
 
+#: WHERE THE MAP IS DRAWN, and it is not :data:`FIGURE`. The bundled country is two and a half
+#: times as tall as it is wide (Mercator, Kutch to Kanyakumari), so fitting it into the 260 x 160
+#: figure box at one scale leaves a 64-unit-wide India with 100 units of dead air either side and
+#: no room at all for a name. This box is the figure box turned on its side inside the same union
+#: budget: the land comes out 128 units across and 190 tall, and the margins that are left are
+#: where the names go. Measured at 390 and 1440 in `test_board_map.py` and on the real plane.
+_MAP_BOX = (436.0, 380.0, 128.0, 190.0)
+
+
+def _mercator(lon: float, lat: float) -> tuple[float, float]:
+    """(lon, lat) in degrees to the projection the learner's own map engine uses.
+
+    ``MapScene.tsx`` draws the bundled geometry with d3's ``geoMercator``. The ink uses the same
+    projection so the map Wobo draws and the map the learner taps are the same shape of India, and
+    because Mercator is conformal a state's outline is its outline rather than a squashed one.
+    """
+    return math.radians(lon), math.log(math.tan(math.pi / 4 + math.radians(lat) / 2))
+
+
+def _map_frame() -> Frame:
+    """The whole bundled country, at ONE scale, centred in :data:`_MAP_BOX`."""
+    from wobo_gateway.plexus.maps import CATALOG_IDS, region_ring
+
+    points = [
+        _mercator(lon, lat)
+        for region_id in CATALOG_IDS
+        for lon, lat in (region_ring(region_id) or ())
+    ]
+    return Frame.fit(
+        min(p[0] for p in points),
+        max(p[0] for p in points),
+        min(p[1] for p in points),
+        max(p[1] for p in points),
+        box=_MAP_BOX,
+    )
+
+
+def _side_for(frame: Frame, region_id: str) -> str:
+    """Which side of a state its name is written on: the one with the open board beside it.
+
+    The client solves the final placement (``layout.ts solveWritten``, the 24 px reach law and the
+    dodge), and takes the side named here first. Naming it from the geography rather than leaving
+    it to the search is what keeps "kerala" out over the sea to the west instead of on top of Tamil
+    Nadu, and it is computable: the side of the state with the most empty board between it and the
+    edge of the drawing wins.
+    """
+    from wobo_gateway.plexus.maps import CATALOG_IDS, region_ring
+
+    ring = [_mercator(lon, lat) for lon, lat in (region_ring(region_id) or ())]
+    x0 = min(p[0] for p in ring)
+    x1 = max(p[0] for p in ring)
+    y0 = min(p[1] for p in ring)
+    y1 = max(p[1] for p in ring)
+    others = [
+        [_mercator(lon, lat) for lon, lat in (region_ring(other) or ())]
+        for other in CATALOG_IDS
+        if other != region_id
+    ]
+
+    def clear(side: str) -> float:
+        """How far the open board runs on this side before another state or the edge stops it."""
+        if side in ("left", "right"):
+            band = [p for other in others for p in other if y0 <= p[1] <= y1]
+            if side == "left":
+                near = [p[0] for p in band if p[0] < x0] + [frame.xmin]
+                return x0 - max(near)
+            near = [p[0] for p in band if p[0] > x1] + [frame.xmax]
+            return min(near) - x1
+        band = [p for other in others for p in other if x0 <= p[0] <= x1]
+        if side == "bottom":
+            near = [p[1] for p in band if p[1] < y0] + [frame.ymin]
+            return y0 - max(near)
+        near = [p[1] for p in band if p[1] > y1] + [frame.ymax]
+        return min(near) - y1
+
+    # East and west first: a name reads along the line of writing, so the room it needs is width.
+    # A degree of longitude is the same board distance as a degree of Mercator latitude here, so
+    # the four gaps are comparable as they stand.
+    return max(("left", "right", "bottom", "top"), key=lambda side: (clear(side), -len(side)))
+
+
 def _map(intent: dict[str, Any], draft: Draft) -> Draft:
-    """A shaded map. The scene goes through the brain's existing map validator first: a region
-    that is not in the bundled geometry, or a shading with no single extreme, is refused there."""
-    from wobo_gateway.plexus.maps import verify_map_scene
+    """A map of India, with the state the question is about marked on it.
+
+    THE DEFECT THIS WAS REBUILT FOR (the adversary, wave 58). "Draw a labelled map of India and
+    mark Maharashtra" drew a rectangle, the word "maharashtra" inside it, and a ring around the
+    rectangle. Nothing false was SPOKEN — which is exactly why four waves of ledger checks let it
+    through: the honesty machinery asks whether the say matches the glass, never whether the glass
+    answers the question. There was no India on it. A box labelled maharashtra is not a labelled
+    map of India, and "mark Maharashtra" means nothing without the thing it is marked on.
+
+    So the land is drawn first and it is the whole bundled catalog — every state
+    ``india-lite.json`` holds, each one its own polygon, in its own place, at one scale, in the
+    projection the learner's tappable map uses. The question then decides what is marked ON it: a
+    ring and a name for "mark Maharashtra", a wash and a number for "which state grows the most".
+
+    WHAT THIS MAP IS NOT, said plainly because a learner will meet it: the bundle is eight states,
+    hand-authored and deliberately simplified, and it carries no national boundary. So Wobo draws
+    the eight states it can prove, and the outline of India — which is a legal as well as a
+    cartographic question in India, and needs an authoritative source rather than a brain's memory
+    of one — is not drawn at all rather than drawn wrong. Adding it is a geometry decision for the
+    owner and the bundle, not something the board may invent.
+
+    The scene still goes through the brain's existing map validator first: a region that is not in
+    the bundled geometry, or a shading with no single extreme, is refused there.
+    """
+    from wobo_gateway.plexus.maps import (
+        CATALOG_IDS,
+        region_name,
+        region_ring,
+        verify_map_scene,
+    )
 
     regions = [
         str(r).strip().lower()[:MAX_NOTE_CHARS]
@@ -736,7 +845,8 @@ def _map(intent: dict[str, Any], draft: Draft) -> Draft:
     # TWO KINDS OF MAP QUESTION, and they are proved differently. "which state grows the most
     # wheat" is a shading with one extreme; "mark Maharashtra" is a region named on the map, and
     # the brain's validator refuses either one whose regions are not in the bundled geometry.
-    if mark and not values:
+    shaded = bool(values) or not mark
+    if not shaded:
         prompt = str(intent.get("prompt") or f"find {mark}").strip()[:MAX_NOTE_CHARS]
         scene = {
             "kind": "map",
@@ -757,44 +867,93 @@ def _map(intent: dict[str, Any], draft: Draft) -> Draft:
         }
     if verify_map_scene(scene) is None:
         raise Unverified("that map is not one I can prove — check the regions and the shading")
-    draft.ledger.record(
-        CheckResult(
-            name="board.map_scene",
-            passed=True,
-            detail=f"{len(regions)} catalog regions, shading with one extreme",
-        )
-    )
-
     shading = {
         str(v.get("id")): float(v.get("value"))
         for v in values
         if isinstance(v, dict) and v.get("id") in regions
     }
-    left, top, width, height = FIGURE
-    columns = min(3, len(regions))
-    rows = (len(regions) + columns - 1) // columns
-    cell_w, cell_h = width / columns, height / max(1, rows)
-    for i, region in enumerate(regions):
-        x = left + (i % columns) * cell_w
-        y = top + (i // columns) * cell_h
-        area = draft.add(
-            "region",
-            anchor=board(x, y),
-            w=round(cell_w * 0.86, 2),
-            h=round(cell_h * 0.8, 2),
-            title=region,
-            style=accent(2)
-            if region == mark or shading.get(region) == max(shading.values(), default=None)
-            else wobo(1),
-            hint="region",
+    extreme = None
+    if shading:
+        extreme = (max if str(intent.get("extreme") or "max") == "max" else min)(
+            shading, key=lambda region_id: shading[region_id]
         )
-        if region == mark:
-            draft.add("ring", anchor=on(area), style=accent(2), hint="marked")
-        if region in shading:
+    # A RECEIPT NAMES THE CHECK THAT ACTUALLY RAN. This one used to say "shading with one extreme"
+    # on a map with no shading on it at all — a true-sounding line in the ledger for a check that
+    # never happened, which is the same hole the drawing came through.
+    draft.ledger.record(
+        CheckResult(
+            name="board.map_scene",
+            passed=True,
+            detail=(
+                f"{len(shading)} of {len(CATALOG_IDS)} catalog regions shaded, "
+                f"one extreme ({extreme})"
+                if shading
+                else f"{mark} marked on {len(CATALOG_IDS)} catalog regions"
+            ),
+        )
+    )
+
+    # THE LAND, AND IT IS THE WHOLE CATALOG. A state on its own is a shape; a state among its
+    # neighbours is a place. Drawn first, so the client's placer counts the country as occupied
+    # when it puts a name down.
+    frame = _map_frame()
+    named = [r for r in CATALOG_IDS if r in shading or r == mark]
+    drawn: dict[str, str] = {}
+    for region_id in CATALOG_IDS:
+        ring = region_ring(region_id)
+        if not ring:  # unreachable: CATALOG_IDS is the ring table's own keys
+            continue
+        # The closing vertex is the polygon's own doing — a ring drawn with it doubles a stroke.
+        points = [frame.at(*_mercator(lon, lat)) for lon, lat in ring[:-1]]
+        name = (region_name(region_id) or region_id).lower()
+        if region_id in (mark, extreme):
+            style = accent(2)
+        elif region_id in shading:
+            style = wobo(1)
+        else:
+            style = faint(1)
+        if region_id in shading:
+            # The shading a choropleth is read from: the same wash on every shaded state, weighted
+            # by its own value against the largest on the map, so darker is more and the learner
+            # can rank them by eye before reading a single number.
+            style = {
+                **style,
+                "fill": "wash",
+                "opacity": round(0.2 + 0.5 * shading[region_id] / (max(shading.values()) or 1), 2),
+            }
+        elif region_id == mark:
+            style = {**style, "fill": "wash", "opacity": 0.25}
+        drawn[region_id] = draft.add(
+            "polygon",
+            anchor=board(*points[0]),
+            points=points,
+            title=name,
+            style=style,
+            hint=region_id,
+        )
+    if mark:
+        draft.add("ring", anchor=on(drawn[mark]), style=accent(2), hint="marked")
+    # THE NAMES, and only the ones the question is about. Eight names cannot be written on this
+    # map: "madhya-pradesh" is 126 board units of type and Madhya Pradesh is 63 units wide, so
+    # writing every name inside its own state needs the country drawn 254 units across — 375 tall,
+    # against a union budget of 347 — and Kerala, 15 units wide, needs it 393 across. Written in
+    # the margins instead, eight names are eight leaders across the country. So the map is labelled
+    # the way a teacher labels one at the board: the state the question names is named, and the
+    # rest is the country it sits in, which every polygon's `title` still says out loud.
+    for region_id in named:
+        draft.add(
+            "label",
+            anchor=on(drawn[region_id], _side_for(frame, region_id)),
+            text=(region_name(region_id) or region_id).lower(),
+            style=accent(1) if region_id in (mark, extreme) else wobo(1),
+            hint="name",
+        )
+        if region_id in shading:
             draft.number(
-                shading[region],
+                shading[region_id],
                 "board.map_scene",
-                anchor=on(area, "center"),
+                anchor=on(drawn[region_id], "center"),
+                decimals=0,
                 style=faint(1),
             )
     draft.add(

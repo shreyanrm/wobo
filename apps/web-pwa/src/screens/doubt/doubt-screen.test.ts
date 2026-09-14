@@ -310,12 +310,27 @@ describe("the fixer's pass, 2026-09-05, at source", () => {
     );
   });
 
+  /**
+   * THE CAPTION PRINTS WHAT IS DUE, AND NOTHING THAT WAS NOT SAID (docs/DOUBT.md §5: "the screen
+   * prints a sentence when it is spoken"; docs/copy/voice.md §10c: "no caption for a thing that is
+   * not there"; docs/EMAILS-AND-ANIMATIONS.md §3: a waiting state says nothing about waiting;
+   * docs/INK-FOUR.md, experience: never narrating).
+   *
+   * This test used to pin a placeholder line into the caption while no say frame was due. Wave 48
+   * measured what that did on a live doubt at 390: the caption read the placeholder from 172 ms
+   * until the first real sentence at 10 390 ms, and tests/doubt.spec.ts takes the first non-empty
+   * caption sample as "first words on screen", so the timing lens was measuring a line Wobo never
+   * said. The wait is the orb's, not the caption's; the caption is empty until a sentence is due.
+   */
   it('the printed caption follows the beat: the runtime feeds say frames with their time, the screen prints what is due', () => {
     expect(RUNTIME).toContain('if (doubt) doubtCaption.begin();');
     expect(RUNTIME).toContain('if (doubt) doubtCaption.say(said, t ?? 0, dur);');
     expect(RUNTIME).toContain('if (doubt) doubtCaption.end();');
     expect(SCREEN).toContain('setCaption(doubtCaption.visible())');
-    expect(SCREEN).toContain("{state.phase === 'explaining' ? caption || 'One moment.' : said}");
+    expect(SCREEN).toContain("{state.phase === 'explaining' ? caption : said}");
+    // no placeholder stands in for a sentence that has not been spoken yet
+    expect(SCREEN).not.toContain("caption || '");
+    expect(SCREEN).not.toContain('One moment.');
   });
 });
 

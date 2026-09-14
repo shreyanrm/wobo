@@ -11,6 +11,7 @@ import {
   gatewayTimeoutMs,
   type LLMProvider,
   mintVoiceToken,
+  parseMe,
   SignInRequiredError,
   voiceSocketUrl,
 } from '../src/index';
@@ -284,5 +285,54 @@ describe('a call that never comes back still ends', () => {
       })) as typeof fetch;
     await gatewayJson('https://brain.test/v1/me', {}, 50);
     await new Promise((r) => setTimeout(r, 80));
+  });
+});
+
+// --- the day's allowance -------------------------------------------------------------------------
+
+/**
+ * MONEY IS INTERNAL (docs/ALLOWANCE.md §2, the owner, 2026-09-08: *"it's not money based at the
+ * users' end; that is only for internal purposes"*). `GET /v1/me` is the one route that could put
+ * an amount in a browser, so the shape the browser holds cannot carry one: `parseMe` keeps a share
+ * between 0 and 1 and drops every figure the wire used to work it out. A gateway that sends paise
+ * is read correctly and still leaks nothing.
+ */
+describe("the day's allowance crosses the wire as a share, never as money", () => {
+  it('reads a fraction as it stands', () => {
+    expect(parseMe({ plan: 'pro', allowance: { used: 0.42 } }).allowance).toEqual({
+      used: 0.42,
+      resetsAt: null,
+      spent: false,
+    });
+  });
+
+  it('reads a pair of figures as the same share, and keeps neither figure', () => {
+    const me = parseMe({ allowance: { used: 400, limit: 1600, resets_at: '2026-09-12T00:00:00Z' } });
+    expect(me.allowance).toEqual({
+      used: 0.25,
+      resetsAt: '2026-09-12T00:00:00Z',
+      spent: false,
+    });
+    // there is nowhere on the type for an amount to hide
+    expect(Object.keys(me.allowance ?? {}).sort()).toEqual(['resetsAt', 'spent', 'used']);
+  });
+
+  it('is spent when the brain says so, and when the share reaches the end', () => {
+    expect(parseMe({ allowance: { spent: true } }).allowance?.spent).toBe(true);
+    expect(parseMe({ allowance: { used: 1 } }).allowance?.spent).toBe(true);
+    expect(parseMe({ allowance: { used: 900, limit: 400 } }).allowance).toEqual({
+      used: 1,
+      resetsAt: null,
+      spent: true,
+    });
+  });
+
+  it('says nothing at all where the brain sent no allowance', () => {
+    expect(parseMe({ plan: 'free' }).allowance).toEqual({
+      used: null,
+      resetsAt: null,
+      spent: false,
+    });
+    expect(parseMe(null).allowance?.used).toBeNull();
   });
 });

@@ -68,6 +68,8 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Any
 
+from wobo_gateway import allowance
+
 logger = logging.getLogger("wobo.gateway.ledger")
 
 SCHEMA = "ops"
@@ -302,6 +304,12 @@ class CallContext:
     plan: str = "unknown"
     anonymous: bool = False
     learner_ref: str | None = None
+    #: The door's meter key, carried for the MONEY METER (``allowance.py``) and never written to
+    #: a row. ``learner_ref`` is the pseudonym, which is the right thing to persist and the wrong
+    #: thing to meter on: it is None whenever no pepper is configured, and a meter that silently
+    #: stops counting because a salt is missing is not a meter. This field never leaves the
+    #: process — :data:`FIELDS` is the allowlist for what is sent, and it is not in it.
+    meter_key: str | None = None
 
 
 _EMPTY_CONTEXT = CallContext()
@@ -319,6 +327,7 @@ def _context_for(plan: str | None, anonymous: bool, meter_key: str | None) -> Ca
         plan=(plan or "unknown").strip().lower() or "unknown",
         anonymous=bool(anonymous),
         learner_ref=pseudonym(meter_key),
+        meter_key=meter_key,
     )
 
 
@@ -936,6 +945,18 @@ def record(
             learner_ref=ctx.learner_ref,
             unit_kind=unit_kind or unit_for(capability),
             unit_count=max(0.0, float(unit_count)),
+        )
+        # THE MONEY METER, DEBITED AS THE ROW LANDS (``allowance.py``, docs/ALLOWANCE.md §4.1).
+        # Here rather than at any route because this is the one funnel every priced model call in
+        # this service already passes through: a capability added tomorrow is on the learner's
+        # day the moment it costs money, instead of the day somebody remembers to meter it. It
+        # runs whether or not the row can be SENT — an unconfigured project is a reason to lose
+        # the history, never a reason to hand out an unmetered day — and it never raises.
+        allowance.debit(
+            ctx.meter_key,
+            cost_usd=row.cost_usd,
+            capability=capability,
+            occurred_at=row.occurred_at,
         )
         _LEDGER.record(row)
     except Exception as exc:  # noqa: BLE001 — an accounting line is worth less than a child's answer

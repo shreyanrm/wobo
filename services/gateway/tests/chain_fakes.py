@@ -35,13 +35,19 @@ class Down(Exception):
 
 
 class _Message:
-    def __init__(self, content: str) -> None:
+    def __init__(self, content: str, *, searched: bool = False) -> None:
         self.content = content
+        # Anthropic reports each server-side search as a ``server_tool_use`` block on the message;
+        # a fake that was asked to search says it did, the way the vendor does. The discovery
+        # search discards any reply with no search behind it (``search._searches_in``).
+        self.server_tool_use = (
+            [{"type": "server_tool_use", "name": "web_search"}] if searched else []
+        )
 
 
 class _Choice:
-    def __init__(self, content: str) -> None:
-        self.message = _Message(content)
+    def __init__(self, content: str, *, searched: bool = False) -> None:
+        self.message = _Message(content, searched=searched)
 
 
 class _Usage:
@@ -53,10 +59,42 @@ class _Usage:
 class Response:
     """The slice of a litellm ModelResponse the gateway reads."""
 
-    def __init__(self, content: str, model: str) -> None:
-        self.choices = [_Choice(content)]
+    def __init__(self, content: str, model: str, *, searched: bool = False) -> None:
+        self.choices = [_Choice(content, searched=searched)]
         self.usage = _Usage()
         self.model = model
+
+
+class ResponsesResponse:
+    """The slice of a litellm Responses API reply the gateway reads (``search._responses_search``).
+
+    OpenAI's web search is a Responses API tool, and the API reports each search it ran as a
+    ``web_search_call`` item beside the message, which is how the seam tells a search from a
+    memory. The fake reports one search when the ``web_search`` tool was bound and none otherwise.
+    """
+
+    def __init__(self, content: str, model: str, *, searched: bool = False) -> None:
+        self.model = model
+        output: list[dict[str, Any]] = []
+        if searched:
+            output.append({"type": "web_search_call", "action": {"query": "q"}})
+        output.append({"type": "message", "content": [{"type": "output_text", "text": content}]})
+        self._raw = {
+            "model": model,
+            "output": output,
+            "usage": {"input_tokens": 20, "output_tokens": 10, "total_tokens": 30},
+        }
+
+    def model_dump(self) -> dict[str, Any]:
+        return dict(self._raw)
+
+
+def _binds_web_search(tools: Any) -> bool:
+    """Whether a request bound a provider's own web-search tool (either vendor's shape)."""
+    return any(
+        isinstance(tool, dict) and str(tool.get("type") or "").startswith("web_search")
+        for tool in (tools or [])
+    )
 
 
 class ChainFake:
@@ -83,8 +121,30 @@ class ChainFake:
             if isinstance(step, Exception):
                 last = step
                 continue
-            return Response(step, model.split("/", 1)[1] if self.bare and "/" in model else model)
+            return Response(
+                step,
+                model.split("/", 1)[1] if self.bare and "/" in model else model,
+                searched=_binds_web_search(kwargs.get("tools")),
+            )
         raise last
+
+    def responses(self, **kwargs: Any) -> Any:
+        """``litellm.responses``: the Responses API, which is where OpenAI's web search lives.
+
+        No fallback list rides on it (each provider's search has its own shape, so the seam
+        runs that chain itself), so one model is tried and its answer or its outage returned.
+        """
+        self.calls.append(kwargs)
+        model = str(kwargs.get("model") or "")
+        self.tried.append(model)
+        step = self.answers.get(model, Down(f"{model} is down"))
+        if isinstance(step, Exception):
+            raise step
+        return ResponsesResponse(
+            step,
+            model.split("/", 1)[1] if self.bare and "/" in model else model,
+            searched=_binds_web_search(kwargs.get("tools")),
+        )
 
     @staticmethod
     def completion_cost(**_: Any) -> float:
@@ -93,6 +153,7 @@ class ChainFake:
     def install(self, monkeypatch: pytest.MonkeyPatch) -> ChainFake:
         module = types.ModuleType("litellm")
         module.completion = self.completion  # type: ignore[attr-defined]
+        module.responses = self.responses  # type: ignore[attr-defined]
         module.completion_cost = self.completion_cost  # type: ignore[attr-defined]
         module.drop_params = False  # type: ignore[attr-defined]
         monkeypatch.setitem(sys.modules, "litellm", module)

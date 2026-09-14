@@ -2614,13 +2614,23 @@ _core_refused: dict[str, float] = {}
 _core_refused_lock = threading.Lock()
 
 
+def _refusal_key(concept: str, scope: dict[str, str]) -> str:
+    """One cooldown PER CONCEPT PER BAND (docs/CONTENT-INTERACTION.md §5b).
+
+    The concept alone would be wrong now: a middle core that came back critical would silence the
+    senior core of the same concept for fifteen minutes, and every senior level inside the window
+    would pay a full generation for a core nobody had tried to make. A refusal is evidence about
+    one band's core, and it is remembered as that."""
+    return f"{store.concept_id(concept, scope)}\x00{store.band_for(concept, scope)}"
+
+
 def _remember_core_refusal(concept: str, scope: dict[str, str]) -> None:
     with _core_refused_lock:
-        _core_refused[store.concept_id(concept, scope)] = time.monotonic() + CORE_REFUSAL_COOLDOWN_S
+        _core_refused[_refusal_key(concept, scope)] = time.monotonic() + CORE_REFUSAL_COOLDOWN_S
 
 
 def _core_recently_refused(concept: str, scope: dict[str, str]) -> bool:
-    key = store.concept_id(concept, scope)
+    key = _refusal_key(concept, scope)
     with _core_refused_lock:
         until = _core_refused.get(key)
         if until is None:
@@ -2658,12 +2668,23 @@ CORE_SHAPES = (
 
 _CORE_SYSTEM = (
     "You write CONCEPT CORES for Wobo, an Indian K-12 learning app. A core is the part of a "
-    "concept that is TRUE AT EVERY BOARD AND EVERY CLASS: the idea itself, why it matters, the "
-    "two mistakes learners actually make, the one question that proves understanding, and the "
-    "words. It is written ONCE and every board's and every class's lesson is rendered from it, "
-    "so it must contain no board's framing, no class's vocabulary level, no worked numbers and "
-    "no examples pitched at one age. Write the idea plainly and exactly; a later, cheaper model "
-    "will dress it for each reader.\n\n"
+    "concept that is TRUE AT EVERY BOARD: the idea itself, why it matters, the two mistakes "
+    "learners actually make, the one question that proves understanding, and the words. It is "
+    "written ONCE and every board's lesson is rendered from it, so it must contain no board's "
+    "framing, no worked numbers and no examples pitched at one class. Write the idea plainly and "
+    "exactly; a later, cheaper model will dress it for each reader.\n\n"
+    # docs/CONTENT-INTERACTION.md §5b, decided 2026-09-11. This paragraph used to say the core was
+    # true at every CLASS as well as every board, and for a concept that recurs that sentence
+    # cannot be written: "fractions" at class 4 and at class 8 are not one paragraph, and the one
+    # that satisfies class 8 loses the nine-year-old inside its first line. So a core is written
+    # for ONE DEPTH BAND, and a concept taught in two bands gets two cores.
+    "THE CORE IS WRITTEN FOR ONE DEPTH BAND, and the brief names it: 'band' is one of "
+    "foundation (classes 1 to 5), middle (6 to 8) or senior (9 to 12), and 'classes' says which "
+    "classes that is. Pitch the idea, the misconceptions, the check and the words at HOW A MIND "
+    "IN THAT BAND REACHES FOR THIS CONCEPT — not at one class inside it, and not at a class "
+    "outside it. The deeper band's core is not the shallower one with harder words: it is the "
+    "idea as that band actually meets it, including what the shallower band is not yet told. A "
+    "band is not a difficulty setting, so never write down to foundation or dress senior up.\n\n"
     "Reply with strict JSON only, no prose outside it. Calm sentence case: no emoji, no "
     "exclamation marks, no hype, and no dashes standing in for punctuation.\n\n"
     '{"shape":"<one of: ' + "|".join(CORE_SHAPES) + '>",'
@@ -2784,8 +2805,17 @@ def _core_brief(concept: str, scope: dict[str, str]) -> str:
 
     The subject rides along because "cell" in biology and "cell" in physics are two concepts and
     the subject is what separates them; the board and the class deliberately do NOT, because a
-    core that knew them would be written for one of them."""
-    brief: dict[str, Any] = {"concept": concept, "layer": "concept core"}
+    core that knew them would be written for one of them.
+
+    THE BAND RIDES ALONG, and it is the one thing about depth a core is allowed to know
+    (docs/CONTENT-INTERACTION.md §5b). ``band`` is the resolver's answer for this request, read
+    from the syllabus and never from the class alone (a concept taught only in class 9 is senior
+    whichever class asks), and ``classes`` says it in words the model can pitch to. Neither names
+    the class that asked, so the core still cannot be written for one class inside its band."""
+    band = store.band_for(concept, scope)
+    brief: dict[str, Any] = {"concept": concept, "layer": "concept core", "band": band}
+    if band != store.UNBANDED:
+        brief["classes"] = store.BAND_CLASSES[band]
     if scope.get("subject"):
         brief["subject"] = scope["subject"]
     return json.dumps(brief, ensure_ascii=False)
@@ -2886,6 +2916,7 @@ def _sample_core(
             capability=CORE_CAPABILITY,
             model=str(meter.get("model") or model),
             scope=scope,
+            band=store.band_for(concept, scope),
             cost_usd=total,
             tokens=int(meter.get("tokens") or tokens or 0) + int(judge_meter.get("tokens") or 0),
             note=note,
@@ -2942,6 +2973,7 @@ def _sample_core(
         capability="engine.compose.interaction",
         model="rule",
         scope=scope,
+        band=store.band_for(concept, scope),
         cached=True,
         note=",".join(i["kind"] for i in interactions),
     )
@@ -2988,6 +3020,7 @@ def core_for(
             capability=CORE_CAPABILITY,
             model=str(cached.get("provenance", {}).get("model") or ""),
             scope=scope,
+            band=str(cached.get("band") or store.band_for(concept, scope)),
             cached=True,
         )
         return cached

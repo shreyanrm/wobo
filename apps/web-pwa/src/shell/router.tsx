@@ -48,7 +48,22 @@ export type Route =
   | { name: 'learn' }
   | { name: 'practice' }
   | { name: 'subject'; subjectId: string; intent: 'learn' | 'practice' }
-  | { name: 'course'; topicId: string }
+  /**
+   * A course, and — when a link says so — the exact card inside it to open at.
+   *
+   * THE LINK THAT LANDS (docs/EMAILS-AND-ANIMATIONS.md §4). A mail's one button carries
+   * `/course/<course>/card/<card>`, so the learner arrives on the beat the mail was about rather
+   * than at the top of a course they were halfway through. The card segment is optional and the
+   * bare `/course/<course>` address is untouched, so every link already in an inbox, a bookmark or
+   * a share still means what it meant.
+   *
+   * The card is carried as an opaque string because the two players number their cards
+   * differently: the atom's are named (`scale`, `boss`), the generated player's are an index
+   * (`4`). Which one a course is, and whether that card exists in it, is the PLAYER's question —
+   * answering it here would drag the whole curriculum into the entry chunk, and a card that is not
+   * there is a resume position, not a 404.
+   */
+  | { name: 'course'; topicId: string; cardId?: string }
   /**
    * A bonus level, opened from the side door in the middle of a chapter
    * (docs/CONTENT-INTERACTION.md §7). It is addressed by the topic the door hangs off, because that
@@ -83,6 +98,7 @@ export type Route =
   | { name: 'sitemap' }
   // The six pitch pages of the public site (SITE.md §2), readable signed out.
   | { name: 'security' }
+  | { name: 'press' }
   | { name: 'meet-wobo' }
   | { name: 'for-parents' }
   | { name: 'for-students' }
@@ -147,7 +163,9 @@ export function routeToPath(route: Route): string {
     case 'subject':
       return `/subject/${encodeURIComponent(route.subjectId)}/${route.intent}`;
     case 'course':
-      return `/course/${encodeURIComponent(route.topicId)}`;
+      return route.cardId
+        ? `/course/${encodeURIComponent(route.topicId)}/${CARD_SEGMENT}/${encodeURIComponent(route.cardId)}`
+        : `/course/${encodeURIComponent(route.topicId)}`;
     case 'sandbox':
       return route.topicId ? `/sandbox/${encodeURIComponent(route.topicId)}` : '/sandbox';
     case 'arcade':
@@ -326,6 +344,10 @@ export const PLAIN_ROUTES = new Set([
   'donate',
   'sitemap',
   'security',
+  // The press kit (docs/GROWTH-PRESS.md §2). It is a file the build writes, not a shell
+  // rewrite: a journalist with JavaScript off and an answer engine that never runs any both have
+  // to be able to read the whole kit off the page.
+  'press',
   'meet-wobo',
   'for-parents',
   'for-students',
@@ -339,6 +361,11 @@ export const PLAIN_ROUTES = new Set([
 ]);
 
 const INTENTS = new Set(['learn', 'practice']);
+/**
+ * The segment between a course and one of its cards. A course id may not BE this word at the
+ * second position, which costs nothing: the segment only ever appears after a course id.
+ */
+const CARD_SEGMENT = 'card';
 /**
  * The blog's root and the one segment under it that is not a post. They are spelled here rather
  * than imported from `site/blog/post.ts` so this module stays a leaf: the router is loaded before
@@ -373,7 +400,16 @@ export function pathToRoute(path: string): Route | null {
   }
   if (head === 'course') {
     const topicId = decode(rest[0]);
-    return topicId && rest.length === 1 ? { name: 'course', topicId } : null;
+    if (!topicId) return null;
+    if (rest.length === 1) return { name: 'course', topicId };
+    // `/course/<course>/card/<card>` and nothing else: a deeper address, or a card segment with
+    // nothing after it, is a link that was cut short, and a 404 says so rather than dropping the
+    // learner at the top of a course as though the link had worked.
+    if (rest.length === 3 && rest[1] === CARD_SEGMENT) {
+      const cardId = decode(rest[2]);
+      return cardId ? { name: 'course', topicId, cardId } : null;
+    }
+    return null;
   }
   if (head === 'sandbox') {
     if (rest.length === 0) return { name: 'sandbox' };

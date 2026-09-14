@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import urllib.error
 from typing import Any
 
@@ -12,10 +13,19 @@ from wobo_gateway import email as email_mod
 from wobo_gateway import email_templates as templates
 from wobo_gateway.app import create_app
 from wobo_gateway.email import MailLog, idempotency_key, mail_log, send_email
-from wobo_gateway.email_templates import HAND_KINDS, KINDS, PAPER_KINDS, render
+from wobo_gateway.email_templates import (
+    HAND_KINDS,
+    KINDS,
+    NUDGE_KINDS,
+    PAPER_KINDS,
+    SUBSCRIBED_KINDS,
+    render,
+)
 from wobo_gateway.hospitality.tokens import stop_link
 
-SHELL_KINDS = tuple(k for k in KINDS if k not in PAPER_KINDS)
+# The ultramarine shell's own kinds: not the paper set, and not the five nudges, which are on
+# the paper with a dark-client declaration of their own (test_mail_nudges.py).
+SHELL_KINDS = tuple(k for k in KINDS if k not in PAPER_KINDS and k not in NUDGE_KINDS)
 
 INTERNAL_HEADER = {"X-Wobo-Internal": "test-internal-key"}
 
@@ -24,14 +34,27 @@ INTERNAL_HEADER = {"X-Wobo-Internal": "test-internal-key"}
 @pytest.mark.parametrize("kind", SHELL_KINDS)
 def test_every_template_renders(kind: str) -> None:
     out = render(kind)
-    assert set(out) == {"subject", "html", "text"}
+    # A subscribed kind carries its unsubscribe header even when its own template did not build
+    # one: render() attaches it, and email.py holds a live send that still lacks it. Every kind
+    # also names its preheader, because docs/MAIL-PRIMARY.md checks the subject and the
+    # preheader of every kind for punctuation, case and vocabulary (SUBJECT PUNCTUATION,
+    # SUBJECT CASE, NAME FALLBACK), and a check needs a value to read.
+    assert set(out) <= {"subject", "html", "text", "preheader", "headers"}
+    assert {"subject", "html", "text"} <= set(out)
+    if kind in SUBSCRIBED_KINDS:
+        assert out["headers"]["List-Unsubscribe"]
+    else:
+        assert "headers" not in out
     assert out["subject"].strip()
     assert out["text"].strip()
     html = out["html"]
     assert "Wobo" in html  # the wordmark
     assert "#1F35E0" in html  # the one ultramarine button
     assert "href=" in html  # the button is a real link
-    assert "made for curious minds" in html  # the quiet footer
+    # The quiet footer says why the mail came and how to reach a person. The slogan that used to
+    # stand here is gone: docs/MAIL-PRIMARY.md names it as the only line in any footer that sells.
+    assert "You get this because you have a Wobo account" in html
+    assert "made for curious minds" not in html
     assert "unsubscribe" in html
     assert "&mdash; Wobo" in html  # the sign-off
 
@@ -119,10 +142,12 @@ def test_every_link_follows_APP_URL(monkeypatch: pytest.MonkeyPatch) -> None:
         importlib.reload(templates)
 
 
-def test_there_are_fifteen_templates() -> None:
-    """Ten on the shell, three drawn by hand, the wish on the same paper, and the parent invite
-    on that paper too — account mail, so not one of the hand kinds that need a stop link."""
-    assert len(KINDS) == 15
+def test_there_are_twenty_templates() -> None:
+    """Ten on the shell, three drawn by hand, the wish on the same paper, the parent invite on
+    that paper too (account mail, so not one of the hand kinds that need a stop link), and the
+    five nudges of docs/EMAILS-AND-ANIMATIONS.md §1."""
+    assert len(KINDS) == 20
+    assert len(NUDGE_KINDS) == 5
     assert {"sunday_note", "welcome", "win", "wish"} == HAND_KINDS
     assert HAND_KINDS | {"parent_invite"} == PAPER_KINDS
 
@@ -136,10 +161,18 @@ def test_copy_stays_in_voice_no_emoji_no_exclamation() -> None:
 
 
 def test_templates_interpolate_data() -> None:
+    """The topic the learner beat is interpolated; the score they earned is not.
+
+    This used to expect the XP figure in the html and the text. docs/MAIL-PRIMARY.md forbids it
+    twice: "A large coloured numeral above the fold, including '+250 XP' at 34px in boss_victory"
+    is named as the most reliable promotional tell in a preview, and the assertion NO PERCENTAGES
+    OR RAW SCORES says the text part of every kind carries no digit-plus-XP token. The score stays
+    on the screen where it was earned; the mail praises the behaviour.
+    """
     out = render("boss_victory", {"topic": "titration", "xp": 999})
-    assert "titration" in out["html"]
-    assert "999" in out["html"]
-    assert "titration" in out["text"] and "999" in out["text"]
+    assert "titration" in out["html"] and "titration" in out["text"]
+    assert "999" not in out["text"] and "999" not in out["html"]
+    assert not re.search(r"\d\s*XP\b", out["text"])
 
 
 def test_render_unknown_kind_raises() -> None:

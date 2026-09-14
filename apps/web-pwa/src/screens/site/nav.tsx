@@ -59,6 +59,7 @@ export type SiteSection =
   | 'blog'
   | 'about'
   | 'security'
+  | 'press'
   | 'legal'
   | 'terms'
   | 'privacy'
@@ -180,6 +181,14 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
       // page rather than only from whatever linked to a post (docs/GROWTH-DESK.md §3).
       { label: 'Blog', href: '/blog', section: 'blog' },
       { label: 'Security and trust', href: '/security', section: 'security' },
+      /**
+       * The press kit. It sits in the footer of every page rather than in the pill nav for the
+       * same reason the security page does: six items is the bar's ceiling, and a journalist and
+       * an answer engine both arrive by looking for it rather than by browsing (docs/GROWTH-PRESS.md
+       * §2). The footer is on all 438 pages, which is what an engine crawling any one of them
+       * needs to find the kit.
+       */
+      { label: 'Press', href: '/press', section: 'press' },
       { label: 'Terms', href: '/legal/terms-of-service', section: 'terms' },
       { label: 'Privacy', href: '/legal/privacy-policy', section: 'privacy' },
       { label: "Children's privacy", href: '/legal/childrens-privacy', section: 'children' },

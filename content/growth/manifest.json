@@ -1,0 +1,30 @@
+{
+  "harvest": {
+    "file": "harvest.json",
+    "queries": 17928,
+    "both_engines": 1771,
+    "google_only": 8178,
+    "bing_only": 7979,
+    "sha256": "f5bd1edef75b13eb0cff2eae1e059ded05cd0bf0c00189302269db52dfe527f3",
+    "sources": [
+      "suggestqueries.google.com/complete/search (hl=en, gl=in)",
+      "api.bing.com/osjson.aspx (market=en-IN)"
+    ],
+    "harvested_on": "2026-09-09",
+    "harvested_by": "content/growth/harvest.py"
+  },
+  "curriculum": {
+    "file": "curriculum.json",
+    "rows": 1044,
+    "units": 333,
+    "topics": 711,
+    "boards": [
+      "CBSE",
+      "ICSE",
+      "ISC",
+      "NIOS"
+    ],
+    "sha256": "d2606b2aa6608fac581117b9a4f51310a1d2c0cf1fe743857801b01bb59622dd",
+    "from": "the seed in content/curriculum/syllabi, as it stood on 2026-09-09"
+  }
+}

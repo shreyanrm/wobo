@@ -10,7 +10,7 @@
  * Nothing here is a mock of a feature: a row with nothing behind it on this build says so.
  */
 
-import { erasureGapSentence } from '@wobo/sdk';
+import { erasureGapSentence, type Me } from '@wobo/sdk';
 import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { adoptFramework, adoptOwnSyllabus, askDiscovery, chooseLevel } from '../curriculum/adopt';
@@ -63,6 +63,7 @@ import {
   setFlag,
   VOICE_KEY,
 } from './you/profile';
+import { readToday } from './you/today';
 import { barHeight, type Span, strengths, weekSentence } from './you/week';
 import './you/you.css';
 import { scoped, wipeDevice } from '../store/scope';
@@ -327,13 +328,18 @@ export function You() {
   // everything about it in words and owns the cancel; this read exists so the panel can tell a
   // learner who is genuinely on Free from one whose paid plan it could not read — two very
   // different things to say to somebody about their money.
-  const [planId, setPlanId] = useState<string | null>(null);
+  //
+  // The SAME read answers the bar under the plan: today's allowance, as a share of itself and
+  // never as money (docs/ALLOWANCE.md §2). One answer rather than two, so the heading and the bar
+  // can never disagree about the same learner, and one request rather than two.
+  const [me, setMe] = useState<Me | null>(null);
+  const planId = me?.plan ?? null;
   useEffect(() => {
     let cancelled = false;
     void sdk
       .me()
-      .then((me) => {
-        if (!cancelled && me) setPlanId(me.plan);
+      .then((answer) => {
+        if (!cancelled && answer) setMe(answer);
       })
       .catch(() => undefined);
     return () => {
@@ -758,7 +764,11 @@ export function You() {
             the card above is tagged Settings and is a SIBLING of this one, never its parent, which
             is why no surface tells anyone to look inside a Settings screen for their plan. */}
         <div ref={planRef}>
-          <PlanPanel planId={planId} onSeePlans={() => router.navigate({ name: 'plans' })} />
+          <PlanPanel
+            planId={planId}
+            today={readToday(me)}
+            onSeePlans={() => router.navigate({ name: 'plans' })}
+          />
         </div>
       </div>
     </AppShell>

@@ -98,13 +98,27 @@ SUPPORT = "support@heywobo.com"
 #: What migration 0014 allows in each column. Read tolerantly, written exactly.
 PLANS: tuple[str, ...] = ("plus", "pro", "max")
 STATUSES: tuple[str, ...] = ("active", "cancelled")
-ORIGINS: tuple[str, ...] = ("web", "ios", "android")
+#: Migration 0027 adds the fourth: a row a promo code granted, which nobody is charging and which
+#: simply runs out. It is its own word rather than 'web' because ``from_row`` reads an origin it
+#: does not recognise as a STORE origin, and a learner holding a promo code must never be sent to
+#: an app store they have never opened to cancel something nobody is billing them for.
+ORIGINS: tuple[str, ...] = ("web", "ios", "android", "promo")
 #: Migration 0023: which of the two prices in docs/PRICING.md the row was bought at.
 PERIODS: tuple[str, ...] = ("monthly", "yearly")
 #: Bought inside a phone's app store: ours to read, the store's to cancel.
 STORE_ORIGINS: frozenset[str] = frozenset({"ios", "android"})
 #: The row says which platform; the app says which store. One map, so the two never drift.
-SOURCE_OF_ORIGIN: dict[str, str] = {"web": "web", "ios": "app_store", "android": "play_store"}
+#:
+#: ``promo`` maps to ``web`` on purpose, and it is the one entry that is not an identity: ``source``
+#: answers "where would I end this", and for a row nobody is charging the answer is here. The
+#: database keeps the true word; the wire keeps the three the learner app knows, so a promo row
+#: renders as an ordinary plan that can be ended here rather than falling through to a store line.
+SOURCE_OF_ORIGIN: dict[str, str] = {
+    "web": "web",
+    "ios": "app_store",
+    "android": "play_store",
+    "promo": "web",
+}
 
 #: A subject reaches a PostgREST filter, so it is checked before it is interpolated (the same rule
 #: as :mod:`wobo_gateway.memory` and :mod:`wobo_gateway.parents`).
@@ -540,6 +554,31 @@ def plan_for(subject: str, *, fallback: str = "free", now: datetime | None = Non
         logger.exception("subscriptions: plan lookup failed")
         return fallback
     return effective_plan(sub, fallback=fallback, now=now)
+
+
+def period_for(subject: str, *, fallback: str = "monthly") -> str:
+    """Which period the learner's live subscription was bought for. Never raises.
+
+    The money meter needs it and nothing else does: a yearly plan's allowance is built from its
+    MONTHLY EQUIVALENT (₹19,992 a year is ₹1,666 a month, docs/PRICING.md), and metering a yearly
+    learner on the monthly price would hand them a fifth more than they bought. It answers from
+    the same cached row :func:`plan_for` reads, so it costs a dictionary lookup on the hot path.
+
+    ``monthly`` when there is no row, no store, or a period we do not sell — the LARGER amount of
+    the two, so a database blink is never a learner quietly cut to five sixths of their day.
+    """
+    if not subject:
+        return fallback
+    try:
+        sub = _cached(subject)
+    except StoreUnavailable:
+        return fallback
+    except Exception:  # a store bug must never take a learner's turn down with it
+        logger.exception("subscriptions: period lookup failed")
+        return fallback
+    if sub is None or sub.period not in PERIODS:
+        return fallback
+    return sub.period
 
 
 def metered_plan(principal: Principal, profile: Profile) -> str:

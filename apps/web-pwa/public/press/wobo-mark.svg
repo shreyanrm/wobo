@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 11 110 110" role="img" aria-label="The Wobo mark"><circle cx="75" cy="66" r="42" fill="#1A1A1F" fill-opacity="0.92" stroke="rgba(255,255,255,0.55)" stroke-width="0.9"/>
+  <ellipse cx="55" cy="38" rx="8" ry="4" fill="#FFFFFF" opacity="0.16" transform="rotate(-30 55 38)"/>
+  <rect x="41" y="50" width="68" height="30" rx="15" fill="#FFFFFF"/>
+  <path d="M54.6 65.5a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z" fill="#1F35E0"/>
+  <path d="M80.6 65.5a7.4 7.4 0 1 0 14.8 0a7.4 7.4 0 1 0 -14.8 0Z" fill="#1F35E0"/>
+</svg>

@@ -30,7 +30,7 @@ un-elevated consent tier.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import StrEnum
 
 from wobo_gateway.cache import CacheTier
@@ -356,6 +356,27 @@ def escalate_for(capability: str, reason: str) -> str | None:
     """
     spec = escalate(policy(capability).tier, capability=capability, reason=reason)
     return spec.provider_model if spec is not None else None
+
+
+def reload() -> None:
+    """Re-link every policy onto the routing table as it stands NOW. Idempotent.
+
+    A policy's ``primary`` and ``fallback`` are LOGICAL names (``tier.turn``,
+    ``tier.turn.fallback.1``) captured when this module was imported, and the number of fallback
+    names depends on how long the tier's chain was at that moment. ``routing.configure()`` can be
+    called again after import — the console's models desk does exactly that when the owner moves a
+    tier without a deploy (``docs/CONSOLE-MODELS.md`` §2) — and a chain of a different length then
+    leaves every policy on this tier naming a rung the table no longer has.
+
+    Only those two fields depend on the table, so this is a re-link and never a rebuild: the
+    latency, the cost ceiling, the output ceiling, the cache tier and the consent rule are the
+    capability's own and are carried across untouched.
+    """
+    global _POLICIES
+    _POLICIES = {
+        name: replace(pol, primary=tier_primary(pol.tier), fallback=tier_fallbacks(pol.tier))
+        for name, pol in _POLICIES.items()
+    }
 
 
 def validate_registry() -> None:

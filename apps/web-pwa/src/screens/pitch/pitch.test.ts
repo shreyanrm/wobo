@@ -120,6 +120,15 @@ const BETTER_HERE = new Set([
   // the availability the line was always reaching for. FLAGGED FOR THE OWNER: the two lines in
   // DESIGN.md §0 disagree, and only the owner can retire one of them.
   'for one child, at ten at night.',
+  // The parents hero's first promise. The owner placed the adaptive line on the public pages on
+  // 2026-09-09 (docs/copy/growth/lines.md, "Not a fixed course. It adapts to you and does not
+  // stop until the topic is mastered", form 4: "It is not content your child scrolls. It is a
+  // tutor that changes how it teaches until your child has it, and tells you when they do."),
+  // and the entry names the for-parents page's first promise as its place. The prototype still
+  // carries the older sentence, so the drawing is behind the law, not the page. The new line is
+  // held word for word, and in the hero, by `site/sell.test.ts` (section H); the page keeps the
+  // prototype's second half, "You set it up once. It runs on its own after that."
+  'Wobo teaches your childs own syllabus, draws the answer until it lands, and shows you what actually moved this week. You set it up once. It runs on its own after that.',
 
   // --- /subjects: the drawn typeahead became a real one (BoardFinder.tsx) --------------------
   // The prototype's boards paragraph says every board a reader types has "the year's official

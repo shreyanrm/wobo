@@ -161,7 +161,7 @@ describe('starting a checkout on the gateway', () => {
       subscription_id: 'sub_123',
       key_id: 'rzp_test_abc',
     });
-    const out = await startCheckout('pro', 'yearly', GATEWAY, fetcher);
+    const out = await startCheckout('pro', 'yearly', null, GATEWAY, fetcher);
     expect(out).toEqual({
       ok: true,
       session: { subscriptionId: 'sub_123', keyId: 'rzp_test_abc' },
@@ -170,6 +170,28 @@ describe('starting a checkout on the gateway', () => {
     expect(calls[0]?.url).toBe(`${GATEWAY}${CHECKOUT_PATHS.start}`);
     expect(calls[0]?.init?.method).toBe('POST');
     expect(JSON.parse(String(calls[0]?.init?.body))).toEqual({ plan: 'pro', period: 'yearly' });
+  });
+
+  /**
+   * A HONOURED PROMO CODE RIDES ALONG, and nothing else about it does. The browser never works out
+   * what a code is worth (docs/ALLOWANCE.md §3: the gateway validates and applies), so the only
+   * thing the session carries is the code itself, and only when there is one: with no code the
+   * body is byte-for-byte what it was before this field existed.
+   */
+  it('carries a code the gateway already honoured, and no field at all without one', async () => {
+    const withCode = answering(200, { subscription_id: 'sub_9', key_id: 'rzp_k' });
+    await startCheckout('pro', 'yearly', 'WOBO50', GATEWAY, withCode.fetcher);
+    expect(JSON.parse(String(withCode.calls[0]?.init?.body))).toEqual({
+      plan: 'pro',
+      period: 'yearly',
+      code: 'WOBO50',
+    });
+    const without = answering(200, { subscription_id: 'sub_9', key_id: 'rzp_k' });
+    await startCheckout('pro', 'yearly', null, GATEWAY, without.fetcher);
+    expect(Object.keys(JSON.parse(String(without.calls[0]?.init?.body)))).toEqual([
+      'plan',
+      'period',
+    ]);
   });
 
   it('carries a key id of null when the gateway gives none, never an invented one', () => {
@@ -185,7 +207,7 @@ describe('starting a checkout on the gateway', () => {
     const { fetcher } = answering(503, {
       detail: { code: 'payments_off', message: 'Payments are not switched on yet.' },
     });
-    expect(await startCheckout('max', 'monthly', GATEWAY, fetcher)).toEqual({
+    expect(await startCheckout('max', 'monthly', null, GATEWAY, fetcher)).toEqual({
       ok: false,
       off: true,
       message: 'Payments are not switched on yet.',
@@ -193,21 +215,21 @@ describe('starting a checkout on the gateway', () => {
   });
 
   it('fails plainly on no gateway, a refusal, a body it cannot read, or a network that died', async () => {
-    expect(await startCheckout('pro', 'yearly', '', answering(200, {}).fetcher)).toEqual({
+    expect(await startCheckout('pro', 'yearly', null, '', answering(200, {}).fetcher)).toEqual({
       ok: false,
       off: true,
       message: null,
     });
     expect(
-      await startCheckout('pro', 'yearly', GATEWAY, answering(401, { detail: 'no' }).fetcher),
+      await startCheckout('pro', 'yearly', null, GATEWAY, answering(401, { detail: 'no' }).fetcher),
     ).toEqual({ ok: false, off: false, message: null });
     expect(
-      await startCheckout('pro', 'yearly', GATEWAY, answering(200, { nope: 1 }).fetcher),
+      await startCheckout('pro', 'yearly', null, GATEWAY, answering(200, { nope: 1 }).fetcher),
     ).toEqual({ ok: false, off: false, message: null });
     const thrown = (async () => {
       throw new Error('offline');
     }) as unknown as typeof import('@wobo/sdk').gatewayFetch;
-    expect(await startCheckout('pro', 'yearly', GATEWAY, thrown)).toEqual({
+    expect(await startCheckout('pro', 'yearly', null, GATEWAY, thrown)).toEqual({
       ok: false,
       off: false,
       message: null,

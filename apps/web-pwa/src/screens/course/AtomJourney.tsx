@@ -8,7 +8,7 @@
  */
 
 import type { PracticeItem } from '@wobo/sdk';
-import { useWoboBus } from '@wobo/wobo';
+import { useWoboBus, WaitScene } from '@wobo/wobo';
 import { motion } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { groundFor } from '../../curriculum/placement';
@@ -18,7 +18,7 @@ import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { BossSigil } from '../../ui/art';
 import { CourseIntroScene } from '../../ui/courseIntro';
-import { hueForTopic } from '../../ui/hues';
+import { hueForTopic, subjectForTopic } from '../../ui/hues';
 import { type BridgeLesson, bridgeFor, bridgeFromReport } from '../../wobo/bridge';
 import { announceCard } from '../../wobo/speech';
 import { BalanceScale } from './BalanceScale';
@@ -26,6 +26,7 @@ import { Boss } from './Boss';
 import { BridgeStep } from './BridgeStep';
 import { Greeting } from './Greeting';
 import { MysteryLesson, MysteryTease } from './Mystery';
+import { atomCardFromLink } from './open-at';
 import { PracticeRun } from './PracticeRun';
 import type { BarState, LessonOutline } from './shared';
 import {
@@ -101,6 +102,7 @@ const PROGRESS: Record<CardId, [base: number, span: number]> = {
 export function AtomJourney({
   topic,
   nodeId,
+  openAt,
   setBar,
   setProgress,
   onExit,
@@ -109,6 +111,12 @@ export function AtomJourney({
 }: {
   topic: Topic;
   nodeId: string;
+  /**
+   * The card a link asked to open on (docs/EMAILS-AND-ANIMATIONS.md §4). It BEATS the saved
+   * position, because the learner pressed a button that named this card; a card this lesson does
+   * not have is not a card, and the course opens where it always opens (`open-at.ts`).
+   */
+  openAt?: string | undefined;
   setBar: (b: BarState | null) => void;
   setProgress: (p: { f: number; segments: number }) => void;
   onExit: () => void;
@@ -130,6 +138,11 @@ export function AtomJourney({
   const replay = useRef(completed.has(topic.id)).current;
 
   const [card, setCard] = useState<CardId>(() => {
+    // A link that named a card wins over everything below it — including a replay's fresh start,
+    // because pressing "the card they left" in a mail about a course they finished still means
+    // that card. It earns nothing: the replay guard below is untouched by where the walk begins.
+    const asked = atomCardFromLink(openAt);
+    if (asked) return asked;
     // Resume where they left off — a course remembers its place (cliffhanger-friendly). A completed
     // course never resumes a stale end state: a replay always begins at the first card.
     const saved = readCoursePos(topic.id);
@@ -146,7 +159,10 @@ export function AtomJourney({
     }
     return 'arrival';
   });
-  const resumedRef = useRef(card !== 'arrival');
+  // "Picking up where you left off" is only true when they WERE here. A link that landed on a
+  // card put them there just now, and saying it anyway would be the app narrating something that
+  // did not happen (DESIGN.md §0.x).
+  const resumedRef = useRef(card !== 'arrival' && !atomCardFromLink(openAt));
   useEffect(() => {
     onOutline?.({ steps: STEPS.map((s) => s[1]), at: STEP_AT[card] });
   }, [card, onOutline]);
@@ -405,7 +421,14 @@ export function AtomJourney({
           />
         ) : (
           <CardBody>
-            <div style={{ ...whisper, textAlign: 'center' }}>Fetching your three…</div>
+            {/* The three are coming. The orb draws this subject's own thing while they do. */}
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <WaitScene
+                subject={subjectForTopic(topic.id)}
+                pigment={hueForTopic(topic.id)}
+                width={220}
+              />
+            </div>
           </CardBody>
         ))}
 

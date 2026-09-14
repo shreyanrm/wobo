@@ -24,6 +24,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Button, Card, CardFoot, Pill, Tag } from '../../ui/primitives';
+import { PromoField } from '../promo/PromoField';
 import { cancelSubscription, readSubscription, resumeSubscription } from './billing';
 import {
   CONFIRM_TITLE,
@@ -40,6 +41,7 @@ import {
   planReducer,
   stateWord,
 } from './plan';
+import { TODAY_TITLE, type Today, todayFill, todayLines, todaySpoken, UNREAD } from './today';
 import './plan.css';
 
 /**
@@ -57,6 +59,13 @@ export interface PlanPanelProps {
    * (`SubscriptionRead`), and this only sharpens the heading when the tier is known.
    */
   planId: string | null;
+  /**
+   * TODAY, as a share of itself and never as money (docs/ALLOWANCE.md §2). Read off the same
+   * `GET /v1/me` the plan id comes from, so the bar and the heading are one answer rather than
+   * two; unread, no bar is drawn at all, because an empty bar would say "you have spent nothing
+   * today" on no evidence.
+   */
+  today?: Today;
   /** The plans page. The free state's one door. */
   onSeePlans: () => void;
   /** The billing client, injectable so a test can drive a refusal. */
@@ -195,8 +204,38 @@ function CancelConfirm({
   );
 }
 
+/**
+ * THE BAR. One bar, named Today, filled by the share of the day already spent, with the reset line
+ * under it and, when it is full, the line the question counter already says (`./today.ts`).
+ *
+ * There is no number on it and there is no money near it: the allowance is rupees in the gateway
+ * and a proportion here (docs/ALLOWANCE.md §2, the owner: *"it's not money based at the users'
+ * end"*). The drawn bar is hidden from assistive technology, because the only thing it could
+ * announce is a percentage and the copy law forbids printing a raw allowance (DESIGN.md §0); the
+ * same fact goes to a screen reader as a sentence instead, which is what `todaySpoken` is.
+ */
+function TodayBar({ today }: { today: Today }) {
+  const fill = todayFill(today);
+  if (fill === null) return null;
+  const lines = todayLines(today);
+  const spoken = todaySpoken(today);
+  return (
+    <div className="wp-today">
+      <b>{TODAY_TITLE}</b>
+      <div className="wp-bar" aria-hidden="true">
+        <i style={{ width: `${fill}%` }} />
+      </div>
+      {spoken ? <span className="wp-sr">{spoken}</span> : null}
+      {lines.map((line) => (
+        <span key={line}>{line}</span>
+      ))}
+    </div>
+  );
+}
+
 export function PlanPanel({
   planId,
+  today = UNREAD,
   onSeePlans,
   read = readSubscription,
   cancel = cancelSubscription,
@@ -293,6 +332,10 @@ export function PlanPanel({
           lines.map((line) => <span key={line}>{line}</span>)
         )}
       </div>
+      {/* TODAY, under the plan and above the way out of it. It is a separate reading from the
+          subscription, so it draws whatever it has whichever state the plan is in, and nothing at
+          all when the brain has not answered with an allowance. */}
+      <TodayBar today={today} />
       {state.error && !confirming ? (
         <p className="wp-bad" role="alert">
           {state.error}
@@ -315,6 +358,10 @@ export function PlanPanel({
           {word ? <Pill>{word}</Pill> : null}
         </CardFoot>
       ) : null}
+      {/* "Have a code?" — the You half of the redeem door (docs/ALLOWANCE.md §3). The same field
+          the checkout card carries, so a code works the same way in both places, and it is the
+          last thing on the panel because it is the least of what this card is for. */}
+      <PromoField className="wp-promo" />
       {confirming ? (
         <CancelConfirm
           lines={confirmationLines(model.sub)}

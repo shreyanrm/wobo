@@ -14,6 +14,9 @@ const EVERY_ROUTE: Route[] = [
   { name: 'subject', subjectId: 'science', intent: 'practice' },
   { name: 'course', topicId: 'm2-1' },
   { name: 'course', topicId: 'custom:why the sky is blue' },
+  // The link that lands (docs/EMAILS-AND-ANIMATIONS.md §4): a mail's button carries the card.
+  { name: 'course', topicId: 'm2-1', cardId: 'scale' },
+  { name: 'course', topicId: 'm2-1', cardId: '4' },
   { name: 'sandbox' },
   { name: 'sandbox', topicId: 'm2-1' },
   { name: 'progress' },
@@ -52,6 +55,36 @@ describe('routes have addresses', () => {
     const path = routeToPath(route);
     expect(path).not.toContain(' ');
     expect(pathToRoute(path)).toEqual(route);
+  });
+
+  it('addresses one card of a course, and the course itself keeps its own address', () => {
+    // §4 of the design: `/course/<course>/card/<card>`. The course with no card is unchanged, so
+    // every link already in an inbox, a bookmark or a share still means what it meant.
+    expect(routeToPath({ name: 'course', topicId: 'm2-1', cardId: 'scale' })).toBe(
+      '/course/m2-1/card/scale',
+    );
+    expect(routeToPath({ name: 'course', topicId: 'm2-1' })).toBe('/course/m2-1');
+    expect(pathToRoute('/course/m2-1/card/scale')).toEqual({
+      name: 'course',
+      topicId: 'm2-1',
+      cardId: 'scale',
+    });
+    // The generated player's cards are numbered; the atom's are named. Both are one segment.
+    expect(pathToRoute('/course/m2-1/card/4')).toEqual({
+      name: 'course',
+      topicId: 'm2-1',
+      cardId: '4',
+    });
+    // A free-text course keeps its card too — the id is escaped, the card segment is not lost.
+    const custom = { name: 'course', topicId: 'custom:black holes', cardId: '2' } as const;
+    expect(routeToPath(custom)).toBe('/course/custom%3Ablack%20holes/card/2');
+    expect(pathToRoute(routeToPath(custom))).toEqual(custom);
+  });
+
+  it('is a 404 for a card address with nothing in the card segment', () => {
+    for (const path of ['/course/m2-1/card', '/course/m2-1/card/', '/course/m2-1/card/a/b']) {
+      expect(pathToRoute(path)).toBeNull();
+    }
   });
 
   it('reads the root and ignores a query or hash', () => {

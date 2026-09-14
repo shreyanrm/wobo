@@ -72,6 +72,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from wobo_gateway import billing
+from wobo_gateway import promo as promo_codes
 from wobo_gateway.admin_auth import CanRead, admin_router
 from wobo_gateway.billing import plans, razorpay, records
 from wobo_gateway.billing.records import BillingEvent, RecordsUnavailable
@@ -140,6 +141,11 @@ _HEADER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
 class CheckoutBody(BaseModel):
     plan: str = Field(max_length=16)
     period: str = Field(max_length=16)
+    #: An optional promo code (``docs/ALLOWANCE.md`` section 3). Only ``percent_off_first`` is
+    #: used here; the other two kinds are taken on the You page and are refused with a line that
+    #: says so. A code that cannot be applied REFUSES the checkout rather than quietly letting it
+    #: through at the full price.
+    promo: str | None = Field(default=None, max_length=promo_codes.MAX_CODE)
 
 
 def _refuse(status: int, code: str, message: str, **extra: Any) -> HTTPException:
@@ -363,8 +369,10 @@ def apply_event(
 
 
 # --- the routes -----------------------------------------------------------------------------------
-def _checkout_answer(sub_id: str, spec: plans.PlanSpec) -> dict[str, Any]:
-    return {
+def _checkout_answer(
+    sub_id: str, spec: plans.PlanSpec, offer: promo_codes.Offer | None = None
+) -> dict[str, Any]:
+    answer: dict[str, Any] = {
         "subscription_id": sub_id,
         "key_id": razorpay.key_id(),
         "plan": spec.plan,
@@ -373,6 +381,19 @@ def _checkout_answer(sub_id: str, spec: plans.PlanSpec) -> dict[str, Any]:
         "currency": spec.currency,
         "amount_display": plans.amount_display(spec.plan, spec.period),
     }
+    if offer is not None:
+        # What the browser is told to expect has to match what the provider will actually take,
+        # because the alternative is a learner who reads one figure and is charged another. The
+        # full price stays beside it: a discount is only a discount against something.
+        first = offer.first_amount_paise(spec.amount_paise)
+        answer["promo"] = {
+            "code": offer.code.code,
+            "percent_off": offer.percent,
+            "first_amount_paise": first,
+            # The same shape ``plans.amount_display`` uses, so the two figures read as one pair.
+            "first_amount_display": f"₹{first // 100:,} the first time",
+        }
+    return answer
 
 
 def _open_checkout(
@@ -421,6 +442,17 @@ def register_payments(app: FastAPI) -> None:
         ):
             raise _refuse(409, "already_subscribed", LINES["already_subscribed"])
 
+        # THE CODE IS CHECKED BEFORE ANYTHING IS CREATED ANYWHERE. A code that cannot be applied
+        # refuses the checkout: somebody who typed one and pressed pay must never be quietly
+        # charged the full price instead. Nothing is spent by checking (promo.bind_checkout, at
+        # the foot of this route, is what records a use) and no provider call has happened yet.
+        offer: promo_codes.Offer | None = None
+        if body.promo:
+            try:
+                offer = promo_codes.offer_for_checkout(principal.subject, body.promo, now=moment)
+            except promo_codes.Refused as refused:
+                raise refused.http() from refused
+
         ledger = records.get_store()
         try:
             ids = plans.plan_ids(ledger)
@@ -437,25 +469,34 @@ def register_payments(app: FastAPI) -> None:
         if provider is None:  # keys vanished between the check and here
             raise _payments_off()
 
-        reused = _open_checkout(provider, open_row, spec)
+        # A code is attached to a provider subscription when that subscription is CREATED and can
+        # never be added to one that already exists. So a checkout carrying a code always makes a
+        # fresh one rather than offering back an older, undiscounted subscription the learner
+        # abandoned; that one was never paid for and expires within the day (CHECKOUT_EXPIRES_S).
+        reused = None if offer is not None else _open_checkout(provider, open_row, spec)
         if reused is not None:
             return _checkout_answer(reused, spec)
 
+        wanted: dict[str, Any] = {
+            "plan_id": ids[spec.key],
+            "total_count": plans.total_count(spec.period),
+            "quantity": 1,
+            "customer_notify": 1,
+            "expire_by": int(moment.timestamp()) + CHECKOUT_EXPIRES_S,
+            "notes": {
+                "wobo_learner_id": principal.subject,
+                "wobo_plan": spec.plan,
+                "wobo_period": spec.period,
+            },
+        }
+        if offer is not None:
+            # The discount happens at the provider or it does not happen. There is no second path
+            # here that takes money off afterwards, because taking money back is a refund and this
+            # product does not do refunds (docs/legal/refund-and-cancellation.md).
+            wanted["offer_id"] = offer.offer_id
+            wanted["notes"]["wobo_promo"] = offer.code.code
         try:
-            created = provider.create_subscription(
-                {
-                    "plan_id": ids[spec.key],
-                    "total_count": plans.total_count(spec.period),
-                    "quantity": 1,
-                    "customer_notify": 1,
-                    "expire_by": int(moment.timestamp()) + CHECKOUT_EXPIRES_S,
-                    "notes": {
-                        "wobo_learner_id": principal.subject,
-                        "wobo_plan": spec.plan,
-                        "wobo_period": spec.period,
-                    },
-                }
-            )
+            created = provider.create_subscription(wanted)
         except razorpay.RazorpayError as exc:
             raise _refuse(503, "provider_unavailable", LINES["provider_unavailable"]) from exc
         sub_id = str(created.get("id") or "")
@@ -479,7 +520,12 @@ def register_payments(app: FastAPI) -> None:
             # The subscription exists at the provider and the learner can still pay for it; the
             # webhook brings the row. The missing ledger line is logged, not hidden.
             logger.error("checkout created but not recorded", extra={"fields": {"sub": sub_id}})
-        return _checkout_answer(sub_id, spec)
+        if offer is not None:
+            # The use is recorded against the subscription the discount was attached to. The same
+            # learner re-opening the same checkout reuses the row they already have, so a modal
+            # closed over dinner does not burn the one code they were given.
+            promo_codes.bind_checkout(offer, principal.subject, sub_id, now=moment)
+        return _checkout_answer(sub_id, spec, offer)
 
     @app.post(WEBHOOK_PATH)
     async def webhook(request: Request) -> JSONResponse:

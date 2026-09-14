@@ -10,7 +10,7 @@
  *
  * TRAP 1 (DESIGN.md §0): every class here is namespaced `pl-` and was grepped against the shell it
  * renders inside before it was written — `pl-per`, `pl-seg`, `pl-pill`, `pl-save`, `pl-billed`,
- * `pl-close-line`, `pl-pay` and `pl-status` appear nowhere else in `src/`; `pl-total` is the site
+ * `pl-close-line`, `pl-pay`, `pl-promo` and `pl-status` appear nowhere else in `src/`; `pl-total` is the site
  * sheet's own rule for this card, restated here only for its figures.
  *
  * WHAT IS NOT HERE ANY MORE: `pl-taken`, the sentence that stated the annual total and the day of
@@ -76,6 +76,10 @@ export const PLANS_CSS = `
 /* What just happened, in one line, in a region a screen reader is told about. Body ink, never a
    colour carrying the meaning: confirmed, slow, dismissed and failed all read the same way. */
 .pl-checkout .pl-status{margin:0;font-size:15px;line-height:1.5;color:var(--ink)}
+
+/* "Have a code?": the field brings its own sheet (screens/promo/promo.css); this only sets it
+   apart from the fine print above it on the card. pl-promo appears nowhere else in src/. */
+.pl-checkout .pl-promo{margin-top:var(--s2)}
 
 @media (prefers-reduced-motion:reduce){.pl-seg .pl-pill{transition:none}}
 `;

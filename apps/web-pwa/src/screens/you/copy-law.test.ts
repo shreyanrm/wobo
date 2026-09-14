@@ -37,6 +37,9 @@ const FILES = [
   ['you/parentLink.ts', ['parentLink.ts']],
   ['you/plan.ts', ['plan.ts']],
   ['you/PlanPanel.tsx', ['PlanPanel.tsx']],
+  ['you/today.ts', ['today.ts']],
+  ['promo/promo.ts', ['..', 'promo', 'promo.ts']],
+  ['promo/PromoField.tsx', ['..', 'promo', 'PromoField.tsx']],
   ['you/MindMemory.tsx', ['MindMemory.tsx']],
   ['you/ledger.ts', ['ledger.ts']],
 ] as const;

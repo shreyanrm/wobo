@@ -14,9 +14,11 @@
 export type DeskId =
   | 'spend'
   | 'models'
+  | 'allowance'
   | 'pacing'
   | 'users'
   | 'subscriptions'
+  | 'promo'
   | 'alerts'
   | 'health'
   | 'flag'
@@ -49,8 +51,28 @@ export const DESKS: readonly Desk[] = [
   {
     id: 'models',
     name: 'Models',
-    question: 'Which models answered, how often, at what cost, and how often a fallback took over?',
-    supply: { kind: 'live', from: 'ops.usage_daily, grouped by the model that actually answered' },
+    question:
+      'What answers what, at what price, who is carrying it right now — and what would it cost ' +
+      'to change?',
+    supply: {
+      kind: 'live',
+      from:
+        'GET /v1/admin/models — wobo_gateway.routing (the table and the vendors’ prices), ' +
+        'registry.py (the jobs on each tier), health.py (who is carrying), and ops.usage_daily ' +
+        'for the money. Owner-only writes go back through the same path into ops.settings.',
+    },
+  },
+  {
+    id: 'allowance',
+    name: 'Allowance',
+    question:
+      'How generous is a day, what does each plan actually get, and how fast is it being spent?',
+    supply: {
+      kind: 'live',
+      from:
+        'GET /v1/admin/allowance — the dials in ops.settings (migrations 0028 and 0030) and ' +
+        'ops.learner_day for the pace. Internal only: no learner or parent surface shows money.',
+    },
   },
   {
     id: 'pacing',
@@ -95,6 +117,17 @@ export const DESKS: readonly Desk[] = [
         'a row, with a keyed handle per learner) beside a rollup of learner.subscriptions by ' +
         'plan, by status and by period end. Read the word "billing" carefully: the ledger says an ' +
         'event happened and what the gateway did with it; the provider is the record of money.',
+    },
+  },
+  {
+    id: 'promo',
+    name: 'Promo codes',
+    question: 'Which codes exist, what do they grant, and how many times has each been taken?',
+    supply: {
+      kind: 'live',
+      from:
+        'ops.promo_codes and ops.promo_redemptions (migration 0027), served by ' +
+        'wobo_gateway.promo — the use count is counted over the redemptions, never a column',
     },
   },
   {

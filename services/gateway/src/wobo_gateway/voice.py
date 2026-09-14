@@ -1308,6 +1308,14 @@ def register_voice(app: FastAPI) -> None:
             # and the rest of the plan is re-bought in the new one. Once a syllable has been
             # served this returns None and the sentence is silence on the client's reading clock.
             second = repin_unheard_turn(body.text, failed=pinned)
+            if second is None:
+                # Somebody else re-decided it first — the buy that runs the moment the words are
+                # decided does exactly this, and it usually gets there before the client asks. The
+                # new voice is the turn's; take it rather than failing the sentence and making the
+                # client ask a third time for audio that is already on the disk.
+                current = turn_voice_for(body.text)
+                if current is not None and current != pinned and not turn_heard(body.text):
+                    second = current
             if second is not None:
                 buy_turn_ahead(body.text, accent=accent, beat=body.beat)
                 audio = synthesize_narration(

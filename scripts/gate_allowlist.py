@@ -309,6 +309,11 @@ WHITE_LABEL: tuple[Allowed, ...] = (
         "the assertion that no sign-in copy names a vendor, a model or a framework.",
     ),
     Allowed(
+        "apps/web-pwa/src/screens/press/press.test.ts",
+        "openai|gpt|gemini|claude|anthropic|supabase|vercel|railway",
+        "the assertion that the press page names no vendor, model or provider (voice.md 7).",
+    ),
+    Allowed(
         "apps/web-pwa/src/screens/site/content.test.ts",
         "openai|anthropic|gemini|chatgpt|claude|gpt-4|llama|supabase|vercel|railway",
         "the assertion that no published site copy names a provider, model or vendor.",
@@ -477,6 +482,21 @@ PRONOUNS: tuple[Allowed, ...] = (
         "services/gateway/tests/test_hospitality_jobs.py",
         r'r"\b(she|he|her|him|his|hers)\b"',
         "the pattern the hand-drawn-email suite uses to hold its own copy to §19.",
+    ),
+    Allowed(
+        "apps/web-pwa/src/screens/press/press.test.ts",
+        r"\b(he|him|his|she|her|hers)\b",
+        "the assertion that the press page gives Wobo no gendered pronoun (voice.md 1).",
+    ),
+    # The growth desk screens every generated piece against the same rule before it is
+    # posted. Its pattern has to spell the pronouns it refuses, exactly as this gate does.
+    *(
+        Allowed("services/gateway/src/wobo_gateway/growth/screen.py", needle,
+                "the growth desk's own screen for section 19, applied to every piece before it posts.")
+        for needle in (
+            r"\bWobo\b[^.?!]{0,60}?\b(?:he|him|his|she|her|hers)\b",
+            r"\b(?:he|him|his|she|her|hers)\b[^.?!]{0,60}?\bWobo\b",
+        )
     ),
     Allowed(".github/workflows/ci.yml", "gate_pronouns", "the gate's own filename."),
     Allowed("scripts/gates.sh", "gate_pronouns", "the gate's own filename."),

@@ -521,3 +521,35 @@ export function childrenLabel(kind: Place['kind']): string {
  */
 export const NO_TOPICS =
   'The board publishes this one as a unit with no chapter list under it, so there is no list here. What is on this page is what the document says.';
+
+// --- tier two: the drawn explanation, and the three questions ------------------------------------------
+
+/**
+ * THE THREE LABELS A TIER TWO BLOCK WEARS, AND NOTHING ELSE.
+ *
+ * Everything else a reader reads in that block came out of the concept core or off the board's own
+ * syllabus: the idea, the reason it matters, the three questions and their answers, and the name of
+ * the topic the figure was drawn for (`explained.ts`, and the gateway module that freezes it). This
+ * file writes exactly three strings for it, and every tier two page wears the same three, which is
+ * why `pages.ts` counts none of them as a page's own words.
+ *
+ * NOTHING HERE NARRATES (DESIGN.md §0.x). There is no line announcing that Wobo drew this, none
+ * saying an explanation is coming, and none describing the figure. The heading is the board's own
+ * name for the topic, the questions are called questions, and the drawing is simply there.
+ */
+
+/** Over the three questions. Plain, because the questions themselves are the interesting part. */
+export const QUESTIONS_LABEL = 'Questions';
+
+/**
+ * The one line that keeps the page's two halves apart, inside the provenance block.
+ *
+ * The block above it says a chapter and its topics came from the board's own document, which is
+ * the whole reason this family is allowed to exist. The explanation and the figure did NOT: they
+ * are ours. Without this sentence a careful reader would reasonably take the board as the author
+ * of an explanation the board never wrote, which is the one confusion a page carrying somebody
+ * else's provenance can create. It is attribution rather than narration: it says who wrote what,
+ * not what the software is about to do.
+ */
+export const OURS_LINE =
+  "The chapter and its topics are the board's. The explanation, the figure and the questions on this page are ours.";

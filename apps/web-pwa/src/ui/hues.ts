@@ -43,12 +43,22 @@ export function toneForSubject(subjectId: string): SubjectTone {
   );
 }
 
-/** The earned hue for a topic — resolved through its chapter's subject. */
-export function hueForTopic(topicId: string): string {
+/**
+ * The family a topic belongs to — resolved through its chapter's subject, and canonical, so a
+ * board's own name for a subject (`physical_science`, `history_civics`) lands on the same family
+ * its pigment does. The waiting scenes are keyed off this (`@wobo/wobo`'s `waitSceneFor`): the orb
+ * draws a number line for maths and a pendulum for physics because of what this returns.
+ */
+export function subjectForTopic(topicId: string): string {
   const chapter = topicById(topicId)
     ? chapterById(topicById(topicId)?.chapterId ?? '')
     : chapterById(topicId);
-  return toneForSubject(chapter?.subjectId ?? 'math').hue;
+  return canonicalSubjectId(chapter?.subjectId ?? 'math');
+}
+
+/** The earned hue for a topic — resolved through its chapter's subject. */
+export function hueForTopic(topicId: string): string {
+  return toneForSubject(subjectForTopic(topicId)).hue;
 }
 
 /**

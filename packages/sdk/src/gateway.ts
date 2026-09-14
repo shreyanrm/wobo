@@ -327,6 +327,27 @@ export interface BudgetMeter {
   remaining: number | null;
 }
 
+/**
+ * THE DAY'S ALLOWANCE, AS A SHARE OF ITSELF (docs/ALLOWANCE.md §2).
+ *
+ * The allowance is arithmetic in rupees inside the gateway and on the operator's desk, and it is
+ * a proportion everywhere else: *"it's not money based at the users' end; that is only for
+ * internal purposes"* (the owner, 2026-09-08). So the only number that crosses this wire into a
+ * learner's browser is `used`, between 0 and 1, which is exactly what a bar needs and carries no
+ * currency, no monthly figure and no generosity fraction.
+ *
+ * A gateway that sends the pair instead (a spent figure and a day's figure) is read as the same
+ * share and neither figure is kept, so no amount can reach a screen through this type.
+ */
+export interface DayAllowance {
+  /** 0..1 — how much of today has been spent. Null when the brain did not say. */
+  used: number | null;
+  /** ISO instant the day rolls over, when the brain named one. */
+  resetsAt: string | null;
+  /** The day is spent. The brain's own answer where it gave one, else a full share. */
+  spent: boolean;
+}
+
 /** What `GET /v1/me` tells the client about itself. Never a model, never a price. */
 export interface Me {
   subject: string | null;
@@ -341,6 +362,12 @@ export interface Me {
     /** ISO instant the daily window rolls over. */
     resetAt: string | null;
   };
+  /**
+   * The day's allowance as a share (docs/ALLOWANCE.md §2). Optional because a gateway that has not
+   * shipped the meter yet answers without it, and the bar then draws nothing rather than a zero it
+   * did not read. `parseMe` always sets it; only a hand-written `Me` in a test can leave it out.
+   */
+  allowance?: DayAllowance;
 }
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
@@ -349,6 +376,28 @@ const text = (v: unknown): string | null => (typeof v === 'string' && v.trim() ?
 function meter(raw: unknown): BudgetMeter {
   const r = (raw ?? {}) as Record<string, unknown>;
   return { used: num(r.used), limit: num(r.limit), remaining: num(r.remaining) };
+}
+
+/**
+ * The day's allowance, read as a share and never as an amount.
+ *
+ * Lenient in one direction only, and deliberately: a `used` the gateway sends as a figure rather
+ * than a fraction (paise spent against paise allowed) is divided here and the two figures are
+ * dropped on the floor. That is the whole guard — money is internal (docs/ALLOWANCE.md §2), so the
+ * shape the browser holds cannot carry an amount even if the wire does.
+ */
+function dayAllowance(raw: unknown): DayAllowance {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const used = num(r.used) ?? num(r.spent);
+  const limit = num(r.limit) ?? num(r.allowed) ?? num(r.day);
+  let share = used;
+  if (share !== null && share > 1) share = limit !== null && limit > 0 ? share / limit : 1;
+  if (share !== null) share = Math.max(0, Math.min(1, share));
+  return {
+    used: share,
+    resetsAt: text(r.resets_at) ?? text(r.resetsAt) ?? text(r.reset_at),
+    spent: r.spent === true || r.exhausted === true || share === 1,
+  };
 }
 
 /**
@@ -368,6 +417,7 @@ export function parseMe(raw: unknown): Me {
       generations: meter(budget.generations),
       resetAt: text(budget.reset_at) ?? text(budget.resetAt) ?? text(r.reset_at),
     },
+    allowance: dayAllowance(r.allowance ?? budget.allowance),
   };
 }
 

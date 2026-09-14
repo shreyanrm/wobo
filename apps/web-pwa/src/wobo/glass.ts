@@ -131,9 +131,17 @@ export interface TakeGlassOptions {
   focusId?: string | null;
 }
 
+/**
+ * The theme the read is taken under: the root's `data-theme` when one is set, the system's
+ * preference otherwise. A document with no root (a page still mounting, or a stand-in some test
+ * left behind) has no theme, and the read lands anyway: the registry lends the glass on demand
+ * before the first turn (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze), and a fresh page is never a
+ * reason not to read.
+ */
 function themeNow(): 'light' | 'dark' | undefined {
   if (typeof document === 'undefined') return undefined;
-  const set = document.documentElement.getAttribute('data-theme');
+  const root = document.documentElement;
+  const set = typeof root?.getAttribute === 'function' ? root.getAttribute('data-theme') : null;
   if (set === 'dark' || set === 'light') return set;
   if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';

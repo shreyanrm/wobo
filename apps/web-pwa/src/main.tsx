@@ -66,13 +66,14 @@ if (!root) throw new Error('Missing #root');
 /**
  * The boot loader IS the character (docs/WOBO-PLAN.md §16), and the whole scene is the one the
  * owner directed: the pen crosses the page and draws the first hairline the product will show, the
- * line loops into the orb, Wobo settles, a handwritten line arrives underneath, and the last word
- * is always "Your place is saved". Under a second, and then it is gone — no spinner, no skeleton,
- * no progress bar anywhere in the product.
+ * line loops into the orb, Wobo settles, and the last word is "Your place is saved". Under a
+ * second, and then it is gone — no spinner, no skeleton, no progress bar anywhere in the product,
+ * and no line telling a child what is being done for them (docs/EMAILS-AND-ANIMATIONS.md §3).
  *
- * There is exactly ONE of these in the app. The long wait for a generation shows the same scene
- * (`screens/states/Scene.tsx`), and so does the wait for the runtime's chunk (`App.tsx`), so a
- * learner never meets two different loaders in one session.
+ * There is exactly ONE of these in the app. The wait for the runtime's chunk shows the same scene
+ * (`App.tsx`), so a learner never meets two different loaders in one session. A wait long enough to
+ * be worth watching — a course composing, a page being read, a board being opened — is a different
+ * thing and shows the orb doing that subject's own thing (`WaitScene`).
  *
  * It covers the APP's boot. The public site is not the app: the landing page and the document
  * pages behind it have their own opening, they need no runtime to be readable, and a curtain over

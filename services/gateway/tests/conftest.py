@@ -60,7 +60,18 @@ def mint(
 @pytest.fixture(autouse=True)
 def _gateway_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """A verifiable identity and empty meters for every test."""
-    from wobo_gateway import alerts, auth, billing, budget, consent, health, ledger, spend, voice
+    from wobo_gateway import (
+        alerts,
+        allowance,
+        auth,
+        billing,
+        budget,
+        consent,
+        health,
+        ledger,
+        spend,
+        voice,
+    )
 
     monkeypatch.setenv("SUPABASE_JWT_SECRET", TEST_JWT_SECRET)
     # The content cache is per-test for the same reason the meters are. Twenty test modules
@@ -97,6 +108,10 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
     monkeypatch.delenv("SUPABASE_SERVICE_KEY", raising=False)
     budget.reset()
+    # The money meter (allowance.py) is per-process exactly like the counters above: one test's
+    # spent day must never be another test's refusal, and a zone one test noted must never
+    # decide when another test's day turns over.
+    allowance.reset()
     consent.reset_cache()
     # The usage ledger: an empty buffer, zeroed counters and NO transport, so one test's rows are
     # never another test's assertions and nothing here can reach a network. With the Supabase

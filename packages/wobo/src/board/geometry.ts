@@ -35,6 +35,7 @@ import {
 } from './handwriting';
 import {
   LABEL_MARGIN,
+  OBJECT_GAP,
   REACH_AIM,
   placeLabel,
   placeLabelAt,
@@ -72,6 +73,64 @@ export interface ObjectGeometry {
 }
 
 const empty = (box: BoardRect): ObjectGeometry => ({ strokes: [], glyphs: [], box, length: 0 });
+
+/**
+ * THE EXTENT OF WHAT A MARK ACTUALLY PAINTS, as against the box it reports (wave 58, finding 2).
+ *
+ * A mark's `box` is its LAYOUT box: what it reserves, so the next mark does not land on it. Half
+ * the grammar pads that on purpose — an arrow keeps `ARROW_GAP` clear of what it points at, a ring
+ * pads six units past its loop, an axis reports `AXIS_BOX_PAD` around its rule — and the padding
+ * is right, because a note written hard against an arrowhead is written on it.
+ *
+ * The REACH law is not about the reservation, it is about the ink: "a note in the margin within
+ * 24 px of its SUBJECT", and the subject is the thing the learner sees. Measured on the running
+ * app at 1440, a plant-cell leader reports 93 x 49 units and paints 62 x 19; a label sitting at a
+ * true 10-unit margin from that box is 28 units from the ink, and reads on the glass as 25 px
+ * rather than 9. Three of the five labels on that board passed the law against the box and broke
+ * it against the ink.
+ *
+ * So the solver measures its reach to THIS, and keeps generating its candidates around the layout
+ * box — close to what is drawn, still clear of what is reserved.
+ *
+ * Computed off the path data, and only ever for a mark that is somebody's subject
+ * (`BuildContext.objectInk` memoises), so a board of two thousand strokes pays for the handful of
+ * things that carry a note. A mark that paints nothing measurable is its own layout box.
+ *
+ * The hand emits only `M`, `L` and `Q`, so reading every coordinate pair out of the path reads a
+ * quadratic's CONTROL point as well as its ends — and a quadratic lies inside the hull of those
+ * three, so the answer is a superset of the ink, never a subset. That is the safe direction: a
+ * slightly generous ink box places a note slightly closer than it strictly had to.
+ */
+const POINT_IN_PATH = /(-?\d+(?:\.\d+)?)[ ,]+(-?\d+(?:\.\d+)?)/g;
+
+export function inkBoxOf(geometry: ObjectGeometry): BoardRect {
+  let x0 = Number.POSITIVE_INFINITY;
+  let y0 = Number.POSITIVE_INFINITY;
+  let x1 = Number.NEGATIVE_INFINITY;
+  let y1 = Number.NEGATIVE_INFINITY;
+  const see = (x: number, y: number) => {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    if (x < x0) x0 = x;
+    if (y < y0) y0 = y;
+    if (x > x1) x1 = x;
+    if (y > y1) y1 = y;
+  };
+  for (const g of geometry.glyphs) {
+    see(g.box.x, g.box.y);
+    see(g.box.x + g.box.w, g.box.y + g.box.h);
+  }
+  for (const stroke of geometry.strokes) {
+    POINT_IN_PATH.lastIndex = 0;
+    for (let m = POINT_IN_PATH.exec(stroke.d); m; m = POINT_IN_PATH.exec(stroke.d)) {
+      see(Number(m[1]), Number(m[2]));
+    }
+  }
+  if (geometry.image) {
+    see(geometry.image.box.x, geometry.image.box.y);
+    see(geometry.image.box.x + geometry.image.box.w, geometry.image.box.y + geometry.image.box.h);
+  }
+  return x1 > x0 || y1 > y0 ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : geometry.box;
+}
 
 function totalLength(strokes: Stroke[], glyphs: HandGlyph[]): number {
   let n = 0;
@@ -267,6 +326,11 @@ interface BuildContext extends AnchorContext {
    */
   avoid?: (near: BoardRect) => BoardRect[];
   /**
+   * THE INK an already-built object actually painted, for the reach law — see `inkBoxOf`. Unset,
+   * the layout box stands, which is what every surface outside the board plane does today.
+   */
+  objectInk?: (id: string) => BoardRect | null;
+  /**
    * SCREEN PIXELS PER BOARD UNIT ON THIS BOARD, AS THE BOARD IS ACTUALLY SEEN (wave 58, finding 2).
    *
    * Both craft laws about a written mark are stated in pixels — at least twelve tall, no more than
@@ -348,17 +412,53 @@ function unit(from: BoardPoint, to: BoardPoint): BoardPoint {
 }
 
 /**
+ * HOW FAR A MARK MAY REACH ABOVE AND BELOW THE THING IT IS ON, before it starts covering the
+ * page's next row (the adversary, wave 57, finding 1).
+ *
+ * Every number in this file about padding a mark is a hand's number on a CARD, where a row of
+ * text is thirty-six units from the next. A photographed exercise book at 390 has rows fifteen
+ * units apart, and a ring with nine units of pad and a ten-unit minimum radius covers the row
+ * above and the row below whatever line it names. The rows are on the glass map already, so this
+ * measures rather than assumes: half the distance to the nearest neighbouring row, never more
+ * than the mark asked for, and never less than three (a ring that traced the letters exactly
+ * would not read as a ring at all).
+ *
+ * With no rows near — a drawing on the plane, a figure built from scratch — the answer is what
+ * was asked for and nothing changes.
+ */
+function rowRoom(ctx: BuildContext, box: BoardRect, want: number): number {
+  if (!ctx.avoid) return want;
+  const cy = box.y + box.h / 2;
+  const near = ctx.avoid(padBox(box, Math.max(want, 12) * 3));
+  let room = want;
+  for (const other of near) {
+    const oy = other.y + other.h / 2;
+    // The row being marked is not its own neighbour.
+    if (Math.abs(oy - cy) <= box.h / 2 + 0.5) continue;
+    room = Math.min(room, Math.abs(oy - cy) / 2 - box.h / 2);
+  }
+  return Math.max(3, Math.min(want, room));
+}
+
+/**
  * A circle around a box, drawn as a hand does it: a loop and a bit, not a compass arc.
  *
  * A wide short box (one row of text) gets a LOZENGE: two half-circles joined by nearly flat runs,
  * so the ring hugs the line instead of an ellipse whose top and bottom strike through the rows
  * either side of it (the scorecard's 72 to 83 px ellipse on a 36 px pitch).
  */
-function loopAround(box: BoardRect, rng: () => number): Stroke {
+function loopAround(box: BoardRect, rng: () => number, maxRy?: number): Stroke {
   const cx = box.x + box.w / 2;
   const cy = box.y + box.h / 2;
   const rx = Math.max(box.w / 2, 12);
-  const ry = Math.max(box.h / 2, 10);
+  // The floor of 10 is a hand's smallest loop on a card. On a PHOTOGRAPHED page the rows are
+  // fifteen units apart and a floor of 10 is most of the row above (the adversary, wave 57), so a
+  // caller that knows the pitch caps it — never below the box's own half-height, which is the
+  // thing being ringed.
+  const ry = Math.min(
+    Math.max(box.h / 2, 10),
+    Math.max(box.h / 2, maxRy ?? Number.POSITIVE_INFINITY),
+  );
   const start = rng() * Math.PI * 2;
   const turns = 1.12;
   const steps = 48;
@@ -471,6 +571,8 @@ function notePlacement(
     nudge?: readonly [number, number];
     /** The subject's box as it sits in `occupied` — see `WrittenSolve.subjectBox`. */
     subjectBox?: BoardRect;
+    /** The subject's INK, which the reach is measured to — see `WrittenSolve.reachTo`. */
+    reachTo?: BoardRect;
   },
 ): WrittenFit {
   const asked = maxWidth ?? measureOn(ctx.frame);
@@ -512,8 +614,9 @@ function notePlacement(
     maxWidth: asked,
     occupied,
     ...(opts?.subjectBox ? { subjectBox: opts.subjectBox } : {}),
+    ...(opts?.reachTo ? { reachTo: opts.reachTo } : {}),
     area: ctx.area,
-    margin: LABEL_MARGIN,
+    margin: marginUnits(ctx),
     reach: reachUnits(ctx),
     allowInside: opts?.allowInside ?? true,
     ...(opts?.nudge ? { nudge: opts.nudge } : {}),
@@ -527,6 +630,56 @@ function notePlacement(
 function reachUnits(ctx: BuildContext): number {
   const k = ctx.glassScale ?? pxPerUnit(ctx.frame);
   return k > 0 ? REACH_AIM / k : REACH_AIM;
+}
+
+/**
+ * THE MARGIN A NOTE KEEPS, IN BOARD UNITS — and it is a PHYSICAL distance, like the other two.
+ *
+ * `LABEL_MARGIN` is ten board units, which is a different amount of white space on every board,
+ * because the camera fits the ink and a small drawing is blown up. Measured on the quadratic at
+ * 1440: three objects, the camera at its 4× ceiling, and the hand's own ten-unit margin renders as
+ * TWENTY pixels — most of the twenty-four the law allows, spent before the note is even placed.
+ * Every candidate was then outside the reach and the solver fell to its escape, which is how a
+ * board with three things on it put a line of algebra 39 px from the line above it.
+ *
+ * So the margin is `LABEL_GAP_PX` on the glass, like the type floor and like the reach, and the
+ * hand's ten units are its CEILING rather than its value — a board zoomed far out still keeps a
+ * sensible margin instead of an enormous one, and never less than a hairline.
+ */
+export const LABEL_GAP_PX = 8;
+
+function marginUnits(ctx: BuildContext): number {
+  const k = ctx.glassScale ?? pxPerUnit(ctx.frame);
+  if (!(k > 0)) return LABEL_MARGIN;
+  return Math.max(2, Math.min(LABEL_MARGIN, LABEL_GAP_PX / k));
+}
+
+/**
+ * THE CLEAR AIR TWO WRITTEN MARKS KEEP FROM EACH OTHER, IN SCREEN PIXELS (the adversary, wave 58,
+ * the timeline at 390).
+ *
+ * Wave 58's solver treated the air between one mark and the next as "the most expendable thing
+ * here" and tightened it to nothing when the reach was hard to keep. On the timeline that is what
+ * it did: '1919' and '1920' came out five units of box apart, which is four pixels, and on the
+ * glass the two numbers read as `19191920`. Air that can be spent to nought is not a margin, it is
+ * the difference between two marks and one.
+ *
+ * SO IT IS A LAW, AND ITS NUMBER IS ALREADY WRITTEN DOWN. `layout.ts` has always carried two: the
+ * clear space a label keeps from what it NAMES (`LABEL_MARGIN`, ten units) and the clear space two
+ * placed objects keep from EACH OTHER (`OBJECT_GAP`, fourteen). `LABEL_GAP_PX` restates the first
+ * on the glass, for the same reason the type floor and the reach are stated there — a board unit is
+ * a different amount of white space on every board. This restates the second, in the same ratio.
+ * Nothing is tuned: it is the hand's own number, converted once.
+ *
+ * It is kept by CONSTRUCTION rather than by a rung of a ladder — the solver is handed a mark padded
+ * by this much, so even at the tightest clearance it has, two marks cannot come closer.
+ */
+export const INK_AIR_PX = (LABEL_GAP_PX * OBJECT_GAP) / LABEL_MARGIN;
+
+/** The air law in board units on this board — `INK_AIR_PX`, converted by `glassScale`. */
+function airUnits(ctx: BuildContext): number {
+  const k = ctx.glassScale ?? pxPerUnit(ctx.frame);
+  return k > 0 ? INK_AIR_PX / k : INK_AIR_PX;
 }
 
 /**
@@ -702,6 +855,9 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
     : anchorBox;
   /** What the subject is in `occupied`: the very box the renderer pushed when it drew it. */
   const drawn = drawnBox ?? undefined;
+  /** And what it actually PAINTED — the reach law's own subject. See `inkBoxOf`. */
+  const subjectInk =
+    anchor && 'object' in anchor ? (ctx.objectInk?.(anchor.object) ?? undefined) : undefined;
 
   switch (object.kind) {
     case 'point': {
@@ -724,11 +880,16 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
     }
     case 'ring':
     case 'circle': {
-      const target = padBox(
-        anchorBox.w + anchorBox.h > 0 ? anchorBox : padBox(pointBox(p), 34),
-        object.pad ?? 9,
-      );
-      const stroke = loopAround(target, rng);
+      const subject = anchorBox.w + anchorBox.h > 0 ? anchorBox : padBox(pointBox(p), 34);
+      // A RING NEVER REACHES INTO THE NEXT ROW (the adversary, wave 57, finding 1). The pad and
+      // the loop's own floor are a hand's numbers on a card, where the rows are thirty-six units
+      // apart. On a photograph of an exercise book they are fifteen, and a ring on line 2 then
+      // covered lines 1 and 3 as well — the caption named two lines and the ink named the whole
+      // page. The room is measured, not assumed: it is half the way to the nearest row above or
+      // below, and where there is no row near, nothing changes.
+      const room = rowRoom(ctx, subject, object.pad ?? 9);
+      const target = padBox(subject, Math.min(object.pad ?? 9, room));
+      const stroke = loopAround(target, rng, subject.h / 2 + room);
       return { strokes: [stroke], glyphs: [], box: padBox(target, 6), length: stroke.length };
     }
     case 'tick': {
@@ -964,6 +1125,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         floor: typeFloor,
         ...(nudge ? { nudge } : {}),
         ...(drawn ? { subjectBox: drawn } : {}),
+        ...(subjectInk ? { reachTo: subjectInk } : {}),
       });
       const origin: BoardPoint = [fit.box.x, fit.box.y];
       const w = written(ctx, laid, origin, fit.size, fit.maxWidth);
@@ -989,6 +1151,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         floor: typeFloor,
         ...(nudge ? { nudge } : {}),
         ...(drawn ? { subjectBox: drawn } : {}),
+        ...(subjectInk ? { reachTo: subjectInk } : {}),
       });
       const origin: BoardPoint = [fit.box.x, fit.box.y];
       const w = written(ctx, object.text, origin, fit.size, fit.maxWidth);
@@ -1014,6 +1177,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         floor: typeFloor,
         ...(nudge ? { nudge } : {}),
         ...(drawn ? { subjectBox: drawn } : {}),
+        ...(subjectInk ? { reachTo: subjectInk } : {}),
       });
       const origin: BoardPoint = [fit.box.x, fit.box.y];
       const w = written(ctx, object.text, origin, fit.size, fit.maxWidth);

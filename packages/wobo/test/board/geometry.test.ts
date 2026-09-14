@@ -27,7 +27,15 @@ const frame = frameOf({ x: 0, y: 0, width: 1000, height: 620 });
 const TARGET = { x: 200, y: 100, width: 120, height: 40 };
 const boxes = new Map<string, BoardRect>([['prev', { x: 400, y: 400, w: 60, h: 30 }]]);
 
-function ctx(over: Partial<AnchorContext & { font: HandFont | null }> = {}) {
+function ctx(
+  over: Partial<
+    AnchorContext & {
+      font: HandFont | null;
+      /** The page's own text rows near a subject — `BuildContext.avoid`, which is internal. */
+      avoid: (near: BoardRect) => BoardRect[];
+    }
+  > = {},
+) {
   return {
     frame,
     targetRect: (id: string) => (id === 'btn' ? TARGET : null),
@@ -474,5 +482,64 @@ describe('type is legible on the glass, whatever the camera does (the adversary,
   it('degrades to the base size on a frame with no width at all', () => {
     const nothing = frameOf({ x: 0, y: 0, width: 0, height: 0 }, { zoom: 1 });
     expect(typeUnits(LABEL_SIZE, nothing)).toBeGreaterThanOrEqual(LABEL_SIZE);
+  });
+});
+
+/**
+ * A RING NEVER REACHES INTO THE NEXT ROW (docs/INK-FOUR.md, craft; the adversary, wave 57).
+ *
+ * Every number here about padding a mark is a hand's number on a CARD, where a row of text is
+ * thirty-six units from the next: nine units of pad, a smallest loop of ten. A photographed
+ * exercise book at 390 has rows FIFTEEN units apart and lines seven units tall, and a ring on
+ * line 2 then covered lines 1 and 3 as well — live, the caption named two lines and the ink named
+ * the whole page while `offPage` read 0 throughout.
+ */
+describe('a ring is bounded by the pitch of the rows it sits among', () => {
+  /** Six lines of a photographed page: seven units tall, fifteen apart. */
+  const ROW = { x: 140, y: 129, width: 66, height: 7 };
+  const page: BoardRect[] = [0, 1, 2, 3, 4, 5].map((i) => ({
+    x: 140,
+    y: 116 + i * 13,
+    w: 66,
+    h: 7,
+  }));
+  const photo = (avoid: () => BoardRect[] = () => page) =>
+    ctx({ targetRect: (id: string) => (id === 'row' ? ROW : null), avoid });
+  const heightOf = (c: ReturnType<typeof ctx>) =>
+    geometryOf({ id: 'r', kind: 'ring', anchor: { target: 'row' } }, c)?.box.h ?? 0;
+
+  it('hugs a seven-unit line among rows thirteen units apart', () => {
+    // half the way to the next row's centre, less the line's own half-height: about 3.5 units of
+    // air each side, so the loop stays inside its own row's band
+    const h = heightOf(photo());
+    expect(h).toBeGreaterThan(7);
+    expect(h).toBeLessThan(26);
+  });
+
+  it('covers no row but its own', () => {
+    const g = geometryOf({ id: 'r', kind: 'ring', anchor: { target: 'row' } }, photo());
+    const box = g?.box as BoardRect;
+    const mine = { x: ROW.x, y: ROW.y, w: ROW.width, h: ROW.height };
+    const share = (other: BoardRect) => {
+      const w = Math.max(0, Math.min(box.x + box.w, other.x + other.w) - Math.max(box.x, other.x));
+      const hh = Math.max(0, Math.min(box.y + box.h, other.y + other.h) - Math.max(box.y, other.y));
+      return (w * hh) / (other.w * other.h);
+    };
+    expect(share(mine)).toBeGreaterThan(0.9);
+    for (const other of page) {
+      if (Math.abs(other.y - mine.y) < 1) continue;
+      expect(share(other)).toBeLessThan(0.6);
+    }
+  });
+
+  it('changes nothing where no row is near: a ring on a card is the ring it always was', () => {
+    const alone = heightOf(ctx({ targetRect: (id: string) => (id === 'row' ? ROW : null) }));
+    const spaced = heightOf(
+      photo(() => [
+        { x: 140, y: 40, w: 66, h: 7 },
+        { x: 140, y: 300, w: 66, h: 7 },
+      ]),
+    );
+    expect(spaced).toBeCloseTo(alone, 6);
   });
 });

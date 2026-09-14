@@ -703,3 +703,206 @@ Opus 5 behind it, Flash last. Only `create.core` runs on it: the concept core, t
 design, the film's choreography, once per concept and cached. The platform pays (the creative pool
 on the models desk, its own cap); a learner's allowance is only ever charged for what is served to
 them. Astra is on no other chain and nothing escalates into it. `WOBO_TIER_CREATE` overrides it.
+
+---
+
+## 13. Break-glass: the owner's seat
+
+Written 2026-09-14, from `docs/CONSOLE-ROLES-AND-BOARD.md` §2: one owner account, which nobody
+else can suspend, demote or remove, and "recovery, if the owner ever loses access, is a documented
+break-glass with the service key, written down in operations and requiring nobody's cooperation but
+the owner's." This is that page. It is the only way the owner's row in `ops.admins` ever moves.
+
+**What exists in code today, and where.** Two layers, and only one of them is applied.
+
+* **The gateway refuses first** (`services/gateway/src/wobo_gateway/admin_auth.py`). Adding a
+  second owner from the console answers `one_owner`; suspending the owner answers `not_the_owners`;
+  suspending yourself answers `not_yourself`; granting or revoking a capability on the owner's row
+  answers `not_the_owners`. Every attempt is written to `ops.admin_audit` as `admin.denied.owner`
+  before the refusal. The register panel (`GET /v1/admin/admins`) reports `owner_count`, which is
+  the number the two rules below keep at one.
+* **The database refuses last** (`infra/supabase/migrations/0029_console_owner_and_capabilities.sql`).
+  A partial unique index, `admins_one_active_owner`, allows at most one row with `role = 'owner'`
+  and `status = 'active'`. A trigger, `ops.the_owner_is_not_yours_to_take`, refuses any UPDATE that
+  demotes, suspends or rebinds the active owner and any DELETE of an owner row, whoever is asking,
+  the service key the console runs on included. Its one bypass is a session setting,
+  `ops.break_glass`, which must be `on` inside the transaction doing the write. PostgREST cannot
+  send `set local`, so no console route can open it: it takes a direct SQL connection and the
+  project's service role, which is you and nobody else.
+* **0029 is in the repository and NOT on the project.** `list_migrations` on 2026-09-14 shows
+  `0001` to `0023` applied (§8, and `docs/NOW.md`). Until 0029 is applied, the gateway's refusals are
+  the only protection, a direct SQL write on the owner's row needs no setting at all, and a second
+  active owner is refused by the gateway but not by the database. Apply 0029 before you need this
+  page rather than during. If the index fails to create, the project already holds two active
+  owners; the third recipe below is the fix, then apply again.
+
+**What the trigger does not do.** A trigger that raises aborts its own transaction, so it cannot
+write its own audit row; the gateway audits attempts instead. It follows that a break-glass write is
+audited by nobody unless you write the row yourself, which is why every recipe below ends with an
+INSERT into `ops.admin_audit`. Leave that line in. An owner's seat that moved with no record is the
+thing this whole section exists to prevent.
+
+**Where to run it.** The Supabase SQL editor for the project, or `psql` with the project's
+connection string from the dashboard. The SQL editor runs as the `postgres` role; the trigger fires
+for that role too, so the `set local` line is still required. Run each recipe as ONE block, from
+`begin` to `commit`, because `set local` lives and dies with its transaction and is worthless
+outside one. Nothing here is typed into the console, and nothing here goes through the gateway.
+
+**Before any recipe, look.** Do not guess which row is the owner's.
+
+```sql
+select id, subject_id, email, role, status, mfa_required, granted_by, last_seen_at
+  from ops.admins
+ where role = 'owner'
+ order by created_at;
+```
+
+### 13.1 You lost the second factor, not the account
+
+The TOTP factor lives in Supabase auth, not in `ops.admins`, and the register is untouched. No
+break-glass. In the Supabase dashboard, under Authentication, open your own user and remove the
+enrolled factor; sign in to the product; enrol a new factor. The gateway will not open a console
+session until the new factor has been verified (`aal2`), because in prod there is no switch that
+relaxes that (`mfa_enforced`). Nothing to audit here beyond what auth keeps.
+
+### 13.2 You lost the account: the owner's row must be bound to a new one
+
+The owner's row is bound to one auth user id (`subject_id`), the trigger refuses changing it, and an
+invitation cannot reach it (an invited row is matched only while it has no account). Create a new
+user in Supabase auth, enrol its factor, note its id, then:
+
+```sql
+begin;
+set local ops.break_glass = 'on';
+
+update ops.admins
+   set subject_id = '<new auth user id>',
+       email      = '<the address on the new account>',
+       updated_at = now()
+ where role = 'owner' and status = 'active';
+
+-- End every session the old account still holds, whatever its clock says.
+update ops.admin_sessions
+   set revoked_at = now(), revoked_reason = 'owner rebound by break-glass'
+ where admin_id = (select id from ops.admins where role = 'owner' and status = 'active')
+   and revoked_at is null;
+
+insert into ops.admin_audit (actor_subject, actor_role, action, resource_type, resource_id, detail)
+values ('<new auth user id>', 'owner', 'admin.break_glass',
+        'admin', (select id::text from ops.admins where role = 'owner' and status = 'active'),
+        '{"what": "rebind", "why": "<one line, no names>"}');
+commit;
+```
+
+### 13.3 Two active owners, or the wrong account holds the seat
+
+The one that should not be there is suspended, never deleted, so its trail keeps a name beside it.
+
+```sql
+begin;
+set local ops.break_glass = 'on';
+
+update ops.admins
+   set status = 'suspended', updated_at = now()
+ where id = '<the row to retire>' and role = 'owner';
+
+update ops.admin_sessions
+   set revoked_at = now(), revoked_reason = 'owner seat retired by break-glass'
+ where admin_id = '<the row to retire>' and revoked_at is null;
+
+insert into ops.admin_audit (actor_subject, actor_role, action, resource_type, resource_id, detail)
+values ('<your auth user id>', 'owner', 'admin.break_glass',
+        'admin', '<the row to retire>', '{"what": "suspend", "why": "<one line, no names>"}');
+commit;
+```
+
+### 13.4 No active owner at all
+
+The console cannot add an owner from inside itself, on purpose. The first row is the 0015 recipe,
+and it is also the last resort. No `set local` is needed: the trigger guards changes to an existing
+owner, and the unique index simply lets the first active one in.
+
+```sql
+begin;
+insert into ops.admins (subject_id, email, role, status, mfa_required)
+values ('<your auth user id>', '<your address>', 'owner', 'active', true)
+on conflict (subject_id) do update set role = 'owner', status = 'active', updated_at = now();
+
+insert into ops.admin_audit (actor_subject, actor_role, action, resource_type, detail)
+values ('<your auth user id>', 'owner', 'admin.break_glass', 'admin',
+        '{"what": "seat", "why": "<one line, no names>"}');
+commit;
+```
+
+If that `on conflict` update is refused, the row it hit is a suspended owner and 0029 is applied:
+run it again with `set local ops.break_glass = 'on'` as the first line after `begin`.
+
+### 13.5 Afterwards
+
+* `select count(*) from ops.admins where role = 'owner' and status = 'active';` must answer `1`.
+* Sign in to the console and read the register panel: `owner_count` there must say the same.
+* Read the newest rows of `ops.admin_audit`. Your `admin.break_glass` row is there, and so is any
+  `admin.denied.owner` that preceded it, which is how you tell an accident from an attempt.
+* The setting is gone the moment the transaction ends. There is nothing to switch back off.
+
+**What this does not cover, honestly.** Nothing has run the trigger against a real project yet:
+`services/gateway/tests/test_console_roles_schema.py` matches the text of 0029 and lists the four
+things to drive by hand on a Supabase branch before this is relied on. Do that when 0029 is applied.
+
+## 13. Break-glass: the owner's seat (migration 0029)
+
+The console has exactly one owner account (docs/CONSOLE-ROLES-AND-BOARD.md §2). Migration
+`0029_console_owner_and_capabilities.sql` makes that a constraint: a partial unique index allows one
+active row with the owner role, and the trigger `ops.the_owner_is_not_yours_to_take` refuses any
+statement that would demote, suspend, delete or rebind that row, whoever is asking, including the
+service key the gateway runs on. The gateway refuses first and audits the attempt as
+`admin.denied.owner`; the trigger is the backstop for the day the gateway is the problem.
+
+That is a locked building with no key unless the way back is written down, so here it is. The
+trigger has one bypass: the session setting `ops.break_glass`, read with `current_setting` inside
+the transaction doing the write. PostgREST cannot issue `set local`, so no console route and no bug
+in one can open it. It takes a direct SQL connection with the service role, which the owner holds
+and nobody else does.
+
+**When to use it.** The owner has lost access to the account bound to the owner row (a lost second
+factor with no recovery code, a lost address), or the owner's row needs to move to a different
+account. Nothing else. Adding, suspending and shaping every other person is done from the console.
+
+**The procedure.** From a machine the owner controls, with the direct connection string (Supabase
+dashboard, Project Settings, Database, the direct URI, not the pooler), in one transaction:
+
+```sql
+begin;
+set local ops.break_glass = 'on';
+
+-- 1. Look before touching. There is one active owner; note its id.
+select id, subject_id, email, role, status from ops.admins where role = 'owner';
+
+-- 2a. Move the seat to a different account: rebind the row to the new auth user's id.
+update ops.admins
+   set subject_id = '<the new auth.users.id>', email = '<the address on that account>'
+ where role = 'owner' and status = 'active';
+
+-- 2b. Or, if the seat must change hands entirely: retire the old row, then promote the new one.
+--     The unique index allows one active owner, so the old row is retired first.
+-- update ops.admins set status = 'suspended' where role = 'owner' and status = 'active';
+-- update ops.admins set role = 'owner' where id = '<the new person's admin id>';
+
+-- 3. End every console session on the row that moved.
+update ops.admin_sessions
+   set revoked_at = now(), revoked_reason = 'break_glass'
+ where admin_id = '<the owner row id>' and revoked_at is null;
+
+commit;
+```
+
+`set local` scopes the setting to this transaction and nothing else; a second session, or the same
+session after `commit`, is back behind the trigger. Never `set` it at the role or database level,
+which would leave the door open for every connection that follows.
+
+**Afterwards.** Sign in to the console with the account now bound to the row and confirm the
+register shows one owner. The trail carries no row for a change made this way, because it went
+around the gateway on purpose, so write the date, the reason and the two ids in this section's
+history below.
+
+History: none yet.

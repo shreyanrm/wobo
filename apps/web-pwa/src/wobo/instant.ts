@@ -18,7 +18,8 @@
  * 1. **Only a declared thing is aimed at.** A part, a step, a misconception, a concept, a photo's
  *    line, a figure part, a heading, a chip, an input, a cell. A plain line of prose is read, not
  *    named; a figure is not its part ("a question that names a part gets the part, not its
- *    figure"); Wobo's own words are never on the glass and are refused here as well.
+ *    figure"); a name is matched on its own head, so a thing standing ON the named thing is not
+ *    the named thing (wave 58); Wobo's own words are never on the glass and are refused as well.
  * 2. **Ambiguity aims at nothing.** If two declared things answer the question equally well, there
  *    is no local mark and no ink starts. A wrong instant ring is worse than a late right one.
  * 3. **A drawing from scratch is not a mark.** "Draw a Punnett square", "graph y = x²": the plane
@@ -170,18 +171,91 @@ export function meaningsOf(entry: GlassEntry): { key: string; value: string }[] 
 }
 
 /**
+ * One thing this entry is called.
+ *
+ * `named` is true for a NAME the content model gave (a part, a concept, a misconception, a figure
+ * part's own label) and false for a line's own words (a step, a photo line, a heading, a chip): a
+ * name has a head and may have a tail, a line of working is matched whole.
+ */
+interface Name {
+  tokens: string[];
+  named: boolean;
+}
+
+/**
  * The words this thing is CALLED, as the content model declares it. A part is called its slug, a
  * concept its slug, a step "step <n>", a photo line and a figure part their own words. This is the
  * only vocabulary a question is matched against: the resolver never scores against a paragraph.
  */
-function declaredName(entry: GlassEntry): string[] {
-  const names: string[] = [];
+function declaredName(entry: GlassEntry): Name[] {
+  const names: Name[] = [];
   for (const { key, value } of meaningsOf(entry)) {
-    if (key === 'part' || key === 'concept' || key === 'misconception') names.push(value);
-    else if (key === 'step') names.push(`step ${value}`);
+    if (key === 'part' || key === 'concept' || key === 'misconception') {
+      names.push({ tokens: tokensOf(value), named: true });
+    } else if (key === 'step') names.push({ tokens: tokensOf(`step ${value}`), named: false });
   }
-  if (NAMEABLE.has(entry.role)) names.push(entry.text);
-  return names.filter((n) => n.trim().length > 0);
+  if (NAMEABLE.has(entry.role)) {
+    names.push({ tokens: tokensOf(entry.text), named: entry.role === 'figure-part' });
+  }
+  return names.filter((n) => n.tokens.length > 0);
+}
+
+/**
+ * A NAME'S TAIL IS WHAT THE THING STANDS ON (the adversary, wave 58, finding 1).
+ *
+ * Live, "circle the hypotenuse" rang the SQUARE ON the hypotenuse, because the square's name carries
+ * the word "hypotenuse" and the resolver read every word of a name as a name for the thing. But
+ * "square on the hypotenuse" is a name for a square, and it says which square by what it stands on.
+ * A name is matched on its own head only: the words before the first of these. The tail still
+ * counts when the learner says the WHOLE name, see `saidWhole`.
+ */
+const STANDS_ON = new Set([
+  'on',
+  'of',
+  'in',
+  'at',
+  'over',
+  'under',
+  'above',
+  'below',
+  'beside',
+  'inside',
+  'outside',
+  'between',
+  'through',
+  'from',
+  'to',
+  'by',
+  'with',
+  'across',
+  'along',
+  'around',
+  'behind',
+  'near',
+]);
+
+/** The head of a name: "square on the hypotenuse" is called "square". A line's words are whole. */
+function headOf(name: Name): string[] {
+  if (!name.named) return name.tokens;
+  const at = name.tokens.findIndex((t) => STANDS_ON.has(t));
+  return at > 0 ? name.tokens.slice(0, at) : name.tokens;
+}
+
+/** The whole name, tail and all, said in the question word for word and in order. */
+function saidWhole(name: Name, question: string[]): boolean {
+  const n = name.tokens;
+  if (n.length === 0 || n.length > question.length) return false;
+  for (let start = 0; start + n.length <= question.length; start += 1) {
+    let all = true;
+    for (let i = 0; i < n.length; i += 1) {
+      if (question[start + i] !== n[i]) {
+        all = false;
+        break;
+      }
+    }
+    if (all) return true;
+  }
+  return false;
 }
 
 /** The step number this entry declares, if it declares one. */
@@ -354,12 +428,21 @@ export function resolveInstant(input: ResolveInstant): InstantAim | null {
   if (words.length === 0 && numbers.length === 0) return null;
   const findsTheError = FINDS_THE_ERROR.test(text);
 
+  const asked = tokensOf(text);
   const scored: Scored[] = [];
   for (const entry of candidates) {
-    const names = declaredName(entry).map(tokensOf);
+    const names = declaredName(entry);
     let score = 0;
+    // A word of the question names a thing when it is in the thing's own head: "hypotenuse" names
+    // the side, and never the square standing on it.
     for (const word of words) {
-      if (names.some((name) => name.includes(word))) score += 2;
+      if (names.some((name) => headOf(name).includes(word))) score += 2;
+    }
+    // THE WHOLE NAME, SAID WHOLE. "circle the square on the hypotenuse" says the square's full
+    // name, and the full name outranks the bare side it stands on: the longer the name the learner
+    // said in full, the surer the aim, so the bonus is the name's length.
+    for (const name of names) {
+      if (saidWhole(name, asked)) score += name.tokens.length;
     }
     const step = stepNumber(entry);
     if (step && numbers.includes(step)) score += 3;

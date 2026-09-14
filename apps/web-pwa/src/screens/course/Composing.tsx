@@ -13,7 +13,7 @@
  */
 
 import type { ImageSpec, Item as WireItem } from '@wobo/contracts/plexus';
-import { glassLabel, meaningSlug, useRegisterTarget, useWoboBus } from '@wobo/wobo';
+import { glassLabel, meaningSlug, useRegisterTarget, WaitScene, useWoboBus } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { type GroundReport, groundFor, subscribeGround } from '../../curriculum/placement';
@@ -69,7 +69,7 @@ import { preferredAnalogy } from '../../store/mind';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { CourseIntroScene } from '../../ui/courseIntro';
-import { hueForTopic } from '../../ui/hues';
+import { hueForTopic, subjectForTopic } from '../../ui/hues';
 import { cascade, rise } from '../../ui/kit';
 import { type BridgeLesson, bridgeFor, bridgeFromReport } from '../../wobo/bridge';
 import { useWoboChat } from '../../wobo/chat';
@@ -85,6 +85,7 @@ import {
 import { topicNodeUuid } from '../learn/mastery';
 import { BridgeStep } from './BridgeStep';
 import { Greeting } from './Greeting';
+import { composedCardFromLink } from './open-at';
 import { SideDoor } from './SideDoor';
 import type { BarState, LessonOutline } from './shared';
 import {
@@ -100,6 +101,8 @@ import {
   writeCoursePos,
 } from './shared';
 import { offerFor } from './side-door';
+import { sideDoor as sideDoorSuggestion } from '../../suggest/kind';
+import { Suggestions } from '../../suggest/Suggestions';
 
 // --- The composed course (engine.compose output, validated before anything renders) ---------------
 
@@ -569,43 +572,11 @@ function useArtifact(card: GenCard, topic: string, courseId: string): Artifact {
 
 // --- Small chrome ----------------------------------------------------------------------------------
 
-/** Honest skeleton shimmer — Wobo is composing this piece; it lands on its own. */
-function Shimmer({ lines = 3, note }: { lines?: number; note?: string }) {
-  const widths = ['82%', '64%', '74%', '58%'];
-  return (
-    <div
-      style={{
-        border: '0.5px solid var(--wobo-hairline-on-paper)',
-        borderRadius: 3,
-        padding: '26px 22px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-      }}
-    >
-      {Array.from({ length: lines }, (_, i) => (
-        <motion.div
-          // biome-ignore lint/suspicious/noArrayIndexKey: skeleton lines are positional
-          key={i}
-          animate={{ opacity: [0.45, 1, 0.45] }}
-          transition={{
-            duration: 1.8,
-            repeat: Number.POSITIVE_INFINITY,
-            ease: 'easeInOut',
-            delay: i * 0.18,
-          }}
-          style={{
-            height: 12,
-            width: widths[i % widths.length],
-            background: 'var(--wobo-tonal)',
-            borderRadius: 3,
-          }}
-        />
-      ))}
-      {note && <div style={{ ...whisper, marginTop: 4 }}>{note}</div>}
-    </div>
-  );
-}
+/*
+ * The skeleton shimmer that used to stand here is gone. A shimmer is a spinner with better manners:
+ * it says a thing is coming and nothing about the thing. Every wait in this file now shows the orb
+ * doing the subject's own thing instead (`WaitScene`, docs/EMAILS-AND-ANIMATIONS.md §3).
+ */
 
 const inputStyle: CSSProperties = {
   padding: '10px 12px',
@@ -984,11 +955,14 @@ function GenCardView({
   card,
   course,
   hue,
+  subject,
   revealed,
 }: {
   card: GenCard;
   course: GenCourse;
   hue: string;
+  /** The subject family, so the wait for this card's picture is this subject's own scene. */
+  subject: string;
   revealed: boolean;
 }) {
   const artifact = useArtifact(card, course.title, course.courseId);
@@ -1011,8 +985,14 @@ function GenCardView({
           </Stage>
         ) : null;
     } else if (artifact.status === 'pending') {
-      // the shimmer says a thing is coming; no words caption its absence (DESIGN.md §0.x)
-      surface = <Shimmer lines={3} />;
+      // The picture is coming, and the orb draws this subject's own thing in its place: a number
+      // line for maths, a pendulum for physics. No words caption its absence (DESIGN.md §0.x), and
+      // the real drawing replaces this mid-loop without a jump.
+      surface = (
+        <Stage hue={hue} tint={0.05} minHeight={200} style={{ padding: 'clamp(14px, 3vw, 24px)' }}>
+          <WaitScene subject={subject} pigment={hue} width={220} />
+        </Stage>
+      );
     }
     // failed: the idea and the act stand alone — refusal invisible
   }
@@ -1159,23 +1139,25 @@ function InkScreen({
         minHeight={252}
         sigilSize={112}
       />
-      <div style={whisper}>
-        {course ? (course.seeded ? 'Still being made' : 'Written and verified') : 'Being made'}
-      </div>
+      {course ? (
+        <div style={whisper}>{course.seeded ? 'Not written yet' : 'Written and verified'}</div>
+      ) : null}
       <div style={cardTitle}>{title.toLowerCase()}</div>
       {course?.seeded && (
         <div style={{ ...lead, marginTop: 2 }} role="status">
           {PLACEHOLDER_COURSE_LINE}
         </div>
       )}
+      {/* The wait for the course itself: the orb does this subject's own thing, and says nothing
+          about what is being made (docs/EMAILS-AND-ANIMATIONS.md §3). The outline replaces it the
+          moment the first real line lands, mid-loop, with nothing to unwind first. */}
       {!outline && !course?.seeded && (
-        <>
-          <Shimmer lines={4} />
-          <div style={{ ...lead, marginTop: 2 }}>
-            Every card is generated, then checked, before it reaches you. It will land here on its
-            own; no need to hold your breath.
-          </div>
-        </>
+        <WaitScene
+          subject={subjectForTopic(topicId)}
+          pigment={hueForTopic(topicId)}
+          width={260}
+          style={{ alignSelf: 'center', marginTop: 8 }}
+        />
       )}
       {outline && (
         <motion.div
@@ -1318,11 +1300,16 @@ function useVideoScene(title: string, courseId: string): VideoState {
 function VideoBeat({
   title,
   courseId,
+  subject,
+  hue,
   setBar,
   onDone,
 }: {
   title: string;
   courseId: string;
+  /** The subject family, so the wait for the film is this subject's own scene. */
+  subject: string;
+  hue: string;
   setBar: (b: BarState | null) => void;
   onDone: () => void;
 }) {
@@ -1351,10 +1338,14 @@ function VideoBeat({
             <MotionPlayer scene={video.scene} />
           </motion.div>
         )}
-        {video.status === 'pending' && <Shimmer lines={4} />}
+        {video.status === 'pending' && (
+          <motion.div variants={rise} style={{ alignSelf: 'center' }}>
+            <WaitScene subject={subject} pigment={hue} width={240} />
+          </motion.div>
+        )}
         {video.status === 'failed' && (
           <motion.div variants={rise} style={lead}>
-            the animation is still rendering. Carry on; it will be here when you come back.
+            Carry on; it will be here when you come back.
           </motion.div>
         )}
       </motion.div>
@@ -1369,6 +1360,7 @@ const COMPOSE_TIMEOUT_MS = 75_000;
 export function Composing({
   topicId,
   title,
+  openAt,
   setBar,
   setProgress,
   onExit,
@@ -1377,6 +1369,12 @@ export function Composing({
 }: {
   topicId: string;
   title: string;
+  /**
+   * The card a link asked to open on (docs/EMAILS-AND-ANIMATIONS.md §4). It BEATS the saved
+   * position, because the learner pressed a button that named this card; an index this course
+   * does not have is not a card, and the course opens as it always did (`open-at.ts`).
+   */
+  openAt?: string | undefined;
   setBar: (b: BarState | null) => void;
   setProgress: (p: { f: number; segments: number }) => void;
   onExit: () => void;
@@ -1538,6 +1536,15 @@ export function Composing({
       // resume where they left off — a course never restarts (mission 1). The stored value is a
       // card index; restore only into content/workbook/boss, never the finished greeting. A
       // completed course never resumes a stale end state: a replay always begins at card 0.
+      // A link that named a card wins over the saved place and over a replay's fresh start: the
+      // learner pressed a button that said this card. It is not a resume, so the quiet "picking
+      // up where you left off" beat is not fired for it — nothing was picked up.
+      const asked = built.seeded ? null : composedCardFromLink(openAt, built.cards.length);
+      if (asked !== null) {
+        setIdx(asked);
+        setEntered(true);
+        return;
+      }
       const saved = readCoursePos(topicId);
       if (
         !replay &&
@@ -1725,7 +1732,20 @@ export function Composing({
           learner's path. A topic with no door, or a course that carried no level, renders nothing
           and the ending is exactly what it was.
         */}
-        {door ? <SideDoor offer={door} hue={hueForTopic(topicId)} /> : null}
+        {/*
+          AND IT GOES THROUGH THE ONE GATE (docs/SUGGESTIONS-AND-NOTICES.md §2). A side door is one
+          of the four kinds Wobo may offer, so it is chosen by the arbiter rather than rendered on
+          sight: at most one suggestion is on screen at a time, and a door waved away is not offered
+          again this session. The card itself is still the arcade's own, because it carries what the
+          level is worth and whether today has already paid; the host lends it the no.
+        */}
+        {door ? (
+          <Suggestions
+            candidates={[sideDoorSuggestion(door)]}
+            hue={hueForTopic(topicId)}
+            slotFor={() => <SideDoor offer={door} hue={hueForTopic(topicId)} />}
+          />
+        ) : null}
       </Deck>
     );
   }
@@ -1736,6 +1756,8 @@ export function Composing({
         <VideoBeat
           title={course.title}
           courseId={course.courseId}
+          subject={subjectForTopic(topicId)}
+          hue={hue}
           setBar={setBar}
           onDone={advance}
         />
@@ -1887,7 +1909,15 @@ export function Composing({
 
   return (
     <Deck id={`gen-card-${idx}`}>
-      {card && <GenCardView card={card} course={course} hue={hue} revealed={revealed} />}
+      {card && (
+        <GenCardView
+          card={card}
+          course={course}
+          hue={hue}
+          subject={subjectForTopic(topicId)}
+          revealed={revealed}
+        />
+      )}
     </Deck>
   );
 }

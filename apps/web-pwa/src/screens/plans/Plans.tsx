@@ -70,6 +70,7 @@ import type { Route } from '../../shell/router';
 import { useSdk } from '../../store/sdk';
 import { Label, Sticker, WoboHead } from '../../ui/primitives';
 import { legalPath } from '../legal/catalog';
+import { PromoField } from '../promo/PromoField';
 import { ClosePanel } from '../site/ClosePanel';
 import { useDoorsOpen } from '../site/dial';
 import { SiteLink } from '../site/nav';
@@ -304,6 +305,12 @@ export function Plans() {
     };
   }, []);
   const [flow, dispatch] = useReducer(checkoutReducer, undefined, initialCheckout);
+  /**
+   * A promo code the gateway has already honoured for this account (`screens/promo/promo.ts`).
+   * The card shows no figure for it and works out no discount: money is the gateway's arithmetic
+   * (docs/ALLOWANCE.md §3), so all this holds is the code, to hand to the session it creates.
+   */
+  const [code, setCode] = useState<string | null>(null);
   // The page may be left while the bank is still confirming; nothing then lands on a dead screen.
   const mounted = useRef(true);
   useEffect(() => {
@@ -331,7 +338,7 @@ export function Plans() {
     const chosen = period;
     dispatch({ type: 'choose' });
     // 1. The gateway creates the subscription with its own secret and hands back the id.
-    const started = await startCheckout(plan, chosen);
+    const started = await startCheckout(plan, chosen, code);
     if (!mounted.current) return;
     if (!started.ok) {
       if (started.off) setPay({ on: false });
@@ -608,6 +615,12 @@ export function Plans() {
               <p className="st-fine" id="pl-pay-note">
                 {pay?.on ? c.fine : CHECKOUT_LINES.offNote}
               </p>
+              {/* "Have a code?" — the checkout half of the redeem door (docs/ALLOWANCE.md §3),
+                  the same field the You screen carries. It is below the two boxes and the door
+                  because it is optional and they are not, and it draws no figure: a code that is
+                  honoured is said in a sentence, and the amount it changes is the gateway's to
+                  work out when it creates the session. */}
+              <PromoField onApplied={setCode} className="pl-promo" />
               {/* What just happened, in one line the screen reader is told about. Confirmed,
                   slow, dismissed and failed all arrive here, and none of them by colour. */}
               {flow.line ? (

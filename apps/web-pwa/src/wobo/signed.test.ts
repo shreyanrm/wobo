@@ -15,7 +15,7 @@
  * name is the whole signature, so one missing mark unsigns it everywhere.
  */
 
-import { describe, expect, it } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { boardTurn, screenStore, unsignedMarks } from './board-turn';
 
 const mark = (id: string, check?: string) => ({ id, ...(check ? { check } : {}) });
@@ -24,9 +24,7 @@ describe('what the glass did not take is not signed', () => {
   it('drops the check of a mark that never reached the glass', () => {
     const objects = [mark('m1', 'board.in_bounds:year 1922'), mark('m2', 'board.fact_supported')];
     const onGlass = new Set(['m2']);
-    expect(unsignedMarks(objects, (id) => onGlass.has(id))).toEqual([
-      'board.in_bounds:year 1922',
-    ]);
+    expect(unsignedMarks(objects, (id) => onGlass.has(id))).toEqual(['board.in_bounds:year 1922']);
   });
 
   it('signs nothing off the back of the half that landed', () => {
@@ -51,6 +49,17 @@ describe('what the glass did not take is not signed', () => {
 /**
  * And the whole seam, end to end: the wire says a check passed for a mark, the glass does not have
  * that mark, and the turn stops carrying the signature.
+ *
+ * The seam under test is the glass, not the voice, so the voice is kept silent for the whole run:
+ * with `VITE_GATEWAY_URL` set the utterance asks the wire for each sentence's sound and climbs the
+ * first-sound ladder against this file's stubbed fetch (speech.tsx, `FIRST_TTS_TIMEOUT_MS`), which
+ * took the turn from 1.6 s to over 11 s and past the test's clock. `src/admin/session.test.ts` sets
+ * that address at module scope for the whole process, so a full run leaks it here. This is the
+ * same guard `silent-turn.test.ts` keeps, for the same reason.
+ *
+ * Every stub is put back in `afterEach`, never in the test's own `finally`: a test that runs out of
+ * clock never reaches its `finally`, and the stub document then stood in for the real one in every
+ * file after this.
  */
 describe('the turn re-reads its own glass when the pen has finished', () => {
   const encode = (frames: Record<string, unknown>[]): string =>
@@ -70,10 +79,27 @@ describe('the turn re-reads its own glass when the pen has finished', () => {
       ids.map((id) => ({ getAttribute: () => `${id}#0` })) as unknown as Iterable<Element>,
   });
 
-  const run = async (page: unknown): Promise<string[]> => {
-    const realFetch = globalThis.fetch;
-    const realDoc = (globalThis as { document?: unknown }).document;
+  let realFetch: typeof globalThis.fetch;
+  let realDoc: unknown;
+  let realGatewayUrl: string | undefined;
+
+  beforeEach(() => {
+    realFetch = globalThis.fetch;
+    realDoc = (globalThis as { document?: unknown }).document;
+    realGatewayUrl = process.env.VITE_GATEWAY_URL;
+    delete process.env.VITE_GATEWAY_URL;
     screenStore.reset();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = realFetch;
+    if (realDoc === undefined) delete (globalThis as { document?: unknown }).document;
+    else (globalThis as { document?: unknown }).document = realDoc;
+    if (realGatewayUrl === undefined) delete process.env.VITE_GATEWAY_URL;
+    else process.env.VITE_GATEWAY_URL = realGatewayUrl;
+  });
+
+  const run = async (page: unknown): Promise<string[]> => {
     serve([
       { type: 'say', text: 'Here it is.', t: 0, dur: 10 },
       {
@@ -90,28 +116,33 @@ describe('the turn re-reads its own glass when the pen has finished', () => {
       { type: 'done', objects: 1, verified: ['board.fact_supported'] },
     ]);
     (globalThis as { document?: unknown }).document = page;
-    try {
-      await boardTurn.run({
-        gatewayUrl: 'http://brain.test',
-        payload: {},
-        route: 'learn',
-        title: 't',
-      });
-      // long enough for the pen to finish and the settle to fire behind it
-      await new Promise<void>((r) => setTimeout(r, 1200));
-      return boardTurn.get().verified;
-    } finally {
-      globalThis.fetch = realFetch;
-      if (realDoc === undefined) delete (globalThis as { document?: unknown }).document;
-      else (globalThis as { document?: unknown }).document = realDoc;
-    }
+    await boardTurn.run({
+      gatewayUrl: 'http://brain.test',
+      payload: {},
+      route: 'learn',
+      title: 't',
+    });
+    // long enough for the pen to finish and the settle to fire behind it
+    await new Promise<void>((r) => setTimeout(r, 1200));
+    return boardTurn.get().verified;
   };
 
-  it('keeps the signature when the mark is on the glass', async () => {
-    expect(await run(pageWith('m1'))).toEqual(['board.fact_supported']);
-  });
+  /** The silent turn reads its one sentence on the clock, about 1.6 s, then the settle; room is left. */
+  const CLOCK_MS = 10_000;
 
-  it('drops it when the renderer never laid the mark', async () => {
-    expect(await run(pageWith())).toEqual([]);
-  });
+  it(
+    'keeps the signature when the mark is on the glass',
+    async () => {
+      expect(await run(pageWith('m1'))).toEqual(['board.fact_supported']);
+    },
+    CLOCK_MS,
+  );
+
+  it(
+    'drops it when the renderer never laid the mark',
+    async () => {
+      expect(await run(pageWith())).toEqual([]);
+    },
+    CLOCK_MS,
+  );
 });

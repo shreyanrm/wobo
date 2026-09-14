@@ -38,6 +38,7 @@ const load = {
   notFound: () => import('../screens/states/StateHost'),
   plans: () => import('../screens/plans/Plans'),
   plansCheckout: () => import('../screens/plans/Checkout'),
+  press: () => import('../screens/press/Press'),
   security: () => import('../screens/pitch/Security'),
   signIn: () => import('../screens/auth/Auth'),
   sitemap: () => import('../screens/site/Sitemap'),
@@ -68,6 +69,7 @@ const MeetWobo = lazy(() => load.meetWobo().then((m) => ({ default: m.MeetWobo }
 const NotFoundScreen = lazy(() => load.notFound().then((m) => ({ default: m.NotFoundScreen })));
 const PlansCheckout = lazy(() => load.plansCheckout().then((m) => ({ default: m.Checkout })));
 const PlansPage = lazy(() => load.plans().then((m) => ({ default: m.Plans })));
+const Press = lazy(() => load.press().then((m) => ({ default: m.Press })));
 const Security = lazy(() => load.security().then((m) => ({ default: m.Security })));
 const SignIn = lazy(() => load.signIn().then((m) => ({ default: m.SignIn })));
 const SignUp = lazy(() => load.signIn().then((m) => ({ default: m.SignUp })));
@@ -126,6 +128,8 @@ function loaderFor(route: Route): (() => Promise<unknown>) | null {
       return load.sitemap;
     case 'security':
       return load.security;
+    case 'press':
+      return load.press;
     case 'meet-wobo':
       return load.meetWobo;
     case 'for-parents':
@@ -205,6 +209,8 @@ export function publicScreen(route: Route): ReactNode {
       return <Sitemap />;
     case 'security':
       return <Security />;
+    case 'press':
+      return <Press />;
     case 'meet-wobo':
       return <MeetWobo />;
     case 'for-parents':

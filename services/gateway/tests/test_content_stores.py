@@ -80,15 +80,24 @@ SCOPE = {"board": "CBSE", "grade": "Class 8", "contentVersion": "2026-27"}
 
 
 def test_the_gateway_caches_onto_a_mount_point_and_not_the_writable_layer() -> None:
+    """No ``VOLUME`` instruction is asserted here, and none may appear. Railway refuses a Dockerfile
+    that carries one ("dockerfile invalid: docker VOLUME at Line 63 is not supported, use Railway
+    Volumes"); two production deploys failed on it before the line was removed, and the Dockerfile's
+    own comment records the failure. The volume is attached on the platform and mounts onto /data.
+    Durability is therefore proven by the env vars pointing under /data, the mkdir and chown of the
+    mount point to the user that writes it, and the comment naming Railway Volumes."""
     dockerfile = (REPO / "services/gateway/Dockerfile").read_text()
     assert "PLEXUS_CACHE_DIR=/data/plexus" in dockerfile, (
-        "the cache path moved — re-derive whether what it writes survives a deploy"
+        "the cache path moved: re-derive whether what it writes survives a deploy"
     )
     assert "WOBO_IMAGE_CACHE_DIR=/data/plexus/images" in dockerfile
     # A volume mounts onto a directory that exists and is owned by the user that writes it.
-    assert 'VOLUME ["/data"]' in dockerfile
+    assert "mkdir -p /data/plexus/images" in dockerfile
     assert "useradd --create-home --uid 10001 gateway" in dockerfile
     assert "chown -R gateway:gateway /data" in dockerfile
+    # The instruction Railway rejects must stay out, and the comment must keep saying why.
+    assert "VOLUME [" not in dockerfile
+    assert "use Railway Volumes" in dockerfile
 
 
 def test_railway_declares_no_volume_in_the_repo() -> None:

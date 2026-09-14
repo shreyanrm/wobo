@@ -41,6 +41,19 @@ const C0_ENTRIES: GlassEntry[] = [
     box: [555, 199, 273, 256],
     meaning: 'part:square-on-the-hypotenuse',
   },
+  // THE SIDE ITSELF (the adversary, wave 58, finding 1). "circle the hypotenuse" rang the square
+  // standing on it because the side had no declaration of its own. This is the side's entry, as the
+  // reader names a `data-glass-part` (glass/read.ts `figureParts`): the id is the figure's id and
+  // the part's slug, the meaning is `part:` and the slug. Its box is the triangle's own, which is
+  // exact for the hypotenuse of a right triangle whose legs lie along the box's two edges. The
+  // resolver's test takes this entry away to stand on the glass as it was before it.
+  {
+    id: 'course-intro-mathematics.hypotenuse',
+    role: 'figure-part',
+    text: 'hypotenuse',
+    box: [555, 312, 189, 143],
+    meaning: 'part:hypotenuse',
+  },
   { id: 'l-5mxqf5-0', role: 'line', text: 'predict, then check', box: [1118, 232, 134, 20] },
   { id: 'l-ha3und-0', role: 'line', text: 'where it bends', box: [1118, 266, 103, 20] },
   {

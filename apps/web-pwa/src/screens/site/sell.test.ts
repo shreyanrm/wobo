@@ -19,7 +19,7 @@ import { BRAND_DESCRIPTION } from '../../shell/head';
 import { canonicalUrl } from '../../shell/router';
 import { GIFT_PAGE } from '../gift/copy';
 import { FORMS_END } from '../landing/engine/choreography';
-import { FORMS, HERO, HERO_FORMS, SAFE, SUBJECTS } from '../landing/page-copy';
+import { FORMS, HERO, HERO_FORMS, SAFE, SUBJECTS, TEACHES } from '../landing/page-copy';
 import BOARDS from '../pitch/boards.json' with { type: 'json' };
 import { PLAN_TIERS } from '../plans/prices';
 import { handoff } from './handoffs';
@@ -524,5 +524,51 @@ describe('the front page has one declared address', () => {
     expect(router).toContain(
       "writePath(bare ? '/' : routeToPath(stack[0] as Route), 1, 'replace')",
     );
+  });
+});
+
+// --- H. the adaptive line (owner, 2026-09-09) -----------------------------------------------------
+
+/**
+ * "Not a fixed course. It adapts to you and does not stop until the topic is mastered" (owner,
+ * 2026-09-09; docs/copy/growth/lines.md). Four forms, each placed by the entry. The landing's three
+ * are held word for word in `landing/page-copy.test.ts`; this holds the fourth, the for-parents
+ * page's first promise, and the entry's two placement rules: the line is on the pages it names, and
+ * it never shares a section with the fun line (lines.md, 2026-09-08: one job per page).
+ */
+describe('the adaptive line is on the pages lines.md places it on', () => {
+  const PROMISE =
+    'It is not content your child scrolls. It is a tutor that changes how it teaches until your child has it, and tells you when they do.';
+
+  it('is the for-parents page’s first promise, word for word', () => {
+    const parents = shipped('screens', 'pitch', 'ForParents.tsx').replace(/\s+/g, ' ');
+    expect(parents).toContain(PROMISE);
+    // First: in the hero, before the first chapter's heading.
+    expect(parents.indexOf(PROMISE)).toBeLessThan(
+      parents.indexOf('What was learnt, what needed another pass'),
+    );
+  });
+
+  it('is the eyebrow of the landing’s second chapter and the teaching chapter’s section line', () => {
+    expect(SUBJECTS.eyebrow).toBe('Not a fixed course. A tutor.');
+    expect(TEACHES.adapts).toContain('does not stop until the topic is yours');
+    expect(TEACHES.beats.some((beat) => beat.proof?.includes('It stays until it lands.'))).toBe(
+      true,
+    );
+  });
+
+  it('never joins the fun line on one section (lines.md: one job per page)', () => {
+    const fun = /Learning, the fun kind|Some of it is a game|You will forget you are studying/;
+    expect(JSON.stringify(SUBJECTS)).not.toMatch(fun);
+    expect(JSON.stringify(TEACHES)).not.toMatch(fun);
+    const hero = shipped('screens', 'pitch', 'ForParents.tsx')
+      .replace(/\s+/g, ' ')
+      .slice(
+        0,
+        shipped('screens', 'pitch', 'ForParents.tsx')
+          .replace(/\s+/g, ' ')
+          .indexOf('What was learnt'),
+      );
+    expect(hero).not.toMatch(fun);
   });
 });

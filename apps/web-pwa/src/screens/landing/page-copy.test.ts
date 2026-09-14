@@ -117,6 +117,10 @@ const OURS: readonly string[] = [
   // because it is the origin every syndicated post points back at, so it has to be reachable from
   // every page rather than only from whatever linked to a post (docs/GROWTH-DESK.md §3).
   'Blog',
+  // And the press kit, in the footer of every page rather than in the pill nav, because a
+  // journalist and an answer engine both arrive by looking for it rather than by browsing
+  // (docs/GROWTH-PRESS.md §2; docs/copy/press-kit.md, "The page, and what it actually carries").
+  'Press',
   /*
     THREE SAFE CARDS THE PROTOTYPE PROMISES AND THE CODE DOES NOT KEEP. Verified against this
     repository on 2026-09-04; the reason is written beside each line in `page-copy.ts`.
@@ -138,6 +142,17 @@ const OURS: readonly string[] = [
   'Memory, saved boards and threads, and the parent link. Gone from live systems at once, and out of the backups behind them as those roll over. Deleting the account itself is done by a person when you ask.',
   'The laws we are building to',
   "India's Digital Personal Data Protection Act, COPPA for children in the United States, and the GDPR's rules for children in Europe and the United Kingdom. There is no consent gate in Wobo yet, and we say so on the security page rather than implying one here.",
+  /*
+    THE ADAPTIVE LINE (owner, 2026-09-09; docs/copy/growth/lines.md, "Not a fixed course. It adapts
+    to you and does not stop until the topic is mastered"). The prototype predates the entry, and
+    the entry places three of its four forms on this page: the eyebrow on the second chapter, the
+    section line on the teaching chapter, and its proof beside the re-teach ladder. The fourth is
+    the for-parents page's first promise, held in `site/sell.test.ts`. Written here as literals so
+    that a word changed in `page-copy.ts` fails against the law rather than against itself.
+  */
+  'Not a fixed course. A tutor.',
+  'No two learners get the same lesson. It changes to your pace and your way of thinking, and it does not stop until the topic is yours.',
+  'When one explanation does not land, it tries another. And another. It stays until it lands.',
 ];
 
 /**
@@ -252,7 +267,52 @@ describe('the landing copy', () => {
   it('sets no grade gate (law v5: no age range on a public surface)', () => {
     const banned = /\b(class(es)?|grade[s]?|year[s]?)\s*\d|\b\d+\s*(to|–|-)\s*\d+\s*(class|grade)/i;
     for (const line of pageStrings()) expect(line).not.toMatch(banned);
-    expect(SUBJECTS.eyebrow).toBe('Every subject your board sets');
+    // What it says instead (voice.md §8.2). The subjects eyebrow carried the phrase until the
+    // adaptive line took that slot (lines.md, 2026-09-09); the title and the close still say it.
+    expect(SUBJECTS.title.lead + SUBJECTS.title.mark).toBe(
+      'Whatever your school sets, Wobo teaches it.',
+    );
+    expect(
+      pageStrings().some((line) => /every subject (your board sets|· every board)/i.test(line)),
+    ).toBe(true);
+  });
+
+  /**
+   * THE ADAPTIVE LINE (owner, 2026-09-09: *"not a fixed course or content, adapts and changes to
+   * your learning style and pace, and it doesn't stop until the topic is mastered"*).
+   * docs/copy/growth/lines.md sets four forms and where each goes. Three are on this page:
+   *
+   *   1. the eyebrow, on the landing's second chapter, `subjects` (rung 2 of the ladder above)
+   *   2. the section line, on the teaching chapter, which is the chapter that argues Wobo is a
+   *      tutor rather than a course; its own eyebrow is the owner's world's-first claim
+   *      (2026-09-05, docs/CLAIMS.md §1), so the eyebrow form does not displace it
+   *   3. the proof, beside the re-teach ladder drawn as three routes into one idea (beat 02), and
+   *      on no other beat
+   *
+   * "Yours" is the word for mastered: none of the three says a school-report word, and none uses
+   * an em dash (voice.md §10a). The fourth form is the for-parents page's first promise, held in
+   * `site/sell.test.ts`, which also holds that this line never joins the fun line on one section.
+   */
+  it('carries the adaptive line where lines.md places it (owner, 2026-09-09)', () => {
+    expect(SUBJECTS.eyebrow).toBe('Not a fixed course. A tutor.');
+    expect(TEACHES.adapts).toBe(
+      'No two learners get the same lesson. It changes to your pace and your way of thinking, and it does not stop until the topic is yours.',
+    );
+    const ladder = TEACHES.beats.filter((beat) => beat.proof);
+    expect(ladder.map((beat) => beat.title)).toEqual([
+      'If one way does not land, it tries a different one.',
+    ]);
+    expect(ladder[0]?.proof).toBe(
+      'When one explanation does not land, it tries another. And another. It stays until it lands.',
+    );
+    for (const line of [SUBJECTS.eyebrow, TEACHES.adapts, ladder[0]?.proof ?? '']) {
+      expect(line).not.toMatch(/mastered/i);
+      expect(line).not.toContain('\u2014');
+    }
+    // Rendered: the section line under the title, and the proof inside the drawing's own column.
+    const teaches = readFileSync(join(import.meta.dir, 'sections', 'Teaches.tsx'), 'utf8');
+    expect(teaches).toContain('<p className="lede reveal">{TEACHES.adapts}</p>');
+    expect(teaches).toMatch(/<BeatArt index=\{i\} \/>\s*\{beat\.proof/);
   });
 
   it('prints no raw allowance (law v5: never "40 questions a day")', () => {

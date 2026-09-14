@@ -20,6 +20,7 @@ work and is not published.
 - [Legal](https://heywobo.com/legal): Every legal document, each in plain words first.
 - [Blog](https://heywobo.com/blog): What we are building, and what we are learning.
 - [About](https://heywobo.com/about): Who makes Wobo, and why.
+- [Press kit](https://heywobo.com/press): The one line, the boilerplate, the facts, the logo and the screenshots.
 - [Contact](https://heywobo.com/contact): How to reach a person here.
 - [Gift](https://heywobo.com/gift): Buying a place for someone else.
 - [Donate](https://heywobo.com/donate): Paying for a place for a family who cannot.

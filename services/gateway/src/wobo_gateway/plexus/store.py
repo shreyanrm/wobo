@@ -645,6 +645,198 @@ if __name__ == "__main__":  # operator entrypoint: python -m wobo_gateway.plexus
         print(f"  {a['modality']}/{a['from']} -> {a['to']}  ({a['conceptId']})")
 
 
+# --- the depth band: which mind is reaching for this concept -----------------------------
+#
+# docs/CONTENT-INTERACTION.md §5b, decided 2026-09-11. The core below was specified as keyed on
+# "the concept alone", and for most of the syllabus that holds: a concept is taught in exactly one
+# class, so it has exactly one core and nothing multiplies. It breaks for the concepts that RECUR.
+# Fractions is taught in class 4, again in 6, again in 8. The class 11 treatment of electric
+# current contains the class 7 one. A single core written to satisfy class 11 loses the class 7
+# child inside its first sentence; one written for class 7 is useless at 11. There is no sentence
+# that is honest at both ends, so the core is keyed on CONCEPT x DEPTH BAND.
+#
+# THE BAND IS READ FROM THE SYLLABUS, NEVER INVENTED AND NEVER ASKED OF A MODEL. The concept
+# registry already carries the classes each concept is catalogued in (the discovery pass writes
+# them), and this section groups those classes into bands. Everything here is PURE: a JSON file
+# the repo ships, some integers, and no network, no model, no clock and no database. That is what
+# makes it testable offline and what keeps a cache key from ever depending on a model's mood.
+#
+# Why bands and not classes: inside a band the difference between two classes is WHAT HAS BEEN
+# COVERED, which is exactly what the level rendering already carries (board, grade, chapter,
+# version). Across bands the difference is HOW A MIND REACHES FOR THE IDEA, and no amount of level
+# rendering repairs that. The band boundary is where the level layer stops being able to do the
+# work.
+
+FOUNDATION = "foundation"  # classes 1 to 5
+MIDDLE = "middle"  # classes 6 to 8
+SENIOR = "senior"  # classes 9 to 12
+
+#: The bands, shallowest first. The order is the key's order too, so a listing reads in the order
+#: a learner meets them.
+BANDS: tuple[str, ...] = (FOUNDATION, MIDDLE, SENIOR)
+
+#: The band of a request that names no class AND whose concept the syllabus teaches in more than
+#: one band. It is its OWN key space, never a default band: "nobody said which" filed as
+#: "foundation" is precisely the papering-over §5b forbids, and it would hand a class 4 core to a
+#: caller who never said class 4. An unscoped internal call (a reindex, a test) lands here and is
+#: self-consistent — it writes and reads the same key — without ever colliding with a real band.
+UNBANDED = "unbanded"
+
+#: Every band a core key may carry.
+CORE_BANDS: tuple[str, ...] = (*BANDS, UNBANDED)
+
+#: The last class in each band, shallowest first. Classes outside 1..12 are not classes.
+_BAND_CEILINGS: tuple[tuple[int, str], ...] = ((5, FOUNDATION), (8, MIDDLE), (12, SENIOR))
+
+#: How a band is said to a model, so a core prompt can name its reader's depth without naming a
+#: class (a core that knew one class would be written for that class, which is the thing a core
+#: may not be).
+BAND_CLASSES: dict[str, str] = {
+    FOUNDATION: "classes 1 to 5",
+    MIDDLE: "classes 6 to 8",
+    SENIOR: "classes 9 to 12",
+    UNBANDED: "no class was named",
+}
+
+
+def band_of_class(grade: str) -> str | None:
+    """Which band ONE class sits in, or ``None`` when the string does not name exactly one band.
+
+    Pure, and deliberately forgiving of how Indian syllabus documents write a class: "6", "Class
+    6" and "class-6" are one eleven-year-old and one band. A SPAN inside a band resolves — "11-12"
+    is the ordinary way senior secondary is written and both ends are senior — while a span that
+    crosses a boundary ("8-9") does not, because it genuinely straddles the place where the two
+    minds differ and guessing one of them is the borrow §5b forbids. A number that is not a class
+    is ignored rather than read as one: "Class 10 (2019 scheme)" is senior, not senior-and-nothing.
+    """
+    found: list[str] = []
+    for raw in re.findall(r"\d+", str(grade or "")):
+        n = int(raw)
+        if n < 1:
+            continue
+        for ceiling, band in _BAND_CEILINGS:
+            if n <= ceiling:
+                if band not in found:
+                    found.append(band)
+                break
+    return found[0] if len(found) == 1 else None
+
+
+@lru_cache(maxsize=1)
+def _registry_classes() -> dict[str, tuple[str, ...]]:
+    """``conceptId -> the classes the catalogued syllabus teaches it in``, from the registry.
+
+    The same file the overrides come from, read once. An unreadable or malformed registry is an
+    empty map and never an exception: a band that cannot be read falls back to the request's own
+    class, which is worse than the syllabus and far better than a stack trace in a cache key."""
+    try:
+        data = json.loads(_concepts_file().read_text())
+    except (OSError, json.JSONDecodeError):
+        return {}
+    concepts = data.get("concepts") if isinstance(data, dict) else None
+    if not isinstance(concepts, dict):
+        return {}
+    out: dict[str, tuple[str, ...]] = {}
+    for cid, entry in concepts.items():
+        if not isinstance(entry, dict):
+            continue
+        grades = entry.get("grades")
+        if not isinstance(grades, list):
+            continue
+        classes = tuple(str(g).strip() for g in grades if str(g).strip())
+        if classes:
+            out[str(cid).strip().lower()] = classes
+    return out
+
+
+def forget_registry() -> None:
+    """Drop the cached registry. Public because a test that points ``PLEXUS_CONCEPTS_PATH`` at a
+    fixture needs it, exactly as :func:`wobo_gateway.curriculum.concepts.forget` does."""
+    _registry_classes.cache_clear()
+    _overrides.cache_clear()
+
+
+def classes_for_concept(concept: str, scope: dict[str, str] | None = None) -> tuple[str, ...]:
+    """The classes the catalogued syllabus teaches this concept in. Empty when it has never been
+    catalogued — a minted concept off a board nobody has seeded yet, which is honest rather than
+    a gap: the registry cannot say, so nothing here pretends it did."""
+    return _registry_classes().get(concept_id(concept, scope), ())
+
+
+def bands_for_concept(concept: str, scope: dict[str, str] | None = None) -> tuple[str, ...]:
+    """The bands that ACTUALLY teach this concept, shallowest first.
+
+    This is the set of cores a concept may ever have, and it is the whole cost story of §5b:
+    fractions (4, 6 and 8) returns two bands, so two cores and not three and not twelve; a
+    concept taught only in class 9 returns one, so one core and it costs exactly what it costs
+    today. Empty when the registry has never catalogued the concept."""
+    found = {band_of_class(c) for c in classes_for_concept(concept, scope)}
+    return tuple(b for b in BANDS if b in found)
+
+
+def band_for(
+    concept: str,
+    scope: dict[str, str] | None = None,
+    *,
+    classes: tuple[str, ...] | list[str] | None = None,
+) -> str:
+    """THE resolver: which band's core this request needs. Pure, offline, no model call.
+
+    Three rules, in this order, and each one is the law's own sentence:
+
+    1. **The syllabus teaches the concept in exactly one band** — that band, for every class that
+       asks. There is no second band to be honest about, so there is no distance for the level
+       layer to fail at, and "a concept taught only in class 9: one core, and it costs exactly
+       what it costs today" stays true even when a class 6 stretch module or a free-text goal
+       reaches for it. This is the common case: 3771 of the 3948 catalogued concepts.
+    2. **Otherwise the request's own class decides, among the bands that teach it.** For a
+       concept the syllabus teaches in more than one band, the distance §5b exists for is real,
+       and the band the learner is actually in is the only honest answer. A band with no core yet
+       gets one (:func:`load_core` misses and ``engines.core_for`` makes it); it never borrows
+       the neighbour's. A class OUTSIDE every band that teaches the concept (a class 9 repair
+       module reaching back for fractions, which the syllabus teaches in 4, 6 and 8) gets the
+       nearest band that does teach it, the shallower one when two are equally near: "a concept
+       gets one core per band that actually teaches it" is the count the law fixes, and a senior
+       core for fractions would make it three. This is rule 1 again, one band at a time.
+    3. **Nothing named a class and the syllabus named more than one band** — :data:`UNBANDED`,
+       which is its own key space rather than a guess.
+    4. **The registry has never catalogued the concept** — the request's own class, because
+       nothing else can say, and :data:`UNBANDED` when there is no class either.
+
+    ``classes`` lets a caller who knows better than the registry say so (the curriculum publisher
+    holding a board's own class list for this concept). It is the same computation either way.
+    """
+    if classes is not None:
+        seen = {band_of_class(c) for c in classes}
+        taught: tuple[str, ...] = tuple(b for b in BANDS if b in seen)
+    else:
+        taught = bands_for_concept(concept, scope)
+    if len(taught) == 1:
+        return taught[0]
+    asked = band_of_class(str((scope or {}).get("grade") or ""))
+    if asked is None:
+        return UNBANDED
+    if not taught or asked in taught:
+        return asked
+    return nearest_taught_band(asked, taught)
+
+
+def nearest_taught_band(asked: str, taught: tuple[str, ...]) -> str:
+    """The band nearest to ``asked`` among ``taught``, the shallower one on a tie.
+
+    Pure, so the rule can be read on its own: distance is counted in bands (foundation to senior
+    is two), and a tie (a middle learner reaching for a concept taught in foundation and senior
+    only) goes to the shallower band, because a core that under-reaches a learner is met by the
+    level rendering's own class and a core that over-reaches loses them in its first sentence
+    (§5b). An ``asked`` that is not a band, or an empty ``taught``, is a coding mistake."""
+    if asked not in BANDS or not taught:
+        raise ValueError(f"cannot place {asked!r} among {taught!r}")
+    depth = {band: i for i, band in enumerate(BANDS)}
+    return min(
+        (b for b in BANDS if b in taught), key=lambda b: (abs(depth[b] - depth[asked]), depth[b])
+    )
+
+
 # --- the concept core: the second key, and the only one that is the concept alone -------
 #
 # THE THREE LAYERS (docs/CONTENT-INTERACTION.md §1, docs/CACHES.md §1). Everything above this
@@ -654,14 +846,27 @@ if __name__ == "__main__":  # operator entrypoint: python -m wobo_gateway.plexus
 #
 # But most of what makes a concept teachable does NOT change between boards: the idea, why it
 # matters, the two commonest misconceptions and their counter-examples, the one check that proves
-# understanding, the vocabulary. That is the CONCEPT CORE, and it is keyed on the concept ALONE,
-# made once by the strongest model, judged hard, and reused by every board, grade, interaction
-# and learner forever. Wave 31 keyed everything to the board and so paid twelve times for the one
-# thing that was identical twelve times; this is the half of that key that comes back off.
+# understanding, the vocabulary. That is the CONCEPT CORE, made once by the strongest model,
+# judged hard, and reused by every board, interaction and learner forever. Wave 31 keyed
+# everything to the board and so paid twelve times for the one thing that was identical twelve
+# times; this is the half of that key that comes back off.
 #
-# ``scope`` is still ACCEPTED here and still never digested: it resolves the registry override
-# (two boards that NAME one concept differently collapse onto one id), which is the mapping layer,
-# not the key. A core made for a CBSE request is the same file a later ISC request reads.
+# THE HALF THAT DOES NOT COME OFF IS THE DEPTH BAND (docs/CONTENT-INTERACTION.md §5b, decided
+# 2026-09-11). The core is keyed on CONCEPT x BAND, never on the concept alone: for a concept
+# taught in one class that is the same one core it has always been, and for a concept that RECURS
+# it is one core per band that actually teaches it. See the band section above for the resolver.
+#
+# ``scope`` is ACCEPTED here for two jobs and digested for one. It resolves the registry override
+# (two boards that NAME one concept differently collapse onto one id), which is the mapping layer;
+# and its ``grade`` resolves the BAND, which is in the key. The board, the chapter and the
+# syllabus version are still nowhere near it: a core made for a CBSE class 6 request is the same
+# file a later ICSE class 8 request reads, because both are middle.
+#
+# THE PROHIBITION IS ENFORCED HERE, NOT BY CONVENTION. §5b: *"A level rendering may never be asked
+# to carry a core from another band."* Two things make that so rather than say it. The band is in
+# the digest, so a senior request cannot name a middle file; and :func:`load_core` refuses a
+# record whose own stamped band is not the band asked for, which catches a file or a database row
+# that reached the right key by any other route.
 
 #: A core generated under an older core prompt is stale and is made again (the same law the level
 #: renderings live under). Bump when the core's schema or its prompt changes what a core contains.
@@ -670,11 +875,38 @@ CORE_PROMPT_VERSION = "core-v1"
 CORE_MODALITY = "core"
 
 
-def core_path(concept: str, scope: dict[str, str] | None = None) -> Path:
-    """Where one concept's core lives. The digest binds to the concept identity and NOTHING else.
+def _core_band(concept: str, scope: dict[str, str] | None, band: str | None) -> str:
+    """The band a core call is for: the caller's, when it named one, else the resolver's.
 
-    Deliberately not :func:`artifact_path`: no modality, no difficulty, no scope key. Two requests
-    that differ in every curriculum coordinate and agree on the concept land on this one file."""
+    An explicit band that is not a band is a coding mistake, not a request, and it is refused
+    rather than slugged into a key nothing will ever read again."""
+    if band is None:
+        return band_for(concept, scope)
+    if band not in CORE_BANDS:
+        raise ValueError(f"{band!r} is not a depth band; one of {CORE_BANDS} was expected")
+    return band
+
+
+def core_path(
+    concept: str, scope: dict[str, str] | None = None, *, band: str | None = None
+) -> Path:
+    """Where one concept's core FOR ONE BAND lives.
+
+    Deliberately not :func:`artifact_path`: no modality, no difficulty, no board, no syllabus
+    version. Two requests that differ in every curriculum coordinate and agree on the concept and
+    the band land on this one file; two that agree on everything and differ in the band cannot
+    reach each other's, which is §5b's prohibition made unexpressible rather than forbidden."""
+    band = _core_band(concept, scope, band)
+    cid = concept_id(concept, scope)
+    digest = hashlib.sha256(f"{concept_identity(concept, scope)}\x00{band}".encode()).hexdigest()[
+        :16
+    ]
+    return _inside_cache(cache_dir() / CORE_MODALITY / f"{cid}--{band}--{digest}.json")
+
+
+def _legacy_core_path(concept: str, scope: dict[str, str] | None = None) -> Path:
+    """Where a core lived before the key carried the band. Read-only, and read only for a concept
+    the syllabus teaches in exactly ONE band (see :func:`_core_from_legacy`)."""
     cid = concept_id(concept, scope)
     digest = hashlib.sha256(concept_identity(concept, scope).encode()).hexdigest()[:16]
     return _inside_cache(cache_dir() / CORE_MODALITY / f"{cid}--{digest}.json")
@@ -687,16 +919,36 @@ def core_is_stale(record: dict[str, Any] | None) -> bool:
     return str(record.get("promptVersion") or "") != CORE_PROMPT_VERSION
 
 
-def core_key(concept: str, scope: dict[str, str] | None = None) -> str:
-    """The key a ``content.cores`` row is filed under. Readable, and one-to-one with the file."""
+def core_is_of_band(record: dict[str, Any] | None, band: str) -> bool:
+    """Does this record belong to the band that asked for it?
+
+    The second lock on §5b's prohibition. The key already makes borrowing unexpressible through
+    the front door; this refuses a record that came through any other one — a row re-keyed by
+    hand, a file restored from a pre-band backup, a database seeded by an operator. A record with
+    NO stamp is accepted, because the only way it can be at this path is that this band wrote it;
+    a record stamped with a DIFFERENT band is a miss, and a miss makes this band's own core."""
+    if not isinstance(record, dict):
+        return False
+    stamped = str(record.get("band") or "").strip()
+    return not stamped or stamped == band
+
+
+def core_key(concept: str, scope: dict[str, str] | None = None, *, band: str | None = None) -> str:
+    """The key a ``content.cores`` row is filed under. Readable, and one-to-one with the file.
+
+    ``core/fractions--middle--1f2e…``: the band is in the human half as well as the digest, so an
+    operator reading the stores desk can see at a glance that fractions has two cores and why,
+    and can ask the database for one band's cores with a ``LIKE``. The ``content.cores`` table
+    grows no column for it — the key IS the column, exactly as the modality is for a level."""
+    band = _core_band(concept, scope, band)
     cid = concept_id(concept, scope)
-    digest = hashlib.sha256(concept_identity(concept, scope).encode()).hexdigest()[:16]
-    return f"{CORE_MODALITY}/{cid}--{digest}"
+    digest = hashlib.sha256(f"{concept_identity(concept, scope)}\x00{band}".encode()).hexdigest()[
+        :16
+    ]
+    return f"{CORE_MODALITY}/{cid}--{band}--{digest}"
 
 
-def row_for_core(
-    key: str, record: dict[str, Any], *, concept_id_value: str
-) -> dict[str, Any]:
+def row_for_core(key: str, record: dict[str, Any], *, concept_id_value: str) -> dict[str, Any]:
     """A ``content.cores`` row from one core record. The columns db.FIELDS[CORES] allows, no more.
 
     The cost and the judge's score are lifted onto their own columns rather than left buried in
@@ -720,14 +972,16 @@ def row_for_core(
     }
 
 
-def _core_from_database(concept: str, scope: dict[str, str] | None) -> dict[str, Any] | None:
+def _core_from_database(
+    concept: str, scope: dict[str, str] | None, band: str
+) -> dict[str, Any] | None:
     """The core from Postgres when the file front has none. Never raises into the caller."""
     from wobo_gateway.plexus import db
 
     if not db.configured():
         return None
     try:
-        row = db.read(db.CORES, core_key(concept, scope))
+        row = db.read(db.CORES, core_key(concept, scope, band=band))
     except Exception:  # a cache read must never fail the generation that asked for it
         logger.warning("plexus: the core read for %r failed", concept, exc_info=True)
         return None
@@ -738,34 +992,84 @@ def _core_from_database(concept: str, scope: dict[str, str] | None) -> dict[str,
     db.note_database_hit(db.CORES, row.get("cost_usd"))
     db.note_serve(db.CORES, row.get("id"))
     with contextlib.suppress(OSError, TypeError, ValueError):  # warm the front
-        _write_atomic(core_path(concept, scope), json.dumps(record, ensure_ascii=False, indent=1))
+        _write_atomic(
+            core_path(concept, scope, band=band), json.dumps(record, ensure_ascii=False, indent=1)
+        )
     return record
 
 
-def load_core(concept: str, scope: dict[str, str] | None = None) -> dict[str, Any] | None:
-    """The stored core for a concept, or ``None`` on a miss or a stale prompt version.
+def _core_from_legacy(
+    concept: str, scope: dict[str, str] | None, band: str
+) -> dict[str, Any] | None:
+    """A core written before the key carried the band, re-indexed onto the band it belongs to.
+
+    ONLY for a concept the syllabus teaches in exactly ONE band, and that condition is the whole
+    argument. Such a concept was only ever going to have one core, so the pre-§5b file IS that
+    band's core and nothing is borrowed by reading it — and not reading it would throw away a row
+    that cost real money (a mean of USD 0.030699) for no gain a learner could feel.
+
+    A concept the syllabus teaches in TWO bands is exactly the case §5b exists for, and its old
+    class-neutral core is the very thing the law calls dishonest. It is left where it is (the
+    retention law keeps it; nothing here deletes), and the band's own core is made instead."""
+    if band not in BANDS or len(bands_for_concept(concept, scope)) != 1:
+        return None
+    record = _read(_legacy_core_path(concept, scope))
+    if record is None or core_is_stale(record):
+        return None
+    record = {**record, "band": band}
+    with contextlib.suppress(OSError, TypeError, ValueError):  # the old file is never touched
+        _write_atomic(
+            core_path(concept, scope, band=band), json.dumps(record, ensure_ascii=False, indent=1)
+        )
+    return record
+
+
+def load_core(
+    concept: str, scope: dict[str, str] | None = None, *, band: str | None = None
+) -> dict[str, Any] | None:
+    """The stored core for a concept AT ITS BAND, or ``None`` on a miss or a stale prompt version.
 
     The file front first, then Postgres, exactly as :func:`load` does for a level — and it matters
     MORE here: a core is the most expensive row the platform owns (a mean of USD 0.030699 over the
     three cores of the headline run on 2026-09-10, against USD 0.005343 over its twelve level
-    renderings) and it is reused by every board, every class, every syllabus version and every
-    learner forever. Losing the cores on a deploy is the single worst thing an ephemeral container
-    cache could take with it, which is why the cache now follows a mounted volume."""
+    renderings) and it is reused by every board, every class in its band, every syllabus version
+    and every learner forever. Losing the cores on a deploy is the single worst thing an ephemeral
+    container cache could take with it, which is why the cache now follows a mounted volume.
+
+    A MISS IS A MISS, and a miss in a band with no core makes that band's core (``engines.core_for``
+    is the caller that does it). Nothing here reaches sideways into another band to answer."""
     from wobo_gateway.plexus import db
 
-    record = _read(core_path(concept, scope))
+    band = _core_band(concept, scope, band)
+    record = _read(core_path(concept, scope, band=band))
     if record is not None:
         db.note_front_hit(db.CORES)
     else:
-        record = _core_from_database(concept, scope)
-    if record is None or core_is_stale(record):
+        record = _core_from_database(concept, scope, band)
+    if record is None:
+        record = _core_from_legacy(concept, scope, band)
+    if record is None or core_is_stale(record) or not core_is_of_band(record, band):
         return None
     return record
 
 
-def save_core(concept: str, record: dict[str, Any], scope: dict[str, str] | None = None) -> None:
-    """Write the live core pointer, to the front and to the truth. Crash-safe on both."""
-    _write_atomic(core_path(concept, scope), json.dumps(record, ensure_ascii=False, indent=1))
+def save_core(
+    concept: str,
+    record: dict[str, Any],
+    scope: dict[str, str] | None = None,
+    *,
+    band: str | None = None,
+) -> None:
+    """Write the live core pointer, to the front and to the truth. Crash-safe on both.
+
+    The band is STAMPED on what is written, never on the caller's dict: the stamp is what
+    :func:`core_is_of_band` reads back, and a record that travels (to the database, into a
+    version, onto the console) has to be able to say which band it is for on its own."""
+    band = _core_band(concept, scope, band)
+    stamped = {**record, "band": band}
+    _write_atomic(
+        core_path(concept, scope, band=band), json.dumps(stamped, ensure_ascii=False, indent=1)
+    )
     from wobo_gateway.plexus import db
 
     if not db.configured():
@@ -774,8 +1078,8 @@ def save_core(concept: str, record: dict[str, Any], scope: dict[str, str] | None
         db.write(
             db.CORES,
             row_for_core(
-                core_key(concept, scope),
-                record,
+                core_key(concept, scope, band=band),
+                stamped,
                 concept_id_value=concept_id(concept, scope),
             ),
         )
@@ -783,17 +1087,26 @@ def save_core(concept: str, record: dict[str, Any], scope: dict[str, str] | None
         logger.warning("plexus: the core row for %r could not be written", concept, exc_info=True)
 
 
-def core_versions_dir(concept: str, scope: dict[str, str] | None = None) -> Path:
-    base = core_path(concept, scope)
+def core_versions_dir(
+    concept: str, scope: dict[str, str] | None = None, *, band: str | None = None
+) -> Path:
+    """One version ledger PER BAND, because one core per band is what is being retained."""
+    base = core_path(concept, scope, band=band)
     return base.parent / "versions" / base.stem
 
 
 def save_core_version(
-    concept: str, record: dict[str, Any], scope: dict[str, str] | None = None
+    concept: str,
+    record: dict[str, Any],
+    scope: dict[str, str] | None = None,
+    *,
+    band: str | None = None,
 ) -> Path:
     """Append one immutable core version. The owner's retention law reaches the cores too: a core
     that a refresh supersedes is kept forever, because the learners mid-chapter are on it."""
-    vdir = core_versions_dir(concept, scope)
+    band = _core_band(concept, scope, band)
+    record = {**record, "band": band}
+    vdir = core_versions_dir(concept, scope, band=band)
     vdir.mkdir(parents=True, exist_ok=True)
     prov = record.get("provenance") if isinstance(record.get("provenance"), dict) else {}
     model = _slug(str((prov or {}).get("model") or "unknown"))
@@ -808,9 +1121,9 @@ def save_core_version(
 
 
 def load_core_versions(
-    concept: str, scope: dict[str, str] | None = None
+    concept: str, scope: dict[str, str] | None = None, *, band: str | None = None
 ) -> list[dict[str, Any]]:
-    vdir = core_versions_dir(concept, scope)
+    vdir = core_versions_dir(concept, scope, band=band)
     out: list[dict[str, Any]] = []
     if not vdir.is_dir():
         return out

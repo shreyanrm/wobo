@@ -6,11 +6,13 @@ wrong for what makes a concept teachable: the idea, the two misconceptions and t
 counter-examples, the check and the vocabulary are identical at every board, and we paid for them
 twelve times.
 
-Here the core is made ONCE, keyed on the concept alone, at the verify tier's model, and judged
-against a higher bar than a lesson is; twelve level renderings are made FROM it by the cheapest
-model, keyed on concept x board x grade x version, and judged AGAINST the core. A level that
-misses falls back to the core and renders from it, never to a full generation and never to the
-topic-agnostic seed.
+Here the core is made ONCE PER DEPTH BAND THAT TEACHES THE CONCEPT, keyed on concept x band
+(docs/CONTENT-INTERACTION.md section 5b, decided 2026-09-11: a concept taught in one class has
+one core, and fractions taught in 4, 6 and 8 has a foundation core and a middle core, two and not
+three), at the verify tier's model, and judged against a higher bar than a lesson is; the level
+renderings are made FROM it by the cheapest model, keyed on concept x board x grade x version,
+and judged AGAINST the core. A level that misses falls back to the core and renders from it,
+never to a full generation and never to the topic-agnostic seed.
 
 No network: every model call is a stub. The costs the layer ledger reports come from the vendors'
 own per-million rates in ``routing.CATALOGUE`` applied to the stub's reported usage, so the
@@ -20,6 +22,7 @@ saving is arithmetic on a published price and not an estimate.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -47,6 +50,28 @@ ISC_11 = {
 }
 BOARDS = (CBSE_6, ISC_11)
 GRADES = ("6", "9")
+
+#: The registry docs/CONTENT-INTERACTION.md section 5b argues from: the three concepts it names,
+#: with the classes it says teach them, and nothing else. The band tests point the store at this
+#: file so they assert the law rather than today's catalogue.
+DEPTH_BANDS = Path(__file__).parent / "fixtures" / "concepts_depth_bands.json"
+TAUGHT_ONCE = "the nature of roots"  # class 9 only: one core, whichever class asks
+FRACTIONS = "fractions"  # classes 4, 6 and 8: a foundation core and a middle core
+CURRENT = "electric current"  # classes 7, 10 and 12: a middle core and a senior core
+
+
+def _at(grade: str, board: dict[str, str] = CBSE_6) -> dict[str, str]:
+    return {**board, "grade": grade}
+
+
+@pytest.fixture
+def depth_bands(monkeypatch):
+    """The store reads the section 5b registry, and forgets it again afterwards so the tests
+    that lean on the shipped catalogue are not reading three concepts."""
+    monkeypatch.setenv("PLEXUS_CONCEPTS_PATH", str(DEPTH_BANDS))
+    store.forget_registry()
+    yield DEPTH_BANDS
+    store.forget_registry()
 
 
 @pytest.fixture(autouse=True)
@@ -107,16 +132,14 @@ GOOD_CORE = {
         {
             "belief": "you may add the same number to the top and the bottom",
             "counter": (
-                "adding one to each turns a half into two thirds, which is a"
-                " different amount."
+                "adding one to each turns a half into two thirds, which is a different amount."
             ),
         },
     ],
     "check": {
         "question": "Is six ninths the same amount as two thirds, and how do you know?",
         "answer": (
-            "Yes, because both numbers were multiplied by three, which cuts"
-            " each piece into three."
+            "Yes, because both numbers were multiplied by three, which cuts each piece into three."
         ),
     },
     "vocabulary": [
@@ -262,26 +285,41 @@ def _render(concept: str, scope: dict[str, str], model: str = "openai/gpt-5.6-lu
 # --- 1. the two keys ---------------------------------------------------------------------
 
 
-def test_the_core_key_is_the_concept_alone_and_the_level_key_is_not() -> None:
-    """The half of wave 31's key that comes back off: a core is one file for every board."""
-    concept = "equivalent fractions"
-    assert store.core_path(concept, CBSE_6) == store.core_path(concept, ISC_11)
-    assert store.core_path(concept, None) == store.core_path(concept, CBSE_6)
-    assert store.artifact_path(concept, "compose", "core", CBSE_6) != store.artifact_path(
-        concept, "compose", "core", ISC_11
+def test_the_core_key_is_the_concept_and_its_band_and_the_level_key_is_not(depth_bands) -> None:
+    """The half of wave 31's key that comes back off: a core is one file for every board. The half
+    that stays on is the depth band (docs/CONTENT-INTERACTION.md section 5b): a concept the
+    syllabus teaches in one band has one core whichever class asks, and a concept it teaches in
+    two bands has two files that no board, chapter or syllabus version can join."""
+    assert store.core_path(TAUGHT_ONCE, CBSE_6) == store.core_path(TAUGHT_ONCE, ISC_11)
+    assert store.core_path(TAUGHT_ONCE, None) == store.core_path(TAUGHT_ONCE, CBSE_6)
+    assert store.artifact_path(TAUGHT_ONCE, "compose", "core", CBSE_6) != store.artifact_path(
+        TAUGHT_ONCE, "compose", "core", ISC_11
     )
+    # two boards in one band share the core; the same concept one band deeper does not
+    assert store.core_path(CURRENT, _at("7", CBSE_6)) == store.core_path(CURRENT, _at("8", ISC_11))
+    assert store.core_path(CURRENT, _at("7")) != store.core_path(CURRENT, _at("10"))
+    assert store.core_key(CURRENT, _at("10")).startswith("core/electric-current--senior--")
     # and it is still a different concept's core that a different concept gets
-    assert store.core_path("the water cycle") != store.core_path(concept)
+    assert store.core_path("the water cycle") != store.core_path(TAUGHT_ONCE)
 
 
-def test_a_core_round_trips_and_every_version_is_kept() -> None:
+def test_a_core_round_trips_within_its_band_and_every_version_is_kept_per_band() -> None:
+    """docs/CONTENT-INTERACTION.md section 5b. This test used to write a core under class 6 and
+    read it back under class 11, and that read is now the borrow the law forbids: an uncatalogued
+    concept's band is the class that asked, class 6 is middle and class 11 is senior. A core
+    written under one BOARD is read under another in the same band, and the version ledger is one
+    per band because one core per band is what is being retained."""
     record = {"concept": "x", "promptVersion": store.CORE_PROMPT_VERSION, "core": {"idea": "one"}}
     store.save_core("x", record, CBSE_6)
     store.save_core_version("x", record, CBSE_6)
-    store.save_core_version("x", {**record, "core": {"idea": "two"}}, ISC_11)
-    assert store.load_core("x", ISC_11) == record  # written under one board, read under another
-    kept = store.load_core_versions("x")
+    store.save_core_version("x", {**record, "core": {"idea": "two"}}, _at("8", ISC_11))
+    stamped = {**record, "band": store.MIDDLE}
+    assert store.load_core("x", _at("8", ISC_11)) == stamped  # another board, the same band
+    assert store.load_core("x", ISC_11) is None  # class 11 is senior, and senior has no core yet
+    kept = store.load_core_versions("x", CBSE_6)
     assert [v["core"]["idea"] for v in kept] == ["one", "two"]
+    assert [v["band"] for v in kept] == [store.MIDDLE, store.MIDDLE]
+    assert store.load_core_versions("x", ISC_11) == []
 
 
 def test_a_core_from_an_older_prompt_version_misses_rather_than_being_served() -> None:
@@ -292,26 +330,53 @@ def test_a_core_from_an_older_prompt_version_misses_rather_than_being_served() -
 # --- 2. one core, twelve levels ----------------------------------------------------------
 
 
-def test_three_concepts_two_boards_two_grades_pay_for_three_cores_and_twelve_levels(
-    provider,
+def test_three_concepts_pay_for_one_core_per_band_that_teaches_them_and_every_level_renders(
+    provider, depth_bands
 ) -> None:
-    """The proof of §1: the core is made once per concept and every level is rendered from it."""
-    for concept in CONCEPTS:
+    """The proof of section 1 as section 5b amends it (docs/CONTENT-INTERACTION.md, decided
+    2026-09-11): a core is made once per concept PER DEPTH BAND THAT TEACHES IT, and every level
+    is rendered from its band's core. This test used to say "one core per concept, whatever the
+    board or the class", and for a concept that recurs that sentence cannot be honest: the three
+    concepts the law names, rendered for every class the syllabus teaches them in on two boards,
+    pay for five cores (one, two and two) and fourteen levels, and not for three cores and not for
+    fourteen."""
+    taught = {TAUGHT_ONCE: ("9",), FRACTIONS: ("4", "6", "8"), CURRENT: ("7", "10", "12")}
+    for concept, grades in taught.items():
         for board in BOARDS:
-            for grade in GRADES:
-                artifact, model, _tokens, seeded = _render(concept, {**board, "grade": grade})
+            for grade in grades:
+                artifact, _model, _tokens, seeded = _render(concept, {**board, "grade": grade})
                 assert not seeded
                 assert artifact["cards"]
 
-    assert len(provider.of("core")) == 3, "one core per concept, whatever the board or the class"
-    assert len(provider.of("level")) == 12, "one rendering per board x grade"
-    assert len(provider.of("core-judge")) == 3, "and each core is judged once, at insert"
+    made: dict[str, list[str]] = {}
+    for call in provider.of("core"):
+        brief = json.loads(call["user"])
+        made.setdefault(brief["concept"], []).append(brief["band"])
+    assert made == {
+        TAUGHT_ONCE: [store.SENIOR],
+        FRACTIONS: [store.FOUNDATION, store.MIDDLE],
+        CURRENT: [store.MIDDLE, store.SENIOR],
+    }, "one core per band that teaches the concept: two for fractions, not three and not one"
+    assert len(provider.of("level")) == 14, "one rendering per board x class"
+    assert len(provider.of("core-judge")) == 5, "and each core is judged once, at insert"
 
-    layers = economy.summary()["layers"]
-    assert layers["core"]["made"] == 3
-    assert layers["core"]["cacheHits"] == 9, "nine of the twelve levels found their core paid for"
-    assert layers["level"]["made"] == 12
+    summary = economy.summary()
+    layers = summary["layers"]
+    assert layers["core"]["made"] == 5
+    assert layers["core"]["cacheHits"] == 9, "nine of the fourteen levels found their core paid for"
+    assert layers["level"]["made"] == 14
     assert layers["full"]["made"] == 0, "not one full generation was needed"
+    # the ledger reports the cost per concept per band, so the multiplication is a number on the
+    # console rather than a surprise on the bill (section 5b, "what it costs")
+    by_band = [(r["concept"], r["band"], r["made"], r["cacheHits"]) for r in summary["coresByBand"]]
+    assert by_band == [
+        (CURRENT, store.MIDDLE, 1, 1),
+        (CURRENT, store.SENIOR, 1, 3),
+        (FRACTIONS, store.FOUNDATION, 1, 1),
+        (FRACTIONS, store.MIDDLE, 1, 3),
+        (TAUGHT_ONCE, store.SENIOR, 1, 1),
+    ]
+    assert all(r["costUsd"] > 0 for r in summary["coresByBand"])
 
 
 def test_the_core_is_made_at_the_verify_tier_model_from_the_first_call(provider) -> None:
@@ -325,13 +390,22 @@ def test_the_core_is_made_at_the_verify_tier_model_from_the_first_call(provider)
     assert tier_model(Tier.GENERATE).provider_model == "openai/gpt-5.6-luna"
 
 
-def test_the_core_carries_no_board_and_no_class_into_the_model(provider) -> None:
-    """A core that knew the reader would be written for one of them, and then it is not a core."""
-    _render("equivalent fractions", CBSE_6)
+def test_the_core_carries_no_board_and_no_class_into_the_model_but_it_carries_its_band(
+    provider, depth_bands
+) -> None:
+    """A core that knew the reader would be written for one of them, and then it is not a core.
+    The one thing about depth it is told is its band (docs/CONTENT-INTERACTION.md section 5b),
+    read from the syllabus and not from the class that asked: fractions asked for by a class 6
+    child is the middle core, said as the band's classes and never as class 6."""
+    _render(FRACTIONS, CBSE_6)
     brief = json.loads(provider.of("core")[0]["user"])
-    assert brief["concept"] == "equivalent fractions"
+    assert brief["concept"] == FRACTIONS
     assert "board" not in brief and "class" not in brief and "grade" not in brief
     assert brief["subject"] == "Mathematics"  # a cell in biology is not a cell in physics
+    assert brief["band"] == store.MIDDLE
+    assert brief["classes"] == "classes 6 to 8"
+    assert "6" not in brief.values(), "the class that asked is not in the brief"
+    assert "band" in provider.of("core")[0]["system"].lower()
 
 
 def test_the_level_prompt_carries_the_core_verbatim_and_this_reader(provider) -> None:
@@ -720,8 +794,15 @@ def test_a_core_survives_the_deploy_that_throws_the_disk_away(fake_db, cache_dir
     assert fake_db.rows.get("cores"), "the core reached the database, not only the disk"
 
     shutil.rmtree(cache_dir / store.CORE_MODALITY)  # the deploy
-    back = store.load_core("equivalent fractions", ISC_11)  # a different board asks for it
-    assert back == record
+    # A different board asks for it. The catalogue teaches this concept in one band, so every
+    # class lands on that one core (docs/CONTENT-INTERACTION.md section 5b, the common case), and
+    # the record comes back stamped with the band it was saved under, which is what the store
+    # reads to refuse a row that reached the key by any other route.
+    band = store.band_for("equivalent fractions", CBSE_6)
+    assert band == store.band_for("equivalent fractions", ISC_11)
+    back = store.load_core("equivalent fractions", ISC_11)
+    assert back == {**record, "band": band}
+    assert fake_db.rows["cores"][-1]["key"] == store.core_key("equivalent fractions", CBSE_6)
     assert (cache_dir / store.CORE_MODALITY).is_dir(), "and the front is warm again"
 
 
@@ -881,3 +962,176 @@ def test_the_cache_migration_never_mistakes_a_core_for_an_artifact(cache_dir) ->
     assert store.migrate() == []
     assert store.core_path("equivalent fractions", CBSE_6).read_bytes() == before
     assert not (cache_dir / "compose").exists()
+
+
+# --- 14. the depth band: one core per band that teaches the concept ------------------------
+# docs/CONTENT-INTERACTION.md section 5b, decided 2026-09-11. The resolver is pure and offline: it
+# reads the curriculum's class list for the concept from the registry the tests point it at, and
+# no model, clock, network or database is anywhere near a cache key.
+
+
+def test_a_class_is_read_into_its_band_and_a_span_across_a_boundary_is_not() -> None:
+    """Foundation is classes 1 to 5, middle 6 to 8, senior 9 to 12 (section 5b), however a
+    syllabus document writes the class."""
+    assert store.band_of_class("4") == store.FOUNDATION
+    assert store.band_of_class("Class 6") == store.MIDDLE
+    assert store.band_of_class("class-8") == store.MIDDLE
+    assert store.band_of_class("12") == store.SENIOR
+    assert store.band_of_class("11-12") == store.SENIOR, "a span inside one band is that band"
+    assert store.band_of_class("8-9") is None, "a span across the boundary is nobody's band"
+    assert store.band_of_class("") is None and store.band_of_class("13") is None
+
+
+def test_a_concept_taught_once_has_one_core_whichever_class_asks(depth_bands) -> None:
+    """Section 5b's first case: "a concept taught only in class 9: one core", and it costs exactly
+    what it costs today. A class 6 stretch module reaching for it gets the same core, because
+    there is no second band to be honest about."""
+    assert store.classes_for_concept(TAUGHT_ONCE) == ("Class 9",)
+    assert store.bands_for_concept(TAUGHT_ONCE) == (store.SENIOR,)
+    for grade in ("3", "6", "9", "12"):
+        assert store.band_for(TAUGHT_ONCE, _at(grade)) == store.SENIOR
+    assert store.band_for(TAUGHT_ONCE, None) == store.SENIOR
+
+
+def test_fractions_taught_in_4_6_and_8_has_a_foundation_core_and_a_middle_core(depth_bands) -> None:
+    """Section 5b's second case: "fractions, taught in 4, 6 and 8: two cores, foundation and
+    middle, not three and not twelve". A class 9 learner reaching back for it gets the middle
+    core, the nearest band that teaches it, and never a third core the syllabus does not teach."""
+    assert store.bands_for_concept(FRACTIONS) == (store.FOUNDATION, store.MIDDLE)
+    assert store.band_for(FRACTIONS, _at("4")) == store.FOUNDATION
+    assert store.band_for(FRACTIONS, _at("6")) == store.MIDDLE
+    assert store.band_for(FRACTIONS, _at("8", ISC_11)) == store.MIDDLE
+    assert store.band_for(FRACTIONS, _at("9")) == store.MIDDLE, "no senior core is ever made"
+    assert store.band_for(FRACTIONS, _at("12")) == store.MIDDLE
+    assert store.band_for(FRACTIONS, {"board": "CBSE"}) == store.UNBANDED, "no class, no guess"
+    assert {store.band_for(FRACTIONS, _at(g)) for g in map(str, range(1, 13))} == {
+        store.FOUNDATION,
+        store.MIDDLE,
+    }
+
+
+def test_electric_current_taught_in_7_10_and_12_has_a_middle_core_and_a_senior_core(
+    depth_bands,
+) -> None:
+    """Section 5b's third case: "electric current, taught in 7 and in 10 and 12: two cores,
+    middle and senior". A class 3 request is nearest to middle, and gets middle."""
+    assert store.bands_for_concept(CURRENT) == (store.MIDDLE, store.SENIOR)
+    assert store.band_for(CURRENT, _at("7")) == store.MIDDLE
+    assert store.band_for(CURRENT, _at("10")) == store.SENIOR
+    assert store.band_for(CURRENT, _at("12", ISC_11)) == store.SENIOR
+    assert store.band_for(CURRENT, _at("3")) == store.MIDDLE
+    assert store.band_for(CURRENT, _at("9")) == store.SENIOR
+
+
+def test_the_nearest_band_is_the_shallower_one_on_a_tie_and_a_caller_may_bring_the_classes() -> (
+    None
+):
+    """A middle learner reaching for a concept taught in foundation and senior only is one band
+    from each; the shallower wins, because a core that under-reaches is met by the level
+    rendering's own class and a core that over-reaches loses the learner in its first sentence.
+    ``classes`` lets the curriculum publisher say which classes it knows, registry or not."""
+    assert (
+        store.nearest_taught_band(store.MIDDLE, (store.FOUNDATION, store.SENIOR))
+        == store.FOUNDATION
+    )
+    assert store.nearest_taught_band(store.SENIOR, (store.FOUNDATION, store.MIDDLE)) == store.MIDDLE
+    with pytest.raises(ValueError):
+        store.nearest_taught_band(store.UNBANDED, (store.MIDDLE,))
+    assert store.band_for("anything", _at("7"), classes=("Class 4", "Class 11")) == store.FOUNDATION
+    assert store.band_for("anything", _at("7"), classes=("Class 11",)) == store.SENIOR
+    # an uncatalogued concept is the class that asked, and unbanded when nothing asked
+    assert store.band_for("a concept no board has seeded", _at("5")) == store.FOUNDATION
+    assert store.band_for("a concept no board has seeded", None) == store.UNBANDED
+
+
+def test_a_level_rendering_cannot_borrow_another_band_s_core(depth_bands) -> None:
+    """Section 5b, what it forbids: "a level rendering may never be asked to carry a core from
+    another band. The store enforces this: the core key carries the band, so borrowing is not
+    expressible." Two locks. The key: a class 8 read cannot name the class 4 file. The stamp: a
+    record that reached the middle key by any other route and says it is foundation is a miss,
+    and a miss makes the band's own core rather than papering over the distance."""
+    foundation = {
+        "concept": FRACTIONS,
+        "promptVersion": store.CORE_PROMPT_VERSION,
+        "core": {"idea": "pieces of one whole"},
+    }
+    store.save_core(FRACTIONS, foundation, _at("4"))
+    assert store.load_core(FRACTIONS, _at("4", ISC_11)) == {**foundation, "band": store.FOUNDATION}
+    assert store.load_core(FRACTIONS, _at("8")) is None, "the middle band has no core yet"
+    assert store.load_core(FRACTIONS, _at("6"), band=store.MIDDLE) is None
+    assert store.core_path(FRACTIONS, _at("4")) != store.core_path(FRACTIONS, _at("8"))
+
+    # the second lock: a foundation record planted at the middle key is refused on its stamp
+    planted = {**foundation, "band": store.FOUNDATION}
+    store.write_atomic(store.core_path(FRACTIONS, _at("8")), json.dumps(planted))
+    assert store.load_core(FRACTIONS, _at("8")) is None
+    assert store.core_is_of_band(planted, store.MIDDLE) is False
+    assert store.core_is_of_band(planted, store.FOUNDATION) is True
+
+    # and a band that is not a band is a coding mistake, not a key
+    with pytest.raises(ValueError):
+        store.core_path(FRACTIONS, _at("8"), band="class-8")
+    with pytest.raises(ValueError):
+        store.load_core(FRACTIONS, _at("8"), band="nearby")
+
+
+def test_a_miss_in_a_band_with_no_core_makes_that_band_s_core(provider, depth_bands) -> None:
+    """Section 5b: "a cache miss for a band with no core yet makes that band's core; it does not
+    borrow the neighbour's". Fractions at class 4 buys the foundation core; class 8 then buys the
+    middle one rather than reading the foundation file, and class 6 reads the middle one."""
+    _render(FRACTIONS, _at("4"))
+    _render(FRACTIONS, _at("8", ISC_11))
+    _render(FRACTIONS, _at("6"))
+    assert [json.loads(c["user"])["band"] for c in provider.of("core")] == [
+        store.FOUNDATION,
+        store.MIDDLE,
+    ]
+    assert store.load_core(FRACTIONS, _at("4"))["band"] == store.FOUNDATION
+    assert store.load_core(FRACTIONS, _at("6"))["band"] == store.MIDDLE
+    rows = [r for r in economy.rows() if r["layer"] == "core"]
+    assert [(r["band"], r["cached"]) for r in rows] == [
+        (store.FOUNDATION, False),
+        (store.MIDDLE, False),
+        (store.MIDDLE, True),
+    ]
+
+
+def test_a_refusal_is_remembered_per_band_not_per_concept(monkeypatch, depth_bands) -> None:
+    """A middle core that came back critical must not silence the senior core of the same
+    concept: the cooldown is one per concept per band, so the senior level still gets its own
+    sample rather than paying a full generation for a core nobody tried to make."""
+    stub = Provider(core_score=30.0)
+    monkeypatch.setattr("wobo_gateway.model_call.complete", stub)
+    _render(CURRENT, _at("7"))
+    assert len(stub.of("core")) == engines.CORE_SAMPLES, "the middle band's samples, then silence"
+    _render(CURRENT, _at("8"))
+    assert len(stub.of("core")) == engines.CORE_SAMPLES, "class 8 is the same band, and waits"
+    _render(CURRENT, _at("10"))
+    assert len(stub.of("core")) == 2 * engines.CORE_SAMPLES, "the senior band is tried on its own"
+
+
+def test_the_blueprint_asks_for_the_band_s_core(depth_bands) -> None:
+    """Section 5b, where it lives in code: "plexus/blueprint.py asks for the band's core". A
+    module lives in the chapter's pool, and the pool is made once per chapter, board, class and
+    syllabus version (docs/LEARNING-MODEL.md section 4), so the class the pool was made for is
+    what resolves each core's band; the brief names it beside the cores it asks for."""
+    from blueprint_fixture import blueprint as good_blueprint
+    from blueprint_fixture import brief as good_brief
+    from wobo_gateway.plexus import blueprint as bp
+
+    parsed = bp.parse(good_blueprint())
+    assert parsed is not None
+    cell = bp.NodeBrief.from_dict(good_brief())
+    module_ = parsed.module_by_id("r2")
+    assert module_ is not None
+    payload = bp.compose_brief(parsed, module_, cell)
+    assert payload["cores"] == ["pressure"]
+    assert payload["coreBands"] == {"pressure": store.band_for("pressure", cell.scope())}
+    assert payload["coreBands"]["pressure"] == store.MIDDLE, "the pool is a class 8 pool"
+    # and the compose engine resolves the same band from the same coordinate, so the two agree
+    assert (
+        store.band_for(
+            "pressure", {k: str(v) for k, v in payload.items() if k in ("board", "grade")}
+        )
+        == store.MIDDLE
+    )
