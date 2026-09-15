@@ -18,6 +18,7 @@ three schema rules the gateway leans on; the schema itself is a contract asserte
 from __future__ import annotations
 
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -96,7 +97,12 @@ def test_the_gateway_caches_onto_a_mount_point_and_not_the_writable_layer() -> N
     assert "useradd --create-home --uid 10001 gateway" in dockerfile
     assert "chown -R gateway:gateway /data" in dockerfile
     # The instruction Railway rejects must stay out, and the comment must keep saying why.
-    assert "VOLUME [" not in dockerfile
+    # Anchored to the start of a line: Railway refuses BOTH spellings, `VOLUME ["/data"]` and
+    # `VOLUME /data`, and only an instruction starts a line; the comment above the mkdir may name
+    # the word, an instruction may not appear.
+    assert not re.search(r"^\s*VOLUME\b", dockerfile, re.MULTILINE), (
+        "a VOLUME instruction is back in the Dockerfile; Railway will refuse the whole file"
+    )
     assert "use Railway Volumes" in dockerfile
 
 

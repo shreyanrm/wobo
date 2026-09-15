@@ -44,6 +44,22 @@ describe('the targets the hand traces from', () => {
   });
 });
 
+describe('the ground a target declares', () => {
+  it('a photographed line is paper in both themes; the app’s own surfaces declare nothing', () => {
+    const photo: GlassMap = {
+      ...map,
+      entries: [{ id: 'r3', role: 'photo-line', text: '3x = 20 + 5 ?', box: [139, 142, 79, 7] }],
+    };
+    const targets = mergeTargets(photo, () => null, [
+      { id: 'r4', kind: 'photo-region', rect: () => ({ x: 139, y: 155, width: 36, height: 7 }) },
+      { id: 'you-plan', kind: 'button', rect: () => ({ x: 5, y: 6, width: 7, height: 8 }) },
+    ]);
+    expect(targets.find((t) => t.id === 'r3')?.ground).toBe('paper');
+    expect(targets.find((t) => t.id === 'r4')?.ground).toBe('paper');
+    expect(targets.find((t) => t.id === 'you-plan')?.ground).toBeUndefined();
+  });
+});
+
 describe('the lines a note dodges', () => {
   it('are the text lines within reach of the subject, never the figure or the far page', () => {
     const near = linesNear(map, { x: 220, y: 380, width: 72, height: 72 });

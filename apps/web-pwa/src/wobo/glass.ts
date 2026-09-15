@@ -30,7 +30,16 @@ import {
 export interface GlassTarget {
   id: string;
   getRect: () => DOMRect | null;
+  /**
+   * A photographed page is white paper in both themes, and the hand paints a mark on it with the
+   * paper ink whatever the theme (`BoardTarget.ground`). The app's own surfaces declare nothing.
+   */
+  ground?: 'paper';
 }
+
+/** A line of a photographed page, however it reached the reader: the map's role or the registry's kind. */
+const onPaper = (roleOrKind: string | undefined): boolean =>
+  roleOrKind === 'photo-line' || roleOrKind === 'photo-region';
 
 interface RectLike {
   x: number;
@@ -238,7 +247,7 @@ function toDomRect(box: readonly [number, number, number, number]): DOMRect {
 export function mergeTargets(
   map: GlassMap | null,
   rectOf: (id: string) => readonly [number, number, number, number] | null,
-  registry: readonly { id: string; rect: () => RectLike | null }[],
+  registry: readonly { id: string; kind?: string; rect: () => RectLike | null }[],
 ): GlassTarget[] {
   const out: GlassTarget[] = [];
   const seen = new Set<string>();
@@ -246,6 +255,7 @@ export function mergeTargets(
     seen.add(entry.id);
     out.push({
       id: entry.id,
+      ...(onPaper(entry.role) ? { ground: 'paper' } : {}),
       getRect: () => {
         const box = rectOf(entry.id);
         return box ? toDomRect(box) : null;
@@ -257,6 +267,7 @@ export function mergeTargets(
     seen.add(target.id);
     out.push({
       id: target.id,
+      ...(onPaper(target.kind) ? { ground: 'paper' } : {}),
       getRect: () => {
         let rect: RectLike | null = null;
         try {

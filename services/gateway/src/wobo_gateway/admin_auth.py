@@ -1312,10 +1312,11 @@ def _claim_aal(principal: Any) -> str:
 def _claim_email(principal: Any) -> str:
     """The address this token proves, or nothing.
 
-    An unconfirmed address is not proof of anything — anybody can type somebody else's into a
-    sign-up form — so a token whose ``email_verified`` is explicitly false is treated as carrying
-    no address at all. Supabase writes that claim into ``user_metadata``; older projects put it at
-    the top level, and both are read.
+    An unconfirmed address is not proof of anything: anybody can type somebody else's into a
+    sign-up form. So the address counts only when the token says, in so many words, that it was
+    verified. A token that says ``email_verified: false`` carries no address, and so does a token
+    that says nothing about it (fail closed: a missing claim is not a yes). Supabase writes that
+    claim into ``user_metadata``; older projects put it at the top level, and both are read.
     """
     claims = getattr(principal, "claims", None) or {}
     email = str(claims.get("email") or "").strip().lower()
@@ -1325,7 +1326,7 @@ def _claim_email(principal: Any) -> str:
     verified = claims.get("email_verified")
     if isinstance(metadata, dict) and "email_verified" in metadata:
         verified = metadata.get("email_verified")
-    return "" if verified is False else email
+    return email if verified is True else ""
 
 
 def _invitation_for(store: AdminStore, principal: Any) -> Admin | None:

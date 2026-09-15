@@ -77,3 +77,18 @@ register with who granted them and when. Suspending is instant and ends their se
 
 **Everything is audited**, and the audit is readable in the console by the owner alone: who changed
 what, for whom, when, from where, and what the value was before.
+
+## Accepting a seat proves the address twice (2026-09-15)
+
+A seat is invited by address and bound to an account when a person signs in with that address. The
+sign-in token counts as proof only when it says, in so many words, that the address was verified: a
+token that says nothing about it is not a yes (the gateway fails closed; `_claim_email` in
+admin_auth.py, with the test that a right address without the claim is refused). That is the first
+proof, and it is already in code.
+
+The second, still to build under the console wave: the invitation itself carries a signed, single-use,
+expiring link sent to the invited address, and a seat binds only when the person arrives THROUGH that
+link with a token whose verified address matches. A token alone, however verified, never binds a seat.
+Reason: the address claim is only as strong as the identity provider's confirmation step, and an
+administrator's seat should not rest on one provider setting. The invited row already carries
+`mfa_required`; the link is the out-of-band half.

@@ -70,6 +70,44 @@ button.db-entry:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
   .db-photo{--db-photo-vh:26vh}
   .db-act{background:var(--paper-2);border-radius:22px;padding:14px 22px;display:grid;gap:12px}
   .db-act > .db-row > .wk-btn{flex:1}
+
+  /* ONCE WOBO IS ANSWERING, THE PANE IS THE PAGE AND THE SENTENCE (the adversary, wave 60, the
+     doubt turn at 390; docs/INK-FOUR.md, craft "the ink reads as a teacher's hand at both widths"
+     and "nothing off the viewport", experience "after the turn the learner can act on what they
+     see").
+     Measured live at 390 in both themes. The pen was right: the cross sat BESIDE the wrong line in
+     the margin, 7.8 px clear of it, with no ink over any line, and the night theme showed blue ink
+     on the white photo. The screen failed the turn anyway, twice, and both times for the same
+     reason. The photo was held to 26vh of the VIEWPORT, so a 1200 px page was painted 164 px wide
+     with its rows 8.8 px tall and the cross the pen sizes to the row's band came out 9x9 px. And
+     the card under it clipped the caption at its own fold: three of five lines on the glass, with
+     "What is 20 - 5?", the question the whole turn ends on, under the 20 px fade.
+     One budget, spent wrong. The pane is 628 px at 390x844 and it was giving 56 of them to a row
+     of tools that turn and retake a photo already explained, and about a hundred to the page's own
+     words set a SECOND time in 26 px handwriting directly under the photo they were read from,
+     beneath a tag that says "Explained" while Wobo explains. So from the first sentence Wobo says
+     (`:has(.db-said)` is the explaining and explained steps and nothing else) the pane holds two
+     things: the page, and what Wobo said about it. The tools stand down (Another doubt at the foot
+     is the same door as Another photo), the duplicate reading and the tag go with them, and the
+     photo is sized against the PANE rather than the viewport: a little over half of it, and never
+     so much that the caption loses a line. Measured at 390x844 after: the page is 250x333 where it
+     was 165x219, a row is 13.3 px where it was 8.8, the cross is 12.3x12.3 where it was 9.2x9.2,
+     and the card under it is 177 px, in which a five line caption of 124 px ends 41 px clear of
+     its own foot. On a shorter phone the reserve binds before the share does and the sentence
+     wins, which is the right way round, and the 26vh floor means no screen ever gets LESS page
+     than it had before this rule existed.
+     Everything here is the phone's; the laptop keeps the layout it was already judged a 4 on, and
+     an engine with no `:has` keeps the same layout the phone had before. */
+  .db-grid:has(.db-said){gap:10px}
+  .db-grid:has(.db-said) > .db-stage > .db-photo{--db-photo-vh:max(26vh,min(calc(var(--db-pane,60vh) * .53),calc(var(--db-pane,60vh) - 288px)))}
+  .db-grid:has(.db-said) > .db-stage{padding:10px}
+  .db-grid:has(.db-said) > .db-stage > .db-tools{display:none}
+  .db-grid:has(.db-said) > .db-read{padding:12px 16px;-webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 12px),transparent);mask-image:linear-gradient(to bottom,#000 calc(100% - 12px),transparent)}
+  /* the tag is the one span the card puts above the sentence, and it is Wobo saying what Wobo is
+     doing; the line under it is the page's own words a second time. Named by element rather than
+     by `wk-tag` so this sheet still declares nothing about another screen's class (trap 1). */
+  .db-grid:has(.db-said) > .db-read > span,.db-grid:has(.db-said) > .db-read > .db-line{display:none}
+  .db-grid:has(.db-said) > .db-act{padding:10px 22px}
 }
 
 /* before a photo: the camera on a phone, the picker and the drop zone on a laptop */

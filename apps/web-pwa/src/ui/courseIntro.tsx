@@ -21,6 +21,7 @@
 import { useReducedMotion } from '@wobo/motion';
 import { glassLabel } from '@wobo/wobo';
 import { motion } from 'framer-motion';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { chapterById, topicById } from '../curriculum/registry';
 import { subjectFamily } from '../curriculum/subjects';
 
@@ -37,6 +38,29 @@ type Named = { part?: string };
 
 export type Mark =
   | ({ el: 'path'; ink: MarkInk; d: string } & Named)
+  /**
+   * A place in the drawing with no ink of its own — an edge a path already draws, named so the
+   * glass map can hand it to Wobo as a part. It is never a new stroke: the drawings are the
+   * prototype's, mark for mark (courseIntro.test.ts), and this adds a name, not a line.
+   */
+  | ({
+      el: 'side';
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+      /**
+       * THE STRETCH OF THE SIDE A MARK LANDS ON (the judge, wave 60, on 'circle the hypotenuse').
+       *
+       * A glass part is measured as a BOX, and the box of a diagonal that runs corner to corner of
+       * its figure IS the figure's box: declaring the whole hypotenuse from B to C handed Wobo the
+       * triangle's own box, so the ring drawn around it enclosed all three corners and the ask for
+       * a PART was answered with a ring around the FIGURE. A teacher circling a side circles a
+       * stretch of it for the same reason. `grip` is that stretch as a fraction of the side,
+       * centred on the side's midpoint; the side itself stays what it is, B to C.
+       */
+      grip?: number;
+    } & Named)
   | ({ el: 'circle'; ink: MarkInk; cx: number; cy: number; r: number } & Named)
   | ({ el: 'dot'; cx: number; cy: number; r: number } & Named)
   | ({ el: 'mark'; x: number; y: number; w: number; h: number; rx: number } & Named)
@@ -71,6 +95,9 @@ export const ART_THIN = 2.5;
 /** The drawing's own frame. The site tiles let a label sit outside it; so does the card. */
 export const ART_VIEWBOX = '0 0 200 150';
 
+/** The frame's width in its own units — what a measured screen width is divided by. */
+export const ART_FRAME_W = 200;
+
 export const SUBJECT_ART: Record<SubjectArtKey, SubjectArt> = {
   // THE 3-4-5 TRIANGLE AND THE SQUARE ON ITS HYPOTENUSE, drawn to scale and inside the frame.
   //
@@ -99,6 +126,26 @@ export const SUBJECT_ART: Record<SubjectArtKey, SubjectArt> = {
       },
       // c² sits in the middle of the square it names, not floating beside it
       { el: 'text', ink: 'accent', x: 86, y: 80, size: 22, text: 'c²', part: 'c²' },
+      // THE SIDE ITSELF (the adversary, wave 58, finding 1). "circle the hypotenuse" rang the
+      // square standing on it, because the side had no declaration of its own: the triangle, the
+      // right angle, the square and c² were parts, and the hypotenuse was only a word inside the
+      // square's name. This is the edge from B(106,124) to C(46,79) that the triangle's own path
+      // already draws, given its name and no ink.
+      //
+      // AND A TENTH OF IT IS WHERE A MARK LANDS (the judge, wave 60). Its box WAS the triangle's —
+      // exact for this hypotenuse, and exactly the reason the ring around it held all three
+      // corners: the ask named a part and the ink answered with the figure.
+      //
+      // The middle tenth, from (79, 103.75) to (73, 99.25): a 6 by 4.5 box on the side's own
+      // midpoint. A tenth rather than a half because the ring is not the box — it is the box plus
+      // nine pixels of pad and a hand's smallest loop — and at 390 the whole figure is 238 px wide,
+      // so the ring is about thirty pixels whatever the box is; a longer grip spends air it has
+      // nothing to buy with. Measured on the arrival card with that ring painted, at 390 light,
+      // 390 dark, 390 reduced motion, 1440 light and 1440 dark: 0 of the triangle's 3 corners
+      // inside the ring at either width (all 3 were, at both, before this), and from the ring's
+      // ink to the nearest ink that is not the hypotenuse, 7.2 px at 390 and 24.2 px at 1440 —
+      // the right-angle tick both times, which no grip can get further from on a 238 px figure.
+      { el: 'side', x1: 106, y1: 124, x2: 46, y2: 79, grip: 0.1, part: 'hypotenuse' },
     ],
   },
   // the benzene ring: the hexagon, and the ring of shared electrons inside it
@@ -178,6 +225,68 @@ export function artForTopic(topicId: string): SubjectArtKey {
 
 const STROKE = { ink: ART_INK, thin: ART_THIN, accent: ART_INK, 'accent-thin': ART_THIN } as const;
 
+/**
+ * THE STRETCH OF A SIDE A MARK LANDS ON, in the frame's units: the middle `grip` of it, centred on
+ * the side's own midpoint. A side with no grip is all of itself.
+ */
+export function gripOf(side: {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  grip?: number;
+}): { x1: number; y1: number; x2: number; y2: number } {
+  const g = Math.min(Math.max(side.grip ?? 1, 0), 1);
+  const lo = (1 - g) / 2;
+  const dx = side.x2 - side.x1;
+  const dy = side.y2 - side.y1;
+  return {
+    x1: side.x1 + dx * lo,
+    y1: side.y1 + dy * lo,
+    x2: side.x1 + dx * (1 - lo),
+    y2: side.y1 + dy * (1 - lo),
+  };
+}
+
+/**
+ * THE INK IS FOUR SCREEN PIXELS, AND THE WHOLE STROKE IS DRAWN (the judge, wave 60: "the square on
+ * the hypotenuse with only two sides at the end frame").
+ *
+ * The drawing used to hold its weight with `vector-effect: non-scaling-stroke`, which is right on
+ * its own and wrong beside a draw-on. Framer draws a path on by normalising it — `pathLength="1"`,
+ * `stroke-dasharray: 1 1` — and under a non-scaling stroke Chrome scales that dash by the path's
+ * length in the frame's units and then lays it down in SCREEN pixels, so the finished stroke covers
+ * 1/k of itself, where k is the frame's scale on the glass. Measured on the arrival card: k = 2.10
+ * at 1440 and the square painted 220 of its 630 px (two sides of four, the triangle without its
+ * vertical leg, the right angle without its corner); k = 1.19 at 390 and 125 of 357 px short.
+ *
+ * So the weight is held the other way: the drawing measures its own scale and divides by it, which
+ * is the same four pixels on the glass with nothing for the dash to misread.
+ */
+export function inkWidth(ink: MarkInk, scale: number): number {
+  const px = STROKE[ink];
+  return Number.isFinite(scale) && scale > 0 ? px / scale : px;
+}
+
+/** The frame's scale on the glass, in screen px per frame unit, re-measured on every resize. */
+function useArtScale(ref: { current: SVGSVGElement | null }): number {
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.getBoundingClientRect().width;
+      if (w > 0) setScale(w / ART_FRAME_W);
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(measure);
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [ref]);
+  return scale;
+}
+
 /** The hand: a 0.9s draw-on per mark, in the order the marks are listed. Still when asked to be. */
 function drawn(index: number, reduced: boolean) {
   if (reduced) return { initial: false as const, animate: { opacity: 1, pathLength: 1 } };
@@ -192,8 +301,11 @@ function drawn(index: number, reduced: boolean) {
 }
 
 function Drawing({ art, reduced }: { art: SubjectArt; reduced: boolean }) {
+  const frame = useRef<SVGSVGElement | null>(null);
+  const scale = useArtScale(frame);
   return (
     <svg
+      ref={frame}
       viewBox={ART_VIEWBOX}
       role="presentation"
       aria-hidden
@@ -254,14 +366,34 @@ function Drawing({ art, reduced }: { art: SubjectArt; reduced: boolean }) {
             </motion.text>
           );
         }
+        if (mark.el === 'side') {
+          // No ink: the edge is already drawn by the path it belongs to. The element is here so
+          // the glass reader measures the side's own box and Wobo can ring it by name — and it is
+          // laid over the GRIP, the stretch of the side a mark lands on, because a box around the
+          // whole of a corner-to-corner diagonal is the figure's own box (see `Mark`, `grip`).
+          const grip = gripOf(mark);
+          return (
+            <line
+              key={key}
+              {...part}
+              x1={grip.x1}
+              y1={grip.y1}
+              x2={grip.x2}
+              y2={grip.y2}
+              stroke="none"
+              fill="none"
+            />
+          );
+        }
         const stroke = mark.ink.startsWith('accent') ? art.accent : 'var(--ink)';
         const common = {
           fill: 'none' as const,
           stroke,
-          strokeWidth: STROKE[mark.ink],
+          // Screen pixels, by division rather than by `vector-effect` — which a draw-on's dash
+          // cannot survive (see `inkWidth`).
+          strokeWidth: inkWidth(mark.ink, scale),
           strokeLinecap: 'round' as const,
           strokeLinejoin: 'round' as const,
-          vectorEffect: 'non-scaling-stroke' as const,
         };
         if (mark.el === 'circle') {
           return (

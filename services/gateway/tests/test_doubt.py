@@ -12,6 +12,7 @@ they were asked so a test can prove a refused photo was never read.
 from __future__ import annotations
 
 import base64
+import contextlib
 import io
 import json
 import os
@@ -576,10 +577,19 @@ def test_no_ink_frame_lands_without_a_say_frame_in_the_same_beat(
     events = frames(answer(client, auth, doubt_id).text)
     say_at = {e[2]["t"] for e in events if e[1] == "say"}
     ink = [e[2] for e in events if e[1] == "ink"]
-    assert len(say_at) == 3 and ink
+    # Three sentences the model wrote, and one pointing sentence for each of the two page marks
+    # its sentences never named (the adversary, wave 58, finding 1): "This line, find the
+    # perimeter of the rectangle." after the first, "This line, P = 8 + 3 = 11 cm." after the
+    # sentence the underline keeps time with.
+    said = [e[2]["text"] for e in events if e[1] == "say"]
+    assert len(say_at) == 5 and ink, said
+    assert said[1] == "This line, find the perimeter of the rectangle."
+    assert said[3] == "This line, P = 8 + 3 = 11 cm."
     assert all(e["t"] in say_at for e in ink), [(e["object"]["id"], e["t"]) for e in ink]
     beats = {e["object"]["id"]: e["object"]["meta"]["beat"] for e in ink}
-    assert beats["note"] == {"after": 1}  # the model's own beat, untouched
+    # the model's own beat, untouched in meaning: after "The perimeter adds all four sides.",
+    # which the pointing sentence moved from index 1 to index 2
+    assert beats["note"] == {"after": 2}
     assert beats["ring"] == {"with": 0}  # the first stroke is on the first sentence
     assert all(set(b) & {"with", "after"} for b in beats.values())
     # and the first stroke starts with the first sentence, not after it
@@ -634,8 +644,15 @@ def test_a_label_is_never_a_sentence_in_the_speech(
     assert ink["m0"]["words"] == "Find the perimeter of the rectangle"
     assert ink["m1"]["words"] == "P = 8 + 3 = 11 cm"
     assert ink["m2"]["words"] == "length 8 cm and breadth 3 cm"
-    # ... and that line is never read back either: nothing of the page is in the speech
-    assert "length 8 cm and breadth 3 cm" not in said
+    # ... and a line the teaching never names is POINTED AT, never read back as a claim and never
+    # left unsaid (the adversary, wave 58, finding 1: "Not quite. What is 20 - 5?" over a ring on
+    # one of six lines, and nothing said which). The teaching names "P = 8 + 3 = 11 cm" itself.
+    assert "This line, find the perimeter of the rectangle." in said, said
+    assert "This line, length 8 cm and breadth 3 cm." in said, said
+    assert "This line, P = 8 + 3 = 11 cm." not in said, said
+    assert "length 8 cm and breadth 3 cm." not in said.replace(
+        "This line, length 8 cm and breadth 3 cm.", ""
+    )
 
 
 def test_the_brain_is_told_about_the_mark_the_pen_already_laid(
@@ -665,13 +682,16 @@ def test_the_brain_is_told_about_the_mark_the_pen_already_laid(
             "id": "instant-1",
             "kind": "underline",
             "anchor": {"target": "r1"},
-            # ... called by the line it sits on, and owed no sentence of its own
+            # ... called by the line it sits on, and pointed at when nothing names it
             "words": "Find the perimeter of the rectangle",
             "meta": {"page": True},
         }
     ]
     said = " ".join(e[2]["text"] for e in frames(res.text) if e[1] == "say")
-    assert "Find the perimeter of the rectangle" not in said, said
+    # The plan's own underline is on the same line, so the standing copy stands down and the
+    # line is pointed at once, by the plan's mark: never read back raw, never said twice.
+    assert said.count("find the perimeter of the rectangle") == 1, said
+    assert "Find the perimeter of the rectangle." not in said, said
 
 
 def test_a_standing_mark_on_a_line_the_reading_does_not_have_is_dropped(
@@ -1656,3 +1676,212 @@ def test_a_screen_that_answers_nothing_is_asked_once_more_before_the_door_shuts(
     with pytest.raises(ValueError):
         doubt.LiveImageScreen().screen(image=b"\xff\xd8jpeg", media_type="image/jpeg")
     assert len(sent) == 2
+
+
+# --- the wall clock: nothing a learner waits on waits for what it does not need -------------------
+
+
+def test_the_photo_goes_up_while_the_reader_is_still_reading(client: TestClient, auth) -> None:
+    """[slow] The door's wall clock was the SUM of three waits, and one of them was needless.
+
+    Live on 2026-09-15, the same maths page three times (``w60j/logs/gateway-live60.log``):
+    ``POST /v1/doubt`` took 12 249.8, 10 511.9 and 10 958.1 ms, and the gateway's own timestamps
+    split each one into the screen (1.77 to 2.22 s), the read (8.19 to 9.18 s) and a tail after
+    the read of 763, 370 and 449 ms that is almost all :meth:`DoubtStore.put` — an object upload
+    and a row insert, two round trips to the project, with the learner watching a spinner.
+
+    The ROW needs the reading. The OBJECT does not: the bytes are final and screened the moment
+    the verdict allows, and the bucket path is the learner's id and the doubt's id, neither of
+    which the reader has any say in. So the photo goes up WHILE the reader reads, and the door
+    pays ``max(read, upload)`` instead of ``read + upload``.
+
+    Order, not a stopwatch, is the proof: the reader is asked, and it does not come back until
+    the bucket has the photo. Which of the two starts first is a race and is not asserted; that
+    the photo is up BEFORE the reader finishes is the law, and it was false before this.
+    """
+    import threading
+
+    order: list[str] = []
+    up = threading.Event()
+
+    class Watching(doubt.InMemoryDoubtStore):
+        def put(self, d: doubt.Doubt, photo: bytes) -> doubt.Doubt:
+            order.append("photo")
+            up.set()
+            return super().put(d, photo)
+
+        def keep_photo(self, subject_id: str, doubt_id: str, photo: bytes) -> None:
+            order.append("photo")
+            up.set()
+            super().keep_photo(subject_id, doubt_id, photo)
+
+    class Waiting(FakeReader):
+        def read(self, *, image: bytes, media_type: str, words: str) -> doubt.Reading:
+            order.append("read-start")
+            up.wait(2.0)
+            order.append("read-end")
+            return super().read(image=image, media_type=media_type, words=words)
+
+    doubt.set_store(Watching())
+    doubt.set_eyes(doubt.Eyes(screen=FakeScreen(), reader=Waiting()))
+    try:
+        res = read(client, auth)
+        assert res.status_code == 200, res.text
+        assert "photo" in order, "the photo never went up while the reader was reading"
+        assert order.index("photo") < order.index("read-end"), order
+        assert order[-1] == "read-end", order
+        out = res.json()
+        assert doubt.get_store().photo(ME, out["doubt"])
+        assert doubt.get_store().get(ME, out["doubt"]) is not None
+    finally:
+        doubt.set_store(None)
+
+
+def test_a_read_that_fails_after_the_photo_went_up_leaves_nothing_in_the_bucket(
+    client: TestClient, auth
+) -> None:
+    """[slow] The other half of the same law: a photo kept early is a photo that must be taken
+    back. A reader that falls over, and a page nothing could be read off, both refuse — and
+    neither leaves an object behind with no row pointing at it."""
+    store = doubt.InMemoryDoubtStore()
+    doubt.set_store(store)
+    try:
+        doubt.set_eyes(doubt.Eyes(screen=FakeScreen(), reader=FakeReader(raises=True)))
+        assert read(client, auth).status_code == 503
+        assert store.list(ME) == [] and store.photos_held() == 0
+
+        doubt.set_eyes(
+            doubt.Eyes(
+                screen=FakeScreen(),
+                reader=FakeReader(reading=doubt.Reading("maths", "", "", ())),
+            )
+        )
+        assert read(client, auth).status_code == 422
+        assert store.list(ME) == [] and store.photos_held() == 0
+    finally:
+        doubt.set_store(None)
+
+
+def test_the_answer_reaches_the_learner_before_the_bookkeeping_is_written(
+    auth, eyes, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """[slow] The learner's first word waited on two writes that are nothing to do with it.
+
+    Live on 2026-09-15, all three doubts: the board call finished and the last voice line was
+    dispatched at 26.515, 06.886 and 57.215, and the request handler did not return until
+    26.831, 07.200 and 57.540 — 316, 314 and 325 ms in which nothing was logged because nothing
+    was happening but :func:`join_the_climb` (a write to the mind) and ``store.update`` (a write
+    to the row), one after the other, over the wire. A streamed turn's first frame cannot leave
+    until the handler returns, so that is 316 ms added to a first word that was already 5.6 to
+    7.8 s late (``w60j/turns/doubt/w60-live-doubt-*/turn.json``, ``firstSaidAtMs``).
+
+    Neither write is the answer. They say the answer HAPPENED. So they go behind it, as the
+    response's background, which Starlette runs after the last byte is sent and runs even when
+    the learner has walked away mid-stream — nothing is lost, and nothing waits.
+    """
+    from wobo_gateway import mind
+    from wobo_gateway.app import Gateway, create_app
+    from wobo_gateway.cache import InMemoryCache
+    from wobo_gateway.providers import MockProvider
+    from wobo_gateway.telemetry import MetricsSink
+
+    order: list[str] = []
+
+    class Filing(doubt.InMemoryDoubtStore):
+        def update(self, d: doubt.Doubt) -> doubt.Doubt:
+            order.append("filed")
+            return super().update(d)
+
+    doubt.set_store(Filing())
+    inner = create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink()))
+
+    async def watched(scope: Any, receive: Any, send: Any) -> None:
+        async def _send(message: dict[str, Any]) -> None:
+            if message["type"] == "http.response.body" and not message.get("more_body"):
+                order.append("delivered")
+            await send(message)
+
+        await inner(scope, receive, _send)
+
+    client = TestClient(watched)
+    try:
+        doubt_id = read(client, auth).json()["doubt"]
+        order.clear()
+        res = answer(client, auth, doubt_id)
+        assert res.status_code == 200, res.text
+        assert order == ["delivered", "filed"], order
+        # and the bookkeeping still happened: the climb, the status, both
+        assert mind.get_store().get(ME) is not None
+        kept = doubt.get_store().get(ME, doubt_id)
+        assert kept is not None and kept.status == "answered" and kept.answered_at
+    finally:
+        doubt.set_store(None)
+
+
+def test_the_bookkeeping_still_lands_when_the_learner_walks_away_mid_answer(auth, eyes) -> None:
+    """[slow] The other half of putting the writes behind the answer: behind must not mean lost.
+
+    The app is driven directly, with a receive channel that hangs up the moment the request is
+    read and a send channel that refuses the first body chunk the way a closed socket does. The
+    turn ends in an exception, as it would on a real hang-up — and the record still holds the
+    climb and the answered row, exactly as it did when the two writes stood in front of the
+    learner. Behind is not lost.
+    """
+    import asyncio
+
+    from wobo_gateway import mind
+    from wobo_gateway.app import Gateway, create_app
+    from wobo_gateway.cache import InMemoryCache
+    from wobo_gateway.providers import MockProvider
+    from wobo_gateway.telemetry import MetricsSink
+
+    client = TestClient(create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink())))
+    doubt_id = read(client, auth).json()["doubt"]
+    app = create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink()))
+    token = auth(ME)["Authorization"]
+
+    async def hang_up() -> list[str]:
+        sent: list[str] = []
+        gone = asyncio.Event()
+
+        async def receive() -> dict[str, Any]:
+            if not gone.is_set():
+                gone.set()
+                return {"type": "http.request", "body": b"{}", "more_body": False}
+            return {"type": "http.disconnect"}
+
+        async def send(message: dict[str, Any]) -> None:
+            sent.append(message["type"])
+            if message["type"] == "http.response.body":
+                raise OSError("the learner is gone; nothing more can be written")
+
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0", "spec_version": "2.3"},
+            "http_version": "1.1",
+            "method": "POST",
+            "scheme": "http",
+            "path": f"/v1/doubt/{doubt_id}/answer",
+            "raw_path": f"/v1/doubt/{doubt_id}/answer".encode(),
+            "query_string": b"",
+            "root_path": "",
+            "headers": [
+                (b"host", b"testserver"),
+                (b"authorization", token.encode()),
+                (b"accept", b"text/event-stream"),
+                (b"content-type", b"application/json"),
+                (b"content-length", b"2"),
+            ],
+            "client": ("testclient", 50000),
+            "server": ("testserver", 80),
+        }
+        with contextlib.suppress(BaseException):
+            await app(scope, receive, send)
+        return sent
+
+    wrote = asyncio.run(hang_up())
+    # the hang-up really bit: the stream started and its first chunk was refused
+    assert wrote == ["http.response.start", "http.response.body"], wrote
+    assert mind.get_store().get(ME) is not None, "the climb was never joined"
+    kept = doubt.get_store().get(ME, doubt_id)
+    assert kept is not None and kept.status == "answered" and kept.answered_at

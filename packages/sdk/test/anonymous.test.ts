@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'bun:test';
 import {
+  AUTH_SESSION_KEY,
   configureGatewayAuth,
   createSdk,
   DOORS_KEY,
@@ -152,7 +153,10 @@ describe('the assembled SDK signs the device in before it ever asks the brain', 
       );
     }) as typeof fetch;
 
+    // Live auth: the mode that uses the session is the only one that mints it (see the last
+    // describe in this file); a dev-mock build names its dev subject instead.
     const sdk = createSdk({
+      devAuth: false,
       llmMode: 'live',
       gatewayUrl: 'https://brain.test',
       supabaseUrl: 'https://project.supabase.co',
@@ -270,6 +274,7 @@ describe('a door that said no is not knocked on again', () => {
 
   const boot = () =>
     createSdk({
+      devAuth: false, // live auth is the mode that mints; see the last describe in this file
       llmMode: 'live',
       gatewayUrl: 'https://brain.test',
       supabaseUrl: 'https://project.supabase.co',
@@ -320,5 +325,126 @@ describe('a door that said no is not knocked on again', () => {
     await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
     expect(sdk.account?.isAnonymous()).toBe(true);
     expect(calls.filter((c) => c.endsWith('/auth/v1/signup'))).toHaveLength(2);
+  });
+});
+
+/**
+ * AN IDENTITY IS MINTED ONLY BY THE MODE THAT WILL USE IT (the adversary, wave 58, on finding 12).
+ *
+ * The single flight left one `POST /auth/v1/signup` per page load, and it still came back 422:
+ * one failed cross-internet round trip and a "Failed to load resource: 422" console error on every
+ * cold load, followed by three 401s on `GET /v1/me` that the fix had not looked at. Measured on a
+ * dev-mock build with Supabase keys, which is every lab and every developer's browser.
+ *
+ * In dev-mock mode the learner IS already somebody to the brain: `identity` is the dev mock, and
+ * the gateway honours `x-wobo-dev-subject` under DEV_AUTH. An anonymous Supabase session minted
+ * beside it costs a call to a real auth server (and a row in a real project) for a JWT the dev
+ * gateway would treat no better than the header, and a dev gateway with no project configured
+ * could not verify at all. So dev-mock mode never knocks, and its every call names the dev
+ * subject. Live mode mints exactly as before, door first and a no not asked again, and a budget
+ * read with nobody behind it is answered locally rather than sent to be refused.
+ */
+describe('an identity is minted only by the mode that will use it', () => {
+  const ME_BODY = {
+    subject: 'whoever',
+    anonymous: false,
+    plan: 'free',
+    consent_tier: 'un_elevated',
+    budget: { turns: { limit: 40, used: 1, remaining: 39 }, generations: {}, reset_at: null },
+    allowance: {},
+  };
+  const serve = (calls: { url: string; auth: string | null; dev: string | null }[]) => {
+    globalThis.fetch = ((url: string | URL | Request, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      calls.push({
+        url: String(url),
+        auth: headers.get('authorization'),
+        dev: headers.get('x-wobo-dev-subject'),
+      });
+      if (String(url).endsWith(DOORS_PATH)) {
+        return Promise.resolve(Response.json({ [DOORS_KEY]: true }));
+      }
+      if (String(url).endsWith('/auth/v1/signup')) {
+        return Promise.resolve(
+          Response.json({ code: 422, error_code: 'anonymous_provider_disabled' }, { status: 422 }),
+        );
+      }
+      if (String(url).endsWith('/v1/me')) {
+        // The brain under DEV_AUTH: a dev subject is a learner, nobody at all is a 401.
+        if (!headers.get('authorization') && !headers.get('x-wobo-dev-subject')) {
+          return Promise.resolve(
+            Response.json({ code: 'sign_in_required', message: 'sign in' }, { status: 401 }),
+          );
+        }
+        return Promise.resolve(Response.json(ME_BODY));
+      }
+      return Promise.resolve(
+        Response.json({ capability: 'wobo.turn', output: {}, track: 'track_2', cache_hit: false }),
+      );
+    }) as typeof fetch;
+  };
+  const keyed = {
+    llmMode: 'live' as const,
+    gatewayUrl: 'https://brain.test',
+    supabaseUrl: 'https://project.supabase.co',
+    supabaseAnonKey: 'sb_publishable_test',
+  };
+
+  it('dev-mock mode never knocks on the auth server, and names the dev subject on every call', async () => {
+    const calls: { url: string; auth: string | null; dev: string | null }[] = [];
+    serve(calls);
+    const sdk = createSdk(keyed); // devAuth is the default, exactly as a dev browser with keys
+    expect(sdk.config.devAuth).toBe(true);
+
+    await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
+    const me = await sdk.me();
+
+    expect(calls.filter((c) => c.url.endsWith('/auth/v1/signup'))).toHaveLength(0);
+    expect(calls.filter((c) => c.url.endsWith(DOORS_PATH))).toHaveLength(0);
+    const brain = calls.filter((c) => c.url.startsWith('https://brain.test'));
+    expect(brain.length).toBeGreaterThanOrEqual(2);
+    for (const c of brain) {
+      expect(c.dev).toBe(sdk.config.mockSubjectId);
+      expect(c.auth).toBeNull();
+    }
+    expect(me?.plan).toBe('free');
+    expect(await sdk.account?.ensureSession()).toBeNull();
+  });
+
+  it('a session the learner made on purpose still rides as the bearer in dev-mock mode', async () => {
+    const storage = new MapKV();
+    storage.setItem(
+      AUTH_SESSION_KEY,
+      JSON.stringify({
+        access_token: fakeJwt('google-subject'),
+        refresh_token: 'r-google',
+        expires_at: Math.floor(Date.now() / 1000) + 3600,
+        subject_id: 'google-subject',
+      }),
+    );
+    (globalThis as { localStorage?: KVStorage }).localStorage = storage;
+    try {
+      const calls: { url: string; auth: string | null; dev: string | null }[] = [];
+      serve(calls);
+      const sdk = createSdk(keyed);
+      await sdk.llm.invoke('wobo.turn', { context: {} }, { consentTier: 'un_elevated' });
+      const turn = calls.find((c) => c.url.includes('/v1/capability/'));
+      expect(turn?.auth).toBe(`Bearer ${fakeJwt('google-subject')}`);
+      expect(calls.filter((c) => c.url.endsWith('/auth/v1/signup'))).toHaveLength(0);
+    } finally {
+      (globalThis as { localStorage?: KVStorage }).localStorage = undefined;
+    }
+  });
+
+  it('live mode, refused: the budget read is answered locally, never sent to be refused', async () => {
+    const calls: { url: string; auth: string | null; dev: string | null }[] = [];
+    serve(calls);
+    const sdk = createSdk({ ...keyed, devAuth: false });
+
+    expect(await sdk.me()).toBeNull();
+    expect(await sdk.me()).toBeNull();
+
+    expect(calls.filter((c) => c.url.endsWith('/auth/v1/signup'))).toHaveLength(1);
+    expect(calls.filter((c) => c.url.endsWith('/v1/me'))).toHaveLength(0);
   });
 });

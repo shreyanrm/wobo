@@ -116,8 +116,11 @@ _STORE_MAX = 20_000
 #: each call to a paisa would round a whole free day down to nothing. The rate is applied once,
 #: at read time, so a rate changed at noon prices the whole of that day consistently.
 _spent_usd: dict[tuple[str, str], float] = {}
-#: The zone a device told us, with the local day it told us on: the FIRST one of the day stands.
-_zones: dict[str, tuple[str, str]] = {}
+#: The zone a device told us, with the UTC instant that zone's own day ends: the FIRST one of the
+#: day stands, and it stands until midnight IN IT — not until midnight in whatever zone the next
+#: request happens to claim. Holding the boundary as an instant is what makes the rule independent
+#: of the hour the server is asked at, and makes the steady-state check one comparison.
+_zones: dict[str, tuple[str, datetime]] = {}
 _lock = threading.Lock()
 
 _zone_resolver: Callable[[str], str | None] | None = None
@@ -232,20 +235,27 @@ def note_zone(meter_key: str, name: str | None) -> None:
     A learner whose device changes zone mid-day (a flight, or a client sending whatever it likes)
     must not get a second midnight out of it: the zone is fixed for the day it was first sent on,
     and a new one is taken at the next local midnight. Nonsense is dropped, not believed.
+
+    THE DAY BELONGS TO THE ZONE THAT WAS HELD. Asking whether the held day is over in the zone
+    being offered is not the same question and does not have the same answer: Kolkata and New York
+    agree on today's date only between 04:00 and 18:30 UTC, so a rule written that way retires the
+    held zone every night and keeps it every afternoon. Two zones more than 24 hours apart —
+    Kiritimati and Midway — never agree at all, and it retires the held zone always. The boundary
+    is therefore taken once, as an instant, in the zone that won.
     """
     if not meter_key or not _is_learner(meter_key):
         return
     zone = _zone(name)
     if zone is None:
         return
-    today = datetime.now(UTC).astimezone(zone).date().isoformat()
+    now = datetime.now(UTC)
     with _lock:
         held = _zones.get(meter_key)
-        if held is not None and held[1] == today:
+        if held is not None and now < held[1]:
             return
         if len(_zones) >= _STORE_MAX:
             _zones.clear()
-        _zones[meter_key] = (name.strip(), today)
+        _zones[meter_key] = (name.strip(), _next_local_midnight(zone, now).astimezone(UTC))
 
 
 def _family_zone(meter_key: str) -> str | None:
@@ -307,11 +317,15 @@ def local_day(meter_key: str, now: datetime | None = None) -> date:
     return moment.astimezone(_tz(meter_key)).date()
 
 
+def _next_local_midnight(zone: ZoneInfo, moment: datetime) -> datetime:
+    """The first instant of the next day in ``zone``. The one place a day boundary is computed."""
+    local = moment.astimezone(zone)
+    return datetime.combine(local.date() + timedelta(days=1), datetime.min.time(), tzinfo=zone)
+
+
 def resets_at(meter_key: str, now: datetime | None = None) -> datetime:
     """The next local midnight — when the day starts again. No carry-forward, ever."""
-    zone = _tz(meter_key)
-    local = (now or datetime.now(UTC)).astimezone(UTC).astimezone(zone)
-    return datetime.combine(local.date() + timedelta(days=1), datetime.min.time(), tzinfo=zone)
+    return _next_local_midnight(_tz(meter_key), (now or datetime.now(UTC)).astimezone(UTC))
 
 
 def _is_learner(meter_key: str) -> bool:

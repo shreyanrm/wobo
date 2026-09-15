@@ -278,8 +278,55 @@ describe('the confirm step is whole on the glass (INK-FOUR, craft and experience
     expect(SCREEN).toContain('scroller.style.overflowY = scrolledBefore');
   });
 
+  /**
+   * ONCE WOBO IS ANSWERING, THE PANE IS THE PAGE AND THE SENTENCE (the adversary, wave 60, the
+   * doubt turn at 390; docs/INK-FOUR.md, craft and experience).
+   *
+   * The judge measured the same budget failing both laws at once: the photo held to 26vh of the
+   * VIEWPORT came out 164 px wide with 8.8 px rows, so the cross the pen sizes to the row's band
+   * was 9x9, and the card under it clipped the caption three lines into five. The rendered proof
+   * is `tests/doubt-explained.spec.ts`, which measures the mark, the rows and the caption's last
+   * line in one run at both widths. These are the two things that file cannot see: that the cap
+   * is read off the MEASURED pane rather than the viewport, so it cannot be right at 844 and
+   * wrong at 740, and that the whole block is the phone's.
+   */
+  it('the explain steps give the photo half the pane and keep the sentence whole', () => {
+    // the phone's block, and only the phone's: the laptop keeps what it was judged a 4 on
+    const phone = CSS.slice(
+      CSS.indexOf('@media (max-width:900px){\n  .db-grid{height:var(--db-pane'),
+    );
+    expect(phone).toContain('.db-grid:has(.db-said)');
+    expect(CSS.slice(0, CSS.indexOf('.db-grid:has(.db-said)'))).toContain(
+      '@media (max-width:900px){',
+    );
+    // sized against the measured pane, never against the viewport, and never so much that the
+    // caption loses a line: the reserve is what binds first on a shorter phone
+    expect(packed(CSS)).toContain(
+      packed(
+        '.db-grid:has(.db-said) > .db-stage > .db-photo{--db-photo-vh:max(26vh,min(calc(var(--db-pane,60vh) * .53),calc(var(--db-pane,60vh) - 288px)))}',
+      ),
+    );
+    // and the room comes from what the step no longer needs: tools that turn and retake a photo
+    // already explained, and the page's own words set a second time under the photo they came from
+    expect(packed(CSS)).toContain(
+      packed('.db-grid:has(.db-said) > .db-stage > .db-tools{display:none}'),
+    );
+    expect(packed(CSS)).toContain(
+      packed(
+        '.db-grid:has(.db-said) > .db-read > span,.db-grid:has(.db-said) > .db-read > .db-line{display:none}',
+      ),
+    );
+    // the base rule is untouched: up to the first sentence the confirm step keeps its quarter
+    expect(CSS).toContain('--db-photo-vh:26vh');
+  });
+
   it('the rendered proof measures the step a learner reaches with a photo', () => {
     const spec = read('../../../tests/doubt-confirm.spec.ts');
+    const explained = read('../../../tests/doubt-explained.spec.ts');
+    expect(explained).toContain('MARK_FLOOR_PX = 12');
+    expect(explained).toContain('strayMarks');
+    expect(explained).toContain('size: { width: 390, height: 844 }');
+    expect(explained).toContain('size: { width: 1440, height: 900 }');
     expect(spec).toContain('elementsFromPoint');
     expect(spec).toContain('there is nothing below the fold to reach');
     expect(spec).toContain("{ name: '390', width: 390, height: 844 }");
@@ -385,9 +432,11 @@ describe('the reading follows the words as they are printed', () => {
     const body = SCREEN.slice(SCREEN.indexOf('function followTheCaption('));
     expect(body.slice(0, 1200)).toContain('held');
     // "near the bottom" is what earns the follow: a learner who scrolled up keeps their place.
-    expect(body.slice(0, 1200)).toMatch(/scrollHeight - scroller\.scrollTop - scroller\.clientHeight/);
+    expect(body.slice(0, 1200)).toMatch(
+      /scrollHeight - scroller\.scrollTop - scroller\.clientHeight/,
+    );
   });
-})
+});
 
 /**
  * THE LINE THEY LIT RIDES THE TURN (the adversary, wave 47, finding 4; docs/INK-FOUR.md, timing).
@@ -408,4 +457,4 @@ describe('the lit line is the thing the next question is about', () => {
   it('clears only the focus it set', () => {
     expect(SCREEN).toMatch(/turnFocus\(\)\?\.id === (mine|litFocus\.current)/);
   });
-})
+});

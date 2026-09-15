@@ -54,6 +54,15 @@ export async function gatewayAuthHeaders(): Promise<Record<string, string>> {
   return {};
 }
 
+/**
+ * Whether anybody would be on the next call at all. False only under live auth with nobody
+ * established; a question about the learner asked then is a 401 the client already knows the
+ * answer to, so a caller that can answer locally (`sdk.me`) does, and the wire stays quiet.
+ */
+export async function gatewayIdentityKnown(): Promise<boolean> {
+  return Object.keys(await gatewayAuthHeaders()).length > 0;
+}
+
 /** Sign-in is required (or the session expired). The app routes to Wobo's sign-in beat. */
 export class SignInRequiredError extends Error {
   readonly code = 'sign_in_required';

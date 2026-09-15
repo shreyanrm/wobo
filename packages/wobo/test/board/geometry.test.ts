@@ -7,6 +7,7 @@ import {
   geometryOf,
   LABEL_SIZE,
   MIN_TYPE_PX,
+  NIB_PX,
   typeUnits,
   WRITE_SIZE,
 } from '../../src/board/geometry';
@@ -234,8 +235,14 @@ describe('written objects', () => {
 
   it('a note in free board space is exactly where it was put', () => {
     const g = geometryOf({ id: 'w', kind: 'write', anchor: { board: [40, 90] }, text: 'x' }, ctx());
-    expect(g?.box.x).toBe(40);
-    expect(g?.box.y).toBe(90);
+    // The hand starts writing at the coordinate; the box it reports is the INK, which sits a
+    // glyph's side bearing to the right of the origin (wave 59, `written().ink`).
+    expect(g?.text?.x).toBe(40);
+    expect(g?.box.x).toBeGreaterThanOrEqual(40);
+    expect(g?.box.x).toBeLessThan(40 + WRITE_SIZE * 0.25);
+    expect(g?.text?.y).toBe(90);
+    expect(g?.box.y).toBeGreaterThanOrEqual(90);
+    expect(g?.box.y).toBeLessThan(90 + WRITE_SIZE * 0.5);
   });
 
   it('falls back to plain text when the font never arrived', () => {
@@ -541,5 +548,118 @@ describe('a ring is bounded by the pitch of the rows it sits among', () => {
       ]),
     );
     expect(spaced).toBeCloseTo(alone, 6);
+  });
+});
+
+/**
+ * A MARK IS DRAWN TO THE PITCH OF THE PAGE IT LANDS ON (docs/INK-FOUR.md, craft: "never over the
+ * text it explains"; the adversary, wave 58, the doubt turn at 390).
+ *
+ * The ring learnt this in wave 57. The rest of the row marks had not: an underline dropped five
+ * units under its line with a two-unit dip, a cross went corner to corner through a box padded by
+ * three, a tick stood fourteen tall — a hand's numbers on a card, where a row of text is thirty-six
+ * units from the next. On a photographed exercise book at 390 a line is 6.6 px tall and 13 px from
+ * its neighbours, and the pen is 3 px wide whatever it is over (DESIGN.md: never under 2.5). Live,
+ * the cross on "3x = 20 + 5 ?" painted 19 px of blue over a 6.6 px line: the learner was told
+ * "Not quite" and shown an X where the line it meant used to be.
+ *
+ * The pen does not get thinner — that would trade one law for another. The marks go where a
+ * teacher's pen goes on a small page: the underline in the gutter, the cross and the tick in the
+ * margin beside the line, each sized to the row's own band. Measured here on the INK, nib and all,
+ * not on the layout box.
+ */
+describe('a mark is drawn to the pitch of the rows it lands among', () => {
+  /** Six lines of a photographed page at 390: seven units tall, thirteen apart. */
+  const ROW = { x: 140, y: 129, width: 66, height: 7 };
+  const page: BoardRect[] = [0, 1, 2, 3, 4, 5].map((i) => ({
+    x: 140,
+    y: 116 + i * 13,
+    w: 66,
+    h: 7,
+  }));
+  const glass = frameOf({ x: 0, y: 0, width: 390, height: 844 }, { zoom: 1, scale: 1 });
+  const photo = (over: Partial<Parameters<typeof ctx>[0]> = {}) =>
+    ctx({
+      frame: glass,
+      targetRect: (id: string) => (id === 'row' ? ROW : null),
+      avoid: () => page,
+      ...over,
+    });
+  /** The row's own band: half way to the row above, half way to the row below. */
+  const BAND = { top: ROW.y + ROW.height / 2 - 6.5, bottom: ROW.y + ROW.height / 2 + 6.5 };
+
+  /** Every coordinate in a path — control points included, which bound a quadratic. */
+  const pointsOf = (d: string): [number, number][] => {
+    const nums = d.match(/-?\d+(?:\.\d+)?/g)?.map(Number) ?? [];
+    const out: [number, number][] = [];
+    for (let i = 0; i + 1 < nums.length; i += 2) out.push([nums[i] as number, nums[i + 1] as number]);
+    return out;
+  };
+  /** What the pen paints: the strokes' points, fattened by half the nib each way. */
+  const paint = (object: BoardObject, c: ReturnType<typeof ctx>) => {
+    const g = geometryOf(object, c);
+    if (!g) throw new Error('no geometry');
+    const pts = g.strokes.flatMap((s) => pointsOf(s.d));
+    const half = NIB_PX / 2;
+    return {
+      strokes: g.strokes.length,
+      left: Math.min(...pts.map((p) => p[0])) - half,
+      right: Math.max(...pts.map((p) => p[0])) + half,
+      top: Math.min(...pts.map((p) => p[1])) - half,
+      bottom: Math.max(...pts.map((p) => p[1])) + half,
+    };
+  };
+
+  it('an underline sits in the gutter under its line and never reaches the row below', () => {
+    const ink = paint({ id: 'u', kind: 'underline', anchor: { target: 'row' } }, photo());
+    expect(ink.top).toBeGreaterThanOrEqual(ROW.y + ROW.height);
+    expect(ink.bottom).toBeLessThanOrEqual(ROW.y + 13);
+  });
+
+  it('a cross on a photographed line goes beside it, in the margin, never over the words', () => {
+    const ink = paint({ id: 'x', kind: 'cross', anchor: { target: 'row' } }, photo());
+    expect(ink.strokes).toBe(2);
+    // clear of the words it is about, and within the reach law of them
+    expect(ink.left).toBeGreaterThan(ROW.x + ROW.width);
+    expect(ink.left - (ROW.x + ROW.width)).toBeLessThanOrEqual(24);
+    // inside its own row's band: the rows either side stay clean
+    expect(ink.top).toBeGreaterThanOrEqual(BAND.top);
+    expect(ink.bottom).toBeLessThanOrEqual(BAND.bottom);
+    // and still a cross, not a blob: taller than two nibs
+    expect(ink.bottom - ink.top).toBeGreaterThanOrEqual(NIB_PX * 3);
+  });
+
+  it('a tick beside a photographed line stays within its row', () => {
+    const ink = paint({ id: 't', kind: 'tick', anchor: { target: 'row' } }, photo());
+    expect(ink.left).toBeGreaterThan(ROW.x + ROW.width);
+    expect(ink.top).toBeGreaterThanOrEqual(BAND.top);
+    expect(ink.bottom).toBeLessThanOrEqual(BAND.bottom);
+  });
+
+  it('a thing too small to cross gets its cross beside it even with no rows known', () => {
+    const ink = paint(
+      { id: 'x', kind: 'cross', anchor: { target: 'row' } },
+      ctx({ frame: glass, targetRect: (id: string) => (id === 'row' ? ROW : null) }),
+    );
+    expect(ink.left).toBeGreaterThan(ROW.x + ROW.width);
+    expect(ink.bottom - ink.top).toBeGreaterThanOrEqual(NIB_PX * 3);
+  });
+
+  it('a cross through a thing tall enough to cross (eight nibs or more) is the cross it always was', () => {
+    // the card's 120 x 40 target on a 1000-unit board: the pen crosses it corner to corner
+    const ink = paint({ id: 'x', kind: 'cross', anchor: { target: 'btn' } }, ctx());
+    expect(ink.strokes).toBe(2);
+    expect(ink.left).toBeLessThan(TARGET.x + 4);
+    expect(ink.right).toBeGreaterThan(TARGET.x + TARGET.width - 4);
+    expect(ink.top).toBeLessThan(TARGET.y + 4);
+    expect(ink.bottom).toBeGreaterThan(TARGET.y + TARGET.height - 4);
+  });
+
+  it('an underline on a card keeps the hand’s own drop', () => {
+    const g = geometryOf({ id: 'u', kind: 'underline', anchor: { target: 'btn' } }, ctx());
+    const ys = g ? g.strokes.flatMap((s) => pointsOf(s.d)).map((p) => p[1]) : [];
+    // five under the box, with its dip: the card's numbers, unchanged
+    expect(Math.min(...ys)).toBeGreaterThanOrEqual(TARGET.y + TARGET.height + 3);
+    expect(Math.max(...ys)).toBeLessThanOrEqual(TARGET.y + TARGET.height + 9);
   });
 });

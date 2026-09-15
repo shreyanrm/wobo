@@ -256,3 +256,32 @@ otherwise spin:**
    something true and stops.
 4. **Reduced motion is a still with the spark**, everywhere, without exception.
 5. **A move is never decoration.** If a screen is fine without it, it does not get one.
+
+## The movie poster (owner, 2026-09-15)
+
+The owner forwarded a Brilliant mail and called it "pretty cool marketing". What it does, exactly:
+the subject is a one-word blurb in quotes with a rocket ("Action-packed!"); the body opens with a
+second blurb in quotes ("Unforgettable!") over five stars; under it one flat drawing (a balance with
+a weight on one pan and planets on the other, for a course on equations); then one sentence that
+turns the joke over: "That's what would be on the movie poster for our new Solving Equations course.
+Try it now." One button: "Check it out". Nothing else. Sixty words.
+
+What to take from it, as law for our own mails:
+
+1. **One conceit per mail, carried all the way.** The blurb, the stars, the drawing and the one
+   sentence are one idea (a course reviewed like a film). Our mails get one conceit each, and it is
+   drawn from the concept the mail is about, never bolted on.
+2. **The drawing is the concept, not decoration.** A balance for equations. Ours come from the board
+   pipeline: the figure the tutor would draw for that chapter, in our own hand (docs/BOARD.md), never
+   a stock illustration.
+3. **The joke is honest.** The "review" is plainly a joke about a poster; no invented reviewer, no
+   invented rating, nothing docs/CLAIMS.md would refuse. We may play, we may not pretend.
+4. **Short, and one button.** Under eighty words a person reads; one button that says what happens.
+   The inbox law (docs/MAIL-PRIMARY.md) still governs: a text part, the reason they are receiving
+   it, the unsubscribe, no tracking pixel.
+5. **The voice stays ours.** Brilliant's register is arch; ours is warm and plain (docs/copy/voice.md).
+   The same shape, our words: "Tonight's chapter, if it had a poster" is closer than "Unforgettable!".
+
+The five nudge mails (section 1) and the course-ready mail are the first to be written in this shape,
+with one drawn figure each from the board pipeline. The reference screenshot is in the owner's
+downloads folder (2026-09-15, 11:34); the description above is complete enough to work from.

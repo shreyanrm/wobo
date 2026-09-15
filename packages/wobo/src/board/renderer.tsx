@@ -55,7 +55,9 @@ import {
   geometryOf,
   inkBoxOf,
   MIN_TYPE_PX,
+  NIB_PX as GEOMETRY_NIB_PX,
   type ObjectGeometry,
+  seeksRoom,
   tallestGlyphUnits,
   TYPE_AIM,
 } from './geometry';
@@ -104,6 +106,12 @@ import { boardStatesAt } from './timeline';
 export interface BoardTarget {
   id: string;
   getRect: () => DOMRect | null;
+  /**
+   * WHAT THE INK LANDS ON. A photographed page is white paper in both themes, so a mark on one of
+   * its lines is painted with the paper ink whatever the theme — chalk on a photograph is invisible
+   * (wave 59, the doubt turn in the night theme). Unset: the app's own surface, which inverts.
+   */
+  ground?: 'paper';
 }
 
 /** A region the learner drew or selected, which Wobo's next turn can anchor to. */
@@ -138,6 +146,7 @@ const BOARD_CSS = `
   --wobo-ink-opacity:1;
 }
 [data-theme="dark"] .wobo-board{ --wobo-ink-opacity:.86; }
+.wobo-board [data-wobo-ground="paper"]{--wobo-ink:#0D0D10;--wobo-learner:#6E6E76;--wobo-faint:#72727C}
 .wobo-board svg{display:block;overflow:visible}
 .wobo-board .wobo-stroke{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .wobo-board .wobo-hit{fill:transparent;outline:none}
@@ -267,6 +276,8 @@ interface NodeProps {
   on?: string;
   /** The type size, in board units, when this mark is WRITING rather than drawing. */
   written?: number;
+  /** The ground under the mark, when it is paper: the tree carries it so one CSS rule can see it. */
+  ground?: 'paper';
 }
 
 /** Progress within one stroke of an object, given the object's own 0..1. */
@@ -431,6 +442,11 @@ const BoardObjectNode = memo(function BoardObjectNode(props: NodeProps) {
        * the product reads it.
        */
       {...(props.written !== undefined ? { 'data-wobo-written': String(props.written) } : {})}
+      /**
+       * AND WHAT IT IS ON. The ink token inverts with the theme; a photographed page does not.
+       * `BOARD_CSS` gives a paper ground the paper ink in both themes (`BoardTarget.ground`).
+       */
+      {...(props.ground ? { 'data-wobo-ground': props.ground } : {})}
       opacity={opacity}
       {...(props.ariaLabel ? { 'aria-label': props.ariaLabel } : {})}
     >
@@ -583,6 +599,8 @@ export interface Built {
    * on the frame the rect went or floating somewhere else.
    */
   gone: boolean;
+  /** The ground under this mark, from its target or from the mark it hangs off (`BoardTarget`). */
+  ground?: 'paper';
 }
 
 const NO_BUILD: Built[] = [];
@@ -676,6 +694,12 @@ export function dependencyOrder(
     done.add(id);
     out.push(state);
   };
+  // WHATEVER IS FIXED BY ITS ANCHOR FIRST, then whatever looks for room (`geometry.seeksRoom`).
+  // A label chooses its spot clear of what is already built, so everything that goes exactly
+  // where the plan put it — a point, a line, an axis — has to be there to be seen, whatever order
+  // the plan beat them in. Measured on the timeline at 390 (wave 58): 'Non-Cooperation begins'
+  // chose its spot before the tick for 1922 was built, and that tick was drawn through it.
+  for (const s of states) if (!seeksRoom(String(s.object.kind))) visit(s);
   for (const s of states) visit(s);
   return out;
 }
@@ -777,6 +801,8 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
         }
       : {}),
   };
+  /** Everything built so far, by id — read by `resolve` for the ground a mark inherits. */
+  const done = new Map<string, Built>();
   const resolve = (state: BoardObjectState): Built => {
     const anchor = store.anchorOf(state);
     const key = state.object.id;
@@ -788,6 +814,14 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
       const rect = 'target' in anchor ? ctx.targetRect(anchor.target) : ctx.focusRect(anchor.focus);
       gone = rect === null || (onGlass && offGlass(rect, frame));
     }
+    // The ground: the target's own, or that of the mark this one hangs off (one hop, which is
+    // enough because that mark's answer already includes its own hop).
+    const ground =
+      anchor && 'target' in anchor
+        ? targetMap.get(anchor.target)?.ground
+        : anchor && 'object' in anchor
+          ? done.get(anchor.object)?.ground
+          : undefined;
     if (gone && hit?.geometry) {
       return {
         state,
@@ -796,6 +830,7 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
         slots: hit.slots,
         sig: hit.sig,
         gone: true,
+        ...(ground ? { ground } : {}),
       };
     }
     const sigBox = anchor ? resolveAnchorBox(anchor, ctx) : null;
@@ -845,11 +880,11 @@ export function buildObjects(states: readonly BoardObjectState[], build: BuildCo
       slots: entry.slots,
       sig: entry.sig,
       gone,
+      ...(ground ? { ground } : {}),
     };
   };
 
   const order = dependencyOrder(states, store);
-  const done = new Map<string, Built>();
   for (const state of order) done.set(state.object.id, resolve(state));
   /**
    * THE SECOND PASS. Dependency order settles everything that can be settled in one sweep, but a
@@ -1197,7 +1232,9 @@ function inkNode(
   // reader's own cursor meets each object where it is, and every one of them says what it is. The
   // words win where an object has its own; a shape describes itself. (No look-up here: a node in
   // the tree is read on its own, so it says what it IS rather than what it is about.)
-  const ariaLabel = geometry.text ? geometry.text.lines.join(' ') : describe(b.state.object);
+  const ariaLabel = geometry.text
+    ? geometry.text.lines.join(' ')
+    : describe(b.state.object, undefined, { beside: geometry.beside === true });
   const anchor = (b.state.object as { anchor?: { target?: unknown; object?: unknown } }).anchor;
   const anchored = anchor?.target;
   const on = anchor?.object;
@@ -1208,6 +1245,7 @@ function inkNode(
       {...(typeof anchored === 'string' && anchored ? { anchor: anchored } : {})}
       {...(typeof on === 'string' && on ? { on } : {})}
       {...(geometry.text && geometry.size !== undefined ? { written: geometry.size } : {})}
+      {...(b.ground ? { ground: b.ground } : {})}
       geometry={geometry}
       ink={ink}
       weight={style?.weight ?? 1}
@@ -1286,13 +1324,12 @@ export interface BoardSurfaceProps {
 const noTargets = (): readonly BoardTarget[] => [];
 const noFocus = (): readonly { id: string; rect: RectLike | (() => RectLike | null) }[] => [];
 
-/** Base nib width in CSS px. Non-scaling, so zoom never fattens the pen. */
 /**
- * The nib, in screen px. DESIGN.md: ink is 3–4px and never under 2.5, on either theme — a board is
- * the boldest ink in the product, so it sits at the bottom of that range and the night theme reads
- * the same number rather than a heavier one of its own.
+ * The nib, in screen px — `geometry.ts`'s one number, because the hand has to know how fat the pen
+ * is to keep a mark off the words it names. Non-scaling, so zoom never fattens the pen, and the
+ * night theme reads the same number rather than a heavier one of its own.
  */
-const NIB_PX = 3;
+const NIB_PX = GEOMETRY_NIB_PX;
 
 /** How far one arrow press moves the keyboard's pen, in board units. */
 const CARET_STEP_UNITS = 16;
@@ -1311,8 +1348,12 @@ function boardHeightOf(frame: BoardFrame): number {
  * the whole argument and every sentence; this is the seam the surface calls, and it hands the
  * store's own `get` through so a mark can name the thing it is about.
  */
-export function spokenLabel(object: BoardObject, look?: LookUp): string {
-  return describe(object, look);
+export function spokenLabel(
+  object: BoardObject,
+  look?: LookUp,
+  placed?: { beside?: boolean },
+): string {
+  return describe(object, look, placed);
 }
 
 /**
@@ -1395,7 +1436,9 @@ export function BoardSurface(props: BoardSurfaceProps) {
       announced.current.add(key);
       // `store.get` is handed in so a mark can say what it is about: "a line under c² = 25"
       // rather than "a line underneath", which is the difference between a fact and an explanation.
-      const said = spokenLabel(state.object, (id) => store.get(id)?.object);
+      const said = spokenLabel(state.object, (id) => store.get(id)?.object, {
+        beside: cache.current.get(state.object.id)?.geometry?.beside === true,
+      });
       if (said) fresh.push(said);
     }
     if (announced.current.size > RENDER_BUDGET * 2) announced.current.clear();

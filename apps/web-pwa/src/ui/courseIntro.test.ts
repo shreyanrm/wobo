@@ -11,11 +11,14 @@ import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  ART_FRAME_W,
   ART_INK,
   ART_THIN,
   ART_VIEWBOX,
   artForSubject,
   artForTopic,
+  gripOf,
+  inkWidth,
   SUBJECT_ART,
   type SubjectArtKey,
 } from './courseIntro';
@@ -171,5 +174,135 @@ describe('the square on the hypotenuse is a square', () => {
     const mark = points(pathOf('right angle'))[0] as [number, number];
     expect(mark[0]).toBe(corner[0]);
     expect(Math.abs(mark[1] - corner[1])).toBeLessThanOrEqual(16);
+  });
+});
+
+/**
+ * THE SIDE ITSELF (the adversary, wave 58, finding 1; INK-FOUR relevance: "a question that names
+ * a part gets the part, not its figure"). Live at 1440 and at 390, "circle the hypotenuse" rang
+ * the SQUARE ON the hypotenuse, because the drawing declared the triangle, the right angle, the
+ * square and c² — and never the side. The prototype-verbatim law above forbids a new stroke, so
+ * the side is declared as a place with no ink of its own: the edge the triangle already draws,
+ * from B to C, named so the glass map can hand it to Wobo.
+ */
+describe('the mathematics drawing names its hypotenuse', () => {
+  const marks = SUBJECT_ART.mathematics.marks;
+  const side = marks.find((m) => m.part === 'hypotenuse');
+
+  it('declares the side by name', () => {
+    expect(side).toBeDefined();
+    expect(side?.el).toBe('side');
+  });
+
+  it('and the side is the triangle’s own edge, B to C, with no ink of its own', () => {
+    if (side?.el !== 'side') throw new Error('no side');
+    // The triangle is M46 124 L106 124 L46 79 Z: the right angle at A(46,124), B(106,124), C(46,79).
+    expect([side.x1, side.y1, side.x2, side.y2]).toEqual([106, 124, 46, 79]);
+    expect('ink' in side).toBe(false);
+  });
+});
+
+/**
+ * A RING ON THE SIDE IS NOT A RING ON THE FIGURE (the judge, wave 60; INK-FOUR relevance, "a
+ * question that names a part gets the part, not its figure"; craft, "a ring that fits its subject").
+ *
+ * Measured on the app's own arrival card before this test was written: the glass gave
+ * `course-intro-mathematics.hypotenuse` the box [131,261,71,54] at 390 and [547,369,126,95] at
+ * 1440 — the same box, to the pixel, as `...triangle` — and the ring the screen store painted on
+ * it held all THREE of the triangle's corners at every one of 390 light, 390 dark, 390 reduced,
+ * 1440 light and 1440 dark. That is arithmetic, not a bug in the pen: the hypotenuse of a right
+ * triangle whose legs lie along its box's edges runs corner to corner of that box, so a box around
+ * the whole of it IS the figure. The declaration therefore names the stretch a mark lands on.
+ *
+ * The clearances below are stated in the frame's units and hold at both widths: the drawing is one
+ * frame scaled whole, so a stretch clear of the legs in frame units is clear of them everywhere.
+ */
+describe('the stretch of the hypotenuse a mark lands on', () => {
+  const marks = SUBJECT_ART.mathematics.marks;
+  const side = marks.find((m) => m.part === 'hypotenuse');
+  if (side?.el !== 'side') throw new Error('no side');
+  const grip = gripOf(side);
+  const box = {
+    x: Math.min(grip.x1, grip.x2),
+    y: Math.min(grip.y1, grip.y2),
+    w: Math.abs(grip.x2 - grip.x1),
+    h: Math.abs(grip.y2 - grip.y1),
+  };
+  /** A(46,124) is the right angle, B(106,124) and C(46,79) are the hypotenuse's own ends. */
+  const CORNERS: [number, number][] = [
+    [46, 124],
+    [106, 124],
+    [46, 79],
+  ];
+
+  it('is on the side, centred on its midpoint', () => {
+    expect(grip.x1 + (grip.x2 - grip.x1) / 2).toBeCloseTo((side.x1 + side.x2) / 2, 6);
+    expect(grip.y1 + (grip.y2 - grip.y1) / 2).toBeCloseTo((side.y1 + side.y2) / 2, 6);
+    // every point of the grip is a point of the side: same direction, inside its ends
+    const t = (px: number) => (px - side.x1) / (side.x2 - side.x1);
+    for (const p of [
+      [grip.x1, grip.y1],
+      [grip.x2, grip.y2],
+    ] as [number, number][]) {
+      const at = t(p[0]);
+      expect(at).toBeGreaterThan(0);
+      expect(at).toBeLessThan(1);
+      expect(side.y1 + (side.y2 - side.y1) * at).toBeCloseTo(p[1], 6);
+    }
+  });
+
+  it('holds no corner of the triangle, so a ring on it is not a ring on the figure', () => {
+    for (const [x, y] of CORNERS) {
+      const held = x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
+      expect(held, `corner ${x},${y}`).toBe(false);
+    }
+  });
+
+  it('keeps clear air between itself and both legs', () => {
+    // leg A-B lies along y = 124, leg A-C along x = 46: the grip's box stands off both.
+    expect(124 - (box.y + box.h)).toBeGreaterThanOrEqual(9);
+    expect(box.x - 46).toBeGreaterThanOrEqual(9);
+  });
+
+  it('and is still a box the glass can measure at the narrowest width it is drawn at', () => {
+    // 390 puts the frame on the glass at 1.19 px per unit (measured); the reader drops a part
+    // under three pixels in either direction (glass/read.ts, MIN_PX).
+    const k = 1.19;
+    expect(box.w * k).toBeGreaterThan(3);
+    expect(box.h * k).toBeGreaterThan(3);
+  });
+});
+
+/**
+ * THE WHOLE STROKE, AT FOUR SCREEN PIXELS (the judge, wave 60: "the square on the hypotenuse with
+ * only two sides at the end frame").
+ *
+ * Measured on the arrival card before the fix: `vector-effect: non-scaling-stroke` beside framer's
+ * `pathLength` draw-on left the square painting 220.5 px of its 630 (k = 2.10 at 1440) and 125.0 of
+ * 357 (k = 1.19 at 390) — half the square, a triangle with no vertical leg, a right angle with no
+ * corner. The weight is held by division now, so the dash has nothing to misread.
+ */
+describe('the ink is in screen pixels', () => {
+  const widths = [
+    { width: 420, k: 420 / ART_FRAME_W },
+    { width: 238, k: 238 / ART_FRAME_W },
+  ];
+
+  it('an ink stroke paints ART_INK on the glass at every scale', () => {
+    for (const { k } of widths) expect(inkWidth('ink', k) * k).toBeCloseTo(ART_INK, 6);
+  });
+
+  it('a thin stroke paints ART_THIN on the glass at every scale', () => {
+    for (const { k } of widths) {
+      expect(inkWidth('thin', k) * k).toBeCloseTo(ART_THIN, 6);
+      expect(inkWidth('accent-thin', k) * k).toBeCloseTo(ART_THIN, 6);
+    }
+  });
+
+  it('and an unmeasured frame still draws, at the weight it was written in', () => {
+    for (const k of [0, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(inkWidth('ink', k)).toBe(ART_INK);
+      expect(inkWidth('accent', k)).toBe(ART_INK);
+    }
   });
 });

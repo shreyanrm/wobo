@@ -40,9 +40,11 @@ import {
   placeLabel,
   placeLabelAt,
   placeNote,
-
+  AIR_HEADROOM,
+  boxGap,
   solveWritten,
   type WrittenFit,
+  type WrittenSolve,
 } from './layout';
 import { fillStroke, penRng, penStroke, polylineLength, ruledStroke, type Stroke } from './pen';
 import { type AnchorAt, BOARD_UNITS, type BoardObject, type BoardPoint } from './schema';
@@ -70,6 +72,11 @@ export interface ObjectGeometry {
   box: BoardRect;
   /** Total pen travel in board units — the object's own clock. */
   length: number;
+  /**
+   * This mark was placed BESIDE its subject rather than through it — a cross in the margin against
+   * a line the pen could not cross without covering it. The spoken label says so.
+   */
+  beside?: boolean;
 }
 
 const empty = (box: BoardRect): ObjectGeometry => ({ strokes: [], glyphs: [], box, length: 0 });
@@ -427,17 +434,50 @@ function unit(from: BoardPoint, to: BoardPoint): BoardPoint {
  * was asked for and nothing changes.
  */
 function rowRoom(ctx: BuildContext, box: BoardRect, want: number): number {
-  if (!ctx.avoid) return want;
+  const room = rowClearance(ctx, box);
+  if (room === null) return want;
+  return Math.max(3, Math.min(want, room));
+}
+
+/**
+ * THE CLEAR AIR ABOVE AND BELOW A ROW, in units: half the way to the nearest neighbouring row's
+ * centre, less the row's own half-height — the gutter between this line and the next, halved.
+ * Null where no row is near (a card, a figure built from scratch, a glass with no lines read), and
+ * the caller then keeps the hand's own number.
+ */
+function rowClearance(ctx: BuildContext, box: BoardRect): number | null {
+  if (!ctx.avoid) return null;
   const cy = box.y + box.h / 2;
-  const near = ctx.avoid(padBox(box, Math.max(want, 12) * 3));
-  let room = want;
+  const near = ctx.avoid(padBox(box, Math.max(box.h * 3, 36)));
+  let room: number | null = null;
   for (const other of near) {
     const oy = other.y + other.h / 2;
     // The row being marked is not its own neighbour.
     if (Math.abs(oy - cy) <= box.h / 2 + 0.5) continue;
-    room = Math.min(room, Math.abs(oy - cy) / 2 - box.h / 2);
+    const r = Math.abs(oy - cy) / 2 - box.h / 2;
+    room = room === null ? r : Math.min(room, r);
   }
-  return Math.max(3, Math.min(want, room));
+  return room;
+}
+
+/**
+ * THE NIB IN BOARD UNITS ON THIS BOARD — `NIB_PX`, converted by `glassScale` like the reach and
+ * the air. The hand lays out centrelines; the learner sees them half a nib fatter each way, and a
+ * mark that must stay off the words it names has to know by how much.
+ */
+function nibUnits(ctx: BuildContext): number {
+  const k = ctx.glassScale ?? pxPerUnit(ctx.frame);
+  return k > 0 ? NIB_PX / k : NIB_PX;
+}
+
+/**
+ * THE BAND A ROW OWNS, in units: the row itself plus the clear air above and below it, which is
+ * the pitch of the page where rows are known. Infinite where none are, so a mark on a card keeps
+ * its own size.
+ */
+function rowBand(ctx: BuildContext, box: BoardRect): number {
+  const air = rowClearance(ctx, box);
+  return air === null ? Number.POSITIVE_INFINITY : box.h + air * 2;
 }
 
 /**
@@ -499,7 +539,19 @@ function written(
 ): {
   glyphs: HandGlyph[];
   strokes: Stroke[];
+  /** The LINE box: the origin and the advance the hand laid, leading included. */
   box: BoardRect;
+  /**
+   * THE INK: what the glyphs actually cover (wave 59, the timeline at 390).
+   *
+   * A line box carries the type's leading — '1919' at 45 units reports 81 x 55 and paints
+   * 77 x 27, nine units under its box's top with nineteen of empty leading below — and it is
+   * narrower than the ink on the right, because Caveat slants and the last glyph overhangs its own
+   * advance. Every law about a written mark is stated of what a learner sees, so this is the box
+   * a written mark reports, the box the next mark dodges, and the box the reach is measured from.
+   * With no font there is no ink to measure and the line box stands in.
+   */
+  ink: BoardRect;
   lines: string[];
   lineHeight: number;
 } {
@@ -509,35 +561,78 @@ function written(
     const plain = scripted ? scriptText(text) : text;
     const lines = plain.split('\n');
     const approx = Math.max(...lines.map((l) => l.length)) * size * 0.42;
-    return {
-      glyphs: [],
-      strokes: [],
-      box: { x: origin[0], y: origin[1], w: approx, h: lines.length * lineHeight },
-      lines,
-      lineHeight,
-    };
+    const box = { x: origin[0], y: origin[1], w: approx, h: lines.length * lineHeight };
+    return { glyphs: [], strokes: [], box, ink: box, lines, lineHeight };
   }
   if (scripted) {
     const laid = writeScripted(ctx.font, text, origin, size);
+    const box = { x: origin[0], y: origin[1], w: laid.width, h: laid.height };
     return {
       glyphs: laid.glyphs,
       strokes: laid.rules,
-      box: { x: origin[0], y: origin[1], w: laid.width, h: laid.height },
+      box,
+      ink: inkBoxOf({ strokes: laid.rules, glyphs: laid.glyphs, box, length: 0 }),
       lines: [scriptText(text)],
       lineHeight,
     };
   }
   const laid = writeText(ctx.font, text, origin, { size, maxWidth, lineHeight });
+  const box = { x: origin[0], y: origin[1], w: laid.width, h: laid.height };
   return {
     glyphs: laid.glyphs,
     strokes: [],
-    box: { x: origin[0], y: origin[1], w: laid.width, h: laid.height },
+    box,
+    ink: inkBoxOf({ strokes: [], glyphs: laid.glyphs, box, length: 0 }),
     // THE LINES AS WRITTEN, not as asked for. `lines` is what the no-font fallback paints and what
     // the accessible label reads; a note held to a measure that reported itself as one long line
     // told both of them something that is not on the glass.
     lines: wrapText(ctx.font, text, size, maxWidth),
     lineHeight,
   };
+}
+
+/**
+ * A BOX A WRITTEN MARK REPORTED, marked as writing.
+ *
+ * The renderer keeps one flat list of everything already placed, and the air a mark keeps from a
+ * neighbour depends on what the neighbour is: two written marks keep `INK_AIR_PX` so they read as
+ * two, while a mark beside a drawn stroke need only keep a nib clear of it. The box is the ink
+ * (`written().ink`), and the flag rides on the same object the renderer pushes into `occupied`, so
+ * nothing outside this file has to carry a second list.
+ */
+type WrittenBox = BoardRect & { written?: true };
+
+function writtenBox(ink: BoardRect): BoardRect {
+  const box: WrittenBox = { x: ink.x, y: ink.y, w: ink.w, h: ink.h, written: true };
+  return box;
+}
+
+/** Was this box reported by a written mark? False for every drawn kind. */
+export function isWrittenBox(box: BoardRect): boolean {
+  return (box as WrittenBox).written === true;
+}
+
+/**
+ * THE KINDS THAT LOOK FOR ROOM, as against the kinds whose place is fixed by their anchor.
+ *
+ * A label, a number, a note, a tick and a bracket's caption all read what is already on the board
+ * and choose a spot clear of it. A point, a line, an arrow or an axis go exactly where the plan
+ * put them, whatever else is there. So the second kind has to be built before the first, whatever
+ * order they were beaten in: a label that chose its spot before the tick for 1922 existed was
+ * struck through by that tick when it landed (wave 58, the timeline at 390). The renderer's build
+ * order asks this.
+ */
+const ROOM_SEEKING_KINDS: ReadonlySet<string> = new Set([
+  'label',
+  'write',
+  'number',
+  'note',
+  'tick',
+  'bracket',
+]);
+
+export function seeksRoom(kind: string): boolean {
+  return ROOM_SEEKING_KINDS.has(kind);
 }
 
 /**
@@ -557,6 +652,41 @@ function written(
  *
  * The side the anchor named is still the first thing tried, at both margins, before anything else.
  */
+/**
+ * A solved written mark: the fit, in INK, and the origin the hand starts writing at to paint
+ * exactly that ink (`NoteShape.dx`, `dy`).
+ */
+type WrittenPlacement = WrittenFit & { origin: BoardPoint };
+
+/**
+ * THE FOUR THINGS THIS SOLVES THAT ONE-AT-A-TIME PLACEMENT COULD NOT (wave 59, the timeline at
+ * 390 — the adversary: '1919' and '1920' read as '19191920', 'Non-Cooperation begins' written on
+ * the axis and struck through by the tick for 1922, 'Chauri Chaura, called off' stacked three
+ * lines high above the years).
+ *
+ *  1. THE INK, NOT THE LINE BOX. Every candidate is the box the glyphs will cover, and the
+ *     answer is converted back to a writing origin at the end. A number solved to a lawful
+ *     twelve units from its tick used to paint twenty-seven, because its line box carried nine
+ *     units of leading above the digits and nineteen below.
+ *  2. THE AIR, BY CONSTRUCTION. Every other mark is handed to the solver already padded — a
+ *     written neighbour by `INK_AIR_PX`, a drawn one by the nib — so the tightest clearance the
+ *     solver has still cannot bring two marks closer than the law, and no candidate can touch a
+ *     stroke it would then be painted across.
+ *  3. A BLOCK, NOT A TRAIL. When the phrase on one line would run further past the thing it
+ *     names than the reach allows on either side, it is written as a balanced block of two lines
+ *     instead. A one-line 'Jallianwala Bagh massacre' under the first tick of a 260-unit
+ *     timeline ran under all three ticks, and every later event was pushed somewhere wrong. And
+ *     a caption asked for under or over a mark narrower than itself is CENTRED on it — a hand
+ *     centres a caption under a dot and aligns one to the edge of a box.
+ *  4. ONE SIZE FIRST. The mark is solved at the board's size before any smaller one is tried,
+ *     and it is only written smaller when the board's size has no lawful spot at all — so three
+ *     captions in a row come out at one size, not the first at 42 and the second at 24.
+ *  5. THE NAMED SIDE, WHOLE, BEFORE ANY OTHER. The side the anchor named is solved first as the
+ *     band aligned with the subject, then as the row along that side, then as the whole half-
+ *     plane — and only then the other sides (`column`, `row`, `halfPlane`). What is drawn hugging
+ *     that side is part of what the caption sits against (`silhouette`), and the hand's margin
+ *     gives way to the reach when the silhouette has spent most of it.
+ */
 function notePlacement(
   ctx: BuildContext,
   anchorBox: BoardRect,
@@ -574,12 +704,18 @@ function notePlacement(
     /** The subject's INK, which the reach is measured to — see `WrittenSolve.reachTo`. */
     reachTo?: BoardRect;
   },
-): WrittenFit {
+): WrittenPlacement {
   const asked = maxWidth ?? measureOn(ctx.frame);
+  const originFor = (box: BoardRect, s: number, mw: number): BoardPoint => {
+    const shape = noteShape(ctx, text, s, mw);
+    return [box.x - shape.dx, box.y - shape.dy];
+  };
   if (anchorBox.w === 0 && anchorBox.h === 0) {
-    const shape = noteSize(ctx, text, size, asked);
+    // A bare coordinate IS the writing origin: the hand starts there.
+    const shape = noteShape(ctx, text, size, asked);
     return {
-      box: { x: anchorBox.x, y: anchorBox.y, ...shape },
+      box: { x: anchorBox.x + shape.dx, y: anchorBox.y + shape.dy, w: shape.w, h: shape.h },
+      origin: [anchorBox.x, anchorBox.y],
       size,
       maxWidth: asked,
       gap: 0,
@@ -592,10 +728,12 @@ function notePlacement(
    * cell of its own table; there is nothing to solve and nothing to dodge.
    */
   if (Array.isArray(at)) {
-    const placed = placeLabelAt(anchorBox, noteSize(ctx, text, size, asked), at, [], LABEL_MARGIN);
+    const shape = noteShape(ctx, text, size, asked);
+    const placed = placeLabelAt(anchorBox, shape, at, [], LABEL_MARGIN);
     if (placed) {
       return {
         box: placed,
+        origin: originFor(placed, size, asked),
         size,
         maxWidth: asked,
         gap: 0,
@@ -604,23 +742,339 @@ function notePlacement(
       };
     }
   }
-  const occupied = ctx.occupied ?? [];
+  const subjectInk = opts?.reachTo ?? anchorBox;
+  const reach = reachUnits(ctx);
   const floor = typeFloorFor(ctx, text, size);
-  return solveWritten({
-    subject: anchorBox,
-    at: at as Exclude<AnchorAt, readonly number[]> | undefined,
-    measure: (s, mw) => noteSize(ctx, text, s, mw),
-    sizes: sizeLadder(size, floor),
-    maxWidth: asked,
-    occupied,
-    ...(opts?.subjectBox ? { subjectBox: opts.subjectBox } : {}),
-    ...(opts?.reachTo ? { reachTo: opts.reachTo } : {}),
-    area: ctx.area,
-    margin: marginUnits(ctx),
-    reach: reachUnits(ctx),
-    allowInside: opts?.allowInside ?? true,
-    ...(opts?.nudge ? { nudge: opts.nudge } : {}),
-  });
+  const top = Math.max(size, floor);
+  // 3 — a block, not a trail.
+  let measure = asked;
+  const natural = noteShape(ctx, text, top, asked);
+  if (ctx.font && natural.w > subjectInk.w + reach * 2) {
+    const block = balancedMeasure(ctx.font, text, top, 2);
+    if (block !== null) measure = Math.min(asked, block + 0.01);
+  }
+  const shape = noteShape(ctx, text, top, measure);
+  const side: WrittenSolve['at'] =
+    at === 'bottom' && subjectInk.w < shape.w
+      ? 'centerBelow'
+      : at === 'top' && subjectInk.w < shape.w
+        ? 'centerAbove'
+        : (at as Exclude<AnchorAt, readonly number[]> | undefined);
+  // 2 — the air, by construction: the solver keeps `air` from every written neighbour and `nib`
+  //     from every drawn one (`layout.ts`, `judge`), told apart by the flag `writtenBox` set.
+  const air = airUnits(ctx);
+  const nib = nibUnits(ctx);
+  const others = (ctx.occupied ?? []).filter((o) => o !== opts?.subjectBox);
+  // 5 — the named side, whole, before any other: see `silhouette` and `halfPlane`.
+  const named = sideOf(side);
+  const subject = named
+    ? silhouette(
+        anchorBox,
+        named,
+        others.filter((o) => !isWrittenBox(o)).map((o) => padBox(o, nib)),
+        air,
+      )
+    : anchorBox;
+  // A written mark under a written mark keeps the air law from it too: two lines of working
+  // eight pixels apart paint five with the nib, and read as one block.
+  const wanted =
+    opts?.subjectBox && isWrittenBox(opts.subjectBox)
+      ? Math.max(marginUnits(ctx), air)
+      : marginUnits(ctx);
+  /**
+   * THE MARGIN GIVES WAY TO THE REACH. The hand's margin is a preference; twenty-four pixels
+   * from the thing named is the law, and the silhouette can already have spent most of it — on
+   * the timeline the axis and its underline put nineteen units of drawn ink between a tick's tip
+   * and the caption under it, and the hand's ten on top measured 24.6 px on the glass at 1440.
+   * So the margin is what the reach has left after the silhouette, never under a nib.
+   */
+  const spent =
+    named === 'bottom'
+      ? subject.y + subject.h - (subjectInk.y + subjectInk.h)
+      : named === 'top'
+        ? subjectInk.y - subject.y
+        : named === 'right'
+          ? subject.x + subject.w - (subjectInk.x + subjectInk.w)
+          : named === 'left'
+            ? subjectInk.x - subject.x
+            : 0;
+  const margin = Math.max(nib, Math.min(wanted, reach - Math.max(0, spent)));
+  /**
+   * THE BLOCK BEFORE ANY NARROWER SHAPE. The solver tries every shape a phrase can take and
+   * grades a narrower one inside the aim above a wider one inside the law, which on the timeline
+   * at 390 wrote 'Chauri / Chaura, / called / off' four lines high beside its tick when the
+   * two-line block sat lawfully under it. A hand does not stack a caption four high to gain six
+   * pixels. So the first pass holds every shape to the block's measure — the narrower forms only
+   * come into play when no lawful spot takes the block at all.
+   */
+  const solve = (
+    sizes: number[],
+    area?: BoardRect,
+    narrowest = measure,
+    nudge: readonly [number, number] | undefined = opts?.nudge,
+  ): WrittenFit =>
+    solveWritten({
+      subject,
+      at: side,
+      measure: (s, mw) => noteShape(ctx, text, s, Math.max(mw, narrowest)),
+      sizes,
+      maxWidth: measure,
+      occupied: others,
+      ...(opts?.subjectBox ? { subjectBox: opts.subjectBox } : {}),
+      ...(opts?.reachTo ? { reachTo: opts.reachTo } : {}),
+      area: area ?? ctx.area,
+      margin,
+      reach,
+      air,
+      nib,
+      allowInside: opts?.allowInside ?? true,
+      ...(nudge ? { nudge } : {}),
+    });
+  /**
+   * THE LEAST SLIDE ALONG THE ROW THAT CLEARS THE WRITTEN NEIGHBOURS IN IT, as a nudge the solver
+   * tries first. The solver's own sweep samples the band in twelve steps — twenty units at 390 —
+   * so the first clear step past a neighbour can land sixteen units further than it had to, and
+   * on the timeline that cost the third event five pixels of reach. Only written neighbours are
+   * counted; the solver still judges the nudged spot against everything. The slide clears them
+   * by the air the solver AIMS at (`AIR_HEADROOM` over the law), because a spot at exactly the
+   * law is graded below any airier one and would lose to the sweep it was meant to replace.
+   */
+  const rowNudge = (side: NamedSide): readonly [number, number] | undefined => {
+    const clearBy = air * AIR_HEADROOM;
+    const along = side === 'top' || side === 'bottom';
+    const size = along ? shape.w : shape.h;
+    const start = along ? subject.x + subject.w / 2 - size / 2 : subject.y + subject.h / 2 - size / 2;
+    const rowStart = along
+      ? side === 'bottom'
+        ? subject.y + subject.h + margin
+        : subject.y - margin - shape.h
+      : side === 'right'
+        ? subject.x + subject.w + margin
+        : subject.x - margin - shape.w;
+    const rowEnd = rowStart + (along ? shape.h : shape.w);
+    const blockers = others
+      .filter((o) => isWrittenBox(o))
+      .filter((o) =>
+        along
+          ? o.y - clearBy < rowEnd && o.y + o.h + clearBy > rowStart
+          : o.x - clearBy < rowEnd && o.x + o.w + clearBy > rowStart,
+      )
+      .map((o) =>
+        along
+          ? { lo: o.x - clearBy, hi: o.x + o.w + clearBy }
+          : { lo: o.y - clearBy, hi: o.y + o.h + clearBy },
+      );
+    const crowded = (at: number) => blockers.some((b) => b.lo < at + size && b.hi > at);
+    if (!crowded(start)) return undefined;
+    let forward = start;
+    for (let guard = 0; guard < 8 && crowded(forward); guard += 1) {
+      forward = Math.max(...blockers.filter((b) => b.lo < forward + size && b.hi > forward).map((b) => b.hi));
+    }
+    let back = start;
+    for (let guard = 0; guard < 8 && crowded(back); guard += 1) {
+      back = Math.min(...blockers.filter((b) => b.lo < back + size && b.hi > back).map((b) => b.lo)) - size;
+    }
+    const move = Math.abs(forward - start) <= Math.abs(back - start) ? forward - start : back - start;
+    return along ? [move, 0] : [0, move];
+  };
+  /**
+   * LAWFUL, as the solver judges it: within the reach, `air` from every written neighbour, a nib
+   * clear of every drawn one. The solver's last resort is the least-crowded spot, and a staged
+   * search that accepted that from an early stage would accept a collision it had asked for by
+   * narrowing the area — so a stage's answer stands only when it is lawful.
+   */
+  const clear = (f: WrittenFit): boolean => {
+    if (!f.withinReach) return false;
+    const ink = f.ink ?? f.box;
+    return others.every((o) =>
+      isWrittenBox(o) ? boxGap(ink, o) + 1e-9 >= air : !boxesOverlap(padBox(ink, nib), o),
+    );
+  };
+  // 4 — one size first; smaller only when the board's size has no lawful spot.
+  const staged = (sizes: number[], narrowest: number): WrittenFit => {
+    let fit: WrittenFit | null = null;
+    if (named) {
+      const plane = halfPlane(named, subject, ctx.area);
+      // Aligned with the subject first; then its own row along the named side; then anywhere on
+      // that side. The row keeps three captions on one axis on one line — without it the third,
+      // whose aligned band is full, took a right-hand sweep slid under the axis and sat four
+      // pixels lower than its neighbours.
+      fit = solve(sizes, column(named, subject, shape, reach, plane), narrowest);
+      if (!clear(fit)) {
+        fit = solve(sizes, row(named, shape, wanted, plane), narrowest, rowNudge(named));
+      }
+      if (!clear(fit)) fit = solve(sizes, plane, narrowest);
+    }
+    return fit && clear(fit) ? fit : solve(sizes, undefined, narrowest);
+  };
+  let fit = staged([top], measure);
+  if (!clear(fit)) {
+    const narrower = staged([top], 0);
+    if (clear(narrower) || narrower.gap < fit.gap) fit = narrower;
+  }
+  if (!clear(fit)) {
+    const ladder = sizeLadder(size, floor);
+    if (ladder.length > 1) {
+      const smaller = staged(ladder, 0);
+      if (clear(smaller) || smaller.gap < fit.gap) fit = smaller;
+    }
+  }
+  return { ...fit, origin: originFor(fit.box, fit.size, fit.maxWidth) };
+}
+
+type NamedSide = 'top' | 'bottom' | 'left' | 'right';
+
+/** The side a placement names, or null for a centre or nothing. */
+function sideOf(at: WrittenSolve['at']): NamedSide | null {
+  switch (at) {
+    case 'top':
+    case 'topLeft':
+    case 'topRight':
+    case 'centerAbove':
+      return 'top';
+    case 'bottom':
+    case 'bottomLeft':
+    case 'bottomRight':
+    case 'centerBelow':
+      return 'bottom';
+    case 'left':
+    case 'right':
+      return at;
+    default:
+      return null;
+  }
+}
+
+/**
+ * THE NAMED SIDE, WHOLE, BEFORE ANY OTHER SIDE (wave 59, the timeline at 390).
+ *
+ * `{at: "top"}` is the tutor saying "write this over it" (`placeLabelAt`'s own law: if the named
+ * side is taken the note moves further ALONG it, never round to another one). The joint solver
+ * tries the named spot first but then every other side at the margin before it slides along the
+ * named one, so '1920', whose spot over its tick was in '1919''s air, went to the RIGHT of the
+ * tick, level with the axis, when a slide of twenty units along the top was free. The named
+ * side is therefore solved first as a half-plane — everything on that side of the subject and
+ * nothing else — and the other sides only get their turn when that half-plane has no lawful
+ * answer. Cut to the surface's own area where there is one.
+ */
+function halfPlane(side: NamedSide, subject: BoardRect, area?: BoardRect): BoardRect {
+  const x0 = area?.x ?? 0;
+  const y0 = area?.y ?? 0;
+  const x1 = area ? area.x + area.w : BOARD_UNITS;
+  const y1 = area && Number.isFinite(area.h) ? area.y + area.h : Number.POSITIVE_INFINITY;
+  switch (side) {
+    case 'top':
+      return { x: x0, y: y0, w: x1 - x0, h: Math.max(0, subject.y - y0) };
+    case 'bottom': {
+      const y = subject.y + subject.h;
+      return { x: x0, y, w: x1 - x0, h: Math.max(0, y1 - y) };
+    }
+    case 'left':
+      return { x: x0, y: y0, w: Math.max(0, subject.x - x0), h: y1 - y0 };
+    default: {
+      const x = subject.x + subject.w;
+      return { x, y: y0, w: Math.max(0, x1 - x), h: y1 - y0 };
+    }
+  }
+}
+
+/**
+ * THE SUBJECT'S SILHOUETTE ON THE NAMED SIDE: its box, grown to cover whatever is DRAWN hugging
+ * that side of it (wave 59, the timeline at 390).
+ *
+ * A caption under a tick on an underlined axis is written under the underline; the underline is
+ * part of what the caption sits beneath, not an obstacle that sends it to another side. Before
+ * fixed marks were built first the underline was simply not there yet when the caption chose its
+ * spot; now it is, and it lies exactly in the margin band where the solver's candidates go, so
+ * every one of them was crowded and the first event went left of its own tick.
+ *
+ * The grow is only on the named side, only across the subject's own span, and only over strokes
+ * that begin within the AIR of the subject — the distance inside which two marks read as one. A
+ * ray's bounding box that merely passes under a focus point is not something the caption sits
+ * beneath (measured on the lens at 390: grown to the reach, the silhouette put 'far focus' 30 px
+ * from its point; grown to the air, 15). The reach is still measured to the subject's ink, so a
+ * caption written under a deep stack of strokes is still out of reach and still says so. The
+ * hugging strokes come in already padded by the nib, as the solver sees them, so a candidate at
+ * the margin from the silhouette clears them at the solver's roomiest clearance rather than only
+ * at its tightest.
+ */
+function silhouette(
+  box: BoardRect,
+  side: NamedSide,
+  drawn: readonly BoardRect[],
+  within: number,
+): BoardRect {
+  const across = (o: BoardRect) =>
+    side === 'top' || side === 'bottom'
+      ? o.x < box.x + box.w && o.x + o.w > box.x
+      : o.y < box.y + box.h && o.y + o.h > box.y;
+  let x0 = box.x;
+  let y0 = box.y;
+  let x1 = box.x + box.w;
+  let y1 = box.y + box.h;
+  for (const o of drawn) {
+    if (!across(o)) continue;
+    const ox1 = o.x + o.w;
+    const oy1 = o.y + o.h;
+    switch (side) {
+      case 'bottom':
+        if (o.y <= box.y + box.h + within && oy1 > y1) y1 = Math.min(oy1, box.y + box.h + within);
+        break;
+      case 'top':
+        if (oy1 >= box.y - within && o.y < y0) y0 = Math.max(o.y, box.y - within);
+        break;
+      case 'right':
+        if (o.x <= box.x + box.w + within && ox1 > x1) x1 = Math.min(ox1, box.x + box.w + within);
+        break;
+      default:
+        if (ox1 >= box.x - within && o.x < x0) x0 = Math.max(o.x, box.x - within);
+    }
+  }
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+/**
+ * ALIGNED WITH THE SUBJECT: the part of the named side's half-plane where a mark of this shape
+ * has its centre within the reach of the subject's own span (wave 59, the timeline at 390).
+ *
+ * The reach law measures the nearest edge, and the nearest edge is a poor judge of whether a
+ * caption is UNDER a thing: a block slid a hundred and fifty units along the axis with one corner
+ * still inside the reach measured nearer than the same block centred under its tick at the hand's
+ * margin, and the solver took it. Inside the law a few pixels of distance matter less than
+ * whether the words sit under what they name, so the aligned band is solved before the rest of
+ * the side, and the rest of the side before any other side.
+ */
+/**
+ * THE ROW ALONG THE NAMED SIDE: the band of the half-plane a mark of this shape occupies when it
+ * sits at the hand's margin from the subject, anywhere along that side.
+ */
+function row(side: NamedSide, shape: NoteShape, margin: number, plane: BoardRect): BoardRect {
+  const slack = 0.5;
+  if (side === 'bottom') return { ...plane, h: margin + shape.h + slack };
+  if (side === 'top') {
+    const h = margin + shape.h + slack;
+    return { x: plane.x, y: plane.y + plane.h - h, w: plane.w, h };
+  }
+  if (side === 'right') return { ...plane, w: margin + shape.w + slack };
+  const w = margin + shape.w + slack;
+  return { x: plane.x + plane.w - w, y: plane.y, w, h: plane.h };
+}
+
+function column(
+  side: NamedSide,
+  subject: BoardRect,
+  shape: NoteShape,
+  reach: number,
+  plane: BoardRect,
+): BoardRect {
+  if (side === 'top' || side === 'bottom') {
+    const x = Math.max(plane.x, subject.x - reach - shape.w / 2);
+    const x1 = Math.min(plane.x + plane.w, subject.x + subject.w + reach + shape.w / 2);
+    return { x, y: plane.y, w: Math.max(0, x1 - x), h: plane.h };
+  }
+  const y = Math.max(plane.y, subject.y - reach - shape.h / 2);
+  const y1 = Math.min(plane.y + plane.h, subject.y + subject.h + reach + shape.h / 2);
+  return { x: plane.x, y, w: plane.w, h: Math.max(0, y1 - y) };
 }
 
 /**
@@ -737,11 +1191,20 @@ function typeFloorFor(ctx: BuildContext, text: string, asked: number): number {
    * stops being worth trying; a board that hits it is a drawing too dense for its surface, and it
    * is reported as such rather than rendered as a wall of type.
    */
-  return Math.min(TYPE_AIM / (ratio * k), asked * MAX_GROWTH);
+  return Math.min((TYPE_AIM + TYPE_AIM_SLACK) / (ratio * k), asked * MAX_GROWTH);
 }
 
 /** How much bigger than the size it was asked for a mark may be written to clear the law. */
 export const MAX_GROWTH = 2.5;
+
+/**
+ * A TWENTIETH OF A PIXEL OVER THE AIM (wave 59). A floor solved to land exactly on `TYPE_AIM`
+ * lands a rounding either side of it, and the renderer's ladder judges a rung on `>=`: measured
+ * on the timeline at 390, rung 1 read 13.19999 px and rung 1.25 read 13.20001, and the board was
+ * set at a factor of 1.25 — every caption a quarter bigger, and the third pushed off its tick —
+ * by the sixth decimal of a float. The slack is smaller than anything a learner can see.
+ */
+const TYPE_AIM_SLACK = 0.05;
 
 /** The width a line of writing is held to on a surface, with no pipeline measure to narrow it. */
 function measureOn(frame: BoardFrame): number {
@@ -749,27 +1212,81 @@ function measureOn(frame: BoardFrame): number {
 }
 
 /**
- * The size a written note takes, measured without placing it.
+ * THE SHAPE A WRITTEN NOTE TAKES, measured without placing it — as INK, with the ink's offset
+ * from the origin the hand would start writing at.
  *
  * IT COUNTS THE LINES IT WILL ACTUALLY BE WRITTEN ON. Held to a measure a note wraps, and a
  * two-line note placed as though it were one line is placed over whatever sits under it. The wrap
- * costs one pass of glyph advances and it is the very wrap `written` lays.
+ * is the very wrap `written` lays: the phrase is laid for real at the origin and its glyphs
+ * measured, so `w` and `h` are what the learner will see and `dx`, `dy` are how far inside the
+ * line box that ink sits (the leading above, the slant's overhang on the right). Laying glyphs
+ * costs more than summing advances, so the answer is memoised per font: a phrase's ink at a size
+ * and a measure never changes.
  */
-function noteSize(ctx: BuildContext, text: string, size: number, maxWidth?: number) {
+interface NoteShape {
+  w: number;
+  h: number;
+  /** The ink's top-left, relative to the writing origin. */
+  dx: number;
+  dy: number;
+}
+
+const NOTE_SHAPES = new WeakMap<HandFont, Map<string, NoteShape>>();
+const NOTE_SHAPE_CACHE_MAX = 4000;
+
+function noteShape(ctx: BuildContext, text: string, size: number, maxWidth?: number): NoteShape {
   const cap = maxWidth ?? Number.POSITIVE_INFINITY;
   if (!ctx.font) {
     const lines = text.split('\n');
     return {
       w: Math.min(Math.max(...lines.map((l) => l.length)) * size * 0.42, cap),
       h: lines.length * size * 1.22,
+      dx: 0,
+      dy: 0,
     };
   }
-  const font = ctx.font;
-  const lines = wrapText(font, text, size, maxWidth);
-  return {
-    w: Math.min(Math.max(...lines.map((l) => measureText(font, l, size))), cap),
-    h: lines.length * size * 1.22,
-  };
+  let shapes = NOTE_SHAPES.get(ctx.font);
+  if (!shapes) {
+    shapes = new Map();
+    NOTE_SHAPES.set(ctx.font, shapes);
+  }
+  const key = `${size.toFixed(3)}|${Number.isFinite(cap) ? cap.toFixed(2) : 'inf'}|${text}`;
+  const hit = shapes.get(key);
+  if (hit) return hit;
+  const laid = written(ctx, text, [0, 0], size, maxWidth);
+  const shape: NoteShape =
+    laid.ink.w > 0 || laid.ink.h > 0
+      ? { w: laid.ink.w, h: laid.ink.h, dx: laid.ink.x, dy: laid.ink.y }
+      : { w: laid.box.w, h: laid.box.h, dx: 0, dy: 0 };
+  if (shapes.size >= NOTE_SHAPE_CACHE_MAX) shapes.clear();
+  shapes.set(key, shape);
+  return shape;
+}
+
+/**
+ * THE MEASURE THAT WRITES A PHRASE AS A BALANCED BLOCK OF `lines` LINES: the split whose widest
+ * line is shortest, and that width. Null when the phrase has fewer words than lines, or carries a
+ * break of its own (a number's name over its quantity is already a block, chosen by the number).
+ *
+ * A greedy wrap held to this width writes no more than `lines` lines and none wider than it:
+ * greedy is the fewest-lines wrap for a measure, and the balanced split shows `lines` is enough.
+ */
+function balancedMeasure(font: HandFont, text: string, size: number, lines: 2 | 3): number | null {
+  if (text.includes('\n')) return null;
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length < lines) return null;
+  const width = (from: number, to: number) => measureText(font, words.slice(from, to).join(' '), size);
+  let best = Number.POSITIVE_INFINITY;
+  for (let i = 1; i < words.length; i += 1) {
+    if (lines === 2) {
+      best = Math.min(best, Math.max(width(0, i), width(i, words.length)));
+      continue;
+    }
+    for (let j = i + 1; j < words.length; j += 1) {
+      best = Math.min(best, Math.max(width(0, i), width(i, j), width(j, words.length)));
+    }
+  }
+  return Number.isFinite(best) ? best : null;
 }
 
 /** A check mark: a short stroke down and a longer one up, the way a hand ticks. */
@@ -792,8 +1309,17 @@ function tickStrokes(at: BoardPoint, size: number, rng: () => number): Stroke[] 
  * A graph's axes are the boldest rule on the board at 3.5px; the grid behind them is 2.5px, the
  * thinnest ink the law allows, so the curve on top is what the eye lands on.
  */
-const AXIS_INK = 3.5 / 3;
-const GRID_INK = 2.5 / 3;
+/**
+ * THE NIB, IN SCREEN PIXELS. DESIGN.md: ink is 3–4 px and never under 2.5, on either theme, on
+ * either width — a board is the boldest ink in the product, so it sits at the bottom of that
+ * range. One number, shared with the renderer, because the geometry has to know how fat the pen
+ * is to keep a mark off the words it names: what the hand lays out is the centreline, and what
+ * the learner sees is the centreline plus half a nib each way.
+ */
+export const NIB_PX = 3;
+
+const AXIS_INK = 3.5 / NIB_PX;
+const GRID_INK = 2.5 / NIB_PX;
 
 /** A ruled stroke at a chrome weight — the grid and the axes, and nothing else. */
 function chromeRule(points: BoardPoint[], weight: number): Stroke {
@@ -895,7 +1421,13 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
     case 'tick': {
       // Beside the thing, on its line, clear of its text: a tutor ticks in the margin. Clear of
       // any mark already beside the row too (a note, a bracket): it steps right past them.
-      const size = Math.max(14, Math.min(28, anchorBox.h > 0 ? anchorBox.h * 0.9 : 20));
+      const nib = nibUnits(ctx);
+      const want = Math.max(14, Math.min(28, anchorBox.h > 0 ? anchorBox.h * 0.9 : 20));
+      // AND NEVER TALLER THAN THE ROW'S OWN BAND (the adversary, wave 58, the doubt turn at 390).
+      // Fourteen is a hand's smallest tick on a card. Beside a 6.6 px line among rows 13 px apart
+      // it painted 17 px and stood on the rows above and below. The tick's ink runs 0.87 of its
+      // size top to bottom, plus the nib, plus two units for the hand's wobble and overshoot.
+      const size = Math.max(nib * 2, Math.min(want, (rowBand(ctx, anchorBox) - nib - 2) / 0.87));
       const centre: BoardPoint =
         anchorBox.w + anchorBox.h > 0
           ? [anchorBox.x + anchorBox.w + 8 + size * 0.5, anchorBox.y + anchorBox.h / 2]
@@ -919,6 +1451,63 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       return { strokes, glyphs: [], box: tickBox(), length: totalLength(strokes, []) };
     }
     case 'cross': {
+      const nib = nibUnits(ctx);
+      if (anchorBox.w + anchorBox.h > 0 && anchorBox.h < nib * 8) {
+        // BESIDE IT, NOT THROUGH IT (docs/INK-FOUR.md, craft; the adversary, wave 58, the doubt
+        // turn at 390). Corner to corner through a box is what a hand does to a wrong answer on a
+        // card, where the box is forty units tall and the pen crosses it and leaves it readable.
+        // Live, the same cross went through "3x = 20 + 5 ?" on a photographed page — 6.6 px of
+        // words under 3 px of pen, twice — and painted 19 px of blue where the line had been: the
+        // learner was told "Not quite" and could no longer see what was not quite. Under eight
+        // nibs of height (a 19 px line at 1440 is one) the pen cannot cross a thing and leave it
+        // readable — a pen on a ruled page is a tenth of the line, not a third — so it does what a teacher's
+        // pen does on an exercise book: a cross in the margin against the line, on the line's own
+        // level, sized to the row's band so the rows either side stay clean. The pen is not made
+        // thinner for it — that would trade one law (never under 2.5 px) for another.
+        const subject = anchorBox;
+        const want = Math.max(nib * 3, subject.h * 0.9);
+        const size = Math.max(nib * 2, Math.min(want, rowBand(ctx, subject) - nib - 1));
+        const gap = Math.min(8, Math.max(nib * 1.5, subject.h));
+        const cy = subject.y + subject.h / 2;
+        let cx = subject.x + subject.w + gap + size / 2;
+        const crossBox = (): BoardRect => ({ x: cx - size / 2, y: cy - size / 2, w: size, h: size });
+        // Past any mark already beside this row (a tick, a note), as the tick steps.
+        const onThisLine = (o: BoardRect): boolean =>
+          Math.abs(o.y + o.h / 2 - cy) < size * 0.75 && boxesOverlap(o, crossBox());
+        let guard = 0;
+        while ((ctx.occupied ?? []).some(onThisLine) && guard++ < 8) {
+          cx += size * 0.8;
+        }
+        // Never off the surface: a line that runs to the edge gets its cross in the left margin.
+        const area = ctx.area;
+        if (area && cx + size / 2 + nib > area.x + area.w) cx = subject.x - gap - size / 2;
+        const b = crossBox();
+        const wobble = Math.min(0.9, size / 12);
+        const one = penStroke(
+          [
+            [b.x, b.y],
+            [b.x + b.w, b.y + b.h],
+          ],
+          rng,
+          { wobble },
+        );
+        const two = penStroke(
+          [
+            [b.x + b.w, b.y],
+            [b.x, b.y + b.h],
+          ],
+          rng,
+          { wobble },
+        );
+        const strokes = [one, two];
+        return {
+          strokes,
+          glyphs: [],
+          box: padBox(b, nib / 2 + 1),
+          length: totalLength(strokes, []),
+          beside: true,
+        };
+      }
       // Through the thing, corner to corner: two strokes, the second a beat after the first.
       const b = anchorBox.w + anchorBox.h > 0 ? padBox(anchorBox, 3) : padBox(pointBox(p), 12);
       const one = penStroke(
@@ -946,7 +1535,7 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       // the note sits beside the ring on the ring's own line, rather than sliding up a row to
       // dodge the ring's box and reading as a note on the line above.
       const size = sized(object.size, LABEL_SIZE);
-      const measured = noteSize(ctx, object.text, size, object.maxWidth);
+      const measured = noteShape(ctx, object.text, size, object.maxWidth);
       const around = padBox(anchorBox, 12);
       const hugging = (ctx.occupied ?? []).filter((o) => boxesOverlap(o, around));
       const subject = unionBox([anchorBox, ...hugging]) ?? anchorBox;
@@ -976,17 +1565,34 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
     case 'underline': {
       const w = anchorBox.w > 0 ? anchorBox.w : 90;
       const x0 = anchorBox.w > 0 ? anchorBox.x : p[0] - w / 2;
-      const y = anchorBox.h > 0 ? anchorBox.y + anchorBox.h + 5 : p[1] + 5;
+      const bottom = anchorBox.h > 0 ? anchorBox.y + anchorBox.h : p[1];
+      // IN THE GUTTER (the adversary, wave 58, the doubt turn at 390). A hand drops five under
+      // the line with a two-unit dip and a wobble of 1.4 — on a card, where the next row is
+      // twenty-nine units down. On a photographed page the gutter under a line is 6.6 px, and
+      // that stroke, with its nib, ran from 3.5 to 8.7 under the line: over the top of the row
+      // below. Where the rows are that close the centreline sits in the middle of the clear air
+      // and the dip and the wobble shrink to what is left once the nib has taken its half.
+      const air = anchorBox.h > 0 ? rowClearance(ctx, anchorBox) : null;
+      const tight = air !== null && air < 5;
+      const budget = tight ? Math.max(0, air - nibUnits(ctx) / 2) : Number.POSITIVE_INFINITY;
+      const drop = tight ? air : 5;
+      const dip = Math.min(2.2, budget * 0.6);
+      const wobble = Math.min(1.4, budget * 0.35);
+      const y = bottom + drop;
       const pts: BoardPoint[] = [
         [x0 - 4, y],
-        [x0 + w * 0.5, y + 2.2],
+        [x0 + w * 0.5, y + dip],
         [x0 + w + 4, y],
       ];
-      const stroke = penStroke(pts, rng, { wobble: 1.4 });
+      const stroke = penStroke(pts, rng, { wobble });
       return {
         strokes: [stroke],
         glyphs: [],
-        box: { x: x0 - 6, y: y - 4, w: w + 12, h: 10 },
+        // The gutter is what the underline occupies where the rows are tight; the hand's own
+        // reservation otherwise.
+        box: tight
+          ? { x: x0 - 6, y: bottom, w: w + 12, h: air * 2 }
+          : { x: x0 - 6, y: y - 4, w: w + 12, h: 10 },
         length: stroke.length,
       };
     }
@@ -1089,14 +1695,13 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
           floor: typeFloor,
           allowInside: false,
         });
-        const origin: BoardPoint = [fit.box.x, fit.box.y];
-        const w = written(ctx, object.label, origin, fit.size, fit.maxWidth);
+        const w = written(ctx, object.label, fit.origin, fit.size, fit.maxWidth);
         glyphs = w.glyphs;
-        boxes = [...boxes, w.box];
+        boxes = [...boxes, w.ink];
         text = {
           lines: w.lines,
-          x: origin[0],
-          y: origin[1],
+          x: fit.origin[0],
+          y: fit.origin[1],
           size: fit.size,
           lineHeight: w.lineHeight,
         };
@@ -1117,30 +1722,32 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
       // here and not left to the wrap: when the whole will not sit on one line, the name takes a
       // line and the quantity goes under it, whole.
       const mw = measure();
-      const fits = ctx.font
-        ? measureText(ctx.font, full, WRITE) <= mw
-        : full.length * WRITE * 0.42 <= mw;
-      const laid = fits || !object.label ? full : `${object.label}\n${label}`;
+      const wide = ctx.font ? measureText(ctx.font, full, WRITE) : full.length * WRITE * 0.42;
+      // A NAME OVER ITS QUANTITY when the one line would trail past the thing it measures further
+      // than the reach allows on either side — the number's own block, chosen here so the solver
+      // never has to break a quantity to make one (`notePlacement`, 3).
+      const trails =
+        subjectInk !== undefined && wide > subjectInk.w + reachUnits(ctx) * 2 && wide <= mw;
+      const laid = (wide <= mw && !trails) || !object.label ? full : `${object.label}\n${label}`;
       const fit = notePlacement(ctx, subjectBox, laid, WRITE, mw, at, {
         floor: typeFloor,
         ...(nudge ? { nudge } : {}),
         ...(drawn ? { subjectBox: drawn } : {}),
         ...(subjectInk ? { reachTo: subjectInk } : {}),
       });
-      const origin: BoardPoint = [fit.box.x, fit.box.y];
-      const w = written(ctx, laid, origin, fit.size, fit.maxWidth);
+      const w = written(ctx, laid, fit.origin, fit.size, fit.maxWidth);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
         size: fit.size,
         text: {
           lines: w.lines,
-          x: origin[0],
-          y: origin[1],
+          x: fit.origin[0],
+          y: fit.origin[1],
           size: fit.size,
           lineHeight: w.lineHeight,
         },
-        box: w.box,
+        box: writtenBox(w.ink),
         length: totalLength(w.strokes, w.glyphs),
       };
     }
@@ -1153,20 +1760,19 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         ...(drawn ? { subjectBox: drawn } : {}),
         ...(subjectInk ? { reachTo: subjectInk } : {}),
       });
-      const origin: BoardPoint = [fit.box.x, fit.box.y];
-      const w = written(ctx, object.text, origin, fit.size, fit.maxWidth);
+      const w = written(ctx, object.text, fit.origin, fit.size, fit.maxWidth);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
         size: fit.size,
         text: {
           lines: w.lines,
-          x: origin[0],
-          y: origin[1],
+          x: fit.origin[0],
+          y: fit.origin[1],
           size: fit.size,
           lineHeight: w.lineHeight,
         },
-        box: w.box,
+        box: writtenBox(w.ink),
         length: totalLength(w.strokes, w.glyphs),
       };
     }
@@ -1179,20 +1785,19 @@ export function geometryOf(object: BoardObject, ctx: BuildContext): ObjectGeomet
         ...(drawn ? { subjectBox: drawn } : {}),
         ...(subjectInk ? { reachTo: subjectInk } : {}),
       });
-      const origin: BoardPoint = [fit.box.x, fit.box.y];
-      const w = written(ctx, object.text, origin, fit.size, fit.maxWidth);
+      const w = written(ctx, object.text, fit.origin, fit.size, fit.maxWidth);
       return {
         strokes: w.strokes,
         glyphs: w.glyphs,
         size: fit.size,
         text: {
           lines: w.lines,
-          x: origin[0],
-          y: origin[1],
+          x: fit.origin[0],
+          y: fit.origin[1],
           size: fit.size,
           lineHeight: w.lineHeight,
         },
-        box: w.box,
+        box: writtenBox(w.ink),
         length: totalLength(w.strokes, w.glyphs),
       };
     }

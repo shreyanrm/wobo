@@ -62,6 +62,9 @@ let playing: { source: AudioBufferSourceNode } | null = null;
 // The streaming path schedules many short chunks ahead on the shared context; tracked here so a
 // new utterance (stopSpeaking) can cut them all off mid-word, exactly like the buffered `playing`.
 const streamSources = new Set<AudioBufferSourceNode>();
+// Every voice socket still open for a sentence of the current utterance (openStream), by the
+// function that closes it and drops what it held. A new utterance or a stop closes them all.
+const openStreams = new Set<() => void>();
 // Bumped on every stop/new-utterance so a running sentence pipeline knows it was superseded.
 let speechGen = 0;
 
@@ -72,7 +75,9 @@ let speechGen = 0;
 let sharedCtx: AudioContext | null = null;
 function speechCtx(): AudioContext | null {
   try {
-    if (!sharedCtx) {
+    // A closed context (Safari closes one under memory pressure; a test closes its own) is no
+    // context at all: make another rather than schedule onto a dead graph for ever.
+    if (!sharedCtx || sharedCtx.state === 'closed') {
       const Ctor =
         window.AudioContext ??
         (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -113,6 +118,9 @@ export function stopSpeaking(): void {
     }
   }
   streamSources.clear();
+  // Every socket still open for a sentence of the utterance: closed, and what it held dropped.
+  for (const drop of [...openStreams]) drop();
+  openStreams.clear();
   if (!playing) return;
   const p = playing;
   playing = null;
@@ -256,19 +264,40 @@ export function withBeat(url: string, beat: VoiceBeat): string {
   return `${url}&beat=${beat}`;
 }
 
-/** Synthesize one sentence to PCM samples (or null when keyless/rate-limited/muted). */
-async function synth(
+/**
+ * WHY A SENTENCE CAME BACK WITHOUT AUDIO, AND WHETHER ASKING AGAIN CAN CHANGE IT.
+ *
+ * `refused` is an answer that will repeat however often it is asked: no gateway, no key on the box
+ * (503 "voice unavailable"), the day's voice spent (429), a body with no audio in it. Asking again
+ * costs the learner the whole ladder in silence, which is what the keyless 59 used to pay.
+ *
+ * `stalled` is the opposite, and it is the case this ladder was built for. The voice route raises
+ * **502** only after both voices failed for this one sentence — and before it raises it, it hands
+ * the call back to the learner's day and RE-PINS the turn's voice (`voice.py`, `repin_unheard_turn`
+ * / `_refund_voice`). So a 502 is the gateway saying *ask me again, I have changed my mind*, and
+ * the next ask is a disk read in the new voice: 9, 15 and 21 ms, measured. Our own read timeout and
+ * a broken connection say the same thing — nothing was decided, so nothing is settled.
+ */
+type Empty = 'refused' | 'stalled';
+
+/** Statuses that mean the sentence failed rather than the voice was withheld. */
+const STALLED_STATUS = new Set([408, 425, 500, 502, 504]);
+
+const isEmpty = (got: Clip | Empty): got is Empty => typeof got === 'string';
+
+/** Synthesize one sentence to PCM samples, or say why there is none (see {@link Empty}). */
+async function synthOnce(
   text: string,
   beat: VoiceBeat = 'step',
   opts?: { deciding?: boolean; signal?: AbortSignal },
-): Promise<Clip | null> {
+): Promise<Clip | Empty> {
   // Offline (or keyless): don't burn the timeout on a fetch that can't land — fall straight to
   // text. The reply is already on screen; Wobo's voice is the grace, not the help.
   const gateway = gatewayUrl();
-  if (!gateway || !text.trim() || isOffline()) return null;
+  if (!gateway || !text.trim() || isOffline()) return 'refused';
   const ctrl = new AbortController();
   // The ladder below retires an ask that lost; its abort is this request's abort.
-  if (opts?.signal?.aborted) return null;
+  if (opts?.signal?.aborted) return 'refused';
   opts?.signal?.addEventListener('abort', () => ctrl.abort(), { once: true });
   const timer = setTimeout(
     () => ctrl.abort(),
@@ -283,17 +312,31 @@ async function synth(
       body: JSON.stringify({ text: text.slice(0, 600), beat }),
       signal: ctrl.signal,
     });
-    if (!res.ok) return null; // quota 502 / any non-ok → silent-safe, gate releases via onDone
+    // Silent-safe either way; the gate releases via onDone. The status only decides whether one
+    // more ask is worth the learner's time.
+    if (!res.ok) return STALLED_STATUS.has(res.status) ? 'stalled' : 'refused';
     const audio = (await res.json()) as { mime?: string; b64?: string };
-    if (!audio.b64) return null;
+    if (!audio.b64) return 'refused';
     const rate = Number(/rate=(\d+)/.exec(audio.mime ?? '')?.[1] ?? 24000);
     const samples = base64ToFloat32(audio.b64);
-    return samples.length === 0 ? null : { samples, rate };
+    return samples.length === 0 ? 'refused' : { samples, rate };
   } catch {
-    return null; // abort (stall) or network error — same graceful text-first fallback
+    // Retired for a newer rung: this ask decided nothing and must not speak for the gateway.
+    if (opts?.signal?.aborted) return 'refused';
+    return 'stalled'; // our own read timeout, or the connection broke: nothing was answered
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Synthesize one sentence to PCM samples (or null when keyless/rate-limited/muted). */
+async function synth(
+  text: string,
+  beat: VoiceBeat = 'step',
+  opts?: { deciding?: boolean; signal?: AbortSignal },
+): Promise<Clip | null> {
+  const got = await synthOnce(text, beat, opts);
+  return isEmpty(got) ? null : got;
 }
 
 /** Play one sentence; resolves when it finishes (or immediately if superseded). */
@@ -654,7 +697,7 @@ async function synthAgain(
   return synth(text, beat);
 }
 
-// --- THE FIRST SYLLABLE: one mouth, and a ladder of asks ------------------------------------------
+// --- THE FIRST SYLLABLE: one mouth, a ladder of asks, and a race ----------------------------------
 //
 // Measured live on 2026-09-11 (every browser muted, the first clip read off the audio graph and the
 // fetches off a patched fetch): on three of ten board turns not one /v1/voice/tts request for the
@@ -666,6 +709,21 @@ async function synthAgain(
 // oldest retired first, and the first audio that lands is the one they hear. BOARD.md §10 gives the
 // first syllable 1.5 s; the early rungs sit inside that, the late ones sit past the gateway's own
 // silent re-decision (six seconds unheard, then the other voice's two to four).
+//
+// AND THE SOCKET IS THE SECOND ASK, NOT A SECOND BILL ON EVERY TURN. The read-aloud socket holds
+// no pin of the gateway's, so it is the one mouth a re-decision cannot strand — but it is also the
+// slow one. Measured live on 2026-09-14 over twelve turns: the socket won four boards and those
+// four are the SLOWEST first syllables of the run (4780, 3825, 3745 and 3464 ms), while every
+// buffered win landed in 322 to 973 ms; once the socket had a turn its sentence seams ran 2.2 to
+// 12.2 s across three to five sockets. It won those four only because the buffered route had
+// answered 502 — which is not a refusal at all (see Empty above) — and racing it from the first
+// millisecond of every turn doubled the voice bill for audio nobody heard.
+//
+// So it is asked for second, and only where a second ask is the point: at once when this turn's own
+// buffered ask says it stalled (or the last one did), and otherwise not until STREAM_AFTER_MS, by
+// which time a healthy buffered route has long since answered and no socket is opened at all. The
+// first audio to land still takes the mouth for the WHOLE turn — one voice, one performance — and
+// the other mouth is closed before a syllable of it plays.
 
 /** The two ways a line can reach the ear: the voice socket, or the buffered sentence pipeline. */
 export type Mouth = 'stream' | 'buffered';
@@ -733,6 +791,18 @@ export interface FirstSoundLadder {
   budgetMs: number;
   /** Read at each rung: true when another mouth has the turn, so there is nothing left to ask for. */
   stop?: () => boolean;
+  /**
+   * An ask came back empty and nothing else is in flight: can a FRESH ask still be answered?
+   * True asks again at once rather than settling for silence — the gateway that just said 502
+   * has already re-decided this turn's voice, and a socket that died without a syllable can be
+   * opened again. False (the default) settles now, which is what a keyless box and a spent day
+   * have earned: nine and a half seconds of rungs would only be refused five more times.
+   */
+  keepClimbing?: (attempt: number) => boolean;
+  /** Most asks this ladder will ever make, rungs and re-asks together. Default: rungs + 3. */
+  maxAsks?: number;
+  /** Fires when the ladder is called off (the other mouth won): every ask in flight is abandoned. */
+  signal?: AbortSignal;
 }
 
 /**
@@ -749,7 +819,6 @@ export function askForFirstSound<T>(
     const inFlight = new Map<number, AbortController>();
     const timers: ReturnType<typeof setTimeout>[] = [];
     let launched = 0;
-    let rungsLeft = ladder.rungs.length;
     let settled = false;
 
     const settle = (got: T | null) => {
@@ -783,16 +852,36 @@ export function askForFirstSound<T>(
             settle(got);
             return;
           }
-          // This ask came back empty. Silence is the answer only when nothing else is coming.
-          if (inFlight.size === 0 && rungsLeft === 0) settle(null);
+          // This ask came back empty with nothing else in flight. A held request never comes back
+          // empty on its own, only aborted, and an ask is only ever aborted for a newer one that
+          // is in flight — so the gateway ANSWERED, and the answer decides what happens next.
+          //
+          // A REFUSAL settles here: a keyless 503, a spent day's 429. Until 2026-09-15 the ladder
+          // waited for every rung to ask and be refused first — 9.5 s of the first sentence, on
+          // each of the 59 keyless turns.
+          //
+          // A STALL asks again NOW, not at the next rung. On 2026-09-14 the deciding sentence of
+          // four live turns was answered 502 in a few hundred milliseconds, the ladder read that
+          // as a refusal, and the turn fell to the mouth that costs 3.5 to 4.8 s for its first
+          // syllable and up to 12.2 s between sentences. The 502 was the gateway saying it had
+          // re-pinned the voice and the clip was on its disk.
+          if (inFlight.size === 0) {
+            const another = launched < (ladder.maxAsks ?? ladder.rungs.length + 3);
+            if (another && !ladder.stop?.() && ladder.keepClimbing?.(attempt) === true) launch();
+            else settle(null);
+          }
         });
     };
 
+    if (ladder.signal?.aborted) {
+      resolve(null);
+      return;
+    }
+    ladder.signal?.addEventListener('abort', () => settle(null), { once: true });
     launch();
     for (const at of ladder.rungs) {
       timers.push(
         setTimeout(() => {
-          rungsLeft--;
           if (settled) return;
           if (ladder.stop?.()) {
             settle(null); // another mouth has the turn: nothing here is worth hearing now
@@ -807,19 +896,414 @@ export function askForFirstSound<T>(
 }
 
 /**
+ * One buffered ask for the deciding sentence, wired for a ladder: it answers with the clip, or
+ * with null after writing down WHY there was none, so `keepClimbing` can tell a refusal that will
+ * repeat from a stall that the next ask answers off the disk.
+ */
+function decidingAsk(
+  text: string,
+  beat: VoiceBeat,
+  reasons: Map<number, Empty>,
+  onStall?: () => void,
+): (attempt: number, signal: AbortSignal) => Promise<Clip | null> {
+  return async (attempt, signal) => {
+    const got = await synthOnce(text, beat, { deciding: true, signal });
+    if (!isEmpty(got)) {
+      bufferedStalled = false; // the route is answering again
+      return got;
+    }
+    reasons.set(attempt, got);
+    if (got === 'stalled') {
+      bufferedStalled = true;
+      onStall?.();
+    }
+    return null;
+  };
+}
+
+/**
  * The sentence that decides a turn's voice, asked for on the ladder. Twelve seconds of patience in
  * all, because the gateway's own silent re-decision lands at six to nine, and a learner who waits
  * ten seconds and hears Wobo is better served than one who hears a stranger at eight.
  */
 function synthFirst(text: string, beat: VoiceBeat, stop: () => boolean): Promise<Clip | null> {
-  return askForFirstSound<Clip>(
-    (_attempt, signal) => synth(text, beat, { deciding: true, signal }),
-    { rungs: REASK_RUNGS_MS, budgetMs: FIRST_TTS_TIMEOUT_MS, stop },
+  const reasons = new Map<number, Empty>();
+  return askForFirstSound<Clip>(decidingAsk(text, beat, reasons), {
+    rungs: REASK_RUNGS_MS,
+    budgetMs: FIRST_TTS_TIMEOUT_MS,
+    stop,
+    keepClimbing: (attempt) => reasons.get(attempt) === 'stalled',
+  });
+}
+
+// --- THE STREAMED SENTENCE ------------------------------------------------------------------------
+//
+// One sentence on the voice socket, held in hand until it is its turn. The socket is opened the
+// moment the sentence is decided — or while the sentence before it plays — and its chunks are kept
+// rather than scheduled, so a streamed turn runs sentence to sentence with no mint and no connect
+// between them, and the beat the ink waits on can fire on a sentence's first chunk.
+
+export interface StreamedSentence {
+  /** True at the first chunk of audio (the sentence can begin); false when the socket died first. */
+  ready: Promise<boolean>;
+  /** Everything has arrived: `heldMs` is the whole sentence's length. */
+  complete: () => boolean;
+  /** How much audio is in hand, in ms. */
+  heldMs: () => number;
+  /** Play what is held and what is still coming; resolves when the last chunk has ended. */
+  play: () => Promise<void>;
+  /** Close the socket and drop what was held. Nothing of it is ever heard. */
+  drop: () => void;
+}
+
+const STREAM_RATE = 24000;
+
+function openStream(
+  text: string,
+  beat: VoiceBeat,
+  gen: number,
+  deadlineMs: number,
+): StreamedSentence {
+  const held: Float32Array<ArrayBuffer>[] = [];
+  let heldSamples = 0;
+  let complete = false; // the gateway closed the socket after the whole sentence
+  let dead = false; // dropped, or died before a chunk
+  let playing = false;
+  let playhead = 0;
+  let ws: WebSocket | null = null;
+  let ctx: AudioContext | null = null;
+  let readyResolve: (ok: boolean) => void = () => {};
+  const ready = new Promise<boolean>((resolve) => {
+    readyResolve = resolve;
+  });
+  let playResolve: (() => void) | null = null;
+
+  const drop = () => {
+    if (dead) return;
+    dead = true;
+    complete = true;
+    clearTimeout(watchdog);
+    openStreams.delete(drop);
+    try {
+      ws?.close();
+    } catch {
+      // already closing
+    }
+    held.length = 0;
+    readyResolve(false);
+    const done = playResolve;
+    playResolve = null;
+    done?.();
+  };
+  // No first chunk inside the budget: this mouth is not going to speak.
+  const watchdog = setTimeout(() => heldSamples === 0 && drop(), deadlineMs);
+  openStreams.add(drop);
+
+  const schedule = (samples: Float32Array<ArrayBuffer>) => {
+    const c = ctx;
+    if (!c) return;
+    const buf = c.createBuffer(1, samples.length, STREAM_RATE);
+    buf.copyToChannel(samples, 0);
+    const node = c.createBufferSource();
+    node.buffer = buf;
+    node.connect(c.destination);
+    playhead = Math.max(playhead, c.currentTime + 0.05);
+    node.start(playhead);
+    playhead += buf.duration;
+    streamSources.add(node);
+    node.onended = () => streamSources.delete(node);
+  };
+  // Playing and complete: the sentence ends when the last scheduled chunk does.
+  const settlePlay = () => {
+    if (!playing || !complete || !playResolve) return;
+    const done = playResolve;
+    playResolve = null;
+    const remainMs = ctx ? Math.max(0, playhead - ctx.currentTime) * 1000 : 0;
+    setTimeout(done, remainMs + 40);
+  };
+
+  void (async () => {
+    const gateway = gatewayUrl();
+    if (!gateway || !text.trim() || isOffline() || gen !== speechGen) {
+      drop();
+      return;
+    }
+    ctx = speechCtx();
+    if (!ctx) {
+      drop();
+      return;
+    }
+    // A websocket carries no headers we control: identity is proved over authenticated HTTP and
+    // the socket carries the short-lived, single-use token it mints.
+    const minted = await mintVoiceToken(gateway);
+    if (!minted || dead || gen !== speechGen) {
+      drop();
+      return;
+    }
+    let socket: WebSocket;
+    try {
+      socket = new WebSocket(
+        withBeat(voiceSocketUrl(gateway, '/v1/voice/tts/stream', minted.token), beat),
+      );
+    } catch {
+      drop();
+      return;
+    }
+    ws = socket;
+    socket.onopen = () => {
+      try {
+        socket.send(text.slice(0, 600));
+      } catch {
+        drop();
+      }
+    };
+    socket.onerror = () => heldSamples === 0 && drop();
+    socket.onclose = () => {
+      if (dead) return;
+      if (heldSamples === 0) {
+        drop(); // closed without a syllable: the gateway had no voice for it
+        return;
+      }
+      complete = true;
+      clearTimeout(watchdog);
+      openStreams.delete(drop);
+      settlePlay();
+    };
+    socket.onmessage = (e) => {
+      if (dead) return;
+      if (gen !== speechGen) {
+        drop();
+        return;
+      }
+      let msg: unknown;
+      try {
+        msg = JSON.parse(String(e.data));
+      } catch {
+        return;
+      }
+      const sc = (msg as { serverContent?: Record<string, unknown> }).serverContent;
+      const parts =
+        (sc?.modelTurn as { parts?: { inlineData?: { data?: string } }[] })?.parts ?? [];
+      for (const part of parts) {
+        const b64 = part?.inlineData?.data;
+        if (!b64) continue;
+        const samples = base64ToFloat32(b64);
+        if (samples.length === 0) continue;
+        const first = heldSamples === 0;
+        heldSamples += samples.length;
+        if (playing) schedule(samples);
+        else held.push(samples);
+        if (first) {
+          clearTimeout(watchdog);
+          readyResolve(true);
+        }
+      }
+    };
+  })();
+
+  return {
+    ready,
+    complete: () => complete && !dead,
+    heldMs: () => (heldSamples / STREAM_RATE) * 1000,
+    async play() {
+      if (dead || playing) return;
+      const c = ctx;
+      if (!c) return;
+      if (c.state === 'suspended') await c.resume().catch(() => {});
+      if (dead || gen !== speechGen) return;
+      playing = true;
+      for (const samples of held) schedule(samples);
+      held.length = 0;
+      await new Promise<void>((resolve) => {
+        playResolve = resolve;
+        settlePlay();
+      });
+    },
+    drop,
+  };
+}
+
+/** What a sentence reaches the ear as: a clip in hand, or a sentence on the socket. */
+type Sound = { clip: Clip } | { stream: StreamedSentence };
+
+/** How long the sound runs, when that is known before it plays (a clip always; a socket once whole). */
+function soundMs(sound: Sound): number | undefined {
+  if ('clip' in sound) return (sound.clip.samples.length / sound.clip.rate) * 1000;
+  return sound.stream.complete() ? sound.stream.heldMs() : undefined;
+}
+
+function dropSound(sound: Sound | null): void {
+  if (sound && 'stream' in sound) sound.stream.drop();
+}
+
+async function playSound(sound: Sound, gen: number): Promise<void> {
+  if ('clip' in sound) await playSamples(sound.clip.samples, sound.clip.rate, gen);
+  else await sound.stream.play();
+}
+
+/**
+ * HOW LONG THE BUFFERED ROUTE GETS BEFORE A SOCKET IS OPENED BESIDE IT.
+ *
+ * Every buffered win of the twelve live turns landed in 322 to 973 ms, so a grace of six hundred
+ * milliseconds opens no socket at all on most healthy turns — no mint, no second vendor, no second
+ * bill — and still leaves nine hundred of the first syllable's 1.5 s budget for one to speak on the
+ * turns where the buffered route is slow. It is a CEILING, not a wait: this turn's own 502, or a
+ * stall on the turn before it, opens the socket at once.
+ */
+export const STREAM_AFTER_MS = 600;
+
+/**
+ * The buffered route stalled on a sentence somewhere in this session and has not answered since.
+ * A day where the voice provider is hanging is a day where it hangs on every turn, so the next
+ * turn does not spend its grace finding that out a second time: the grace is paid ONCE.
+ */
+let bufferedStalled = false;
+
+/** Forget that (a cold session again). Exported for the tests; nothing in the app calls it. */
+export function forgetVoiceHealth(): void {
+  bufferedStalled = false;
+}
+
+/**
+ * The sentence that decides a turn's voice: the buffered ladder, and the voice socket as its
+ * second ask. The first audio to land takes the mouth for the whole turn; the other is called off
+ * before a syllable of it plays. Null when both were silent inside the budget, or the turn moved
+ * on (superseded, muted, or the device's) while they were asked.
+ */
+function firstSound(
+  text: string,
+  beat: VoiceBeat,
+  gen: number,
+  lost: () => boolean,
+  mouth: OneMouth,
+): Promise<Sound | null> {
+  return new Promise((resolve) => {
+    const cancel = new AbortController();
+    const reasons = new Map<number, Empty>();
+    let stream: StreamedSentence | null = null;
+    let streamSettled = false;
+    let ladderDone = false;
+    let settled = false;
+    let openTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const settle = (sound: Sound | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(openTimer);
+      resolve(sound);
+    };
+    /** Nothing is left that could still make a sound: the ladder is done and no socket is pending. */
+    const silent = () => {
+      if (!ladderDone) return;
+      if (stream !== null && !streamSettled) return;
+      settle(null);
+    };
+
+    const openSocket = () => {
+      clearTimeout(openTimer);
+      if (stream !== null || settled || lost() || mouth.taken()) return;
+      const opened = openStream(text, beat, gen, FIRST_TTS_TIMEOUT_MS);
+      stream = opened;
+      void opened.ready.then((ok) => {
+        streamSettled = true;
+        if (ok && !settled && !lost() && mouth.claim('stream')) {
+          // The socket only ever wins a turn the buffered route could not answer, so the next
+          // turn does not spend its grace discovering that a second time: on a hanging day only
+          // the FIRST turn pays the six hundred milliseconds, and the rest open at once.
+          bufferedStalled = true;
+          cancel.abort();
+          settle({ stream: opened });
+          return;
+        }
+        opened.drop(); // the clip was first, or the turn moved on
+        silent();
+      });
+    };
+
+    // Opened at once on a session that has already seen this route stall, on this turn's own stall
+    // (decidingAsk hands `openSocket` the moment one is answered), and otherwise on the grace.
+    // NEVER on a refusal: no key on the box or a spent day refuses the socket's token too, so a
+    // keyless turn mints nothing and opens nothing — the ladder settles and the timer is cleared.
+    if (bufferedStalled) openSocket();
+    else openTimer = setTimeout(openSocket, STREAM_AFTER_MS);
+
+    askForFirstSound<Clip>(decidingAsk(text, beat, reasons, openSocket), {
+      rungs: REASK_RUNGS_MS,
+      budgetMs: FIRST_TTS_TIMEOUT_MS,
+      stop: () => lost() || mouth.owner() === 'stream',
+      keepClimbing: (attempt) => reasons.get(attempt) === 'stalled',
+      signal: cancel.signal,
+    }).then((clip) => {
+      ladderDone = true;
+      if (clip && !settled && !lost() && mouth.claim('buffered')) {
+        stream?.drop();
+        settle({ clip });
+        return;
+      }
+      silent();
+    });
+  });
+}
+
+// --- A LATER SENTENCE ON THE SOCKET ---------------------------------------------------------------
+//
+// A socket that opens and never says a word used to cost the learner the whole eight-second
+// watchdog — and only THEN was a replacement opened, after the sentence before it had already
+// finished playing. That is the 11.7 and 12.2 s seams the judge measured on 2026-09-14. A sentence
+// gets one socket, and a second one the moment the first is known to be dead (or has spent
+// STREAM_REASK_MS without a syllable, in which case the two run side by side and the first audio of
+// either is what plays). Two at most: past that it is the day, not the socket, and silence on the
+// reading clock keeps the turn's one voice.
+
+/** A later sentence's socket gives up here, well past the 2.3-3.5 s its first audio really takes. */
+const STREAM_SENTENCE_MS = 4500;
+/** A socket that is merely slow gets a second one beside it here, not after its whole deadline. */
+const STREAM_REASK_MS = 2600;
+
+/** One sentence on the voice socket, with a second socket behind it. Null when neither speaks. */
+function streamSound(text: string, beat: VoiceBeat, gen: number): Promise<Sound | null> {
+  return askForFirstSound<Sound>(
+    (_attempt, signal) => {
+      const opened = openStream(text, beat, gen, STREAM_SENTENCE_MS);
+      signal.addEventListener('abort', () => opened.drop(), { once: true });
+      return opened.ready.then((ok) => (ok ? ({ stream: opened } as Sound) : null));
+    },
+    {
+      rungs: [STREAM_REASK_MS],
+      budgetMs: TTS_TIMEOUT_MS,
+      keepClimbing: () => true, // a socket that died without a syllable can always be opened again
+      // Three at most, and never three at once: voice.py caps a learner at TWO live TTS sockets
+      // (`_MAX_TTS_PER_SUBJECT`), so a rung's socket that the gateway refuses is a 1008 close with
+      // no syllable in it — which this ladder reads as a dead ask and replaces immediately.
+      maxAsks: 3,
+    },
   );
 }
 
+/**
+ * One sentence more, for an answer Wobo is already speaking — on the mouth the turn was won with:
+ * a socket opened again, or the buffered route asked again (synthAgain). Never for the deciding
+ * sentence: its race was already the asking-again, and twelve seconds of silence is not to be
+ * followed by eight more before the ink may move.
+ */
+async function soundAgain(
+  text: string,
+  beat: VoiceBeat,
+  gen: number,
+  turn: VoiceOfTheTurn,
+  mouth: OneMouth,
+): Promise<Sound | null> {
+  if (turn.chosen() !== 'gateway' || gen !== speechGen || isMuted()) return null;
+  // On the socket there is nothing left to ask: streamSound already opened the second one, and a
+  // third here would only add a vendor's bill to a seam the learner is already inside. Silence on
+  // the reading clock keeps the ink paced and keeps the turn's one voice.
+  if (mouth.owner() === 'stream') return null;
+  const clip = await synthAgain(text, beat, gen, turn);
+  return clip ? { clip } : null;
+}
+
 /** A tiny timing trail the live verifier reads off `window` — proves ink lands on its beat. */
-function traceBeat(kind: string, i: number, count: number, voicedMs?: number): void {
+function traceBeat(kind: string, i: number, count: number, voicedMs?: number, mouth?: Mouth): void {
   if (typeof window === 'undefined') return;
   const w = window as unknown as { __woboTiming?: unknown[] };
   if (!Array.isArray(w.__woboTiming)) return; // opt-in: the verifier sets it to []
@@ -829,6 +1313,7 @@ function traceBeat(kind: string, i: number, count: number, voicedMs?: number): v
     sentence: i,
     marks: count,
     voicedMs,
+    mouth,
   });
 }
 
@@ -886,6 +1371,9 @@ export function startUtterance(
   // alike. An utterance IS the turn as the learner hears it, so this is where the turn's voice
   // lives, and the device can only be it from the very first sentence.
   const turn = voiceOfTheTurn();
+  // AND ONE MOUTH FOR IT. The deciding sentence is a race between the socket and the buffered
+  // route (firstSound); whichever wins reads every sentence after it, so the answer is one voice.
+  const mouth = oneMouth();
   /** Sentences begun so far, across every line: the index the hand's gate waits on. */
   let spoken = 0;
   let ended = false;
@@ -896,12 +1384,35 @@ export function startUtterance(
     w?.();
   };
 
+  const lost = () => gen !== speechGen || isMuted() || turn.chosen() === 'device';
+  /**
+   * Ask for one sentence's sound, on the mouth this turn has: the socket once the socket won it,
+   * the buffered route once a clip did, both at once while nothing has been heard, and nothing
+   * at all once the device is reading the turn (lastResort reads it there).
+   */
+  const soundFor = (sentence: string, beat: VoiceBeat): Promise<Sound | null> | null => {
+    if (turn.chosen() === 'device') return null;
+    if (mouth.owner() === 'stream') return streamSound(sentence, beat, gen);
+    if (turn.chosen() === null) {
+      // The race, while no mouth has the turn; once the clip won it but nothing has played yet
+      // (muted mid-race), the ladder alone, on its deciding budget.
+      if (mouth.owner() === null) return firstSound(sentence, beat, gen, lost, mouth);
+      return synthFirst(sentence, beat, lost).then((clip) => (clip ? { clip } : null));
+    }
+    return synth(sentence, beat).then((clip) => (clip ? { clip } : null));
+  };
+  /** The next line's first sentence, asked for before that line was dequeued. */
+  let carried: { text: string; beat: VoiceBeat; sound: Promise<Sound | null> } | null = null;
+
   const drain = (async () => {
     while (true) {
       if (gen !== speechGen) return;
       const next = queue.shift();
       if (next === undefined) {
-        if (ended) return;
+        if (ended) {
+          void carried?.sound.then(dropSound);
+          return;
+        }
         await new Promise<void>((resolve) => {
           wake = resolve;
         });
@@ -912,31 +1423,61 @@ export function startUtterance(
       // Low-fi (reduced motion, Data Saver, 2G): voice the first couple of sentences, read the rest
       // on the clock. Grace degrades; the timing the ink is paced against does not.
       const voiceCount = currentFidelity() === 'low' ? Math.min(2, segs.length) : segs.length;
-      // While nothing of this turn has been heard, the ask goes down the ladder (asked again at
-      // each rung, the first audio to land wins); once Wobo is speaking, one ask, one budget.
-      const lost = () => gen !== speechGen || isMuted() || turn.chosen() === 'device';
-      const synthNext = (sentence: string) =>
-        turn.chosen() === null ? synthFirst(sentence, next.beat, lost) : synth(sentence, next.beat);
-      let pending = canVoice && segs.length > 0 ? synthNext(segs[0] as string) : null;
+      // The sentence before this line's first was carried across the seam (opened while the last
+      // sentence of the previous line played, so a streamed turn has no gap between lines). It
+      // is this line's only when the line is the one the queue showed.
+      let pending: Promise<Sound | null> | null = null;
+      if (carried !== null) {
+        if (carried.text === segs[0] && carried.beat === next.beat) pending = carried.sound;
+        else void carried.sound.then(dropSound);
+        carried = null;
+      }
+      if (pending === null && canVoice && segs.length > 0) {
+        pending = soundFor(segs[0] as string, next.beat);
+      }
       for (let i = 0; i < segs.length; i++) {
         let cur = pending ? await pending : null;
+        pending = null;
         if (gen !== speechGen) return;
-        pending = canVoice && i + 1 < voiceCount ? synthNext(segs[i + 1] as string) : null;
+        // The next sentence is asked for while this one plays: the next of this line, or — when
+        // this is the line's last and the plan has already sent the next line — that one's first.
+        if (canVoice && i + 1 < voiceCount) {
+          pending = soundFor(segs[i + 1] as string, next.beat);
+        } else if (canVoice && i + 1 === segs.length && queue[0] !== undefined) {
+          const ahead = queue[0];
+          const first = sentences(ahead.text)[0];
+          const sound = first !== undefined ? soundFor(first, ahead.beat) : null;
+          if (first !== undefined && sound !== null) {
+            carried = { text: first, beat: ahead.beat, sound };
+          }
+        }
         // One ask more for a sentence of an answer Wobo is already speaking: the gateway bought
         // the whole plan when its words were decided, so an empty answer here is usually a
         // sentence that was still in flight, and a gap is cheaper to close than a voice is to keep.
         if (!cur && canVoice && i < voiceCount) {
-          cur = await synthAgain(segs[i] as string, next.beat, gen, turn);
+          cur = await soundAgain(segs[i] as string, next.beat, gen, turn, mouth);
         }
         // The beat the ink waits on: this sentence is starting now, voiced or read.
-        const voicedMs = cur ? (cur.samples.length / cur.rate) * 1000 : undefined;
+        const voicedMs = cur ? soundMs(cur) : undefined;
         traceBeat('sentence', spoken, 0, voicedMs);
         hooks?.onSentence?.(spoken++, voicedMs);
         if (cur && !isMuted() && turn.chosen() !== 'device') {
+          if (turn.chosen() === null) {
+            traceBeat(
+              'first-sound',
+              spoken - 1,
+              0,
+              voicedMs,
+              'clip' in cur ? 'buffered' : 'stream',
+            );
+          }
           turn.spoke();
-          await playSamples(cur.samples, cur.rate, gen);
-        } else if (canVoice && i < voiceCount) await lastResort(segs[i] as string, gen, turn);
-        else await waitMs(estimateReadMs(segs[i] as string));
+          await playSound(cur, gen);
+        } else {
+          dropSound(cur);
+          if (canVoice && i < voiceCount) await lastResort(segs[i] as string, gen, turn);
+          else await waitMs(estimateReadMs(segs[i] as string));
+        }
         if (gen !== speechGen) return;
       }
     }

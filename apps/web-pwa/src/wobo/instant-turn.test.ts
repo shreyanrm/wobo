@@ -8,6 +8,8 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { boardBook, plane } from '@wobo/wobo';
 import { boardTurn, INSTANT_ID, screenStore } from './board-turn';
 
@@ -377,9 +379,7 @@ describe('a lasso that crossed two lines', () => {
     target: 'course-outline-2',
     kind: 'underline' as const,
     words: 'feel the rule',
-    also: [
-      { target: 'course-outline-3', kind: 'underline' as const, words: 'make a move' },
-    ],
+    also: [{ target: 'course-outline-3', kind: 'underline' as const, words: 'make a move' }],
   };
   const runGroup = () =>
     boardTurn.run({
@@ -435,5 +435,37 @@ describe('a lasso that crossed two lines', () => {
     await runGroup();
     await tick(60);
     expect(liveTargets()).toEqual(['course-outline-5']);
+  });
+});
+
+/**
+ * A TURN THE CLIENT CAN ALREADY MARK IS A DRAWING TURN (the adversary, wave 58, finding 3).
+ *
+ * "show me why" carries no draw word and names no registered target, so `boardShapeOf` kept it a
+ * plain conversation: no board turn, so the instant resolver was never consulted, no mark was
+ * laid, and the keyless answer was "Which part is the one that isn't landing?" over a card whose
+ * idea the resolver can underline in microseconds. The deciding read is taken before the shape is
+ * chosen; the resolver runs on that same read, and an aim makes the turn a drawing turn — the
+ * learner asked to be shown, and the glass knows what.
+ */
+describe('the instant aim decides the shape of the turn', () => {
+  const runtime = readFileSync(join(import.meta.dir, '..', 'AppRuntime.tsx'), 'utf8');
+
+  it('consults the resolver on the deciding read, before the shape is chosen', () => {
+    const decided = runtime.indexOf('const shape = boardShapeOf(');
+    const aimed = runtime.indexOf('const aimed =');
+    expect(decided).toBeGreaterThan(0);
+    expect(aimed).toBeGreaterThan(0);
+    expect(aimed).toBeLessThan(decided);
+    // the resolver reads the same glass the deciding read took
+    const between = runtime.slice(aimed, decided);
+    expect(between).toContain('resolveInstant(');
+    expect(between).toContain('core: currentCore()');
+  });
+
+  it('and an aim makes the turn a drawing turn', () => {
+    const decided = runtime.indexOf('const shape = boardShapeOf(');
+    const after = runtime.slice(decided, decided + 1200);
+    expect(after).toContain('if (aimed) shape.board = true;');
   });
 });

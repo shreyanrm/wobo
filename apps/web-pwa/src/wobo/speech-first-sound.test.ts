@@ -146,6 +146,43 @@ describe('the deciding sentence is asked for more than once', () => {
     expect(asked).toEqual([0]);
   });
 
+  it('takes a gateway that says no at once as the answer, and does not wait for a rung to say it again', async () => {
+    // A keyless box answers 503 in a few milliseconds. Until now the ladder waited for EVERY rung
+    // to ask and be refused — 9.5 s of the learner's first sentence, on every one of the 59
+    // keyless turns — because it only settled on silence when no rung was left to fire.
+    const asked: number[] = [];
+    const started = performance.now();
+    const got = await askForFirstSound<{ id: number }>(
+      (attempt) => {
+        asked.push(attempt);
+        return new Promise((r) => setTimeout(() => r(null), 5));
+      },
+      { rungs: [200, 400], budgetMs: 3000 },
+    );
+    expect(got).toBe(null);
+    expect(asked).toEqual([0]);
+    expect(performance.now() - started).toBeLessThan(150);
+  });
+
+  it('is called off by its signal, and abandons every ask it had in flight', async () => {
+    // The other mouth (the stream) has the turn: nothing the ladder could still bring back is
+    // worth hearing, and a request it is holding is a connection the gateway could use.
+    const aborted: number[] = [];
+    const cancel = new AbortController();
+    const started = performance.now();
+    const live = askForFirstSound<{ id: number }>(
+      (attempt, signal) => {
+        signal.addEventListener('abort', () => aborted.push(attempt));
+        return new Promise((r) => setTimeout(() => r(clip(attempt)), 3000));
+      },
+      { rungs: [30], budgetMs: 3000, signal: cancel.signal },
+    );
+    setTimeout(() => cancel.abort(), 60);
+    expect(await live).toBe(null);
+    expect(performance.now() - started).toBeLessThan(400);
+    expect(aborted.sort()).toEqual([0, 1]);
+  });
+
   it('has rungs inside the first-syllable law, not past it', () => {
     expect(REASK_RUNGS_MS[0]).toBeLessThanOrEqual(1500);
     expect(REASK_RUNGS_MS.length).toBeGreaterThanOrEqual(2);

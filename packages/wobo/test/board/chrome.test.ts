@@ -105,16 +105,20 @@ describe('ink is 3–4px and never under 2.5', () => {
   });
 
   it('the nib itself is 3px, the same number on both themes', () => {
+    // ONE number: the geometry owns it (a mark has to know how fat the pen is to stay off the
+    // words it names) and the renderer paints with the same constant, never a copy of it.
+    expect(read('geometry.ts')).toContain('export const NIB_PX = 3;');
     const src = read('renderer.tsx');
-    expect(src).toContain('const NIB_PX = 3;');
+    expect(src).toContain('const NIB_PX = GEOMETRY_NIB_PX;');
+    expect(src).not.toMatch(/const NIB_PX = \d/);
     expect(src).toContain('--wobo-nib:3;');
     expect(src).not.toContain('--wobo-nib:2.6');
   });
 
   it('a graph draws its axes at 3.5px and its grid at 2.5px', () => {
     const src = read('geometry.ts');
-    expect(src).toContain('const AXIS_INK = 3.5 / 3;');
-    expect(src).toContain('const GRID_INK = 2.5 / 3;');
+    expect(src).toContain('const AXIS_INK = 3.5 / NIB_PX;');
+    expect(src).toContain('const GRID_INK = 2.5 / NIB_PX;');
     // the grid is chrome, so it reads ink-3 rather than fighting the curve on top of it
     expect(read('renderer.tsx')).toContain("{ grid: 'faint' }");
   });

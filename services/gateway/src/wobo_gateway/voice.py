@@ -56,6 +56,21 @@ An answer is one performance, so the mouth is now the turn's: the sentences of a
 here the moment its words are decided, the voice for all of them is decided ONCE from live
 provider health, and the whole plan is synthesised then and there rather than one round trip at
 a time behind the learner. See the turn registry below.
+
+**One mouth, one bill (2026-09-15).** One voice per turn was true of the VENDOR and false of the
+PATH. The client asks for a turn's deciding sentence two ways at once — the buffered ladder
+(``POST /v1/voice/tts``) and this file's read-aloud socket, which is Gemini Live — and plays
+whichever audio lands first (``speech.tsx`` ``firstSound``); from then on every remaining sentence
+goes to the mouth that won and to no other (``soundAgain``). The gateway served both sides of that
+race and paid for both: wave 60 measured ``voice.tts`` at $0.2306 across THREE models for fourteen
+turns against $0.0874 for twelve in wave 57, and Wobo still reached the learner in two voices.
+Three rules answer it, and none of them costs a millisecond at the ear: the socket does not buy a
+line the gateway already holds (:func:`line_already_bought` — a clip on the disk answers the same
+ask in milliseconds and no socket that still has to connect can beat it); a turn whose mouth the
+stream has claimed is not also bought on the ladder (:func:`claim_mouth`, claimed on delivery, the
+same evidence the client claims on, read by :func:`_buy_parts`); and a turn nobody has heard a
+syllable of does not keep asking a voice whose provider has been marked OUT
+(:func:`turn_voice_for`).
 """
 
 from __future__ import annotations
@@ -761,14 +776,19 @@ def forget_lines() -> None:
 # is silence on the client's reading clock rather than a second voice for one line.
 
 
+#: The two ways a turn's audio can reach the ear: the buffered ladder, or the voice socket.
+Mouth = Literal["buffered", "stream"]
+
+
 @dataclass
 class _Turn:
-    """One answer's sentences, and the one voice they are all read in."""
+    """One answer's sentences, the one voice they are all read in, and the mouth they reach by."""
 
     at: float
     parts: tuple[tuple[str, Beat | None], ...]
     voice: str | None = None
     heard: bool = False
+    mouth: Mouth | None = None
 
 
 #: turn id -> the turn. Small and short-lived: these are the turns in flight, not a history.
@@ -808,13 +828,21 @@ def _register_turn(parts: list[tuple[str, Beat | None]]) -> str:
         # another, and each record would be innocent. So a new record inherits the voice of any
         # record already holding one of its sentences: the answer, not the bookkeeping, is what
         # keeps a voice.
+        # THE MOUTH TRAVELS WITH THE VOICE, for the same reason: the two records are one answer,
+        # and a mouth the stream has already won is not unwon by the second piece of bookkeeping.
         inherited: str | None = None
+        mouth: Mouth | None = None
         for part, _beat in parts:
             prior = _turns.get(_turn_of.get(part, ""))
-            if prior is not None and prior.voice is not None:
+            if prior is None:
+                continue
+            if inherited is None and prior.voice is not None:
                 inherited = prior.voice
+            if mouth is None and prior.mouth is not None:
+                mouth = prior.mouth
+            if inherited is not None and mouth is not None:
                 break
-        _turns[tid] = _Turn(at=now, parts=tuple(parts), voice=inherited)
+        _turns[tid] = _Turn(at=now, parts=tuple(parts), voice=inherited, mouth=mouth)
         for part, _beat in parts:
             _turn_of[part] = tid
     return tid
@@ -857,7 +885,40 @@ def turn_voice_for(text: str) -> str | None:
                 turn.voice,
                 len(turn.parts),
             )
+        elif not turn.heard and not _voice_available(turn.voice):
+            # A PIN DOES NOT OUTLIVE ITS PROVIDER, while nobody has heard the turn. The voice is
+            # decided when the words are, and a provider can be marked out in the seconds between
+            # that and the first ask — which is exactly what happened live in wave 60: Google's
+            # text-to-speech timed out, ``health`` marked it out, and every sentence of every turn
+            # already pinned to it was asked of it anyway, each one a dead-end wait of seconds
+            # before the re-decision that was always going to happen, and the seven 502s that sent
+            # those turns to a second mouth and a second bill. ``_buy_in_one_voice`` asks a pinned
+            # voice whatever health says, deliberately — a turn being heard must not change mouth
+            # — so the check belongs HERE, where the turn is still unheard and the re-decision is
+            # the one nobody can hear.
+            from wobo_gateway.plexus.media import pick_voice
+
+            second = pick_voice()
+            if second is not None and second != turn.voice:
+                logger.info(
+                    "voice: turn %s re-decided to %s before it was heard (%s is out)",
+                    tid[:8],
+                    second,
+                    turn.voice,
+                )
+                turn.voice = second
         return turn.voice
+
+
+def _voice_available(voice_id: str) -> bool:
+    """Is this voice's provider not marked out? Never raises: an unknown health answer is yes."""
+    try:
+        from wobo_gateway import health
+
+        return bool(health.provider_available(voice_id))
+    except Exception as exc:  # noqa: BLE001 — health is a hint; a turn keeps its voice without it
+        logger.debug("voice: health unknown (%s: %s)", type(exc).__name__, exc)
+        return True
 
 
 def turn_heard(text: str) -> bool:
@@ -873,6 +934,32 @@ def note_heard(text: str) -> None:
     if found is not None:
         with _turn_lock:
             found[1].heard = True
+
+
+def claim_mouth(text: str, mouth: Mouth) -> bool:
+    """This path served the first audio of the turn this sentence belongs to. First one wins.
+
+    The client asks for a turn's DECIDING sentence two ways at once (``speech.tsx`` ``firstSound``:
+    the buffered ladder and the voice socket together) and plays whichever audio lands first; every
+    sentence after it goes to the mouth that won and to no other (``soundAgain``). So the gateway
+    claims on exactly the evidence the client claims on — audio delivered — and the answer is the
+    same on both sides of the wire. ``True`` when this path owns the turn's mouth from here.
+    """
+    found = _turn_for(text)
+    if found is None:
+        return False
+    tid, turn = found
+    with _turn_lock:
+        if turn.mouth is None:
+            turn.mouth = mouth
+            logger.debug("voice: turn %s reaches the ear by the %s", tid[:8], mouth)
+        return turn.mouth == mouth
+
+
+def turn_mouth(text: str) -> Mouth | None:
+    """Which mouth the answer this sentence belongs to is reaching the ear by, once one has won."""
+    found = _turn_for(text)
+    return found[1].mouth if found is not None else None
 
 
 def repin_unheard_turn(text: str, *, failed: str | None) -> str | None:
@@ -897,6 +984,40 @@ def repin_unheard_turn(text: str, *, failed: str | None) -> str | None:
         turn.voice = nxt
         logger.info("voice: turn %s re-decided to %s before it was heard", tid[:8], nxt)
         return nxt
+
+
+def peek_turn_voice(text: str) -> str | None:
+    """The voice this sentence's turn is pinned to, WITHOUT deciding one for a turn that has none.
+
+    :func:`turn_voice_for` pins on first ask, which is right for a path about to buy audio and
+    wrong for one only asking what has already been bought: a read must not decide a turn's voice
+    for it. A turn with no pin has bought nothing, so there is nothing for the caller to find.
+    """
+    found = _turn_for(text)
+    return found[1].voice if found is not None else None
+
+
+def line_already_bought(text: str, *, accent: str, beat: Beat) -> bool:
+    """Is this exact line, read the way this learner is about to hear it, already on the disk?
+
+    The same key ``plexus.media`` keeps it under — the words, the accent and beat instruction, and
+    the turn's own voice — so a clip bought for a different mouth or a different ear is a miss,
+    exactly as it is for the route that would serve it.
+
+    Never raises and never buys: the answer to a question this cheap must never cost a child their
+    audio, so anything unexpected is a miss and the caller does what it does today.
+    """
+    line = (text or "").strip()
+    if not line:
+        return False
+    try:
+        from wobo_gateway.plexus.media import _cache_key, _cached
+
+        key = _cache_key(line, spoken_instruction(accent, beat), peek_turn_voice(line))
+        return _cached(key) is not None
+    except Exception as exc:  # noqa: BLE001 — an unreadable disk is a miss, never a silence
+        logger.debug("voice: held line unknown (%s: %s)", type(exc).__name__, exc)
+        return False
 
 
 def turn_parts(text: str) -> tuple[tuple[str, Beat | None], ...]:
@@ -1048,6 +1169,16 @@ def _buy_parts(
 
     NOT ON A DAY THE PLATFORM IS ALREADY TRIMMING — the same strict lane :func:`buy_line_ahead`
     asks in, for the same reason: anticipation is a kindness to the ear, never the answer itself.
+
+    AND NOT FOR A TURN THE STREAM HAS THE MOUTH OF. The client asks for a turn's deciding sentence
+    on the ladder and on the voice socket at once and keeps whichever spoke first; from then on
+    every remaining sentence of that turn goes to that mouth and to no other (``speech.tsx``
+    ``soundAgain``: on a stream turn a sentence the socket cannot speak is silence, and the
+    buffered route is never asked for it). So once the stream has claimed the turn, each clip
+    bought here is one nobody will ever ask for — not a race lost, a bill paid for audio that
+    cannot be played. Wave 60 paid it fourteen times: ``voice.tts`` $0.2306 across three models
+    against $0.0874 in wave 57. Nothing is refused by this, only anticipated: a sentence the
+    client does ask for is still bought and served on the ask, exactly as it is today.
     """
     from wobo_gateway import spend
 
@@ -1055,6 +1186,9 @@ def _buy_parts(
         return 0
     started = 0
     for part, other in parts:
+        if turn_mouth(part) == "stream":
+            logger.debug("voice: plan not bought ahead — the stream has this turn's mouth")
+            break
         if not part.strip():
             continue
         if not _ahead_slots.acquire(blocking=False):
@@ -1332,8 +1466,12 @@ def register_voice(app: FastAPI) -> None:
                 headers=budget.headers(snap, budget.classify("voice.tts")),
             )
         # A syllable of this answer is now on its way, so the voice it is read in is frozen: from
-        # here nothing can hand the learner a different mouth for one sentence of it.
+        # here nothing can hand the learner a different mouth for one sentence of it. The ladder
+        # delivered it, so the ladder claims the turn's mouth — the same claim the client makes on
+        # the same evidence, and the answer to "is the stream reading this turn?" for every buy
+        # this turn has left.
         note_heard(body.text)
+        claim_mouth(body.text, "buffered")
         heard = _turn_for(body.text)
         if heard is not None:
             logger.info(
@@ -1441,7 +1579,23 @@ def register_voice(app: FastAPI) -> None:
                 # line itself, and a gateway older than the beat would have read a JSON frame
                 # aloud. A beat chooses only a lean, so an unknown one is the step, never a close.
                 beat = beat_of(client.query_params.get("beat"))
-                await _stream_one_line(client, aiohttp, key, text, accent=grant.accent, beat=beat)
+                # ONE LINE, ONE BILL. This socket and the buffered route are asked for a turn's
+                # deciding sentence AT THE SAME MOMENT (``speech.tsx`` ``firstSound``), and the
+                # client plays whichever audio lands first. When the gateway already holds the
+                # clip there is no race to run: the buffered ask answers it off the disk in
+                # milliseconds (2 to 21 ms, measured live) while this socket still has a mint and
+                # a connect in front of its first chunk (1.1 to 1.4 s, measured live, on every
+                # turn of wave 60). Opening Gemini Live for it would buy a second reading of a
+                # bought line, in a second voice, to be dropped unheard — and dropping it unheard
+                # is what handed the learner two mouths and the bill two providers. So the socket
+                # looks first and stays shut; the client's own fallback for a chunkless close IS
+                # the buffered clip, which is already in hand.
+                if line_already_bought(text, accent=grant.accent, beat=beat):
+                    logger.debug("voice: socket declined — the line is already bought")
+                else:
+                    await _stream_one_line(
+                        client, aiohttp, key, text, accent=grant.accent, beat=beat
+                    )
         with contextlib.suppress(RuntimeError):
             await client.close()
 
@@ -1459,6 +1613,7 @@ async def _stream_one_line(
     same way as the relay: the line up, every audio part down, one row at the end."""
     meter = LiveMeter("voice.tts")
     meter.text(text)
+    claimed = False
     try:
         async with (
             aiohttp.ClientSession() as http,
@@ -1485,6 +1640,12 @@ async def _stream_one_line(
                     break
                 meter.down(frame)
                 await client.send_text(frame)
+                # THE MOUTH IS CLAIMED ON DELIVERY, the same evidence the client claims on: the
+                # first audio to reach it takes the turn, and every sentence after it goes to that
+                # mouth alone. Said here, the gateway stops buying the rest of this turn's plan on
+                # the ladder — clips the client will never ask for once the socket has won.
+                if meter.audio_out_s > 0 and not claimed:
+                    claimed = claim_mouth(text, "stream")
                 if '"turnComplete"' in frame or '"turn_complete"' in frame:
                     break
     except (aiohttp.ClientError, WebSocketDisconnect, RuntimeError, OSError):

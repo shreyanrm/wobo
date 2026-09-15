@@ -340,8 +340,16 @@ def test_an_invitation_binds_to_the_account_that_accepts_it(
     )
     assert wrong.status_code == 403
 
-    opened = client.post(
+    # The right address, but the token does not say it was verified: not proof either. A missing
+    # claim is not a yes (fail closed), because an unconfirmed sign-up can carry any address.
+    unproven = client.post(
         f"{ADMIN_PREFIX}/session", headers=_bearer(NEWCOMER_SUBJECT, email="newcomer@example.com")
+    )
+    assert unproven.status_code == 403
+    assert next(a for a in _admin_env.list_admins() if a.email == "newcomer@example.com").subject_id is None
+
+    opened = client.post(
+        f"{ADMIN_PREFIX}/session", headers=_bearer(NEWCOMER_SUBJECT, email="newcomer@example.com", email_verified=True)
     )
     assert opened.status_code == 200, opened.text
     bound = next(a for a in _admin_env.list_admins() if a.email == "newcomer@example.com")

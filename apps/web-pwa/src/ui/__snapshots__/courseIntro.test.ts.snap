@@ -32,6 +32,15 @@ exports[`the drawing itself mathematics is unchanged 1`] = `
       "x": 86,
       "y": 80,
     },
+    {
+      "el": "side",
+      "grip": 0.1,
+      "part": "hypotenuse",
+      "x1": 106,
+      "x2": 46,
+      "y1": 124,
+      "y2": 79,
+    },
   ],
   "tint": "var(--pig-w)",
 }

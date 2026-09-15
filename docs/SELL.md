@@ -288,3 +288,30 @@ The owner's standing law, and it is not negotiable for a product used by childre
 - Nothing claimed that cannot be shown working.
 
 A conversion won by any of these is a refund, a complaint, or a parent who tells other parents.
+
+## The money's voice (owner, 2026-09-15)
+
+*"In the billing or pricing areas, make sure you use lines like: we use this money to invest in
+improving the application, create more beautiful content. We need to make them feel grateful, create
+that personal touch. We aren't showing ourselves like a business."*
+
+So every surface where money is mentioned (the plans page, the checkout, the bar on You, the promo
+field, the receipt mail, the plan-opened mail, the renewal and the failed-payment mails, the parent's
+pay screen, the donate screen) says, in its own words and once, where the money goes: into the tutor
+getting better, the drawings getting more beautiful, and the next child's first lesson. The rules:
+
+1. **Say where it goes, plainly.** "Your plan pays for the drawings, the voice and the next lesson"
+   is the register. Not "support our mission", not "unlock premium", not a feature grid first.
+2. **One sentence of thanks, said like a person.** Once per surface, never repeated in the same
+   screen, never with an exclamation mark, never "we appreciate your business".
+3. **Nothing sounds like a company.** No "subscription", "billing cycle", "tier", "upgrade", "premium",
+   "pro features", "unlock", "limited offer". A plan is a plan; a month is a month; the price is the
+   price, in rupees, once.
+4. **Only claims docs/CLAIMS.md clears.** "We use this to make the content better" is true and stays;
+   "every rupee goes to content" is not provable and never appears.
+5. **The free learner is thanked too**, for their time, and told what the plan would add, without a
+   nag (docs/SUGGESTIONS-AND-NOTICES.md).
+
+The exact lines live in docs/copy/money.md, written once and used verbatim, so the voice is the same
+on the page, in the mail and in the app. Tests assert the forbidden words never appear on a money
+surface and that each money surface carries exactly one line from money.md.

@@ -29,7 +29,7 @@ import {
 } from '@wobo/wobo';
 import { type InkFrame, SentenceGate } from './beat';
 import { type BoardContext, type BoardDone, streamBoardTurn } from './board-stream';
-import { forgetGlass, glassTargets } from './glass';
+import { forgetGlass, glassTargets, type GlassTarget } from './glass';
 import { lessonView } from './lesson-view';
 import { isLessonRoute, type Presentation, PresentationChoice } from './presentation';
 import { sentences, startUtterance, stopSpeaking, type Utterance } from './speech';
@@ -1296,6 +1296,6 @@ export function liveFocusRect(focus: FocusObject): Rect {
  * whatever the registry still holds under an id the map does not (docs/INK-FREEZE-PLAN-TRACE.md
  * §3, Trace: one pen, from the element's real box).
  */
-export function boardTargets(): readonly { id: string; getRect: () => DOMRect | null }[] {
+export function boardTargets(): readonly GlassTarget[] {
   return glassTargets();
 }

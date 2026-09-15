@@ -34,12 +34,25 @@ WHAT COUNTS AS "DRAWN". Two things, and only two.
 * **The parts a figure gives its own names** — a ``label``'s text, a ``number``'s label, a
   ``region``'s or a ``polygon``'s title. Not the working: reading "TT, Tt, Tt, tt" back at a
   learner is precisely the label read back that the law forbids, and not the construction strokes,
-  which the figure's own name covers.
+  which the figure's own name covers. Not the GROUND either — a shape the figure marks
+  ``meta.ground``, such as the seven states the map of India draws Maharashtra among, is there so
+  the subject has somewhere to be; it is spoken when a mark lands on it and never read out as an
+  inventory (:func:`is_ground`).
 
 THE TURN'S SHAPE. A sentence that goes in shifts every beat after it, on both spellings of a beat
 (``beat`` and the glass planner's ``meta.beat``), so a mark still lands on the word that names it.
 A mark that named no beat is spread across the whole utterance by ``stream._ink_clock``, so the
 line AS A WHOLE is the sentence it is beaten to, and its naming goes on the end.
+
+AND A MARK ON THE LEARNER'S OWN PAGE IS POINTED AT, NEVER READ AS A CLAIM. A photograph of an
+exercise book is the one board Wobo did not draw. The mark is about a line the learner wrote, and
+that line is what the mark is called (``doubt.DoubtShaper._about_the_line``), so the sentence it is
+owed when nothing names it is the teacher's finger on the page — "This line, 3x = 20 + 5." — and
+not the line read out as a statement ("3x = 20 + 5." asserts the very line the cross is on) and
+not the model's tag ("Wrong sign.") spoken as prose. Wave 58 went further and exempted the page
+mark from the law altogether, and the adversary measured what that costs: live at 390 the whole
+caption was "Not quite. What is 20 - 5?" over a ring on one of six lines, and nothing said which.
+:func:`sentence_for` is the one builder for the sentence any unnamed mark is owed.
 
 AND NOTHING SPEAKS MACHINERY. Live on 2026-09-08 a fallback read ``{"path":"visualization",
 "viz":{...`` out loud and printed it in the transcript. ``wobo.is_jsonish`` catches that on the
@@ -147,12 +160,67 @@ def names(sentence: str, subject: str) -> bool:
 
     Articles and pointing words do not count either way, so "Hypotenuse, then." names "the
     hypotenuse" and "opposite the right angle" does not.
+
+    A LINE OF WORKING IS NAMED BY QUOTING IT. Its operators are its words: "3x = 20 - 5" carries
+    every content word of "3x + 5 = 20" and is a different line, and live on 2026-09-15 that
+    left the ring on the learner's given equation un-pointed at both widths. So a subject that
+    is working is named when the sentence quotes it, or one side of it, in order
+    (:func:`names_working`).
     """
+    if _EXPRESSION.search(subject):
+        return names_working(sentence, subject)
     wanted = _content(subject)
     if not wanted:
         return False
     have = set(_content(sentence))
     return all(w in have for w in wanted)
+
+
+#: The tokens of a line of working: a symbol or a number, or one operator. A raised digit is a
+#: caret and a digit, so both hands spell a power the same way.
+_WORKING_TOKEN = re.compile(r"[a-z][a-z0-9]*|[0-9]+(?:\.[0-9]+)?|[=+\-−*/^×÷]")
+_OPERATOR = frozenset("=+-−*/^×÷")
+
+
+def _working_tokens(text: str) -> list[str]:
+    body = _SUPERSCRIPT_RE.sub(
+        lambda m: "^" + _SUPERSCRIPTS[m.group(0)].strip(), (text or "").lower()
+    )
+    return [t.replace("−", "-") for t in _WORKING_TOKEN.findall(body)]
+
+
+def _quoted(have: list[str], want: list[str]) -> bool:
+    """Is ``want`` in ``have`` contiguously, and not as the front of a longer expression?"""
+    n = len(want)
+    for i in range(len(have) - n + 1):
+        if have[i : i + n] != want:
+            continue
+        before = have[i - 1] if i > 0 else ""
+        after = have[i + n] if i + n < len(have) else ""
+        if before not in _OPERATOR and after not in _OPERATOR:
+            return True
+    return False
+
+
+def names_working(sentence: str, line: str) -> bool:
+    """Does this sentence quote that line of working, whole or one side of it?
+
+    A side has to be two tokens or more: "not 20 + 5" names "3x = 20 + 5", and the "20" in
+    "What is 20 - 5?" names nothing.
+    """
+    want = _working_tokens(line)
+    have = _working_tokens(sentence)
+    if not want or not have:
+        return False
+    if _quoted(have, want):
+        return True
+    sides: list[list[str]] = [[]]
+    for token in want:
+        if token == "=":
+            sides.append([])
+        else:
+            sides[-1].append(token)
+    return any(len(side) >= 2 and _quoted(have, side) for side in sides)
 
 
 # --- what a thing is called, in its own words -----------------------------------------------------
@@ -204,7 +272,21 @@ def mark_subject(
     """
     if obj.get("kind") not in MARK_KINDS:
         return None
-    head = _subject_head(_own_words(obj, "words"))
+    words = _own_words(obj, "words")
+    # A LINE OF THE PAGE IS THE SUBJECT WHOLE. The tail cut below is for a phrase the model wrote
+    # ("the hypotenuse, opposite the right angle" is about the hypotenuse); a line the learner
+    # wrote is about all of itself. The same reading for any mark whose words are a line of
+    # working: the client's instant mark reaches this pass without its ``meta`` (``stream``
+    # rebuilds it), and "Solve: 3x + 5 = 20" cut at the colon was called "Solve".
+    if on_a_line(obj) or _EXPRESSION.search(words):
+        return line_subject(words) or None
+    if on_the_page(obj) and not words:
+        # The page's own construction between two marks — the doubt plan's arrow from its note
+        # to its ring — carries no words, and the marks it joins are named already. The one-hop
+        # anchor rule below is for a leader on Wobo's own figure; through a page mark it would
+        # read the learner's line as "This is the find the perimeter of the rectangle.".
+        return None
+    head = _subject_head(words)
     if not head:
         head = _subject_head(_own_words(obj, "text", "label"))
     if not head:
@@ -216,21 +298,114 @@ def on_the_page(obj: dict[str, Any]) -> bool:
     """Is this mark on the LEARNER'S OWN PAGE, rather than on something Wobo drew?
 
     THE PAGE IS NOT WOBO'S TO READ BACK (the adversary, wave 57; docs/INK-FOUR.md, experience).
-    This pass gives every mark the say does not name a sentence built from the mark's own words,
-    which is right for a board Wobo drew: nobody but Wobo knows what that ring is around. On a
-    photograph of the learner's exercise book it is wrong twice over. The model writes a TAG on
-    such a mark — "Starting equation", "Wrong sign", "Correct first step" — and live at 390 on
-    2026-09-10 all three were spliced into the middle of the teaching line as though they were
-    sentences. Give the mark its line's own words instead (``doubt.DoubtShaper._about_the_line``)
-    and the splice becomes the other forbidden thing: "3x = 20 + 5 ?" read aloud to the child who
-    wrote it.
+    On a board Wobo drew, a mark the say never names gets a sentence from the mark's own words:
+    nobody but Wobo knows what that ring is around. On a photograph of the learner's exercise
+    book the model writes a TAG on the mark — "Starting equation", "Wrong sign", "Correct first
+    step" — and live at 390 on 2026-09-10 all three were spliced into the teaching line as though
+    they were sentences. ``doubt.DoubtShaper._about_the_line`` gives the mark its line's own words
+    instead and sets this flag; nothing else in the product does.
 
-    So a mark on the page is owed no sentence. What it is about is under it, in the learner's own
-    handwriting, and the say's job is to teach about it — which is what the say already does.
-    ``doubt.DoubtShaper`` sets the flag; nothing else in the product does.
+    AND THE LINE IS STILL OWED ITS SENTENCE (the adversary, wave 58, finding 1). Wave 58 read the
+    flag as "owed no sentence", because the line is under the mark in the learner's own hand. A
+    learner who is listening, or reading the caption, is not looking at the mark: live at 390 the
+    whole caption was "Not quite. What is 20 - 5?" over a ring on one of six lines. So a page mark
+    the say never names is pointed at, in :func:`pointed_at`'s form, and the flag decides the FORM
+    of the sentence, never whether there is one.
     """
     meta = obj.get("meta")
     return isinstance(meta, dict) and meta.get("page") is True
+
+
+def on_a_line(obj: dict[str, Any]) -> bool:
+    """Is this a mark on the page that SITS ON A LINE of it, so its words are that line?
+
+    ``doubt.DoubtShaper._about_the_line`` swaps the words for the line's text only for a mark
+    anchored to a line by ``target``. An arrow between two marks is on the page too, but keeps
+    the model's own words, and those are pointed at the way any mark's words are, never as a line.
+    """
+    anchor = obj.get("anchor")
+    return on_the_page(obj) and isinstance(anchor, dict) and isinstance(anchor.get("target"), str)
+
+
+#: A heading in front of the working on a line of the page: "Solve: ", "Step 2: ", "Q4: ".
+_HEADING = re.compile(r"^[A-Za-z][A-Za-z0-9 .]{0,30}:\s*(?=\S)")
+#: What a learner leaves at the end of their own line: the "?" of a doubt, a stray full stop.
+_LEARNERS_TAIL = " ?.;:,"
+
+
+def line_subject(words: str) -> str:
+    """A line of the learner's page as the thing a mark on it is ABOUT.
+
+    The learner's own doubt mark comes off the end ("3x = 20 + 5 ?" is about 3x = 20 + 5, and a
+    "?" read out makes Wobo's sentence a question about the wrong line), and a heading comes off
+    the front of working ("Solve: 3x + 5 = 20" is about the equation). Nothing else is touched:
+    the line is theirs, and it is said as they wrote it.
+    """
+    body = re.sub(r"\s+", " ", (words or "").strip())
+    if _EXPRESSION.search(body):
+        body = _HEADING.sub("", body)
+    return body.strip(_LEARNERS_TAIL)
+
+
+def pointed_at(*lines: str) -> str:
+    """The teacher's finger on a line of the learner's page: "This line, 3x = 20 + 5."
+
+    Never the line as a statement — "3x = 20 + 5." over a cross asserts the very thing the cross
+    denies — and never the model's tag as prose. A line of prose is pointed at in sentence case;
+    a line of working keeps its case, because ``x`` and ``X`` are two symbols. Two lines pointed
+    at in one breath are one sentence: "This line, 3x = 20 + 5, and this line, 3x + 5 = 20."
+    """
+    bodies: list[str] = []
+    for line in lines:
+        body = line_subject(line)
+        if not body:
+            continue
+        if not _EXPRESSION.search(body):
+            head = body.split(" ", 1)[0]
+            if head[:1].isupper() and head[1:].islower():
+                body = body[0].lower() + body[1:]
+        bodies.append(f"this line, {body}")
+    if not bodies:
+        return ""
+    said = bodies[0] if len(bodies) == 1 else ", ".join(bodies[:-1]) + ", and " + bodies[-1]
+    return said[0].upper() + said[1:] + "."
+
+
+def sentence_for(obj: dict[str, Any], by_id: dict[str, dict[str, Any]] | None = None) -> str:
+    """The one sentence a mark is owed when nothing in the say names it.
+
+    On the learner's page, the line pointed at (:func:`pointed_at`). On a board Wobo drew, the
+    mark's own words: in register first (a model that narrated has its narration taken off), then
+    as a thing said rather than a caption read out (:func:`as_a_sentence`), then terminated. One
+    builder, so a mark the client laid and a mark the model planned are owed the same sentence.
+    """
+    if on_a_line(obj):
+        return pointed_at(_own_words(obj, "words"))
+    subject = mark_subject(obj, by_id)
+    if subject is None:
+        return ""
+    return in_register(as_a_sentence(in_register(_own_words(obj, "words") or subject)))
+
+
+def is_ground(obj: dict[str, Any]) -> bool:
+    """Is this shape the GROUND the figure stands on, rather than a part of the figure?
+
+    THE COUNTRY IS NOT AN INVENTORY (the adversary, wave 60). The map of India draws all eight
+    bundled states so the one the question names has somewhere to be, and each carries its
+    ``title`` because ``spoken.ts`` reads that title to a learner who asks what is on the board.
+    :func:`part_name` read all eight as parts the figure names of itself, so the say ran through
+    every one of them: "Rajasthan, gujarat, maharashtra, madhya pradesh. Uttar pradesh, karnataka,
+    kerala, tamil nadu." over a board that writes ONE name.
+
+    A figure says which of its shapes is ground, on the shape itself, exactly as the doubt shaper
+    says which mark is on the learner's page (:func:`on_the_page`); nothing is inferred from the
+    ink, because the pythagoras board's three squares are drawn faint and ARE the teaching. Ground
+    is spoken when a mark lands on it — a ring on Gujarat still says Gujarat, through
+    :func:`mark_subject` — and it keeps time with a sentence that names it (``_timing_name``). It
+    is only never READ OUT as one of the figure's parts.
+    """
+    meta = obj.get("meta")
+    return isinstance(meta, dict) and meta.get("ground") is True
 
 
 def part_name(obj: dict[str, Any]) -> str | None:
@@ -239,8 +414,11 @@ def part_name(obj: dict[str, Any]) -> str | None:
     A ``label`` is the figure naming a part of itself. A ``number`` with a label is a measured part
     with its measurement ("dominant 3"). A ``region`` or a ``polygon`` with a title is a named
     shape. Everything else on a from-scratch board — the working, the construction strokes, the
-    pointers — is drawn, not named, and is covered by the parts it points at.
+    pointers — is drawn, not named, and is covered by the parts it points at. Nor is the GROUND a
+    figure stands on (:func:`is_ground`).
     """
+    if is_ground(obj):
+        return None
     kind = obj.get("kind")
     if kind == "label":
         return _sayable_name(_own_words(obj, "text"))
@@ -371,6 +549,24 @@ def opening(intent: dict[str, Any], ask: str = "") -> str:
         if left and right:
             return f"{left} to {right}, counted on both sides."
         return ""
+    if op == "map":
+        # A MAP MAKES ITS OWN SENTENCE, OR IT BORROWS A DIAGRAM'S (the adversary, wave 60). With
+        # nothing here the map fell through to the bio_social family's line — "Read the labels as
+        # they land, and say which one is missing." — over a board that writes exactly one label,
+        # keyless and live. The true thing to say about this drawing is the state the question
+        # named and the country it is drawn among; the other states are the ground it stands on
+        # (``pipelines.bio_social._map``), and a ground read out is an inventory, not a lesson.
+        from wobo_gateway.plexus.maps import region_name
+
+        # The bundle's own name or nothing: "madhya-pradesh, with the states around it." would be
+        # the catalog's id spoken aloud, which is the slug law broken in the voice instead of on
+        # the glass. A map whose region the bundle does not hold is refused before it is drawn.
+        named = region_name(str(intent.get("mark") or "").strip().lower())
+        if named:
+            return f"{named}, with the states around it."
+        if intent.get("values"):
+            return "The states, shaded by the numbers on them."
+        return ""
     if op == "derivation":
         # THE GIVEN, AS THE LEARNER WROTE IT. A derivation's own marks are ``write`` objects, and
         # the naming pass deliberately does not read working back (that is the label read back the
@@ -437,6 +633,37 @@ _FINITE_VERB = re.compile(
 _LABEL_WORDS = 6
 _HAS_ARTICLE = ("the ", "a ", "an ", "this ", "that ", "these ", "those ", "your ", "my ", "its ")
 
+#: A BARE VERB AT THE HEAD OF A LABEL THAT IS A THING TO DO. Every card in this product is titled
+#: with an instruction — "predict, then check", "feel the rule", "make a move", "meet a new
+#: course" — and an instruction takes no article. Only the bare forms are here, and only the
+#: FIRST word is read against them, because "the sign flip", "the step count" and "the end point"
+#: are things, not commands, and a verb list that claimed them would stop articling a noun.
+_INSTRUCTION_HEAD = re.compile(
+    r"^(?:predict|check|feel|make|meet|find|solve|try|draw|write|read|watch|listen|explain|"
+    r"compare|choose|pick|name|spot|measure|match|sort|fill|complete|review|practise|practice|"
+    r"apply|describe|calculate|estimate|arrange|identify|prove|show|tell|notice|imagine|decide|"
+    r"simplify|expand|factorise|factorize|subtract|multiply|divide|connect|trace)\b",
+    re.IGNORECASE,
+)
+#: The next instruction in a sequence: "predict, THEN check".
+_AND_THEN = re.compile(r"\bthen\b", re.IGNORECASE)
+#: The word a command acts on, right after the verb: "feel THE rule", "make A move".
+_ACTED_ON = ("a", "an", "the")
+
+
+def _an_instruction(body: str) -> bool:
+    """Is this label a thing to DO rather than a thing to point at?
+
+    A head verb ALONE decides nothing: "check" and "move" and "plan" are all nouns as readily as
+    verbs, and "this is the check" is the right sentence about a tick. What makes the phrase a
+    command is what follows the verb — the thing it acts on ("feel the rule", "make a move") or
+    the next instruction in the sequence ("predict, then check").
+    """
+    words = body.split()
+    if len(words) < 2 or not _INSTRUCTION_HEAD.match(words[0]):
+        return False
+    return words[1].lower() in _ACTED_ON or bool(_AND_THEN.search(body))
+
 
 def _plural(label: str) -> bool:
     """Is the thing this label names more than one? "The numbered steps" are, "the axis" is not."""
@@ -468,6 +695,12 @@ def as_a_sentence(words: str) -> str:
     # it is going into the middle of a sentence now.
     if head[:1].isupper() and head[1:].islower():
         body = body[0].lower() + body[1:]
+    # AN INSTRUCTION TAKES NO ARTICLE, and this is the form Wobo already says it in: keyless at
+    # 390 on the "predict, then check" card, ``glass.absent_line`` answers "There's no effect
+    # circle on this card. This one is predict, then check." The same card ringed by the client's
+    # instant pen was owed a sentence here, and got "This is the predict, then check."
+    if _an_instruction(body):
+        return f"This one is {body}"
     if not body.lower().startswith(_HAS_ARTICLE):
         body = f"the {body}"
     return f"These are {body}" if _plural(body) else f"This is {body}"
@@ -686,12 +919,23 @@ def settle_beats(said: str, objects: list[dict[str, Any]]) -> None:
 
 
 def _rebeat(obj: dict[str, Any], to: int) -> None:
+    """Move this object's beat to sentence ``to``, on whichever spelling it is written in.
+
+    ``{"after": n}`` is a beat somebody chose as much as ``{"with": n}`` is, and a sentence going
+    in ahead of it moves the sentence it names just the same: the doubt plan's ``write`` was
+    beaten ``after`` the teaching sentence and, once the pointing sentence went in before it,
+    kept time with the pointing sentence instead.
+    """
     for holder in (obj, obj.get("meta") if isinstance(obj.get("meta"), dict) else None):
         if not isinstance(holder, dict):
             continue
         beat = holder.get("beat")
-        if isinstance(beat, dict) and isinstance(beat.get("with"), int):
-            beat["with"] = to
+        if not isinstance(beat, dict):
+            continue
+        for key in ("with", "after"):
+            if isinstance(beat.get(key), int) and not isinstance(beat.get(key), bool):
+                beat[key] = to
+                return
 
 
 #: A NAME IS A PLACE IN A SENTENCE, NOT ONLY A SENTENCE (the adversary, 2026-09-09, finding 5).
@@ -800,8 +1044,13 @@ def unnamed(say: str, objects: list[dict[str, Any]]) -> list[str]:
         if subject is not None:
             beat = _beat_of(obj)
             where = parts[beat] if beat is not None and beat < len(parts) else say
-            if not names(where, subject) and not on_the_page(obj):
-                out.append(subject)
+            if names(where, subject):
+                continue
+            # A page mark keeps the beat the shaper chose and is named by whichever sentence
+            # names its line (:func:`name_what_is_drawn`); its ink holds for the whole turn.
+            if on_the_page(obj) and any(names(part, subject) for part in parts):
+                continue
+            out.append(subject)
             continue
         name = part_name(obj)
         if name and not names(say, name):
@@ -830,7 +1079,10 @@ def only_what_is_drawn(
     if not parts or not missing:
         return say, ()
     by_id = {str(o.get("id")): o for o in [*drawn, *missing] if o.get("id")}
-    gone = [n for n in (_own_name(o, by_id) for o in missing) if n]
+    # A MARK ON THE LEARNER'S PAGE THAT WAS REFUSED LEAVES THE LINE WHERE IT WAS. The sentence
+    # about that line is about something the learner is looking at, in their own hand; only a
+    # mark on a board Wobo drew takes its subject off the glass with it.
+    gone = [n for n in (_own_name(o, by_id) for o in missing if not on_the_page(o)) if n]
     if not gone:
         return say, ()
     here = [n for n in (_own_name(o, by_id) for o in drawn) if n]
@@ -931,6 +1183,10 @@ def name_what_is_drawn(
     # finding 3). The second mark is not owed a sentence; it is owed the SAME sentence, and the
     # rebeat below puts it there, because a mark keeps time with the words that name it.
     added: dict[int, list[str]] = {}
+    #: The lines of the learner's page pointed at, by the sentence they follow: one sentence per
+    #: place, however many lines (:func:`pointed_at`). The placeholder in ``added`` keeps its
+    #: turn in the order the marks were met, and is filled once every mark has been read.
+    pointed: dict[int, list[str]] = {}
     marks: list[tuple[dict[str, Any], int, str]] = []
     written: set[str] = {flat(line) for line in lead}
     for obj in drawn:
@@ -941,13 +1197,30 @@ def name_what_is_drawn(
         where = parts[beat] if beat is not None and beat < len(parts) else so_far
         if names(where, subject):
             continue
-        if on_the_page(obj):
+        # A MARK ON THE LEARNER'S PAGE IS NAMED BY ANY SENTENCE THAT NAMES ITS LINE. Its ink
+        # holds on the page for the whole turn, and the shaper spreads unbeaten marks evenly
+        # across the sentences (``doubt.DoubtShaper.shape_plan``), so the cross on "P = 8 + 3 =
+        # 11 cm" keeps time with the opening sentence while the SECOND sentence is the one that
+        # teaches about it. Pointing at the line one breath before the sentence that names it
+        # is the splice again. The pointing sentence is owed only when no sentence names it.
+        if on_the_page(obj) and any(names(part, subject) for part in split(so_far)):
             continue
         at = beat if beat is not None and beat < question else question - 1
         at = max(at, -1)
-        # In register FIRST (a model that narrated has its narration taken off), then as a thing
-        # said rather than a caption read out, then terminated.
-        sentence = in_register(as_a_sentence(in_register(_own_words(obj, "words") or subject)))
+        if on_a_line(obj):
+            # A page mark keeps the beat it was given and is never re-beaten here: a beaten one
+            # holds the shaper's choreography, an unbeaten one is beaten by :func:`keep_time`
+            # to the pointing sentence, the only sentence that names it.
+            key = flat(line_subject(_own_words(obj, "words")))
+            if not key or key in written or len(written) - len(lead) >= MAX_ADDED:
+                continue
+            written.add(key)
+            if at not in pointed:
+                pointed[at] = []
+                added.setdefault(at, []).append("")
+            pointed[at].append(_own_words(obj, "words"))
+            continue
+        sentence = sentence_for(obj, by_id)
         if not sentence:
             continue
         key = flat(sentence)
@@ -959,6 +1232,8 @@ def name_what_is_drawn(
         written.add(key)
         added.setdefault(at, []).append(sentence)
         marks.append((obj, at, sentence))
+    for at, lines in pointed.items():
+        added[at][added[at].index("")] = pointed_at(*lines)
 
     if not lead and not added:
         keep_time(kept, drawn)
@@ -992,12 +1267,17 @@ def name_what_is_drawn(
     shift[len(parts)] = len(out)
 
     for obj in drawn:
-        beat = _beat_of(obj)
-        if beat is None:
+        place = _place_of(obj)
+        if place is None:
             continue
-        _rebeat(obj, min(beat + shift[min(beat, len(parts))], len(out) - 1))
+        _rebeat(obj, min(shift[min(place[0], len(parts))], len(out) - 1))
 
     # A mark that got its own sentence keeps time with it, not with the one that failed to name it.
+    # A MARK ON THE LEARNER'S PAGE IS NOT IN THIS LIST: it keeps the beat the shaper chose
+    # (``doubt.DoubtShaper``, law 5: the first stroke is on the first sentence) and its pointing
+    # sentence goes in directly after that sentence, so the pen lands on "Look at the first line"
+    # and the voice then says which line, the ink holding under it. Moved to the pointing
+    # sentence, the pen would wait a whole sentence in the air.
     for obj, _at, sentence in marks:
         if sentence in out:
             _rebeat(obj, out.index(sentence))

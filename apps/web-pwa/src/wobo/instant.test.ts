@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import type { GlassBox, GlassMap } from '@wobo/wobo';
 import {
   askKey,
   buildCore,
@@ -309,6 +310,271 @@ describe('the obvious asks, precomputed with the level', () => {
 });
 
 /**
+ * THE ASK THAT NAMES NOTHING AT ALL (the adversary, wave 58, finding 3).
+ *
+ * "show me why", asked on the "make a move" card, drew nothing and said "Which part is the one
+ * that isn't landing? Name it and we start there." — at 1440 and at 390, on a glass that carried
+ * twenty registered targets including the very line the learner had just read. The words name no
+ * thing, so rule 2 fell silent, and the line that followed named nothing Wobo could see either.
+ *
+ * An ask with no content word in it is not about nothing: it is about THE THING THE LEARNER IS
+ * LOOKING AT. The lesson puts one card in front of them and the card declares its concept; the
+ * level's core holds the one true sentence the architect wrote for that concept, and the card
+ * prints that sentence as its idea. So the answer is a lookup twice over — the only concept on the
+ * glass, and the line on it that IS the core's sentence word for word — and the pen underlines
+ * it while the sentence is said.
+ */
+/**
+ * Whole on the glass: INK-FOUR craft, "nothing off the viewport". The boxes a map carries are
+ * viewport px, so a mark the learner can see is one whose every edge is inside the viewport.
+ */
+function inViewport(map: GlassMap, id: string | undefined): boolean {
+  const entry = map.entries.find((e) => e.id === id);
+  if (!entry) return false;
+  const [x, y, w, h] = entry.box;
+  return x >= 0 && y >= 0 && x + w <= map.viewport.w && y + h <= map.viewport.h;
+}
+
+describe('the ask that names nothing at all', () => {
+  const core: ConceptCore = {
+    sentences: {
+      'concept:predict-then-check': 'A claimed answer must survive the original problem.',
+    },
+    asks: {},
+  };
+  const IDEA_LINE = 'l-1lqhuwx-0';
+
+  it('underlines the idea the learner has just read, and says it', () => {
+    const hit = resolveInstant({ question: 'show me why', map: LAB_GLASS.courseCard5(), core });
+    expect(hit?.target).toBe(IDEA_LINE);
+    expect(hit?.kind).toBe('underline');
+    expect(hit?.by).toBe('concept');
+    expect(hit?.say).toBe('A claimed answer must survive the original problem.');
+    expect(hit?.fromCache).toBe(true);
+    expect(hit?.words).toBe('the idea');
+  });
+
+  it('answers "why?" and a bare "explain this" the same way', () => {
+    for (const q of [
+      'why?',
+      'explain this',
+      'show me',
+      'why does it work?',
+      'how does this work',
+    ]) {
+      expect(resolveInstant({ question: q, map: LAB_GLASS.courseCard5(), core })?.target).toBe(
+        IDEA_LINE,
+      );
+    }
+  });
+
+  it('underlines the sentence across the two lines it wrapped into at 390', () => {
+    // Live at 390 the idea wrapped: "Undo one operation at a time to" / "expose what is hidden."
+    // — two glass lines, one sentence. Ringing the whole card there was the coarse answer.
+    const map = LAB_GLASS.courseCard5();
+    const at = map.entries.findIndex((e) => e.id === IDEA_LINE);
+    map.entries = [
+      ...map.entries.slice(0, at),
+      {
+        id: 'wrap-1',
+        role: 'line',
+        text: 'A claimed answer must survive',
+        box: [52, 147, 256, 23],
+      },
+      { id: 'wrap-2', role: 'line', text: 'the original problem.', box: [52, 172, 160, 23] },
+      ...map.entries.slice(at + 1),
+    ];
+    const hit = resolveInstant({ question: 'show me why', map, core });
+    expect(hit?.target).toBe('wrap-1');
+    expect(hit?.kind).toBe('underline');
+    expect(hit?.also).toEqual([{ target: 'wrap-2', kind: 'underline', words: 'the idea' }]);
+    expect(hit?.say).toBe('A claimed answer must survive the original problem.');
+  });
+
+  it('rings the card itself when the glass does not carry the sentence at all', () => {
+    // The card shows its reveal, not its idea: the card is the concept, and the card is ringed.
+    const map = LAB_GLASS.courseCard5();
+    map.entries = map.entries.filter((e) => e.id !== IDEA_LINE);
+    const hit = resolveInstant({ question: 'show me why', map, core });
+    expect(hit?.target).toBe('card-c4');
+    expect(hit?.kind).toBe('ring');
+    expect(hit?.words).toBe('predict, then check');
+    expect(hit?.say).toBe('A claimed answer must survive the original problem.');
+  });
+
+  it('never fires when the words DO name something', () => {
+    // "that step" names a step; there is none on this card, and the idea is not what was asked.
+    expect(
+      resolveInstant({ question: 'why does that step work?', map: LAB_GLASS.courseCard5(), core }),
+    ).toBeNull();
+  });
+
+  it('stays silent with no sentence to say, with no concept, and with two concepts', () => {
+    expect(
+      resolveInstant({ question: 'show me why', map: LAB_GLASS.courseCard5(), core: EMPTY_CORE }),
+    ).toBeNull();
+    // Card 0 declares parts but no concept: there is no idea to underline.
+    expect(
+      resolveInstant({ question: 'show me why', map: LAB_GLASS.courseCard0(), core }),
+    ).toBeNull();
+    // A second card on the same glass (a new array: the fixture's entries are shared).
+    const two = LAB_GLASS.courseCard5();
+    two.entries = [
+      ...two.entries,
+      {
+        id: 'card-c3',
+        role: 'card',
+        text: 'make a move',
+        box: [374, 700, 572, 200],
+        meaning: 'concept:make-a-move',
+      },
+    ];
+    expect(
+      resolveInstant({
+        question: 'show me why',
+        map: two,
+        core: {
+          sentences: { ...core.sentences, 'concept:make-a-move': 'Undo one operation at a time.' },
+          asks: {},
+        },
+      }),
+    ).toBeNull();
+  });
+
+  it('still leaves a from-scratch ask and a board command alone', () => {
+    expect(
+      resolveInstant({ question: 'draw this for me', map: LAB_GLASS.courseCard5(), core }),
+    ).toBeNull();
+    expect(
+      resolveInstant({ question: 'fresh board', map: LAB_GLASS.courseCard5(), core }),
+    ).toBeNull();
+  });
+
+  /**
+   * THE MARK THE LEARNER CANNOT SEE, AND THE ONE THEY CAN (the adversary, wave 60, Builder 6;
+   * INK-FOUR craft: "nothing off the viewport"; INK-FOUR timing: the instant mark).
+   *
+   * Live at 390 the learner was 561 px down the lesson when they asked "show me why": the outline
+   * filled the glass, the card was 377 px above it with 13 px showing, and its idea sentence was
+   * not on the glass at all. The resolver fell to its card ring and handed back `card-c4` — a
+   * ring at y = -390, 95 % above the viewport, a sliver of stroke at the top of the sheet, while
+   * the core's sentence was spoken about a mark nobody could see.
+   *
+   * Refusing outright pays craft with timing and with the core's own words: the one turn of the
+   * walk that the level had a true sentence ready for would draw nothing and say the canned line
+   * again. The concept IS on that glass — the lesson outline prints its name, 353 px down, whole
+   * and in front of the learner — so that is what the pen underlines and what the sentence is
+   * said about. Seen, instant, and true, all three.
+   */
+  it('underlines the concept where the learner IS looking when the card has scrolled away', () => {
+    const map = LAB_GLASS.courseCard5Scrolled390();
+    const hit = resolveInstant({ question: 'show me why', map, core });
+    // the outline's own row for this card: "predict, then check" at [74, 353, 135, 20]
+    expect(hit?.target).toBe('l-5mxqf5-0');
+    expect(hit?.kind).toBe('underline');
+    expect(hit?.by).toBe('concept');
+    expect(hit?.say).toBe('A claimed answer must survive the original problem.');
+    expect(hit?.fromCache).toBe(true);
+    expect(hit?.also).toBeUndefined();
+    expect(inViewport(map, hit?.target)).toBe(true);
+  });
+
+  it('never the card the learner cannot see, and nothing at all when its name is gone too', () => {
+    const map = LAB_GLASS.courseCard5Scrolled390();
+    // the ruler itself: the card IS on this map and is NOT in front of the learner
+    expect(map.entries.some((e) => e.id === 'card-c4')).toBe(true);
+    expect(inViewport(map, 'card-c4')).toBe(false);
+    expect(resolveInstant({ question: 'show me why', map, core })?.target).not.toBe('card-c4');
+    // The same glass scrolled past the outline as well: the concept is nowhere on it.
+    const past = LAB_GLASS.courseCard5Scrolled390();
+    past.entries = past.entries.filter((e) => e.id !== 'l-5mxqf5-0');
+    expect(resolveInstant({ question: 'show me why', map: past, core })).toBeNull();
+  });
+
+  it('stays silent when two lines carry the name equally (rule 2), and when one is off the fold', () => {
+    const two = LAB_GLASS.courseCard5Scrolled390();
+    two.entries = [
+      ...two.entries,
+      { id: 'l-echo', role: 'line', text: 'predict, then check', box: [74, 600, 135, 20] },
+    ];
+    expect(resolveInstant({ question: 'show me why', map: two, core })).toBeNull();
+    const cut = LAB_GLASS.courseCard5Scrolled390();
+    cut.entries = cut.entries.map((e) =>
+      e.id === 'l-5mxqf5-0' ? { ...e, box: [74, 834, 135, 20] as GlassBox } : e,
+    );
+    expect(resolveInstant({ question: 'show me why', map: cut, core })).toBeNull();
+  });
+
+  it('still underlines the wrapped idea at 390 when the card is in front of the learner', () => {
+    // The same page 538 px further up (wave 58's 390-c6 sat at scrollY 23): the card is whole on
+    // the glass, and the idea wraps into two lines under its heading, as it did live.
+    const map = LAB_GLASS.courseCard5Scrolled390();
+    map.viewport.scrollY = 23;
+    map.entries = [
+      ...map.entries
+        .filter((e) => e.id === 'card-c4')
+        .map((e) => ({ ...e, box: [52, 161, 286, 390] as GlassBox })),
+      { id: 'h-390', role: 'heading', text: 'predict, then check', box: [72, 205, 246, 30] },
+      {
+        id: 'wrap-1',
+        role: 'line',
+        text: 'A claimed answer must survive the',
+        box: [72, 251, 240, 22],
+      },
+      { id: 'wrap-2', role: 'line', text: 'original problem.', box: [72, 275, 128, 22] },
+    ];
+    const hit = resolveInstant({ question: 'show me why', map, core });
+    expect(hit?.target).toBe('wrap-1');
+    expect(hit?.also).toEqual([{ target: 'wrap-2', kind: 'underline', words: 'the idea' }]);
+  });
+
+  it('never underlines a line the fold cuts, and never rings the card cut with it', () => {
+    // The card's top is on the glass but its idea's second line straddles the bottom edge: the
+    // underline would land under the fold, and the card ring would run off it too.
+    const map = LAB_GLASS.courseCard5();
+    map.viewport = { w: 390, h: 844, scrollY: 0 };
+    map.entries = [
+      {
+        id: 'card-c4',
+        role: 'card',
+        text: 'predict, then check',
+        box: [52, 640, 286, 390],
+        meaning: 'concept:predict-then-check',
+      },
+      {
+        id: 'wrap-1',
+        role: 'line',
+        text: 'A claimed answer must survive the',
+        box: [72, 800, 240, 22],
+      },
+      { id: 'wrap-2', role: 'line', text: 'original problem.', box: [72, 834, 128, 22] },
+    ];
+    expect(resolveInstant({ question: 'show me why', map, core })).toBeNull();
+  });
+
+  it('rings the card only when the whole card is on the glass', () => {
+    const card = (y: number) => {
+      const map = LAB_GLASS.courseCard5();
+      map.viewport = { w: 390, h: 844, scrollY: 0 };
+      map.entries = [
+        {
+          id: 'card-c4',
+          role: 'card',
+          text: 'predict, then check',
+          box: [52, y, 286, 390],
+          meaning: 'concept:predict-then-check',
+        },
+      ];
+      return resolveInstant({ question: 'show me why', map, core });
+    };
+    expect(card(161)?.target).toBe('card-c4');
+    expect(card(454)?.target).toBe('card-c4'); // bottom edge exactly at 844
+    expect(card(455)).toBeNull();
+    expect(card(-1)).toBeNull();
+  });
+});
+
+/**
  * THE NUMBER THE OWNER ASKED FOR: what fraction of the 59 turns the local resolve serves alone.
  * The asks below are the lab's own, one row per turn, with the glass each was asked on.
  */
@@ -333,8 +599,10 @@ describe('the 59 turns', () => {
       idea: 'A square is a side times itself; a cube is that times the side again.',
       parts: [
         {
+          // The slug and the name agree, as `coreCardsOf` makes them (screens/course/Composing.tsx):
+          // a level that called this part "hypotenuse" would be one the law forbids to ring.
           slug: 'square-on-the-hypotenuse',
-          name: 'hypotenuse',
+          name: 'square on the hypotenuse',
           sentence: 'The square on the hypotenuse has the area of the other two put together.',
         },
         { slug: 'triangle', name: 'triangle', sentence: 'The triangle has one right angle.' },
@@ -422,7 +690,7 @@ describe('the 59 turns', () => {
     // answer those, and the resolver must not pretend to. What is left is what a content model can
     // reach, and the number here is the one reported. It may go up when more of the page declares
     // itself; it may never go down without this test saying so.
-    expect(served).toBeGreaterThanOrEqual(24);
+    expect(served).toBeGreaterThanOrEqual(25);
   });
 
   it('never aims at a thing that is not on the glass it was asked on', () => {
@@ -436,6 +704,11 @@ describe('the 59 turns', () => {
       });
       if (!hit) continue;
       expect(map.entries.some((e) => e.id === hit.target)).toBe(true);
+      // AND NEVER AT A THING THE LEARNER CANNOT SEE (INK-FOUR craft: "nothing off the viewport";
+      // the adversary, wave 60, Builder 6). The ring that landed at y = -390 was on a thing the
+      // map DID hold — membership was never the law, being in front of the learner is.
+      expect(inViewport(map, hit.target)).toBe(true);
+      for (const more of hit.also ?? []) expect(inViewport(map, more.target)).toBe(true);
     }
   });
 });
@@ -550,9 +823,9 @@ describe('the instant mark on a photograph', () => {
   });
 
   it('marks the line the learner’s own words name, when they name exactly one', () => {
-    expect(resolveDoubtInstant({ lines: LINES, words: 'how did 8.33 come out of this' })?.target).toBe(
-      'r6',
-    );
+    expect(
+      resolveDoubtInstant({ lines: LINES, words: 'how did 8.33 come out of this' })?.target,
+    ).toBe('r6');
   });
 
   it('falls to the equation rather than guessing between two lines that answer equally', () => {

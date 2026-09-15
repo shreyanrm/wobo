@@ -813,8 +813,31 @@ def _map(intent: dict[str, Any], draft: Draft) -> Draft:
 
     So the land is drawn first and it is the whole bundled catalog — every state
     ``india-lite.json`` holds, each one its own polygon, in its own place, at one scale, in the
-    projection the learner's tappable map uses. The question then decides what is marked ON it: a
-    ring and a name for "mark Maharashtra", a wash and a number for "which state grows the most".
+    projection the learner's tappable map uses. The question then decides what is marked ON it: the
+    state's own boundary in the accent with a wash and its name for "mark Maharashtra", a wash and a
+    number on each shaded state for "which state grows the most".
+
+    THE MARK IS THE BOUNDARY, NOT A RING ROUND IT (the map closer, wave 58, measured at 390 and 1440
+    in light, dark and reduced motion). The first rebuild ringed the state, and the ring did two
+    things a map may not. It crossed Gujarat, Madhya Pradesh and Karnataka — a ring round one state
+    on a map marks its neighbours' ground, and relevance says nothing else is marked. And its pad
+    reserved the whole 24 px band round the state, so the placer had to clear it and the name
+    landed 28 to 30 px from the thing it names, past the proximity law. The state drawn at full
+    accent with the wash marks exactly Maharashtra and leaves the band for its name; the six
+    renders after the change put the name inside 24 px.
+
+    AND THE SAY IS ABOUT THE STATE, NOT THE CATALOG (the adversary, wave 60, keyless and live).
+    The mark closed and the sentence did not: the rebuilt map draws eight titled polygons, and
+    ``naming.part_name`` reads a polygon's title as a part the figure names of itself, so the
+    transcript came back "Rajasthan, gujarat, maharashtra, madhya pradesh. Uttar pradesh,
+    karnataka, kerala, tamil nadu. Read the labels as they land, and say which one is missing." —
+    eight names over a board that writes ONE, in lower case, under the bio_social family's line
+    telling a learner to read labels when exactly one label lands. Three things answer it, and
+    they are the three ends of one sentence: the states the question is not about are marked
+    ``meta.ground`` so the say does not run through them (they keep their titles for the listener
+    who asks the board what is on it); every name is the bundle's own proper noun rather than a
+    lower-cased one; and the map makes its own first sentence from its own intent
+    (``naming.opening``), so it never falls back to the family's line, keyless or live.
 
     WHAT THIS MAP IS NOT, said plainly because a learner will meet it: the bundle is eight states,
     hand-authored and deliberately simplified, and it carries no national boundary. So Wobo draws
@@ -847,7 +870,12 @@ def _map(intent: dict[str, Any], draft: Draft) -> Draft:
     # the brain's validator refuses either one whose regions are not in the bundled geometry.
     shaded = bool(values) or not mark
     if not shaded:
-        prompt = str(intent.get("prompt") or f"find {mark}").strip()[:MAX_NOTE_CHARS]
+        # A PROMPT IS WRITTEN FOR A LEARNER TO READ. ``f"find {mark}"`` wrote the catalog's own id
+        # on the board — "find madhya-pradesh" — which is the slug law (see the name below) broken
+        # on the one line the board asks the learner to act on.
+        prompt = str(intent.get("prompt") or f"find {region_name(mark) or mark}").strip()[
+            :MAX_NOTE_CHARS
+        ]
         scene = {
             "kind": "map",
             "regions": regions,
@@ -905,7 +933,7 @@ def _map(intent: dict[str, Any], draft: Draft) -> Draft:
             continue
         # The closing vertex is the polygon's own doing — a ring drawn with it doubles a stroke.
         points = [frame.at(*_mercator(lon, lat)) for lon, lat in ring[:-1]]
-        name = (region_name(region_id) or region_id).lower()
+        name = region_name(region_id) or region_id
         if region_id in (mark, extreme):
             style = accent(2)
         elif region_id in shading:
@@ -922,7 +950,10 @@ def _map(intent: dict[str, Any], draft: Draft) -> Draft:
                 "opacity": round(0.2 + 0.5 * shading[region_id] / (max(shading.values()) or 1), 2),
             }
         elif region_id == mark:
-            style = {**style, "fill": "wash", "opacity": 0.25}
+            # No ``opacity`` here: the renderer scales the whole node by it, stroke included, and a
+            # quarter-strength accent outline was not the one hit of pigment the answer is. The
+            # wash is already translucent on its own (``renderer.tsx``: a wash fills at 0.14).
+            style = {**style, "fill": "wash"}
         drawn[region_id] = draft.add(
             "polygon",
             anchor=board(*points[0]),
@@ -930,9 +961,15 @@ def _map(intent: dict[str, Any], draft: Draft) -> Draft:
             title=name,
             style=style,
             hint=region_id,
+            # THE COUNTRY IS THE GROUND, NOT AN INVENTORY. ``naming.part_name`` reads a polygon's
+            # title as a part the figure names of itself and the say runs through every one of
+            # them, which is right for a plant cell and wrong for a map: a state the question is
+            # not about is drawn so the answer has somewhere to be, and it carries no name on the
+            # glass to go with the one in the voice. Saying it is what put seven states the board
+            # never writes into the transcript. The title stays — ``spoken.ts`` reads it to a
+            # learner who asks what is on the board, which is the only reading of it a map wants.
+            meta=None if region_id in named else {"ground": True},
         )
-    if mark:
-        draft.add("ring", anchor=on(drawn[mark]), style=accent(2), hint="marked")
     # THE NAMES, and only the ones the question is about. Eight names cannot be written on this
     # map: "madhya-pradesh" is 126 board units of type and Madhya Pradesh is 63 units wide, so
     # writing every name inside its own state needs the country drawn 254 units across — 375 tall,
@@ -944,7 +981,7 @@ def _map(intent: dict[str, Any], draft: Draft) -> Draft:
         draft.add(
             "label",
             anchor=on(drawn[region_id], _side_for(frame, region_id)),
-            text=(region_name(region_id) or region_id).lower(),
+            text=region_name(region_id) or region_id,
             style=accent(1) if region_id in (mark, extreme) else wobo(1),
             hint="name",
         )

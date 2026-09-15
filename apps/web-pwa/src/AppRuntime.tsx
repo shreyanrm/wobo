@@ -88,7 +88,7 @@ import {
   writeArchive,
 } from './wobo/chat';
 import { currentCore } from './wobo/core-store';
-import { bringOntoGlass, nextLayout, takeGlass } from './wobo/glass';
+import { bringOntoGlass, currentGlass, nextLayout, takeGlass } from './wobo/glass';
 import { takeHandedQuestion } from './wobo/handoff';
 import {
   armDoIt,
@@ -824,6 +824,22 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       const looking = options.silent
         ? null
         : lookingAt(text, takeGlass({ question: text, route: route.name }));
+      // A TURN THE CLIENT CAN ALREADY MARK IS A DRAWING TURN (docs/INK-FOUR.md, the instant mark;
+      // the adversary, wave 58, finding 3). "show me why" carries no draw word and names no
+      // registered target, so it was never a drawing turn: no instant mark, no stream, and the
+      // keyless answer was "Which part is the one that isn't landing?" over a card whose own idea
+      // the resolver underlines in microseconds (wobo/instant.ts `bareAsk`). The resolver runs
+      // here on the deciding read itself — pure, no model, no clock — and an aim decides the
+      // shape: the learner asked to be shown, and the glass knows what.
+      const aimed =
+        !options.silent &&
+        resolveInstant({
+          question: text,
+          // the deciding read, just taken above
+          map: currentGlass(),
+          core: currentCore(),
+          focusTargets: turnFocus()?.targetIds ?? null,
+        }) !== null;
       // The learner's word about the surface is obeyed before anything is asked of the brain:
       // "close the board" is not a question, and "fresh board" has to be true before Wobo draws.
       const mode = modeFromText(text);
@@ -838,6 +854,7 @@ function AppInner({ sdk }: { sdk: Sdk }) {
         // The screen said it would draw (onboarding step three); keep the promise.
         draw: options.draw === true,
       });
+      if (aimed) shape.board = true;
       // AND A TURN THAT WILL NOT DRAW HANDS THE PAGE STRAIGHT BACK. The freeze above was taken for
       // the READ — to fold the phone sheet off the page and settle the layout — and the read is
       // done. Holding it through the whole round trip would lock a child's scroll for every plain
@@ -1417,10 +1434,10 @@ function WithWobo({ sdk }: { sdk: Sdk }) {
 export function AppRuntime() {
   const sdk = appSdk();
 
-  // Every learner is somebody to the brain, from the first screen: with Supabase keys and no
+  // Every learner is somebody to the brain, from the first screen: under live auth with no
   // session, sign in anonymously so the very first turn carries a real identity (a small day's
-  // budget, no elevated doors) — this is what lets Wobo teach before anyone signs up. Keyless
-  // builds skip it entirely and stay local.
+  // budget, no elevated doors) — this is what lets Wobo teach before anyone signs up. Keyless and
+  // dev-mock builds mint nothing and name their dev subject instead (`@wobo/sdk` client.ts).
   //
   // It lives HERE, not in App.tsx, and that is the point: a visitor reading the landing page or a
   // parent reading /security must not have a Supabase session minted for them, and the brain must

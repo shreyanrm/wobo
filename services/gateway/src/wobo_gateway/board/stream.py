@@ -527,6 +527,14 @@ def _standing(on_board: Iterable[Any]) -> list[dict[str, Any]]:
     most, one of the kinds a mark can be, an id and a target of a sane length, and words that are
     words. Nothing else survives the read — a field this pass does not name cannot reach the say,
     the ledger or the ink.
+
+    AND THE PAGE FLAG IS ONE OF THE FIELDS. ``meta.page`` says the mark sits on the learner's own
+    page (``naming.on_the_page``; the doubt door sets it in ``doubt.turn_payload``), and it decides
+    the FORM of the sentence the mark is owed: a line of the page is pointed at, never read out as
+    a claim. Wave 58 rebuilt the mark without it, and live at 390 the doubt caption opened
+    "3x + 5 = 20. Not quite: the +5 moves by subtracting 5." — the learner's own equation asserted
+    over their page by the very turn correcting it (the adversary, wave 60). The flag, and only
+    the flag: a beat or a check under ``meta`` is not a client's to write.
     """
     out: list[dict[str, Any]] = []
     for entry in on_board:
@@ -544,6 +552,8 @@ def _standing(on_board: Iterable[Any]) -> list[dict[str, Any]]:
         words = str(entry.get("words") or "").strip()[:MAX_STANDING_WORDS]
         if words:
             mark["words"] = words
+        if naming.on_the_page(entry):
+            mark["meta"] = {"page": True}
         out.append(mark)
     return out
 
@@ -558,18 +568,31 @@ def _spoken_first(standing: list[dict[str, Any]], line: str) -> list[str]:
     4 567 ms. A sentence about the square spoken third is spoken over a ring that has already
     moved, which is the word/ink contradiction read from the other side. So it keeps time with the
     first sentence, which is where the ink actually is.
+
+    THE SENTENCE IS THE ONE EVERY MARK IS OWED (``naming.sentence_for``), not the mark's subject
+    read raw. This pass used to say the subject as it stood, and keyless on "show me why" the
+    caption opened "The idea. Which part…" at 1440 and "Predict. Which part…" at 390: the client's
+    label for its own ring, read out as prose, where the plan's ring on the same thing would have
+    been said ("This is the idea."). One builder for both hands. A line of the learner's page is
+    pointed at, and two lines the one gesture crossed are pointed at in one breath
+    (``naming.pointed_at``), exactly as ``name_what_is_drawn`` points at the plan's own.
     """
     out: list[str] = []
+    lines: list[str] = []
     for obj in standing:
         subject = naming.mark_subject(obj)
         if not subject or naming.names(line, subject):
             continue
-        if any(naming.names(said, subject) for said in out):
+        if any(naming.names(said, subject) for said in [*out, *lines]):
             continue
-        sentence = naming.in_register(subject)
+        if naming.on_a_line(obj):
+            lines.append(str(obj.get("words") or ""))
+            continue
+        sentence = naming.sentence_for(obj)
         if sentence:
             out.append(sentence)
-    return out
+    pointed = naming.pointed_at(*lines)
+    return [pointed, *out] if pointed else out
 
 
 def _shift_beats(objects: list[dict[str, Any]], by: int) -> None:

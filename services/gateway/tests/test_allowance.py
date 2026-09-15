@@ -105,6 +105,61 @@ def test_the_zone_is_the_first_one_sent_that_day_and_never_the_clients_day() -> 
     assert allowance.zone_name("sub:z") == "Asia/Kolkata"
 
 
+def _freeze(monkeypatch: pytest.MonkeyPatch, moment: datetime) -> None:
+    """Hold the server's clock still, so a rule about days is not judged by the hour it ran at."""
+
+    class Clock(datetime):
+        @classmethod
+        def now(cls, tz: object = None) -> datetime:  # type: ignore[override]
+            return moment if tz is None else moment.astimezone(tz)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(allowance, "datetime", Clock)
+
+
+def test_the_first_zone_stands_when_the_second_is_on_another_calendar_day() -> None:
+    """Why the rule above passed in the afternoon and failed at night for two whole waves.
+
+    The held day used to be re-read in the NEW zone, so the moment the two zones disagreed about
+    what today is, every second zone looked like a new day and won. Kiritimati is UTC+14 and
+    Midway is UTC-11 — twenty five hours apart, so their calendar dates NEVER agree — which makes
+    this the same defect with the clock taken out of it. The day a zone was first sent on is a day
+    in THAT zone, and only that zone's own midnight retires it.
+    """
+    allowance.note_zone("sub:dateline", "Pacific/Kiritimati")
+    allowance.note_zone("sub:dateline", "Pacific/Midway")
+    assert allowance.zone_name("sub:dateline") == "Pacific/Kiritimati"
+
+
+@pytest.mark.parametrize(
+    "moment",
+    [
+        datetime(2026, 9, 11, 2, 0, tzinfo=UTC),  # Kolkata is on the 11th, New York on the 10th
+        datetime(2026, 9, 11, 12, 0, tzinfo=UTC),  # both on the 11th
+        datetime(2026, 9, 11, 18, 35, tzinfo=UTC),  # Kolkata is on the 12th, New York on the 11th
+    ],
+)
+def test_the_zone_holds_at_every_hour_of_the_utc_day(
+    monkeypatch: pytest.MonkeyPatch, moment: datetime
+) -> None:
+    """Kolkata and New York share a date only between 04:00 and 18:30 UTC. The suite must say
+    the same thing at all three hours, or it is a clock reading rather than a test."""
+    _freeze(monkeypatch, moment)
+    allowance.note_zone("sub:hours", "Asia/Kolkata")
+    allowance.note_zone("sub:hours", "America/New_York")
+    assert allowance.zone_name("sub:hours") == "Asia/Kolkata"
+
+
+def test_the_next_local_midnight_takes_the_new_zone(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fixed for the day, not forever: past midnight in the zone that was held, the device that
+    has actually moved is believed."""
+    _freeze(monkeypatch, datetime(2026, 9, 11, 12, 0, tzinfo=UTC))
+    allowance.note_zone("sub:flight", "Asia/Kolkata")
+    # 18:31 UTC on the 11th is 00:01 on the 12th in Kolkata: the held day is over.
+    _freeze(monkeypatch, datetime(2026, 9, 11, 18, 31, tzinfo=UTC))
+    allowance.note_zone("sub:flight", "America/New_York")
+    assert allowance.zone_name("sub:flight") == "America/New_York"
+
+
 def test_a_nonsense_zone_is_ignored_rather_than_believed() -> None:
     allowance.note_zone("sub:junk", "Mars/Olympus")
     assert allowance.zone_name("sub:junk") == "UTC"

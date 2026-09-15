@@ -20,6 +20,7 @@ Three things are pinned here:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -86,7 +87,12 @@ def test_the_image_caches_onto_the_mount_path_and_not_the_writable_layer() -> No
     assert "mkdir -p /data/plexus/images" in dockerfile
     assert "chown -R gateway:gateway /data" in dockerfile
     # A VOLUME line would make Railway refuse the entire Dockerfile; the comment records why.
-    assert "VOLUME [" not in dockerfile
+    # Anchored to the start of a line: Railway refuses BOTH spellings, `VOLUME ["/data"]` and
+    # `VOLUME /data`, and only an instruction starts a line; the comment above the mkdir may name
+    # the word, an instruction may not appear.
+    assert not re.search(r"^\s*VOLUME\b", dockerfile, re.MULTILINE), (
+        "a VOLUME instruction is back in the Dockerfile; Railway will refuse the whole file"
+    )
     assert "use Railway Volumes" in dockerfile
     assert "PLEXUS_CACHE_DIR=/home/gateway/cache" not in dockerfile
 

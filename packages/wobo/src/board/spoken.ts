@@ -429,7 +429,12 @@ export function whatAnchors(anchor: Anchor | undefined, look?: LookUp): string |
  * `look` is optional and everything degrades without it: a mark that cannot find what it is about
  * says what it is instead of what it is about, which is less useful and still true.
  */
-export function describe(object: BoardObject, look?: LookUp): string {
+export function describe(
+  object: BoardObject,
+  look?: LookUp,
+  /** How the hand placed it, where that changes the sentence: a cross beside a line, not through it. */
+  placed?: { beside?: boolean },
+): string {
   const o = object as unknown as Record<string, unknown>;
   const style = object.style;
   const about = 'anchor' in object ? whatAnchors(object.anchor, look) : null;
@@ -473,7 +478,7 @@ export function describe(object: BoardObject, look?: LookUp): string {
     case 'tick':
       return about ? `a tick beside ${about}` : 'a tick';
     case 'cross':
-      return about ? `a cross through ${about}` : 'a cross';
+      return about ? `a cross ${placed?.beside ? 'beside' : 'through'} ${about}` : 'a cross';
     case 'note':
       return about ? `${object.text}, beside ${about}` : object.text;
     case 'ring':

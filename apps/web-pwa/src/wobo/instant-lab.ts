@@ -44,14 +44,22 @@ const C0_ENTRIES: GlassEntry[] = [
   // THE SIDE ITSELF (the adversary, wave 58, finding 1). "circle the hypotenuse" rang the square
   // standing on it because the side had no declaration of its own. This is the side's entry, as the
   // reader names a `data-glass-part` (glass/read.ts `figureParts`): the id is the figure's id and
-  // the part's slug, the meaning is `part:` and the slug. Its box is the triangle's own, which is
-  // exact for the hypotenuse of a right triangle whose legs lie along the box's two edges. The
-  // resolver's test takes this entry away to stand on the glass as it was before it.
+  // the part's slug, the meaning is `part:` and the slug. The resolver's test takes this entry away
+  // to stand on the glass as it was before it.
+  //
+  // The drawing declares it as an un-inked `side` mark (ui/courseIntro.tsx): wave 58 wrote this
+  // fixture before the drawing did, and the live glass of 2026-09-11 carried no such entry at
+  // either width — which is why "circle the hypotenuse" still rang the square (wave 59).
+  //
+  // AND ITS BOX IS NOT THE TRIANGLE'S ANY MORE (the judge, wave 60). It was — a box around a
+  // diagonal that runs corner to corner of its figure IS the figure's box — and so the ring the pen
+  // drew on it held all three of the triangle's corners. The drawing declares the middle tenth of
+  // the side now, which is this box: the same stretch, in this card's own scale.
   {
     id: 'course-intro-mathematics.hypotenuse',
     role: 'figure-part',
     text: 'hypotenuse',
-    box: [555, 312, 189, 143],
+    box: [640, 376, 19, 15],
     meaning: 'part:hypotenuse',
   },
   { id: 'l-5mxqf5-0', role: 'line', text: 'predict, then check', box: [1118, 232, 134, 20] },
@@ -169,6 +177,40 @@ const C5_ENTRIES: GlassEntry[] = [
   },
 ];
 
+/**
+ * Card five at 390, SCROLLED AWAY (the adversary, wave 60, Builder 6). The learner is 561 px down
+ * the lesson: the outline and "Ask about this" fill the glass, and the card is 377 px above it
+ * with 13 px of its 390 showing. Its idea sentence is not on the glass at all. This is the map
+ * "show me why" was asked on, taken after the turn; the box of every entry is what the page put
+ * there, and the ring the resolver used to hand back here landed at y = -390.
+ */
+const C5_390_SCROLLED_ENTRIES: GlassEntry[] = [
+  { id: 'card-c4', role: 'card', text: 'predict, then check', box: [52, -377, 286, 390], meaning: 'concept:predict-then-check' },
+  { id: 'k-ba1eez-0', role: 'chip', text: 'Check', box: [281, 123, 73, 44] },
+  { id: 'l-3eh0xn-0', role: 'line', text: 'This lesson', box: [38, 224, 89, 17] },
+  { id: 'l-v83xhs-0', role: 'line', text: 'meet a new course', box: [74, 251, 134, 20] },
+  { id: 'l-4834uo-0', role: 'line', text: '1', box: [48, 253, 6, 16] },
+  { id: 'l-1cl74f0-0', role: 'line', text: 'feel the rule', box: [74, 285, 82, 20] },
+  { id: 'l-521xxl-0', role: 'line', text: '2', box: [48, 287, 6, 16] },
+  { id: 'l-19wy6p9-0', role: 'line', text: 'make a move', box: [74, 319, 97, 20] },
+  { id: 'l-4s2c8m-0', role: 'line', text: '3', box: [48, 321, 6, 16] },
+  { id: 'l-5mxqf5-0', role: 'line', text: 'predict, then check', box: [74, 353, 135, 20] },
+  { id: 'l-5m15bj-0', role: 'line', text: '4', box: [48, 355, 6, 16] },
+  { id: 'l-ha3und-0', role: 'line', text: 'where it bends', box: [74, 387, 103, 20] },
+  { id: 'l-5c1jmk-0', role: 'line', text: '5', box: [48, 389, 6, 16] },
+  { id: 'l-qfe3cg-0', role: 'line', text: 'the workbook', box: [74, 421, 94, 20] },
+  { id: 'l-660cph-0', role: 'line', text: '6', box: [48, 423, 6, 16] },
+  { id: 'l-1ahyqo1-0', role: 'line', text: 'the boss', box: [74, 455, 60, 20] },
+  { id: 'l-5w0r0i-0', role: 'line', text: '7', box: [48, 457, 6, 16] },
+  { id: 'l-l4qolh-0', role: 'line', text: 'Ask about this', box: [38, 534, 116, 17] },
+  { id: 'l-wbb34f-0', role: 'line', text: 'Circle any part of the board and ask why. Or', box: [38, 559, 308, 20] },
+  { id: 'l-17yn32l-0', role: 'line', text: 'just say it.', box: [38, 580, 68, 20] },
+  { id: 'k-1fur2q9-0', role: 'chip', text: 'Sign in first, then I can read a photo of your page', box: [326, 612, 52, 52] },
+  { id: 'l-gn8f6l-0', role: 'line', text: 'Your place', box: [38, 711, 86, 17] },
+  { id: 'l-1w6zkwb-0', role: 'line', text: 'Saved as you go. Leave any time, come', box: [38, 736, 276, 20] },
+  { id: 'l-1yhnral-0', role: 'line', text: 'back to this line.', box: [38, 758, 112, 20] },
+];
+
 /** The chat page at 1440: no content model at all, so nothing on it is a thing to mark. */
 const CHAT_ENTRIES: GlassEntry[] = [
   { id: 'l-1iobgio-0', role: 'line', text: 'Wobo', box: [24, 24, 60, 22] },
@@ -240,9 +282,9 @@ const PHOTO_ENTRIES: GlassEntry[] = [
   { id: 'r-4', role: 'photo-line', text: '1/v - 1/u = 1/f', box: [20, 170, 200, 26] },
 ];
 
-const map = (entries: GlassEntry[], w = 1440, h = 900): GlassMap => ({
+const map = (entries: GlassEntry[], w = 1440, h = 900, scrollY = 0): GlassMap => ({
   v: 1,
-  viewport: { w, h, scrollY: 0 },
+  viewport: { w, h, scrollY },
   entries,
 });
 
@@ -250,6 +292,7 @@ const map = (entries: GlassEntry[], w = 1440, h = 900): GlassMap => ({
 export const LAB_GLASS = {
   courseCard0: () => map(C0_ENTRIES),
   courseCard5: () => map(C5_ENTRIES),
+  courseCard5Scrolled390: () => map(C5_390_SCROLLED_ENTRIES, 390, 844, 561),
   chat: () => map(CHAT_ENTRIES),
   workedExample: () => map(STEPS_ENTRIES, 390, 844),
   photo: () => map(PHOTO_ENTRIES, 390, 844),

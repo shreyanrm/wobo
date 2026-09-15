@@ -7,7 +7,7 @@ import {
 import { resolveConfig, type SdkConfig } from './config';
 import { mayCreateAccount } from './doors';
 import { type EventProvider, InMemoryEventProvider, SupabaseOutboxEventProvider } from './events';
-import { configureGatewayAuth, fetchMe, type Me } from './gateway';
+import { configureGatewayAuth, fetchMe, gatewayIdentityKnown, type Me } from './gateway';
 import {
   type AccountProfile,
   DevMockIdentity,
@@ -254,6 +254,17 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   // gateway call that arrives first asks for it too, so a turn taken in the first second of a
   // learner's life still carries a real JWT instead of meeting a sign-in wall.
   //
+  // AND ONLY THE MODE THAT WILL USE IT MINTS IT (the adversary, wave 58, on finding 12). In
+  // dev-mock mode the learner is already somebody to the brain: `identity` is the dev mock, and the
+  // gateway honours `x-wobo-dev-subject` under DEV_AUTH. An anonymous Supabase session minted
+  // beside it cost a call to a real auth server (and a row in a real project) for a JWT the dev
+  // gateway would treat no better than the header, and one with no project configured could not
+  // verify at all. With anonymous sign-in off on the project that call came back 422 on every cold
+  // load of every lab and every developer's browser, and because the dev subject was never sent
+  // while Supabase keys were present, the three `GET /v1/me` that followed were refused with no
+  // identity on them at all. So dev-mock mode never knocks: a session the learner made on purpose
+  // (Google, a phone code) still rides as the bearer, and the dev subject rides otherwise.
+  //
   // AND IT ASKS THE DOOR FIRST (`doors.ts`, `docs/DOORS-CLOSED.md` §1 and §4). An anonymous
   // subject IS a freshly minted account: it costs one public call to the auth server, which the
   // gateway never sees and therefore cannot refuse. So while `doors_open` is false nothing is
@@ -266,10 +277,11 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   // and every one came back 422, three failed cross-internet round trips before the learner had
   // asked anything. A door that answered no is shut for this page; a device that was merely
   // offline gets to try again, because that is not an answer.
+  const mintsAnonymous = supabaseAuth !== null && !config.devAuth;
   let establishing: Promise<void> | null = null;
   let refused = false;
   const establishSession = async (): Promise<void> => {
-    if (!supabaseAuth || supabaseAuth.isAuthenticated() || refused) return;
+    if (!supabaseAuth || !mintsAnonymous || supabaseAuth.isAuthenticated() || refused) return;
     establishing ??= mayCreateAccount(config.gatewayUrl)
       .then(async (may) => {
         if (!may) {
@@ -296,6 +308,8 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
   // Identity for every gateway call, bound once. With Supabase keys the learner's own JWT rides
   // each request (anonymous or signed in); without them this is a keyless dev/mock build and the
   // gateway is told which local subject is calling — a header it honours only outside production.
+  // A dev-mock build WITH keys is both: the JWT when the learner made a session, the dev subject
+  // otherwise (`gatewayAuthHeaders` prefers the token), so no call ever leaves with nobody on it.
   configureGatewayAuth(
     supabaseAuth
       ? {
@@ -303,6 +317,7 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
             await establishSession();
             return (await supabaseAuth.getAccessToken()) ?? null;
           },
+          ...(config.devAuth ? { devSubject: config.mockSubjectId } : {}),
         }
       : config.supabaseAccessToken
         ? { accessToken: () => config.supabaseAccessToken ?? null }
@@ -378,8 +393,14 @@ export function createSdk(overrides: Partial<SdkConfig> = {}): Sdk {
       }
     : undefined;
 
-  const me = async (): Promise<Me | null> =>
-    config.gatewayUrl ? fetchMe(config.gatewayUrl) : null;
+  // The budget read is a question about a person. In live mode with nobody established (the door
+  // shut, the auth server's no, a signed-out device) there is no person to ask about, and sending
+  // it anyway was a 401 the client already knew the answer to: answered here, off the wire.
+  const me = async (): Promise<Me | null> => {
+    if (!config.gatewayUrl) return null;
+    if (!(await gatewayIdentityKnown())) return null;
+    return fetchMe(config.gatewayUrl);
+  };
 
   // The reconcile: the remote rows merge into the cache, and the recovered evidence goes back into
   // the KGtoPG binding, so a band read after this is the learner's whole history. Wrapped here (not

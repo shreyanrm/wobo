@@ -121,3 +121,35 @@ What is still open, said plainly rather than implied: **no pool has passed its j
 cell run is held at 42/48/58/58 against a bar of 70), and **the course still renders a level, not a
 group of modules** — rendering a group needs the compose brief seam (`blueprint.compose_brief`)
 wired into the content path, and until a pool passes, none of it can be proved on real content.
+
+## The tutor never leaves (owner, 2026-09-15)
+
+*"Is the content and teaching plan continuously optimising and personalising to the learner's needs
+until they master or understand that topic? It should be motivating, continuous support, understanding
+and guiding where they went wrong, and so on."*
+
+Yes, and this section is the check that it is TRUE in code and not only in the plan. Five things must
+hold, each with a test that plays a learner rather than reads a docstring:
+
+1. **The group changes with the learner, every time.** After every module the group that teaches the
+   topic is re-chosen from the chapter's pool using what just happened (right, wrong, how wrong, how
+   slow, what they said), the prerequisites, the pace and the style. Not once at the start. A learner
+   who gets a module wrong twice gets a different module next, never the same one again, and never a
+   harder one.
+2. **It stops only when the topic is understood.** The climb ends at the topic's own mastery evidence
+   (docs/CONTENT-INTERACTION.md, docs/CURRICULUM.md), never at a fixed number of modules, never at a
+   time. A learner who understands early moves on early. A learner who does not is given more, from
+   the pool, at no extra cost (a group is chosen, not generated).
+3. **Where they went wrong is said, in this concept's words.** Every wrong answer gets the reason it
+   is wrong, drawn where the mistake is, from the concept core's own misconceptions. Never "incorrect,
+   try again". Never a generic hint.
+4. **It is motivating without lying.** The reward system (docs/REWARDS.md, docs/LEVELS.md) fires on
+   effort and on progress, not only on right answers; the try-again ladder never repeats the same
+   line; the tone after a wrong answer is the tone of a tutor who knows you can, not a form.
+5. **The learner is never left.** No dead end: every screen after a wrong answer has the next thing
+   to do, and the tutor stays in the room (the orb, the voice) rather than handing over to a menu.
+
+What already exists: the chapter pool and the per-learner group (wave 37), the reward laws (docs/
+REWARDS.md, docs/FEEL.md, docs/LEVELS.md, wave 38), the misconception-based feedback (docs/CONTENT-
+INTERACTION.md section 4). What this section adds is the proof: an adversary that plays a struggling
+learner end to end and reports where the tutor left, repeated, generalised, or stopped early.

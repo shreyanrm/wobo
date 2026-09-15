@@ -435,6 +435,31 @@ def test_a_marks_label_is_spoken_as_a_sentence_not_read_out() -> None:
     assert " Starting equation." not in say
 
 
+def test_a_card_s_own_title_is_a_thing_to_do_and_is_never_articled() -> None:
+    """Keyless at 390, "show me why" on the "predict, then check" card opened "Predict. Which
+    part is the one that isn't landing?" — the client's label for its own ring, read out as prose
+    (the adversary, wave 60, finding 1). Said as a thing rather than read out, it became "This is
+    the predict, then check.", which is not a sentence a person says either: EVERY card in this
+    product is titled with an instruction, and an instruction takes no article. Wobo already has
+    the form, in its own voice, for exactly this phrase — ``glass.absent_line`` says "There's no
+    effect circle on this card. This one is predict, then check."
+    """
+    for title in ("predict, then check", "feel the rule", "make a move", "meet a new course"):
+        said = naming.as_a_sentence(title)
+        assert said == f"This one is {title}", said
+        assert "the " + title not in said, said
+
+
+def test_a_noun_phrase_label_still_gets_its_article() -> None:
+    """The rule above reads an INSTRUCTION, not any short label: what a figure calls a part of
+    itself is a thing, and a thing is pointed at with "This is the ..." as it always was."""
+    assert naming.as_a_sentence("sign flip") == "This is the sign flip"
+    assert naming.as_a_sentence("right angle") == "This is the right angle"
+    assert naming.as_a_sentence("greatest height") == "This is the greatest height"
+    assert naming.as_a_sentence("the idea") == "This is the idea"
+    assert naming.as_a_sentence("numbered steps") == "These are the numbered steps"
+
+
 def test_the_label_keeps_its_own_article_when_it_has_one() -> None:
     say, _ = naming.name_what_is_drawn("Look.", [ring(words="the wrong sign", beat={"with": 0})])
     assert say == "Look. This is the wrong sign."
@@ -457,3 +482,245 @@ def test_the_pointing_sentence_still_names_the_mark() -> None:
     objects = [ring(words="wrong sign", beat={"with": 0})]
     say, drawn = naming.name_what_is_drawn("Start here.", objects)
     assert not naming.unnamed(say, drawn)
+
+
+# --- a mark on the learner's own page (the adversary, wave 58, finding 1) -------------------------
+
+
+def on_page(**kw: Any) -> dict[str, Any]:
+    """A mark as ``doubt.DoubtShaper`` hands it on: its words are the line it sits on."""
+    obj = ring(**kw)
+    obj.setdefault("meta", {})["page"] = True
+    return obj
+
+
+def test_a_page_mark_the_say_never_names_is_pointed_at_not_read_back() -> None:
+    """Live at 390 (w58j) the whole caption was "Not quite. What is 20 - 5?" over a ring on the
+    learner's own line, and nothing said which of their six lines the ring was on. A mark on the
+    page is owed the line it sits on, said the way a teacher points at a line: never as a claim
+    ("3x = 20 + 5." asserts the wrong line), never with the learner's own "?" read out."""
+    say, drawn = naming.name_what_is_drawn(
+        "Not quite. What is 20 - 5?",
+        [on_page(words="3x = 20 + 5 ?", meta={"beat": {"with": 0}})],
+        ask="What is 20 - 5?",
+    )
+    assert say == "Not quite. This line, 3x = 20 + 5. What is 20 - 5?", say
+    # The beat the shaper chose stands (law 5: the first stroke is on the first sentence); the
+    # pointing sentence follows it while the ink holds, the way a teacher rings as they say
+    # "look here" and then reads the line.
+    assert drawn[0]["meta"]["beat"]["with"] == 0
+    assert not naming.unnamed(say, drawn)
+
+
+def test_a_page_line_with_a_heading_is_named_by_its_working() -> None:
+    """"Solve: 3x + 5 = 20" is a heading and an equation. The subject used to be cut at the
+    colon, so the mark on it was called "Solve" and spoken as "Solve."."""
+    assert naming.mark_subject(on_page(words="Solve: 3x + 5 = 20")) == "3x + 5 = 20"
+    say, _ = naming.name_what_is_drawn(
+        "Not quite.", [on_page(words="Solve: 3x + 5 = 20", meta={"beat": {"with": 0}})]
+    )
+    assert say == "Not quite. This line, 3x + 5 = 20."
+
+
+def test_a_page_mark_the_teaching_already_names_gets_nothing_added() -> None:
+    """The wave-57 teaching line names the line it marks ("... 3x = 20 - 5, not 20 + 5 ..."), so
+    the mark on that line is owed nothing more, and the say is exactly the model's."""
+    say = (
+        "Start with the equation, because we keep both sides balanced. The first step is "
+        "3x = 20 - 5, not 20 + 5, because subtracting 5 cancels the +5 on the left."
+    )
+    said, _ = naming.name_what_is_drawn(
+        say, [on_page(words="3x = 20 + 5 ?", meta={"beat": {"with": 1}})]
+    )
+    assert said == say
+
+
+def test_a_page_mark_is_unnamed_when_nothing_says_its_line() -> None:
+    """The exemption hid it: ``unnamed`` reported nothing for a page mark no sentence named."""
+    marks = [on_page(words="3x = 20 + 5 ?", meta={"beat": {"with": 0}})]
+    assert naming.unnamed("Not quite. What is 20 - 5?", marks) == ["3x = 20 + 5"]
+
+
+def test_a_prose_line_of_the_page_is_pointed_at_in_sentence_case() -> None:
+    say, _ = naming.name_what_is_drawn(
+        "Start with the perimeter.",
+        [on_page(words="Find the perimeter of the rectangle", meta={"beat": {"with": 0}})],
+    )
+    assert say == "Start with the perimeter. This line, find the perimeter of the rectangle."
+
+
+def test_a_standing_mark_on_a_line_of_working_keeps_the_learners_question_mark_out() -> None:
+    """``stream._standing`` rebuilds the client's mark without its ``meta``, so the instant mark
+    on the learner's "3x = 20 + 5 ?" reaches the pass as a plain mark. Its subject is still the
+    line, not the line plus the learner's own "?"."""
+    assert naming.mark_subject(ring(words="3x = 20 + 5 ?")) == "3x = 20 + 5"
+    assert naming.mark_subject(ring(words="Solve: 3x + 5 = 20")) == "3x + 5 = 20"
+
+
+def test_a_refused_page_mark_does_not_take_the_teaching_with_it() -> None:
+    """A sentence about the learner's own line is about something that IS on the glass, whether
+    or not the mark on it reached the wire."""
+    say = "Not quite. The first step is 3x = 20 - 5, not 20 + 5. What is 20 - 5?"
+    missing = [on_page(id="m9", words="3x = 20 + 5 ?", meta={"beat": {"with": 1}})]
+    line, cut = naming.only_what_is_drawn(say, [], missing)
+    assert line == say and cut == ()
+
+
+def test_the_pointing_sentence_is_the_one_a_standing_mark_is_owed_too() -> None:
+    """One builder for every mark the say never names, so the wire's front sentence for a mark
+    the client laid can be the same sentence, not the raw line."""
+    assert naming.sentence_for(on_page(words="3x = 20 + 5 ?")) == "This line, 3x = 20 + 5."
+    assert naming.sentence_for(ring(words="the wrong sign")) == "This is the wrong sign."
+    assert naming.sentence_for(ring(words="3x = 20 - 5")) == "3x = 20 - 5."
+
+
+def test_a_page_mark_with_no_beat_keeps_time_with_the_pointing_sentence() -> None:
+    say, drawn = naming.name_what_is_drawn(
+        "Not quite. What is 20 - 5?", [on_page(words="3x = 20 + 5 ?")]
+    )
+    assert say == "Not quite. What is 20 - 5? This line, 3x = 20 + 5."
+    assert drawn[0]["meta"]["beat"]["with"] == 2
+
+
+def test_a_page_mark_is_named_by_any_one_sentence_that_names_its_line() -> None:
+    """Its ink holds on the page for the whole turn, so the sentence that names it need not be
+    the one it is beaten to; but ONE sentence has to, and "3x" in one sentence with "20 + 5" in
+    another is not that sentence."""
+    marks = [on_page(words="3x = 20 + 5 ?", meta={"beat": {"with": 0}})]
+    assert naming.unnamed("Not quite. This line, 3x = 25. What is 20 - 5?", marks) == [
+        "3x = 20 + 5"
+    ]
+    assert naming.unnamed("Not quite. This line, 3x = 20 + 5. What is 20 - 5?", marks) == []
+    say, drawn = naming.name_what_is_drawn(
+        "Not quite. Your line 3x = 20 + 5 adds the 5, so undo it. What is 20 - 5?", marks
+    )
+    assert say == "Not quite. Your line 3x = 20 + 5 adds the 5, so undo it. What is 20 - 5?"
+    assert drawn[0]["meta"]["beat"]["with"] == 0
+
+
+# --- an inserted sentence moves every later beat by the number inserted, and no more ------------
+
+
+def test_an_already_named_mark_after_an_insertion_moves_by_exactly_the_sentences_inserted() -> None:
+    """``beat + shift[beat]`` counted the beat's own index twice: a mark named by sentence 1, with
+    one sentence inserted before it, kept time with sentence 3. Hidden until now because every
+    mark under test was given a fresh sentence of its own and re-beaten to that."""
+    say, objects = naming.name_what_is_drawn(
+        "Start here. The second step is next. Then this. Then that.",
+        [
+            ring(id="m1", words="the sign flip", beat={"with": 0}),
+            ring(id="m2", words="the second step", beat={"with": 1}),
+        ],
+    )
+    assert naming.split(say)[2] == "The second step is next."
+    assert [o["beat"]["with"] for o in objects] == [1, 2]
+
+
+def test_a_chosen_after_beat_moves_with_its_sentence() -> None:
+    say, objects = naming.name_what_is_drawn(
+        "Start here. The second step is next.",
+        [
+            ring(id="m1", words="the sign flip", beat={"with": 0}),
+            {
+                "id": "w1",
+                "kind": "write",
+                "text": "x = 2",
+                "anchor": {"target": "w2"},
+                "meta": {"beat": {"after": 1}},
+            },
+        ],
+    )
+    assert naming.split(say)[2] == "The second step is next."
+    assert objects[1]["meta"]["beat"] == {"after": 2}
+
+
+def test_only_a_mark_that_sits_on_a_line_is_pointed_at() -> None:
+    """``doubt.DoubtShaper._about_the_line`` swaps a mark's words for its line only when the mark
+    anchors to a line by ``target``. An arrow between two marks keeps the model's own words and
+    the page flag, and "This line, it goes here." would be a tag spoken as a line."""
+    arrow = {
+        "id": "a1",
+        "kind": "arrow",
+        "anchor": {"object": "m1"},
+        "from": {"object": "m2"},
+        "words": "it goes here",
+        "meta": {"page": True, "beat": {"with": 0}},
+    }
+    assert naming.sentence_for(arrow) == "It goes here."
+    say, _ = naming.name_what_is_drawn("Look.", [arrow])
+    assert say == "Look. It goes here."
+
+
+def test_a_wordless_arrow_between_two_page_marks_is_owed_nothing() -> None:
+    """The doubt plan's arrow from its note to its ring carries no words. It is the page's own
+    construction between two marks that are named already, and the one-hop anchor rule (right for
+    a leader on Wobo's own figure) would read the ring's LINE through it: "This is the find the
+    perimeter of the rectangle."."""
+    ring_on_page = on_page(id="m1", words="Find the perimeter of the rectangle")
+    arrow = {
+        "id": "a1",
+        "kind": "arrow",
+        "anchor": {"object": "m1"},
+        "from": {"object": "m2"},
+        "meta": {"page": True, "beat": {"with": 0}},
+    }
+    assert naming.mark_subject(arrow, {"m1": ring_on_page}) is None
+    assert naming.sentence_for(arrow, {"m1": ring_on_page}) == ""
+    say, _ = naming.name_what_is_drawn(
+        "Look. This line, find the perimeter of the rectangle.", [ring_on_page, arrow]
+    )
+    assert say == "Look. This line, find the perimeter of the rectangle."
+
+
+# --- a line of working is named by quoting it, not by carrying the same numbers ------------------
+
+
+def test_a_line_of_working_is_named_only_when_a_sentence_quotes_it_or_a_side_of_it() -> None:
+    """Live at 390 and 1440 (w60): the ring on the learner's "Solve: 3x + 5 = 20" got no pointing
+    sentence because "Subtract 5 from both sides ... : 3x = 20 - 5." carries the same three
+    tokens. Content words are the right test for a name; for working the operators ARE the
+    words, and a sentence names a line by quoting it, or one side of it, in order."""
+    line = "3x + 5 = 20"
+    assert not naming.names("Subtract 5 from both sides, so 3x = 20 - 5.", line)
+    assert naming.names("Start with 3x + 5 = 20, the line you were given.", line)
+    assert naming.names("Start with 3x+5=20.", line)
+    # the wave-57 teaching quotes the right-hand side of the learner's line, and names it
+    assert naming.names(
+        "The first step is 3x = 20 - 5, not 20 + 5, because it cancels.", "3x = 20 + 5"
+    )
+    # a bare number is not a side worth the name, and a quote that runs on is not a quote
+    assert not naming.names("What is 20 - 5?", "3x = 20 + 5")
+    assert not naming.names("x = 25/3 is the next line.", "3x = 25")
+    assert not naming.names("So 3x = 25/3.", "3x = 25")
+    # both spellings of a power are one line
+    assert naming.names("x² + 5x + 6 = 0, line by line.", "x^2 + 5x + 6 = 0")
+
+
+def test_a_page_mark_is_pointed_at_when_the_teaching_only_shares_its_numbers() -> None:
+    say, _ = naming.name_what_is_drawn(
+        "Not quite. Subtract 5 from both sides, so 3x = 20 - 5. What is 20 - 5?",
+        [on_page(words="Solve: 3x + 5 = 20", meta={"beat": {"with": 1}})],
+        ask="What is 20 - 5?",
+    )
+    assert say == (
+        "Not quite. Subtract 5 from both sides, so 3x = 20 - 5. This line, 3x + 5 = 20. "
+        "What is 20 - 5?"
+    )
+
+
+def test_two_page_marks_of_one_sentence_are_pointed_at_together() -> None:
+    """Live at 390 (w60): "This line, 3x = 20 + 5. This line, 3x + 5 = 20." is an inventory.
+    Two lines pointed at in one breath are one sentence."""
+    say, drawn = naming.name_what_is_drawn(
+        "Step 2 is not right. What is 20 - 5?",
+        [
+            on_page(id="m0", words="3x = 20 + 5 ?", meta={"beat": {"with": 0}}),
+            on_page(id="m1", words="Solve: 3x + 5 = 20", meta={"beat": {"with": 0}}),
+        ],
+        ask="What is 20 - 5?",
+    )
+    assert say == (
+        "Step 2 is not right. This line, 3x = 20 + 5, and this line, 3x + 5 = 20. What is 20 - 5?"
+    )
+    assert not naming.unnamed(say, drawn)
+    assert [o["meta"]["beat"]["with"] for o in drawn] == [0, 0]

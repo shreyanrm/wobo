@@ -60,6 +60,7 @@ function world(open: boolean | 'unreachable') {
 }
 
 const KEYED = {
+  devAuth: false, // live auth is the mode that mints an anonymous session (anonymous.test.ts)
   llmMode: 'live' as const,
   gatewayUrl: 'https://brain.test',
   supabaseUrl: 'https://project.supabase.co',

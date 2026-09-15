@@ -28,6 +28,7 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 | [DOORS-CLOSED.md](DOORS-CLOSED.md) | The door is closed, and what stands in its place | Block any account creations for now until further notice, because we have |
 | [DOUBT.md](DOUBT.md) | The doubt solver — the wire, and the laws the learner side holds it to |  |
 | [EMAILS-AND-ANIMATIONS.md](EMAILS-AND-ANIMATIONS.md) | Mail that makes you come back, and the orb that moves | They keep sending really |
+| [EMAILS-AND-ANIMATIONS.md: the movie poster](EMAILS-AND-ANIMATIONS.md) | One conceit per mail carried all the way, the drawing is the concept, the joke is honest, short with one button, our voice | That's pretty cool marketing from Brilliant (2026-09-15, the forwarded mail) |
 | [FEEL.md](FEEL.md) | The felt moments: gamification is feedback, not points | How about the application gamification, subtle animations and stuff? |
 | [GROWTH-DESK.md](GROWTH-DESK.md) | The growth desk: what it makes, where it may post, and what we may mea | Blogging, Medium, Reddit, Quora and so many others... what if we could |
 | [GROWTH-ENTITY.md](GROWTH-ENTITY.md) | Taking the name: how Wobo becomes the answer to "Wobo" | We need to be more dominating. We need to take over the name Wobo |
@@ -37,6 +38,7 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 | [INK-FREEZE-PLAN-TRACE.md](INK-FREEZE-PLAN-TRACE.md) | Ink: freeze, plan, trace | 0.92 is horrible. Deeply understand the mechanics |
 | [KICKOFF-PROMPT.md](KICKOFF-PROMPT.md) | The single kickoff prompt (paste into Claude Code) |  |
 | [LEARNING-MODEL.md](LEARNING-MODEL.md) | The learning model: chapters hold modules, and a group of modules teac | The subject has multiple chapters, and the chapter has multiple topics |
+| [LEARNING-MODEL.md: the tutor never leaves](LEARNING-MODEL.md) | The group re-chosen after every module, until understood, wrong answers explained in the concept's words, motivating, no dead end; proven by an adversary who plays a struggling learner | Continuously optimising and personalising until they master the topic; motivating, continuous support, guiding where they went wrong (2026-09-15) |
 | [LEGAL-REVIEW.md](LEGAL-REVIEW.md) | What needs a lawyer, in the order it would cost most to be wrong |  |
 | [LEVELS.md](LEVELS.md) | Levels: earned by XP alone, and each one costs more than the last | I want level ups only based off XP, and the same amount of XP doesn't lead |
 | [MAIL-PRIMARY.md](MAIL-PRIMARY.md) | Reaching Primary: the mail law | We need to use the right wordings in our mails so that we don't end up in Updates or Promo |
@@ -48,6 +50,7 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 | [PRICING.md](PRICING.md) | Pricing — the canonical table |  |
 | [REWARDS.md](REWARDS.md) | The reward system: composed, never chosen | How about the level system, XP vibe animations, celebration scenes, try |
 | [SELL.md](SELL.md) | SELL.md — how the public site converts |  |
+| [SELL.md: the money's voice](SELL.md) | Every money surface says where the money goes, once, like a person; the company words are forbidden | We use this money to invest in improving the application, create more beautiful content. We aren't showing ourselves like a business (2026-09-15) |
 | [SITE.md](SITE.md) | SITE.md — the public site: map, navigation, and how every page pitches |  |
 | [START-HERE.md](START-HERE.md) | Wobo — Build Documentation Suite |  |
 | [THE-WAIT.md](THE-WAIT.md) | The wait: what a learner does while Wobo is making something | ChatGPT gives a very light game while the |

@@ -118,7 +118,9 @@ def test_the_standing_mark_is_named_by_the_turn_s_first_sentence() -> None:
         ask={"prompt": "Which side is it?", "targets": []},
     )
     said = said_of(stream.build_events(plan, on_board=[RING]))
-    assert said.lower().startswith("square on the hypotenuse."), said
+    # ... and SAID, in the form the plan's own ring would earn (``naming.sentence_for``), not the
+    # client's label read out.
+    assert said.startswith("This is the square on the hypotenuse. It is the side"), said
 
 
 def test_a_sentence_the_plan_beat_still_keeps_time_with_its_own_words() -> None:
@@ -141,7 +143,7 @@ def test_a_sentence_the_plan_beat_still_keeps_time_with_its_own_words() -> None:
     events = stream.build_events(plan, on_board=[RING])
     parts = [str(e.data["text"]) for e in events if e.type == "say"]
     mark = next(e.data["object"] for e in events if e.type == "ink")
-    assert parts[0].lower().startswith("square on the hypotenuse"), parts
+    assert parts[0] == "This is the square on the hypotenuse.", parts
     beat = mark["meta"]["beat"]["with"]
     assert "right angle" in parts[beat].lower(), (beat, parts)
 
@@ -249,6 +251,75 @@ def test_a_plan_mark_may_hang_off_a_mark_the_client_laid() -> None:
     events = stream.build_events(plan, on_board=[RING])
     assert ink_ids(events) == ["n1"]
     assert not (events[-1].data.get("refused") or [])
+
+
+#: The underline the client laid on the learner's own equation before the doubt's answer left
+#: (``instant.ts``, ``resolveDoubtInstant``), exactly as ``doubt.turn_payload`` hands it up: the
+#: line's own words, and the page flag that says whose page the line is on.
+PAGE_LINE: dict[str, Any] = {
+    "id": "instant-1",
+    "kind": "underline",
+    "anchor": {"target": "r0"},
+    "words": "3x + 5 = 20",
+    "meta": {"page": True},
+}
+
+
+def test_a_standing_mark_on_the_learner_s_page_is_pointed_at_never_read_as_a_claim() -> None:
+    """Live at 390 (wave 60, doubt) the caption opened "3x + 5 = 20. Not quite: the +5 moves by
+    subtracting 5." — the standing underline's line read out as a statement over the learner's
+    own page, because the page flag the doubt door set was dropped on the way to the say. A mark
+    on the page is the teacher's finger on a line: "This line, 3x + 5 = 20."."""
+    plan = Plan(
+        say="Not quite: the +5 moves by subtracting 5. What is 20 - 5?",
+        presentation="screen",
+        objects=[],
+        ask={"prompt": "What is 20 - 5?", "targets": []},
+    )
+    said = said_of(stream.build_events(plan, on_board=[PAGE_LINE]))
+    assert said.startswith("This line, 3x + 5 = 20. Not quite"), said
+    # ... and the line is never ALSO asserted somewhere else in the same caption.
+    pointed = "This line, 3x + 5 = 20. Not quite"
+    assert "3x + 5 = 20. Not quite" not in said.replace(pointed, ""), said
+
+
+def test_the_page_flag_survives_the_rebuild_and_nothing_else_of_meta_does() -> None:
+    """``_standing`` rebuilds the client's mark field by field; ``meta.page`` is one of the fields,
+    because it decides the FORM of the sentence the mark is owed. Nothing else under ``meta`` is
+    a client's to write."""
+    smuggled = {**PAGE_LINE, "meta": {"page": True, "beat": {"with": 3}, "check": "x"}}
+    [mark] = stream._standing([smuggled])
+    assert mark["meta"] == {"page": True}
+    [plain] = stream._standing([{**PAGE_LINE, "meta": {"page": "yes"}}])
+    assert "meta" not in plain
+
+
+def test_two_standing_lines_of_the_page_are_pointed_at_in_one_breath() -> None:
+    """A lasso across two lines lays two underlines (``instant.ts``, ``also``); a teacher points at
+    both in one sentence, not in two."""
+    second = {**PAGE_LINE, "id": "instant-2", "anchor": {"target": "r1"}, "words": "3x = 20 + 5"}
+    said = said_of(stream.build_events(Plan(**THE_LIVE_TURN), on_board=[PAGE_LINE, second]))
+    assert said.startswith("This line, 3x + 5 = 20, and this line, 3x = 20 + 5. "), said
+
+
+def test_a_standing_mark_s_label_is_said_not_read_out() -> None:
+    """Keyless at 1440 on "show me why" the caption opened "The idea. Which part…" and at 390
+    "Predict. Which part…": the client's label for its mark, read out as prose. The plan's own
+    marks go through :func:`naming.sentence_for`; the client's are owed the same sentence."""
+    idea = {
+        "id": "instant-1",
+        "kind": "underline",
+        "anchor": {"target": "l-1lqhuwx-0"},
+        "words": "the idea",
+    }
+    said = said_of(stream.build_events(Plan(**THE_LIVE_TURN), on_board=[idea]))
+    assert said.startswith("This is the idea. "), said
+    # ... and the card the ring is around is titled with an INSTRUCTION, which takes no article:
+    # neither "Predict." nor "This is the predict, then check.", but the sentence Wobo already
+    # says about this very card when nothing on it is named (``glass.absent_line``).
+    card = {**idea, "kind": "ring", "anchor": {"target": "card-c4"}, "words": "predict, then check"}
+    said = said_of(stream.build_events(Plan(**THE_LIVE_TURN), on_board=[card]))
+    assert said.startswith("This one is predict, then check. "), said
 
 
 # --- the wire ------------------------------------------------------------------------------------

@@ -13,24 +13,29 @@ updated in the same breath as the decision, not later.
 
 The usage limit hit while seven waves were mid-task. Every agent still running died; the ones that had
 finished are kept. The tree was left half-built: about 120 typecheck errors, 28 gateway failures, 13
-web failures, two migrations sharing a number. **Wave 52 heals it** (21 closers, one per failure
-group, each closing by its law rather than by whichever side is easier), then the seven waves resume
-from where they stopped. Nothing they were building is dropped.
+web failures, two migrations sharing a number. **Wave 52 healed it** on 2026-09-14 (21 closers, one per failure group, each closing by its law rather
+than by whichever side was easier), verified in isolation and committed as `9d204ed`, deployed to both
+ends (Railway 91c2488b, Vercel dpl_9AvJDo2vvYx9gx3trN5MpdcgHFUB; the press page is live at /press). Then nine waves were launched at once and the session cap killed all nine within five minutes. Their
+five minutes of partial work is kept as a patch and the tree was reset to `9d204ed`. **From here, one
+wave at a time**, each verified, committed and deployed before the next, so that a cap hits between
+waves and never inside one. And from 2026-09-15 by the owner's rule: Opus builds, Fable only judges
+and designs, Sonnet runs the suites; every agent in every wave carries its model. Nothing they were building is dropped; it is queued in the order the
+owner's walk needs it.
 
 ## Running now
 
 | What | Wave | Where it is |
 |---|---|---|
-| Heal the tree the killed waves left | 52 | running, 2026-09-14 |
-| The last tenth of the ink: size and placement solved together, one voice a turn | 48 | killed mid-round two; four of five builders finished; resumes after 52 |
-| The mail law enforced, and the animation library on every surface | 38 | killed; the mail log, the nudges and the orb stills are half on disk; resumes after 52 |
-| The boards: discovery runs, the cold start, the prewarm, the console | 45 | killed; resumes after 52 |
-| The daily allowance, the models desk, the free pool cap | 36 | the money meter FINISHED (allowance.py, 33 tests); promo, the desk and the bar killed; resumes after 52 |
-| One owner and per-person roles, the board that changes once, the four suggestions | 49 | killed; console roles, board change and suggest are half on disk; resumes after 52 |
-| The growth desk, the press page, chapter pages at tier two | 50 | killed; the press screen and tier-two explained pages are half on disk; resumes after 52 |
-| The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 | killed; the band key is half in store.py; resumes after 52 |
-| The phone: the install prompt in its place, the share target into the doubt solver, offline lessons that really play, a cold start a cheap Android can live with | 53 | written 2026-09-14 from PLATFORMS.md section 5; launches when 52 lands |
-| The parent's account screens | 34 | launches when 52 lands, with the seven |
+| The last tenth of the ink: size and placement solved together, one voice a turn | 48 | round two landed (3.868, correctness 4); the thirteen findings run as 48b on Opus, first in the queue |
+| The mail law enforced, and the animation library on every surface | 38 | queued fifth |
+| The boards: discovery runs, the cold start, the prewarm, the console | 45 | queued second |
+| The daily allowance, the models desk, the free pool cap | 36 | the money meter landed in 9d204ed; the rest queued sixth, now carrying the money's voice |
+| One owner and per-person roles, the board that changes once, the four suggestions | 49 | queued seventh |
+| The growth desk, the press page, chapter pages at tier two | 50 | queued eighth |
+| The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 | queued ninth |
+| The phone: the install prompt in its place, the share target into the doubt solver, offline lessons that really play, a cold start a cheap Android can live with | 53 | queued third |
+| The tutor never leaves: re-chosen after every module until understood, where they went wrong in the concept's words, motivating, no dead end | 54 | written 2026-09-15, queued fourth |
+| The parent's account screens | 34 | queued tenth |
 
 ## Landed, with the proof
 
@@ -42,6 +47,8 @@ from where they stopped. Nothing they were building is dropped.
 | No trace of the old name | 40 | the gate scripts refuse it |
 | The door closed to new accounts | 46 | `/v1/doors` answers `{"doors_open":false}` in production |
 | Mail that reaches a person | 38 | the domain is verified and the first send landed in Primary |
+| The tree healed after the kill: 21 closers, five suites green in isolation | 52 | commit `9d204ed`; typecheck clean, web 3596 pass, gateway 5942 pass, gates clean |
+| The money meter: a quarter of the plan a day, in the learner's own local day | 36 | allowance.py, 33 tests, in `9d204ed` |
 
 ## Queued, written, waiting only on the tree
 
@@ -51,7 +58,12 @@ from where they stopped. Nothing they were building is dropped.
 
 ## Decided, still to write
 
-Nothing. Every decision on this board is running, queued on the tree, landed, or held below by a
+| What | Where it is specified |
+|---|---|
+| The tutor never leaves: the proof that teaching re-chooses after every module until understood, explains where they went wrong, motivates, never dead-ends | docs/LEARNING-MODEL.md, the 2026-09-15 section; wave 54, written, queued after 53 |
+| The money's voice on every money surface, with docs/copy/money.md verbatim | docs/SELL.md, the 2026-09-15 section; carried by wave 36's plans-and-bar builder |
+
+Everything else: Every decision on this board is running, queued on the tree, landed, or held below by a
 reason with a name on it. When the owner says something next, it is written into a wave in the same
 breath as the saying.
 
@@ -77,6 +89,7 @@ breath as the saying.
 | Create the listings: Wikidata, LinkedIn, Crunchbase, Product Hunt, Google Business Profile | this is what makes an engine answer "Wobo is an AI tutor" | an afternoon, copy is written |
 | Razorpay keys | checkout answers 503 until they exist | minutes |
 | Turn on Supabase leaked-password protection | an open advisory | one switch |
+| Set the repo's git identity: `git config user.email` to the address of the Vercel account | every commit is authored by the machine (`depl@...local`), and Vercel now blocks a deploy whose commit author is not a team member; until then we deploy from a git-less export | one command |
 | Push the branch | about 135 commits sit local | one command |
 
 ## The owner's walk, which gates the store apps
@@ -89,6 +102,10 @@ When it is close, the owner gets a clean build and a route through every surface
 a lesson with the ink, a photographed doubt, the arcade, the parent's view, plans, and the console.
 
 ## Landed today
+
+2026-09-15: wave 48's second round: correctness 4.000 on all 59 turns, craft 3.66 to 3.78, grand 3.868, 40 of 59 turns perfect on every lens; its third round was cut by the cap and runs as wave 48b on Opus. The movie-poster mail shape (the Brilliant mail the owner forwarded) is law in EMAILS-AND-ANIMATIONS.md and in wave 38's brief.
+
+2026-09-15: the admin seat's email claim fails closed (a token that does not say the address was verified carries no address), with the test that proves it; the second proof, a signed single-use invitation link, is written into the console law and wave 49's brief.
 
 The four-out-of-four standard; the ink law (freeze, plan, trace); the search law; the content desk;
 press, awards and the press kit's exact words; the entity plan and the handle audit; the naming law

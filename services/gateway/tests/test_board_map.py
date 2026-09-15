@@ -20,11 +20,11 @@ import math
 from pathlib import Path
 
 import pytest
-from wobo_gateway.board import schema
+from wobo_gateway.board import naming, schema
 from wobo_gateway.board.pipelines import FIGURE, FIGURE_UNION, TYPE_UNITS, run_intent
 from wobo_gateway.board.verify import Unverified
 from wobo_gateway.plexus.maps import CATALOG_IDS, region_name, region_ring
-from wobo_gateway.wobo import board_intents
+from wobo_gateway.wobo import board_intents, mock_board_plan
 
 MAP_ASK = "Draw a labelled map of India and mark Maharashtra"
 
@@ -55,7 +55,7 @@ def polygons(draft) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for obj in draft.objects:
         if obj["kind"] == "polygon":
-            out[str(obj.get("title") or obj["id"]).replace(" ", "-")] = obj
+            out[str(obj.get("title") or obj["id"]).lower().replace(" ", "-")] = obj
     return out
 
 
@@ -144,18 +144,28 @@ def test_the_map_is_drawn_at_one_scale() -> None:
 
 
 def test_the_marked_state_is_marked_on_the_country() -> None:
-    """The ring rings the state's own shape, the name is the name, and both belong to the state the
-    learner asked about rather than to a box."""
+    """The mark IS the state's own boundary, the name is the name, and both belong to the state the
+    learner asked about rather than to a box.
+
+    Not a ring. The first rebuild ringed the state, and on the glass (the map closer, wave 58,
+    390 and 1440, all three modes) the ring did two things a map may not: it crossed Gujarat,
+    Madhya Pradesh and Karnataka — "nothing else is marked" — and its pad reserved the whole 24 px
+    band round the state, so the placer pushed the name 28 to 30 px off the thing it names. The
+    state drawn in full accent with the wash marks exactly Maharashtra and leaves the band for
+    its name. ``opacity`` is absent because the renderer scales the STROKE by it too, and a
+    quarter-strength accent outline is not the one hit of pigment the answer is."""
     draft = draw()
     shapes = polygons(draft)
     maharashtra = shapes["maharashtra"]
-    ring = [o for o in draft.objects if o["kind"] == "ring"]
-    assert len(ring) == 1
-    assert ring[0]["anchor"] == {"object": maharashtra["id"]}
-    assert ring[0].get("style", {}).get("ink") == "accent"
-    assert maharashtra.get("style", {}).get("ink") == "accent"
+    assert not [o for o in draft.objects if o["kind"] == "ring"], (
+        "a ring round a state crosses its neighbours and holds the name out of reach"
+    )
+    style = maharashtra.get("style", {})
+    assert style.get("ink") == "accent"
+    assert style.get("fill") == "wash"
+    assert "opacity" not in style, "the marked state's outline is drawn at full strength"
     assert [o for o in draft.objects if o["kind"] == "label"], "a labelled map carries the name"
-    named = [o for o in draft.objects if o["kind"] == "label" and o["text"] == "maharashtra"]
+    named = [o for o in draft.objects if o["kind"] == "label" and o["text"] == "Maharashtra"]
     assert named, [o.get("text") for o in draft.objects if o["kind"] == "label"]
     # the name hangs off the state it names, so the client's placer keeps it within reach of it
     assert named[0]["anchor"].get("object") == maharashtra["id"]
@@ -172,11 +182,133 @@ def test_the_land_is_faint_and_the_answer_is_not() -> None:
 
 
 def test_the_name_on_the_map_is_a_name_and_not_a_slug() -> None:
-    """"madhya-pradesh" is an id. A learner reads "madhya pradesh"."""
+    """A learner reads "Madhya Pradesh"; "madhya-pradesh" is the catalog's id for it.
+
+    A PLACE IS A PROPER NOUN, IN BOTH HANDS (the adversary, wave 60). The name was written
+    ``.lower()`` for a board whose other writing is common nouns ("cell wall", "up-speed is zero
+    here"), and the naming pass reads what the board wrote: keyless and live the transcript came
+    back "Rajasthan, gujarat, maharashtra, madhya pradesh." — seven proper nouns in lower case,
+    spoken by a teacher who would never write them that way. The state's own name is the bundle's
+    own name, on the glass, in the title a listener hears, and in the say."""
     draft = draw("Draw a map of India and mark Madhya Pradesh")
     labels = [o["text"] for o in draft.objects if o["kind"] == "label"]
-    assert "madhya pradesh" in labels, labels
+    assert labels == ["Madhya Pradesh"], labels
     assert region_name("madhya-pradesh") == "Madhya Pradesh"
+    titles = {str(o.get("title")) for o in draft.objects if o["kind"] == "polygon"}
+    assert titles == {region_name(r) for r in CATALOG_IDS}, titles
+    # AND THE PROMPT IS A NAME TOO. "find madhya-pradesh" wrote the catalog's id on the board.
+    written = [o["text"] for o in draft.objects if o["kind"] == "write"]
+    assert written == ["find Madhya Pradesh"], written
+
+
+# --- what the map SAYS ----------------------------------------------------------------------------
+
+
+def said(ask: str = MAP_ASK) -> str:
+    """The whole spoken line of the keyless turn, composed the way the wire composes it.
+
+    ``board/stream.py`` takes the plan's say and runs ``naming.name_what_is_drawn`` over
+    everything on the glass; ``wobo.mock_board_plan`` writes that say from the intent
+    (``naming.opening``) or falls back to the family's line. This is those three steps and
+    nothing else, so a test here fails for the same reason a learner hears the wrong sentence.
+    """
+    plan = mock_board_plan({"context": {"turn": {"lastUserInput": ask}}})
+    objects = [
+        obj
+        for index, intent in enumerate(plan.get("intents") or [])
+        for obj in run_intent(intent, index=index, ask=ask).objects
+    ]
+    line, _ = naming.name_what_is_drawn(
+        plan["say"], objects, ask=str((plan.get("ask") or {}).get("prompt") or "") or None
+    )
+    return line
+
+
+def test_the_map_says_the_state_it_marked_and_not_a_roll_call_of_the_country() -> None:
+    """THE DEFECT (the adversary, wave 60, on the rebuilt map). The mark closed and the say did
+    not: keyless and live the transcript read
+
+        "Rajasthan, gujarat, maharashtra, madhya pradesh. Uttar pradesh, karnataka, kerala,
+         tamil nadu. Read the labels as they land, and say which one is missing."
+
+    Eight names over a board that writes ONE, in lower case, under an instruction to read labels
+    when exactly one label lands. The country is the ground the answer stands on, not an
+    inventory: a learner who is listening is owed the state they asked about and the place it
+    sits in, and nothing the board never wrote.
+    """
+    line = said()
+    assert "Maharashtra" in line, line
+    strangers = [
+        name
+        for rid in CATALOG_IDS
+        if rid != "maharashtra" and (name := region_name(rid)) and name.lower() in line.lower()
+    ]
+    assert not strangers, f"{strangers} named over a board that writes one name: {line!r}"
+    assert "label" not in line.lower(), line
+    assert len(naming.split(line)) == 1, line
+
+
+def test_the_say_is_about_the_state_the_learner_asked_about() -> None:
+    """Two different asks said one identical sentence before this: the roll call is the catalog's
+    order, so it cannot tell Maharashtra from Madhya Pradesh."""
+    assert "Madhya Pradesh" in said("Draw a map of India and mark Madhya Pradesh")
+
+
+def test_the_map_never_falls_back_to_the_familys_line() -> None:
+    """The bio_social family's line is "Read the labels as they land, and say which one is
+    missing.", written for a diagram whose parts are all labelled. A map writes one name, so it
+    makes its own first sentence, from its own intent, keyless and live alike
+    (``naming.opening``)."""
+    marked = board_intents(MAP_ASK)[0]
+    assert "Maharashtra" in naming.in_register(naming.opening(marked, MAP_ASK))
+    assert naming.in_register(naming.opening(dict(CHOROPLETH), "which state grows the most"))
+
+
+def test_the_country_is_ground_and_the_say_does_not_read_it_out() -> None:
+    """The mechanism, named on the object itself: a state the question is not about is the ground
+    the answer stands on. It keeps its ``title``, because ``spoken.ts`` reads that title out to a
+    learner who asks what is on the board, and it is not one of the parts the say runs through
+    (``naming.part_name``)."""
+    draft = draw()
+    shapes = polygons(draft)
+    for rid, shape in shapes.items():
+        ground = bool((shape.get("meta") or {}).get("ground"))
+        assert ground == (rid != "maharashtra"), rid
+        assert shape.get("title"), rid
+        assert (naming.part_name(shape) is None) == ground, rid
+
+
+def test_a_mark_on_the_ground_is_still_spoken() -> None:
+    """GROUND IS NOT SILENCE. The country is not read out as a list of parts; it is still what a
+    mark on it is ABOUT, so a ring on Gujarat is owed Gujarat's own name and gets it from the
+    shape it hangs off (``naming.mark_subject``), not from the parts pass.
+
+    The sentence it is owed comes back as "This is the gujarat." — ``naming.as_a_sentence`` puts
+    an article in front of a bare label and lower-cases its head, which is right for "wrong sign"
+    and wrong for a place. Nothing on the fifty-nine turns draws that mark, so it is named here
+    rather than fixed here; the subject is what this test is for.
+    """
+    draft = draw()
+    gujarat = polygons(draft)["gujarat"]
+    ring = {"id": "m1", "kind": "ring", "anchor": {"object": gujarat["id"]}}
+    by_id = {str(o["id"]): o for o in [*draft.objects, ring]}
+    assert naming.mark_subject(ring, by_id) == "Gujarat"
+    line, _ = naming.name_what_is_drawn("Where is it?", [*draft.objects, ring])
+    assert "gujarat" in line.lower(), line
+
+
+def test_a_shaded_map_says_the_states_it_shaded() -> None:
+    """Ground is what the question is not about, never "everything but one": on a choropleth every
+    shaded state carries a name and a number, and every one of them is said."""
+    draft = run_intent(dict(CHOROPLETH))
+    line, _ = naming.name_what_is_drawn(
+        naming.in_register(naming.opening(dict(CHOROPLETH), "which state grows the most")),
+        draft.objects,
+    )
+    for rid in ("maharashtra", "gujarat", "kerala"):
+        assert (region_name(rid) or "") in line, line
+    for rid in ("rajasthan", "karnataka", "tamil-nadu"):
+        assert (region_name(rid) or "").lower() not in line.lower(), line
 
 
 # --- the budgets the board is held to -------------------------------------------------------------
@@ -259,7 +391,7 @@ def test_a_shaded_map_shades_the_real_states() -> None:
     assert values == {"maharashtra": 3.0, "gujarat": 1.0, "kerala": 2.0}
     # every shaded state is named on the map, so a number is read with the state it belongs to
     labels = {o["text"] for o in draft.objects if o["kind"] == "label"}
-    assert labels == {"maharashtra", "gujarat", "kerala"}
+    assert labels == {"Maharashtra", "Gujarat", "Kerala"}
 
 
 def test_the_receipt_says_what_actually_ran() -> None:

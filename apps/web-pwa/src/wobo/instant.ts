@@ -20,6 +20,12 @@
  *    named; a figure is not its part ("a question that names a part gets the part, not its
  *    figure"); a name is matched on its own head, so a thing standing ON the named thing is not
  *    the named thing (wave 58); Wobo's own words are never on the glass and are refused as well.
+ *    One more declaration lives in the core rather than on the DOM: the architect's own sentence
+ *    for a concept, which the card prints as its idea. A line that IS that sentence, word for
+ *    word, is the idea declared, and a bare "why?" on that card is about it (`bareAsk`); by the
+ *    same identity a line that IS the card's own name, word for word, is that concept on the
+ *    glass, which is how a bare ask still has something the learner can SEE to point at once the
+ *    card itself has scrolled away (`nameOnGlass`).
  * 2. **Ambiguity aims at nothing.** If two declared things answer the question equally well, there
  *    is no local mark and no ink starts. A wrong instant ring is worse than a late right one.
  * 3. **A drawing from scratch is not a mark.** "Draw a Punnett square", "graph y = x²": the plane
@@ -66,8 +72,9 @@ export interface InstantAim {
    *
    * A lasso is one gesture and it can land on more than one thing: a drag across the outline on a
    * slow machine crossed two lines, and the learner is owed a mark on both of them, not on the one
-   * that happened to score higher. Only ever from a gesture — the WORDS aim at one thing or at
-   * nothing (rule 2), and this is never a way around that.
+   * that happened to score higher. Only ever from a gesture — or from ONE sentence the glass
+   * wrapped over two lines (`bareAsk`): the WORDS aim at one thing or at nothing (rule 2), and
+   * this is never a way around that.
    */
   also?: { target: string; kind: 'ring' | 'underline'; words: string }[];
 }
@@ -425,7 +432,7 @@ export function resolveInstant(input: ResolveInstant): InstantAim | null {
   if (candidates.length === 0) return null;
 
   const { words, numbers } = questionWords(text);
-  if (words.length === 0 && numbers.length === 0) return null;
+  if (numbers.length === 0 && words.every((w) => ABOUT_IT.has(w))) return bareAsk(map, core, text);
   const findsTheError = FINDS_THE_ERROR.test(text);
 
   const asked = tokensOf(text);
@@ -473,6 +480,177 @@ export function resolveInstant(input: ResolveInstant): InstantAim | null {
   const by =
     findsTheError && declaresMisconception(best.entry) ? 'misconception' : byOf(best.entry);
   return aimAt(best.entry, core, by);
+}
+
+/**
+ * The words an ask uses to point at the thing in front of it without naming it. `questionWords`
+ * already drops "why", "how", "show", "this", "it"; these are the verbs that ride with them and
+ * still name nothing: "why does it work?" is the same ask as "why?".
+ */
+const ABOUT_IT = new Set([
+  'explain',
+  'tell',
+  'work',
+  'works',
+  'happen',
+  'happens',
+  'true',
+  'mean',
+  'means',
+  'matter',
+]);
+
+/**
+ * THE ASK THAT NAMES NOTHING AT ALL (the adversary, wave 58, finding 3).
+ *
+ * "show me why", asked on the "make a move" card, drew nothing and said "Which part is the one
+ * that isn't landing? Name it and we start there." — at 1440 and at 390, on a glass carrying
+ * twenty registered targets including the very line the learner had just read. The words name
+ * no thing, so rule 2 fell silent, and the sentence that followed named nothing Wobo could see.
+ *
+ * An ask with no content word in it is not about nothing: it is about THE THING THE LEARNER IS
+ * LOOKING AT. The lesson puts one card in front of them and the card declares its concept; the
+ * level's core holds the one true sentence the architect wrote for that concept (`buildCore`),
+ * and the card prints that sentence as its idea (screens/course/Composing.tsx). So the answer is
+ * a lookup twice over: the only concept on the glass, and the line on it that IS the core's
+ * sentence, word for word. That line is underlined and the sentence is said — from the core, so
+ * it is spoken at once and there is never a second voice beside the model's. When the glass does
+ * not carry the sentence whole (a long idea wraps at 390 into two lines and neither is the
+ * sentence), the card itself is ringed: the card is the concept.
+ *
+ * Nothing, as before, when two cards declare a concept (rule 2), when no card does, or when the
+ * core holds no sentence for it: a ring with no true words is ink for the sake of ink.
+ *
+ * AND NEVER A MARK THE LEARNER CANNOT SEE (the adversary, wave 60, Builder 6). The premise above
+ * — the ask is about the thing the learner is looking at — is only true while the card is on the
+ * glass. Live at 390 the learner had scrolled 561 px down to the outline; the card sat 377 px
+ * above the viewport with 13 of its 390 px showing and its idea off the glass entirely, and the
+ * fallback rang it anyway: a ring at y = -390, a sliver of stroke at the top of the sheet, with
+ * the core's sentence spoken about a mark nobody could see. An instant mark is a mark the learner
+ * can see NOW, whole, or it is not that mark (`seen`): the idea's every line, or the card's whole
+ * box, inside the viewport.
+ *
+ * BUT SEEING IS NOT PAID FOR WITH THE MARK ITSELF. Refusing there costs the two laws the ask was
+ * answered by: the stroke inside a second (timing) and the core's own true sentence (experience),
+ * on the one turn of the walk the level had an answer ready for. It does not have to be paid,
+ * because the concept IS on that glass — the lesson outline prints the card's own name, whole, in
+ * front of the learner, 353 px down. A line that IS the concept's name, word for word, is the
+ * concept declared on the glass exactly as a line that IS the idea's sentence is the idea (rule
+ * 1), so the pen underlines that and the core's sentence is said about it. One such line, seen
+ * whole, or none: two lines carrying the same name is the tie rule 2 answers with silence, and a
+ * glass with neither the card, its idea, nor its name takes the lawful path for a question that
+ * names nothing on the glass — no ink and the model's sentence.
+ */
+function bareAsk(map: GlassMap, core: ConceptCore, question: string): InstantAim | null {
+  const cards = map.entries.filter(
+    (e) => aimable(e, question) && meaningsOf(e).some((m) => m.key === 'concept' && m.value),
+  );
+  if (cards.length !== 1) return null;
+  const card = cards[0] as GlassEntry;
+  const say = coreSentence(card, core);
+  if (!say) return null;
+  const run = sentenceRun(map.entries, say, question);
+  const [idea, ...wrapped] = run.every((e) => seen(e, map.viewport)) ? run : [];
+  if (idea) {
+    return {
+      target: idea.id,
+      kind: 'underline',
+      words: 'the idea',
+      by: 'concept',
+      say,
+      fromCache: true,
+      ...(wrapped.length > 0
+        ? {
+            also: wrapped.map((e) => ({
+              target: e.id,
+              kind: 'underline' as const,
+              words: 'the idea',
+            })),
+          }
+        : {}),
+    };
+  }
+  if (seen(card, map.viewport)) {
+    return {
+      target: card.id,
+      kind: 'ring',
+      words: wordsFor(card, core),
+      by: 'concept',
+      say,
+      fromCache: true,
+    };
+  }
+  const named = nameOnGlass(map, card, question);
+  if (!named) return null;
+  return {
+    target: named.id,
+    kind: 'underline',
+    words: wordsFor(card, core),
+    by: 'concept',
+    say,
+    fromCache: true,
+  };
+}
+
+/**
+ * The one line on the glass that IS this card's name, word for word, whole in front of the
+ * learner. The lesson outline prints the name of every card, so when the card itself has scrolled
+ * away its name is still there to point at; a name printed twice on one glass is a tie, and a tie
+ * is silence (rule 2).
+ */
+function nameOnGlass(map: GlassMap, card: GlassEntry, question: string): GlassEntry | null {
+  const names = declaredName(card).map((n) => n.tokens);
+  if (names.length === 0) return null;
+  const same = (a: string[], b: string[]) => a.length === b.length && a.every((w, i) => w === b[i]);
+  const hits = map.entries.filter(
+    (e) =>
+      e.id !== card.id &&
+      (e.role === 'line' || e.role === 'heading') &&
+      !echoes(e.text, question) &&
+      names.some((name) => same(name, tokensOf(e.text))),
+  );
+  if (hits.length !== 1) return null;
+  const only = hits[0] as GlassEntry;
+  return seen(only, map.viewport) ? only : null;
+}
+
+/**
+ * Whole on the glass: every edge of the box inside the viewport, so a ring around it or a line
+ * under it lands where the learner is looking (INK-FOUR craft, "nothing off the viewport"). Boxes
+ * are viewport px, so the test is against the viewport's own size and nothing else. A map with no
+ * viewport to measure against (no window) cannot say, and does not refuse.
+ */
+function seen(entry: GlassEntry, vp: GlassMap['viewport']): boolean {
+  if (!(vp.w > 0) || !(vp.h > 0)) return true;
+  const [x, y, w, h] = entry.box;
+  return x >= 0 && y >= 0 && x + w <= vp.w && y + h <= vp.h;
+}
+
+/**
+ * The line that IS this sentence, word for word — or the run of consecutive lines it wrapped
+ * into. Live at 390 the idea read "Undo one operation at a time to" / "expose what is hidden.",
+ * two glass boxes for one sentence, and the pen owes the sentence an underline on each. Empty
+ * when the glass does not carry the sentence whole.
+ */
+function sentenceRun(
+  entries: readonly GlassEntry[],
+  sentence: string,
+  question: string,
+): GlassEntry[] {
+  const want = tokensOf(sentence);
+  if (want.length === 0) return [];
+  for (let i = 0; i < entries.length; i += 1) {
+    const run: GlassEntry[] = [];
+    let got: string[] = [];
+    for (let j = i; j < entries.length && got.length < want.length; j += 1) {
+      const e = entries[j] as GlassEntry;
+      if (e.role !== 'line' || echoes(e.text, question)) break;
+      run.push(e);
+      got = got.concat(tokensOf(e.text));
+    }
+    if (got.length === want.length && got.every((w, k) => w === want[k])) return run;
+  }
+  return [];
 }
 
 function byOf(entry: GlassEntry): InstantBy {
