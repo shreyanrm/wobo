@@ -1,1 +1,697 @@
-[{"id":"b0_1square","anchor":{"board":[428,403]},"style":{"ink":"wobo","weight":2},"t":{"start":30.099999994039536,"dur":260},"meta":{"beat":{"with":0,"word":0,"words":4}},"kind":"table","rows":[["","T","t"],["T","",""],["t","",""]],"w":144,"rowHeight":48},{"id":"b0_2cell","anchor":{"object":"b0_1square","at":[0.43333333333333335,0.3933333333333333]},"style":{"ink":"accent","weight":2},"t":{"start":290.09999999403954,"dur":320},"meta":{"beat":{"with":0,"word":0,"words":4}},"kind":"write","text":"TT","size":22},{"id":"b0_3cell","anchor":{"object":"b0_1square","at":[0.7666666666666666,0.3933333333333333]},"style":{"ink":"accent","weight":2},"t":{"start":610.0999999940395,"dur":320},"meta":{"beat":{"with":0,"word":0,"words":4}},"kind":"write","text":"Tt","size":22},{"id":"b0_4cell","anchor":{"object":"b0_1square","at":[0.43333333333333335,0.7266666666666666]},"style":{"ink":"accent","weight":2},"t":{"start":930.0999999940395,"dur":320},"meta":{"beat":{"with":0,"word":0,"words":4}},"kind":"write","text":"Tt","size":22},{"id":"b0_5cell","anchor":{"object":"b0_1square","at":[0.7666666666666666,0.7266666666666666]},"style":{"ink":"accent","weight":2},"t":{"start":1250.0999999940395,"dur":320},"meta":{"beat":{"with":0,"word":0,"words":4}},"kind":"write","text":"tt","size":22},{"id":"b0_6num","anchor":{"object":"b0_1square","at":"bottomLeft"},"style":{"ink":"accent","weight":2},"t":{"start":1530.0999999940395,"dur":260},"check":"board.numbers_agree:punnett cells","meta":{"beat":{"with":0,"word":0,"words":4}},"kind":"number","value":3,"label":"dominant","precision":0,"verified":true},{"id":"b0_7num","anchor":{"object":"b0_1square","at":"bottomRight"},"style":{"ink":"wobo","weight":2},"t":{"start":1530.0999999940395,"dur":260},"check":"board.numbers_agree:punnett cells","meta":{"beat":{"with":0,"word":2,"words":4}},"kind":"number","value":1,"label":"recessive","precision":0,"verified":true},{"id":"b0_8genotypes","anchor":{"object":"b0_1square","at":"top"},"style":{"ink":"faint","weight":1},"t":{"start":1530.0999999940395,"dur":1454},"check":"board.numbers_agree:genotype counts","meta":{"beat":{"with":0,"word":2,"words":4}},"kind":"write","text":"genotypes 1 TT : 2 Tt : 1 tt","size":22}]
+[
+  {
+    "id": "b0_1cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        468.0,
+        379.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 22.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_2cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        532.0,
+        379.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 232.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_3cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        596.0,
+        379.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 442.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_4cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        468.0,
+        443.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 652.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_5cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        532.0,
+        443.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 862.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_6cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        596.0,
+        443.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 1072.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_7cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        468.0,
+        507.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 1282.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_8cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        532.0,
+        507.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 1492.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_9cell",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        596.0,
+        507.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -64.0,
+        0.0
+      ],
+      [
+        -64.0,
+        64.0
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 1702.5,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_10rule",
+    "kind": "line",
+    "anchor": {
+      "board": [
+        404.0,
+        571.0
+      ]
+    },
+    "to": {
+      "board": [
+        596.0,
+        571.0
+      ]
+    },
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 1912.5,
+      "dur": 260
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_11rule",
+    "kind": "line",
+    "anchor": {
+      "board": [
+        596.0,
+        379.0
+      ]
+    },
+    "to": {
+      "board": [
+        596.0,
+        571.0
+      ]
+    },
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 2172.5,
+      "dur": 260
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_12gamete",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_2cell",
+      "at": "center"
+    },
+    "text": "T",
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 2432.5,
+      "dur": 80
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_13gamete",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_3cell",
+      "at": "center"
+    },
+    "text": "t",
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 2512.5,
+      "dur": 80
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_14gamete",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_4cell",
+      "at": "center"
+    },
+    "text": "T",
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 2592.5,
+      "dur": 80
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_15gamete",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_7cell",
+      "at": "center"
+    },
+    "text": "t",
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 2672.5,
+      "dur": 80
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_16genotype",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_5cell",
+      "at": "center"
+    },
+    "text": "TT",
+    "style": {
+      "ink": "accent",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 2752.5,
+      "dur": 320
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_17genotype",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_6cell",
+      "at": "center"
+    },
+    "text": "Tt",
+    "style": {
+      "ink": "accent",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 3072.5,
+      "dur": 320
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_18genotype",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_8cell",
+      "at": "center"
+    },
+    "text": "Tt",
+    "style": {
+      "ink": "accent",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 3392.5,
+      "dur": 320
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_19genotype",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_9cell",
+      "at": "center"
+    },
+    "text": "tt",
+    "style": {
+      "ink": "accent",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 3712.5,
+      "dur": 320
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_20num",
+    "kind": "number",
+    "anchor": {
+      "object": "b0_10rule",
+      "at": "bottomLeft"
+    },
+    "value": 3.0,
+    "label": "dominant",
+    "precision": 0,
+    "verified": true,
+    "check": "board.numbers_agree:punnett cells",
+    "style": {
+      "ink": "accent",
+      "weight": 2
+    },
+    "t": {
+      "start": 4032.5,
+      "dur": 260
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 2,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_21num",
+    "kind": "number",
+    "anchor": {
+      "object": "b0_10rule",
+      "at": "bottomRight"
+    },
+    "value": 1.0,
+    "label": "recessive",
+    "precision": 0,
+    "verified": true,
+    "check": "board.numbers_agree:punnett cells",
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 4032.5,
+      "dur": 260
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 2,
+        "words": 4
+      }
+    }
+  },
+  {
+    "id": "b0_22genotypes",
+    "kind": "write",
+    "anchor": {
+      "object": "b0_2cell",
+      "at": "top"
+    },
+    "text": "genotypes 1 TT : 2 Tt : 1 tt",
+    "check": "board.numbers_agree:genotype counts",
+    "style": {
+      "ink": "faint",
+      "weight": 1
+    },
+    "size": 22,
+    "t": {
+      "start": 4032.5,
+      "dur": 1540
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 2,
+        "words": 4
+      }
+    }
+  }
+]

@@ -18,7 +18,7 @@
  * path the wave-58 probe found asking exactly once.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
-import { askForFirstSound, oneMouth, REASK_RUNGS_MS, startUtterance } from './speech';
+import { ASK_SPENT_MS, askForFirstSound, oneMouth, REASK_RUNGS_MS, startUtterance } from './speech';
 
 // --- THE ARBITER ---------------------------------------------------------------------------
 
@@ -107,18 +107,95 @@ describe('the deciding sentence is asked for more than once', () => {
     expect(aborted).toContain(0);
   });
 
-  it('keeps at most three asks in flight, abandoning the oldest and deadest first', async () => {
+  it('keeps at most three asks in flight, and climbs no rung that would cost one of them', async () => {
+    // THREE CHANCES IN THE AIR IS THREE. Until 2026-09-15 a fourth rung took its place by ABORTING
+    // THE OLDEST ASK — on the reasoning that the oldest is the deadest. It is the opposite on the
+    // day that actually happens: a gateway spending its unheard deadline (voice.py, six seconds on
+    // the pinned voice) is WORKING, not holding, and the oldest ask is the one nearest its answer.
+    // See the lens-1440 test below for what that cost a learner.
+    const asked: number[] = [];
     const aborted: number[] = [];
     const live = askForFirstSound<{ id: number }>(
       (attempt, signal) => {
+        asked.push(attempt);
         signal.addEventListener('abort', () => aborted.push(attempt));
         return new Promise((r) => setTimeout(() => r(null), 5000));
       },
       { rungs: [20, 40, 60], budgetMs: 400 },
     );
     await new Promise((r) => setTimeout(r, 120));
-    expect(aborted).toEqual([0]); // the fourth ask retired the first, and only the first
+    expect(asked).toEqual([0, 1, 2]); // the fourth rung is not climbed; nothing is murdered for it
+    expect(aborted).toEqual([]);
     expect(await live).toBe(null);
+    expect(aborted.sort((a, b) => a - b)).toEqual([0, 1, 2]); // the budget ends them all together
+  });
+
+  it('never abandons the ask that is nearest its answer to make room for a newer one', async () => {
+    // THE LENS AT 1440, 2026-09-15, AS THE JUDGE MEASURED IT: first syllable 7307 ms. The gateway
+    // was answering — 200, with audio — but only after its own six-second unheard deadline had run
+    // on the pinned voice. Ask 0 was sent at 0 and its audio was due at 6600. The rung at 3000
+    // aborted it to make room; the rung at 6500 aborted ask 1 (due at 7300) for the same reason;
+    // and the learner finally heard ask 2, at 1400 + 6600 = 8006 ms on this ruler. Two answers
+    // thrown away, and eight of the run's thirty 502s bought with them.
+    const asked: number[] = [];
+    const started = performance.now();
+    const got = await askForFirstSound<{ id: number }>(
+      (attempt, signal) => {
+        asked.push(attempt);
+        return new Promise((resolve) => {
+          const timer = setTimeout(() => resolve(clip(attempt)), 660);
+          signal.addEventListener('abort', () => {
+            clearTimeout(timer);
+            resolve(null);
+          });
+        });
+      },
+      { rungs: [70, 140, 300, 650, 950], budgetMs: 1200 },
+    );
+    const took = performance.now() - started;
+    expect(got).toEqual(clip(0)); // the FIRST ask's audio, the one that was always going to be first
+    expect(took).toBeLessThan(760); // not 800 (= 140 + 660), which is what murdering it costs
+    expect(asked.length).toBeLessThanOrEqual(3); // and no rung past the three in the air
+  });
+
+  it('lets a rung stand on an ask the gateway has already given up on, and kills nothing for it', async () => {
+    // THE OTHER HALF OF THE CAP, and what it cost on the wire of 2026-09-15. All three chances are
+    // sent inside the first 1.4 s. The gateway re-decides an unheard turn's voice at its own six
+    // seconds (voice.py `_UNHEARD_TIMEOUT_S`) and only a request sent AFTER that moment can be told
+    // — so with a flat cap of three the ladder was frozen for the rest of its twelve-second budget
+    // with nothing in the air that could learn anything. Buffered asks fell 78 to 55 while the
+    // upstream read timeouts stayed at 37 and 40, and the socket took five boards instead of one.
+    //
+    // An ask past `spentMs` therefore holds no place. It is NOT aborted for that: it may still
+    // answer, and on the lens at 1440 it did.
+    const asked: number[] = [];
+    const aborted: number[] = [];
+    const abortedWhenTheFourthWasAsked: number[] = [];
+    const repin = 150; // the gateway's re-decision, on this ruler
+    const started = performance.now();
+    const got = await askForFirstSound<{ id: number }>(
+      (attempt, signal) => {
+        asked.push(attempt);
+        signal.addEventListener('abort', () => aborted.push(attempt));
+        if (attempt === 3) abortedWhenTheFourthWasAsked.push(...aborted);
+        // Sent before the re-decision: held for ever, waiting on a voice that no longer exists.
+        if (performance.now() - started < repin) return new Promise<null>(() => {});
+        return new Promise((r) => setTimeout(() => r(clip(attempt)), 5)); // a disk read, after it
+      },
+      { rungs: [20, 40, 170], budgetMs: 800, spentMs: 60 },
+    );
+    expect(got).toEqual(clip(3));
+    expect(asked).toEqual([0, 1, 2, 3]); // the rung past the re-decision is climbed
+    expect(abortedWhenTheFourthWasAsked).toEqual([]); // and nothing was spent to climb it
+    expect(asked.length).toBe(4); // one extra read on a turn that has heard nothing for six seconds
+  });
+
+  it('counts an ask spent no sooner than the gateway re-decides the turn', () => {
+    // voice.py holds an unheard turn's pinned voice for six seconds. Sooner than that, this floor
+    // would buy a read the gateway was still about to answer.
+    expect(ASK_SPENT_MS).toBeGreaterThanOrEqual(6000);
+    // And it must be inside the deciding sentence's own budget, or no rung could ever use it.
+    expect(ASK_SPENT_MS).toBeLessThan(12000);
   });
 
   it('is null when every rung is silent, and never outlives its budget', async () => {

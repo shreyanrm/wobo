@@ -73,6 +73,15 @@ type Script = (ws: FakeSocket, text: string) => void;
 class FakeSocket {
   static made: FakeSocket[] = [];
   static script: Script = () => {};
+  /**
+   * voice.py `_MAX_TTS_PER_SUBJECT`: the gateway keeps TWO live TTS sockets for one learner and
+   * closes the next at once, unheard. Default off, so every test that does not care is unchanged.
+   */
+  static cap = Number.POSITIVE_INFINITY;
+  /** Sockets the gateway currently counts as live for this learner. */
+  static live = 0;
+  /** Sockets it closed on sight, over the cap: a bill, a mint, and nothing heard. */
+  static refused = 0;
   url: string;
   sent: string[] = [];
   closed = false;
@@ -84,15 +93,22 @@ class FakeSocket {
   constructor(url: string) {
     this.url = String(url);
     FakeSocket.made.push(this);
+    FakeSocket.live++;
     setTimeout(() => this.onopen?.(), 2);
   }
   send(text: string) {
     this.sent.push(text);
+    if (FakeSocket.live > FakeSocket.cap) {
+      FakeSocket.refused++;
+      setTimeout(() => this.close(), 15); // the 1008, with no syllable in it
+      return;
+    }
     FakeSocket.script(this, text);
   }
   close() {
     if (this.closed) return;
     this.closed = true;
+    FakeSocket.live--;
     setTimeout(() => this.onclose?.({}), 1);
   }
   /** One audio part, the way Gemini Live frames it. */
@@ -126,11 +142,15 @@ const hang = (signal: AbortSignal | null | undefined) =>
     signal?.addEventListener('abort', () => reject(new Error('aborted')));
   });
 
-function serve(wire: Wire): { ttsAsks: string[] } {
+function serve(wire: Wire): { ttsAsks: string[]; mints: { n: number } } {
   const ttsAsks: string[] = [];
+  const mints = { n: 0 };
   globalThis.fetch = ((url: string, init?: RequestInit) => {
     const u = String(url);
-    if (u.includes('/v1/voice/session')) return Promise.resolve(wire.session());
+    if (u.includes('/v1/voice/session')) {
+      mints.n++;
+      return Promise.resolve(wire.session());
+    }
     if (u.includes('/v1/voice/tts')) {
       const text = String((JSON.parse(String(init?.body ?? '{}')) as { text?: string }).text);
       ttsAsks.push(text);
@@ -138,7 +158,7 @@ function serve(wire: Wire): { ttsAsks: string[] } {
     }
     return Promise.resolve(new Response('{}'));
   }) as unknown as typeof fetch;
-  return { ttsAsks };
+  return { ttsAsks, mints };
 }
 
 const realFetch = globalThis.fetch;
@@ -162,6 +182,9 @@ beforeEach(() => {
   process.env.VITE_GATEWAY_URL = 'http://brain.test';
   FakeSocket.made = [];
   FakeSocket.script = () => {};
+  FakeSocket.cap = Number.POSITIVE_INFINITY;
+  FakeSocket.live = 0;
+  FakeSocket.refused = 0;
   globalThis.WebSocket = FakeSocket as unknown as typeof WebSocket;
 });
 
@@ -494,6 +517,107 @@ describe('a streamed turn does not pay a watchdog for a socket that will not spe
   }, 20000);
 });
 
+// --- WHAT THE JUDGE MEASURED ON 2026-09-15, AND WHAT THE LADDER WAS SPENDING ---------------------
+//
+// Twelve turns on Luna, every browser --mute-audio. Eight of eleven boards were clean — 396 to
+// 1034 ms to the first syllable, zero sockets. Two were not, and the bill for them was thirty
+// `502 POST /v1/voice/tts` against wave 60's seven, each one a nine-to-eleven second upstream
+// read the gateway had to sit through.
+//
+// Replaying the lens-1440 wire through this file showed where those went. The gateway there was
+// ANSWERING — 200, with audio — but only after `_UNHEARD_TIMEOUT_S` (voice.py: six seconds on the
+// turn's pinned voice) had run. The ladder read slow as dead: at every third rung it aborted the
+// OLDEST ask in flight to make room for a new one, and on that day the oldest ask is the one
+// NEAREST its answer. Ten asks were sent for one sentence, two answers with audio in them were
+// thrown away unheard, and the learner waited 7307 ms for a syllable that was ready at 6600.
+//
+// Three chances in the air is three. A rung that can only be climbed by murdering one of them is
+// not a fourth chance, and the gateway pays for it twice.
+
+describe('a slow gateway is not a dead one', () => {
+  it('keeps the ask that was about to answer, and stops buying reads it cannot use', async () => {
+    let asks = 0;
+    serve({
+      session: () => ok({ mode: 'tts', token: 't-1' }),
+      // Every ask is answered WITH AUDIO 3.4 s after it is sent — the lens-1440 shape: the
+      // gateway is working through its six-second unheard deadline, not holding. Ask 0's audio is
+      // therefore due at 3400, past the rungs at 700 and 1400 and squarely under the one at 3000.
+      tts: (_t, signal) => {
+        asks++;
+        return new Promise<Response>((resolve) => {
+          const timer = setTimeout(() => resolve(clipResponse()), 3400);
+          signal?.addEventListener('abort', () => {
+            clearTimeout(timer);
+            resolve(new Response('no', { status: 499 }));
+          });
+        });
+      },
+    });
+    FakeSocket.script = () => {}; // the socket opened at the grace never says a word, as it did live
+    const { beats, utterance } = await speak(['A ray through the centre goes straight on.']);
+    await utterance.done;
+
+    expect(beats.length).toBe(1);
+    // The first ask's audio was ready at 3400 ms and it is the one the learner hears. Murdering it
+    // at the 3000 rung costs the next one's whole read on top of its own head start: 700 + 3400.
+    expect(beats[0]?.at ?? Infinity).toBeLessThan(3900);
+    // Ask 0 at 0, the rungs at 700 and 1400 — and no rung past them while all three are in the air.
+    expect(asks).toBeLessThanOrEqual(3);
+  }, 20000);
+
+  it('runs the deciding ladder for the deciding sentence only, not for the one behind it', async () => {
+    // THE OTHER HALF OF THE LENS TURN'S BILL. `turn.spoke()` does not run until the clip actually
+    // plays, but the NEXT sentence is asked for a line earlier — so on every turn sentence two
+    // found `turn.chosen()` still null and took the full deciding ladder: three more reads and a
+    // twelve-second budget, for a sentence whose mouth was settled the moment sentence one's clip
+    // won it. Six upstream voice reads for a two-sentence turn, where four is the honest number.
+    let asks = 0;
+    serve({
+      session: () => ok({ mode: 'tts', token: 't-1' }),
+      tts: (_t, signal) => {
+        asks++;
+        return new Promise<Response>((resolve) => {
+          const timer = setTimeout(() => resolve(clipResponse()), 3400);
+          signal?.addEventListener('abort', () => {
+            clearTimeout(timer);
+            resolve(new Response('no', { status: 499 }));
+          });
+        });
+      },
+    });
+    FakeSocket.script = () => {};
+    const { beats, utterance } = await speak([
+      'A ray through the centre goes straight on. The image is real and inverted.',
+    ]);
+    await utterance.done;
+
+    expect(beats.map((b) => b.index)).toEqual([0, 1]);
+    // Sentence one's own three chances, and ONE ask for sentence two — the mouth is not in doubt.
+    expect(asks).toBeLessThanOrEqual(4);
+    // And the seam is no worse for it: sentence two is still asked for while sentence one plays.
+    expect((beats[1]?.at ?? 0) - (beats[0]?.at ?? 0)).toBeLessThan(3900);
+  }, 25000);
+
+  it('still climbs at once when the route is holding rather than working', async () => {
+    // The wave-58 shape this ladder was built for, and it must not be lost: ask 0 is HELD and
+    // never answers; the rung's ask is the same sentence off the gateway's disk in milliseconds.
+    let asks = 0;
+    serve({
+      session: () => ok({ mode: 'tts', token: 't-1' }),
+      tts: (_t, signal) => {
+        asks++;
+        return asks === 1 ? hang(signal) : Promise.resolve(clipResponse());
+      },
+    });
+    FakeSocket.script = () => {};
+    const { beats, utterance } = await speak(['The hypotenuse is opposite the right angle.']);
+    await utterance.done;
+
+    expect(asks).toBeGreaterThan(1);
+    expect(beats[0]?.at ?? Infinity).toBeLessThan(REASK_RUNGS_MS[0] + 600);
+  }, 20000);
+});
+
 describe('the grace is paid once a session, not once a turn', () => {
   it('opens the second hanging turn’s socket at once, having learnt on the first', async () => {
     serve({ session: () => ok({ mode: 'tts', token: 't-n' }), tts: (_t, s) => hang(s) });
@@ -513,4 +637,107 @@ describe('the grace is paid once a session, not once a turn', () => {
     expect(again).toBeLessThan(80); // no grace the second time: the session already knows
     expect(two.beats[0]?.at ?? Infinity).toBeLessThan(first);
   }, 20000);
+});
+
+// --- WHAT THE JUDGE MEASURED ON THE LIVE WIRE, 2026-09-15 ----------------------------------------
+//
+// Eleven boards on Luna, every browser --mute-audio, every request off a patched `window.fetch`
+// and every socket off a patched `WebSocket`:
+//
+//   · `/v1/voice/tts` requests fell 78 to 55 — but voice SOCKETS rose 12 to 43, the socket mouth
+//     won 5 boards instead of 1, and the voice bill rose 0.145 to 0.195 USD (+34 percent), of
+//     which gemini native audio went 0.008 to 0.049;
+//   · the socket's first MESSAGE landed at 1.8 to 2.0 s and its first AUDIO at 4.8 to 8.4 s;
+//   · and a later sentence of a streamed turn opened THREE sockets inside TWENTY MILLISECONDS, all
+//     of them closed with no syllable, before a fourth spoke.
+//
+// That last one is the gateway's own cap answering: voice.py keeps two live TTS sockets for a
+// learner (`_MAX_TTS_PER_SUBJECT`) and closes the third at once with a 1008. The sentence in front
+// was still streaming (one), the sentence's own socket was open (two), and the rung at
+// STREAM_REASK_MS made a third — three mints, three native-audio starts, nothing heard, and the
+// sentence itself went silent while they were spent.
+
+describe('the gateway keeps two sockets for one learner, and so does this file', () => {
+  it('waits for a slot instead of opening a third the gateway can only refuse', async () => {
+    FakeSocket.cap = 2;
+    const { mints } = serve({
+      session: () => ok({ mode: 'tts', token: 't-n' }),
+      tts: (_t, s) => hang(s),
+    });
+    FakeSocket.script = (ws, text) => {
+      if (text.startsWith('One side')) {
+        // A real sentence of audio: the socket stays LIVE while it streams, and the gateway counts
+        // it the whole time. This is the socket the later ones are queueing behind.
+        setTimeout(() => ws.chunk(), 40);
+        setTimeout(() => ws.done(), 4000);
+        return;
+      }
+      // Sentence two's first socket opens and never says a word — the live shape. Only a socket
+      // that gets a real slot (the second one, once the sentence in front is whole) speaks.
+      const nth = FakeSocket.made.filter((w) => w.sent[0] === text).length;
+      if (nth >= 2) {
+        setTimeout(() => ws.chunk(), 40);
+        setTimeout(() => ws.done(), 300);
+      }
+    };
+    const { beats, utterance } = await speak(['One side is three. The other side is four.']);
+    await utterance.done;
+
+    expect(beats.map((b) => b.index)).toEqual([0, 1]);
+    // Not one socket was opened for the gateway to close unheard, and not one token was minted
+    // for one: the third waited for the first to finish instead.
+    expect(FakeSocket.refused).toBe(0);
+    expect(mints.n).toBe(FakeSocket.made.length);
+    // And the sentence that used to be spent on refusals is spoken: both sentences are on the
+    // socket's voice, the second one on a slot the first gave back.
+    expect(streams().length).toBeGreaterThanOrEqual(2);
+    expect(clips().length).toBe(0);
+  }, 20000);
+
+  it('does not open another socket in the millisecond one was refused on sight', async () => {
+    // Belt to the cap's braces: whatever the gateway refuses a socket FOR, asking again the same
+    // millisecond buys the same no. A socket that dies before a connection could even be made was
+    // refused, not killed; only one that really tried is replaced at once.
+    serve({ session: () => ok({ mode: 'tts', token: 't-n' }), tts: (_t, s) => hang(s) });
+    FakeSocket.script = (ws, text) => {
+      if (text.startsWith('One side')) {
+        setTimeout(() => ws.chunk(), 40);
+        setTimeout(() => ws.done(), 120);
+        return;
+      }
+      setTimeout(() => ws.close(), 5); // refused on sight, no syllable in it
+    };
+    const { beats, utterance } = await speak(['One side is three. The other side is four.']);
+    await utterance.done;
+
+    expect(beats.map((b) => b.index)).toEqual([0, 1]);
+    // ONE socket for the refused sentence, not three. The learner hears no more either way; the
+    // difference is two mints, two native-audio starts and two connections nobody heard.
+    expect(FakeSocket.made.filter((w) => w.sent[0]?.startsWith('The other')).length).toBe(1);
+  }, 20000);
+});
+
+describe('a later sentence is given the time the day actually takes', () => {
+  it('does not kill its own socket at a deadline the day is already past', async () => {
+    // THE REST OF THE TURN, on 2026-09-15. The socket that won a board had its first AUDIO at 4.8
+    // to 8.4 s (its first message at 1.8 to 2.0). The deciding sentence can afford that: firstSound
+    // gives it the whole twelve seconds. Every sentence AFTER it got STREAM_SENTENCE_MS — 4500 —
+    // so our own watchdog killed its socket before the day's audio could arrive, the rung opened a
+    // second to be killed the same way, and the sentence fell to the reading clock in silence.
+    // One sentence heard, the rest of the turn mute, two or three native-audio starts per silence.
+    serve({ session: () => ok({ mode: 'tts', token: 't-n' }), tts: (_t, s) => hang(s) });
+    FakeSocket.script = (ws) => {
+      setTimeout(() => ws.chunk(), 5000); // the day, as the wire had it
+      setTimeout(() => ws.done(), 5300);
+    };
+    const { beats, utterance } = await speak(['One side is three. The other side is four.']);
+    await utterance.done;
+
+    expect(beats.map((b) => b.index)).toEqual([0, 1]);
+    // BOTH sentences are heard, on the one voice that won the turn.
+    expect(streams().length).toBeGreaterThanOrEqual(2);
+    // And on ONE socket each: no rung fires before the day's own time, so nothing is bought to
+    // stand beside a socket that is merely keeping up with the weather.
+    expect(FakeSocket.made.filter((w) => w.sent[0]?.startsWith('The other')).length).toBe(1);
+  }, 30000);
 });

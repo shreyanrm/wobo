@@ -15,7 +15,9 @@ import base64
 import contextlib
 import io
 import json
+import logging
 import os
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -335,9 +337,77 @@ def test_personal_details_keep_only_the_work(client: TestClient, auth) -> None:
     res = read(client, auth, raw=photo_bytes(1000, 1000))
     assert res.status_code == 200, res.text
     out = res.json()["reading"]
-    assert (out["width"], out["height"]) == (1000, 750)
+    # The frame the learner is looking at is the WHOLE page, not the crop: the client paints the
+    # reading on its own capture (``DoubtScreen.tsx`` keep()).
+    assert (out["width"], out["height"]) == (1000, 1000)
+    from PIL import Image
+
+    kept = Image.open(io.BytesIO(doubt.get_store().photo(ME, res.json()["doubt"])))
+    assert kept.size == (1000, 750), "the crop is what is kept and what the reader saw"
     assert len(screen.calls) == 2, "the crop was trusted without a second look"
     assert len(reader.calls) == 1
+
+
+def test_a_mark_after_a_crop_lands_on_the_page_the_learner_is_looking_at(
+    client: TestClient, auth
+) -> None:
+    """Wave 64 closer 10's defect, live at 1440. The screen cropped a 300x512 work box out of the
+    page, the reader boxed its lines as fractions OF THAT CROP, and the door handed those
+    fractions back beside the crop's own width and height. The client paints them on the
+    learner's FULL capture, so both crosses landed a quarter of a page above the line the say
+    named. A box that comes back from this door is a box on the page, whatever was cropped away
+    to read it."""
+    screen = FakeScreen(
+        verdicts=[
+            doubt.verdict_from(
+                {
+                    "page_of_work": True,
+                    "personal_details": False,
+                    "work_box": [0.0, 0.25, 1.0, 1.0],
+                }
+            )
+        ]
+    )
+    # the first line sits at the very top of the CROP, which is a quarter of the way down the page
+    reader = FakeReader(
+        reading=doubt.Reading(
+            "maths",
+            "linear equations",
+            "Solve 3x + 5 = 20",
+            (
+                doubt.Line("r1", "3x = 20 + 5", (0.1, 0.0, 0.9, 0.08)),
+                doubt.Line("r2", "3x = 25", (0.1, 0.2, 0.9, 0.28)),
+                doubt.Line("r3", "x = 25/3", None),
+            ),
+        )
+    )
+    doubt.set_eyes(doubt.Eyes(screen=screen, reader=reader))
+    res = read(client, auth, raw=photo_bytes(1000, 1000))
+    assert res.status_code == 200, res.text
+    out = res.json()["reading"]
+    assert (out["width"], out["height"]) == (1000, 1000)
+    boxes = [line["box"] for line in out["lines"]]
+    assert boxes[0] == pytest.approx([0.1, 0.25, 0.9, 0.31], abs=5e-4)
+    assert boxes[1] == pytest.approx([0.1, 0.4, 0.9, 0.46], abs=5e-4)
+    assert boxes[2] is None, "a line with no place on the crop has no place on the page either"
+
+    # and the same boxes survive the round trip through the store, in page fractions
+    kept = doubt.get_store().get(ME, res.json()["doubt"])
+    assert kept is not None
+    assert kept.lines[0].box == pytest.approx((0.1, 0.25, 0.9, 0.31), abs=5e-4)
+    assert (kept.width, kept.height) == (1000, 1000)
+
+
+def test_a_mark_with_no_crop_is_left_exactly_where_the_reader_put_it(
+    client: TestClient, auth, eyes
+) -> None:
+    """The whole frame is the work: nothing is mapped, nothing is nudged, nothing is rounded away.
+    At 390 this is every turn, and it measured 5.1 to 7.8 px off the line before this wave."""
+    res = read(client, auth, raw=photo_bytes(1200, 900))
+    assert res.status_code == 200, res.text
+    out = res.json()["reading"]
+    assert (out["width"], out["height"]) == (1200, 900)
+    assert [line["box"] for line in out["lines"]] == [list(line.box) for line in LINES]
 
 
 def test_personal_details_with_no_work_apart_are_refused() -> None:
@@ -1885,3 +1955,180 @@ def test_the_bookkeeping_still_lands_when_the_learner_walks_away_mid_answer(auth
     assert mind.get_store().get(ME) is not None, "the climb was never joined"
     kept = doubt.get_store().get(ME, doubt_id)
     assert kept is not None and kept.status == "answered" and kept.answered_at
+
+
+# --- the door says its own split ------------------------------------------------------------------
+
+
+def _door_lines(caplog: Any) -> list[dict[str, Any]]:
+    return [getattr(r, "fields", {}) for r in caplog.records if r.getMessage() == "doubt: the door"]
+
+
+@dataclass
+class SlowScreen(FakeScreen):
+    """A screen that holds the learner for a known number of milliseconds."""
+
+    ms: float = 0.0
+
+    def screen(self, *, image: bytes, media_type: str) -> ImageVerdict:
+        time.sleep(self.ms / 1000.0)
+        return super().screen(image=image, media_type=media_type)
+
+
+@dataclass
+class SlowReader(FakeReader):
+    ms: float = 0.0
+
+    def read(self, *, image: bytes, media_type: str, words: str) -> doubt.Reading:
+        time.sleep(self.ms / 1000.0)
+        return super().read(image=image, media_type=media_type, words=words)
+
+
+class SlowBucket(doubt.InMemoryDoubtStore):
+    """A bucket whose upload takes a known number of milliseconds, like a round trip does."""
+
+    ms: float = 0.0
+
+    def keep_photo(self, subject_id: str, doubt_id: str, photo: bytes) -> None:
+        time.sleep(self.ms / 1000.0)
+        super().keep_photo(subject_id, doubt_id, photo)
+
+
+def _door(
+    client: TestClient,
+    auth: Any,
+    *,
+    screen_ms: float = 0.0,
+    read_ms: float = 0.0,
+    upload_ms: float = 0.0,
+    reader_raises: bool = False,
+    words: str = "why is the perimeter wrong?",
+) -> Any:
+    store = SlowBucket()
+    store.ms = upload_ms
+    doubt.set_store(store)
+    doubt.set_eyes(
+        doubt.Eyes(
+            screen=SlowScreen(ms=screen_ms),
+            reader=SlowReader(ms=read_ms, raises=reader_raises),
+        )
+    )
+    return read(client, auth, words=words)
+
+
+def test_the_door_reports_its_own_split_so_a_timing_claim_is_checkable(
+    client: TestClient, auth, caplog: Any
+) -> None:
+    """[slow] Wave 61's judge could not see wave 60's saving, and the reason is in this file.
+
+    The door's live wall clock is 7.9 to 19.5 s and the spread of the READ ALONE across three
+    photographs is wider than the whole 548 to 833 ms that was claimed. The split that would have
+    settled it existed only as timestamps to be grepped by hand out of one gateway log somebody
+    happened to keep. So the door says it itself, once per request, and the numbers add up.
+    """
+    with caplog.at_level(logging.INFO, logger="wobo.gateway.doubt"):
+        try:
+            res = _door(client, auth, screen_ms=120, read_ms=250, upload_ms=80)
+        finally:
+            doubt.set_store(None)
+    assert res.status_code == 200, res.text
+    lines = _door_lines(caplog)
+    assert len(lines) == 1, lines
+    line = lines[0]
+    wanted = {"prepare_ms", "screen_ms", "read_ms", "upload_ms", "keep_ms", "saved_ms", "door_ms"}
+    assert wanted <= set(line), line
+    assert 110 <= line["screen_ms"] < 250, line
+    assert 240 <= line["read_ms"] < 500, line
+    assert 70 <= line["upload_ms"] < 220, line
+    # the whole door is at least the two calls it made, and no more than a little over their sum
+    assert line["door_ms"] >= line["screen_ms"] + line["read_ms"]
+    assert line["door_ms"] < line["screen_ms"] + line["read_ms"] + line["upload_ms"]
+    assert line["screens"] == 1 and line["lines"] == 3 and line["how"] == "read"
+
+
+def test_the_saving_the_overlap_buys_is_measured_not_claimed(
+    client: TestClient, auth, caplog: Any
+) -> None:
+    """[slow] ``saved_ms`` is the part of the upload that finished BEHIND the read, on this
+    request, in milliseconds. It is measured — the object's own wall clock on its thread, less
+    whatever was left to wait for when the reader came back — never a number a closer inferred
+    from three live samples.
+
+    An upload shorter than the read is bought entirely: the learner waits nothing for the bucket.
+    An upload longer than the read is bought only as far as the read reaches, and the remainder
+    is still in front of the learner, where ``keep_ms`` says so out loud.
+    """
+    with caplog.at_level(logging.INFO, logger="wobo.gateway.doubt"):
+        try:
+            assert _door(client, auth, read_ms=300, upload_ms=100).status_code == 200
+        finally:
+            doubt.set_store(None)
+        hidden = _door_lines(caplog)[-1]
+        caplog.clear()
+        try:
+            assert _door(client, auth, read_ms=100, upload_ms=300).status_code == 200
+        finally:
+            doubt.set_store(None)
+        over = _door_lines(caplog)[-1]
+
+    # the upload finished behind the read: nothing was left to wait for, and all of it was saved
+    assert hidden["keep_ms"] < 30, hidden
+    assert abs(hidden["saved_ms"] - hidden["upload_ms"]) < 30, hidden
+    # the upload outlasted the read: the read's worth of it was saved, the rest is on the clock
+    assert over["keep_ms"] > 120, over
+    assert abs(over["saved_ms"] - over["read_ms"]) < 60, over
+    assert abs(over["upload_ms"] - (over["saved_ms"] + over["keep_ms"])) < 30, over
+
+
+def test_a_refusal_still_says_where_the_time_went(client: TestClient, auth, caplog: Any) -> None:
+    """[slow] The slow turns are the ones nobody has a split for. A door that only reports itself
+    when it succeeded cannot explain a 19.5 second read or a 503 the learner waited 90 s for."""
+    with caplog.at_level(logging.INFO, logger="wobo.gateway.doubt"):
+        try:
+            res = _door(client, auth, screen_ms=60, read_ms=90, reader_raises=True)
+        finally:
+            doubt.set_store(None)
+    assert res.status_code == 503
+    line = _door_lines(caplog)[-1]
+    assert line["refused"] == "reader_failed"
+    assert line["screen_ms"] >= 50 and line["read_ms"] >= 80, line
+
+
+def test_the_door_line_carries_nothing_the_learner_wrote_or_the_page_said(
+    client: TestClient, auth, caplog: Any
+) -> None:
+    """[slow] A timing line is operations, not memory. Law 2 lists exactly what is kept about a
+    doubt and a log line is not on the list."""
+    with caplog.at_level(logging.INFO, logger="wobo.gateway.doubt"):
+        try:
+            res = _door(client, auth, words="my roll number is 19BCE1042 and I am stuck")
+        finally:
+            doubt.set_store(None)
+    assert res.status_code == 200
+    line = _door_lines(caplog)[-1]
+    blob = json.dumps(line)
+    assert "19BCE1042" not in blob and "perimeter" not in blob, blob
+    assert all(isinstance(v, (int, float, str)) for v in line.values())
+    assert line["lines"] == 3, "a count of lines is not the lines"
+
+
+def test_the_answer_door_says_what_it_spent_before_the_turn_could_begin(
+    client: TestClient, auth, eyes, monkeypatch: pytest.MonkeyPatch, caplog: Any
+) -> None:
+    """[slow] The other clock. The first word of a live doubt answer is 4.6 to 7.7 s late and the
+    board turn was over its onset budget on two of three, and nobody can say how much of that is
+    the model because the reads this handler makes BEFORE the turn — the row, the record, the
+    parent plane — have never been on the wire as a number. They are now."""
+    monkeypatch.setattr("wobo_gateway.wobo.board_plan_for", lambda payload, *, live: None)
+    doubt_id = read(client, auth).json()["doubt"]
+    with caplog.at_level(logging.INFO, logger="wobo.gateway.doubt"):
+        res = answer(client, auth, doubt_id)
+    assert res.status_code == 200, res.text
+    lines = [
+        getattr(r, "fields", {})
+        for r in caplog.records
+        if r.getMessage() == "doubt: the answer door"
+    ]
+    assert len(lines) == 1, lines
+    assert {"row_ms", "record_ms", "before_turn_ms"} <= set(lines[0])
+    assert lines[0]["before_turn_ms"] >= lines[0]["row_ms"] + lines[0]["record_ms"]

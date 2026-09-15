@@ -303,6 +303,7 @@ class Draft:
             obj["anchor"] = anchor
         obj.update({k: v for k, v in fields.items() if v is not None})
         _size_the_writing(obj)
+        _no_word_is_painted_by_its_container(obj)
         origin = self.origin_of(anchor)
         _rebase_path(obj, origin)
         if origin is not None:
@@ -354,6 +355,55 @@ class Draft:
 #: The kinds whose text the hand writes out and a learner has to read.
 _WRITTEN_KINDS = ("write", "label", "tex", "note")
 
+#: A WORD IS A MARK, NEVER A FIELD ON THE THING IT SITS IN (wave 63; docs/INK-FOUR.md, Craft).
+#:
+#: Four kinds paint words of their own: a ``table`` writes its ``rows`` into its cells, an ``axis``
+#: writes its ``label`` past its arrowhead, a ``region`` writes its ``title`` inside its box, and a
+#: control writes its ``label`` beside its handle. Every one of those goes straight to ``writeText``
+#: in ``geometry.ts`` without passing through ``notePlacement``, so none of them is solved, none of
+#: them is sized by ``object.size``, and none of them is a mark the three written laws can even
+#: see: the solver never hears about it, and the air, the reach and the stroke it is painted across
+#: are nobody's to keep.
+#:
+#: Measured on 2026-09-14, at both widths: the Punnett square's four cell genotypes sat at 0.0 px
+#: of air because the grid that printed 'T' and 't' was itself one written mark whose ink held all
+#: four of them; the projectile's axis wrote 'ground' across the parabola, 704 px^2 of shared ink.
+#: Both are the same defect, and neither was reachable from the solver.
+#:
+#: So a pipeline hands no word to a container. It draws the container, and writes the word as its
+#: own ``write``/``label``/``number`` anchored to what the word is about — which is then solved,
+#: sized, and held to every law. Enforced here rather than remembered, because a pipeline that
+#: forgets produces ink no test in ``packages/wobo`` can attribute to it.
+_PAINTS_ITS_OWN_WORDS: dict[str, tuple[str, ...]] = {
+    "table": ("rows",),
+    "axis": ("label",),
+    "region": ("title",),
+    "slider": ("label",),
+    "toggle": ("label",),
+    "input": ("label", "value"),
+}
+
+
+def _no_word_is_painted_by_its_container(obj: dict[str, Any]) -> None:
+    """Refuse an object that carries a word its own renderer would paint. See above."""
+    fields = _PAINTS_ITS_OWN_WORDS.get(obj["kind"])
+    if not fields:
+        return
+    for name in fields:
+        value = obj.get(name)
+        words = (
+            [cell for row in value for cell in row]
+            if name == "rows" and isinstance(value, list)
+            else [value]
+        )
+        for word in words:
+            if isinstance(word, str) and word.strip():
+                raise Unverified(
+                    f"{obj['kind']}.{name} carries the word {word.strip()[:16]!r}: a word on the "
+                    "board is a mark of its own, anchored to what it names, so the solver places "
+                    "it and the written laws can see it"
+                )
+
 
 def _size_the_writing(obj: dict[str, Any]) -> None:
     """Every written thing carries its type size, and nothing is longer than the board can show.
@@ -394,7 +444,8 @@ def board(x: float, y: float) -> dict[str, Any]:
     return {"board": [round(x, 2), round(y, 2)]}
 
 
-def on(object_id: str, at: str | None = None) -> dict[str, Any]:
+def on(object_id: str, at: str | list[float] | None = None) -> dict[str, Any]:
+    """An anchor on another object: a named side, or a fraction pair naming a point inside it."""
     anchor: dict[str, Any] = {"object": object_id}
     if at:
         anchor["at"] = at

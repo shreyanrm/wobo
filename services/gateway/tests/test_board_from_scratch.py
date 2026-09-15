@@ -194,20 +194,71 @@ def test_the_ray_diagram_is_not_drawn_taller_than_it_is_wide() -> None:
 
 def test_the_punnett_is_a_square_with_a_blank_corner() -> None:
     """`turns/scratch/bio-punnett-1440`: a three-by-two table with two of the four offspring
-    already printed into the grid, and the hand then wrote all four on top."""
+    already printed into the grid, and the hand then wrote all four on top.
+
+    The grid is a square with a blank corner, the gametes run along the top and down the side, and
+    the four cells are what the learner fills in. None of those words is printed by the grid
+    (wave 63): a `table` that carries text in its `rows` paints it itself, outside the solver and
+    outside every written law, and its ink then holds every word inside it — which is how all four
+    genotypes measured 0.0 px of air on the glass.
+
+    AND NONE OF THEM IS PLACED BY THIS MODULE EITHER (the judge, wave 64). Wave 63 ruled the grid
+    as one `table` and hung each word on it by a fraction pair, which `geometry.ts` resolves as a
+    left-aligned writing origin with no solver behind it — a pad this module chose against a type
+    size it does not own, a ladder it cannot see and letters it did not pick. On the real glass at
+    1440 that wrote 'TT' 0.9 px from its cell's right rule and 135 px2 into it; an `Mm x Mm` cross
+    put every word on the board across a rule. So the square is built out of its cells: each cell
+    rules its own two edges as one stroke whose box is that cell, the two rules no cell owns close
+    the square, and every word is `{object: <its cell>, at: "center"}` for the hand to place.
+    `packages/wobo/test/board/punnett-cells.test.ts` measures what that lands as.
+    """
     draft = run_intent(
         {"pipeline": "bio_social", "op": "punnett", "parent_a": "Tt", "parent_b": "Tt"},
         ask="Draw a Punnett square for Tt x Tt",
     )
-    table = next(o for o in draft.objects if o["kind"] == "table")
-    assert table["rows"] == [["", "T", "t"], ["T", "", ""], ["t", "", ""]]
-    assert table["rowHeight"] * 3 == pytest.approx(table["w"], rel=1e-6), "a square, not a table"
-    filled = [o for o in draft.objects if o["kind"] == "write" and o.get("check") is None]
-    assert [o["text"] for o in filled] == ["TT", "Tt", "Tt", "tt"]
-    # Each one lands in its own cell of the inner two by two.
-    corners = {tuple(o["anchor"]["at"]) for o in filled}
-    assert len(corners) == 4
-    assert all(0.33 < fx < 1.0 and 0.33 < fy < 1.0 for fx, fy in corners)
+    assert not [o for o in draft.objects if o["kind"] == "table"], "the grid is its cells"
+    cells = [o for o in draft.objects if o["kind"] == "polyline"]
+    rules = [o for o in draft.objects if o["kind"] == "line"]
+    assert len(cells) == 9 and len(rules) == 2, "nine cells and the two rules no cell owns"
+    # EVERY RULE OF THE SQUARE IS RULED EXACTLY ONCE. A grid built out of cells is the obvious way
+    # to give every word a box, and the obvious way to build one draws the inner rules twice.
+    segments: list[tuple[tuple[float, float], tuple[float, float]]] = []
+    for cell in cells:
+        at = cell["anchor"]["board"]
+        points = [(at[0] + px, at[1] + py) for px, py in cell["points"]]
+        segments += list(zip(points, points[1:], strict=False))
+    for rule in rules:
+        segments.append((tuple(rule["anchor"]["board"]), tuple(rule["to"]["board"])))
+    ordered = [tuple(sorted(pair)) for pair in segments]
+    assert len(set(ordered)) == len(ordered) == 20, "a rule of the square is drawn twice"
+    xs = sorted({round(p[0], 3) for pair in ordered for p in pair})
+    ys = sorted({round(p[1], 3) for pair in ordered for p in pair})
+    assert len(xs) == len(ys) == 4, "a three by three grid"
+    side = xs[-1] - xs[0]
+    assert ys[-1] - ys[0] == pytest.approx(side), "a square, not a table"
+    assert xs == [pytest.approx(xs[0] + side / 3 * i) for i in range(4)], "even cells"
+    assert ys == [pytest.approx(ys[0] + side / 3 * i) for i in range(4)], "even cells"
+    ruled = sum(abs(b[0] - a[0]) + abs(b[1] - a[1]) for a, b in ordered)
+    assert ruled == pytest.approx(side * 8), "the square is its eight rules and no more ink"
+
+    written_in = [o for o in draft.objects if o["kind"] == "write" and o.get("check") is None]
+    assert [o["text"] for o in written_in] == ["T", "t", "T", "t", "TT", "Tt", "Tt", "tt"]
+    # THE HAND PLACES THE WORD; this module only says which cell it belongs to.
+    assert all(o["anchor"].get("at") == "center" for o in written_in)
+    at_of = {c["id"]: (c["anchor"]["board"][0], c["anchor"]["board"][1]) for c in cells}
+
+    # A cell's own anchor is its top-RIGHT corner (it rules its top edge leftwards, then its left
+    # edge down), so the column it names is the one to the left of that corner.
+    def where(obj: dict) -> tuple[int, int]:
+        x, y = at_of[obj["anchor"]["object"]]
+        return round((y - ys[0]) / (side / 3)), round((x - xs[0]) / (side / 3)) - 1
+
+    gametes = [where(o) for o in written_in[:4]]
+    offspring = [where(o) for o in written_in[4:]]
+    assert len(set(gametes)) == 4 and len(set(offspring)) == 4
+    assert (0, 0) not in gametes + offspring, "nothing is written in the corner"
+    assert all((r == 0) != (c == 0) for r, c in gametes), "a header, not an offspring"
+    assert all(r > 0 and c > 0 for r, c in offspring), "each offspring in its own inner cell"
 
 
 # --- nothing is signed by a check that did not check it ----------------------------------------
@@ -296,6 +347,53 @@ def test_every_number_names_a_check_that_ran_on_this_turn(intent: dict) -> None:
             assert check in ran, f"{obj['id']} names {check}, which did not run"
         if obj["kind"] == "number":
             assert obj.get("check"), f"{obj['id']} is a numeral with no receipt"
+
+
+@pytest.mark.parametrize("intent", INTENTS, ids=lambda i: f"{i['pipeline']}.{i.get('op')}")
+def test_no_word_on_a_board_is_painted_by_the_thing_it_sits_in(intent: dict) -> None:
+    """Every word is a mark of its own, anchored to what it names (wave 63).
+
+    Four kinds paint words without being asked to: a ``table`` prints its ``rows`` into its cells,
+    an ``axis`` writes its ``label`` past its arrowhead, a ``region`` writes its ``title`` inside
+    its box, a control writes its ``label`` beside its handle. Every one of those calls
+    ``writeText`` directly in ``geometry.ts``; not one goes through ``notePlacement``. So none of
+    them is solved, none reads ``object.size``, and none is a mark the three written laws in
+    ``packages/wobo/test/board`` can attribute to anything — the air it keeps, the distance to
+    what it names and the stroke it is painted across are all nobody's to hold.
+
+    Measured on 2026-09-14 at 390 and 1440: the Punnett square's four genotypes sat at 0.0 px of
+    air, because the grid that printed 'T' and 't' was itself one written mark whose ink held all
+    four of them; and the projectile's axis wrote 'ground' across its own parabola, 704 px^2 of
+    shared ink at 1440 and 1,184 at 390. Two boards, two pipelines, one defect.
+
+    The pipelines refuse it at the source (``pipelines/__init__.py``,
+    ``_no_word_is_painted_by_its_container``). This is that refusal, read on every intent, so a
+    board that regresses fails here rather than on a screen.
+    """
+    draft = run_intent(intent)
+    # Stated from `geometry.ts` rather than from the pipelines, so the test still holds if the
+    # pipelines' own guard is ever loosened: these are the fields whose renderer calls `writeText`.
+    painted_by_their_own_renderer = {
+        "table": ("rows",),
+        "axis": ("label",),
+        "region": ("title",),
+        "slider": ("label",),
+        "toggle": ("label",),
+        "input": ("label", "value"),
+    }
+    for obj in draft.objects:
+        for field in painted_by_their_own_renderer.get(obj["kind"], ()):
+            value = obj.get(field)
+            words = (
+                [cell for row in value for cell in row]
+                if field == "rows" and isinstance(value, list)
+                else [value]
+            )
+            for word in words:
+                assert not (isinstance(word, str) and word.strip()), (
+                    f"{obj['id']} is a {obj['kind']} whose {field} carries the word {word!r}: "
+                    "a word is a mark of its own, not a field on the thing it sits in"
+                )
 
 
 @pytest.mark.parametrize("intent", INTENTS, ids=lambda i: f"{i['pipeline']}.{i.get('op')}")
@@ -504,13 +602,22 @@ def test_the_projectile_names_the_apex_the_ask_asked_it_to_label() -> None:
 
 def test_the_ground_axis_is_labelled_short_enough_to_stay_on_the_board() -> None:
     """Finding 9: "metres" was written past the arrowhead at the right edge and clipped there.
-    The axis under a trajectory is the ground; the metres are named on the range beside it."""
+    The axis under a trajectory is the ground; the metres are named on the range beside it.
+
+    And the word is a mark hung off the rule, never a field on it (wave 63). An `axis` that
+    carries a `label` paints that word itself, past its own arrowhead — which on a trajectory is
+    exactly where the ball comes back down to the ground, so the word was measured painted across
+    the parabola, 704 px^2 at 1440.
+    """
     draft = run_intent(
         {"pipeline": "physics", "op": "projectile", "v0": 20.0, "angle_deg": 45.0},
         ask=PROJECTILE_ASK,
     )
     axis = next(o for o in draft.objects if o["kind"] == "axis")
-    assert axis["label"] == "ground"
+    assert "label" not in axis, "the rule draws; it does not write"
+    name = next(o for o in draft.objects if o.get("text") == "ground")
+    assert name["kind"] == "label"
+    assert name["anchor"]["object"] == axis["id"]
 
 
 def test_the_punnett_ratio_is_written_under_the_square_and_never_beside_it() -> None:

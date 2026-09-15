@@ -9,7 +9,9 @@
  *
  *  · the route does not change: the card the question is about is still on the screen;
  *  · the map that reaches the brain carries that card's own parts, not the chat page's;
- *  · the ink lands ON the card — the ring's box is inside the figure's box.
+ *  · the ink lands ON the card — the ring's box is inside the figure's box, and the ring says the
+ *    part the question named, once, in the words a listener hears;
+ *  · the first stroke is on the glass inside one second of the ask (docs/INK-FOUR.md, timing).
  *
  * Runs under tests/palette.config.ts, whose server names a gateway this spec answers from the
  * browser. Frames are kept beside the run (WOBO_PALETTE_SHOTS, or the OS temp dir).
@@ -110,16 +112,35 @@ function boxOf(page: Page, id: string): Promise<{ x: number; y: number; w: numbe
   }, id);
 }
 
-/** Every mark the hand put on the screen surface, in viewport coordinates. */
-function marks(page: Page): Promise<{ id: string; x: number; y: number; w: number; h: number }[]> {
+/**
+ * Every mark the hand put on the screen surface, in viewport coordinates, WITH THE NAME A LISTENER
+ * HEARS — and that name, not an id, is how this spec finds the ring.
+ *
+ * WHY NOT THE ID. The plan's mark carries `ring-hyp`, and for one wave this spec looked for it.
+ * It is not on the glass and it never will be. `board-turn.ts` draws the INSTANT mark first, before
+ * the request leaves (docs/INK-FOUR.md, "the model refines, it does not gate"), and `reconcileInstant`
+ * then either swallows the plan's frame — when the plan names the same thing the same way, as it
+ * does here — or moves the ONE ring by giving the plan's object the instant mark's own id. Either
+ * way the id on the glass is `instant-N`, which is a fact about the reconcile and not about the ink.
+ * Asserting it would test the counter.
+ *
+ * The accessible name IS the law: `spoken.ts` builds it from the anchor's target, so
+ * "a ring around course intro mathematics.square on the hypotenuse" says the mark landed on exactly
+ * the thing the question named (docs/INK-FOUR.md, relevance at 4) and is the sentence a learner on a
+ * screen reader actually gets. It cannot pass while the ring is round the wrong part.
+ */
+function marks(
+  page: Page,
+): Promise<{ id: string; label: string; x: number; y: number; w: number; h: number }[]> {
   return page.evaluate(() => {
     const svg = document.querySelector('[aria-label="Wobo\'s ink on this screen"]');
     const groups = svg ? [...svg.querySelectorAll('[data-wobo-object]')] : [];
     return groups.map((g) => {
       const box = (g as SVGGraphicsElement).getBoundingClientRect();
       return {
-        // the renderer suffixes an id with its redraw generation (`ring-hyp#0`)
+        // the renderer suffixes an id with its redraw generation (`instant-1#0`)
         id: (g.getAttribute('data-wobo-object') ?? '').replace(/#\d+$/, ''),
+        label: g.getAttribute('aria-label') ?? '',
         x: box.x,
         y: box.y,
         w: box.width,
@@ -128,6 +149,9 @@ function marks(page: Page): Promise<{ id: string; x: number; y: number; w: numbe
     });
   });
 }
+
+/** What a listener hears for a ring round the part this turn is about (packages/wobo spoken.ts). */
+const RING_SAYS = `a ring around ${SQUARE.replace(/[-_]+/g, ' ')}`;
 
 const WIDTHS = [
   { name: '390', width: 390, height: 844 },
@@ -154,18 +178,70 @@ for (const screen of WIDTHS) {
     await page.getByRole('combobox').fill(QUESTION);
     // A question is not a destination: the ask row is the stop Enter takes.
     await expect(page.locator('#cmdk-opt-__ask__')).toHaveAttribute('aria-selected', 'true');
+    // THE CLOCK STARTS AT THE ASK, AND IT IS STAMPED IN THE PAGE. The clock and the pen have to be
+    // on the same side of the wire or the number measured is Playwright's polling and not Wobo's:
+    // a `Date.now()` in the test read 874 ms for a stroke the page put down 85 ms after the panel
+    // left, because the wait in front of it polls. Two watchers in the page mark the moment the
+    // palette's panel is gone and the moment the first `[data-wobo-object]` is attached, and the
+    // zero is stamped one keystroke earlier.
+    await page.evaluate(() => {
+      const w = window as unknown as {
+        __askedAt?: number;
+        __closedAt?: number;
+        __firstStroke?: number;
+      };
+      w.__askedAt = performance.now();
+      w.__closedAt = undefined;
+      w.__firstStroke = undefined;
+      const seen = () =>
+        document.querySelector('[aria-label="Wobo\'s ink on this screen"] [data-wobo-object]');
+      const observer = new MutationObserver(() => {
+        if (w.__closedAt === undefined && !document.querySelector('[role="dialog"]'))
+          w.__closedAt = performance.now();
+        if (w.__firstStroke === undefined && seen()) w.__firstStroke = performance.now();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
     await page.keyboard.press('Enter');
 
-    // THE ROUTE DOES NOT CHANGE. The card the question is about is still in front of the learner.
-    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeHidden();
+    // The pen is what is waited on, and it is waited on first: a wait that polls in front of this
+    // one would be counted as the pen's own latency.
     await page.waitForFunction(
-      () =>
-        document.querySelectorAll('[aria-label="Wobo\'s ink on this screen"] [data-wobo-object]')
-          .length > 0,
+      () => (window as unknown as { __firstStroke?: number }).__firstStroke !== undefined,
       undefined,
       { timeout: 20_000 },
     );
+    const timing = await page.evaluate(() => {
+      const w = window as unknown as {
+        __askedAt: number;
+        __closedAt?: number;
+        __firstStroke: number;
+      };
+      return {
+        paletteGoneMs: w.__closedAt === undefined ? null : Math.round(w.__closedAt - w.__askedAt),
+        firstStrokeMs: Math.round(w.__firstStroke - w.__askedAt),
+      };
+    });
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeHidden();
     await page.screenshot({ path: join(SHOTS, `palette-ink-${screen.name}.png`) });
+    // THE FIRST STROKE IS ON THE GLASS WITHIN ONE SECOND OF THE ASK (docs/INK-FOUR.md, timing at
+    // 4), measured from the ask and never from Wobo's first word.
+    //
+    // WHERE THE SECOND GOES, MEASURED 2026-09-15 at both widths, light and dark, normal and
+    // reduced motion: the keystroke reaches the page in about 10 ms, the palette's panel is gone
+    // at 560 to 665, and the instant mark is on the glass 65 to 85 ms after that — 630 to 830 ms
+    // over eight runs. THE PEN IS NOT THE SLOW PART. `CommandPalette.tsx` hands the ask to
+    // `onExitComplete`, so `chat.ask` does not begin until the panel has finished leaving, and
+    // roughly six tenths of the learner's second are spent before the pen is allowed to move. The
+    // reduced-motion setting does not shorten it, so it is the exit itself and not its easing.
+    // That is the product's to answer and not this spec's; `paletteGoneMs` is written beside the
+    // boxes so the split is visible in the run rather than guessed at from one total.
+    expect(
+      timing.firstStrokeMs,
+      `the first stroke landed ${timing.firstStrokeMs} ms after the ask ` +
+        `(the palette's panel was gone at ${timing.paletteGoneMs} ms)`,
+    ).toBeLessThanOrEqual(1000);
+    // THE ROUTE DOES NOT CHANGE. The card the question is about is still in front of the learner.
     expect(page.url()).toBe(before);
     expect(page.url()).not.toContain('/chat');
 
@@ -178,13 +254,25 @@ for (const screen of WIDTHS) {
 
     // THE INK LANDS ON THE CARD. The ring is on the square, and the square is inside the figure.
     const drawn = await marks(page);
-    const ring = drawn.find((m) => m.id === 'ring-hyp');
-    expect(ring, "Wobo's ink is on the screen surface").toBeDefined();
+    const ring = drawn.find((m) => m.label === RING_SAYS);
+    expect(
+      ring,
+      `Wobo's ink is on the screen surface and says what it is about; heard: ${JSON.stringify(
+        drawn.map((m) => m.label),
+      )}`,
+    ).toBeDefined();
+    // ONE RING, NEVER TWO. The instant mark and the plan's mark answer the same aim, so the plan's
+    // frame is swallowed or it moves the mark already there; a second ring beside the first is the
+    // reconcile failing, and it would read to a learner as Wobo circling the same square twice.
+    expect(
+      drawn.filter((m) => m.label.startsWith('a ring around')).length,
+      'one ring answers the ask, not two',
+    ).toBe(1);
     const square = await boxOf(page, SQUARE);
     const figure = await boxOf(page, FIGURE);
     writeFileSync(
       join(SHOTS, `palette-boxes-${screen.name}.json`),
-      JSON.stringify({ ring, square, figure, url: page.url() }, null, 2),
+      JSON.stringify({ ...timing, ring, square, figure, url: page.url() }, null, 2),
     );
     const slack = 24; // the pen's own overshoot around its subject
     expect(ring?.x).toBeGreaterThanOrEqual(figure.x - slack);

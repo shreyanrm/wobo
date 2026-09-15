@@ -15,7 +15,14 @@
 import { zIndex } from '@wobo/config';
 import { useReducedMotion } from '@wobo/motion';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { BoardChromeStyle, ChromeButton } from './chrome';
 import { BoardSurface, type BoardSurfaceProps } from './renderer';
 import { BoardStore } from './store';
@@ -110,6 +117,16 @@ export interface PlaneState {
   pinned: boolean;
   boardId: string;
   rect: PlaneRect;
+  /**
+   * WHETHER `rect` IS A PLACE OR A DEFAULT.
+   *
+   * The placer used to ask `rect.x !== 0 || rect.y !== 0` instead, which is a sentinel a learner can
+   * reach: drag the panel until its corner is on the screen's corner and the plane reads as never
+   * placed, so the placer snaps it back to the lower right under the hand that was moving it. It
+   * cost nothing to see while only an effect read it; the entrance reads it during render now, so
+   * the snap would be on the first painted frame. A flag cannot be dragged onto.
+   */
+  placed: boolean;
   /** Where it slides from — Wobo's orb. */
   origin: { x: number; y: number } | null;
   title: string;
@@ -121,6 +138,7 @@ const RESTING: PlaneState = {
   pinned: false,
   boardId: 'board-1',
   rect: { x: 0, y: 0, w: 520, h: 360 },
+  placed: false,
   origin: null,
   title: 'board',
 };
@@ -199,8 +217,9 @@ class PlaneController {
   togglePin(): void {
     this.set({ pinned: !this.state.pinned });
   }
+  /** Moved or resized — by the placer, by a drag, or by the keyboard. Either way it is placed. */
   move(rect: Partial<PlaneRect>): void {
-    this.set({ rect: { ...this.state.rect, ...rect } });
+    this.set({ rect: { ...this.state.rect, ...rect }, placed: true });
   }
   /** Wipe the board Wobo is on, keeping the plane open. */
   wipe(): void {
@@ -237,6 +256,70 @@ export function sheetReserve(state: {
 }): string | null {
   if (!state.open || state.minimized || !state.phone) return null;
   return `${PHONE_SHEET_VH}vh`;
+}
+
+/**
+ * WHERE A PLANE'S ENTRANCE BEGINS (the judge, wave 61, finding 1; INK-FOUR craft and timing).
+ *
+ * BOARD.md §5 says the plane "slides in from the orb", and it did — from the wrong centre. The
+ * offset was `origin − centre(state.rect)`, and `state.rect` is the 520x360 box a plane is given on
+ * a WIDE screen. On a phone the plane is a full-width sheet across the lower 62vh and never uses
+ * that rect; on a wide screen the rect is still {0,0} on the frame the plane first paints, because
+ * the placer is an effect. So the gesture was aimed from a box the plane does not occupy, and the
+ * first painted frame landed off the screen.
+ *
+ * MEASURED ON THE RUNNING APP, 2026-09-15, before a line of this changed:
+ *   390x844  — first frame top 882, bottom 1337, right 418; the board's first object painted at
+ *              y = 1173, three hundred px under an 844 px screen, and nothing of it on the glass
+ *              for 79 ms while the surface flew 561 px and took 446 to come to rest.
+ *   1440x900 — first frame top 1000, left 1859, right 2313: off the bottom AND 873 px off the right.
+ * Reduced motion had no entrance at either width and still has none.
+ *
+ * THE LAW, and it is the craft law "nothing off the viewport" applied to the surface as well as to
+ * the ink: a plane aims its centre at the orb and the offset is then CLAMPED so the box it starts
+ * in lies inside the viewport. A plane with no room to travel simply does not travel.
+ *
+ * AND A SHEET DOES NOT FLY. It is anchored to an edge, so it grows off that edge — scaled about its
+ * own bottom, never translated — which is the platform's grammar for a sheet and the only entrance
+ * that cannot take the board's ink off the screen at all.
+ */
+export interface PlaneEntrance {
+  x: number;
+  y: number;
+  scale: number;
+  /** The point the scale is taken about; a sheet grows off the edge it is anchored to. */
+  transformOrigin: string;
+}
+
+/** The least a panel shrinks to as it comes in from the orb. */
+export const PANEL_ENTRANCE_SCALE = 0.86;
+/** How far off its own edge a sheet grows. Small, because the edge is where it already lives. */
+export const SHEET_ENTRANCE_SCALE = 0.96;
+/** Where a plane with no orb to come from starts: a hand's width below its place. */
+export const ENTRANCE_FALL_PX = 24;
+
+export function planeEntrance(
+  box: PlaneRect,
+  origin: { x: number; y: number } | null,
+  viewport: { w: number; h: number },
+  sheet: boolean,
+): PlaneEntrance {
+  if (sheet) return { x: 0, y: 0, scale: SHEET_ENTRANCE_SCALE, transformOrigin: 'bottom center' };
+  const scale = PANEL_ENTRANCE_SCALE;
+  const insetX = ((1 - scale) * box.w) / 2;
+  const insetY = ((1 - scale) * box.h) / 2;
+  const want = origin
+    ? { x: origin.x - (box.x + box.w / 2), y: origin.y - (box.y + box.h / 2) }
+    : { x: 0, y: ENTRANCE_FALL_PX };
+  // A box with no room in an axis does not move in that axis, rather than being pushed somewhere
+  // arbitrary: `lo > hi` is a plane at least as large as the screen it is opening on.
+  const held = (v: number, lo: number, hi: number) => (lo > hi ? 0 : Math.min(hi, Math.max(lo, v)));
+  return {
+    x: held(want.x, -(box.x + insetX), viewport.w - (box.x + box.w - insetX)),
+    y: held(want.y, -(box.y + insetY), viewport.h - (box.y + box.h - insetY)),
+    scale,
+    transformOrigin: 'center',
+  };
 }
 
 /** Publish the reserve on the document root, and take it back the moment the sheet goes. */
@@ -283,16 +366,28 @@ const MIN_W = 320;
 const MIN_H = 220;
 const THUMB = 96;
 
-function useIsPhone(): boolean {
-  const [phone, setPhone] = useState(
-    () => typeof window !== 'undefined' && window.innerWidth < PHONE_WIDTH,
+/**
+ * The screen, as the plane's own arithmetic needs it. One listener, and a new object only when the
+ * numbers actually change, so nothing downstream re-runs on a resize that did not resize anything.
+ */
+function useViewport(): { w: number; h: number } {
+  const [size, setSize] = useState(() =>
+    typeof window === 'undefined'
+      ? { w: 0, h: 0 }
+      : { w: window.innerWidth, h: window.innerHeight },
   );
   useEffect(() => {
-    const on = () => setPhone(window.innerWidth < PHONE_WIDTH);
+    const on = () =>
+      setSize((was) =>
+        was.w === window.innerWidth && was.h === window.innerHeight
+          ? was
+          : { w: window.innerWidth, h: window.innerHeight },
+      );
+    on();
     window.addEventListener('resize', on, { passive: true });
     return () => window.removeEventListener('resize', on);
   }, []);
-  return phone;
+  return size;
 }
 
 const chromeButton = (label: string, onClick: () => void, glyph: string) => (
@@ -344,15 +439,22 @@ export function WoboPlane(props: WoboPlaneProps) {
   const state = usePlane();
   const store = useBoard(state.boardId);
   const reduced = useReducedMotion();
-  const phone = useIsPhone();
+  const viewport = useViewport();
+  const phone = viewport.w > 0 && viewport.w < PHONE_WIDTH;
   const dragging = useRef<{ dx: number; dy: number } | null>(null);
   const resizing = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
 
   // A plane that has never been placed opens in the lower right, above Wobo's orb, and clear of
   // whatever is already open on that side (the Companion drawer the learner asked from).
-  useEffect(() => {
+  //
+  // BEFORE IT PAINTS, and not after (the judge, wave 61, finding 1). As a plain effect this ran
+  // after the browser had already painted the plane at its unplaced {0,0}: measured at 1440x900 on
+  // 2026-09-15, the first painted frame sat at left 1859 and top 1000 — 419 px off the right of the
+  // screen and a hundred below it — and the entrance was then computed from that same unplaced box,
+  // so the slide was aimed from nowhere. A layout effect places it on the frame it mounts.
+  useLayoutEffect(() => {
     if (!state.open || phone) return;
-    if (state.rect.x !== 0 || state.rect.y !== 0) return;
+    if (state.placed) return;
     plane.move(
       placeClearOf(
         { w: window.innerWidth, h: window.innerHeight },
@@ -363,7 +465,7 @@ export function WoboPlane(props: WoboPlaneProps) {
         }),
       ),
     );
-  }, [state.open, state.rect.x, state.rect.y, state.rect.w, state.rect.h, phone]);
+  }, [state.open, state.placed, state.rect.w, state.rect.h, phone]);
 
   useEffect(() => {
     if (!state.open || state.minimized) return;
@@ -453,21 +555,36 @@ export function WoboPlane(props: WoboPlaneProps) {
     ? { duration: 0 }
     : ({ type: 'spring', stiffness: 320, damping: 32, mass: 0.9 } as const);
 
+  /**
+   * THE BOX THE PLANE ACTUALLY OCCUPIES, ON THE FRAME IT FIRST PAINTS.
+   *
+   * On a phone that is the sheet across the lower 62vh, never `state.rect` — aiming the entrance
+   * from a rect the sheet does not use was the whole of the bug at 390. On a wide screen it is
+   * `state.rect` once the placer has run, and BEFORE it has run it is where the placer is about to
+   * put it: a plane that has never been placed is still {0,0} on its first render, and an entrance
+   * is captured on the first render and never recomputed, so reading the store there aimed the
+   * panel's slide from the top-left corner and sent its first painted frame 419 px off the right of
+   * a 1440 screen. The drawers are not consulted here — they only ever shift the panel LEFT, and an
+   * entrance clamped to the glass cannot be hurt by an aim that is a drawer's width out.
+   */
+  const sheetH = Math.round((viewport.h * PHONE_SHEET_VH) / 100);
+  const resting: PlaneRect = phone
+    ? { x: 0, y: viewport.h - sheetH, w: viewport.w, h: sheetH }
+    : !state.placed && viewport.w > 0
+      ? { ...state.rect, ...placeClearOf(viewport, state.rect, []) }
+      : state.rect;
+  const from = planeEntrance(resting, state.origin, viewport, phone);
+
+  // Painted from the same box the entrance was aimed from, so the first frame cannot disagree with
+  // the slide that starts on it.
   const frame: React.CSSProperties = phone
     ? { left: 0, right: 0, bottom: 0, width: '100%', height: `${PHONE_SHEET_VH}vh` }
-    : { left: state.rect.x, top: state.rect.y, width: state.rect.w, height: state.rect.h };
+    : { left: resting.x, top: resting.y, width: resting.w, height: resting.h };
 
   // THE SHEET NEVER TAKES THE SENTENCE IT IS EXPLAINING (the adversary, wave 47, finding 10).
   // While it is up, the reading surfaces are told how much of the screen it holds, so the last
   // line of Wobo's say stays above its edge instead of being cut in half mid-word.
   useSheetReserve(sheetReserve({ open: state.open, minimized: state.minimized, phone }));
-
-  const from = state.origin
-    ? {
-        x: state.origin.x - state.rect.x - state.rect.w / 2,
-        y: state.origin.y - state.rect.y - state.rect.h / 2,
-      }
-    : { x: 0, y: 24 };
 
   return (
     <AnimatePresence>
@@ -480,11 +597,17 @@ export function WoboPlane(props: WoboPlaneProps) {
           // skips the subtree (docs/INK-FREEZE-PLAN-TRACE.md §3, Freeze).
           data-wobo-surface=""
           className={`wobo-chrome wobo-chrome-plane${phone ? ' wobo-chrome-sheet' : ''}`}
-          initial={reduced ? false : { opacity: 0, scale: 0.86, x: from.x, y: from.y }}
+          initial={reduced ? false : { opacity: 0, scale: from.scale, x: from.x, y: from.y }}
           animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-          exit={reduced ? { opacity: 0 } : { opacity: 0, scale: 0.9, x: from.x, y: from.y }}
+          exit={reduced ? { opacity: 0 } : { opacity: 0, scale: from.scale, x: from.x, y: from.y }}
           transition={spring}
-          style={{ position: 'fixed', ...frame, zIndex: zIndex.panel }}
+          style={{
+            position: 'fixed',
+            ...frame,
+            // A sheet grows off the edge it is anchored to; a panel scales about its middle.
+            transformOrigin: from.transformOrigin,
+            zIndex: zIndex.panel,
+          }}
         >
           <BoardChromeStyle />
           <header className="wobo-chrome-head">

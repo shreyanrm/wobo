@@ -781,8 +781,48 @@ export function oneMouth(): OneMouth {
  */
 export const REASK_RUNGS_MS = [700, 1400, 3000, 6500, 9500] as const;
 
-/** Asks in flight for one sentence, at most. Past this the oldest, deadest ask is retired. */
+/**
+ * Chances in the air for one sentence, at most — and A RUNG NEVER BUYS ONE BY SPENDING ANOTHER.
+ *
+ * Until 2026-09-15 a rung that found this many in flight ABORTED THE OLDEST to make room, on the
+ * reasoning that the oldest is the deadest. That is true of a HELD request and the exact opposite
+ * of a SLOW one, and the gateway has both. Measured on the lens at 1440 (the judge's run of
+ * 2026-09-15, first syllable 7307 ms): every ask was answered WITH AUDIO, but only after
+ * ``_UNHEARD_TIMEOUT_S`` — the six seconds voice.py gives an unheard turn's pinned voice — had
+ * run. Ask 0 was sent at 0 with its audio due at 6600; the rung at 3000 killed it, the rung at
+ * 6500 killed ask 1 (due at 7300) for the same reason, and the learner heard ask 2 at 8006 ms on
+ * the ruler. Ten reads bought for one sentence, two of them answered and thrown away unheard.
+ *
+ * So the cap is a cap on ASKING, not on keeping: a rung that would have to murder the ask nearest
+ * its answer is not a fourth chance, and the gateway pays a nine-to-eleven second vendor read for
+ * it either way (our abort does not stop its synthesis). Every ask still ends on its own budget
+ * (FIRST_TTS_TIMEOUT_MS) and the ladder's, so nothing is held for ever.
+ */
 const ASKS_IN_FLIGHT = 3;
+
+/**
+ * WHEN AN ASK STOPS HOLDING A PLACE IN THE SKY. It is never aborted for this — it simply stops
+ * counting against the three, so a rung has somewhere to stand.
+ *
+ * The cap above is right about a slow gateway and wrong about a held one, and the ladder has to
+ * live with both on the same day. voice.py gives an unheard turn's pinned voice six seconds
+ * (`_UNHEARD_TIMEOUT_S`) and then re-decides the whole turn; a request sent BEFORE that moment is
+ * waiting on a voice that no longer exists, and only a request sent AFTER it can be told so — that
+ * is the 2026-09-11 shape, where the clip sat on the gateway's disk while the client's own request
+ * hung, and the very next ask read it in nine milliseconds.
+ *
+ * With a flat cap of three, all three of a turn's asks are sent inside the first 1.4 s, every one
+ * of them before that re-decision — so the ladder was frozen for the remaining nine seconds of its
+ * budget with nothing left that could learn anything. On the live wire of 2026-09-15 that is what
+ * the reads bought: buffered asks fell 78 to 55 while the upstream read timeouts stayed at 37 and
+ * 40, the buffered route went silent on turns it used to recover on, and the socket took five
+ * boards instead of one — a mouth whose own first audio was measured that day at 4.8 to 8.4 s.
+ *
+ * So an ask past six seconds no longer blocks a chance, and it is not killed for one either: it
+ * may still answer, and on the lens at 1440 it did, at 6.6 s. One more read on a turn that has
+ * heard nothing for six seconds is the cheapest thing in this file.
+ */
+export const ASK_SPENT_MS = 6000;
 
 export interface FirstSoundLadder {
   /** When to ask again, in ms from the first ask. */
@@ -801,6 +841,8 @@ export interface FirstSoundLadder {
   keepClimbing?: (attempt: number) => boolean;
   /** Most asks this ladder will ever make, rungs and re-asks together. Default: rungs + 3. */
   maxAsks?: number;
+  /** How old an ask must be before it stops holding a place in the sky. Default: {@link ASK_SPENT_MS}. */
+  spentMs?: number;
   /** Fires when the ladder is called off (the other mouth won): every ask in flight is abandoned. */
   signal?: AbortSignal;
 }
@@ -816,8 +858,9 @@ export function askForFirstSound<T>(
   ladder: FirstSoundLadder,
 ): Promise<T | null> {
   return new Promise<T | null>((resolve) => {
-    const inFlight = new Map<number, AbortController>();
+    const inFlight = new Map<number, { ctrl: AbortController; at: number }>();
     const timers: ReturnType<typeof setTimeout>[] = [];
+    const spentMs = ladder.spentMs ?? ASK_SPENT_MS;
     let launched = 0;
     let settled = false;
 
@@ -825,20 +868,29 @@ export function askForFirstSound<T>(
       if (settled) return;
       settled = true;
       for (const t of timers) clearTimeout(t);
-      for (const ctrl of inFlight.values()) ctrl.abort();
+      for (const ask of inFlight.values()) ask.ctrl.abort();
       inFlight.clear();
       resolve(got);
     };
 
+    /** Asks that could still be answered; a spent one (ASK_SPENT_MS) holds no place, and lives on. */
+    const holding = (): number => {
+      const now = performance.now();
+      let n = 0;
+      for (const ask of inFlight.values()) if (now - ask.at < spentMs) n++;
+      return n;
+    };
+
     const launch = () => {
+      // Three chances already in the air is three (see ASKS_IN_FLIGHT): this rung is not climbed,
+      // rather than climbed over the one nearest its answer. An ask older than the gateway's own
+      // re-decision holds no place (ASK_SPENT_MS) — and is not killed for it either. `keepClimbing`
+      // only ever calls this with the sky empty, so the ladder still asks again the instant an
+      // answer says to.
+      if (holding() >= ASKS_IN_FLIGHT) return;
       const attempt = launched++;
-      if (inFlight.size >= ASKS_IN_FLIGHT) {
-        const oldest = inFlight.keys().next().value as number;
-        inFlight.get(oldest)?.abort();
-        inFlight.delete(oldest);
-      }
       const ctrl = new AbortController();
-      inFlight.set(attempt, ctrl);
+      inFlight.set(attempt, { ctrl, at: performance.now() });
       Promise.resolve()
         .then(() => ask(attempt, ctrl.signal))
         .then(
@@ -846,7 +898,7 @@ export function askForFirstSound<T>(
           () => null,
         )
         .then((got) => {
-          if (inFlight.get(attempt) === ctrl) inFlight.delete(attempt);
+          if (inFlight.get(attempt)?.ctrl === ctrl) inFlight.delete(attempt);
           if (settled) return;
           if (got !== null && got !== undefined) {
             settle(got);
@@ -950,6 +1002,11 @@ export interface StreamedSentence {
   complete: () => boolean;
   /** How much audio is in hand, in ms. */
   heldMs: () => number;
+  /**
+   * How long this socket has been a socket: ms since it was actually connected, and 0 while it is
+   * still waiting for one of the gateway's two. A death is told from a refusal by this.
+   */
+  liveMs: () => number;
   /** Play what is held and what is still coming; resolves when the last chunk has ended. */
   play: () => Promise<void>;
   /** Close the socket and drop what was held. Nothing of it is ever heard. */
@@ -957,6 +1014,64 @@ export interface StreamedSentence {
 }
 
 const STREAM_RATE = 24000;
+
+/**
+ * HOW MANY VOICE SOCKETS ONE LEARNER MAY HAVE OPEN AT ONCE — the gateway's own number, kept here.
+ *
+ * voice.py caps a subject at two live TTS sockets (`_MAX_TTS_PER_SUBJECT`) and closes the third at
+ * once, unheard. On the wire of 2026-09-15 a later sentence of a streamed turn opened THREE sockets
+ * inside twenty milliseconds — every one of them refused and closed with no syllable — before a
+ * fourth spoke: the sentence in front of it was still streaming (one), its own socket was open
+ * (two), and the rung at STREAM_REASK_MS made a third. Three mints, three native-audio starts,
+ * nothing heard, and the sentence itself fell silent while they were spent.
+ *
+ * So a socket over the cap is not opened and refused; it WAITS — no token minted, no connection,
+ * no second vendor started — and takes a slot the moment the sentence in front of it is whole. Its
+ * own deadline still bounds the wait, so a learner never waits longer for the silence.
+ */
+const LIVE_SOCKETS = 2;
+
+/** Sockets connected (or connecting) right now, as the gateway counts them. */
+let liveSockets = 0;
+/** Sockets waiting for one of those two, oldest first. */
+const slotWaiters: (() => void)[] = [];
+
+/** Give a slot back and wake whoever is waiting; each waiter re-queues itself if it is still full. */
+function releaseSocketSlot(): void {
+  if (liveSockets > 0) liveSockets--;
+  wakeSlotWaiters();
+}
+
+function wakeSlotWaiters(): void {
+  for (const wake of slotWaiters.splice(0)) wake();
+}
+
+/**
+ * Take one of the gateway's sockets, now or when one comes free. False when the caller gave up
+ * while waiting (its own watchdog, a stop, a newer utterance) — nothing is opened then.
+ *
+ * `claim` runs on the same tick as the count, never a microtask later: a socket dropped in that
+ * gap would otherwise leave a slot taken by nobody, and two of those close the voice for the rest
+ * of the session.
+ */
+function takeSocketSlot(gone: () => boolean, claim: () => void): Promise<boolean> {
+  return new Promise<boolean>((resolve) => {
+    const attempt = () => {
+      if (gone()) {
+        resolve(false);
+        return;
+      }
+      if (liveSockets < LIVE_SOCKETS) {
+        liveSockets++;
+        claim();
+        resolve(true);
+        return;
+      }
+      slotWaiters.push(attempt);
+    };
+    attempt();
+  });
+}
 
 function openStream(
   text: string,
@@ -977,6 +1092,18 @@ function openStream(
     readyResolve = resolve;
   });
   let playResolve: (() => void) | null = null;
+  /** One of the gateway's two (LIVE_SOCKETS), held from before the mint until this one is done. */
+  let hasSlot = false;
+  /** When this socket stopped waiting and started costing: the clock a day is measured on. */
+  let tookSlotAt = performance.now();
+  /** When it became a connection; 0 while it is still only a queue place. */
+  let connectedAt = 0;
+  /** Give the slot back the moment the gateway stops counting this socket, and only once. */
+  const leaveSocket = () => {
+    if (!hasSlot) return;
+    hasSlot = false;
+    releaseSocketSlot();
+  };
 
   const drop = () => {
     if (dead) return;
@@ -984,6 +1111,9 @@ function openStream(
     complete = true;
     clearTimeout(watchdog);
     openStreams.delete(drop);
+    leaveSocket();
+    // A socket still waiting for a slot gave its place up here: whoever is behind it may go now.
+    wakeSlotWaiters();
     try {
       ws?.close();
     } catch {
@@ -1033,6 +1163,22 @@ function openStream(
       drop();
       return;
     }
+    // One of the learner's two sockets, or a wait for one (LIVE_SOCKETS). Before the token, so a
+    // socket the gateway would only refuse costs no mint, no connection and no second vendor.
+    // The day is measured from the slot, not from the call: the wait for one is ours, and what a
+    // later sentence must be given time for is the vendor's mint, connection and synthesis.
+    const claim = () => {
+      hasSlot = true;
+      tookSlotAt = performance.now();
+    };
+    if (!(await takeSocketSlot(() => dead || gen !== speechGen, claim))) {
+      drop();
+      return;
+    }
+    if (dead || gen !== speechGen) {
+      drop();
+      return;
+    }
     // A websocket carries no headers we control: identity is proved over authenticated HTTP and
     // the socket carries the short-lived, single-use token it mints.
     const minted = await mintVoiceToken(gateway);
@@ -1050,6 +1196,7 @@ function openStream(
       return;
     }
     ws = socket;
+    connectedAt = performance.now();
     socket.onopen = () => {
       try {
         socket.send(text.slice(0, 600));
@@ -1067,6 +1214,7 @@ function openStream(
       complete = true;
       clearTimeout(watchdog);
       openStreams.delete(drop);
+      leaveSocket(); // the sentence is whole: the gateway counts this socket no longer, nor do we
       settlePlay();
     };
     socket.onmessage = (e) => {
@@ -1095,6 +1243,10 @@ function openStream(
         else held.push(samples);
         if (first) {
           clearTimeout(watchdog);
+          // What this vendor took to say a syllable, today, on this connection. Every sentence
+          // behind this one is given it (streamSentenceMs) instead of a constant that was true
+          // on a different day.
+          streamFirstAudioMs = performance.now() - tookSlotAt;
           readyResolve(true);
         }
       }
@@ -1105,6 +1257,7 @@ function openStream(
     ready,
     complete: () => complete && !dead,
     heldMs: () => (heldSamples / STREAM_RATE) * 1000,
+    liveMs: () => (connectedAt === 0 ? 0 : performance.now() - connectedAt),
     async play() {
       if (dead || playing) return;
       const c = ctx;
@@ -1162,6 +1315,9 @@ let bufferedStalled = false;
 /** Forget that (a cold session again). Exported for the tests; nothing in the app calls it. */
 export function forgetVoiceHealth(): void {
   bufferedStalled = false;
+  liveSockets = 0;
+  slotWaiters.length = 0;
+  streamFirstAudioMs = 0;
 }
 
 /**
@@ -1255,26 +1411,80 @@ function firstSound(
 // either is what plays). Two at most: past that it is the day, not the socket, and silence on the
 // reading clock keeps the turn's one voice.
 
-/** A later sentence's socket gives up here, well past the 2.3-3.5 s its first audio really takes. */
+/** The floor for a later sentence's socket, past the 2.3-3.5 s its first audio took on a good day. */
 const STREAM_SENTENCE_MS = 4500;
 /** A socket that is merely slow gets a second one beside it here, not after its whole deadline. */
 const STREAM_REASK_MS = 2600;
 
+/**
+ * HOW LONG THE LAST SOCKET THAT SPOKE TOOK TO SAY ITS FIRST SYLLABLE — the day, measured, not guessed.
+ *
+ * A constant deadline cannot know the vendor's weather. On 2026-09-15 the socket that WON a turn
+ * had its first audio at 4.8 to 8.4 s (its first message at 1.8 to 2.0 s, the audio long after), and
+ * the deciding sentence could afford that because firstSound gives it the whole
+ * FIRST_TTS_TIMEOUT_MS. Every sentence AFTER it got STREAM_SENTENCE_MS — 4500 — so our own watchdog
+ * killed each of its sockets before the day's audio could arrive, a second was opened on the rung
+ * and killed the same way, and the sentence then fell to the reading clock in silence. That is a
+ * turn whose first sentence is heard and whose rest is not, with two or three native-audio starts
+ * bought per silent sentence: five boards of the run, and most of the 12-to-43 rise in sockets.
+ *
+ * The socket that won the turn already measured this day, seconds ago, on this learner's
+ * connection. Every sentence behind it is given what that one needed — never less than the floor,
+ * and never more than the budget a later sentence already had (TTS_TIMEOUT_MS), so nobody waits
+ * longer than before. The change is what they hear at the end of the wait.
+ *
+ * It cannot go stale: a later sentence only ever reaches the socket because one SPOKE on this turn
+ * (`mouth.owner() === 'stream'`), and that is the socket that wrote this number, seconds ago.
+ */
+let streamFirstAudioMs = 0;
+
+/** The deadline a later sentence's socket gets: the floor, or what the day actually took. */
+function streamSentenceMs(): number {
+  return Math.min(TTS_TIMEOUT_MS, Math.max(STREAM_SENTENCE_MS, streamFirstAudioMs + 1500));
+}
+
+/** When a second socket is opened beside a slow one: once it has missed the day's own time. */
+function streamReaskMs(): number {
+  return Math.max(STREAM_REASK_MS, streamFirstAudioMs + 600);
+}
+/**
+ * A socket that closed with no syllable in less time than a connection takes was not a socket that
+ * DIED; it was one the gateway REFUSED — the 1008 over `_MAX_TTS_PER_SUBJECT`, or a token it would
+ * not honour. Opening another in the same millisecond buys the same answer: on 2026-09-15 it bought
+ * three inside twenty milliseconds, all closed unheard, before a fourth spoke. A refusal waits for
+ * the rung; only a socket that really tried is replaced at once.
+ */
+const SOCKET_REFUSED_MS = 400;
+
 /** One sentence on the voice socket, with a second socket behind it. Null when neither speaks. */
 function streamSound(text: string, beat: VoiceBeat, gen: number): Promise<Sound | null> {
+  /** How long each socket lived before it closed unheard: a refusal is told from a death by this. */
+  const lived = new Map<number, number>();
+  const deadline = streamSentenceMs();
+  const reask = streamReaskMs();
   return askForFirstSound<Sound>(
-    (_attempt, signal) => {
-      const opened = openStream(text, beat, gen, STREAM_SENTENCE_MS);
+    (attempt, signal) => {
+      const opened = openStream(text, beat, gen, deadline);
       signal.addEventListener('abort', () => opened.drop(), { once: true });
-      return opened.ready.then((ok) => (ok ? ({ stream: opened } as Sound) : null));
+      return opened.ready.then((ok) => {
+        if (ok) return { stream: opened } as Sound;
+        // Its own life, not ours: a socket that never got one of the gateway's two reads 0 here,
+        // and asking for another would only queue behind the same sentence again.
+        lived.set(attempt, opened.liveMs());
+        return null;
+      });
     },
     {
-      rungs: [STREAM_REASK_MS],
+      // A rung past the sentence's own deadline is no rung at all: the socket it would stand
+      // beside is already dead by then, and a day this slow has no room for a fourth vendor start.
+      rungs: reask < deadline ? [reask] : [],
       budgetMs: TTS_TIMEOUT_MS,
-      keepClimbing: () => true, // a socket that died without a syllable can always be opened again
-      // Three at most, and never three at once: voice.py caps a learner at TWO live TTS sockets
-      // (`_MAX_TTS_PER_SUBJECT`), so a rung's socket that the gateway refuses is a 1008 close with
-      // no syllable in it — which this ladder reads as a dead ask and replaces immediately.
+      // A socket that tried and died can always be opened again; one that was refused on sight
+      // cannot, and asking again at once only spends the learner's sentence on the same no.
+      keepClimbing: (attempt) => (lived.get(attempt) ?? 0) >= SOCKET_REFUSED_MS,
+      // Three at most. The client keeps the gateway's own live count now (LIVE_SOCKETS), so a rung
+      // no longer opens a socket the gateway would close unheard — it waits for the sentence in
+      // front of it to finish and takes its place.
       maxAsks: 3,
     },
   );
@@ -1390,10 +1600,23 @@ export function startUtterance(
    * the buffered route once a clip did, both at once while nothing has been heard, and nothing
    * at all once the device is reading the turn (lastResort reads it there).
    */
-  const soundFor = (sentence: string, beat: VoiceBeat): Promise<Sound | null> | null => {
+  const soundFor = (
+    sentence: string,
+    beat: VoiceBeat,
+    /**
+     * Is the mouth still in doubt when this sentence is asked for? A sentence is only the DECIDING
+     * one while nothing of the turn is in hand. `turn.spoke()` cannot answer this on its own: it
+     * does not run until the audio actually plays, and the next sentence is asked for a line
+     * earlier — so on every turn sentence two found `chosen()` still null and took the full
+     * deciding ladder, three more reads and a twelve-second budget for a mouth that was settled
+     * the moment sentence one's clip won it. Six upstream voice reads for a two-sentence turn on the
+     * judge's lens at 1440; four is the honest number. The caller knows what it is holding.
+     */
+    deciding: boolean,
+  ): Promise<Sound | null> | null => {
     if (turn.chosen() === 'device') return null;
     if (mouth.owner() === 'stream') return streamSound(sentence, beat, gen);
-    if (turn.chosen() === null) {
+    if (turn.chosen() === null && deciding) {
       // The race, while no mouth has the turn; once the clip won it but nothing has played yet
       // (muted mid-race), the ladder alone, on its deciding budget.
       if (mouth.owner() === null) return firstSound(sentence, beat, gen, lost, mouth);
@@ -1401,6 +1624,8 @@ export function startUtterance(
     }
     return synth(sentence, beat).then((clip) => (clip ? { clip } : null));
   };
+  /** Nothing of this turn is in hand or playing yet: the next sentence asked for is the deciding one. */
+  let undecided = true;
   /** The next line's first sentence, asked for before that line was dequeued. */
   let carried: { text: string; beat: VoiceBeat; sound: Promise<Sound | null> } | null = null;
 
@@ -1433,20 +1658,23 @@ export function startUtterance(
         carried = null;
       }
       if (pending === null && canVoice && segs.length > 0) {
-        pending = soundFor(segs[0] as string, next.beat);
+        pending = soundFor(segs[0] as string, next.beat, undecided);
       }
       for (let i = 0; i < segs.length; i++) {
         let cur = pending ? await pending : null;
         pending = null;
         if (gen !== speechGen) return;
+        // A sound in hand settles the mouth, whatever `turn.chosen()` still says: the sentence
+        // behind it is not the deciding one and must not be asked for as though it were.
+        if (cur) undecided = false;
         // The next sentence is asked for while this one plays: the next of this line, or — when
         // this is the line's last and the plan has already sent the next line — that one's first.
         if (canVoice && i + 1 < voiceCount) {
-          pending = soundFor(segs[i + 1] as string, next.beat);
+          pending = soundFor(segs[i + 1] as string, next.beat, undecided);
         } else if (canVoice && i + 1 === segs.length && queue[0] !== undefined) {
           const ahead = queue[0];
           const first = sentences(ahead.text)[0];
-          const sound = first !== undefined ? soundFor(first, ahead.beat) : null;
+          const sound = first !== undefined ? soundFor(first, ahead.beat, undecided) : null;
           if (first !== undefined && sound !== null) {
             carried = { text: first, beat: ahead.beat, sound };
           }

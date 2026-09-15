@@ -16,6 +16,7 @@ from wobo_verifier.gate import CheckResult
 from wobo_gateway.board import verify
 from wobo_gateway.board.pipelines import (
     FIGURE,
+    MAX_NOTE_CHARS,
     Draft,
     Frame,
     accent,
@@ -56,7 +57,16 @@ def _domain(intent: dict[str, Any]) -> tuple[float, float]:
 
 
 def _axes(draft: Draft, frame: Frame, xlabel: str, ylabel: str) -> None:
-    """Axes and a grid, sized in board units from the frame — never a guessed pixel."""
+    """Axes and a grid, sized in board units from the frame — never a guessed pixel.
+
+    THE AXIS RULES A LINE; THE NAME OF THE AXIS IS A MARK (wave 63). An ``axis`` that carries a
+    ``label`` paints that word itself, ten units past its own arrowhead, and that word is the one
+    thing on a plotted board that never passes through ``notePlacement``: it is not solved, it
+    does not read ``object.size``, and neither the air law nor the never-across-a-stroke law can
+    attribute it to anything. The arrowhead end of an axis is also exactly where a curve tends to
+    leave the frame, which is how the same field wrote 'ground' across the projectile's parabola.
+    The rule is drawing; the name hangs off the rule and is placed like every other word.
+    """
     draft.add(
         "grid",
         anchor=board(frame.x0, frame.y0),
@@ -68,7 +78,7 @@ def _axes(draft: Draft, frame: Frame, xlabel: str, ylabel: str) -> None:
         hint="grid",
     )
     baseline = frame.at(0, 0)[1] if frame.holds(0, 0) else frame.y0 + frame.h
-    draft.add(
+    x_axis = draft.add(
         "axis",
         anchor=board(frame.x0, baseline),
         orientation="x",
@@ -76,10 +86,17 @@ def _axes(draft: Draft, frame: Frame, xlabel: str, ylabel: str) -> None:
         max=round(frame.xmax, 4),
         step=round((frame.xmax - frame.xmin) / 10, 6) or 1.0,
         length=round(frame.w, 2),
-        label=xlabel[:40],
         ticks=True,
         style=wobo(2),
         hint="xaxis",
+    )
+    # Under the right-hand end of the rule, which is where a graph is named.
+    draft.add(
+        "label",
+        anchor=on(x_axis, "bottom"),
+        text=xlabel[:MAX_NOTE_CHARS],
+        style=wobo(1),
+        hint="xname",
     )
     # A y-axis is anchored at its ORIGIN and grows toward its max, because that is how the hand
     # draws it (`geometry.ts`, axis case: a vertical axis runs from its anchor to `y - length`, with
@@ -87,7 +104,7 @@ def _axes(draft: Draft, frame: Frame, xlabel: str, ylabel: str) -> None:
     # BOTTOM of the frame. Anchoring it at `frame.y0` — the top — drew the whole axis upward off the
     # frame, detached from the grid it belongs to.
     y_origin = frame.y0 + frame.h
-    draft.add(
+    y_axis = draft.add(
         "axis",
         anchor=board(frame.at(0, 0)[0] if frame.holds(0, 0) else frame.x0, y_origin),
         orientation="y",
@@ -95,10 +112,16 @@ def _axes(draft: Draft, frame: Frame, xlabel: str, ylabel: str) -> None:
         max=round(frame.ymax, 4),
         step=round((frame.ymax - frame.ymin) / 8, 6) or 1.0,
         length=round(frame.h, 2),
-        label=ylabel[:40],
         ticks=True,
         style=wobo(2),
         hint="yaxis",
+    )
+    draft.add(
+        "label",
+        anchor=on(y_axis, "left"),
+        text=ylabel[:MAX_NOTE_CHARS],
+        style=wobo(1),
+        hint="yname",
     )
 
 
@@ -506,30 +529,43 @@ def _right_triangle(intent: dict[str, Any], draft: Draft) -> Draft:
         # what says it is an area, and the line under the figure is what says what they prove.
         # The title is what a listener hears instead of the shape (``schema``: spoken, never
         # drawn). Three identical squares are three identical sentences without it.
-        for hint, title, corners, centre, area in (
+        #
+        # THE NUMERAL IS ANCHORED TO ITS SQUARE, NOT TO A BOARD COORDINATE (the judge, 2026-09-15).
+        # This pipeline used to work out the middle of each square itself and hand the hand a bare
+        # ``board(x, y)``, and a bare coordinate is the WRITING ORIGIN, not a centre: the hand
+        # starts there and paints down and to the right. Measured on the real /chat surface at 390
+        # and 1440, light, dark and reduced motion, stroke by stroke rather than against a path's
+        # bounding box: the 9 was painted across its own square's bottom edge (102 to 106 px²),
+        # the 16 across the triangle's upright (104 to 105 px²), its right-angle mark (8 to 10)
+        # and its own square's edge (104 to 106), and the 25 across the tilted square's edge (32
+        # to 35) — five struck marks on every one of the six renders. A bare coordinate also goes
+        # nowhere near ``solveWritten``: the hand cannot move what it was never asked to place, so
+        # neither side could see the collision. Saying which square the numeral belongs to says
+        # both things at once — it IS that square's area, and it goes INSIDE it — and leaves the
+        # placement to the one solver that knows what else is on the glass (``geometry.ts``:
+        # ``notePlacement``, ``at: "center"``). Same six renders after: nothing struck, each
+        # numeral inside its own square with at least 11 px of clear paper on every side.
+        for hint, title, corners, area in (
             (
                 "sqbase",
                 "square on the base",
                 [(0.0, 0.0), (a, 0.0), (a, -a), (0.0, -a)],
-                (a * 0.5, -a * 0.5),
                 a * a,
             ),
             (
                 "sqside",
                 "square on the height",
                 [(0.0, 0.0), (0.0, b), (-b, b), (-b, 0.0)],
-                (-b * 0.5, b * 0.5),
                 b * b,
             ),
             (
                 "sqhyp",
                 "square on the longest side",
                 [(a, 0.0), (0.0, b), (b, a + b), (a + b, a)],
-                ((a + b) / 2, (a + b) / 2),
                 from_theorem * from_theorem,
             ),
         ):
-            draft.add(
+            square = draft.add(
                 "polygon",
                 anchor=board(*frame.at(*corners[0])),
                 points=[frame.at(x, y) for x, y in corners],
@@ -540,7 +576,7 @@ def _right_triangle(intent: dict[str, Any], draft: Draft) -> Draft:
             draft.number(
                 area,
                 areas.name,
-                anchor=board(*frame.at(*centre)),
+                anchor=on(square, "center"),
                 decimals=0,
                 style=accent(1) if hint == "sqhyp" else wobo(1),
             )

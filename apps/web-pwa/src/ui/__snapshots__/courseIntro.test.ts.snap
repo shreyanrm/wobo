@@ -33,9 +33,36 @@ exports[`the drawing itself mathematics is unchanged 1`] = `
       "y": 80,
     },
     {
+      "at": 0.42,
       "el": "side",
-      "grip": 0.1,
+      "grip": 0.15,
       "part": "hypotenuse",
+      "room": [
+        [
+          46,
+          124,
+          60,
+          0,
+        ],
+        [
+          46,
+          79,
+          0,
+          45,
+        ],
+        [
+          46,
+          112,
+          12,
+          12,
+        ],
+        [
+          85.7,
+          58.8,
+          18.5,
+          27.7,
+        ],
+      ],
       "x1": 106,
       "x2": 46,
       "y1": 124,

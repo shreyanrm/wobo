@@ -1,1 +1,352 @@
-[{"id":"m0_1triangle","anchor":{"board":[476,507]},"style":{"ink":"wobo","weight":2},"t":{"start":60,"dur":202},"meta":{"beat":{"with":0,"word":0,"words":17}},"kind":"polygon","points":[[0,0],[42.86,0],[0,-57.14]]},{"id":"m0_2rightangle","anchor":{"board":[476,500.14]},"style":{"ink":"faint","weight":1},"t":{"start":262,"dur":147},"meta":{"beat":{"with":0,"word":0,"words":17}},"kind":"polyline","points":[[0,0],[6.86,0],[6.86,6.86]]},{"id":"m0_3sqbase","anchor":{"board":[476,507]},"style":{"ink":"faint","weight":1},"t":{"start":409,"dur":210},"meta":{"beat":{"with":0,"word":0,"words":17}},"kind":"polygon","points":[[0,0],[42.86,0],[42.86,42.86],[0,42.86]],"title":"square on the base"},{"id":"m0_4num","anchor":{"board":[497.43,528.43]},"style":{"ink":"wobo","weight":1},"t":{"start":1048,"dur":260},"check":"board.numbers_agree:square areas","meta":{"beat":{"with":0,"word":4,"words":17}},"kind":"number","value":9,"precision":0,"verified":true},{"id":"m0_5sqside","anchor":{"board":[476,507]},"style":{"ink":"faint","weight":1},"t":{"start":1308,"dur":234},"meta":{"beat":{"with":0,"word":4,"words":17}},"kind":"polygon","points":[[0,0],[0,-57.14],[-57.14,-57.14],[-57.14,0]],"title":"square on the height"},{"id":"m0_6num","anchor":{"board":[447.43,478.43]},"style":{"ink":"wobo","weight":1},"t":{"start":1560,"dur":260},"check":"board.numbers_agree:square areas","meta":{"beat":{"with":0,"word":8,"words":17}},"kind":"number","value":16,"precision":0,"verified":true},{"id":"m0_7sqhyp","anchor":{"board":[518.86,507]},"style":{"ink":"faint","weight":1},"t":{"start":1560,"dur":257},"meta":{"beat":{"with":0,"word":8,"words":17}},"kind":"polygon","points":[[0,0],[-42.86,-57.14],[14.28,-100],[57.14,-42.86]],"title":"square on the longest side"},{"id":"m0_8num","anchor":{"board":[526,457]},"style":{"ink":"accent","weight":1},"t":{"start":1560,"dur":260},"check":"board.numbers_agree:square areas","meta":{"beat":{"with":0,"word":13,"words":17}},"kind":"number","value":25,"precision":0,"verified":true},{"id":"m0_9proof","anchor":{"board":[412,589]},"style":{"ink":"accent","weight":2},"t":{"start":1560,"dur":605},"check":"board.numbers_agree:square areas","meta":{"beat":{"with":0,"word":13,"words":17}},"kind":"write","text":"9 + 16 = 25","size":22},{"id":"m0_10num","anchor":{"board":[412,621]},"style":{"ink":"accent","weight":2},"t":{"start":1560,"dur":260},"check":"board.numbers_agree:hypotenuse","meta":{"beat":{"with":0,"word":13,"words":17}},"kind":"number","value":5,"unit":"cm","label":"hypotenuse","precision":2,"verified":true}]
+[
+  {
+    "id": "m0_1triangle",
+    "kind": "polygon",
+    "anchor": {
+      "board": [
+        476.0,
+        507.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        42.86,
+        0.0
+      ],
+      [
+        0.0,
+        -57.14
+      ]
+    ],
+    "style": {
+      "ink": "wobo",
+      "weight": 2
+    },
+    "t": {
+      "start": 60,
+      "dur": 202
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_2rightangle",
+    "kind": "polyline",
+    "anchor": {
+      "board": [
+        476.0,
+        500.14
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        6.86,
+        0.0
+      ],
+      [
+        6.86,
+        6.86
+      ]
+    ],
+    "style": {
+      "ink": "faint",
+      "weight": 1
+    },
+    "t": {
+      "start": 262,
+      "dur": 147
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_3sqbase",
+    "kind": "polygon",
+    "anchor": {
+      "board": [
+        476.0,
+        507.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        42.86,
+        0.0
+      ],
+      [
+        42.86,
+        42.86
+      ],
+      [
+        0.0,
+        42.86
+      ]
+    ],
+    "title": "square on the base",
+    "style": {
+      "ink": "faint",
+      "weight": 1
+    },
+    "t": {
+      "start": 409,
+      "dur": 210
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 0,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_4num",
+    "kind": "number",
+    "anchor": {
+      "object": "m0_3sqbase",
+      "at": "center"
+    },
+    "value": 9.0,
+    "precision": 0,
+    "verified": true,
+    "check": "board.numbers_agree:square areas",
+    "style": {
+      "ink": "wobo",
+      "weight": 1
+    },
+    "t": {
+      "start": 1048,
+      "dur": 260
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 4,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_5sqside",
+    "kind": "polygon",
+    "anchor": {
+      "board": [
+        476.0,
+        507.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        -57.14
+      ],
+      [
+        -57.14,
+        -57.14
+      ],
+      [
+        -57.14,
+        0.0
+      ]
+    ],
+    "title": "square on the height",
+    "style": {
+      "ink": "faint",
+      "weight": 1
+    },
+    "t": {
+      "start": 1308,
+      "dur": 234
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 4,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_6num",
+    "kind": "number",
+    "anchor": {
+      "object": "m0_5sqside",
+      "at": "center"
+    },
+    "value": 16.0,
+    "precision": 0,
+    "verified": true,
+    "check": "board.numbers_agree:square areas",
+    "style": {
+      "ink": "wobo",
+      "weight": 1
+    },
+    "t": {
+      "start": 1560,
+      "dur": 260
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 8,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_7sqhyp",
+    "kind": "polygon",
+    "anchor": {
+      "board": [
+        518.86,
+        507.0
+      ]
+    },
+    "points": [
+      [
+        0.0,
+        0.0
+      ],
+      [
+        -42.86,
+        -57.14
+      ],
+      [
+        14.28,
+        -100.0
+      ],
+      [
+        57.14,
+        -42.86
+      ]
+    ],
+    "title": "square on the longest side",
+    "style": {
+      "ink": "faint",
+      "weight": 1
+    },
+    "t": {
+      "start": 1560,
+      "dur": 257
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 8,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_8num",
+    "kind": "number",
+    "anchor": {
+      "object": "m0_7sqhyp",
+      "at": "center"
+    },
+    "value": 25.0,
+    "precision": 0,
+    "verified": true,
+    "check": "board.numbers_agree:square areas",
+    "style": {
+      "ink": "accent",
+      "weight": 1
+    },
+    "t": {
+      "start": 1560,
+      "dur": 260
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 13,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_9proof",
+    "kind": "write",
+    "anchor": {
+      "board": [
+        412.0,
+        589.0
+      ]
+    },
+    "text": "9 + 16 = 25",
+    "check": "board.numbers_agree:square areas",
+    "style": {
+      "ink": "accent",
+      "weight": 2
+    },
+    "size": 22,
+    "t": {
+      "start": 1560,
+      "dur": 605
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 13,
+        "words": 17
+      }
+    }
+  },
+  {
+    "id": "m0_10num",
+    "kind": "number",
+    "anchor": {
+      "board": [
+        412.0,
+        621.0
+      ]
+    },
+    "value": 5.0,
+    "unit": "cm",
+    "label": "hypotenuse",
+    "precision": 2,
+    "verified": true,
+    "check": "board.numbers_agree:hypotenuse",
+    "style": {
+      "ink": "accent",
+      "weight": 2
+    },
+    "t": {
+      "start": 1560,
+      "dur": 260
+    },
+    "meta": {
+      "beat": {
+        "with": 0,
+        "word": 13,
+        "words": 17
+      }
+    }
+  }
+]

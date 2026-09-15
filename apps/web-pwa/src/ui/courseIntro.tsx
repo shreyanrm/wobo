@@ -56,10 +56,29 @@ export type Mark =
        * its figure IS the figure's box: declaring the whole hypotenuse from B to C handed Wobo the
        * triangle's own box, so the ring drawn around it enclosed all three corners and the ask for
        * a PART was answered with a ring around the FIGURE. A teacher circling a side circles a
-       * stretch of it for the same reason. `grip` is that stretch as a fraction of the side,
-       * centred on the side's midpoint; the side itself stays what it is, B to C.
+       * stretch of it for the same reason. `grip` is that stretch as a fraction of the side; the
+       * side itself stays what it is, B to C.
        */
       grip?: number;
+      /**
+       * AND WHERE ALONG THE SIDE THAT STRETCH SITS, as a fraction from (x1,y1). The midpoint by
+       * default, because that is where a teacher's loop goes when the side is clear. It moves when
+       * the drawing crowds one half of the side and not the other: the pen's ring is the grip's box
+       * plus nine pixels of pad and the hand's smallest loop, so a stretch with a label leaning
+       * over it buys its air from the ring rather than from the grip. Clamped so the grip can never
+       * run off either end of the side.
+       */
+      at?: number;
+      /**
+       * THE INK THE MARK'S RING MUST KEEP THE BOARD'S AIR FROM, in the frame's units, as boxes
+       * `[x, y, w, h]` — a stroke that runs along one axis is a box with no thickness on that
+       * axis, which is what the triangle's two legs are here.
+       *
+       * It is what lets the stretch be SOLVED rather than swept by hand: `gripOf` grows the grip
+       * at the width it is drawn at until the pen's own ring would come inside `BOARD_AIR_PX` of
+       * one of these. Without it the grip is simply what `grip` says.
+       */
+      room?: [number, number, number, number][];
     } & Named)
   | ({ el: 'circle'; ink: MarkInk; cx: number; cy: number; r: number } & Named)
   | ({ el: 'dot'; cx: number; cy: number; r: number } & Named)
@@ -132,20 +151,90 @@ export const SUBJECT_ART: Record<SubjectArtKey, SubjectArt> = {
       // square's name. This is the edge from B(106,124) to C(46,79) that the triangle's own path
       // already draws, given its name and no ink.
       //
-      // AND A TENTH OF IT IS WHERE A MARK LANDS (the judge, wave 60). Its box WAS the triangle's —
-      // exact for this hypotenuse, and exactly the reason the ring around it held all three
+      // AND A STRETCH OF IT IS WHERE A MARK LANDS (the judge, wave 60). Its box WAS the triangle's
+      // — exact for this hypotenuse, and exactly the reason the ring around it held all three
       // corners: the ask named a part and the ink answered with the figure.
       //
-      // The middle tenth, from (79, 103.75) to (73, 99.25): a 6 by 4.5 box on the side's own
-      // midpoint. A tenth rather than a half because the ring is not the box — it is the box plus
-      // nine pixels of pad and a hand's smallest loop — and at 390 the whole figure is 238 px wide,
-      // so the ring is about thirty pixels whatever the box is; a longer grip spends air it has
-      // nothing to buy with. Measured on the arrival card with that ring painted, at 390 light,
-      // 390 dark, 390 reduced motion, 1440 light and 1440 dark: 0 of the triangle's 3 corners
-      // inside the ring at either width (all 3 were, at both, before this), and from the ring's
-      // ink to the nearest ink that is not the hypotenuse, 7.2 px at 390 and 24.2 px at 1440 —
-      // the right-angle tick both times, which no grip can get further from on a 238 px figure.
-      { el: 'side', x1: 106, y1: 124, x2: 46, y2: 79, grip: 0.1, part: 'hypotenuse' },
+      // WHICH STRETCH IS MEASURED, NOT ASSUMED (the judge, wave 62: "a 26 px loop on a point of a
+      // 90 px segment, 7 px from the right-angle tick"). Wave 60 took the middle tenth, and the
+      // middle is the crowded part of this figure: c² sits in the square directly above the
+      // midpoint and its box comes down to 15 units of it, so the ring had 5.3 px of air to c² and
+      // 8.4 px to the right-angle tick at 390 — the two smallest numbers on the card — and no room
+      // at all to grow. Six units further down the side, between c² and the leg, there is room for
+      // both: a wider grip AND more air than the tenth ever had.
+      //
+      // So the stretch is the widest one that keeps the pen's ring `LABEL_GAP_PX` (8 px, the
+      // board's own air) clear of every other mark. It is centred 0.42 of the way from B to C (six
+      // units below the midpoint, 8 percent of the side), and 0.15 of the side long at 390 — a 9
+      // by 6.75 box, up from 6 by 4.5.
+      //
+      // AND IT IS SOLVED AT THE WIDTH IT IS DRAWN AT, NOT SWEPT ONCE AT 390 (the closer, wave 62).
+      // The pen's pad, its smallest loop and the board's air are all PIXELS, and pixels do not
+      // scale with the frame, so one fraction of the frame buys a different picture at every
+      // width: at 1440 the pen's 9 px of pad is worth a third as many frame units, and the same
+      // 0.15 left a small loop floating in an empty stretch of side. 0.15 is therefore the FLOOR,
+      // measured on a real 390 screen and never gone under; `room` below is the ink the ring must
+      // keep the board's 8 px from, and `gripFraction` grows the stretch against it at whatever
+      // scale the frame is actually drawn at.
+      //
+      // Measured on the arrival card with that ring painted, at 390 light, 390 dark, 390 reduced
+      // motion, 1440 light and 1440 dark — every number in CSS px, ring box to mark box. The last
+      // row is wave 62's closer, which stopped stating the stretch as one fraction of the frame
+      // and started solving it at the width it is drawn at (`gripFraction`):
+      //
+      //            c²     right angle   leg A-B   leg A-C   ring         covers the side
+      //   390 w58   5.3    8.4          14.3      22.7      26 x 25      0.40
+      //   390 w60   8.29  12.37          8.68     26.63     29.5 x 27.3  0.45
+      //   390 w62   8.29  12.37          8.68     26.63     29.5 x 27.3  0.45   (unchanged)
+      //   1440 w58 17.9   23.1          32.7      47.3      31 x 29      0.27
+      //   1440 w60 22.12  28.83         22.74     54.23     37.6 x 33.5  0.32
+      //   1440 w62 10.73  13.02         11.07     38.42     69.3 x 56.6  0.57
+      //
+      // At 1440 the loop was a small ring floating in an empty stretch of side, standing two to
+      // three times the board's air off every neighbour with room for twice itself going spare;
+      // it now covers 0.57 of the hypotenuse instead of 0.32 and keeps 10.7 px at its tightest,
+      // still over the board's 8. Nothing at 390 moved: the solve returns the measured floor
+      // there, to the pixel. The glass box the reader measures is 11 x 8 px at 390 (7 x 5 before
+      // wave 60) and 54 x 41 at 1440 (19 x 14 before wave 62).
+      //
+      // 0 of the triangle's 3 corners inside the ring at every one of the five screens, as before
+      // (all 3 were, before wave 60), and the first stroke still lands 0 ms after the mark is
+      // applied, at both widths, before and after.
+      //
+      // AND A RING THAT COVERS THE WHOLE SIDE IS STILL NOT AVAILABLE FROM THIS FIGURE — the one
+      // thing this file cannot close, named so nobody looks for it here again.
+      //
+      // The pen's loop is axis-aligned, and the hypotenuse's own box IS the triangle's box, so a
+      // loop covering the whole side necessarily holds all three corners: the ask for a part
+      // answered with the figure. Swept exhaustively over every centre and every width against
+      // the pen's own arithmetic, the widest lawful stretch is 0.48 of the side at 390 and 0.61
+      // at 1440 (0.45 and 0.57 with the hand's margin carried); above that the ring comes inside
+      // the board's 8 px of c², of the right-angle tick or of leg A-B, whichever binds first.
+      // Coverage and that air then trade one for one. Nothing in this drawing's data moves the
+      // ceiling, because the ceiling is the loop's axis, not the figure: it closes only when
+      // `loopAround` in packages/wobo/src/board/geometry.ts can be TURNED onto the segment it
+      // rings — given the side's direction, the loop is an oblique lozenge, the whole hypotenuse
+      // fits inside it, and no corner of the triangle does. Until then "circle the hypotenuse"
+      // rings a stretch of the side, and craft on that turn is a 3 at both widths.
+      //
+      // In `room`, the two legs are strokes along an axis, so they are boxes with no thickness on
+      // that axis; c² is the box the glass reader measured on the card, carried into frame units.
+      {
+        el: 'side',
+        x1: 106,
+        y1: 124,
+        x2: 46,
+        y2: 79,
+        grip: 0.15,
+        at: 0.42,
+        part: 'hypotenuse',
+        room: [
+          [46, 124, 60, 0], // leg A-B
+          [46, 79, 0, 45], // leg A-C
+          [46, 112, 12, 12], // the right-angle tick, 'M46 112 h12 v12'
+          [85.7, 58.8, 18.5, 27.7], // c², measured [178,237,22,33] px at 390 on a 1.19 frame
+        ],
+      },
     ],
   },
   // the benzene ring: the hexagon, and the ring of shared electrons inside it
@@ -225,26 +314,150 @@ export function artForTopic(topicId: string): SubjectArtKey {
 
 const STROKE = { ink: ART_INK, thin: ART_THIN, accent: ART_INK, 'accent-thin': ART_THIN } as const;
 
+/** The air two marks keep from each other on the glass, in CSS px (packages/wobo, board/geometry). */
+export const BOARD_AIR_PX = 8;
+
 /**
- * THE STRETCH OF A SIDE A MARK LANDS ON, in the frame's units: the middle `grip` of it, centred on
- * the side's own midpoint. A side with no grip is all of itself.
+ * THE PEN'S OWN NUMBERS, in CSS px, as `packages/wobo/src/board/geometry.ts` publishes them: the
+ * `circle` case pads its subject by 9, `loopAround` will not draw a loop under 12 by 10 (a hand's
+ * smallest on a card) and grows it about 3 percent as it closes.
+ *
+ * They live here because they are PIXELS and this frame is UNITS, and that difference is the whole
+ * of the defect below: a stretch stated as a fraction of the frame buys a different picture at
+ * every width. The drawing does not reimplement the pen — it only needs to know how much glass the
+ * ring will ask for, to decide how much of the side it can honestly offer.
+ *
+ * `wobble` is the hand: the loop measured on the arrival card sits a fraction of a pixel outside
+ * the arithmetic below, because `penStroke` wobbles. It is carried so a solved stretch measures at
+ * or over `BOARD_AIR_PX` on a real screen rather than just under it — and it is 0.8, the value at
+ * which the solve returns the 390 stretch UNCHANGED, so this rule buys its width at 1440 without
+ * spending a tenth of a pixel of the air that was measured and blessed at 390.
  */
-export function gripOf(side: {
+const PEN = { pad: 9, minRx: 12, minRy: 10, grow: 1.03, wobble: 0.8 } as const;
+
+interface SideMark {
   x1: number;
   y1: number;
   x2: number;
   y2: number;
   grip?: number;
-}): { x1: number; y1: number; x2: number; y2: number } {
-  const g = Math.min(Math.max(side.grip ?? 1, 0), 1);
-  const lo = (1 - g) / 2;
+  at?: number;
+  room?: [number, number, number, number][];
+}
+
+/** A box in the frame's units. */
+interface FrameBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** The stretch of the side for one grip fraction, as a box in the frame's units. */
+function gripBox(side: SideMark, g: number): FrameBox {
+  const half = g / 2;
+  const at = Math.min(Math.max(side.at ?? 0.5, half), 1 - half);
+  const dx = side.x2 - side.x1;
+  const dy = side.y2 - side.y1;
+  const x1 = side.x1 + dx * (at - half);
+  const y1 = side.y1 + dy * (at - half);
+  const x2 = side.x1 + dx * (at + half);
+  const y2 = side.y1 + dy * (at + half);
+  return {
+    x: Math.min(x1, x2),
+    y: Math.min(y1, y2),
+    w: Math.abs(x2 - x1),
+    h: Math.abs(y2 - y1),
+  };
+}
+
+/** The shortest distance between two boxes, in the frame's units; negative when they overlap. */
+function boxGap(a: FrameBox, b: FrameBox): number {
+  const dx = Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));
+  const dy = Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h));
+  return dx >= 0 && dy >= 0 ? Math.hypot(dx, dy) : Math.max(dx, dy);
+}
+
+/**
+ * THE GLASS THE PEN'S RING WILL ASK FOR, around the stretch of a side, in the frame's units at a
+ * measured frame scale (`scale` px per unit). This is `geometryOf`'s `circle` case and `loopAround`
+ * read back in this frame's units, plus the hand's own `PEN.wobble`.
+ */
+export function ringOnGrip(side: SideMark, scale?: number): FrameBox {
+  const k = Number.isFinite(scale) && (scale as number) > 0 ? (scale as number) : 1;
+  return ringOnBox(gripBox(side, gripFraction(side, scale)), k);
+}
+
+/** The same loop, around a stretch already chosen. */
+function ringOnBox(box: FrameBox, k: number): FrameBox {
+  const pad = (PEN.pad + PEN.wobble) / k;
+  const rx = Math.max(box.w / 2 + pad, (PEN.minRx + PEN.wobble) / k) * PEN.grow;
+  const ry = Math.max(box.h / 2 + pad, (PEN.minRy + PEN.wobble) / k) * PEN.grow;
+  const cx = box.x + box.w / 2;
+  const cy = box.y + box.h / 2;
+  return { x: cx - rx, y: cy - ry, w: rx * 2, h: ry * 2 };
+}
+
+/** The air, in CSS px, between the ring a grip of `g` would earn and the nearest declared room. */
+function airOf(side: SideMark, g: number, k: number): number {
+  const ring = ringOnBox(gripBox(side, g), k);
+  let air = Number.POSITIVE_INFINITY;
+  for (const [x, y, w, h] of side.room ?? []) air = Math.min(air, boxGap(ring, { x, y, w, h }) * k);
+  return air;
+}
+
+/**
+ * HOW MUCH OF THE SIDE THE MARK HONESTLY GETS, at the width it is drawn at.
+ *
+ * `grip` is the floor: the fraction measured on a real 390 screen, which a narrower frame never
+ * goes under. Above it the stretch is SOLVED — the widest one whose ring still keeps
+ * `BOARD_AIR_PX` from every piece of ink the side declared as its neighbour. The air only ever
+ * falls as the stretch grows (the ring grows both ways from a fixed centre), so a bisection finds
+ * the edge exactly.
+ *
+ * Why it is solved and not swept: the pen's pad, its smallest loop and the board's air are all
+ * PIXELS, and they do not scale with the frame. Measured on the arrival card, one fraction for
+ * both widths left the ring 8.3 px off c² at 390 and 22.1 px off it at 1440 — the same loop with
+ * room for twice itself going spare at the wide width, covering 0.45 of the hypotenuse at 390 and
+ * 0.32 of it at 1440.
+ */
+function gripFraction(side: SideMark, scale?: number): number {
+  const floor = Math.min(Math.max(side.grip ?? 1, 0), 1);
+  const k = Number.isFinite(scale) && (scale as number) > 0 ? (scale as number) : 0;
+  if (!side.room?.length || k <= 0 || floor >= 1) return floor;
+  if (airOf(side, 1, k) >= BOARD_AIR_PX) return 1;
+  if (airOf(side, floor, k) < BOARD_AIR_PX) return floor;
+  let lo = floor;
+  let hi = 1;
+  for (let i = 0; i < 28; i++) {
+    const mid = (lo + hi) / 2;
+    if (airOf(side, mid, k) >= BOARD_AIR_PX) lo = mid;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/**
+ * THE STRETCH OF A SIDE A MARK LANDS ON, in the frame's units: `grip` of the side's length, centred
+ * `at` along it (the midpoint unless the drawing says otherwise), and more than `grip` when the
+ * frame is wide enough to pay for it (see `gripFraction`). A side with no grip is all of itself.
+ * The centre is clamped so the stretch never runs off either end: every point it returns is a point
+ * of the side, which is what lets it be declared as the side's own place on the glass.
+ */
+export function gripOf(
+  side: SideMark,
+  scale?: number,
+): { x1: number; y1: number; x2: number; y2: number } {
+  const g = gripFraction(side, scale);
+  const half = g / 2;
+  const at = Math.min(Math.max(side.at ?? 0.5, half), 1 - half);
   const dx = side.x2 - side.x1;
   const dy = side.y2 - side.y1;
   return {
-    x1: side.x1 + dx * lo,
-    y1: side.y1 + dy * lo,
-    x2: side.x1 + dx * (1 - lo),
-    y2: side.y1 + dy * (1 - lo),
+    x1: side.x1 + dx * (at - half),
+    y1: side.y1 + dy * (at - half),
+    x2: side.x1 + dx * (at + half),
+    y2: side.y1 + dy * (at + half),
   };
 }
 
@@ -371,7 +584,7 @@ function Drawing({ art, reduced }: { art: SubjectArt; reduced: boolean }) {
           // the glass reader measures the side's own box and Wobo can ring it by name — and it is
           // laid over the GRIP, the stretch of the side a mark lands on, because a box around the
           // whole of a corner-to-corner diagonal is the figure's own box (see `Mark`, `grip`).
-          const grip = gripOf(mark);
+          const grip = gripOf(mark, scale);
           return (
             <line
               key={key}

@@ -91,11 +91,19 @@ button.db-entry:focus-visible{outline:3px solid var(--pig);outline-offset:2px}
      is the same door as Another photo), the duplicate reading and the tag go with them, and the
      photo is sized against the PANE rather than the viewport: a little over half of it, and never
      so much that the caption loses a line. Measured at 390x844 after: the page is 250x333 where it
-     was 165x219, a row is 13.3 px where it was 8.8, the cross is 12.3x12.3 where it was 9.2x9.2,
-     and the card under it is 177 px, in which a five line caption of 124 px ends 41 px clear of
-     its own foot. On a shorter phone the reserve binds before the share does and the sentence
-     wins, which is the right way round, and the 26vh floor means no screen ever gets LESS page
-     than it had before this rule existed.
+     was 165x219, a row is 13.3 px where it was 8.8, and the card under it is 177 px, in which a
+     five line caption of 124 px ends 41 px clear of its own foot. On a shorter phone the reserve
+     binds before the share does and the sentence wins, which is the right way round, and the 26vh
+     floor means no screen ever gets LESS page than it had before this rule existed.
+     AND THE SIZE OF A MARK IS NOT THIS RULE'S DOING (the adversary, wave 61 re-judge). This block
+     once claimed the cross came out 12.3 px because the page got the room. It did not. On that
+     one fixture the rows happened to be 13.3 px and the pen drew nine tenths of a row; on the
+     next read of the same photograph the rows were 6 px and the same cross was 9 px, and on real
+     screens it measured 9.25 x 9.23 px at 390 in both themes AND at 1440 — the pen's own floor of
+     three nibs, flat, nothing to do with any width here. The floor is now twelve pixels and it
+     lives where it belongs, in the pen (packages/wobo board geometry, `cross`, MARK_FLOOR_PX),
+     capped by the row's band. What THIS rule owns is the page and the sentence: 250x333 of photo
+     and a caption that ends whole. Do not read a legible mark out of it again.
      Everything here is the phone's; the laptop keeps the layout it was already judged a 4 on, and
      an engine with no `:has` keeps the same layout the phone had before. */
   .db-grid:has(.db-said){gap:10px}

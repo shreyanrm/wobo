@@ -52,22 +52,22 @@ import {
   viewportToBoard,
 } from './anchors';
 import {
+  NIB_PX as GEOMETRY_NIB_PX,
   geometryOf,
   inkBoxOf,
   MIN_TYPE_PX,
-  NIB_PX as GEOMETRY_NIB_PX,
   type ObjectGeometry,
   seeksRoom,
-  tallestGlyphUnits,
   TYPE_AIM,
+  tallestGlyphUnits,
 } from './geometry';
 import { HAND_MASK_FACTOR, type HandFont, handFont, loadHandFont } from './handwriting';
 import {
   autoCameraTarget,
   blocksLayout,
+  boardArea,
   CAMERA_FILL,
   CAMERA_FILL_MAX,
-  boardArea,
   type Camera,
   cameraArrived,
   contentBounds,
@@ -636,8 +636,11 @@ interface AnchorHolder {
 
 /** Every object id whose box this object's geometry reads. */
 function anchorObjectId(a: unknown): string | null {
-  return a && typeof a === 'object' && 'object' in a && typeof (a as { object: unknown }).object === 'string'
-    ? ((a as { object: string }).object)
+  return a &&
+    typeof a === 'object' &&
+    'object' in a &&
+    typeof (a as { object: unknown }).object === 'string'
+    ? (a as { object: string }).object
     : null;
 }
 
@@ -1000,7 +1003,6 @@ export function smallestTypePx(
   return smallest * k1 * zoom;
 }
 
-
 /**
  * HOW BIG A BOARD UNIT ACTUALLY IS ON THE GLASS, under the camera this board would be fitted with.
  *
@@ -1126,11 +1128,41 @@ export interface Rung {
   gapPx: number;
 }
 
+/**
+ * A RUNG'S TWO NUMBERS ARE NOT STABLE IN THE LAST BIT, AND THAT IS A DEFECT NOBODY HAS CLOSED
+ * (named 2026-09-15 by the closer who owns the walk; not this file's to fix, and not deferred by
+ * being named).
+ *
+ * Measured, not argued. `geometry.ts`'s `noteShape` was changed to measure a phrase's ink once and
+ * divide the size out rather than measure it at every size asked. The two answers agree to within
+ * ONE PART IN 1e16 — audited over a thousand real calls on the real boards, the largest
+ * disagreement was 4e-16, the last bit of a double. On the lens at 390 that last bit moved the
+ * settled `glassScale` from 0.5393 to 0.3533 and the settled `gapPx` from 22.3 px to 61.3 px, and
+ * across the board craft suites it was the difference between 110 passing and 8 failing, and 92
+ * and 26.
+ *
+ * SO TWO THINGS FOLLOW, AND BOTH ARE OWED AN ANSWER BY WHOEVER OWNS THE SOLVER. First, a table of
+ * settled scalars copied out of one run on one machine is not a law a lab can hold anyone to: a
+ * different CPU, a different Bun, or an arithmetic reordering anywhere under `lay` can move it, and
+ * `ladder.test.ts` is right to check the exit against `climbAll` on whatever boards the tree has
+ * rather than against numbers. Second, and worse, the exit below reads the first rung and decides
+ * on it; a reading a single bit can overturn is a thin thing to end a climb on. The cause is a
+ * grader whose margins are finer than the quantities it compares — the lens chose between rungs on
+ * 0.01 px of room — and the fix is in the grading, not here.
+ */
 export function settleBoardScales(
   lay: (typeScale: number, glassScale: number) => readonly Built[],
   frame: BoardFrame,
   autoCamera: boolean,
   fill: number = CAMERA_FILL,
+  /**
+   * `climbAll` walks every rung even where the climb would end, which is the ladder as it was
+   * before the exit below existed. It is the reference the exit is held against — `ladder.test.ts`
+   * asks for both answers on every board and they must be the same rung — so that the proof is a
+   * thing the lab RUNS on whatever boards it has, rather than a row of numbers copied out of a run
+   * that happened once on one tree. Nothing in the app passes it.
+   */
+  opts?: { climbAll?: boolean },
 ): Rung {
   const rung = (k: number): Rung => {
     const glassScale = settleGlassScale((g) => lay(k, g), frame, autoCamera, fill);
@@ -1157,20 +1189,90 @@ export function settleBoardScales(
     (Number.isFinite(r.typePx) ? r.typePx : Number.POSITIVE_INFINITY) >= MIN_TYPE_PX &&
     r.gapPx <= NOTE_REACH;
   const room = (r: Rung) =>
-    Math.min(
-      (Number.isFinite(r.typePx) ? r.typePx : 99) - MIN_TYPE_PX,
-      NOTE_REACH - r.gapPx,
-    );
+    Math.min((Number.isFinite(r.typePx) ? r.typePx : 99) - MIN_TYPE_PX, NOTE_REACH - r.gapPx);
   const miss = (r: Rung) =>
     Math.max(0, MIN_TYPE_PX - (Number.isFinite(r.typePx) ? r.typePx : MIN_TYPE_PX)) * 1000 +
     Math.max(0, r.gapPx - NOTE_REACH);
 
-  const walked: Rung[] = [rung(1)];
-  if (aim(walked[0] as Rung)) return walked[0] as Rung;
-  for (const k of TYPE_LADDER) {
-    const at = rung(k);
+  /**
+   * WHERE THE CLIMB ENDS ON A BOARD THAT CANNOT BE SATISFIED (the judge, wave 61, finding 1).
+   *
+   * The ladder's one instrument is a BIGGER HAND. So a rung that already writes past the type aim
+   * and is still past the reach LAW — not short of its aim, past the law — has named a failure the
+   * rungs above cannot touch: what is missing is room around the subject, and every rung above
+   * takes more of that room, not less. The climb ends there and the board is reported as too dense
+   * for its surface, which is the pipeline's answer to give and not the hand's.
+   *
+   * ONLY WHILE NOTHING IS LAWFUL, and that clause is the whole of its safety. Once a rung clears
+   * both laws the ladder has stopped asking whether the board can be drawn at all and started
+   * choosing between rungs that can, and that choice needs every one of them: measured, the lens at
+   * 1440 is lawful on the first rung with 1.2 px of type to spare and lawful again on the last with
+   * 4.2, and the last is the one a browser's own re-measure cannot unseat. So the lens still walks
+   * its whole ladder, and only a board with nowhere lawful to stand stops early.
+   *
+   * MEASURED, and the measurement has a date on it because the boards move. On the sixteen
+   * from-scratch boards as they stood at b281c5c — the projectile's 'greatest height' and the
+   * lens's 'magnification' with nowhere lawful to stand at any width — the full climb took 138 lays
+   * and 955 to 1,131 ms over six runs: the projectile 25 lays and 261 to 302 ms at 1440, 23 lays
+   * and 223 to 251 at 390. Its four extra rungs at 1440 read 13.69 px of type against 53.2 px of
+   * reach, 17.57 against 67.2, 18.20 against 59.8 and 17.81 against 68.5 — every one worse on the
+   * very law that was failing. With the climb ended: 118 lays and 746 to 865 ms, the projectile 10
+   * lays and 117 to 171 ms at 1440, 18 and 164 to 184 at 390. The lens does not move at all (21
+   * lays at 1440, 24 at 390, either way) because it is lawful on its first rung and the clause above
+   * forbids ending a climb that has found something lawful. Every rung all sixteen settle on, and
+   * both of the numbers each rung is judged by, identical to four decimal places.
+   *
+   * On the tree of the afternoon of 2026-09-15 the pipelines gave those two boards their room back,
+   * and with it the climb ends nowhere: all sixteen settle in 67 lays either way. The law stays
+   * because the NEXT board that cannot be satisfied would otherwise pay the same lays to learn
+   * nothing, and `ladder.test.ts` holds it against the full climb on whatever boards the tree has
+   * rather than against the numbers above.
+   */
+  /**
+   * AND THE SAME ARGUMENT ON THE OTHER LAW (the closer who owns the walk, 2026-09-15).
+   *
+   * The clause above ends the climb where the TYPE is already big enough and the REACH is broken.
+   * Its mirror is a board where the type is so far under the floor that the ladder's whole range
+   * cannot cover the distance: the biggest hand the ladder owns is `MAX_TYPE_SCALE`, so a rung
+   * reading under a `MAX_TYPE_SCALE`-th of the floor cannot be carried to it by growing the hand
+   * even if every unit of growth arrived on the glass and the camera gave nothing back. Measured on
+   * the board `ladder.test.ts` builds for this: five objects with two strays in opposite corners, so
+   * the camera fits a thousand units into a phone's plane and the writing reads 2.98 px at rung 1
+   * and 5.87 px at the top. Fifteen lays to learn what the first two say.
+   *
+   * IT IS A MARGIN AND NOT A PROOF, and the code treats it as one. Growth is not exactly the rung's
+   * factor — `typeFloorFor` may grow a phrase further inside its own cap — and the rungs are not
+   * monotone: the lens once read 12.8 px at 1.5 and 11.6 at 2, a spread of a tenth. So this only
+   * decides to go and LOOK at the top, which the branch below lays for real; the climb ends on two
+   * measurements, both of them under half the law, and a tenth is not half.
+   */
+  const spent = (r: Rung) =>
+    (r.typePx >= TYPE_FLOOR_PX && r.gapPx > NOTE_REACH) ||
+    (Number.isFinite(r.typePx) && r.typePx * MAX_TYPE_SCALE < MIN_TYPE_PX);
+
+  const rungs = [1, ...TYPE_LADDER];
+  const top = rungs.length - 1;
+  const walked: Rung[] = [];
+  for (let i = 0; i < rungs.length; i += 1) {
+    const at = rung(rungs[i] as number);
     if (aim(at)) return at;
     walked.push(at);
+    if (opts?.climbAll || !spent(at) || walked.some(lawful)) continue;
+    /**
+     * THE CLIMB ENDS — BUT NEVER WITHOUT MEASURING THE LADDER'S OWN EXTREME.
+     *
+     * The argument above says the rungs between here and the top cannot help, and it is an argument
+     * about a board, not a proof about every board: the rungs are not monotone in either law. So the
+     * last rung is laid anyway, because a board that only becomes lawful under the biggest hand the
+     * ladder has is the one case the reasoning could cost, and one lay is a cheap price for closing
+     * it. What is skipped is the middle, which is where the twenty wasted lays were.
+     */
+    if (i < top) {
+      const most = rung(rungs[top] as number);
+      if (aim(most)) return most;
+      walked.push(most);
+    }
+    break;
   }
   const legal = walked.filter(lawful);
   if (legal.length > 0)

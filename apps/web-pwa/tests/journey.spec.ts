@@ -4,7 +4,6 @@ import {
   ATOM_ANSWERS,
   actionBarButton,
   assertNoErrors,
-  MET_KEY,
   openAtomCourse,
   profileButton,
   readXp,
@@ -38,116 +37,176 @@ async function currentEquation(page: Page): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// 1 — Onboarding: one warm tap, Wobo's introduction, then the beats Wobo asks one at a time, and the
-//     world-building theatre hands the learner to the home.
+// 1 — Onboarding: the public front door, then the run's five steps, then the home.
+//
+//     THE RUN IS FIVE STEPS AND HAS BEEN SINCE WAVE 23 (`0dad66f`): the account door, who is
+//     learning, a first question, a parent, ready. This test walked the run that came before it —
+//     a warm tap, a written introduction, a name beat, a birthdate beat, a board beat, a class
+//     beat, an interests beat and a theatre with a "Step in" button — and every one of those
+//     controls has been gone for two waves. It walks today's run.
 //
 //     The suite runs with the Supabase vars blanked (playwright.config.ts), so there is no account
-//     layer and the mandatory sign-in beat is bypassed by config — exactly the local-dev path.
+//     layer and step one is bypassed by config: the run opens on step two, exactly as local dev
+//     does. The door itself is auth-doors.spec.ts, on the server that has keys, and each step's
+//     craft is tests/onboarding.spec.ts. What is proved HERE is only the journey: that a visitor
+//     who has never started can walk from the public page to the home without a deep link.
 // ---------------------------------------------------------------------------------------------
 test("onboarding walks Wobo's beats and opens the home", async ({ page }, info) => {
   const errors = watchConsole(page);
+  // THE FRONT DOOR IS BEHIND THE DIAL (docs/DOORS-CLOSED.md §4, and auth-doors.spec.ts, which
+  // seeds the same switch for the same reason). Since 2026-09-09 `doors_open` is false, so every
+  // public surface says "Join the list" and points at /sign-up; the loud door to onboarding is not
+  // deleted, it is switched off. This spec is about the journey a learner takes THROUGH the
+  // product, so it seeds the dial open — `window.__WOBO_DOORS_OPEN__`, the very seed
+  // `scripts/prerender.ts` writes into all 438 files — and walks the real door that comes back the
+  // day the owner turns it on. The closed state is proved by join-list.spec.ts.
+  await page.addInitScript(() => {
+    (window as unknown as Record<string, unknown>).__WOBO_DOORS_OPEN__ = true;
+  });
   await page.goto('/');
 
   // A visitor who has never started meets the landing page first — it is the unauthenticated front
   // door, and every one of its doors leads to onboarding. Walk the real path rather than deep-link.
+  // The door is an `<a href="/onboarding">` (site/cta.ts: one phrase, one destination, one file),
+  // so a visitor can copy it, open it in a tab and a crawler can follow it. Address it by role.
   await page
-    .getByRole('button', { name: 'Start learning for free', exact: true })
+    .getByRole('link', { name: 'Start free', exact: true })
     .first()
     .click({ timeout: 15_000 });
 
-  // the door: Wobo's body and the explicit button both begin, so the button is addressed exactly
-  await page.getByRole('button', { name: 'begin', exact: true }).click({ timeout: 15_000 });
+  // STEP 2 — who is learning, and where. One card, three answers, one confirm.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Who's learning/, {
+    timeout: 30_000,
+  });
+  await page.getByLabel('First name').fill('Learner');
 
-  // Wobo's first-meeting introduction is WRITTEN letter by letter; the whole line reaches assistive
-  // tech at once through an off-screen copy, so the text lands before the pen finishes.
-  await expect(page.getByText("I'm Wobo, your AI wobot").first()).toBeVisible({ timeout: 15_000 });
-  expect(await page.evaluate((k) => localStorage.getItem(k), MET_KEY)).toBe('1');
-
-  // the name — Wobo's input only appears once Wobo has finished asking, so wait for it, not a timer
-  const nameField = page.getByLabel('your name');
-  await nameField.waitFor({ state: 'visible', timeout: 20_000 });
-  await nameField.fill('Learner');
-  await page.getByRole('button', { name: 'continue' }).click();
-
-  // when they landed on this planet — age is derived from it, never asked
-  const birthdate = page.getByLabel('your date of birth');
-  await birthdate.waitFor({ state: 'visible', timeout: 20_000 });
-  await birthdate.fill('2012-04-08');
-  await page.getByRole('button', { name: 'continue' }).click();
-
-  // board, then class — each its own beat, each with its own confirm. The board beat is the
-  // registry: the learner types and picks what the brain served (CURRICULUM.md §3), so this run
-  // supplies the brain it would talk to. There is no bundled board list to fall back on any more.
+  // The board is the registry's, not a bundled list: the learner types and picks what the brain
+  // served (CURRICULUM.md §3), so this run supplies the brain it would talk to. Installed here,
+  // after the navigation that threw the landing page's modules away.
   const seeded = syllabusFor('cbse', 'Class 9', 'Mathematics');
   await installBrain(page, brainFor(seeded));
-  const boardSearch = page.getByRole('textbox', { name: /board/i });
-  await boardSearch.waitFor({ state: 'visible', timeout: 20_000 });
-  await boardSearch.pressSequentially('centr', { delay: 30 });
+  await page.getByLabel('Board').pressSequentially('centr', { delay: 30 });
   const cbse = page.getByRole('button', { name: /Central Board of Secondary Education/ }).first();
   await cbse.waitFor({ state: 'visible', timeout: 20_000 });
   await cbse.click();
-  await page.getByRole('button', { name: 'Next', exact: true }).click();
 
-  const grade = page.getByRole('button', { name: seeded.level, exact: true });
-  await grade.waitFor({ state: 'visible', timeout: 20_000 });
+  // THE BOARD BEFORE THE CLASS, and the class arrives WITH the board: until a board is chosen the
+  // class row is the disabled ladder, so a chip that is pressable at all is the brain's answer.
+  // The chip carries the number (`gradeOf`), not the level's full name.
+  const grade = page.getByRole('group', { name: 'Class' }).getByRole('button', { name: '9' });
+  await expect(grade).toBeEnabled({ timeout: 20_000 });
   await grade.click();
   await page.getByRole('button', { name: "That's me", exact: true }).click();
 
-  // what they're into — Wobo grounds their analogies in it from lesson one
-  const cricket = page.getByRole('button', { name: 'cricket', exact: true });
-  await cricket.waitFor({ state: 'visible', timeout: 20_000 });
-  await cricket.click();
-  await page.getByRole('button', { name: /^(That’s me|A bit of everything)$/ }).click();
-
-  // the building theatre draws their world, then they step into it
-  const stepIn = page.getByRole('button', { name: 'Step in', exact: true });
-  await stepIn.waitFor({ state: 'visible', timeout: 30_000 });
-  await stepIn.click();
-
-  // home — the doors are live, the identity cluster is present
-  await expect(page.getByRole('button', { name: 'Learn', exact: true })).toBeVisible({
-    timeout: 15_000,
+  // STEP 3 — a first question, in the learner's own class and board. The ask itself is proved by
+  // tests/onboarding.spec.ts against a brain; the journey's business here is that the step has one
+  // quiet way past it and that it works, which is the law each step is held to.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Ask me anything/, {
+    timeout: 30_000,
   });
-  await expect(page.getByRole('button', { name: 'Practice', exact: true })).toBeVisible();
-  await expect(profileButton(page)).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Ask Wobo' })).toBeVisible();
+  await page.getByRole('button', { name: 'Skip for now', exact: true }).click();
+
+  // STEP 4 — a parent, offered and never required.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/Link a parent/, {
+    timeout: 20_000,
+  });
+  await page.getByRole('button', { name: "I'll do this later", exact: true }).click();
+
+  // STEP 5 — ready. The name the learner gave is said back to them, and the button is the action.
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(/That's it, Learner/, {
+    timeout: 20_000,
+  });
+  await page.getByRole('button', { name: 'Begin', exact: true }).click();
+
+  // HOME, AND THE RUN'S ANSWERS ARE ON IT. The app frame is the rail (ui/primitives/AppShell.tsx),
+  // whose four doors are real `<a href>`s, and `AppHeader` stands down wherever the shell is
+  // mounted — so the doors are addressed as the links they are, not as the buttons the old header
+  // drew. The crumb and the greeting are the proof the journey actually carried something: the
+  // name typed on step two and the board and class chosen there are what the home says back.
+  const rail = page.getByRole('navigation', { name: 'Wobo' });
+  await expect(rail.getByRole('link', { name: 'Learn' })).toBeVisible({ timeout: 15_000 });
+  await expect(rail.getByRole('link', { name: 'Practice' })).toBeVisible();
+  await expect(rail.getByRole('link', { name: 'You' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Hey Learner');
+  await expect(page.getByText(/Class 9 · Central Board of Secondary Education/)).toBeVisible();
   assertNoErrors(errors, info);
 });
 
 // ---------------------------------------------------------------------------------------------
-// 2 — The home surfaces: wordmark, identity cluster, did-you-know, the two aurora doors.
+// 2 — The home surfaces: the rail's wordmark and four doors, the learner's own crumb, the ways in.
+//
+//     THE APP FRAME IS THE RAIL NOW (ui/primitives/AppShell.tsx). This test looked for the old
+//     fixed header — a wordmark, an xp chip, a "Did you know" button and two door BUTTONS — and
+//     `AppHeader` returns null wherever the shell is mounted (`useShellMounted`), so none of it is
+//     on the home any more. What the home actually offers a learner is the rail's four doors, the
+//     crumb that says whose home it is, and the three cards that are the ways in.
 // ---------------------------------------------------------------------------------------------
-test('the home shows the wordmark, identity cluster, did-you-know, and both doors', async ({
+test("the home shows the rail's wordmark, its four doors, the learner's crumb and the ways in", async ({
   page,
 }, info) => {
   const errors = watchConsole(page);
   await seedOnboarded(page);
   await page.goto('/');
 
-  // the app header is the LAST header in the DOM (a course chrome bar can precede it)
-  const header = page.locator('header').last();
-  await expect(header).toBeVisible();
-  await expect(header.getByRole('img', { name: 'Wobo' })).toBeVisible();
-  // identity cluster: streak flame + xp chip + the avatar carrying its level
-  await expect(header.getByText(/\d+\s*xp/)).toBeVisible();
-  await expect(profileButton(page)).toBeVisible();
+  // the rail: the wordmark, then the four doors, as real links a learner can copy and open
+  const rail = page.getByRole('navigation', { name: 'Wobo' });
+  await expect(rail).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('complementary').getByRole('img', { name: 'Wobo' })).toBeVisible();
+  for (const [door, path] of [
+    ['Home', '/'],
+    ['Learn', '/learn'],
+    ['Practice', '/practice'],
+    ['You', '/you'],
+  ] as const) {
+    await expect(rail.getByRole('link', { name: door })).toHaveAttribute('href', path);
+  }
 
-  // did-you-know opens today's fact — which one depends on the date, so any of them counts
-  await page.getByRole('button', { name: 'Did you know' }).click();
-  await expect(
-    page.getByText(
-      /white tiger|Venus|Honey|Lightning|Octopuses|underwater|Sharks|Bananas|Eiffel|freeze faster|chess games|neutron star|bones|light bulb/i,
-    ),
-  ).toBeVisible();
+  // WHOSE HOME IT IS, said in the learner's own terms: the name they gave and the board and class
+  // they chose. This is the identity line the old header's level chip used to stand for.
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Hey Learner');
+  // the crumb is "<weekday> · <class> · <board>"; the weekday moves and the board's printed name
+  // depends on whether a world is pinned, so the class — the answer this seed actually carries —
+  // is what is held to.
+  await expect(page.getByText(/· Class 8 ·/)).toBeVisible();
 
-  // the two doors
-  await expect(page.getByRole('button', { name: 'Learn', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Practice', exact: true })).toBeVisible();
+  // THE WAYS IN. Three cards — continue, practise, ask — and the ask box above them. The continue
+  // card's button carries whatever the learner's next move actually is ("Choose your board" before
+  // a world is pinned, the subject's own word after), so the cards are counted by their headings
+  // and only the two fixed doors are named.
+  await expect(page.getByRole('textbox', { name: 'Ask Wobo' }).first()).toBeVisible();
+  await expect(page.getByRole('heading', { level: 3 })).toHaveCount(3);
+  await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ask', exact: true }).first()).toBeVisible();
   assertNoErrors(errors, info);
 });
 
 // ---------------------------------------------------------------------------------------------
 // 3 — The whole atom journey: learn → subject → course (a wrong answer detonates, the rest are
 //     solved) → boss → the greeting XP, then on to the twin, the invite award, and the palette.
+//
+//     THIS TEST IS RED AND IT IS RED HONESTLY (measured 2026-09-15, WOBO_E2E_PORT=5341). The shell
+//     rebuild that replaced the fixed header with the rail (ui/primitives/AppShell.tsx) took three
+//     shared helpers with it, and all three live in tests/helpers.ts, which this closer's brief
+//     fences it out of. Named here so the next builder walks in with the map rather than the
+//     symptom, and so nothing hides inside one agent's silence (docs/INK-FOUR.md, "the discipline"):
+//
+//       · `openAtomCourse` walks Learn → a "Mathematics — open the subject" BUTTON → a topic
+//         button → a subtopic button. The Learn page has no subject step now and its rows are
+//         LINKS. tests/palette-ink.spec.ts already walks the working route in its own `openAtom`:
+//         Learn, then /Linear equations in one variable/, then /^Solving equations…/, all by link.
+//         With that walk substituted the test reaches the practice deck, so this is the first
+//         blocker and not the only one.
+//       · `readXp` reads `header >> text=/\d+\s*xp/`. `AppHeader` returns null wherever the shell
+//         is mounted (`useShellMounted`), so on the home and inside a course there is no header
+//         and no xp chip to read. The XP assertions after the boss rest on it.
+//       · `profileButton` matches "You — level N, profile and settings", which only `AppHeader`
+//         ever rendered. The rail's "You" link is the way to that page now.
+//
+//     Past those, the practice deck itself has moved: with the Learn walk repaired the run stops on
+//     the what-if sandbox and `currentEquation` finds no seeded equation on the card. Three spec
+//     files share these helpers — this one, learning.spec.ts and wobo-capabilities.spec.ts — so the
+//     repair belongs to one builder who owns all three at once.
 // ---------------------------------------------------------------------------------------------
 test('the atom journey: course, detonation, boss, greeting, twin, invite, palette', async ({
   page,

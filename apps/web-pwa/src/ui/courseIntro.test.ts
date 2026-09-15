@@ -17,8 +17,10 @@ import {
   ART_VIEWBOX,
   artForSubject,
   artForTopic,
+  BOARD_AIR_PX,
   gripOf,
   inkWidth,
+  ringOnGrip,
   SUBJECT_ART,
   type SubjectArtKey,
 } from './courseIntro';
@@ -234,10 +236,28 @@ describe('the stretch of the hypotenuse a mark lands on', () => {
     [106, 124],
     [46, 79],
   ];
+  /** 390 puts the 200-unit frame on the glass at 1.19 px per unit — measured, both themes. */
+  const K390 = 238 / ART_FRAME_W;
+  /** The air two marks keep from each other on the glass, in CSS px (board/geometry.ts). */
+  const LABEL_GAP_PX = 8;
+  /**
+   * The two marks nearest the side, in frame units. The right angle is its own path, `M46 112 h12
+   * v12`. c² is a 22-unit glyph whose box no arithmetic here can know, so it is the box the glass
+   * reader measured on the card at 390 — [178,325,22,33] in viewport px — carried back into frame
+   * units; it is the same box at 1440, because the drawing is one frame scaled whole.
+   */
+  const NEIGHBOURS = {
+    'right angle': { x: 46, y: 112, w: 12, h: 12 },
+    'c²': { x: (178 - 76) / K390, y: (325 - 255) / K390, w: 22 / K390, h: 33 / K390 },
+  };
+  /** The shortest distance between two boxes, as the lab measures it; negative when they overlap. */
+  const gap = (a: { x: number; y: number; w: number; h: number }, b: typeof a): number => {
+    const dx = Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));
+    const dy = Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h));
+    return dx >= 0 && dy >= 0 ? Math.hypot(dx, dy) : Math.max(dx, dy);
+  };
 
-  it('is on the side, centred on its midpoint', () => {
-    expect(grip.x1 + (grip.x2 - grip.x1) / 2).toBeCloseTo((side.x1 + side.x2) / 2, 6);
-    expect(grip.y1 + (grip.y2 - grip.y1) / 2).toBeCloseTo((side.y1 + side.y2) / 2, 6);
+  it('is a stretch of the side itself, inside both of its ends', () => {
     // every point of the grip is a point of the side: same direction, inside its ends
     const t = (px: number) => (px - side.x1) / (side.x2 - side.x1);
     for (const p of [
@@ -249,6 +269,24 @@ describe('the stretch of the hypotenuse a mark lands on', () => {
       expect(at).toBeLessThan(1);
       expect(side.y1 + (side.y2 - side.y1) * at).toBeCloseTo(p[1], 6);
     }
+    // and it is centred where the drawing says, to the fraction
+    expect(t(grip.x1 + (grip.x2 - grip.x1) / 2)).toBeCloseTo(side.at ?? 0.5, 6);
+  });
+
+  it('never runs off an end, whatever a drawing asks for', () => {
+    const ends = (at: number, g: number) => {
+      const got = gripOf({ x1: 0, y1: 0, x2: 100, y2: 0, grip: g, at });
+      return [got.x1, got.x2];
+    };
+    const isAt = (got: number[], want: number[]) => {
+      expect(got[0]).toBeCloseTo(want[0] as number, 6);
+      expect(got[1]).toBeCloseTo(want[1] as number, 6);
+    };
+    isAt(ends(0, 0.4), [0, 40]);
+    isAt(ends(1, 0.4), [60, 100]);
+    isAt(ends(-5, 0.4), [0, 40]);
+    // a side with no grip is still all of itself
+    isAt(ends(0.5, 1), [0, 100]);
   });
 
   it('holds no corner of the triangle, so a ring on it is not a ring on the figure', () => {
@@ -267,9 +305,46 @@ describe('the stretch of the hypotenuse a mark lands on', () => {
   it('and is still a box the glass can measure at the narrowest width it is drawn at', () => {
     // 390 puts the frame on the glass at 1.19 px per unit (measured); the reader drops a part
     // under three pixels in either direction (glass/read.ts, MIN_PX).
-    const k = 1.19;
-    expect(box.w * k).toBeGreaterThan(3);
-    expect(box.h * k).toBeGreaterThan(3);
+    expect(box.w * K390).toBeGreaterThan(3);
+    expect(box.h * K390).toBeGreaterThan(3);
+  });
+
+  /**
+   * AND THE RING THE PEN PAINTS ON IT KEEPS THE BOARD'S OWN AIR FROM EVERY OTHER MARK (the judge,
+   * wave 62: "a 26 px loop ... 7 px from the right-angle tick"; INK-FOUR craft, "a ring that fits
+   * its subject with even padding").
+   *
+   * The grip is not the ring. The pen pads the box by 9 px and will not draw a loop smaller than
+   * its own hand (`loopAround`, board/geometry.ts: rx at least 12 px, ry at least 10, and about 3
+   * percent of overshoot as the loop closes), so on this figure the ring is thirty-odd pixels
+   * whatever the grip is, and where it lands decides what it crowds. Wave 60's middle tenth put it
+   * under c², at 5.3 px; this is the same arithmetic, before a browser is opened.
+   */
+  it('leaves the board’s own air between the ring and every other mark, at 390', () => {
+    const pad = 9 / K390;
+    const rx = Math.max(box.w / 2 + pad, 12 / K390) * 1.03;
+    const ry = Math.max(box.h / 2 + pad, 10 / K390) * 1.03;
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+    const ring = { x: cx - rx, y: cy - ry, w: rx * 2, h: ry * 2 };
+    for (const [name, other] of Object.entries(NEIGHBOURS)) {
+      expect(gap(ring, other) * K390, name).toBeGreaterThanOrEqual(LABEL_GAP_PX);
+    }
+    // the legs are lines, not boxes: leg A-B along y = 124, leg A-C along x = 46
+    expect((124 - (ring.y + ring.h)) * K390, 'leg A-B').toBeGreaterThanOrEqual(LABEL_GAP_PX);
+    expect((ring.x - 46) * K390, 'leg A-C').toBeGreaterThanOrEqual(LABEL_GAP_PX);
+  });
+
+  it('and no corner of the triangle is inside that ring either', () => {
+    const pad = 9 / K390;
+    const rx = Math.max(box.w / 2 + pad, 12 / K390) * 1.03;
+    const ry = Math.max(box.h / 2 + pad, 10 / K390) * 1.03;
+    const cx = box.x + box.w / 2;
+    const cy = box.y + box.h / 2;
+    for (const [x, y] of CORNERS) {
+      const held = Math.abs(x - cx) <= rx && Math.abs(y - cy) <= ry;
+      expect(held, `corner ${x},${y}`).toBe(false);
+    }
   });
 });
 
@@ -303,6 +378,109 @@ describe('the ink is in screen pixels', () => {
     for (const k of [0, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(inkWidth('ink', k)).toBe(ART_INK);
       expect(inkWidth('accent', k)).toBe(ART_INK);
+    }
+  });
+});
+
+/**
+ * AND THE STRETCH IS STATED IN THE BOARD'S OWN PIXELS, NOT IN THE FRAME'S UNITS (the closer, wave
+ * 62; INK-FOUR craft, "a ring that fits its subject with even padding").
+ *
+ * `grip` was one fraction of the side for every width, swept by hand at 390. But the pen's numbers
+ * are PIXELS — 9 px of pad, a smallest loop of 12 by 10, the board's 8 px of air — and pixels do
+ * not scale with the frame. So the same fraction bought two different pictures: measured on the
+ * arrival card, the ring stood 8.3 px off c² at 390 and 22.1 px off it at 1440, and covered 0.45
+ * of the hypotenuse at 390 and only 0.32 of it at 1440. At the wide width the loop was a small
+ * ring floating in an empty stretch of side, with room for twice itself going spare.
+ *
+ * The stretch is therefore SOLVED at the width it is drawn at: the widest one whose ring still
+ * keeps the board's air from every piece of ink the side declares as its neighbour (`room`), with
+ * the declared `grip` as a floor so a narrow frame never shrinks below the value measured on a
+ * real screen. The pen's model here is board/geometry.ts's own — the `circle` case pads by 9 and
+ * `loopAround` floors the loop at 12 by 10 and grows it 3 percent as it closes.
+ */
+describe('the stretch is solved in the board’s pixels, at the width it is drawn at', () => {
+  const marks = SUBJECT_ART.mathematics.marks;
+  const side = marks.find((m) => m.part === 'hypotenuse');
+  if (side?.el !== 'side') throw new Error('no side');
+  /** The frame on the glass: 238 px wide at 390, 420 px at 1440 (measured, both themes). */
+  const K390 = 238 / ART_FRAME_W;
+  const K1440 = 420 / ART_FRAME_W;
+  const len = Math.hypot(side.x2 - side.x1, side.y2 - side.y1);
+  const covers = (k: number) => {
+    const g = gripOf(side, k);
+    return Math.hypot(g.x2 - g.x1, g.y2 - g.y1) / len;
+  };
+  const gap = (a: { x: number; y: number; w: number; h: number }, b: typeof a): number => {
+    const dx = Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));
+    const dy = Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h));
+    return dx >= 0 && dy >= 0 ? Math.hypot(dx, dy) : Math.max(dx, dy);
+  };
+
+  it('declares the ink its ring must keep the board’s air from', () => {
+    expect(side.room?.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('is exactly the grip measured on a real 390 screen, so 390 is not spent for 1440', () => {
+    expect(covers(K390)).toBeCloseTo(side.grip as number, 6);
+  });
+
+  it('and grows with the frame, because the pen’s pad does not', () => {
+    expect(covers(K1440)).toBeGreaterThan((side.grip as number) * 2);
+  });
+
+  it('never shrinks below the declared grip, however narrow the frame', () => {
+    for (const k of [0.2, 0.5, 1, K390]) expect(covers(k)).toBeGreaterThanOrEqual(side.grip as number);
+  });
+
+  it('and is exactly the declared grip when nobody has measured the frame yet', () => {
+    for (const k of [undefined, 0, Number.NaN, Number.POSITIVE_INFINITY])
+      expect(covers(k as number)).toBeCloseTo(side.grip as number, 6);
+  });
+
+  it('keeps the board’s air from every neighbour at every width it is drawn at', () => {
+    for (let px = 320; px <= 1600; px += 20) {
+      // The card holds the drawing to 420 px, and puts 24 px of padding each side of it at 390.
+      const k = Math.min(420, px - 2 * 24 - 2 * 16) / ART_FRAME_W;
+      if (k <= 0) continue;
+      const ring = ringOnGrip(side, k);
+      for (const [x, y, w, h] of side.room ?? []) {
+        expect(gap(ring, { x, y, w, h }) * k, `${px}px: room ${x},${y}`).toBeGreaterThanOrEqual(
+          BOARD_AIR_PX,
+        );
+      }
+    }
+  });
+
+  it('and still holds no corner of the triangle, at any width', () => {
+    const CORNERS: [number, number][] = [
+      [46, 124],
+      [106, 124],
+      [46, 79],
+    ];
+    for (const k of [K390, (K390 + K1440) / 2, K1440]) {
+      const ring = ringOnGrip(side, k);
+      for (const [x, y] of CORNERS) {
+        const held =
+          x >= ring.x && x <= ring.x + ring.w && y >= ring.y && y <= ring.y + ring.h;
+        expect(held, `corner ${x},${y} at k=${k}`).toBe(false);
+      }
+    }
+  });
+
+  it('and every point of it is still a point of the side, inside both ends', () => {
+    for (const k of [K390, K1440, 4]) {
+      const g = gripOf(side, k);
+      const t = (px: number) => (px - side.x1) / (side.x2 - side.x1);
+      for (const p of [
+        [g.x1, g.y1],
+        [g.x2, g.y2],
+      ] as [number, number][]) {
+        const at = t(p[0]);
+        expect(at).toBeGreaterThanOrEqual(0);
+        expect(at).toBeLessThanOrEqual(1);
+        expect(side.y1 + (side.y2 - side.y1) * at).toBeCloseTo(p[1], 6);
+      }
     }
   });
 });

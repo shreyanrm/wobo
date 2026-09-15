@@ -195,7 +195,17 @@ def _projectile(intent: dict[str, Any], draft: Draft) -> Draft:
     # arrowhead at the right-hand end, and clipped there on the live board at 390 (the adversary,
     # 2026-09-09, finding 9). The metres are named where they are measured — on the range, below —
     # and the axis says what it is.
-    draft.add(
+    #
+    # THE WORD GOES THROUGH THE PLACER, LIKE EVERY OTHER WORD ON THE BOARD (wave 61). An `axis`
+    # writes its own `label` where `geometry.ts` puts it — ten units past its own arrowhead — and
+    # that is the one placement on this board nobody solved. A ball lands ON the ground, so the
+    # arrowhead end of the rule is exactly where the trajectory comes back down to meet it, and
+    # the axis then carried both the crossing and a word: measured on the sixteen fixtures, the
+    # ground axis was scored as a written mark painted across a drawn stroke, 1,184 px² at 390
+    # and 704 at 1440. Handing the word to a `label` object splits the two apart — the rule is
+    # drawing and only drawing, and the word is placed by the same solver that places every
+    # other word, which is what keeps it off the path.
+    ground = draft.add(
         "axis",
         anchor=board(frame.x0, frame.y0 + frame.h),
         orientation="x",
@@ -203,13 +213,13 @@ def _projectile(intent: dict[str, Any], draft: Draft) -> Draft:
         max=round(frame.xmax, 4),
         step=round(frame.xmax / 6, 4) or 1.0,
         length=round(frame.w, 2),
-        label="ground",
         ticks=True,
         style=wobo(2),
         hint="ground",
     )
+    draft.add("label", anchor=on(ground, "right"), text="ground", style=wobo(1), hint="groundname")
     path = [frame.at(vx * (i * step), y) for (_, y), i in zip(points, range(121), strict=True)]
-    curve = draft.add("curve", anchor=board(*path[0]), points=path, style=wobo(2), hint="path")
+    draft.add("curve", anchor=board(*path[0]), points=path, style=wobo(2), hint="path")
 
     apex_point = draft.add(
         "point",
@@ -219,12 +229,42 @@ def _projectile(intent: dict[str, Any], draft: Draft) -> Draft:
     )
     # The decomposition at the apex is the whole lesson: the vertical component is gone, the
     # horizontal one never changed.
-    arrow_to(
+    across = arrow_to(
         draft,
         tip=board(*frame.at(range_closed / 2 + range_closed * 0.16, apex_closed)),
         tail=on(apex_point),
         style=accent(2),
         hint="vx",
+    )
+    # HOW HIGH IT GETS IS A LENGTH, AND A LENGTH NEEDS SOMETHING TO BE MEASURED ALONG (wave 61).
+    # The height was a number hung off the apex DOT, and the dot is what four marks were hung off:
+    # the name of the top, the across-speed, the note about the up-speed, and this. A dot is about
+    # thirty units across and the reach law is forty-six at 390, so the four of them were asking
+    # for the same small ring, and an exhaustive one-unit scan of every shape the solver may take
+    # found that 'greatest height' had ZERO lawful positions at either width — the room did not
+    # exist, at any type size, so the type ladder walked every rung it has looking for it.
+    #
+    # A teacher draws the height. The rise from the ground to the top of the arc IS the quantity,
+    # it is sixty units of subject instead of a dot, and a number written beside it is written
+    # beside the thing it measures rather than beside the thing that thing is measured FROM.
+    #
+    # It goes where a draughtsman puts a dimension: OFF the figure, at the near end of the ground,
+    # with a dashed tie across to the top of the arc saying what is being measured. Under the apex
+    # it would be a line INSIDE the arc, and an arc eighty units tall has nothing beside a line
+    # inside it but the arc: every candidate there is written across the ball's own path.
+    gauge = draft.add(
+        "line",
+        anchor=board(*frame.at(0.0, 0.0)),
+        to=board(*frame.at(0.0, apex_closed)),
+        style={**wobo(1), "dash": True},
+        hint="height",
+    )
+    draft.add(
+        "line",
+        anchor=board(*frame.at(0.0, apex_closed)),
+        to=board(*frame.at(range_closed / 2, apex_closed)),
+        style={**faint(1), "dash": True},
+        hint="tie",
     )
     # THE ASK SAYS "LABEL THE APEX" AND NOTHING ON THE BOARD SAID IT. The nearest word was
     # "up-speed is zero here", 7 px high and lying over the height number (the adversary,
@@ -234,10 +274,12 @@ def _projectile(intent: dict[str, Any], draft: Draft) -> Draft:
     # THE WORDS ARE A TEACHER'S, NOT THE PIPELINE'S. "Across-speed 14.14 m/s, how high 10.20 m"
     # is honest — it is what the board says — and no teacher says it (finding 4). The quantities
     # keep their school names, which is also what makes the say worth listening to.
+    # EACH NUMBER BESIDE THE THING IT IS THE SIZE OF. The across-speed is the length of the arrow
+    # that draws it, not a property of the dot the arrow leaves from, so it hangs off the arrow.
     draft.number(
         vx,
         "board.units_agree",
-        anchor=on(apex_point, "topRight"),
+        anchor=on(across, "right"),
         unit="m/s",
         label="sideways speed",
         style=accent(2),
@@ -252,16 +294,22 @@ def _projectile(intent: dict[str, Any], draft: Draft) -> Draft:
     draft.number(
         apex_closed,
         "board.numbers_agree:apex height",
-        anchor=on(apex_point, "topLeft"),
+        anchor=on(gauge, "left"),
         unit="m",
         label="greatest height",
         style=wobo(1),
     )
     # A BARE "40.79 m" UNDER THE ARC NAMED NOTHING. A number nobody can name teaches nothing.
+    #
+    # AND THE RANGE IS MEASURED ALONG THE GROUND, not under the arc. Hung off the curve it was
+    # solved against a box that is mostly empty air — the bounding rectangle of a parabola — and
+    # it drifted: measured on the glass at 1440 it had come out at 25.3 px from the path, over
+    # the law, while the same mark at 390 was inside it. The ground rule is the thing the range
+    # runs along, and it is a line, so the number sits under the line it measures.
     draft.number(
         range_closed,
         "board.numbers_agree:range",
-        anchor=on(curve, "bottom"),
+        anchor=on(ground, "bottom"),
         unit="m",
         label="range",
         style=wobo(1),
@@ -432,7 +480,7 @@ def _ray(intent: dict[str, Any], draft: Draft) -> Draft:
     height = span * 0.22
     reach = max(height, abs(height * magnification), span * 0.3)
     frame = Frame.fit(-span, span, -reach, reach)
-    axis = draft.add(
+    draft.add(
         "line",
         anchor=board(*frame.at(-span, 0)),
         to=board(*frame.at(span, 0)),
@@ -441,7 +489,7 @@ def _ray(intent: dict[str, Any], draft: Draft) -> Draft:
     )
     # The lens is drawn in the diagram's own units, so it scales with everything else instead of
     # being a fixed 14-by-120 blob that meant one thing at one span and another at the next.
-    draft.add(
+    lens = draft.add(
         "ellipse",
         anchor=board(*frame.at(0, 0)),
         rx=round(span * 0.035 * frame.per_unit, 2),
@@ -528,20 +576,34 @@ def _ray(intent: dict[str, Any], draft: Draft) -> Draft:
         style=accent(1),
         hint="centreray",
     )
+    # UNDER THE LENS, WHICH IS THE END THE DISTANCE IS MEASURED FROM. It was under the AXIS, and
+    # the axis is the width of the whole diagram, so "bottom" was a two-hundred-unit band the
+    # solver could slide this two-hundred-unit block anywhere along — and at 390 it slid to the
+    # right-hand end and took the only room the magnification had, which left the magnification
+    # 32 px from the image it belongs to, over the law (the judge, 2026-09-15). The image distance
+    # runs from the lens to the image; the lens is one of its two ends and it is in the middle of
+    # the board, so the block is written where it belongs and the right-hand side stays free.
+    #
+    # Under the axis it was also, once, off the END of the axis, where the words ran past the
+    # right-hand edge of the panel at 390 and "cm" was cut in half. Neither is possible from here.
     draft.number(
         image,
         "cas.solution_satisfies",
-        # Under the axis, not off the end of it: at the axis's RIGHT the words ran past the
-        # right-hand edge of the panel at 390 and "cm" was cut in half.
-        anchor=on(axis, "bottom"),
+        anchor=on(lens, "bottom"),
         unit=unit,
         label="image distance",
         style=accent(2),
     )
+    # THE MAGNIFICATION IS A FACT ABOUT THE IMAGE, so it hangs off the image, under it, where the
+    # image's own name already is — two marks on one subject on one side stack, and the solver
+    # answers with whichever side of the image is actually free. Asked for the image's RIGHT it
+    # could not have that side at all: the optical axis runs through the image's foot and out
+    # past it, so every candidate beside the arrow is a candidate written across the axis, and the
+    # mark was pushed out to 23.6 px at 1440 against a law of 24 and 32.0 px at 390.
     draft.number(
         magnification,
         "board.numbers_agree:magnification",
-        anchor=on(img, "right"),
+        anchor=on(img, "bottom"),
         label="magnification",
         style=wobo(1),
     )

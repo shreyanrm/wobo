@@ -273,6 +273,31 @@ _MAX_EVENTS = 6
 _TIMELINE_Y = FIGURE[1]
 _MAX_NODES = 16
 
+#: HOW BIG ONE CELL OF A PUNNETT SQUARE IS, IN BOARD UNITS — MEASURED through the renderer and its
+#: camera at 390 and 1440, over every rung of the type ladder (see :func:`_punnett`).
+#:
+#: A cell has to hold a two-letter genotype written at the board's own smallest size
+#: (``geometry.ts``: ``MIN_WRITTEN_UNITS`` is 28, not the 22 this module asks for), leave the hand
+#: room to keep it a nib clear of four rules, and GO ON holding it when the renderer's ladder grows
+#: the writing — because the rung is the renderer's answer to a surface, and the real glass settles
+#: a rung above the lab's on a plane seventeen per cent smaller. The square was 144 units, 48 to a
+#: cell, and that is what ran 'TT' into its right rule at 1440.
+#:
+#: Measured on `Tt x Tt`, worst air from a word to any rule, at the rung the board settles on and
+#: at the ladder's top rung, with the union of the whole board beside it (the budget is
+#: :data:`FIGURE_UNION`, 347 units tall):
+#:
+#: * 48: 8.9 px at 1440 and 9.6 at 390, but 1.3 px at the top rung — under the 3 px nib. 255 tall.
+#: * 56: 9.7 and 12.4, and 1.3 px at the top rung. 282 tall.
+#: * 64: 11.3 and 14.0, and 4.1 px at the top rung, on both widths. 305 tall.
+#: * 72: 13.0 and 16.0, 4.2 px at the top. 331 tall, and the ask has nowhere left to go.
+#: * 80: 13.9 and 17.9, 4.2 px at the top. 359 tall — over the budget.
+#:
+#: So 64: the smallest cell that keeps the nib at every rung the ladder can choose. The square is
+#: 192 units, which is wider than :data:`FIGURE` because a Punnett square IS the figure — nothing
+#: hangs off it but its own title and its own ratio.
+_PUNNETT_CELL = 64.0
+
 
 def build(intent: dict[str, Any], prefix: str, ask: str = "") -> Draft:
     op = str(intent.get("op") or "")
@@ -467,9 +492,20 @@ def _food_web(intent: dict[str, Any], draft: Draft) -> Draft:
                 anchor=board(x, y),
                 w=round(node_w, 2),
                 h=round(node_h, 2),
-                title=name,
                 style=wobo(2) if level else accent(2),
                 hint="node",
+            )
+            # THE BOX IS DRAWN; THE NAME IN IT IS A MARK (wave 63). A `region` writes its own
+            # `title` twelve units in from its top-left corner, at whatever size `geometry.ts`
+            # picks, past no solver at all — so a name longer than its box ran out through the
+            # right-hand rule and no law could see it do it. The name is written inside the box
+            # it belongs to, by the hand that places every other word.
+            draft.add(
+                "label",
+                anchor=on(node, "center"),
+                text=name[:MAX_NOTE_CHARS],
+                style=wobo(1),
+                hint="name",
             )
             ids[name] = node
     for eaten, eater in edges:
@@ -544,25 +580,110 @@ def _punnett(intent: dict[str, Any], draft: Draft) -> Draft:
     # figure the chapter teaches (the evidence lab, 2026-09-09, `turns/scratch/bio-punnett-1440`).
     # The corner is empty because nothing belongs there: the gametes of one parent run along the
     # top, the other's down the side, and the four cells are what the learner fills in.
-    side = FIGURE[3] * 0.9
-    table = draft.add(
-        "table",
-        anchor=board(FIGURE_MID[0] - side / 2, FIGURE_MID[1] - side / 2),
-        rows=[["", a[0], a[1]], [b[0], "", ""], [b[1], "", ""]],
-        w=round(side, 2),
-        rowHeight=round(side / 3, 2),
+    #
+    # THE GRID IS DRAWN; EVERY WORD IN IT IS A MARK (wave 63). The gametes used to be printed by
+    # the table itself, out of its `rows` — one raw `writeText` in `geometry.ts` that never passed
+    # through the solver. That made the grid a WRITTEN object whose ink held all four genotypes, so
+    # measured on the glass every cell sat at 0.0 px of air from the thing that printed it, and no
+    # law could tell the grid from the words in it.
+    #
+    # AND A CELL IS AN OBJECT, BECAUSE A WORD CAN ONLY BE PLACED BY THE HAND THAT KNOWS HOW WIDE IT
+    # IS (the judge, wave 64: `bio-punnett-1440`, craft 3).
+    #
+    # Wave 63 drew the grid as ONE `table` and hung each word on it by a fraction pair, which
+    # `geometry.ts` resolves as a LEFT-ALIGNED WRITING ORIGIN a tenth of the grid in from the
+    # cell's left rule — a number this module computed, past the solver, with no idea how wide the
+    # hand would write. Two things make that number wrong, and both were measured:
+    #
+    # * THE TYPE IS NOT THIS MODULE'S TO CHOOSE. `geometry.ts` writes a board's smallest type at
+    #   `MIN_WRITTEN_UNITS` (28), not at the 22 asked for here, and the renderer's own ladder
+    #   multiplies every written size on a board by up to two (`TYPE_LADDER`). The pad stayed 14.4
+    #   units while the ink grew: 'TT' paints 26.1 units of ink in a 48-unit cell at the first
+    #   rung and 32.6 at the second. On the real /chat glass at 1440 the plane settled at a
+    #   120 px grid in six renders of seven, and the second T's crossbar ran into the cell's right
+    #   rule — 12.0 px of air on the left, 0.9 px on the right, 135 px2 of glyph on a 3 px rule.
+    # * THE LETTERS ARE NOT THIS MODULE'S TO CHOOSE EITHER. A genotype is whatever letter the
+    #   question names. Measured through the renderer at both widths, `Mm x Mm` — an ordinary
+    #   ask — settled at the ladder's own third and fourth rungs and painted EVERY word across a
+    #   rule: 874 px2 for 'MM' at 1440, 1,181 px2 at 390. Nothing forced it; the board did it to
+    #   itself, because 'M' is 60 per cent wider than 'T' and the pad did not know.
+    #
+    # So the pipeline stops placing the words and gives the hand what it needs to place them: a
+    # box per cell. Each cell rules its OWN top and left edge as one stroke — an L that spans
+    # exactly its own rect and reports it as its box — and the bottom and right rules, which no
+    # cell owns, close the square. Every rule is ruled exactly once, so the figure is the same
+    # eight rules and the same ink it always was; and every word in it is
+    # `{object: <its cell>, at: "center"}`, solved inside its own cell by the hand, at the size the
+    # hand actually writes, whatever the ladder does to it. Measured through the renderer at both
+    # widths, over every rung of the ladder: nothing touches a rule, nothing leaves its cell, and
+    # the worst air is 4.1 px against a 3 px nib (`punnett-cells.test.ts`). On the real glass at
+    # 1440, light, dark and reduced motion, the same 'TT' that had 0.9 px now has 13.4.
+    side = _PUNNETT_CELL * 3
+    left = FIGURE_MID[0] - side / 2
+    top = FIGURE_MID[1] - side / 2
+    grid: dict[tuple[int, int], str] = {}
+    for row in range(3):
+        for col in range(3):
+            x = left + col * _PUNNETT_CELL
+            y = top + row * _PUNNETT_CELL
+            grid[(row, col)] = draft.add(
+                "polyline",
+                anchor=board(x + _PUNNETT_CELL, y),
+                points=[
+                    [x + _PUNNETT_CELL, y],
+                    [x, y],
+                    [x, y + _PUNNETT_CELL],
+                ],
+                style=wobo(2),
+                hint="cell",
+            )
+    # The bottom and the right rules close the square: no cell owns them, so nothing else draws
+    # them. The bottom one is also what the ratio hangs off, and that is not an accident of the
+    # tiling — a caption needs a subject about as wide as itself or the hand blocks it into a
+    # column. Measured at 390 with 'dominant 3' hung on one 64-unit cell instead: two lines, 55
+    # units tall, and the board grew to 342 units against a 347 budget. Hung on the rule, which is
+    # the width of the square, it is one line at both widths.
+    bottom_rule = draft.add(
+        "line",
+        anchor=board(left, top + side),
+        to=board(left + side, top + side),
         style=wobo(2),
-        hint="square",
+        hint="rule",
     )
-    # The four cells are filled one at a time, which is how the square is taught — and they are
-    # written into the blanks the grid left for them, at the middle of each inner cell.
+    draft.add(
+        "line",
+        anchor=board(left + side, top),
+        to=board(left + side, top + side),
+        style=wobo(2),
+        hint="rule",
+    )
+    # One parent's gametes run along the top, the other's down the side. They are written before
+    # the offspring because that is the order the square is filled in.
+    for col, gamete in enumerate(a[:2], start=1):
+        draft.add(
+            "write",
+            anchor=on(grid[(0, col)], "center"),
+            text=gamete,
+            style=wobo(2),
+            hint="gamete",
+        )
+    for row, gamete in enumerate(b[:2], start=1):
+        draft.add(
+            "write",
+            anchor=on(grid[(row, 0)], "center"),
+            text=gamete,
+            style=wobo(2),
+            hint="gamete",
+        )
+    # The four cells are filled one at a time, which is how the square is taught — each into the
+    # blank the grid left for it.
     for i, cell in enumerate(cells):
         draft.add(
             "write",
-            anchor=on(table, [(1 + i % 2) / 3 + 0.10, (1 + i // 2) / 3 + 0.06]),
+            anchor=on(grid[(1 + i // 2, 1 + i % 2)], "center"),
             text=cell,
             style=accent(2),
-            hint="cell",
+            hint="genotype",
             dur=320,
         )
     # THE RATIO BELONGS TO THE WHOLE SQUARE, SO IT IS WRITTEN UNDER THE WHOLE SQUARE. "recessive 1"
@@ -572,7 +693,7 @@ def _punnett(intent: dict[str, Any], draft: Draft) -> Draft:
     draft.number(
         dominant,
         "board.numbers_agree:punnett cells",
-        anchor=on(table, "bottomLeft"),
+        anchor=on(bottom_rule, "bottomLeft"),
         decimals=0,
         label="dominant",
         style=accent(2),
@@ -580,7 +701,7 @@ def _punnett(intent: dict[str, Any], draft: Draft) -> Draft:
     draft.number(
         recessive,
         "board.numbers_agree:punnett cells",
-        anchor=on(table, "bottomRight"),
+        anchor=on(bottom_rule, "bottomRight"),
         decimals=0,
         label="recessive",
         style=wobo(2),
@@ -591,7 +712,7 @@ def _punnett(intent: dict[str, Any], draft: Draft) -> Draft:
     # square's own title.
     draft.add(
         "write",
-        anchor=on(table, "top"),
+        anchor=on(grid[(0, 1)], "top"),
         text="genotypes " + " : ".join(f"{count} {name}" for name, count in genotypes),
         check=genotype_check.name,
         style=faint(1),

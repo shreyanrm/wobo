@@ -130,7 +130,13 @@ def test_food_web_arrows_point_up_the_levels() -> None:
     # Structure, not pixels: every arrow joins two drawn nodes by object anchor, never a
     # coordinate — and it points AT the eater, which is where the energy goes.
     ids = {o["id"] for o in regions}
-    by_title = {o["title"]: o["id"] for o in regions}
+    # The box is drawn and the name in it is a mark anchored to the box (wave 63), so the name of
+    # a node is read off the label that sits in it rather than off a field on the box itself.
+    by_title = {
+        o["text"]: o["anchor"]["object"]
+        for o in draft.objects
+        if o["kind"] == "label" and o.get("anchor", {}).get("object") in ids
+    }
     for arrow in arrows:
         assert arrow["anchor"]["object"] in ids
         assert arrow["from"]["object"] in ids
@@ -154,8 +160,10 @@ def test_punnett_ratio_comes_from_the_verifier() -> None:
     draft = run_intent(
         {"pipeline": "bio_social", "op": "punnett", "parent_a": "Aa", "parent_b": "Aa"}
     )
-    cells = [o for o in draft.objects if o["kind"] == "write" and o.get("check") is None]
-    assert [o["text"] for o in cells] == ["AA", "Aa", "Aa", "aa"]
+    # The gametes head the grid and the four offspring fill it; none of them is printed by the
+    # grid itself any more (wave 63), so all eight are marks in drawing order.
+    written_in = [o for o in draft.objects if o["kind"] == "write" and o.get("check") is None]
+    assert [o["text"] for o in written_in] == ["A", "a", "A", "a", "AA", "Aa", "Aa", "aa"]
     numbers = [o for o in draft.objects if o["kind"] == "number"]
     assert [o["value"] for o in numbers] == [3.0, 1.0]
     # Both ratios, each under its own name: the phenotype numbers are labelled, and the
