@@ -21,6 +21,7 @@ export type DeskId =
   | 'promo'
   | 'alerts'
   | 'health'
+  | 'syllabus'
   | 'flag'
   | 'bug'
   | 'support'
@@ -180,6 +181,20 @@ export const DESKS: readonly Desk[] = [
     supply: {
       kind: 'live',
       from: 'ops.reports, kind=refund — the reasons in docs/legal/refund-and-cancellation.md §5',
+    },
+  },
+  {
+    id: 'syllabus',
+    name: 'Boards',
+    question:
+      'What is each board showing a learner and why, what is being read next, what refused — ' +
+      'and what has it cost?',
+    supply: {
+      kind: 'live',
+      from:
+        'GET /v1/admin/syllabus — curriculum.frameworks, versions and discovery_jobs for the ' +
+        'boards and the queue, the labels derived in curriculum/labels.py, what each run cost ' +
+        'written onto its own job by the discovery worker, and wobo_gateway.spend for the day.',
     },
   },
   {

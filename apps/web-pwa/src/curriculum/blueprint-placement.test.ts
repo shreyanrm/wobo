@@ -47,8 +47,9 @@ const {
   settlePlacement,
   unmetAssumptions,
 } = await import('./placement');
-import type { Blueprint, BlueprintModule } from './blueprint';
+
 import type { Topic } from '../data/model';
+import type { Blueprint, BlueprintModule } from './blueprint';
 
 // --- one chapter's pool, cut to what a placement needs ---------------------------------------------
 

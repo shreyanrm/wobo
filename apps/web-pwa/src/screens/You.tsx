@@ -17,7 +17,7 @@ import { adoptFramework, adoptOwnSyllabus, askDiscovery, chooseLevel } from '../
 import { useFramework, useRegistryRevision, useWorld } from '../curriculum/hooks';
 import { OwnSyllabus } from '../curriculum/OwnSyllabus';
 
-import { DiscoveryCard } from '../curriculum/StatusCard';
+import { DiscoveryCard, sharedConceptRoute } from '../curriculum/StatusCard';
 import { UpgradeCard } from '../curriculum/UpgradeCard';
 import { useRouter } from '../shell/router';
 import { eraseFromBrain, lifetimeSnapshot, queueBrainErase } from '../store/mind';
@@ -483,9 +483,12 @@ export function You() {
             onOwnSyllabus={() => setShowOwnSyllabus(true)}
           />
           {sourcing && !showOwnSyllabus && (
+            // The board they just chose is being read behind them. The designed wait says so by
+            // saying nothing (docs/BOARD-COLD-START.md §2); it used to say "I am looking for X
+            // now", which is the narration the cold start took out of the product.
             <DiscoveryCard
-              placeholder={null}
-              message={`I am looking for ${sourcing} now. I will bring it here the moment I have it.`}
+              view={null}
+              onStart={(concept) => router.navigate(sharedConceptRoute(concept))}
               onOwnSyllabus={() => setShowOwnSyllabus(true)}
             />
           )}

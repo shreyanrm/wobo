@@ -34,7 +34,9 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from typing import Any, Protocol
 
+from wobo_gateway.curriculum.discovery import ceiling
 from wobo_gateway.curriculum.discovery import search as search_stage
+from wobo_gateway.curriculum.discovery import verify as verify_stage
 from wobo_gateway.curriculum.discovery.extract import (
     CAPABILITY,
     Completion,
@@ -56,13 +58,20 @@ from wobo_gateway.curriculum.discovery.search import (
 )
 from wobo_gateway.curriculum.discovery.verify import (
     VerificationReport,
+    document_is_current,
+    document_is_plausible,
     problems_for_redraw,
+    redrawable,
     verify_extraction,
 )
 
 logger = logging.getLogger("wobo.gateway.curriculum.discovery.job")
 
 _KEY_PUNCT = re.compile(r"[^a-z0-9]+")
+
+#: How much of one candidate's verdict rides in the trail. The refusal's ``detail`` carries the
+#: whole sentence; the trail is the list a person scans down, and a paragraph per row is not one.
+_TRAIL_CHARS = 140
 
 
 class JobState(StrEnum):
@@ -105,6 +114,21 @@ _REFUSAL_LINES: dict[str, str] = {
     "no_syllabus_in_document": (
         "What I found for {what} is not the syllabus itself. " + _OWN_SYLLABUS
     ),
+    # The document IS on the board's own site under a name that says what it is, and its text
+    # layer is a legacy font we cannot match (``verify.text_layer_is_unreadable``, and Uttar
+    # Pradesh on 2026-09-15). This sentence used to be the one above it, which told a learner the
+    # opposite of what happened: their board's syllabus refused as not being a syllabus. What we
+    # may claim is only that we could not read it, and the other door.
+    "document_unreadable": (
+        "I found a document for {what} on the board's site and could not read what is written in "
+        "it. " + _OWN_SYLLABUS
+    ),
+    # The document IS the board's syllabus, and it is an old one. The learner is told the shape
+    # of that and never the year we read off the file: what they can act on is the other door.
+    "document_out_of_date": (
+        "The syllabus I can find for {what} on the board's site is an older one, not this "
+        "year's. " + _OWN_SYLLABUS
+    ),
     "checks_failed": (
         "I read a syllabus for {what}, and it did not match the document closely enough for me to "
         "trust it. " + _OWN_SYLLABUS
@@ -112,6 +136,23 @@ _REFUSAL_LINES: dict[str, str] = {
     "out_of_time": "Looking for {what} took longer than I can spend on it. " + _OWN_SYLLABUS,
     "out_of_scope": (
         "I teach school, classes four to thirteen, so {what} is outside what I can build."
+    ),
+    # The four the guard raises (``ceiling.py``): the hard stop, the two money ceilings and a
+    # board that has been left alone. None of them is the learner's fault and none of them says
+    # the word budget — what they need to know is that it is not happening now, and that the
+    # other door is open.
+    "discovery_stopped": ("I am not looking up new syllabuses at the moment. " + _OWN_SYLLABUS),
+    "day_budget_spent": (
+        "I have done as much looking as I can manage today, so {what} will have to be tomorrow. "
+        + _OWN_SYLLABUS
+    ),
+    "board_budget_spent": (
+        "I have done as much looking as I can manage today, so {what} will have to be tomorrow. "
+        + _OWN_SYLLABUS
+    ),
+    "board_resting": (
+        "I have tried this board's site more than once today and it will not open for me. "
+        + _OWN_SYLLABUS
     ),
 }
 _DEFAULT_REFUSAL = "I could not put together a syllabus for {what}. " + _OWN_SYLLABUS
@@ -125,7 +166,19 @@ SCHOOL_LEVELS = range(4, 15)
 # A refusal is what we knew that day, not a verdict for all time: a board's site was down, or the
 # syllabus had not been published yet. After this long the same learner's question is allowed to
 # cost another look. Anything sooner is served the stored refusal, so a reload is never a retry.
+#: The default. The live value is the dial ``discovery.refusal.retry_days``
+#: (``ceiling.retry_refused_after_days``), so the owner can widen the window from the console on a
+#: day when every board's host is slow, without a deploy.
 RETRY_REFUSED_AFTER_DAYS = 7
+
+#: The refusals that are facts about US on this day, never about the board or its document: the
+#: hard stop, the two money ceilings and a board being rested. They are written down like any
+#: other refusal, so the console can see them, and they are reopened the moment they are asked
+#: again — a board refused at five to midnight for a spent day must not be refused for the week
+#: that follows. The guard itself is what refuses again if the money is still gone.
+TRANSIENT_REASONS = frozenset(
+    {"discovery_stopped", "day_budget_spent", "board_budget_spent", "board_resting"}
+)
 
 
 def in_scope(request: SyllabusRequest) -> bool:
@@ -186,6 +239,16 @@ class JobRecord:
     provenance: dict[str, Any] | None = None
     report: dict[str, Any] | None = None
     status: str = "pending"
+    #: Why the refusal happened, in our words rather than the learner's: the url, the checks that
+    #: failed, the exception. It is for the console queue and the log, and :attr:`served` drops it.
+    detail: str = ""
+    #: Every candidate this run opened, the title the search gave it, and what became of it. The
+    #: refusal reason is the LAST thing that happened; a person looking at the row needs the
+    #: whole of it. Tamil Nadu refused ``not_fetchable`` on one candidate from the exam
+    #: directorate titled "SSLC Public Examination – Scheme of Examination", and the row said
+    #: only that a document would not open — which reads as a TLS fault worth retrying rather
+    #: than as a board whose syllabus is published by somebody else entirely.
+    tried: tuple[str, ...] = ()
     used_by: tuple[str, ...] = ()
     flagged: bool = False
     owner_note: str = ""
@@ -279,7 +342,7 @@ def _worth_reopening(record: JobRecord, *, force: bool = False) -> bool:
     """Only a refusal is ever reopened, and only once it has gone stale (or the owner asks)."""
     if record.state is not JobState.REFUSED:
         return False
-    if force:
+    if force or record.reason in TRANSIENT_REASONS:
         return True
     when = record.updated_at
     if not when:
@@ -290,7 +353,7 @@ def _worth_reopening(record: JobRecord, *, force: bool = False) -> bool:
         return False
     if refused_at.tzinfo is None:
         refused_at = refused_at.replace(tzinfo=UTC)
-    return (datetime.now(UTC) - refused_at) >= timedelta(days=RETRY_REFUSED_AFTER_DAYS)
+    return (datetime.now(UTC) - refused_at) >= timedelta(days=ceiling.retry_refused_after_days())
 
 
 def _reopen(record: JobRecord) -> JobRecord:
@@ -300,6 +363,11 @@ def _reopen(record: JobRecord) -> JobRecord:
     record.reason = None
     record.message = None
     record.status = "pending"
+    # The last run's evidence goes with the last run's reason. A retry that kept the trail would
+    # show a person the candidates of a run that is over beside the verdict of one that has not
+    # started, and the two would read as one.
+    record.detail = ""
+    record.tried = ()
     record.history = (*record.history, ("reopened", _now()))
     _stamp(record, JobState.QUEUED)
     return record
@@ -343,13 +411,26 @@ def _refund(subject: str | None, capability: str = CAPABILITY) -> None:
     budget_meter.refund(subject, capability)
 
 
+def refusal_line(reason: str, request: SyllabusRequest) -> str:
+    """The one line a learner reads for one refusal reason, in Wobo's voice.
+
+    Public because the worker refuses some jobs before a run exists to refuse (a board resting
+    behind three closed doors, a board that has spent its own day), and "I could not find an
+    official syllabus for that" would be the wrong sentence for both: we did not look.
+    """
+    return _REFUSAL_LINES.get(reason, _DEFAULT_REFUSAL).format(what=request.describe())
+
+
 def _refuse(record: JobRecord, reason: str, detail: str, store: JobStore) -> JobRecord:
-    line = _REFUSAL_LINES.get(reason, _DEFAULT_REFUSAL)
     record.reason = reason
-    record.message = line.format(what=record.request.describe())
+    record.message = refusal_line(reason, record.request)
+    record.detail = detail
     record.status = "refused"
     advance(record, JobState.REFUSED)
     store.save(record)
+    # A refusal about the BOARD is remembered, so the next learner who picks it is not the next
+    # learner to pay for the same closed door (docs/BOARD-COLD-START.md §5).
+    ceiling.remember_refusal(record.request.framework_id, reason)
     logger.info(
         "discovery.refused",
         extra={"fields": {"key": record.key, "reason": reason, "detail": detail[:200]}},
@@ -397,12 +478,18 @@ def run_discovery(
     supersedes: str | None = None,
     force: bool = False,
     clock: Callable[[], float] = time.monotonic,
+    now: datetime | None = None,
 ) -> JobRecord:
     """Run one discovery to ``provisional`` or ``refused``, or return the one already stored.
 
     ``seed_urls`` skips the search stage: the freshness job already knows the document's URL, and
     re-searching for a page we have been reading for a year would be spend for nothing.
-    ``force`` reopens a stored record — the owner's way of asking for another look now.
+    ``force`` reopens a stored record — the owner's way of asking for another look now. It does
+    exactly that and nothing else: **it does not lift the ceiling.** It used to, and since the
+    discovery worker sets it on every job it drains, the hard stop, the resting board and both
+    money ceilings were guards over every path in the system except the one that runs in
+    production. The owner's ways past each guard are the guard's own: ``discovery.running``,
+    ``ceiling.wake()``, and the two ``max_usd`` dials.
     """
     budget = budget or DiscoveryBudget()
     key = discovery_key(request)
@@ -418,6 +505,23 @@ def run_discovery(
             _reopen(record)
         return _refuse(record, "out_of_scope", f"level {request.level}", store)
 
+    # The money guard and the hard stop, before a generation is charged and before a job is
+    # claimed, so a discovery that may not run costs nothing at all (``ceiling.py``).
+    stop = ceiling.verdict(request.framework_id)
+    if stop:
+        record, created = store.claim(key, request)
+        if not created and record.terminal:
+            _reopen(record)
+        day = ceiling.state()
+        return _refuse(
+            record,
+            stop,
+            f"{request.framework_id}: {day.by_board.get(request.framework_id or '', 0.0):.4f} of "
+            f"{ceiling.board_ceiling_usd()} USD on this board, {day.total_usd:.4f} of "
+            f"{ceiling.daily_ceiling_usd()} USD on {day.day}",
+            store,
+        )
+
     _charge(meter_subject)
     record, created = store.claim(key, request)
     if not created and not _worth_reopening(record, force=force):
@@ -429,33 +533,45 @@ def run_discovery(
     record.supersedes = supersedes
     deadline = clock() + budget.wall_clock_s
 
-    def _check_clock(stage: str) -> None:
-        if clock() >= deadline:
-            raise _Refusal("out_of_time", stage)
+    # Everything that can cost money happens inside the meter: what the run spends is the
+    # difference across the platform's own ledger, and it is billed to this board whichever way
+    # the run ends (``ceiling.meter``).
+    # The class and the subject are handed over so the run is billed under the key its own row
+    # carries (``ceiling.run_key``): a process that dies and comes back reads the day off those
+    # rows, and a run it cannot recognise is a run it charges the board for twice.
+    with ceiling.meter(request.framework_id, level=request.level, subject=request.subject) as run:
 
-    try:
-        candidates: list[str] = [url for url in seed_urls if url]
-        if not candidates:
-            advance(record, JobState.SEARCHING)
-            store.save(record)
-            _check_clock("search")
-            candidates = _search(request, search_provider, budget)
+        def _check_clock(stage: str) -> None:
+            if clock() >= deadline:
+                raise _Refusal("out_of_time", stage)
+            spent = run.exceeded()
+            if spent:
+                raise _Refusal(spent, f"{stage}: {run.so_far():.4f} USD so far")
 
-        document, extraction, report = _read_and_check(
-            record=record,
-            request=request,
-            candidates=candidates,
-            store=store,
-            budget=budget,
-            fetch_fn=fetch_fn,
-            complete_generate=complete_generate,
-            complete_verify=complete_verify,
-            first_extraction=first_extraction,
-            second_reader=second_reader,
-            check_clock=_check_clock,
-        )
-    except _Refusal as refusal:
-        return _refuse(record, refusal.reason, refusal.detail, store)
+        try:
+            candidates: list[_Candidate] = [_Candidate(url=url) for url in seed_urls if url]
+            if not candidates:
+                advance(record, JobState.SEARCHING)
+                store.save(record)
+                _check_clock("search")
+                candidates = _search(request, search_provider, budget)
+
+            document, extraction, report = _read_and_check(
+                record=record,
+                request=request,
+                candidates=candidates,
+                store=store,
+                budget=budget,
+                fetch_fn=fetch_fn,
+                complete_generate=complete_generate,
+                complete_verify=complete_verify,
+                first_extraction=first_extraction,
+                second_reader=second_reader,
+                check_clock=_check_clock,
+                now=now,
+            )
+        except _Refusal as refusal:
+            return _refuse(record, refusal.reason, refusal.detail, store)
 
     syllabus = extraction.syllabus
     if supersedes:
@@ -469,9 +585,7 @@ def run_discovery(
             supersedes=supersedes,
         )
     record.syllabus = syllabus.as_dict()
-    record.provenance = _provenance(
-        document, syllabus, report, extractor_model=extraction.model
-    )
+    record.provenance = _provenance(document, syllabus, report, extractor_model=extraction.model)
     record.report = report.as_dict()
     record.status = "provisional"
     record.message = label_for("provisional", request)
@@ -492,9 +606,25 @@ def run_discovery(
     return record
 
 
+@dataclass(frozen=True)
+class _Candidate:
+    """One document to try, and the title whoever offered it gave it.
+
+    The title is never evidence — :func:`verify.text_layer_is_unreadable` reads the file's own
+    name and not this — but it is the difference between a console row that says "a document
+    would not open" and one that says WHICH document, called what, from whose host.
+    """
+
+    url: str
+    title: str = ""
+
+    def describe(self) -> str:
+        return f"{self.url} — {self.title}" if self.title else self.url
+
+
 def _search(
     request: SyllabusRequest, provider: SearchProvider | None, budget: DiscoveryBudget
-) -> list[str]:
+) -> list[_Candidate]:
     if provider is None:
         try:
             provider = search_stage.build_search_provider()
@@ -517,14 +647,55 @@ def _search(
         raise _Refusal("search_unavailable", str(exc)) from exc
     if not results:
         raise _Refusal("not_found", "no candidate document")
-    return [result.url for result in results]
+    return [_Candidate(url=result.url, title=result.title) for result in results]
+
+
+def _document_reason(report: VerificationReport) -> str:
+    """The refusal a report earns when every failure is about the document, not the reading."""
+    failed = {check.name for check in report.failures}
+    if failed == {verify_stage.CHECK_DOCUMENT_YEAR}:
+        return "document_out_of_date"
+    return "checks_failed"
+
+
+def _checks_detail(url: str, report: VerificationReport) -> str:
+    """The refusal's detail: every check that failed, named, not the first three problems.
+
+    A ``checks_failed`` row in the console queue is only actionable if it says what failed. The
+    second reader's problems are what it objected to; the code-side checks are what did not hold.
+    """
+    failed = [check.name for check in report.failures]
+    problems = list(report.problems)
+    parts = [url]
+    if failed:
+        parts.append("failed: " + ", ".join(failed))
+    if problems:
+        parts.append("; ".join(problems[:5]))
+    return " — ".join(parts)
+
+
+def _keep_rejected(
+    record: JobRecord, url: str, extraction: Any, report: VerificationReport
+) -> None:
+    """Attach the reading that failed and the report that refused it, for a person to look at.
+
+    It goes on ``report``, never on ``syllabus``: a refused job must not carry a reading a
+    learner could be served, and :attr:`JobRecord.served` never crosses ``report`` out.
+    """
+    rejected = report.as_dict()
+    rejected["source_url"] = url
+    try:
+        rejected["syllabus"] = extraction.syllabus.as_dict()
+    except Exception:  # pragma: no cover — a reading we could not even serialise
+        rejected["syllabus"] = None
+    record.report = rejected
 
 
 def _read_and_check(
     *,
     record: JobRecord,
     request: SyllabusRequest,
-    candidates: Sequence[str],
+    candidates: Sequence[_Candidate],
     store: JobStore,
     budget: DiscoveryBudget,
     fetch_fn: Callable[..., Document],
@@ -533,17 +704,30 @@ def _read_and_check(
     first_extraction: bool,
     second_reader: bool,
     check_clock: Callable[[str], None],
+    now: datetime | None = None,
 ) -> tuple[Document, Any, VerificationReport]:
     """Fetch, extract and check each candidate in turn until one survives, or refuse.
 
     The last failure wins the refusal reason, because it is the most specific thing we learned:
     "what I found is not the syllabus" is a better line than "I could not open it" when we did
-    open the second one.
+    open the second one. **What each candidate cost us is written down as we go**
+    (:attr:`JobRecord.tried`), because the last failure is not the whole run and a refusal
+    carrying only its last line is a console row nobody can act on.
     """
     fetch_failures = 0
     last_reason = "not_found"
     last_detail = ""
-    for url in list(candidates)[: budget.max_documents]:
+
+    def _note(candidate: _Candidate, verdict: str) -> None:
+        """One line per candidate, terse. The whole sentence is the refusal's ``detail``; this is
+        the list a person scans, and a paragraph per row would not be one."""
+        short = " ".join(verdict.split())
+        if len(short) > _TRAIL_CHARS:
+            short = short[: _TRAIL_CHARS - 1].rstrip() + "…"
+        record.tried = (*record.tried, f"{candidate.describe()} — {short}")
+
+    for candidate in list(candidates)[: budget.max_documents]:
+        url = candidate.url
         check_clock("fetch")
         advance(record, JobState.FETCHING)
         store.save(record)
@@ -552,9 +736,46 @@ def _read_and_check(
         except FetchRefused as exc:
             fetch_failures += 1
             last_reason, last_detail = "not_fetchable", f"{url}: {exc.reason}"
+            _note(candidate, f"not_fetchable ({exc.reason})")
             logger.info(
                 "discovery.fetch refused",
                 extra={"fields": {"url": url, "reason": exc.reason}},
+            )
+            continue
+
+        # Before a model is paid to read it: could this document be this subject's syllabus at
+        # all? The first live run paid four extractions across two Uttar Pradesh pdfs to be told
+        # what the document itself could have said for nothing (``verify.document_is_plausible``).
+        wrong = document_is_plausible(document, request)
+        if wrong:
+            # Two different facts used to share one sentence. A document that names neither the
+            # level nor the subject is EITHER the wrong document OR the right one in a text
+            # layer we cannot match — Uttar Pradesh's Class 10 Mathematics pdf is the second,
+            # and "what I found is not the syllabus itself" was the opposite of what happened to
+            # it (``verify.text_layer_is_unreadable``).
+            unreadable = verify_stage.text_layer_is_unreadable(document, request)
+            if unreadable:
+                last_reason, last_detail = "document_unreadable", f"{url}: {unreadable}"
+            else:
+                last_reason, last_detail = "no_syllabus_in_document", f"{url}: {wrong}"
+            _note(candidate, f"{last_reason} ({unreadable or wrong})")
+            logger.info(
+                "discovery.document refused",
+                extra={"fields": {"url": url, "reason": last_reason, "detail": last_detail[:200]}},
+            )
+            continue
+
+        # And the same question about the YEAR, for the same reason and at the same price:
+        # the file's own /CreationDate is free to read, and on 2026-09-15 it was the difference
+        # between refusing Maharashtra's 2012-sanctioned pdf and paying two models to transcribe
+        # a withdrawn syllabus faithfully (``verify.document_is_current``, ``dating.py``).
+        old = document_is_current(document, request, now=now)
+        if old:
+            last_reason, last_detail = "document_out_of_date", f"{url}: {old}"
+            _note(candidate, f"document_out_of_date ({old})")
+            logger.info(
+                "discovery.document out of date",
+                extra={"fields": {"url": url, "reason": old[:200]}},
             )
             continue
 
@@ -570,6 +791,7 @@ def _read_and_check(
             )
         except ExtractionRefused as exc:
             last_reason, last_detail = "no_syllabus_in_document", f"{url}: {exc}"
+            _note(candidate, f"no_syllabus_in_document ({exc.reason})")
             logger.info(
                 "discovery.extract refused",
                 extra={"fields": {"url": url, "reason": exc.reason}},
@@ -585,9 +807,21 @@ def _read_and_check(
             request,
             complete=complete_verify,
             second_reader=second_reader,
+            other_than=extraction.model,
+            now=now,
         )
         if report.ok:
             return document, extraction, report
+
+        # A failure a redraw cannot fix is a fact about the DOCUMENT — its year — and reading the
+        # same file again will not change it. Keep the reading for a person, refuse for what it
+        # is, and go to the next candidate rather than buy one more generation.
+        if not redrawable(report):
+            last_reason = _document_reason(report)
+            last_detail = _checks_detail(url, report)
+            _keep_rejected(record, url, extraction, report)
+            _note(candidate, f"{last_reason} (no redraw could fix it)")
+            continue
 
         # One redraw, with every failure named, then we stop. Two readings that disagree with the
         # document are not a third reading away from being right.
@@ -614,14 +848,19 @@ def _read_and_check(
                 request,
                 complete=complete_verify,
                 second_reader=second_reader,
+                other_than=extraction.model,
+                now=now,
             )
             if report.ok:
                 return document, extraction, report
             last_reason = "checks_failed"
-            last_detail = f"{url}: " + "; ".join(report.problems[:3])
+            last_detail = _checks_detail(url, report)
+            _keep_rejected(record, url, extraction, report)
         else:
             last_reason = "checks_failed"
-            last_detail = f"{url}: " + "; ".join(report.problems[:3])
+            last_detail = _checks_detail(url, report)
+            _keep_rejected(record, url, extraction, report)
+        _note(candidate, f"{last_reason} after {budget.redraws} redraw(s)")
 
     if fetch_failures and last_reason == "not_found":  # pragma: no cover — defensive
         last_reason = "not_fetchable"
@@ -672,9 +911,7 @@ def maybe_promote(store: JobStore, record: JobRecord) -> bool:
     return _promote(store, record, by="system")
 
 
-def owner_review(
-    store: JobStore, key: str, *, approve: bool, note: str = ""
-) -> JobRecord | None:
+def owner_review(store: JobStore, key: str, *, approve: bool, note: str = "") -> JobRecord | None:
     """The owner's verdict from the review queue. Approval promotes; a rejection refuses."""
     record = store.get(key)
     if record is None:

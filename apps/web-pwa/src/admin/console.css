@@ -500,7 +500,11 @@
   flex-basis: 100%;
 }
 .aq-field select,
-.aq-field input {
+.aq-field input,
+/* The prewarm order is edited as a list of board ids, one a line — see SyllabusActions. It takes
+   the same treatment as every other field so nothing on this strip looks like a different kind
+   of control from the ones beside it. */
+.aq-field textarea {
   font: 400 14px / 1.4 var(--sans);
   padding: 10px 12px;
   border: 0;
@@ -510,8 +514,14 @@
   min-width: 0;
   width: 100%;
 }
+.aq-field textarea {
+  resize: vertical;
+  min-height: 96px;
+  font-family: var(--mono, ui-monospace, monospace);
+}
 .aq-field select:focus-visible,
 .aq-field input:focus-visible,
+.aq-field textarea:focus-visible,
 .aq-do:focus-visible,
 .aq-quiet:focus-visible {
   outline: 3px solid var(--pig);

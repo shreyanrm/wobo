@@ -206,7 +206,9 @@ export async function planPlacement(
     return {
       topicId: topic.id,
       topicName: topic.name,
-      questions: declared.slice(0, MAX_PLACEMENT_QUESTIONS).map((a) => assumptionQuestion(topic, a)),
+      questions: declared
+        .slice(0, MAX_PLACEMENT_QUESTIONS)
+        .map((a) => assumptionQuestion(topic, a)),
     };
   }
 

@@ -34,13 +34,14 @@ as a panel somebody forgot to wire.
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from wobo_gateway import reports
+from wobo_gateway import doors, reports
 from wobo_gateway.admin_auth import (
     ADMIN_MANAGE,
     CONSOLE_READ,
@@ -50,8 +51,14 @@ from wobo_gateway.admin_auth import (
     admin_router,
     requires,
 )
+from wobo_gateway.curriculum import labels as curriculum_labels
 from wobo_gateway.curriculum import observer as syllabus_observer
 from wobo_gateway.curriculum import store as curriculum_store
+from wobo_gateway.curriculum.desk import DEFAULT_LIMIT as SYLLABUS_LIMIT
+from wobo_gateway.curriculum.desk import FEED as SYLLABUS_FEED
+from wobo_gateway.curriculum.desk import syllabus_desk
+from wobo_gateway.curriculum.discovery import prewarm
+from wobo_gateway.curriculum.models import JobState, Status
 from wobo_gateway.reports import (
     KINDS,
     MAX_NOTE,
@@ -143,6 +150,35 @@ OBSERVER_FEED: dict[str, str] = {
         "the default, every correction waits in the review queue for a person."
     ),
 }
+
+
+class RetryBody(BaseModel):
+    """One refused board, sent back to the queue. The id rides in the body because the console's
+    transport calls STATIC endpoint names (``apps/web-pwa/src/admin/api.ts``)."""
+
+    job_id: str = Field(min_length=1, max_length=200)
+
+
+class PromoteBody(BaseModel):
+    """Promote one provisional version to verified.
+
+    ``read`` is not a formality and not a checkbox the screen ticks for you. BOARD-COLD-START §5:
+    *"it is labelled provisional until a person confirms it. That gate already exists and does not
+    move."* The flag is the person saying, in the audit trail, that they read this reading against
+    the board's own document. Without it the route refuses.
+    """
+
+    version_id: str = Field(min_length=1, max_length=200)
+    read: bool = False
+    note: str | None = Field(default=None, max_length=500)
+
+
+class PrewarmBody(BaseModel):
+    """The prewarm queue's dials: its order, whether it runs, and how many boards a tick takes."""
+
+    order: list[str] | None = None
+    enabled: bool | None = None
+    per_tick: int | None = Field(default=None, ge=0, le=10)
 
 
 class ReviewSwitchBody(BaseModel):
@@ -482,7 +518,220 @@ def register_desks(app: FastAPI) -> None:
             ) from exc
         return {"require_review": value, "set_by": ctx.admin.email}
 
+    # --- the syllabus desk (docs/BOARD-COLD-START.md §4 and §5) ---------------------------------
+    @router.get("/syllabus")
+    def syllabus_desk_route(
+        limit: int = Query(SYLLABUS_LIMIT, ge=1, le=MAX_PAGE),
+        ctx: AdminContext = Depends(requires(CONSOLE_READ)),
+    ) -> dict[str, Any]:
+        """Every board, the label it shows and why; the queue; what landed; what refused and why;
+        what each cost; and the day against its ceiling.
+
+        ``readable`` false is the same honesty bit every other desk carries: the registry could
+        not be reached, and then there are no rows rather than an empty list that would read as
+        "no board has ever refused".
+        """
+        ctx.audit(
+            "syllabus.desk.read", resource_type="curriculum.syllabus", detail={"limit": limit}
+        )
+        try:
+            store = curriculum_store.get_store()
+        except curriculum_store.StoreUnavailable:
+            return {"readable": False, "boards": [], "queue": [], "feed": SYLLABUS_FEED}
+        return syllabus_desk(store, limit=limit)
+
+    @router.post("/syllabus/retry")
+    def syllabus_retry(
+        body: RetryBody, ctx: AdminContext = Depends(requires(SUPPORT_ACT))
+    ) -> dict[str, Any]:
+        """Send one refused board back to the queue.
+
+        §5 remembers a refusal so a dead link is not re-fetched on every learner who picks that
+        board; this is the person overriding that memory, which is exactly what the console queue
+        is for. A job that is still running is NOT re-queued: two workers on one board is the race
+        the conditional claim exists to prevent.
+        """
+        ctx.audit(
+            "syllabus.retry", resource_type="curriculum.discovery_job", resource_id=body.job_id
+        )
+        store = _curriculum_store()
+        job = store.get_job(body.job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="Not Found")
+        if job.open:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "already_running",
+                    "message": "That board is being read right now. Nothing to retry.",
+                },
+            )
+        moved = store.update_job(
+            job.id, state=JobState.QUEUED, message=curriculum_labels.job_message(JobState.QUEUED)
+        )
+        if moved is None:
+            raise HTTPException(status_code=404, detail="Not Found")
+        return {
+            "job_id": moved.id,
+            "state": moved.state.value,
+            "worker_running": _worker_running(),
+        }
+
+    @router.post("/syllabus/promote")
+    def syllabus_promote(
+        body: PromoteBody, ctx: AdminContext = Depends(requires(ADMIN_MANAGE))
+    ) -> dict[str, Any]:
+        """Promote one provisional version to verified, after a person has read it.
+
+        THE GATE DOES NOT MOVE (BOARD-COLD-START §5). Three things must be true and each is
+        checked here rather than assumed by the screen: a person says they read it, the version
+        is provisional, and it actually holds chapters. Promoting an empty version would put
+        "Official …, verified" on a board with nothing behind it, which is the exact claim the
+        honest-label law exists to prevent.
+        """
+        ctx.audit(
+            "syllabus.promote",
+            resource_type="curriculum.version",
+            resource_id=body.version_id,
+            detail={"read": body.read},
+        )
+        if not body.read:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "confirm_required",
+                    "message": (
+                        "Verified means a person read this against the board's own document. "
+                        "Say so, and it is your name on the trail."
+                    ),
+                },
+            )
+        store = _curriculum_store()
+        version = store.get_version(body.version_id)
+        if version is None:
+            raise HTTPException(status_code=404, detail="Not Found")
+        if version.status is Status.VERIFIED:
+            raise HTTPException(
+                status_code=409,
+                detail={"code": "already_verified", "message": "That reading is already verified."},
+            )
+        if version.status is not Status.PROVISIONAL:
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "not_provisional",
+                    "message": (
+                        "Only a provisional reading is promoted here. A community reading says "
+                        "in its own label where it came from and is corrected, never promoted."
+                    ),
+                },
+            )
+        if not store.all_nodes(version.id):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "code": "nothing_to_verify",
+                    "message": (
+                        "That version holds no chapters. There is nothing here a person could "
+                        "have read."
+                    ),
+                },
+            )
+        # STATUS ONLY. Everything else on a published version is immutable, in this code and in
+        # the database (migration 0008's `refuse_published_edit` names every column it guards and
+        # deliberately leaves `status` out: promotion is the one change a published reading may
+        # take, and a correction is always a new version with `supersedes`).
+        promoted = store.put_version(
+            replace(
+                version,
+                status=Status.VERIFIED,
+                published_at=version.published_at or _iso(datetime.now(UTC)),
+            )
+        )
+        framework = store.get_framework(promoted.framework_id)
+        return {
+            "version_id": promoted.id,
+            "status": promoted.status.value,
+            # Derived, like every label in this product: the sentence a learner now reads.
+            "label": (curriculum_labels.label_for(framework, promoted) if framework else None),
+            "confirmed_by": ctx.admin.email,
+        }
+
+    @router.post("/syllabus/prewarm")
+    def syllabus_prewarm(
+        body: PrewarmBody, ctx: AdminContext = Depends(requires(ADMIN_MANAGE))
+    ) -> dict[str, Any]:
+        """Turn the prewarm queue: its order, its switch, its pace. Owner only — it spends money.
+
+        The order is checked against the registry BEFORE anything is written, and the refusal
+        names the board it could not find, because an order that silently dropped a typo would be
+        a queue quietly reading the wrong boards.
+        """
+        ctx.audit(
+            "syllabus.prewarm",
+            resource_type="curriculum.prewarm",
+            detail={
+                "order": len(body.order) if body.order is not None else None,
+                "enabled": body.enabled,
+                "per_tick": body.per_tick,
+            },
+        )
+        store = _curriculum_store()
+        settings = doors.get_store()
+        written: dict[str, Any] = {}
+        if body.order is not None:
+            try:
+                written["order"] = list(
+                    prewarm.set_order(
+                        body.order, settings=settings, actor=ctx.admin.email, store=store
+                    )
+                )
+            except prewarm.UnknownBoard as exc:
+                raise HTTPException(
+                    status_code=422, detail={"code": "unknown_board", "message": str(exc)}
+                ) from exc
+        if body.enabled is not None:
+            settings.write(
+                prewarm.ENABLED_KEY, body.enabled, actor=ctx.admin.email, note="the prewarm switch"
+            )
+            written["enabled"] = body.enabled
+        if body.per_tick is not None:
+            settings.write(
+                prewarm.PER_TICK_KEY,
+                body.per_tick,
+                actor=ctx.admin.email,
+                note="boards queued per tick",
+            )
+            written["per_tick"] = body.per_tick
+        if not written:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "nothing_to_set", "message": "Say what to change."},
+            )
+        return {**written, "set_by": ctx.admin.email}
+
     app.include_router(router)
+
+
+def _curriculum_store():
+    try:
+        return curriculum_store.get_store()
+    except curriculum_store.StoreUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "desk_unavailable",
+                "message": "I could not reach the syllabus registry just now.",
+            },
+        ) from exc
+
+
+def _worker_running() -> bool:
+    """Whether anything will actually pick the retried job up. A retry into a stopped worker is
+    still the right row to write, and the console is told the truth about it."""
+    from wobo_gateway.curriculum.discovery import worker as worker_mod
+
+    return worker_mod.enabled()
 
 
 def _find(report_id: str) -> Report:

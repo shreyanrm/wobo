@@ -137,6 +137,13 @@ export interface UnitsQuery {
   error: string | null;
   /** True when these chapters came from the offline cache of the pinned version. */
   offline: boolean;
+  /**
+   * When the learner asked for these chapters, in epoch milliseconds; 0 before anything was
+   * asked. The cold start's designed wait is counted from here and not from the moment its card
+   * mounts, because the card cannot mount until the answer is in hand and the fetch has already
+   * spent part of the eight seconds by then (docs/BOARD-COLD-START.md §2, `remainingWait`).
+   */
+  since: number;
   reload(): void;
 }
 
@@ -147,6 +154,7 @@ export function useUnits(subject: string | null): UnitsQuery {
   const [loading, setLoading] = useState(false);
   const [offline, setOffline] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [since, setSince] = useState(0);
   const [nonce, setNonce] = useState(0);
 
   const frameworkId = world?.frameworkId ?? null;
@@ -158,9 +166,13 @@ export function useUnits(subject: string | null): UnitsQuery {
     if (!frameworkId || !level || !subject) {
       setView(null);
       setError(null);
+      setSince(0);
       return;
     }
     let live = true;
+    // The clock the designed wait is counted against starts HERE — when the learner opened this
+    // subject — rather than when the card that draws the wait first renders.
+    setSince(Date.now());
     // The pinned version's cache answers instantly and offline; the network refreshes behind it.
     const cached = cache.units(frameworkId, versionId, level, subject);
     if (cached) {
@@ -214,9 +226,12 @@ export function useUnits(subject: string | null): UnitsQuery {
     view,
     units,
     loading,
-    looking: view?.status === 'looking',
+    // `shared` too: a cold board has no chapters to render either, and the same card owns
+    // both — the designed wait, then the plan every board shares (docs/BOARD-COLD-START.md).
+    looking: !!view && view.status !== 'ready',
     error,
     offline,
+    since,
     reload: useCallback(() => setNonce((n) => n + 1), []),
   };
 }

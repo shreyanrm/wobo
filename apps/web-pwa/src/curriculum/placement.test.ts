@@ -102,6 +102,9 @@ const units: CurriculumUnitsView = {
     { ...node('u2', 'Rational numbers', 1, 'subject-1'), kind: 'unit' },
   ],
   placeholder: null,
+  plan: null,
+  jobId: null,
+  waitMs: 0,
   label: 'Official CBSE, verified',
   notListed: null,
 };

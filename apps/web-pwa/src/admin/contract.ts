@@ -89,6 +89,21 @@ export const ENDPOINT = {
   allowance: '/v1/admin/allowance',
   /** POST: re-read every dial from `ops.settings` NOW rather than at the end of the interval. */
   settingsApply: '/v1/admin/settings/apply',
+  /** GET: every board, the honest label each is showing a learner and WHY that one, the discovery
+   *  queue in drain order, what landed, what refused and why, what each board cost, and the
+   *  platform's day against its ceiling (docs/BOARD-COLD-START.md §4 and §5). */
+  syllabus: '/v1/admin/syllabus',
+  /** POST: send one refused board back to the queue. `support.act` — a refusal is REMEMBERED so a
+   *  dead link is not re-fetched on every learner who picks that board, and this is the person
+   *  overriding that memory. A job still running is refused with 409, never re-queued. */
+  syllabusRetry: '/v1/admin/syllabus/retry',
+  /** POST: promote one provisional reading to verified. `admin.manage`, and the body must SAY a
+   *  person read it against the board's own document — "it is labelled provisional until a person
+   *  confirms it. That gate already exists and does not move." */
+  syllabusPromote: '/v1/admin/syllabus/promote',
+  /** POST: the prewarm queue's order, its switch and its pace. `admin.manage`, because the order
+   *  decides which boards the platform pays to read and in what order. */
+  syllabusPrewarm: '/v1/admin/syllabus/prewarm',
 } as const;
 
 export type EndpointName = keyof typeof ENDPOINT;
@@ -233,4 +248,111 @@ export interface Economics {
     readonly configured_calls?: number;
   };
   readonly gaps: readonly string[];
+}
+
+// --- the boards (docs/BOARD-COLD-START.md §4 and §5) -----------------------------------------
+// Wire shapes only. `cost_usd` is DECLARED here and READ in readings.ts, exactly as every other
+// money field in this console is: the gateway sums (`curriculum/desk.py`), this file names the
+// field, `readings.ts` is the one module that reads it, and no panel does arithmetic on it.
+
+export interface BoardRow {
+  readonly framework_id: string;
+  readonly framework_name: string;
+  readonly kind: string;
+  readonly country: string | null;
+  readonly region: string | null;
+  readonly official_site: string | null;
+  /** DERIVED BY THE GATEWAY (`curriculum/labels.py`). Never composed in this bundle. */
+  readonly label: string;
+  readonly status: string;
+  /** The console's own explanation of why that label and not another. Internal, never a learner's. */
+  readonly why: string;
+  readonly has_syllabus: boolean;
+  readonly version_id: string | null;
+  readonly version_label: string | null;
+  readonly source_url: string | null;
+  readonly published_at: string | null;
+  readonly subjects: number;
+  readonly chapters: number;
+  readonly may_promote: boolean;
+}
+
+export interface JobRow {
+  readonly job_id: string;
+  readonly framework_id: string | null;
+  readonly framework_name: string;
+  readonly level: string | null;
+  readonly subject: string | null;
+  readonly state: string;
+  readonly message: string | null;
+  readonly reason: string | null;
+  readonly reason_plain: string | null;
+  /** What the run actually saw, in the gateway's own words: the url, the checks that failed, the
+   *  evidence behind the verdict. The reason above is a category, and a category can be the
+   *  opposite of the fact — Uttar Pradesh's own Class 10 Mathematics pdf refused as "not the
+   *  syllabus" because its legacy-font text layer matched nothing. Console only; the learner's
+   *  own line is `message`. */
+  readonly detail: string | null;
+  /** Every candidate the run opened, with the title it was offered under and what became of it.
+   *  The reason is the LAST thing that happened; this is the whole of it. */
+  readonly tried: readonly string[];
+  readonly attempts: number;
+  /** "a learner", "the prewarm" or "nobody yet". Never who. */
+  readonly waiting_on: string;
+  readonly cost_usd: number | null;
+  readonly created_at: string | null;
+  readonly updated_at: string | null;
+}
+
+export interface PrewarmRow {
+  readonly rank: number;
+  readonly framework_id: string;
+  readonly framework_name: string;
+  /** Approximate school enrolment, as the seeded order's own note. A rank-setter, not a claim. */
+  readonly note: string;
+  readonly has_syllabus: boolean;
+}
+
+export interface SyllabusDesk {
+  readonly readable: boolean;
+  readonly worker: { readonly enabled: boolean; readonly env: string; readonly interval_s: number };
+  readonly prewarm: {
+    readonly enabled: boolean;
+    readonly source?: string;
+    readonly editable_key?: string;
+    readonly rejected?: readonly string[];
+    readonly per_tick?: number;
+    readonly order: readonly PrewarmRow[];
+    readonly next: readonly {
+      readonly framework_id: string;
+      readonly framework_name: string;
+      readonly level: string;
+      readonly subject: string;
+    }[];
+    readonly targets?: readonly string[];
+  };
+  readonly boards: readonly BoardRow[];
+  readonly queue: readonly JobRow[];
+  readonly landed: readonly JobRow[];
+  readonly refused: readonly JobRow[];
+  readonly cost: readonly {
+    readonly framework_id: string;
+    readonly framework_name: string;
+    readonly jobs: number;
+    readonly usd: number | null;
+    readonly unpriced: number;
+  }[];
+  readonly day: {
+    readonly spent_usd: number;
+    readonly ceiling_usd: number;
+    readonly fraction: number | null;
+    readonly lane: string;
+    readonly shedding: boolean;
+  };
+  readonly counts?: {
+    readonly boards: number;
+    readonly with_syllabus: number;
+    readonly queued: number;
+    readonly refused: number;
+  };
 }

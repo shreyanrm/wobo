@@ -332,7 +332,7 @@ def test_one_syllabus_typed_four_ways_starts_one_job(store: InMemoryStore) -> No
             {"framework_id": "tel", "level": level, "subject": subject},
             store,
             "L1",
-        )["placeholder"]["job_id"]
+        )["job_id"]
         for level, subject in [
             ("Class 9", "Mathematics"),
             ("class 9", "mathematics"),
@@ -365,7 +365,7 @@ def test_eight_learners_at_once_start_one_job() -> None:
                 {"framework_id": "tel", "level": "Class 9", "subject": "Mathematics"},
                 fresh,
                 f"L{index}",
-            )["placeholder"]["job_id"]
+            )["job_id"]
         )
 
     threads = [threading.Thread(target=learner, args=(i,)) for i in range(8)]
@@ -522,8 +522,12 @@ def test_a_verified_board_with_no_stored_syllabus_does_not_say_verified() -> Non
         if "verified" in row["label"] and live.latest_version(row["id"]) is None
     ]
     assert not claiming, f"labelled verified with no syllabus stored: {claiming}"
+    # And no label mentions a syllabus we do not hold at all: the phrase "no syllabus stored yet"
+    # left the product with the cold start (docs/BOARD-COLD-START.md). A board with nothing behind
+    # it is named, and picking it starts both its reading and the learner.
     for row in results:
-        assert (row["has_syllabus"] is False) == row["label"].endswith(labels.NO_SYLLABUS)
+        if row["has_syllabus"] is False:
+            assert "syllabus" not in row["label"].casefold(), row["label"]
 
 
 # --- §4.3: the code-side checks can catch a fabrication ------------------------------------------
@@ -803,6 +807,6 @@ def test_a_missing_syllabus_reaches_an_honest_end(store: InMemoryStore) -> None:
         store,
         "L1",
     )
-    state = call("curriculum.status", {"job_id": out["placeholder"]["job_id"]}, store, "L1")
+    state = call("curriculum.status", {"job_id": out["job_id"]}, store, "L1")
     assert state["state"] not in ("queued", "searching", "extracting", "checking")
     assert state["not_listed"]["action"] == "own_syllabus"

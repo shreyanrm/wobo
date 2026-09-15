@@ -21,3 +21,24 @@
   /* the touch floor (DESIGN.md §2): a set row is a thumb's target */
   .sb-sets .pr-set button{min-height:44px}
 }
+
+/*
+ * THE FOOT, AND THE FLOATING FLAG'S BAND.
+ *
+ * `ui/FlagControl.tsx` floats the quiet flag over the foot of a phone screen: `.wf-float` is
+ * `bottom: calc(84px + …)` and the control sits on the 44px touch floor, so it stands in the band
+ * 84-128px above the bottom edge. The shell's own foot is 110px (`ui/primitives/ui.css`,
+ * `.wk-main`), which is INSIDE that band — so Wobo's line, the last thing on this screen, was
+ * under the pill at 390 with no scroll left to clear it. The screen gives the pill its band; the
+ * pill does not move, because the pill is the promise (`ui/flag.ts`).
+ *
+ * The save-trouble strip lifts the pill by its own height and already adds the same height to the
+ * page (`store/SaveTrouble.css`), so this is the difference and nothing more: 110 + 30 = 140, one
+ * gutter clear of the pill's top edge.
+ */
+@media (max-width:900px){
+  .sb-foot{padding-bottom:calc(30px + env(safe-area-inset-bottom, 0px))}
+}
+
+/* the designed wait, centred on the card it runs in — no words, by law (BOARD-COLD-START §2) */
+.wk-card.sb-wait{display:grid;justify-items:center}

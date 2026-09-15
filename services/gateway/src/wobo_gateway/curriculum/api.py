@@ -34,7 +34,7 @@ import os
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from wobo_gateway.curriculum import labels
+from wobo_gateway.curriculum import coldstart, labels
 from wobo_gateway.curriculum import overlay as overlay_ops
 from wobo_gateway.curriculum import own as own_syllabus
 from wobo_gateway.curriculum import versions as version_rules
@@ -52,6 +52,7 @@ from wobo_gateway.curriculum.models import (
     Status,
     Version,
     in_scope,
+    job_is_open,
     level_order,
 )
 from wobo_gateway.curriculum.store import CurriculumStore, StoreUnavailable, get_store
@@ -101,13 +102,39 @@ def discovery_worker_running() -> bool:
 
     Only when the owner has switched the worker on (``WOBO_DISCOVERY_WORKER=1``, started by
     ``create_app`` through :func:`discovery.worker.start_if_enabled`; the cost is in
-    ``docs/OPERATIONS.md``). With it off, a job is recorded (a learner asked, and the row is what
-    the worker picks up the day it is on) and refused in the same breath, because "Looking for the
-    official syllabus now" about a search nobody is running is the promise §4.6 forbids.
+    ``docs/OPERATIONS.md``). With it off, a job is still recorded and still queued — a learner
+    asked, and that row is both the console's queue and what the worker picks up the day the
+    switch is set. What is NOT done with it off is telling the learner a search is happening,
+    which is the promise §4.6 forbids and which the cold start removed entirely.
     """
     from wobo_gateway.curriculum.discovery.worker import enabled
 
     return enabled()
+
+
+def _learner_job_state(job: DiscoveryJob) -> JobState:
+    """The job's state AS A LEARNER SHOULD BE TOLD IT, which is not always the row's own.
+
+    §4.6: a search nobody is running is never reported as running. With the worker off the row
+    stays ``queued`` — it is the console's queue and the backlog the worker drains the hour the
+    owner sets the switch — and an open job is presented as the honest end instead. Nothing is
+    written here; this is a reading.
+    """
+    # Only a job still at QUEUED. Anything past it has a runner of its own that moved it — the
+    # first-selection re-check (`recheck`) drives its job to CHECKING on the request thread and
+    # is not the discovery worker — and a claim that then goes silent is the stale-claim path's
+    # to requeue, not ours to relabel.
+    if job.state is JobState.QUEUED and not discovery_worker_running():
+        return JobState.REFUSED
+    return job.state
+
+
+def worker_switch() -> str:
+    """The name of the environment variable that turns discovery on. One place, so the log line
+    an operator reads and the documentation cannot drift apart."""
+    from wobo_gateway.curriculum.discovery.worker import ENV
+
+    return ENV
 
 
 class CurriculumError(Exception):
@@ -188,6 +215,19 @@ def _text(payload: dict[str, Any], *keys: str, limit: int = _MAX_QUERY) -> str:
         if isinstance(value, str) and value.strip():
             return value.strip()[:limit]
     return ""
+
+
+def _flag(payload: dict[str, Any], *keys: str) -> bool:
+    """One boolean off the wire, true only when it is genuinely true. A client sending the string
+    "false" is not asking for the thing, and an absent key never is."""
+    for key in keys:
+        value = payload.get(key)
+        if isinstance(value, bool):
+            if value:
+                return True
+        elif isinstance(value, str) and value.strip().lower() in ("1", "true", "yes", "on"):
+            return True
+    return False
 
 
 def _require(payload: dict[str, Any], *keys: str, what: str) -> str:
@@ -280,6 +320,26 @@ def _locate(
     )
 
 
+def _subject_topics(store: CurriculumStore, version: Version, subject_node: Node) -> list[Node]:
+    """Every topic under one subject, in one read of the version rather than one per chapter.
+
+    Concept ids live on TOPICS (``concepts.attach_concepts`` annotates topics, never units), so a
+    re-anchor cannot be computed from a chapter list; this is what it is computed from.
+    """
+    nodes = store.all_nodes(version.id)
+    by_parent: dict[str | None, list[Node]] = {}
+    for node in nodes:
+        by_parent.setdefault(node.parent_id, []).append(node)
+    out: list[Node] = []
+    stack = list(by_parent.get(subject_node.id, ()))
+    while stack:
+        node = stack.pop()
+        if node.kind is NodeKind.TOPIC:
+            out.append(node)
+        stack.extend(by_parent.get(node.id, ()))
+    return out
+
+
 def _locate_subject(
     store: CurriculumStore, version: Version, level: str, subject_name: str
 ) -> Node | None:
@@ -333,7 +393,33 @@ def _framework_block(framework: Framework, version: Version | None) -> dict[str,
 
 
 def _job_block(job: DiscoveryJob) -> dict[str, Any]:
-    return {**job.as_dict(), "message": job.message or labels.job_message(job.state)}
+    """The job AS A LEARNER IS TOLD IT — state, openness and line from one reading (§4.6).
+
+    The row's own state, its `open` and its stored message are the console's truth and they are
+    never touched. What travels to a learner is :func:`_learner_job_state`, and all three fields
+    are computed from it together, because the client reads them together: the SDK takes
+    `job.open` when the wire carries it (``packages/sdk/src/curriculum/parse.ts``) and
+    ``useDiscoveryStatus`` polls until it is false. A block that said `open: true` about a job
+    nothing will move was an endless four-second poll on all 264 cold boards, and it carried the
+    stored "Looking for the official syllabus now" into an answer whose own line said the honest
+    end — the promise §4.6 forbids, on the wire, beside the sentence that replaced it.
+    """
+    state = _learner_job_state(job)
+    message = job.message if state is job.state and job.message else labels.job_message(state)
+    return {**job.as_dict(), "state": state.value, "open": job_is_open(state), "message": message}
+
+
+def _wait_ms(job: DiscoveryJob) -> int:
+    """How long the designed wait may run for this learner (``docs/BOARD-COLD-START.md`` §2).
+
+    The wait exists for one reason: a syllabus landing INSIDE it, so the learner walks straight
+    into their own climb (§2.3). When nothing can land it buys nothing and costs everything — on a
+    board whose job refused, and on every board while ``WOBO_DISCOVERY_WORKER`` is unset, which is
+    production today — and §5's "every learner after them arrives instantly" becomes a sentence
+    that is true only of the four boards that landed. So the ceiling rides only on an answer whose
+    job is genuinely open; otherwise the learner goes to the shared plan in this instant.
+    """
+    return coldstart.WAIT_CEILING_MS if job_is_open(_learner_job_state(job)) else 0
 
 
 # --- the capabilities ----------------------------------------------------------------------------
@@ -436,17 +522,47 @@ def _units(payload: dict[str, Any], subject: str, store: CurriculumStore) -> dic
     )
 
     if not units:
+        # The cold start (docs/BOARD-COLD-START.md). The job goes out in this instant, with the
+        # learner on it so it sits at the head of the queue; the learner does not wait on it.
+        # They are handed the class-and-subject plan every board shares and they begin. What the
+        # job finds re-anchors their climb quietly, minutes later (coldstart.reanchor).
         job = _discovery(store, framework, level, subject_name, subject)
+        plan = coldstart.shared_plan(level, subject_name)
+        if not plan.concepts:
+            # The one case that still needs a sentence (BOARD-COLD-START §5), and it is narrower
+            # than it was: not "we hold no syllabus" but "we hold nothing anyone could be started
+            # on" — no chapters from this board and no shared concepts for this class and subject
+            # either, which in practice means a language. The honest end and the open door, which
+            # is §4.6 unchanged.
+            state = _learner_job_state(job)
+            return {
+                **_framework_block(framework, version),
+                "level": level,
+                "subject": subject_name,
+                "status": "looking" if state is JobState.QUEUED else state.value,
+                "units": [],
+                "placeholder": _job_block(job),
+                "job_id": job.id,
+                "wait_ms": 0,
+                "label": labels.job_message(state),
+                "not_listed": OWN_SYLLABUS,
+            }
         return {
             **_framework_block(framework, version),
             "level": level,
             "subject": subject_name,
-            "status": "looking" if job.open else job.state.value,
+            "status": "shared",
+            # Still empty, and for the same reason as before: chapters come from the board and
+            # there is no chapter here to serve (§12, "a syllabus with no source").
             "units": [],
-            # A placeholder, not a placeholder syllabus: it carries the state of the search and
-            # nothing that could be mistaken for a chapter (§12, "a syllabus with no source").
-            "placeholder": _job_block(job),
-            "label": job.message or labels.job_message(job.state),
+            # Concepts, not chapters. Ours, board-agnostic, and labelled `shared` so no surface
+            # can mistake it for this board's syllabus.
+            "plan": plan.as_dict(),
+            # Machine fields. The job's id for the console and for the client's quiet poll; the
+            # ceiling so the designed wait counts to one number rather than two. No prose about
+            # either reaches the learner — the never-narrate law (EMAILS-AND-ANIMATIONS §3).
+            "job_id": job.id,
+            "wait_ms": _wait_ms(job),
             "not_listed": OWN_SYLLABUS,
         }
 
@@ -456,6 +572,9 @@ def _units(payload: dict[str, Any], subject: str, store: CurriculumStore) -> dic
         "level": level,
         "subject": subject_name,
         "subject_id": subject_node.id,
+        # Every learner after the first arrives instantly (docs/BOARD-COLD-START.md §5): there is
+        # nothing to wait for, and the client is told so in the same field it would have counted.
+        "wait_ms": 0,
     }
     # First selection verifies from the web (docs/CURRICULUM-OBSERVER.md §2). A provisional
     # subject is checked against the board's document before its chapters are shown, once, with
@@ -474,6 +593,19 @@ def _units(payload: dict[str, Any], subject: str, store: CurriculumStore) -> dic
         }
     ops = _overlay(store, subject, version.id).patch if subject else []
     out = {**block, "status": "ready", "units": _views(store, version, units, ops, subject_node.id)}
+    if _flag(payload, "anchor", "reanchor"):
+        # The quiet re-anchor (docs/BOARD-COLD-START.md §3). A learner who started on the shared
+        # plan asks for this ONCE, the first time their board's own syllabus answers: it says
+        # which of the concepts they climbed is which chapter here, in the board's order and under
+        # the board's names, so their progress moves without a word being said about it. Off the
+        # hot path by design — it walks the version's topics, which the chapter list does not.
+        out["anchors"] = [
+            anchor.as_dict()
+            for anchor in coldstart.reanchor(
+                coldstart.shared_plan(level, subject_name),
+                _subject_topics(store, version, subject_node),
+            ).anchors
+        ]
     if check is not None:
         out["label"] = check.line
         out["check"] = {
@@ -527,10 +659,16 @@ def _discovery(
 ) -> DiscoveryJob:
     """Record that a learner asked for a syllabus we do not hold, and answer honestly.
 
-    Two things happen here that did not before. The job is METERED when it is genuinely new (§4.4:
-    a search, an extraction and a second reading is a generation, whoever asked), and when no
-    worker exists to run it the job is refused in the same breath rather than left promising a
-    search — see :func:`discovery_worker_running`.
+    The job is METERED when it is genuinely new (§4.4: a search, an extraction and a second
+    reading is a generation, whoever asked).
+
+    It used to be REFUSED in the same breath whenever no worker was running, because a job that
+    says "Looking for the official syllabus now" while nothing is looking is the promise §4.6
+    forbids. The cold start (``docs/BOARD-COLD-START.md``) removes the promise instead of the
+    job: the learner is never told a search is happening, so there is nothing to lie about, and
+    the row is left QUEUED where it belongs — the console queue a person picks up, and the backlog
+    the worker drains the hour the owner sets ``WOBO_DISCOVERY_WORKER``. Refusing it instead threw
+    away the only record that a real learner wanted that board.
     """
     before = store.find_recent_job(
         framework_id=framework.id, query=framework.name, level=level, subject=subject_name
@@ -545,15 +683,14 @@ def _discovery(
     minted = before is None or before.id != job.id
     if minted:
         _charge_for(DISCOVERY_CAPABILITY)
-    if job.open and not discovery_worker_running():
-        job = (
-            store.update_job(
-                job.id,
-                state=JobState.REFUSED,
-                message=labels.job_message(JobState.REFUSED),
+        if not discovery_worker_running():
+            # Nobody will move it until the owner flips the switch. That is a fact for the console
+            # and for the log, and it is never a sentence a learner reads.
+            logger.info(
+                "curriculum.discovery queued with no worker: set %s to drain it",
+                worker_switch(),
+                extra={"job_id": job.id, "framework_id": framework.id},
             )
-            or job
-        )
     return job
 
 
@@ -779,14 +916,19 @@ def _status(payload: dict[str, Any], subject: str, store: CurriculumStore) -> di
         )
     if job is None:
         return {"job": None, "state": None, "message": "I am not looking for anything right now."}
+    # §4.6: a search nobody is running is never reported as running. The row stays queued — it is
+    # the console's queue and the backlog the worker drains the hour the owner sets the switch —
+    # but what a LEARNER is told is where they actually stand, which is the honest end and the
+    # open door. Nothing is written; this is a reading, not a refusal.
+    state = _learner_job_state(job)
+    block = _job_block(job)
     return {
-        "job": _job_block(job),
-        "state": job.state.value,
-        "message": job.message or labels.job_message(job.state),
+        "job": block,
+        "state": state.value,
+        # One line, read once: the block beside it must not disagree with it.
+        "message": block["message"],
         # The honest end of §4.6: the moment a search gives up, the own-syllabus door is open.
-        **(
-            {"not_listed": OWN_SYLLABUS} if job.state in (JobState.REFUSED, JobState.FAILED) else {}
-        ),
+        **({"not_listed": OWN_SYLLABUS} if state in (JobState.REFUSED, JobState.FAILED) else {}),
     }
 
 

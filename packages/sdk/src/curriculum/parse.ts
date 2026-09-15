@@ -31,6 +31,8 @@ import type {
   OverlayOp,
   OwnFrameworkView,
   OwnUnit,
+  SharedConcept,
+  SharedPlan,
   UpgradeChange,
 } from './types';
 
@@ -283,15 +285,54 @@ export function parsePlaceholder(raw: unknown): DiscoveryPlaceholder | null {
   };
 }
 
+/**
+ * The plan every board shares (docs/BOARD-COLD-START.md §3). Null unless the brain sent one, and
+ * never synthesised here: a plan the client invented would be a syllabus with no source.
+ */
+export function parseSharedPlan(raw: unknown): SharedPlan | null {
+  if (!raw) return null;
+  const r = row(raw);
+  if (str(r.source) !== 'shared') return null;
+  const concepts: SharedConcept[] = [];
+  const list = Array.isArray(r.concepts) ? r.concepts : [];
+  for (const entry of list) {
+    const c = row(entry);
+    const conceptId = str(pick(c, 'concept_id', 'conceptId'));
+    const name = str(c.name);
+    if (!conceptId || !name) continue;
+    concepts.push({
+      conceptId,
+      name,
+      boards: num(c.boards) ?? 0,
+      order: num(c.order) ?? concepts.length,
+    });
+  }
+  if (concepts.length === 0) return null;
+  return {
+    source: 'shared',
+    level: str(r.level) ?? '',
+    subject: str(r.subject) ?? '',
+    concepts,
+  };
+}
+
 export function parseUnits(
   raw: unknown,
   fallback: { frameworkId: string; level: string; subject: string },
 ): CurriculumUnitsView {
   const r = row(raw);
   const units = parseNodes(r.units, 'unit');
-  // The brain's own status wins; with no status word, units decide — an empty list is "looking",
-  // never an empty syllabus presented as fact.
-  const status = str(r.status) === 'ready' || units.length > 0 ? 'ready' : 'looking';
+  const plan = parseSharedPlan(r.plan);
+  const sent = str(r.status);
+  // The brain's own status wins; with no status word, units decide — an empty list is never an
+  // empty syllabus presented as fact. `shared` only stands when a plan actually came with it,
+  // because a cold start with nothing to start on is the empty shelf under a new name.
+  const status: CurriculumUnitsView['status'] =
+    sent === 'ready' || units.length > 0
+      ? 'ready'
+      : sent === 'shared' && plan
+        ? 'shared'
+        : 'looking';
   return {
     frameworkId: str(pick(r, 'framework_id', 'frameworkId')) ?? fallback.frameworkId,
     level: str(r.level) ?? fallback.level,
@@ -300,6 +341,9 @@ export function parseUnits(
     subjectId: str(pick(r, 'subject_id', 'subjectId')),
     units,
     placeholder: parsePlaceholder(r.placeholder),
+    plan,
+    jobId: str(pick(r, 'job_id', 'jobId')) ?? null,
+    waitMs: Math.max(0, num(pick(r, 'wait_ms', 'waitMs')) ?? 0),
     label: str(r.label) ?? '',
     notListed:
       pick(r, 'not_listed', 'notListed') !== undefined

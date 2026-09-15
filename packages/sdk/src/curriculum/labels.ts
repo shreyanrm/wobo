@@ -52,9 +52,13 @@ function hostOf(url: string): string | null {
   }
 }
 
-/** What Wobo says while a discovery job is running, when the brain sent no line of its own. */
+/**
+ * The two lines left. `looking` is gone on purpose: under the cold start the learner is never told
+ * that a syllabus is being looked for — they get the designed wait and then their climb
+ * (docs/BOARD-COLD-START.md, docs/EMAILS-AND-ANIMATIONS.md §3) — so there is no line to render and
+ * deleting it is what keeps a screen from quietly rendering one again.
+ */
 export const DISCOVERY_COPY = {
-  looking: 'I am looking for the official syllabus for this one.',
   refused:
     'I could not find an official syllabus for this. Show me yours and I will build it with you.',
   empty: 'Tell me your board or curriculum and I will bring your syllabus here.',

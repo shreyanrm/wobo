@@ -95,6 +95,12 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     spend.reset()
     alerts.reset()
     health.reset()
+    # Discovery's own day: what each board has cost today and which boards are resting after a
+    # closed door. Per-process, for the same reason as the meters above — and one test's three
+    # refusals must never be the next test's "this board is resting".
+    from wobo_gateway.curriculum.discovery import ceiling as discovery_ceiling
+
+    discovery_ceiling.reset()
     # The child-safety screen's circuit breaker is per-process for the same reason the meters are:
     # it is one verdict about one provider. Reset it here or one test's simulated outage leaves the
     # screen degraded for whatever runs next, and a test that asserts the model WAS called fails

@@ -388,3 +388,41 @@ def test_with_the_check_off_the_chapters_are_served_as_before(
     store, _ = build()
     out = ask(store)
     assert out["status"] == "ready" and len(out["units"]) == 4 and "check" not in out
+
+
+def test_a_reading_off_a_withdrawn_document_is_never_promoted_to_verified(on: Collector) -> None:
+    """The year is a structural check now, so the first learner's re-check inherits it.
+
+    docs/BOARD-COLD-START.md §9. The document is the same bytes it always was — nothing moved,
+    the hash matches, the second reader agrees, and every name is on its cited page. It was
+    produced in 2013. A stored reading of it must not be promoted to "Official CBSE 2026-27,
+    verified" on the strength of matching a withdrawn file, and a person must be told why.
+    """
+    withdrawn = {
+        CBSE_URL: (
+            "application/pdf",
+            minimal_pdf(
+                CBSE_PAGES,
+                info={
+                    "CreationDate": "D:20130524160248+05'30'",
+                },
+            ),
+        )
+    }
+    document = fetch_document(CBSE_URL, opener=opener_for(withdrawn))
+    store, version = build(document_hash=document.document_sha256)
+    recheck.set_runner(on, fetch_fn=fetcher(withdrawn), complete_verify=stub_completion(AGREES))
+    ask(store)
+    on.go()
+
+    out = ask(store, "learner-b")
+    assert out["check"]["state"] == "provisional", "never verified off a 2013 file"
+    assert "document_is_current" not in out["check"]["checks_passed"]
+    queue = store.review_queue(state="open")
+    assert len(queue) == 1 and queue[0]["kind"] == "recheck"
+    checks = queue[0]["payload"]["report"]["checks"]
+    year = next(check for check in checks if check["name"] == "document_is_current")
+    assert year["passed"] is False
+    # What a person in the queue needs: the year we settled on, the file's own date, and the
+    # fact that the stored reading claimed otherwise.
+    assert "2013-05-24" in year["detail"] and "2026-27" in year["detail"]

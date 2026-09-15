@@ -15,7 +15,7 @@ The usage limit hit while seven waves were mid-task. Every agent still running d
 finished are kept. The tree was left half-built: about 120 typecheck errors, 28 gateway failures, 13
 web failures, two migrations sharing a number. **Wave 52 healed it** on 2026-09-14 (21 closers, one per failure group, each closing by its law rather
 than by whichever side was easier), verified in isolation and committed as `9d204ed`, deployed to both
-ends (Railway 91c2488b, Vercel dpl_9AvJDo2vvYx9gx3trN5MpdcgHFUB; the press page is live at /press). Wave 48b committed as `b281c5c` and live on both ends (Railway 7fcf6b21, Vercel dpl_95PBz2pF1HinHCF2MuXfF7GERpYx). Then nine waves were launched at once and the session cap killed all nine within five minutes. Their
+ends (Railway 91c2488b, Vercel dpl_9AvJDo2vvYx9gx3trN5MpdcgHFUB; the press page is live at /press). Wave 48b committed as `b281c5c` and live on both ends (Railway 7fcf6b21, Vercel dpl_95PBz2pF1HinHCF2MuXfF7GERpYx). Wave 48c committed as `6c7b144`, isolated build and gates green, live on both ends (Railway b812ea0f, Vercel dpl_39cjiq4oMmGNchivKMe2vxdVnXg5). Then nine waves were launched at once and the session cap killed all nine within five minutes. Their
 five minutes of partial work is kept as a patch and the tree was reset to `9d204ed`. **From here, one
 wave at a time**, each verified, committed and deployed before the next, so that a cap hits between
 waves and never inside one. And from 2026-09-15 by the owner's rule: Opus builds, Fable only judges
@@ -26,9 +26,10 @@ owner's walk needs it.
 
 | What | Wave | Where it is |
 |---|---|---|
-| The last tenth of the ink: size and placement solved together, one voice a turn | 48 | 48c judged 3.939 (relevance 3.983, correctness 3.983, craft 3.932, timing 3.983, experience 3.814; 46 of 59 perfect; all six gates green); its close round is running |
+| The last tenth of the ink: size and placement solved together, one voice a turn | 48 | LANDED in `6c7b144`: 3.939 (relevance 3.983, correctness 3.983, craft 3.932, timing 3.983, experience 3.814; 46 of 59 perfect); what remains is on the ink's own list in INK-FOUR's discipline |
 | The mail law enforced, and the animation library on every surface | 38 | queued fifth |
-| The boards: discovery runs, the cold start, the prewarm, the console | 45 | queued second |
+| The boards: discovery runs, the cold start, the prewarm, the console | 45 | LANDED 2026-09-16: discovery ran end to end on three real state boards offline (Maharashtra reads faithfully; Uttar Pradesh's legacy-font pdf and Tamil Nadu's broken TLS chain are refused honestly and written up); eight faults found by the run, each with a test; the money ceiling survives restarts; the first learner on a cold board never sees an empty shelf; the console's syllabus desk; the runbook in OPERATIONS 9.2.1 |
+| The document's year is checked against the learner's (Maharashtra's 2012 syllabus would have published) | 45 | LANDED in the tree, uncommitted: `discovery/dating.py`, `verify.CHECK_DOCUMENT_YEAR`, the gate before a model is paid, 46 tests; docs/BOARD-COLD-START.md §9. NOT done: the four published syllabi are not re-checked for their year |
 | The daily allowance, the models desk, the free pool cap | 36 | the money meter landed in 9d204ed; the rest queued sixth, now carrying the money's voice |
 | One owner and per-person roles, the board that changes once, the four suggestions | 49 | queued seventh |
 | The growth desk, the press page, chapter pages at tier two | 50 | queued eighth |
@@ -49,6 +50,8 @@ owner's walk needs it.
 | Mail that reaches a person | 38 | the domain is verified and the first send landed in Primary |
 | The tree healed after the kill: 21 closers, five suites green in isolation | 52 | commit `9d204ed`; typecheck clean, web 3596 pass, gateway 5942 pass, gates clean |
 | The money meter: a quarter of the plan a day, in the learner's own local day | 36 | allowance.py, 33 tests, in `9d204ed` |
+| A discovery refusal that says what actually happened | 45 | `verify.text_layer_is_unreadable` tells "we could not read it" apart from "it is not the syllabus" (Uttar Pradesh's own Class 10 Mathematics pdf was refused as the second and is the first — a legacy Devanagari text layer); the new `document_unreadable` line and desk sentence; the refusal's detail and its trail of every candidate opened now reach `discovery_jobs.result` and the console's refused table. 16 + 1 + 2 tests red first; BOARD-COLD-START §11 |
+| The prewarm queue and the console's Boards desk | 45 | `prewarm.py` (India's boards by enrolment, console-editable, queued behind every waiting learner), `curriculum/desk.py` + four routes, the Boards desk in the console; 72 tests red first; BOARD-COLD-START §8. The switch is still off in production |
 
 ## Queued, written, waiting only on the tree
 
@@ -67,6 +70,15 @@ Everything else: Every decision on this board is running, queued on the tree, la
 reason with a name on it. When the owner says something next, it is written into a wave in the same
 breath as the saying.
 
+## Named by wave 45, for the waves that own them
+
+| What | Owner |
+|---|---|
+| A learner's first debit, made before the device's zone is known, lands on the UTC day; the test now mirrors the product (the zone arrives with the request), but the product question stands | wave 36, the allowance |
+| Uttar Pradesh's syllabus is a legacy-font pdf with no readable text layer; reading it needs a render-and-read path | the boards, a decision for the owner on cost |
+| Tamil Nadu's board serves a TLS chain Python cannot build; we refuse rather than loosen verification | the owner's decision, written up in the runbook |
+| A per-board money alert: the ceiling refuses but nothing pages anyone | wave 36 |
+
 ## Held on purpose, each by a named reason
 
 | What | Held by |
@@ -83,7 +95,7 @@ breath as the saying.
 | Claim @heywobo everywhere, and linkedin.com/company/wobo | a handle is first-come and unobtainable once noticed | an hour |
 | Reserve the app name Wobo in Play Console and App Store Connect | a namespace, not a build; the owner's call whether to do it now | a form, about 10,500 rupees a year |
 | A real mailbox behind hello@ and support@ | replies are the strongest inbox signal there is | minutes |
-| Set WOBO_DISCOVERY_WORKER on Railway | 264 boards are named and empty until this runs | one variable |
+| Set WOBO_DISCOVERY_WORKER=1 on Railway, with the four dials as OPERATIONS 9.2.1 says | the discovery pipeline has now run end to end offline and has never run in production; boards stay empty until it does | one variable, then watch the first hour |
 | Top up the Anthropic account | the cross-provider second opinion is out of credit | minutes |
 | File the Wobo trademark in India, classes 41 and 9 | the legal backstop for the name | a lawyer |
 | Create the listings: Wikidata, LinkedIn, Crunchbase, Product Hunt, Google Business Profile | this is what makes an engine answer "Wobo is an AI tutor" | an afternoon, copy is written |

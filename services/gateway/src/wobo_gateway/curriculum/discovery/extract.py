@@ -73,6 +73,8 @@ MAX_HEADER_CHARS = 300
 
 _WS = re.compile(r"\s+")
 _MARKUP = re.compile(r"^[\s*#>\-•]+|[\s*#]+$")
+#: The colon that ends a heading and introduces what is under it. Layout, never name.
+_TRAILING_COLON = re.compile(r"\s*[:;]\s*$")
 _LEVEL_NUMBER = re.compile(r"(\d{1,2})")
 
 
@@ -228,6 +230,18 @@ class ExtractionResult:
 # --- cleaning --------------------------------------------------------------------------
 def _clean(text: Any, *, limit: int) -> str:
     return _MARKUP.sub("", _WS.sub(" ", str(text or ""))).strip()[:limit]
+
+
+def clean_title(text: Any, *, limit: int = TITLE_MAX_CHARS) -> str:
+    """A chapter or topic name, with the page's layout taken off it and nothing else.
+
+    Bullets, hashes and dashes were already stripped from the front. The trailing COLON was not,
+    and on a state board's pages it is everywhere: Maharashtra prints "1. Arithmetic Progression :"
+    because the colon introduces the bullet list underneath. A learner reading their own climb
+    should not see it. Only a colon at the very END goes; a colon inside a name is part of the
+    name, and the word before it is never changed — a board's own misprint is the board's.
+    """
+    return _TRAILING_COLON.sub("", _clean(text, limit=limit)).strip()
 
 
 def _clean_list(raw: Any, *, limit: int, max_items: int) -> tuple[str, ...]:
@@ -476,7 +490,7 @@ def parse_syllabus(
         if not isinstance(raw_unit, dict):
             problems.append(f"{where} is not an object")
             continue
-        title = _clean(raw_unit.get("title") or raw_unit.get("name"), limit=TITLE_MAX_CHARS)
+        title = clean_title(raw_unit.get("title") or raw_unit.get("name"))
         if len(title) < TITLE_MIN_CHARS:
             problems.append(f"{where}.title is empty")
             continue
@@ -495,9 +509,7 @@ def parse_syllabus(
             if not isinstance(raw_topic, dict):
                 problems.append(f"{topic_where} is not an object")
                 continue
-            topic_title = _clean(
-                raw_topic.get("title") or raw_topic.get("name"), limit=TITLE_MAX_CHARS
-            )
+            topic_title = clean_title(raw_topic.get("title") or raw_topic.get("name"))
             if len(topic_title) < TITLE_MIN_CHARS:
                 problems.append(f"{topic_where}.title is empty")
                 continue

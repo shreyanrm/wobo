@@ -8,8 +8,9 @@
 import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import type { CurriculumUnitsView } from '@wobo/sdk';
 import type { DisplaySubject } from '../../curriculum/registry';
-import { resolveSubject } from '../SubjectScreen';
+import { resolveSubject, SUBJECT_COPY, subjectBody, type UnitsState } from '../SubjectScreen';
 
 const REPO = join(import.meta.dir, '..', '..', '..', '..', '..');
 const APP = readFileSync(join(REPO, 'design', 'prototypes', 'app-v1.html'), 'utf8');
@@ -139,5 +140,145 @@ describe('the subject stylesheet keeps the law (DESIGN.md §2, §3)', () => {
 
   it('puts a set row on the 44px touch floor', () => {
     expect(mine.get('.sb-sets .pr-set button')).toContain('min-height:44px');
+  });
+});
+
+/**
+ * WHAT THE MIDDLE OF THE SCREEN IS, AND WHAT IT MAY NEVER SAY (docs/BOARD-COLD-START.md §3).
+ *
+ * Three things were wrong here at once, and all three were sentences.
+ *
+ *  1. **It narrated the fetch.** While the first `curriculum.units` request was in flight the
+ *     screen had no view and no rows, so it fell straight past the discovery card onto a plain
+ *     card reading "I am fetching the chapters <board> teaches in <subject>." That is 1.0-1.7s of
+ *     narration on a throttled phone in EVERY run, warm board or cold, and §3 is absolute: the
+ *     learner never reads that we are fetching anything. The designed wait says nothing, so the
+ *     designed wait is what covers a request with nothing behind it yet.
+ *  2. **It quoted the brain at the child.** `units.error` is `hooks.voiceOf`, which falls through
+ *     to `error.message` for anything that is not a `CurriculumError` — so an unreachable gateway
+ *     printed the browser's own "Failed to fetch" on a card, with no door out of it.
+ *  3. **The ends had no doors.** Both cards were a sentence and nothing else.
+ *
+ * `subjectBody` is the whole decision as one pure function, so these are assertions about what
+ * the screen DOES rather than greps for what it happens to contain.
+ */
+describe('the middle of a subject screen (docs/BOARD-COLD-START.md §3)', () => {
+  const view = (over: Partial<CurriculumUnitsView> = {}): CurriculumUnitsView => ({
+    frameworkId: 'msbshse',
+    level: 'Class 9',
+    subject: 'Science',
+    status: 'ready',
+    subjectId: 'Science',
+    units: [],
+    placeholder: null,
+    plan: null,
+    jobId: null,
+    waitMs: 0,
+    label: 'Official Maharashtra State Board',
+    notListed: null,
+    ...over,
+  });
+
+  const units = (over: Partial<UnitsState> = {}): UnitsState => ({
+    looking: false,
+    loading: false,
+    error: null,
+    view: null,
+    ...over,
+  });
+
+  it('says nothing at all while the first request is in flight', () => {
+    const body = subjectBody(units({ loading: true }), 0, true);
+    expect(body.kind).toBe('wait');
+    // and it is the designed wait with no answer behind it, never a previous subject's plan
+    expect(body.kind === 'wait' && body.view).toBeNull();
+  });
+
+  it('keeps saying nothing while another subject’s answer is still on the hook', () => {
+    // switching subjects leaves the last subject's view in the hook until the next one lands
+    const body = subjectBody(units({ loading: true, view: view() }), 0, true);
+    expect(body.kind).toBe('wait');
+    expect(body.kind === 'wait' && body.view).toBeNull();
+  });
+
+  it('hands the cold board’s own answer to the wait, so the plan can follow it', () => {
+    const cold = view({ status: 'shared', waitMs: 8000, jobId: 'job-1' });
+    const body = subjectBody(units({ looking: true, view: cold }), 0, true);
+    expect(body.kind === 'wait' && body.view).toBe(cold);
+  });
+
+  it('never repeats the brain’s words to the child, whatever they are', () => {
+    const poison = 'Failed to fetch';
+    for (const rows of [0, 3]) {
+      for (const looking of [false, true]) {
+        const body = subjectBody(units({ error: poison, looking, loading: false }), rows, true);
+        if (body.kind === 'end') expect(body.line).not.toContain(poison);
+      }
+    }
+    const end = subjectBody(units({ error: poison }), 0, true);
+    expect(end.kind).toBe('end');
+    expect(end.kind === 'end' && end.line).toBe(SUBJECT_COPY.unreachable);
+  });
+
+  it('gives a child a way out of every end it can reach', () => {
+    const ends = [
+      subjectBody(units({ error: 'Failed to fetch' }), 0, true),
+      subjectBody(units(), 0, true),
+      subjectBody(units(), 0, false),
+      subjectBody(units({ view: view({ plan: null }) }), 0, true),
+    ];
+    for (const body of ends) {
+      expect(body.kind).toBe('end');
+      expect(body.kind === 'end' && body.doors.length).toBeGreaterThan(0);
+    }
+    // an unreachable brain is worth trying again; a board with nothing on it is not
+    expect(ends[0]?.kind === 'end' && ends[0].doors).toContain('again');
+    expect(ends[3]?.kind === 'end' && ends[3].doors).toContain('own-syllabus');
+    expect(ends[2]?.kind === 'end' && ends[2].doors).toContain('class');
+  });
+
+  it('names no board and no fetch in any line it can print', () => {
+    for (const line of Object.values(SUBJECT_COPY)) {
+      const said = line.toLowerCase();
+      for (const narration of ['fetch', 'looking for', 'searching', 'loading', 'no syllabus']) {
+        expect(said).not.toContain(narration);
+      }
+    }
+    expect(TSX).not.toContain('I am fetching');
+  });
+
+  it('draws the wait itself when there is no answer to hang one on', () => {
+    // the discovery card's wait is a budget that runs out into the shared plan, and a request with
+    // no answer yet has no plan to run out into — so the scene runs for as long as the request
+    // does rather than falling through to a sentence about a syllabus nobody looked for
+    expect(TSX).toContain("body.kind === 'wait' && !body.view");
+    expect(TSX).toContain('<WaitScene');
+    expect(mine.get('.wk-card.sb-wait')).toContain('justify-items:center');
+  });
+
+  it('shows the chapters the moment there are chapters', () => {
+    expect(subjectBody(units({ view: view() }), 7, true).kind).toBe('chapters');
+    // a refresh running behind chapters already on screen never takes them away
+    expect(subjectBody(units({ loading: true, view: view() }), 7, true).kind).toBe('chapters');
+  });
+});
+
+/**
+ * THE QUIET FLAG'S BAND (the adversary, wave 53).
+ *
+ * `ui/FlagControl.tsx` floats the "Tell Wobo" pill at the foot of a phone screen: `.wf-float` is
+ * `bottom: calc(84px + …)` and the control is on the 44px touch floor, so it occupies the band
+ * 84-128px above the viewport's bottom edge. The shell's own foot is 110px
+ * (`ui/primitives/ui.css`, `.wk-main`), which is INSIDE that band — so Wobo's line, the last thing
+ * on this screen, sat under the pill at 390 with no scroll left to clear it. The screen gives the
+ * pill its band rather than the pill moving, because the pill is the promise.
+ */
+describe('the foot of the screen clears the floating flag', () => {
+  it('reserves the pill’s band under the last line on a phone', () => {
+    const foot = mine.get('.ln-wobo.sb-foot') ?? mine.get('.sb-foot') ?? [];
+    const declared = foot.join(' ');
+    expect(declared).toContain('padding-bottom');
+    expect(declared).toContain('env(safe-area-inset-bottom');
+    expect(TSX).toContain('sb-foot');
   });
 });

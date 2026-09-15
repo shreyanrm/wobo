@@ -42,6 +42,7 @@ from wobo_gateway.curriculum.discovery import worker as worker_mod
 from wobo_gateway.curriculum.discovery.fetch import fetch_document
 from wobo_gateway.curriculum.discovery.job import InMemoryJobStore
 from wobo_gateway.curriculum.models import JobState
+from wobo_gateway.curriculum.discovery import prewarm
 from wobo_gateway.curriculum.store import InMemoryStore, Seed, load_seed, seed_id
 
 CLASS_10_MATHS = {"framework_id": "cbse", "level": "Class 10", "subject": "Mathematics"}
@@ -84,8 +85,8 @@ def test_a_board_the_seed_lacks_is_queued_then_drained_into_the_registry(switche
     assert registry.latest_version("bseb") is None
 
     first = api.handle("curriculum.units", LACKED, subject="learner-a", store=registry)
-    assert first["status"] == "looking"
-    job_id = first["placeholder"]["job_id"]
+    assert first["status"] == "shared"
+    job_id = first["job_id"]
     assert registry.get_job(job_id).state is JobState.QUEUED
 
     worker = worker_for(registry)
@@ -97,7 +98,10 @@ def test_a_board_the_seed_lacks_is_queued_then_drained_into_the_registry(switche
     # Exactly one document was read, and the next learner is served, never a second discovery.
     assert documents_fetched(worker) == [CBSE_URL]
     assert served_units(registry, "learner-b", LACKED) == [u for u, _ in REAL_UNITS]
-    assert registry.queued_jobs() == []
+    # Nothing a LEARNER is waiting on is left queued. The prewarm (docs/BOARD-COLD-START.md §4)
+    # legitimately fills the queue behind them with boards nobody has asked for yet, and those are
+    # drained on later ticks; what must never be left waiting is the person.
+    assert [job for job in registry.queued_jobs() if not prewarm.is_prewarm(job)] == []
     # The seeded boards were not touched by a discovery for another board.
     assert registry.get_version(seed_id("version", "cbse", "2026-27")) is not None
     assert len(registry.all_nodes(seed_id("version", "cbse", "2026-27"))) == len(
@@ -109,13 +113,13 @@ def test_over_the_days_allowance_the_worker_refuses_and_says_so(switched_on, reg
     monkeypatch.setenv("FREE_DAILY_GENERATIONS", "1")
     first = api.handle("curriculum.units", LACKED, subject="learner-a", store=registry)
     second = api.handle("curriculum.units", ANOTHER, subject="learner-b", store=registry)
-    assert first["status"] == second["status"] == "looking"
+    assert first["status"] == second["status"] == "shared"
 
     worker = worker_for(registry)
     report = worker.tick()
     assert (report.stored, report.spent, report.left_queued) == (1, True, 1)
-    assert registry.get_job(first["placeholder"]["job_id"]).state is JobState.STORED
-    left = registry.get_job(second["placeholder"]["job_id"])
+    assert registry.get_job(first["job_id"]).state is JobState.STORED
+    left = registry.get_job(second["job_id"])
     assert left.state is JobState.QUEUED
     assert left.message == worker_mod.SPENT_LINE
     # One document for the day, not two; nothing was written for the refused board.
@@ -137,7 +141,7 @@ def test_the_spend_ceiling_refuses_the_worker_before_a_single_fetch(
     report = worker.tick()
     assert report.spent and report.claimed == 0
     assert documents_fetched(worker) == []
-    assert registry.get_job(asked["placeholder"]["job_id"]).state is JobState.QUEUED
+    assert registry.get_job(asked["job_id"]).state is JobState.QUEUED
 
 
 # --- poisoning the observer (CURRICULUM-OBSERVER.md §6) ------------------------------------------

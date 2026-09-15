@@ -157,15 +157,52 @@ export interface DiscoveryPlaceholder {
   message: string;
 }
 
+/**
+ * One thing to learn on the plan every board shares (docs/BOARD-COLD-START.md §3).
+ *
+ * It is a CONCEPT, never a chapter: chapters and topics come from the board and we never invent
+ * one (docs/LEARNING-MODEL.md §1). This is what a learner climbs while their own board's syllabus
+ * is being read, and what the board's chapters quietly replace when it lands.
+ */
+export interface SharedConcept {
+  conceptId: string;
+  name: string;
+  /** How many boards teach it in this class. Machine-side; never a number a learner reads. */
+  boards: number;
+  order: number;
+}
+
+/** The class-and-subject plan every board shares. `source` is always `shared`, and says so. */
+export interface SharedPlan {
+  source: 'shared';
+  level: string;
+  subject: string;
+  concepts: SharedConcept[];
+}
+
 export interface CurriculumUnitsView {
   frameworkId: string;
   level: string;
   subject: string;
-  /** `ready` carries units; `looking` carries a placeholder and an empty list. */
-  status: 'ready' | 'looking';
+  /**
+   * `ready` carries the board's units. `shared` is the cold start: no chapters yet, the plan
+   * every board shares instead, and a designed wait of `waitMs` before it is shown. `looking` is
+   * the older shape, still served while a stored version is being re-checked.
+   */
+  status: 'ready' | 'looking' | 'shared';
   subjectId: string | null;
   units: CurriculumNode[];
   placeholder: DiscoveryPlaceholder | null;
+  /** The shared plan, on a cold board. Null the moment the board's own chapters exist. */
+  plan: SharedPlan | null;
+  /** The discovery job started for this board, for the quiet poll. Never shown. */
+  jobId: string | null;
+  /**
+   * How long the designed wait may run before the learner starts on the shared plan, in
+   * milliseconds — the brain's number, so there is one ceiling and not two. Zero means there is
+   * nothing to wait for.
+   */
+  waitMs: number;
   label: string;
   notListed: NotListedDoor | null;
 }

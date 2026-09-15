@@ -285,7 +285,8 @@ def read_source(
     import hashlib
 
     budget = budget or FetchBudget(max_bytes=64 * 1024 * 1024)
-    title, pages = pdf_to_pages(data, budget=budget)
+    reading = pdf_to_pages(data, budget=budget)
+    title, pages = reading.title, reading.pages
     layout = _pdftotext_pages(data) if with_pdftotext else []
     merged: list[Page] = []
     clean: list[Page] = []
@@ -311,6 +312,9 @@ def read_source(
             fetched_at=fetched_at,
             pages=tuple(view),
             extraction=extraction,
+            source_pages=reading.source_pages,
+            pages_dropped=reading.dropped,
+            truncated=bool(reading.dropped),
         )
 
     has_layout = bool(layout)

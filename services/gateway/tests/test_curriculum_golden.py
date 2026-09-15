@@ -436,14 +436,13 @@ def test_every_search_result_carries_a_label_from_the_four(store: InMemoryStore)
     assert found["results"]
     for row in found["results"]:
         label = row["label"]
-        # A board we hold no chapters for gets §5's fifth sentence, which claims nothing about a
-        # syllabus we have never read (`labels.NO_SYLLABUS`); the four are for the ones we have.
-        assert (
-            label in allowed
-            or label.startswith("Official ")
-            or label.endswith(labels.NO_SYLLABUS)
-        ), label
-        assert (row["has_syllabus"] is False) == label.endswith(labels.NO_SYLLABUS), label
+        # A board we hold no chapters for is simply named (`labels.board_label`): the four labels
+        # are claims about a SYLLABUS, and there is no syllabus here to make one about. The
+        # sentence that used to be appended, "no syllabus stored yet", left the product with the
+        # cold start — picking such a board now starts both its reading and the learner.
+        assert label in allowed or label.startswith("Official ") or label == row["name"], label
+        if row["has_syllabus"] is False:
+            assert "syllabus" not in label.casefold(), label
         # Product copy law: sentence case, no emoji, no exclamation marks.
         assert "!" not in label and label == label.strip()
 
@@ -528,22 +527,21 @@ def test_an_unseeded_subject_enqueues_one_job_and_invents_no_chapters(
     store: InMemoryStore,
 ) -> None:
     """§8 and §12: nothing generated in bulk, and never a second discovery for the same thing."""
-    payload = {"framework_id": "cbse", "level": "Class 6", "subject": "Sanskrit"}
+    payload = {"framework_id": "cbse", "level": "Class 6", "subject": "Geography"}
     first = call(store, "curriculum.units", payload)
 
-    # Refused rather than "looking", because nothing is looking: no worker drains the queue yet,
-    # and §4.6 asks for the refusal and the open door instead of a promise
-    # (api.discovery_worker_running).
-    assert first["status"] == "refused"
+    # The cold start: the job is recorded and the learner starts on the shared plan. Never a
+    # chapter, never a word about the search (docs/BOARD-COLD-START.md).
+    assert first["status"] == "shared"
     assert first["units"] == []
-    assert "units" not in first["placeholder"], "the placeholder must carry no chapter list"
+    assert "placeholder" not in first, "the status card, and the narration with it, are gone"
     assert first["not_listed"] == api.OWN_SYLLABUS
-    assert first["label"] == labels.job_message(first["placeholder"]["state"])
+    assert first["plan"]["source"] == "shared"
     assert "!" not in first["label"]
 
     second = call(store, "curriculum.units", payload, subject=OTHER_SUBJECT)
-    job_id = first["placeholder"]["job_id"]
-    assert second["placeholder"]["job_id"] == job_id, "two learners, two jobs"
+    job_id = first["job_id"]
+    assert second["job_id"] == job_id, "two learners, two jobs"
 
     status = call(store, "curriculum.status", {"job_id": job_id})
     assert status["job"]["job_id"] == job_id
@@ -553,7 +551,9 @@ def test_an_unseeded_subject_enqueues_one_job_and_invents_no_chapters(
 def test_a_state_board_we_could_not_read_offers_the_search_rather_than_a_syllabus(
     board: str, store: InMemoryStore
 ) -> None:
-    """The blocked boards are the honest case end to end: a real entry, and no invented chapter."""
+    """The blocked boards are the honest case end to end: a real entry, no invented chapter, and
+    — since the cold start — a learner who begins anyway on the plan every board shares while the
+    board's own document is queued for reading (docs/BOARD-COLD-START.md §3)."""
     framework = store.get_framework(board)
     assert framework is not None
     served = call(
@@ -561,8 +561,9 @@ def test_a_state_board_we_could_not_read_offers_the_search_rather_than_a_syllabu
         "curriculum.units",
         {"framework_id": board, "level": "Class 9", "subject": "Mathematics"},
     )
-    assert served["status"] == "refused"
-    assert served["units"] == []
+    assert served["status"] == "shared"
+    assert served["units"] == [], "a board we could not read has no chapters, and we invent none"
+    assert served["plan"]["concepts"], "the learner was left with nothing to do"
     assert served["not_listed"] == api.OWN_SYLLABUS
 
 

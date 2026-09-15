@@ -26,12 +26,12 @@
  * gate lives in the course screen, once, for every path into it.
  */
 
-import { DISCOVERY_COPY, labelFor } from '@wobo/sdk';
-import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
+import { type CurriculumUnitsView, DISCOVERY_COPY, labelFor } from '@wobo/sdk';
+import { useRegisterTarget, useWoboBus, WaitScene } from '@wobo/wobo';
 import { useCallback, useEffect, useMemo } from 'react';
 import { useRegistryRevision, useTopics, useUnits, useWorld } from '../curriculum/hooks';
 import { chaptersBySubject, type DisplaySubject, displaySubjects } from '../curriculum/registry';
-import { DiscoveryCard } from '../curriculum/StatusCard';
+import { DiscoveryCard, sharedConceptRoute } from '../curriculum/StatusCard';
 import { subjectFamily } from '../curriculum/subjects';
 import { AppFrame } from '../shell/AppFrame';
 import { type Route, routeToPath, useRouter } from '../shell/router';
@@ -51,7 +51,7 @@ import {
 } from '../ui/primitives';
 import { Climb } from './learn/Climb';
 import { tileLine, type UnitRow, unitLine, unitRows, unitState } from './learn/units';
-import { frameworkLabel, loadProfile } from './you/profile';
+import { loadProfile } from './you/profile';
 import './learn/Learn.css';
 import './practice/practice.css';
 import './subject/subject.css';
@@ -88,6 +88,82 @@ export function resolveSubject(
   const family = subjectFamily(raw);
   if (family === 'general') return undefined;
   return subjects.find((s) => subjectFamily(s.name) === family || subjectFamily(s.id) === family);
+}
+
+/**
+ * THE ENDS OF THIS SCREEN, IN WOBO'S VOICE.
+ *
+ * Neither of these is new copy for its own sake: they replace two cards that between them broke
+ * three laws. The first narrated the request — a sentence naming the board, the subject and the
+ * fetch itself — which docs/BOARD-COLD-START.md §3 forbids outright: the learner never reads that
+ * we are fetching anything, and on a throttled phone they read it for a second and a half on every
+ * single opening of every subject, cold board or warm. The second printed `units.error`, which is
+ * `hooks.voiceOf` and falls through to `error.message` for anything that is not a
+ * `CurriculumError` — so a child on a bad link read the browser's own "Failed to fetch".
+ *
+ * `unreachable` claims only what is true of a request that never arrived: it does not say the
+ * board has no syllabus, because we did not get far enough to know. `DISCOVERY_COPY.refused` is
+ * the line for the other case, where the brain answered and there was nothing behind the answer.
+ */
+export const SUBJECT_COPY = {
+  /** The brain could not be reached, or refused. Never its own words, never a stack's. */
+  unreachable: 'I could not get to your chapters just now.',
+  /** No class chosen on this device yet, so there is nothing to ask the board for. */
+  noClass: 'Tell me your class and I will bring your chapters.',
+} as const;
+
+/** A way out. Every end of this screen has at least one, because a dead end is a defect. */
+export type SubjectDoor = 'again' | 'own-syllabus' | 'class';
+
+/** What each door is called. A door says what it does; none of them names a feature. */
+export const SUBJECT_DOORS: Record<SubjectDoor, string> = {
+  again: 'Try again',
+  'own-syllabus': 'Show me my syllabus',
+  class: 'Choose your class',
+};
+
+/**
+ * What the middle of the screen is. Three outcomes and no fourth: the designed wait that says
+ * nothing, an end with a line and a door, or the chapters themselves.
+ */
+export type SubjectBody =
+  | { kind: 'wait'; view: CurriculumUnitsView | null }
+  | { kind: 'end'; line: string; doors: readonly SubjectDoor[] }
+  | { kind: 'chapters' };
+
+/** As much of `useUnits` as the decision below reads. */
+export interface UnitsState {
+  /** The brain answered, and the answer is not this board's own chapters yet. */
+  looking: boolean;
+  /** A request is in flight. */
+  loading: boolean;
+  /** Wobo's line for a refusal — read as a FLAG here, never as something to print. */
+  error: string | null;
+  view: CurriculumUnitsView | null;
+}
+
+/**
+ * The decision, pure, so every branch of it can be held to the law without a browser.
+ *
+ * The bug this closes is the second clause: `looking` is false while `view` is null, so the whole
+ * of the first request fell past the discovery card. A request with nothing to show yet is a wait,
+ * and a wait is a drawing (`curriculum/StatusCard.tsx`), not a sentence.
+ *
+ * The view is handed on ONLY when it is the answer this screen is standing in. Switching subjects
+ * leaves the previous subject's view on the hook until the next one lands, and a ready view has
+ * `waitMs: 0` — passing it on would have ended the wait instantly and shown the previous subject's
+ * plan, or its absence, under this subject's name.
+ */
+export function subjectBody(units: UnitsState, rows: number, hasLevel: boolean): SubjectBody {
+  if (units.looking || (rows === 0 && units.loading)) {
+    return { kind: 'wait', view: units.looking ? units.view : null };
+  }
+  if (rows > 0) return { kind: 'chapters' };
+  if (!hasLevel) return { kind: 'end', line: SUBJECT_COPY.noClass, doors: ['class'] };
+  if (units.error) {
+    return { kind: 'end', line: SUBJECT_COPY.unreachable, doors: ['again', 'own-syllabus'] };
+  }
+  return { kind: 'end', line: DISCOVERY_COPY.refused, doors: ['own-syllabus'] };
 }
 
 /** A chapter opens as its course; with practice in hand it opens as a sandbox on the same ground. */
@@ -196,6 +272,16 @@ export function SubjectScreen({ subjectId, intent }: { subjectId: string; intent
     : '';
   const initial = profile.name.trim().charAt(0).toUpperCase();
 
+  // What the middle of the screen is, and it is never a sentence about fetching (subjectBody).
+  const body = subjectBody(units, rows.length, !!world?.level);
+  // `door` above is the crumb's; this one is a way out of an end.
+  const openDoor = (which: SubjectDoor) => {
+    // "Try again" is this screen's own; the other two are the same door onto You, where a learner
+    // sets their class and hands over their own syllabus.
+    if (which === 'again') units.reload();
+    else router.navigate({ name: 'you' });
+  };
+
   return (
     <AppFrame active={intent === 'practice' ? 'practice' : 'learn'}>
       <TopBar
@@ -257,20 +343,38 @@ export function SubjectScreen({ subjectId, intent }: { subjectId: string; intent
             </Chip>
           </div>
 
-          {units.looking ? (
+          {body.kind === 'wait' && !body.view ? (
+            /* The first request, with no answer behind it yet. The discovery card cannot own this
+            one: its wait is a BUDGET that runs out (`remainingWait`) and then falls through to the
+            shared plan — and there is no plan here, so on a link slower than the budget it fell
+            through to "I could not find an official syllabus for this" while the request was still
+            in the air, which is a claim we have not earned. The scene runs for as long as the
+            request does instead, and says nothing either way (BOARD-COLD-START §2, §3). */
+            <Card compact className="sb-wait">
+              <WaitScene subject={name || 'math'} width={220} orb />
+            </Card>
+          ) : body.kind === 'wait' ? (
             <DiscoveryCard
-              placeholder={units.view?.placeholder ?? null}
+              view={body.view}
+              // The learner's eight seconds, counted from when they opened this subject rather
+              // than from when this card mounted (BOARD-COLD-START.md §2).
+              since={units.since}
+              // A row of the plan every board shares opens a lesson on that concept. Without this
+              // the plan was a list of names nothing happened to when a child pressed one.
+              onStart={(concept) => router.navigate(sharedConceptRoute(concept))}
               onOwnSyllabus={() => router.navigate({ name: 'you' })}
               onFinished={() => units.reload()}
             />
-          ) : rows.length === 0 ? (
+          ) : body.kind === 'end' ? (
             <Card compact>
-              <p>
-                {units.error ??
-                  (world.level && name
-                    ? `I am fetching the chapters ${frameworkLabel(world.frameworkName)} teaches in ${name}.`
-                    : 'Tell me your class and I will bring your chapters.')}
-              </p>
+              <p>{body.line}</p>
+              <CardFoot>
+                {body.doors.map((which) => (
+                  <Button key={which} size="sm" onClick={() => openDoor(which)}>
+                    {SUBJECT_DOORS[which]}
+                  </Button>
+                ))}
+              </CardFoot>
             </Card>
           ) : intent === 'practice' ? (
             <div className="sb-sets" ref={listRef}>
@@ -371,7 +475,12 @@ export function SubjectScreen({ subjectId, intent }: { subjectId: string; intent
             </>
           )}
 
-          <div className="ln-wobo">
+          {/* `sb-foot`: the quiet flag floats over the foot of a phone screen (ui/FlagControl.tsx,
+          `.wf-float`), and the shell's own foot is shorter than the band it stands in — so this
+          line, the last thing on the screen, sat under the pill at 390 with no scroll left to
+          clear it. The band is given here; the pill does not move, because the pill is a promise
+          (screens/subject/subject.css). */}
+          <div className="ln-wobo sb-foot">
             <WoboHead size={28} />
             {WOBO_LINE}
           </div>

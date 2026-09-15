@@ -17,7 +17,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { chooseLevel } from '../curriculum/adopt';
 import { useRegistryRevision, useUnits, useWorld } from '../curriculum/hooks';
 import { chaptersBySubject, displaySubjects } from '../curriculum/registry';
-import { DiscoveryCard } from '../curriculum/StatusCard';
+import { DiscoveryCard, sharedConceptRoute } from '../curriculum/StatusCard';
 import { warmFromCache } from '../curriculum/warm';
 import type { Subject } from '../data/model';
 import { AppFrame } from '../shell/AppFrame';
@@ -198,7 +198,13 @@ export function Learn() {
 
           {units.looking ? (
             <DiscoveryCard
-              placeholder={units.view?.placeholder ?? null}
+              view={units.view}
+              // The designed wait is the learner's eight seconds, counted from when they opened
+              // this subject rather than from when this card mounted (BOARD-COLD-START.md §2).
+              since={units.since}
+              // A row of the plan every board shares opens a lesson on that concept. Without this
+              // the plan was a list of names nothing happened to when a child pressed one.
+              onStart={(concept) => router.navigate(sharedConceptRoute(concept))}
               onOwnSyllabus={() => active && router.navigate(subjectRoute(active))}
             />
           ) : units.error && rows.length === 0 ? (

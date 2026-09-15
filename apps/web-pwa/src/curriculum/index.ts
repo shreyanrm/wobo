@@ -7,8 +7,8 @@
  */
 
 export * from './adopt';
-export * from './blueprint';
 export { BoardSearch } from './BoardSearch';
+export * from './blueprint';
 export { cache } from './cache';
 export { curriculum, curriculumReady, gatewayUrl, setCurriculumClient } from './client';
 export * from './hooks';

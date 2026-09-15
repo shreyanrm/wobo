@@ -192,6 +192,28 @@ export function byRollupSpend<Name extends string>(
   );
 }
 
+// --- the boards desk's money (docs/BOARD-COLD-START.md §5) --------------------------------------
+// The one place that READS what a board cost. The gateway sums it (`curriculum/desk.py` adds each
+// run's own `ledger.take_spend` per board); this module reads the field and `syllabus.ts` only
+// decides which words go in which cell — the same three-way split every other money figure in this
+// console lives under.
+
+/** What one discovery run cost, or `null` when nothing on it could be priced. */
+export function jobCost(row: { readonly cost_usd: number | null }): number | null {
+  return typeof row.cost_usd === 'number' && Number.isFinite(row.cost_usd) ? row.cost_usd : null;
+}
+
+/** What one board has cost across its runs, as the gateway summed it. */
+export function boardSpend(row: { readonly usd: number | null }): number | null {
+  return typeof row.usd === 'number' && Number.isFinite(row.usd) ? row.usd : null;
+}
+
+/** Money that may not exist. `null` is "nothing here could be priced", which is a different fact
+ *  from nothing having been spent, and it is never rendered as `$0.00`. */
+export function money(value: number | null): string {
+  return value === null ? 'not priced' : usd(value);
+}
+
 /** The unpriced note that rides every money total. Empty when everything could be priced. */
 function pricedNote(sums: Totals): string {
   const parts: string[] = [];

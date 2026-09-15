@@ -323,6 +323,11 @@ def test_me_carries_a_fraction_and_a_time_and_no_money(auth, monkeypatch) -> Non
     from wobo_gateway.telemetry import MetricsSink
 
     _dial(allowance.DIAL_INR_PER_USD, 100)
+    # The zone is known before the first debit, as it is in the product: every debit happens
+    # inside a request, and the request carries the device's zone. Debiting first and asking in
+    # Asia/Kolkata afterwards stamped the debit on the UTC day, so this test failed every evening
+    # after 18:30 UTC, when the two days no longer agree (docs/ALLOWANCE.md 4.6).
+    allowance.note_zone("sub:me-learner", "Asia/Kolkata")
     allowance.debit("sub:me-learner", cost_usd=0.01, capability="wobo.turn")
     client = TestClient(create_app(Gateway(MockProvider(), InMemoryCache(), MetricsSink())))
     body = client.get(

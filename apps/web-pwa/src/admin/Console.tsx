@@ -15,7 +15,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { type AllowanceDesk, allowancePanels, isAllowanceDesk } from './allowance';
 import { read } from './api';
 import type { AdminIdentity, Economics, HealthSnapshot, UsageWindow } from './contract';
+import { AllowanceActions, ModelsActions, mayTurn } from './DialActions';
 import { DESKS, type DeskId, desk as deskById } from './desks';
+import { isModelsDesk, type ModelsDesk, routerPanels } from './models';
+import { PromoActions } from './PromoActions';
 import { asOf, type Panel } from './panels';
 import {
   isPromoPage,
@@ -24,9 +27,6 @@ import {
   promoPanels,
   type RedemptionPage,
 } from './promo';
-import { PromoActions } from './PromoActions';
-import { AllowanceActions, mayTurn, ModelsActions } from './DialActions';
-import { isModelsDesk, type ModelsDesk, routerPanels } from './models';
 import { QueueActions } from './QueueActions';
 import {
   type DeskSummary,
@@ -48,7 +48,9 @@ import {
   spendPanels,
   summary,
 } from './readings';
+import { SyllabusActions } from './SyllabusActions';
 import { mayReadConsole, signOut } from './session';
+import { isSyllabusDesk, type SyllabusDesk, syllabusPanels } from './syllabus';
 
 /** How often the live desks re-read. Slow on purpose: an operator console polling hard adds load
  *  to the gateway it is watching, and every read is also a row in the audit trail. */
@@ -88,6 +90,9 @@ export function Console({
   const [models, setModels] = useState<ModelsDesk | null>(null);
   const [allowance, setAllowance] = useState<AllowanceDesk | null>(null);
   const [promo, setPromo] = useState<PromoPage | null>(null);
+  // The boards desk (docs/BOARD-COLD-START.md §4): what every board is showing a learner and why,
+  // the discovery queue, what refused, and what each one cost.
+  const [syllabus, setSyllabus] = useState<SyllabusDesk | null>(null);
   const [redeemed, setRedeemed] = useState<RedemptionPage | null>(null);
   const [at, setAt] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
@@ -102,21 +107,22 @@ export function Console({
       gotAllowance,
       gotPromo,
       gotRedeemed,
+      gotSyllabus,
       ...gotQueues
-    ] =
-      await Promise.all([
-        read('health', isHealthSnapshot),
-        read('usage', isUsageWindow, { query: { days: WINDOW_DAYS } }),
-        read('economics', isEconomics, { query: { days: WINDOW_DAYS } }),
-        read('deskSummary', isDeskSummary),
-        read('models', isModelsDesk),
-        read('allowance', isAllowanceDesk),
-        read('promo', isPromoPage, { query: { limit: QUEUE_PAGE } }),
-        read('promoRedemptions', isRedemptionPage, { query: { limit: QUEUE_PAGE } }),
-        ...QUEUE_KINDS.map((kind) =>
-          read('reports', isQueuePage, { query: { kind, limit: QUEUE_PAGE } }),
-        ),
-      ]);
+    ] = await Promise.all([
+      read('health', isHealthSnapshot),
+      read('usage', isUsageWindow, { query: { days: WINDOW_DAYS } }),
+      read('economics', isEconomics, { query: { days: WINDOW_DAYS } }),
+      read('deskSummary', isDeskSummary),
+      read('models', isModelsDesk),
+      read('allowance', isAllowanceDesk),
+      read('promo', isPromoPage, { query: { limit: QUEUE_PAGE } }),
+      read('promoRedemptions', isRedemptionPage, { query: { limit: QUEUE_PAGE } }),
+      read('syllabus', isSyllabusDesk, { query: { limit: QUEUE_PAGE } }),
+      ...QUEUE_KINDS.map((kind) =>
+        read('reports', isQueuePage, { query: { kind, limit: QUEUE_PAGE } }),
+      ),
+    ]);
     // A reading that failed is DROPPED, never kept. A stale figure with a fresh timestamp beside
     // it is worse than no figure: it is a number that looks current.
     setHealth(gotHealth.ok ? gotHealth.value : null);
@@ -129,6 +135,9 @@ export function Console({
     // timestamp is a code somebody has already switched off, still looking live.
     setPromo(gotPromo.ok ? gotPromo.value : null);
     setRedeemed(gotRedeemed.ok ? gotRedeemed.value : null);
+    // Dropped rather than kept, for the same reason: a stale board list under a fresh timestamp
+    // is a board somebody already confirmed, still reading as provisional.
+    setSyllabus(gotSyllabus.ok ? gotSyllabus.value : null);
     const pages: Partial<Record<QueueKind, QueuePage>> = {};
     QUEUE_KINDS.forEach((kind, index) => {
       const got = gotQueues[index];
@@ -147,6 +156,7 @@ export function Console({
       gotDesks,
       gotPromo,
       gotRedeemed,
+      gotSyllabus,
       ...gotQueues,
     ].some((result) => !result.ok && result.reason === 'not_permitted');
     setEnded(refused);
@@ -173,6 +183,7 @@ export function Console({
     allowance,
     promo,
     redeemed,
+    syllabus,
     at,
     permitted,
   });
@@ -278,6 +289,17 @@ export function Console({
                 onChanged={() => void refresh()}
               />
             )}
+            {/* Retrying a refusal is an operator's act; confirming a reading and turning the
+                queue's order are the owner's, and the component draws only what this seat
+                carries. */}
+            {desk.id === 'syllabus' && permitted && (
+              <SyllabusActions
+                key={desk.id}
+                desk={syllabus}
+                mayTurn={mayTurn(admin.permissions)}
+                onChanged={() => void refresh()}
+              />
+            )}
           </div>
         </main>
       </div>
@@ -299,6 +321,7 @@ function panelsFor(
     allowance: AllowanceDesk | null;
     promo: PromoPage | null;
     redeemed: RedemptionPage | null;
+    syllabus: SyllabusDesk | null;
     at: string | null;
     permitted: boolean;
   },
@@ -342,6 +365,8 @@ function panelsFor(
       return pacingPanels(ctx.usage, ctx.economics, ctx.at);
     case 'promo':
       return promoPanels(ctx.promo, ctx.redeemed, ctx.at);
+    case 'syllabus':
+      return syllabusPanels(ctx.syllabus, ctx.at);
     default:
       return healthPanels(ctx.health, ctx.at);
   }

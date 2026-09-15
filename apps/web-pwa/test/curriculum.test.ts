@@ -331,6 +331,9 @@ const readyUnits: CurriculumUnitsView = {
   subjectId: 'subject-1',
   units: [unit('u1', 'Rational numbers', 0), unit('u2', 'Linear equations', 1)],
   placeholder: null,
+  plan: null,
+  jobId: null,
+  waitMs: 0,
   label: 'Official CBSE 2026-27, verified',
   notListed: null,
 };

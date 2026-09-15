@@ -289,11 +289,7 @@ export function groupFor(
 }
 
 /** The group as ids: what the course for this syllabus cell is built from, in order. */
-export function blueprintWalk(
-  bp: Blueprint,
-  topicId: string,
-  state: LearnerState = {},
-): string[] {
+export function blueprintWalk(bp: Blueprint, topicId: string, state: LearnerState = {}): string[] {
   return groupFor(bp, topicId, state).map((m) => m.id);
 }
 

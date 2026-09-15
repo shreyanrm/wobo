@@ -78,20 +78,20 @@ def weaker(first: Status | str, second: Status | str) -> Status:
     return left if _CLAIM[left] <= _CLAIM[right] else right
 
 
-#: What a board with no stored syllabus reads as. §5's four labels are all claims about a
-#: SYLLABUS — "Official CBSE 2026-27, verified", "found on the board's site", "shared by another
-#: learner" — and serving one of them for a framework we hold no chapters for claims something we
-#: do not have. Searching "telangana" returned three boards labelled "Official …, verified" with
-#: not one chapter stored between them; this is the sentence that is true instead.
-NO_SYLLABUS = "no syllabus stored yet"
+def board_label(framework: Framework) -> str:
+    """The line for a board whose syllabus we hold nothing of yet.
 
-
-def no_syllabus_label(framework: Framework) -> str:
-    """The honest line for a framework in the registry whose syllabus we have never read."""
+    It used to end "no syllabus stored yet", and that sentence was true and it was a dead end: it
+    told a learner in Maharashtra that the product had nothing for them, which stopped being the
+    case when the cold start landed (``docs/BOARD-COLD-START.md``). Picking this board now starts
+    the reading of its syllabus and starts the learner, so there is nothing to warn them about and
+    the label claims only what §3 corroborated: that this board is the board it says it is. What we
+    hold of its syllabus is a machine fact (``has_syllabus``), not a sentence a child reads.
+    """
     if framework.status is Status.VERIFIED:
         # The site was corroborated at the framework level (§3), which is a claim we can make.
-        return f"Official {framework.name}, {NO_SYLLABUS}"
-    return f"{framework.name}, {NO_SYLLABUS}"
+        return f"Official {framework.name}"
+    return framework.name
 
 
 def label_for(framework: Framework, version: Version | None = None) -> str:
@@ -99,12 +99,12 @@ def label_for(framework: Framework, version: Version | None = None) -> str:
 
     ``version`` is not optional in spirit: it is the syllabus, and every one of §5's labels is
     about a syllabus. Without one the answer is not a weaker claim about the same thing, it is a
-    different sentence — see :func:`no_syllabus_label`.
+    different sentence — see :func:`board_label`.
     """
     if framework.status is Status.PERSONAL or framework.personal:
         return _FIXED[Status.PERSONAL]
     if version is None:
-        return no_syllabus_label(framework)
+        return board_label(framework)
     return label(
         status=weaker(framework.status, version.status),
         framework_name=framework.name,

@@ -175,15 +175,19 @@ def test_a_missing_syllabus_returns_a_placeholder_and_never_a_chapter(
     out = post(
         client,
         "curriculum.units",
-        {"framework_id": "cbse", "level": "Class 9", "subject": "Sanskrit"},
+        {"framework_id": "cbse", "level": "Class 9", "subject": "Mathematics"},
         auth(),
     ).json()["output"]
     assert out["units"] == []
-    # Nothing drains `discovery_jobs` yet, so the job is recorded and refused in the same breath
-    # rather than left saying "looking" for ever (§4.6, api.discovery_worker_running).
-    assert out["status"] == "refused"
+    # The cold start: no chapters we do not hold, and no dead end either — the plan every board
+    # shares, and the job queued behind it (docs/BOARD-COLD-START.md).
+    assert out["status"] == "shared"
+    assert out["plan"]["concepts"]
     assert out["not_listed"]["action"] == "own_syllabus"
-    job_id = out["placeholder"]["job_id"]
+    # Nothing drains `discovery_jobs` until the owner sets WOBO_DISCOVERY_WORKER, so a learner who
+    # asks after the job is told the honest end and shown the door rather than "still looking"
+    # (§4.6, api.discovery_worker_running). The row itself stays queued for the worker.
+    job_id = out["job_id"]
     status = post(client, "curriculum.status", {"job_id": job_id}, auth()).json()["output"]
     assert status["state"] == "refused"
     assert status["not_listed"]["action"] == "own_syllabus"

@@ -434,8 +434,13 @@ export function FrameBuilding() {
                     I do not have {label} {level} yet, {firstName}
                   </div>
                   <DiscoveryCard
-                    placeholder={null}
-                    message={trouble ?? undefined}
+                    view={null}
+                    // Onboarding hands this card no answer at all (`view={null}`), so there is
+                    // never a plan here and never a row to press. If one ever arrives, the honest
+                    // door is the end of onboarding on the board the plan actually lives on —
+                    // `finish` either replaces the route or reloads on the real session, so a
+                    // course opened over the top of it would be thrown away either way.
+                    onStart={() => finish('learn')}
                     onOwnSyllabus={() => finish('you')}
                   />
                   <MagneticButton

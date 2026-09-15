@@ -331,14 +331,169 @@ stored subject on the freshness calendar, and runs the syllabus observer's pass.
 learner polls (`curriculum.status`) is the stage the run is genuinely at.
 
 **What it costs.** One discovery is a web search on the provider's own search tool, one
-extraction on the generate tier and one re-reading on the verify tier: budget it at one
-generated lesson, 0.20 USD at most. Every discovery and every re-check is charged as a
+extraction on the generate tier and one re-reading on the verify tier. **Measured, 2026-09-15,
+on three Indian state boards** (§9.2.1): 0.0089 to 0.034 USD a run on the floor rung, the high
+end being a 200-page compilation that needed a redraw and two second readings. Budget it at one
+generated lesson, 0.20 USD at most, which is comfortable rather than tight. Every discovery and every re-check is charged as a
 generation to the worker's own meter subject, which has the free plan's allowance, so the
 worker spends at most `FREE_DAILY_GENERATIONS` (default 8) generations a day, about 1.60 USD
 worst case, and then leaves the rest queued with a line that says it will look again tomorrow.
 It also stops the moment the spend ceiling (§2) is refusing the stranger lane, so it can never
 spend a paying learner's headroom. The one replica in `railway.json` is still load-bearing: the
 claim is safe across replicas, the meters are not.
+
+### 9.2.1 Turning discovery on for the state boards: the runbook
+
+Written 2026-09-15, after the pipeline was run end to end for the first time. It had been built
+in September and never run — `WOBO_DISCOVERY_WORKER` has never been set on Railway — so this
+section is what that run learned rather than what the design intended. Follow it in order.
+
+**Why it is worth doing.** 268 boards are named in the registry and four carry a syllabus. 54 of
+the named boards are Indian and most Indian school students sit in a state board. Every board
+that lands is a shelf that was empty.
+
+**Before you touch Railway.** Set the four dials, from the console or in the SQL editor against
+`ops.settings`. They are read live, on the same 30-second interval as the model dials, and every
+write leaves a row in `ops.settings_audit`. The values below are the defaults, so a dial you do
+not set behaves exactly as written here; set them anyway, so the audit trail says you chose them.
+
+| key | default | what it means |
+|---|---|---|
+| `discovery.running` | on | **the hard stop.** Write `false` and every discovery everywhere refuses, within thirty seconds, with no deploy and no restart |
+| `discovery.board.max_usd` | `0.50` | what one board may cost in one UTC day, across all of its classes and subjects |
+| `discovery.daily.max_usd` | `5.00` | what every board together may cost in one UTC day |
+| `discovery.refusal.retry_days` | `7` | how long a refusal is remembered before the same question may cost money again |
+
+```sql
+insert into ops.settings (key, value, description, note) values
+  ('discovery.running', 'true'::jsonb,
+   'The hard stop on syllabus discovery. False and every discovery refuses within 30 seconds.',
+   'State boards, first switch-on.'),
+  ('discovery.board.max_usd', '0.50'::jsonb,
+   'What one board may cost in one UTC day, across every class and subject.',
+   'About twenty reads of one board.'),
+  ('discovery.daily.max_usd', '5.00'::jsonb,
+   'What every board together may cost in one UTC day.',
+   'The day, all boards together.'),
+  ('discovery.refusal.retry_days', '7'::jsonb,
+   'How long a refusal is remembered before the same question may cost money again.',
+   'A closed door stays shut a week.')
+on conflict (key) do update set value = excluded.value, note = excluded.note;
+```
+
+`updated_by` is left null on purpose: it is the uuid of whoever turned a dial through a signed-in
+surface, and this was turned in the SQL editor. The trigger on the table still writes the
+before-and-after into `ops.settings_audit` either way.
+
+**Then the switch.**
+
+```bash
+railway variables --set WOBO_DISCOVERY_WORKER=1     # then redeploy
+```
+
+`WOBO_DISCOVERY_WORKER` starts the loop; `discovery.running` stops the work. Use the variable
+once and the dial thereafter: the dial takes effect in thirty seconds and the variable takes a
+deploy.
+
+**The order of boards, by the number of students behind them.** Do not open them all at once.
+Take them a few at a time, read the console queue after each, and only go on when the last group
+has landed or refused for a reason you understand.
+
+1. Uttar Pradesh (`upmsp`), Maharashtra (`msbshse`), Bihar (`bseb`), West Bengal (`wbbse`,
+   `wbchse`)
+2. Madhya Pradesh (`mpbse`), Rajasthan (`rbse`), Tamil Nadu (`tn-dge`), Karnataka (`kseab`)
+3. Gujarat (`gseb`), Andhra Pradesh (`bseap`, `bieap`), Telangana (`bse-telangana`, `tgbie`),
+   Kerala (`kerala-state-board`), Odisha (`bse-odisha`), Punjab (`pseb`), Haryana (`bseh`),
+   Assam (`seba`), Jharkhand (`jac`), Chhattisgarh (`cgbse`)
+
+**What to watch, and what each thing means.**
+
+- **The day's money**, in `railway logs`: every discovery writes one `discovery.spent` line with
+  what that run cost, what its board has cost today, and what the day has cost against its
+  ceiling. `ceiling.state().as_dict()` is the same thing as one object, for a console panel to
+  read when one is built — **there is no discovery panel on the console yet, and this section does
+  not pretend there is.** A discovery on the floor rung cost between 0.012 and 0.030 USD in the
+  first live run, so a normal day of a few dozen reads is well under a dollar. If one board is
+  climbing towards its own ceiling, its documents are big or its readings are being redrawn; look
+  at it before raising anything.
+- **`refused` rows in the console queue.** Every refusal now carries a `detail` — the url, the
+  checks that failed, the transport error in words — so a row can be acted on without paying to
+  run it again. Three refusals about a board's HOST (`not_fetchable`, `timeout`, `dns`,
+  `tls_untrusted`, `http_error`, `robots_disallowed`) rest that board until the next UTC day, so
+  the tenth learner who picks it does not pay for the tenth closed door.
+- **A board's bill can read high, never low.** What a discovery cost is measured as the movement
+  of the platform's own spend ledger across the run, and that ledger is everyone's: a learner's
+  turn answered while a discovery is running is counted against the board. So a board may reach
+  its ceiling earlier than it truly did and never later, and the guard errs towards refusing.
+- **`provisional` is not published truth.** It means the board's own document was found, read,
+  and agreed with by a second reader. A person still confirms it before it says "verified". That
+  gate does not move.
+- **Do not point the verify tier at the model the generate tier uses.** In the default table
+  generate is Luna and verify is Sol, which is two minds. A dial that makes them one model turns
+  the second reading into the same reading paid for twice. Since 2026-09-15 the code notices: a
+  verify tier that resolves to the extractor's own model is not asked, the check is recorded as
+  one that could not run, and the reading can reach `provisional` on its structural evidence but
+  can never be promoted to `verified`. A disagreement from that same model is still kept, because
+  a reading its own author will not stand behind is worth failing on.
+
+**How to stop it.** In this order, cheapest first:
+
+1. `update ops.settings set value = 'false'::jsonb where key = 'discovery.running';` — everything
+   stops within thirty seconds. Nothing in flight is published; nothing queued is lost. "Thirty
+   seconds" is one worker interval (`WOBO_DISCOVERY_INTERVAL_S`): the dial is read at the top of
+   every tick, before the drain, the re-checks, the observer's pass and the prewarm, and again for
+   each board before its row is claimed, so nothing is charged a generation on the way past. What
+   is queued stays queued and says "I am not looking for syllabuses just now. Your place in the
+   queue is kept.", because the stored line for a queued row promises a search that nobody is
+   running. **Until 2026-09-15 this was not true of the worker** — it asked `run_discovery` with
+   `force=True`, and `force` skipped this guard, so the one runner in production read boards while
+   the switch said stop. The tests that hold it are `test_discovery_worker.py`'s hard-stop group.
+2. Lower `discovery.daily.max_usd` to `0` for the same effect through the money guard.
+3. `railway variables --set WOBO_DISCOVERY_WORKER=0` and redeploy — the loop itself stops, and a
+   learner who picks an unheld board is served the shared class-and-subject plan as before.
+4. The platform's own ceiling (§2) is above all three and is not discovery's to spend.
+
+**What the first live run found, so you are not surprised by it.**
+
+- **Maharashtra (`msbshse`) works, and is the shape most state boards have.** One 200-page pdf
+  holding every subject of Standards IX and X. The Mathematics section is pages 151 to 162, its
+  chapters are two papers (Algebra and Geometry) with eleven chapters between them, and the
+  document's own text says "Std. X" and never "Class 10". The reading is faithful, including
+  `Menstruation` on the Geometry page — **which is the board's own misprint for Mensuration** and
+  is exactly the kind of thing a person confirms before it is called verified.
+- **Uttar Pradesh (`upmsp`) cannot be read yet, and it is not our fault or theirs exactly.** Their
+  class 10 Mathematics pdf has a text layer in a legacy Devanagari font: the page shows
+  "इकाई-1 : संख्या पद्धति" and the text layer says `bdkbZ&1 % la[;k i)fr&`. Nothing downstream of
+  that can be trusted, so it refuses, and it now refuses **before** a model is paid to read it.
+  Reading UP needs a rendering-and-OCR path, or the board's Unicode edition if one exists. It is
+  a piece of work, not a setting.
+- **Tamil Nadu (`tn-dge`) refuses at the handshake.** `dge.tn.gov.in` serves its TLS certificate
+  **without the intermediate**, so a chain cannot be built. A browser and curl hide this by
+  fetching the missing certificate from the leaf's AIA extension; Python does not. The refusal is
+  now `tls_untrusted` with the error in words rather than "unreachable", and the board rests.
+  **Nothing in this pipeline turns verification off**, and it should not be turned off from here
+  either: a document read over a connection we cannot trust would be published under a board's
+  name. The options are to fetch and cache the missing intermediate deliberately, or to ask Tamil
+  Nadu to fix their chain. Both are decisions, and they are yours.
+
+**Running it yourself, offline, before any of this.** The whole pipeline runs by hand against an
+in-memory store, touching no database:
+
+```bash
+cd services/gateway
+DAILY_SPEND_CEILING_USD=3 uv run python -m wobo_gateway.curriculum.discovery.lab \
+    --board msbshse --board upmsp --board tn-dge \
+    --level "Class 10" --subject Mathematics
+```
+
+It reads on Luna and has Gemini Flash read second — the floor of two providers, so a lab run is
+cheap and is still two minds. It refuses to start if the two are the same model, and it reads no
+dial from production: the guard above runs on the documented defaults there.
+
+Every stage is written to `services/gateway/harness/reports/discovery-<run>/`: the queries, every
+candidate, every fetch with its bytes and its hash, both readers' whole replies, every check with
+its verdict, what it cost and what would have been published. It reads no dial from production and
+writes nothing anywhere else.
 
 ### 9.3 First selection verifies from the web (`WOBO_RECHECK`)
 
@@ -380,13 +535,17 @@ as unreachable and is retried after six hours.
 | The per-learner daily allowance | `services/gateway/src/wobo_gateway/budget.py` |
 | Publishing the seed, and the SQL it emits | `services/gateway/src/wobo_gateway/curriculum/publish.py` |
 | The discovery worker and its switch | `services/gateway/src/wobo_gateway/curriculum/discovery/worker.py` |
+| What a discovery may spend, the hard stop, and the remembered refusal | `services/gateway/src/wobo_gateway/curriculum/discovery/ceiling.py` |
+| Running the whole pipeline by hand, offline, against an in-memory store | `services/gateway/src/wobo_gateway/curriculum/discovery/lab.py` |
 | A read syllabus becoming registry rows | `services/gateway/src/wobo_gateway/curriculum/discovery/persist.py` |
 | The re-check on first selection and on the calendar | `services/gateway/src/wobo_gateway/curriculum/recheck.py` |
 | Deploy steps and rollback | `DEPLOY.md` |
 
 Tests: `services/gateway/tests/test_spend.py`, `test_alerts.py`, `test_health.py`,
 `test_router_fallbacks.py`, `test_model_call.py`,
-`test_curriculum_publish.py`, `test_discovery_worker.py`, `test_curriculum_recheck.py`.
+`test_curriculum_publish.py`, `test_discovery_worker.py`, `test_curriculum_recheck.py`,
+`test_discovery_ceiling.py`, `test_discovery_runnable.py` (every fault the first live run found,
+each with the test that names it).
 Run them with `cd services/gateway && uv run pytest -q`.
 
 ---

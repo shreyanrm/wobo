@@ -88,8 +88,13 @@ ICSE_HTML = """<!doctype html>
 """
 
 
-def minimal_pdf(pages: list[str]) -> bytes:
+def minimal_pdf(pages: list[str], *, info: dict[str, str] | None = None) -> bytes:
     """A tiny, valid, uncompressed PDF whose text pypdf reads back verbatim.
+
+    ``info`` writes the PDF's own document-information dictionary (``/CreationDate``,
+    ``/ModDate``, ``/Producer``), which is what a real board's pdf carries and what
+    ``discovery.dating`` reads to find out when the file itself was made. Omitted, the fixture
+    has no ``/Info`` at all, which is the other real shape.
 
     Written here rather than committed as a binary so the fixture is readable in the diff and
     the page anchors under test are the ones a real PDF parser produces, not ones we asserted
@@ -119,6 +124,10 @@ def minimal_pdf(pages: list[str]) -> bytes:
         stream = f"BT /F1 11 Tf 50 750 Td 14 TL\n{body}\nET"
         objects.append((content_id, f"<< /Length {len(stream)} >>\nstream\n{stream}\nendstream"))
     objects.append((font_id, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"))
+    info_id = font_id + 1
+    if info:
+        entries = " ".join(f"/{key} ({esc(value)})" for key, value in info.items())
+        objects.append((info_id, f"<< {entries} >>"))
 
     out = bytearray(b"%PDF-1.4\n")
     offsets: dict[int, int] = {}
@@ -131,7 +140,11 @@ def minimal_pdf(pages: list[str]) -> bytes:
     out += b"0000000000 65535 f \n"
     for number in range(1, highest + 1):
         out += f"{offsets.get(number, 0):010d} 00000 n \n".encode()
-    out += f"trailer\n<< /Size {highest + 1} /Root 1 0 R >>\nstartxref\n{xref_at}\n%%EOF\n".encode()
+    trailer = f"<< /Size {highest + 1} /Root 1 0 R"
+    if info:
+        trailer += f" /Info {info_id} 0 R"
+    trailer += " >>"
+    out += f"trailer\n{trailer}\nstartxref\n{xref_at}\n%%EOF\n".encode()
     return bytes(out)
 
 
@@ -234,7 +247,14 @@ def cbse_extraction(document, *, units: int = 4) -> dict[str, Any]:
     }
 
 
-def stub_completion(*replies: str, model: str = "test-model"):
+#: The two readers are two MODELS in production (generate is Luna, verify is Sol), and since the
+#: same-mind guard (fault 12 of the first live run) a second reading by the first reader's own
+#: model is discarded rather than counted. So the stubs name two models, as the tiers do.
+FIRST_READER_MODEL = "test-model"
+SECOND_READER_MODEL = "test-model-2"
+
+
+def stub_completion(*replies: str, model: str = FIRST_READER_MODEL):
     """A (system, user) -> (text, model) seam that hands back scripted replies in order."""
     calls: list[tuple[str, str]] = []
 
@@ -413,6 +433,100 @@ def test_a_scanned_pdf_has_nothing_we_could_cite():
     assert excinfo.value.reason in {"pdf_has_no_text", "pdf_unreadable"}
 
 
+# --- the page budget: what was read, and what was NOT --------------------------------------
+#
+# Maharashtra's own ``sscsyllabus.pdf`` is 349 pages: every subject of Standards IX and X in one
+# compilation, Mathematics at page 154. The lab read 200 of those pages and the provenance said
+# "200 pages, truncated: false" — a true count of what we held written as a claim about the
+# document. Two facts have to be separable and both stored: how many pages the DOCUMENT has, and
+# how many of them we read. And a subject that sits late in a compilation has to be reachable at
+# all, because the page ceiling was never the money — the money is ``max_chars``, and
+# ``extract.select_pages`` already chooses inside it.
+
+
+def compilation_pdf(total: int, subject_at: int) -> bytes:
+    """A state-board style compilation: every subject in one PDF, ours late inside it."""
+    pages = [f"SECTION {number}\nLanguages and other subjects" for number in range(1, total + 1)]
+    pages[subject_at - 1] = (
+        "COURSE STRUCTURE CLASS X\nMATHEMATICS\nUNIT I: NUMBER SYSTEMS\n1. REAL NUMBERS"
+    )
+    return minimal_pdf(pages)
+
+
+def test_a_pdf_past_the_page_ceiling_never_claims_the_whole_document():
+    pages = [f"PAGE {number}\nMATHEMATICS CLASS X" for number in range(1, 6)]
+    bodies = {CBSE_URL: ("application/pdf", minimal_pdf(pages))}
+    document = fetch_document(CBSE_URL, opener=opener_for(bodies), budget=FetchBudget(max_pages=3))
+    assert document.page_numbers == (1, 2, 3)
+    assert document.source_pages == 5
+    assert document.pages_dropped == 2
+    assert document.truncated is True, "two pages were dropped; that is not the whole document"
+    provenance = document.as_provenance()
+    assert provenance["pages"] == 3
+    assert provenance["document_pages"] == 5
+    assert provenance["pages_dropped"] == 2
+    assert provenance["truncated"] is True
+
+
+def test_a_pdf_inside_the_ceiling_says_it_was_read_whole():
+    document = cbse_document()
+    assert document.source_pages == 2
+    assert document.pages_dropped == 0
+    assert document.truncated is False
+    assert document.as_provenance()["document_pages"] == 2
+
+
+def test_a_subject_late_in_a_compilation_is_read_rather_than_cut_off():
+    """Maharashtra's shape, at its real length: the page ceiling must not hide page 230."""
+    bodies = {CBSE_URL: ("application/pdf", compilation_pdf(349, 230))}
+    document = fetch_document(CBSE_URL, opener=opener_for(bodies))
+    assert document.pages_dropped == 0
+    assert 230 in document.page_numbers
+    assert verify.document_is_plausible(document, cbse_request()) is None
+
+
+def test_a_truncated_document_is_never_refused_in_the_documents_name():
+    """The refusal may still be right. It may not say the DOCUMENT never named it."""
+    bodies = {CBSE_URL: ("application/pdf", compilation_pdf(20, 18))}
+    document = fetch_document(CBSE_URL, opener=opener_for(bodies), budget=FetchBudget(max_pages=4))
+    verdict = verify.document_is_plausible(document, cbse_request())
+    assert verdict is not None
+    assert "the document never names" not in verdict
+    assert "could read" in verdict
+
+
+def test_html_sections_past_the_ceiling_are_counted_rather_than_dropped_in_silence():
+    html = (
+        "<html><body>"
+        + "".join(
+            f"<h2>Unit {number}</h2><p>Some syllabus text for unit {number}.</p>"
+            for number in range(1, 8)
+        )
+        + "</body></html>"
+    )
+    bodies = {ICSE_URL: ("text/html", html.encode())}
+    document = fetch_document(ICSE_URL, opener=opener_for(bodies), budget=FetchBudget(max_pages=3))
+    assert len(document.pages) == 3
+    assert document.source_pages == 7
+    assert document.pages_dropped == 4
+    assert document.truncated is True
+
+
+def test_a_pdf_that_takes_too_long_to_parse_stops_and_says_so_rather_than_holding_the_worker():
+    """Rule 1 of this module: a stream with no end is a worker held open forever."""
+    from wobo_gateway.curriculum.discovery.fetch import pdf_to_pages
+
+    ticks = iter([0.0] + [float(n) for n in range(1, 500)])
+    reading = pdf_to_pages(
+        minimal_pdf([f"PAGE {number}\nMATHEMATICS" for number in range(1, 12)]),
+        budget=FetchBudget(parse_timeout_s=3.0),
+        clock=lambda: next(ticks),
+    )
+    assert len(reading.pages) < 11
+    assert reading.dropped > 0
+    assert reading.source_pages == 11
+
+
 def test_an_unsupported_media_type_is_refused():
     other = {CBSE_URL: ("application/zip", b"PK\x03\x04nope")}
     with pytest.raises(FetchRefused) as excinfo:
@@ -526,7 +640,7 @@ def test_every_check_passes_on_a_faithful_extraction():
     request = cbse_request()
     syllabus = parse_syllabus(cbse_extraction(document), request=request, document=document)
     report = verify.verify_extraction(
-        syllabus, document, request, complete=stub_completion(AGREES)
+        syllabus, document, request, complete=stub_completion(AGREES, model=SECOND_READER_MODEL)
     )
     assert report.ok and report.promotable, verify.summarise(report)
     assert verify.CHECK_UNIT_COUNT in report.passed_names
@@ -605,7 +719,7 @@ def run_cbse_job(
         "search_provider": MockSearchProvider([SearchResult(url=CBSE_URL)]),
         "fetch_fn": lambda url, **kwargs: fetch_document(url, opener=opener_for(DEFAULT_BODIES)),
         "complete_generate": stub_completion(json.dumps(cbse_extraction(document_stub))),
-        "complete_verify": stub_completion(AGREES),
+        "complete_verify": stub_completion(AGREES, model=SECOND_READER_MODEL),
     }
     defaults.update(overrides)
     request = cbse_request(level=request_level) if request_level else cbse_request()
@@ -722,7 +836,10 @@ def test_a_failed_check_is_redrawn_exactly_once_and_then_refused():
     document = cbse_document()
     short = json.dumps(cbse_extraction(document, units=3))
     generate = stub_completion(short, short)
-    record = run_cbse_job(complete_generate=generate, complete_verify=stub_completion(AGREES))
+    record = run_cbse_job(
+        complete_generate=generate,
+        complete_verify=stub_completion(AGREES, model=SECOND_READER_MODEL),
+    )
     assert record.reason == "checks_failed"
     assert len(generate.calls) == 2, "one draw, one redraw, then we stop"
     assert "previous reply was rejected" not in generate.calls[0][1]
@@ -735,12 +852,20 @@ def test_a_redraw_that_fixes_the_reading_is_kept():
         json.dumps(cbse_extraction(document, units=3)),
         json.dumps(cbse_extraction(document, units=4)),
     )
-    record = run_cbse_job(complete_generate=generate, complete_verify=stub_completion(AGREES))
+    record = run_cbse_job(
+        complete_generate=generate,
+        complete_verify=stub_completion(AGREES, model=SECOND_READER_MODEL),
+    )
     assert record.state is JobState.PROVISIONAL
     assert len(record.syllabus["units"]) == 4
 
 
 def test_the_second_candidate_is_tried_when_the_first_is_not_the_syllabus():
+    # Since the document gate (``verify.document_is_plausible``, fault 11 of the first live run)
+    # the first candidate is discarded BEFORE a model reads it: a CBSE class 10 Mathematics
+    # curriculum can never be an ICSE class 9 Physics syllabus, and the document says so by
+    # naming neither. The behaviour under test is unchanged — the second candidate is what gets
+    # read — and it now costs one extraction instead of two.
     document = icse_document()
     # The document's own headings, verbatim: `titles_in_document` reads every name back off the
     # page it cites, so an extraction of "Unit 1" over a page that says "Unit 1: Measurements and
@@ -765,9 +890,12 @@ def test_the_second_candidate_is_tried_when_the_first_is_not_the_syllabus():
             )
         ],
     }
-    generate = stub_completion(
-        json.dumps({"refusal": "this is a marking scheme"}), json.dumps(icse_units)
-    )
+    read: list[str] = []
+
+    def generate(system: str, user: str) -> tuple[str, str]:
+        read.append(user)
+        return json.dumps(icse_units), "test/model"
+
     record = run_discovery(
         # No official site on the registry entry, so ranking puts the .nic.in PDF first — and
         # that document turns out to be the wrong one, which is exactly the case under test.
@@ -784,10 +912,11 @@ def test_the_second_candidate_is_tried_when_the_first_is_not_the_syllabus():
         ),
         fetch_fn=lambda url, **kwargs: fetch_document(url, opener=opener_for(DEFAULT_BODIES)),
         complete_generate=generate,
-        complete_verify=stub_completion(AGREES),
+        complete_verify=stub_completion(AGREES, model=SECOND_READER_MODEL),
     )
     assert record.state is JobState.PROVISIONAL
     assert record.provenance["source_url"] == ICSE_URL
+    assert len(read) == 1, "the wrong document was read by a model instead of being discarded"
 
 
 @pytest.mark.parametrize("level", ["Class 2", "Class 3", "Semester 1 (year 15)"])

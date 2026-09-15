@@ -9,6 +9,7 @@
  */
 
 import { describe, expect, test } from 'bun:test';
+import type { Blueprint, BlueprintModule } from './blueprint';
 import {
   blueprintWalk,
   groundUnder,
@@ -19,7 +20,6 @@ import {
   progressAlong,
   sideDoorsAfter,
 } from './blueprint';
-import type { Blueprint, BlueprintModule } from './blueprint';
 
 // --- the same pool the gateway suite uses: CBSE class 8 Science, "Force and Pressure" ------------
 
@@ -94,7 +94,11 @@ function pool(): Blueprint {
       { id: 't5', name: 'Pressure in liquids and gases' },
     ],
     ideas: [
-      { id: 'i5', what: 'pressure is the force spread over the area it presses on', topics: ['t4'] },
+      {
+        id: 'i5',
+        what: 'pressure is the force spread over the area it presses on',
+        topics: ['t4'],
+      },
       { id: 'i6', what: 'a liquid presses on every wall it touches', topics: ['t5'] },
     ],
     misconceptions: [
@@ -111,7 +115,9 @@ function pool(): Blueprint {
       bossProves: 'the shape that survives the load, and why',
       skippable: ['p10'],
       neverSkip: ['p9', 'b1'],
-      stuck: [{ module: 'p9', instead: 'q2', why: 'the area is what is missing, not the pressure' }],
+      stuck: [
+        { module: 'p9', instead: 'q2', why: 'the area is what is missing, not the pressure' },
+      ],
     },
   };
 }

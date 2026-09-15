@@ -64,6 +64,18 @@ FREE_PAISE_KEY = "allowance.free_daily_paise"
 INR_RATE_KEY = "allowance.inr_per_usd"
 CREATIVE_POOL_KEY = "creative.pool.daily_usd"
 FREE_POOL_KEY = "free.pool.daily_paise"
+#: The discovery dials (docs/BOARD-COLD-START.md §5). The four about money and the switch live
+#: in ``curriculum/discovery/ceiling.py``; the fifth, how many academic years out of date a
+#: board's document may be before it is refused, lives in ``curriculum/discovery/dating.py``
+#: beside the reasoning for its default. They are named here so they are read on the same
+#: interval as every other dial and audited by the same trigger.
+DISCOVERY_KEYS: tuple[str, ...] = (
+    "discovery.running",
+    "discovery.board.max_usd",
+    "discovery.daily.max_usd",
+    "discovery.refusal.retry_days",
+    "discovery.document.max_age_years",
+)
 
 
 def tier_primary_key(tier: str) -> str:
@@ -87,7 +99,7 @@ def allowance_keys() -> tuple[str, ...]:
 
 
 def keys() -> tuple[str, ...]:
-    return (*tier_keys(), *allowance_keys())
+    return (*tier_keys(), *allowance_keys(), *DISCOVERY_KEYS)
 
 
 # --- the defaults ------------------------------------------------------------------------------------
@@ -589,6 +601,7 @@ def set_allowance(
 __all__ = [
     "ALERT_FRACTIONS",
     "CREATIVE_POOL_KEY",
+    "DISCOVERY_KEYS",
     "DEFAULT_CREATIVE_POOL_USD",
     "DEFAULT_FREE_PAISE",
     "DEFAULT_GENEROSITY",

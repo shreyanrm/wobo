@@ -18,6 +18,18 @@ Each tick, in order:
    document next year becomes a new version with ``supersedes`` and a diff.
 4. **The observer's pass** (:func:`observer.run_pass`), which already refuses to run without this
    worker's switch.
+5. **The prewarm** (:mod:`prewarm`): the boards with the most students, read AHEAD of demand, so
+   that a learner from Maharashtra rarely turns out to be the first one (``docs/BOARD-COLD-START``
+   §4). It only ever ENQUEUES: the drain above is oldest-first over ``queued``, so a prewarmed
+   board is picked up on a later tick and never ahead of a learner who is waiting right now.
+
+**The hard stop.** ``discovery.running`` (:mod:`ceiling`) is asked at the top of every tick and
+again for each board before its row is claimed, so ``false`` stops every pass of this loop within
+one interval, with no deploy — which is what ``docs/OPERATIONS.md`` §9.2.1 tells an operator to
+reach for first. What is queued stays queued and only stops claiming that someone is looking at
+it. The same question carries the two money ceilings and the board resting behind three closed
+doors, and it is asked before a generation is charged, so a board that may not be read costs
+nothing at all.
 
 **Budget.** Per job: :class:`DiscoveryBudget` (queries, bytes, documents, a wall clock). Per day:
 every job and every re-check is charged as a generation to the system subject, whose allowance is
@@ -40,9 +52,11 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from wobo_gateway import ledger
 from wobo_gateway.curriculum import labels
 from wobo_gateway.curriculum import recheck as recheck_mod
 from wobo_gateway.curriculum import versions as version_rules
+from wobo_gateway.curriculum.discovery import ceiling, prewarm
 from wobo_gateway.curriculum.discovery.extract import Completion, SyllabusRequest
 from wobo_gateway.curriculum.discovery.fetch import Document, fetch_document
 from wobo_gateway.curriculum.discovery.job import (
@@ -50,6 +64,7 @@ from wobo_gateway.curriculum.discovery.job import (
     InMemoryJobStore,
     JobRecord,
     JobStore,
+    refusal_line,
     run_discovery,
 )
 from wobo_gateway.curriculum.discovery.job import (
@@ -73,6 +88,10 @@ CAPABILITY = "curriculum.discovery"
 #: The system's meter subject for discoveries. Never a learner's day.
 SYSTEM_SUBJECT = "system:curriculum-discovery"
 SPENT_LINE = "I have done as much looking as I can manage today. I will look again tomorrow."
+#: What a queued row says while ``discovery.running`` is false. The stored line for a queued job
+#: is "Looking for the official syllabus now", which with the stop on is a promise about a search
+#: nobody is running — the one thing §4.6 forbids a row to say.
+STOPPED_LINE = "I am not looking for syllabuses just now. Your place in the queue is kept."
 
 #: ``run_discovery``'s stages onto the row's vocabulary (0008's check constraint has no
 #: ``fetching``). ``provisional`` is deliberately absent: the row says ``stored`` only once the
@@ -160,8 +179,12 @@ class TickReport:
     requeued: int = 0
     left_queued: int = 0
     spent: bool = False
+    #: ``discovery.running`` was false: nothing ran at all this tick, and nothing was lost.
+    stopped: bool = False
     rechecks: list[dict[str, Any]] = field(default_factory=list)
     observer_actions: int = 0
+    #: Boards put in the queue ahead of demand this tick. They are RUN on a later tick.
+    prewarmed: int = 0
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -172,8 +195,10 @@ class TickReport:
             "requeued": self.requeued,
             "left_queued": self.left_queued,
             "spent": self.spent,
+            "stopped": self.stopped,
             "rechecks": list(self.rechecks),
             "observer_actions": self.observer_actions,
+            "prewarmed": self.prewarmed,
         }
 
 
@@ -195,6 +220,8 @@ class DiscoveryWorker:
         rechecks: int = RECHECKS_PER_TICK,
         second_reader: bool = True,
         observer_pass: bool = True,
+        prewarm_pass: bool = True,
+        prewarm_per_tick: int | None = None,
         now: Callable[[], datetime] | None = None,
     ) -> None:
         self.store = store
@@ -208,9 +235,26 @@ class DiscoveryWorker:
         self.rechecks = max(0, rechecks)
         self.second_reader = second_reader
         self.observer_pass = observer_pass
+        self.prewarm_pass = prewarm_pass
+        self.prewarm_per_tick = prewarm_per_tick
         self._now = now or (lambda: datetime.now(UTC))
 
     # -- money
+    def has_money(self) -> bool:
+        """Is there anything left in the day, WITHOUT spending it?
+
+        Read-only, and separate from :meth:`afford` for one reason: reading a board ahead of demand
+        costs nothing at the moment it is queued and everything at the moment it is drained, so the
+        prewarm must be able to ask the question without taking the answer.
+        """
+        from wobo_gateway import budget, spend
+
+        if spend.verdict(spend.Priority.STRANGER) is spend.Verdict.REFUSE:
+            return False
+        snap = budget.snapshot(SYSTEM_SUBJECT)
+        remaining = getattr(snap, budget.classify(CAPABILITY) + "s_remaining", None)
+        return True if remaining is None else remaining > 0
+
     def afford(self) -> bool:
         """One generation from the system subject's day, or False when the day is spent."""
         from wobo_gateway import budget, spend
@@ -245,8 +289,39 @@ class DiscoveryWorker:
             aliases=framework.aliases,
         )
 
+    #: What the ceiling's verdicts mean to a JOB ROW. A fact about the BOARD ends the row, and it
+    #: goes to the console with its reason on it (docs/BOARD-COLD-START.md §5): a board resting
+    #: behind three closed doors, or a board that has spent its own day. A fact about US leaves the
+    #: row exactly where it stands — the switch will be flipped back and the day will turn over,
+    #: and a row refused for either would have lost a learner their place in the queue for a reason
+    #: that was never about their board.
+    _HELD_BACK: dict[str, str] = {"discovery_stopped": "stopped", "day_budget_spent": "spent"}
+
+    def held_back(self, job: DiscoveryJob, framework: Framework, stop: str) -> str:
+        """What to do with a row the ceiling will not let us read. Costs nothing either way."""
+        outcome = self._HELD_BACK.get(stop)
+        if outcome is not None:
+            return outcome
+        # The same conditional write the run itself claims with, so two replicas reading a stale
+        # queue cannot both end one row. ``cost_usd`` is 0.0 rather than ``None`` and the
+        # difference is load-bearing on the desk: None means nothing on the run could be priced,
+        # and this run never started, so nothing about the board is unknown — it was free.
+        ended = self.store.claim_job(
+            job.id,
+            state=JobState.REFUSED,
+            # The reason's OWN sentence, not the generic refusal: a board we chose not to open
+            # today did not fail to be found, and a row that said so would be the console reading
+            # a sentence about the board when the fact is about us.
+            message=refusal_line(stop, self.request_for(job, framework)),
+            result={"reason": stop, "cost_usd": 0.0},
+        )
+        return "refused" if ended is not None else "skipped"
+
     def run_job(self, job: DiscoveryJob) -> str:
-        """Claim, run, persist. Returns ``stored``, ``refused``, ``failed`` or ``skipped``."""
+        """Claim, run, persist.
+
+        Returns ``stored``, ``refused``, ``failed``, ``skipped``, ``spent`` or ``stopped``.
+        """
         framework = self.store.get_framework(job.framework_id) if job.framework_id else None
         if framework is None:
             # A typed board we do not hold at all is the own-syllabus path's job, not a search.
@@ -259,6 +334,16 @@ class DiscoveryWorker:
                 job.id, state=JobState.FAILED, message=labels.job_message(JobState.FAILED)
             )
             return "failed"
+        # The hard stop and the two money ceilings, asked BEFORE a generation is charged and
+        # before the row is claimed, so a board that may not be read costs nothing at all
+        # (``ceiling.verdict``). ``run_discovery`` asks the same question — but this runner hands
+        # it ``force=True``, which it needs so that a person's retry from the console reopens a
+        # remembered refusal, and until 2026-09-15 ``force`` skipped the ceiling with it. The
+        # switch, the resting board and the day were guards over every path except this one, which
+        # is the only one that runs in production.
+        stop = ceiling.verdict(framework.id)
+        if stop is not None:
+            return self.held_back(job, framework, stop)
         if not self.afford():
             return "spent"
         claimed = self.store.claim_job(
@@ -269,6 +354,9 @@ class DiscoveryWorker:
             return "skipped"
         request = self.request_for(job, framework)
         mirror = _Mirror(self.job_store, self.store, job.id)
+        # Drain whatever the last run left on this thread's note before the money starts, so one
+        # board's reading can never be billed to the next board's row (``ledger.take_spend``).
+        ledger.take_spend()
         try:
             record = run_discovery(
                 request,
@@ -280,6 +368,9 @@ class DiscoveryWorker:
                 complete_verify=self.complete_verify,
                 budget=self.budget,
                 second_reader=self.second_reader,
+                # Reopen a record this process already holds — a refusal a person retried from
+                # the console is the reason this is here. It lifts nothing else: the ceiling was
+                # asked above, and ``run_discovery`` asks it again on its own account.
                 force=True,
             )
             if record.status != "provisional" or record.syllabus is None:
@@ -287,7 +378,21 @@ class DiscoveryWorker:
                     job.id,
                     state=JobState.REFUSED,
                     message=record.message or labels.job_message(JobState.REFUSED),
-                    result={"reason": record.reason},
+                    # What a refusal COST is the number §5's per-board budget is unanswerable
+                    # without: a board that refuses after three searches and a 200-page fetch is
+                    # not free, and a console that showed nothing beside it would imply it was.
+                    # And what HAPPENED, which used to stop at the in-memory record: the reason
+                    # is a category ("not the syllabus"), the detail is the sentence that says
+                    # what we actually saw, and the trail is every candidate the run opened.
+                    # §5 sends a refusal "to the console instead"; a row carrying only the
+                    # category is a row nobody can act on, and on Uttar Pradesh the category was
+                    # the opposite of the fact.
+                    result={
+                        "reason": record.reason,
+                        "cost_usd": ledger.take_spend(),
+                        "detail": record.detail or None,
+                        "tried": list(record.tried),
+                    },
                 )
                 return "refused"
             written = persist_discovery(self.store, framework, record)
@@ -297,6 +402,9 @@ class DiscoveryWorker:
                 message=labels.job_message(JobState.STORED),
                 result={
                     "kind": "discovery",
+                    # None, never 0.0, when nothing on the run could be priced: a model with no
+                    # price table must not read as a board that was free to read.
+                    "cost_usd": ledger.take_spend(),
                     **written.as_dict(),
                     "checks_passed": list((record.provenance or {}).get("checks_passed") or []),
                     "source_url": (record.provenance or {}).get("source_url"),
@@ -342,6 +450,9 @@ class DiscoveryWorker:
             return
         for job in self.store.queued_jobs(limit=self.max_jobs):
             outcome = self.run_job(job)
+            if outcome == "stopped":  # the dial went to false between the tick and this job
+                report.stopped = True
+                break
             if outcome == "spent":
                 report.spent = True
                 break
@@ -350,9 +461,21 @@ class DiscoveryWorker:
             report.claimed += 1
             setattr(report, outcome, getattr(report, outcome) + 1)
         if report.spent:
-            for job in self.store.queued_jobs(limit=50):
-                self.store.update_job(job.id, state=JobState.QUEUED, message=SPENT_LINE)
-                report.left_queued += 1
+            self.leave_queued(report, SPENT_LINE)
+        elif report.stopped:
+            self.leave_queued(report, STOPPED_LINE)
+
+    def leave_queued(self, report: TickReport, line: str) -> None:
+        """Put the honest line on what is still queued, and leave it queued.
+
+        A row that is already carrying the line is left untouched rather than rewritten: a stop
+        that lasts a week is one write per row, not one write per row every thirty seconds.
+        """
+        for job in self.store.queued_jobs(limit=50):
+            if job.message == line:
+                continue
+            self.store.update_job(job.id, state=JobState.QUEUED, message=line)
+            report.left_queued += 1
 
     def due_rechecks(self) -> list[tuple[Framework, Version, Node, Node]]:
         """Every stored subject whose last check is due, never-checked first, then oldest."""
@@ -442,13 +565,50 @@ class DiscoveryWorker:
             return
         report.observer_actions = len(outcomes)
 
+    def prewarm_tick(self, report: TickReport) -> None:
+        """Put the next boards in the queue, ahead of anyone asking for them.
+
+        LAST in the tick and ENQUEUE ONLY, which together are the whole guarantee: the drain has
+        already run, so nothing queued here can take a slot from a learner who was waiting when
+        this tick began, and the drain is oldest-first, so nothing queued here can overtake a
+        learner who arrives before the next one.
+        """
+        if not self.prewarm_pass or report.spent or not self.has_money():
+            return
+        try:
+            plan = prewarm.plan(
+                self.store,
+                limit=(
+                    self.prewarm_per_tick
+                    if self.prewarm_per_tick is not None
+                    else prewarm.per_tick()
+                ),
+            )
+            report.prewarmed = len(prewarm.enqueue(self.store, plan))
+        except StoreUnavailable:
+            logger.warning("worker: prewarm could not reach the registry")
+        except Exception as exc:  # noqa: BLE001, reading ahead must not take the worker down
+            logger.warning(
+                "worker: prewarm pass failed", extra={"fields": {"error": type(exc).__name__}}
+            )
+
     def tick(self) -> TickReport:
         report = TickReport()
         try:
-            self.requeue_stale(report)
-            self.drain(report)
-            self.recheck_tick(report)
-            self.observer_tick(report)
+            if ceiling.running():
+                self.requeue_stale(report)
+                self.drain(report)
+                self.recheck_tick(report)
+                self.observer_tick(report)
+                self.prewarm_tick(report)
+            else:
+                # The hard stop (``docs/OPERATIONS.md`` §9.2.1, "how to stop it", step 1):
+                # everything stops, within one interval, with no deploy and no restart. Every
+                # pass, not only the drain — a re-check and the observer's reconciliation are
+                # both discoveries that cost money, and the prewarm queues boards for a drain
+                # that is not running. Nothing queued is lost.
+                report.stopped = True
+                self.leave_queued(report, STOPPED_LINE)
         except StoreUnavailable as exc:
             logger.warning("worker: registry unavailable", extra={"fields": {"error": str(exc)}})
         logger.info("discovery.worker.tick", extra={"fields": report.as_dict()})
@@ -498,6 +658,8 @@ __all__ = [
     "CAPABILITY",
     "ENV",
     "MAX_ATTEMPTS",
+    "SPENT_LINE",
+    "STOPPED_LINE",
     "SYSTEM_SUBJECT",
     "DiscoveryWorker",
     "TickReport",

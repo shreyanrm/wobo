@@ -163,3 +163,50 @@ describe('the copy law holds in the files this work owns', () => {
     });
   }
 });
+
+/**
+ * THE PLAN EVERY BOARD SHARES WAS A LIST, NOT A DOOR.
+ *
+ * `DiscoveryCard`'s `onStart` was optional and no screen passed one, so `SharedPlanClimb` rendered
+ * each concept as a `<div>` and a learner on one of the 264 boards with no syllabus read two dozen
+ * names and could press none of them. docs/BOARD-COLD-START.md §2.4 says "they start anyway... and
+ * the first lesson begins"; this is the half that makes the second clause true.
+ */
+describe('the plan every board shares is something a learner can start', () => {
+  const sites = PRODUCTION.filter((p) => /<DiscoveryCard/.test(read(p)));
+  const rel = (p: string) => p.slice(SRC.length + 1);
+
+  it('is rendered by more than one surface, so no single screen can be the only door', () => {
+    expect(sites.length).toBeGreaterThanOrEqual(2);
+  });
+
+  for (const site of sites) {
+    it(`${rel(site)} gives the rows somewhere to go`, () => {
+      expect(read(site)).toContain('onStart=');
+    });
+  }
+
+  it('and the card cannot be rendered without one', () => {
+    const card = source('curriculum/StatusCard.tsx');
+    expect(card).not.toContain('onStart?(');
+    expect(card).toContain('onStart(concept:');
+  });
+
+  it('every row is a control, never a paragraph dressed as one', () => {
+    const card = source('curriculum/StatusCard.tsx');
+    const climb = card.slice(card.indexOf('function SharedPlanClimb'));
+    expect(climb).toContain('<button');
+    expect(climb).not.toContain('cursor: onStart');
+  });
+
+  /**
+   * The card mounts only once the answer is in hand, so a clock started at mount charges the
+   * learner the fetch AND the whole eight seconds. The two learn surfaces hand it the moment the
+   * learner asked, which is the only place that knows it.
+   */
+  for (const site of ['screens/Learn.tsx', 'screens/SubjectScreen.tsx']) {
+    it(`${site} counts the designed wait from when the learner asked`, () => {
+      expect(source(site)).toContain('since={units.since}');
+    });
+  }
+});

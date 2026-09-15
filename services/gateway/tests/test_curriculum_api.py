@@ -89,14 +89,19 @@ def test_search_does_not_call_a_board_verified_when_no_syllabus_is_stored(
     store: InMemoryStore,
 ) -> None:
     """§5, §12: every one of the four labels is a claim about a SYLLABUS. A board we hold no
-    chapters for gets the sentence that is true instead of the one that sounds best."""
+    chapters for makes no claim about one — it claims only what §3 corroborated, that the board is
+    the board it says it is. It used to add "no syllabus stored yet"; that sentence left the
+    product with the cold start (docs/BOARD-COLD-START.md), because picking this board now starts
+    both the reading of its syllabus and the learner, so there is nothing to warn them about."""
     store.put_framework(
         Framework(id="tel", name="Telangana Board", status=Status.VERIFIED, levels=("Class 9",))
     )
     out = call("curriculum.search", {"q": "telangana"}, store)
     assert [r["id"] for r in out["results"]] == ["tel"]
-    assert out["results"][0]["label"] == "Official Telangana Board, no syllabus stored yet"
+    assert out["results"][0]["label"] == "Official Telangana Board"
     assert "verified" not in out["results"][0]["label"]
+    assert "syllabus" not in out["results"][0]["label"].casefold()
+    # What we hold of its syllabus is a machine fact, not a sentence a child reads.
     assert out["results"][0]["has_syllabus"] is False
 
 
@@ -173,30 +178,56 @@ def test_units_come_from_the_stored_syllabus_with_their_source(store: InMemorySt
 def test_a_missing_syllabus_enqueues_discovery_and_invents_nothing(store: InMemoryStore) -> None:
     out = call(
         "curriculum.units",
-        {"framework_id": "cbse", "level": "Class 9", "subject": "Sanskrit"},
+        {"framework_id": "cbse", "level": "Class 9", "subject": "Mathematics"},
         store,
     )
-    # No worker drains `discovery_jobs` today, so §4.6's honest end is reached at once rather
-    # than promised for ever: the row is recorded, and the learner is told and shown the door.
-    assert out["status"] == "refused"
+    # The cold start (docs/BOARD-COLD-START.md): the job goes out, the learner does not wait on
+    # it, and they start on the plan every board shares. Never a chapter we do not hold.
+    assert out["status"] == "shared"
     assert out["units"] == []  # §12: never a syllabus with no source
-    assert out["placeholder"]["state"] == "refused"
-    assert "could not find an official syllabus" in out["label"]
+    assert out["plan"]["source"] == "shared"
     assert out["not_listed"]["action"] == "own_syllabus"
+    # The row exists, for the worker and for the console.
+    assert store.find_open_job(
+        framework_id="cbse", query="Central Board of Secondary Education",
+        level="Class 9", subject="Mathematics",
+    ) is not None
 
 
-def test_a_missing_syllabus_says_it_is_looking_only_when_something_is(
+def test_a_missing_syllabus_never_says_it_is_looking(
     store: InMemoryStore, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Not even when something genuinely IS looking. A learner is never told that a search is
+    happening — the never-narrate law, and the reason the cold start replaced the status card
+    with a designed wait (docs/EMAILS-AND-ANIMATIONS.md §3)."""
     monkeypatch.setenv("WOBO_DISCOVERY_WORKER", "1")
+    out = call(
+        "curriculum.units",
+        {"framework_id": "cbse", "level": "Class 9", "subject": "Mathematics"},
+        store,
+    )
+    assert out["status"] == "shared"
+    assert "placeholder" not in out
+    assert "looking" not in str(out).casefold()
+
+
+def test_a_subject_nobody_can_be_started_on_still_reaches_an_honest_end(
+    store: InMemoryStore,
+) -> None:
+    """The narrow case BOARD-COLD-START §5 keeps a sentence for, narrower than it was: not "we
+    hold no syllabus for your board" but "we hold nothing at all anyone could be started on" —
+    no chapters from this board and no shared concepts for this class and subject either, which
+    in practice means a language. The honest end, and the own-syllabus door in the same place."""
     out = call(
         "curriculum.units",
         {"framework_id": "cbse", "level": "Class 9", "subject": "Sanskrit"},
         store,
     )
-    assert out["status"] == "looking"
-    assert out["placeholder"]["state"] == "queued"
-    assert out["label"] == "Looking for the official syllabus now"
+    assert out["units"] == []
+    assert out.get("plan") is None
+    assert out["status"] == "refused"  # nothing is draining the queue in this process
+    assert out["not_listed"]["action"] == "own_syllabus"
+    assert "syllabus" in out["label"].casefold()
 
 
 def test_two_learners_asking_for_the_same_missing_syllabus_share_one_job(
@@ -205,7 +236,7 @@ def test_two_learners_asking_for_the_same_missing_syllabus_share_one_job(
     payload = {"framework_id": "cbse", "level": "Class 9", "subject": "Sanskrit"}
     first = call("curriculum.units", payload, store, subject="a")
     second = call("curriculum.units", payload, store, subject="b")
-    assert first["placeholder"]["job_id"] == second["placeholder"]["job_id"]
+    assert first["job_id"] == second["job_id"]
 
 
 def test_units_needs_a_level_and_a_subject(store: InMemoryStore) -> None:
@@ -415,7 +446,7 @@ def test_status_reports_an_open_job_in_one_honest_line(
         {"framework_id": "cbse", "level": "Class 9", "subject": "Sanskrit"},
         store,
     )
-    out = call("curriculum.status", {"job_id": started["placeholder"]["job_id"]}, store)
+    out = call("curriculum.status", {"job_id": started["job_id"]}, store)
     assert out["state"] == "queued"
     assert out["message"] == "Looking for the official syllabus now"
     assert "not_listed" not in out
@@ -428,8 +459,11 @@ def test_status_never_says_it_is_looking_when_nothing_is(store: InMemoryStore) -
         {"framework_id": "cbse", "level": "Class 9", "subject": "Sanskrit"},
         store,
     )
-    out = call("curriculum.status", {"job_id": started["placeholder"]["job_id"]}, store)
+    out = call("curriculum.status", {"job_id": started["job_id"]}, store)
     assert out["state"] == "refused"
+    # The ROW is untouched: it is the console's queue and the worker's backlog. What changed is
+    # only what the learner is told (docs/BOARD-COLD-START.md §5).
+    assert store.get_job(started["job_id"]).state is JobState.QUEUED
     assert out["not_listed"]["action"] == "own_syllabus"
 
 
@@ -439,7 +473,7 @@ def test_status_opens_the_other_door_the_moment_a_search_gives_up(store: InMemor
         {"framework_id": "cbse", "level": "Class 9", "subject": "Sanskrit"},
         store,
     )
-    job_id = started["placeholder"]["job_id"]
+    job_id = started["job_id"]
     store.update_job(job_id, state=JobState.REFUSED)
     out = call("curriculum.status", {"job_id": job_id}, store)
     assert "could not find an official syllabus" in out["message"]

@@ -14,6 +14,7 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 |---|---|---|
 | [ALLOWANCE.md](ALLOWANCE.md) | The daily allowance: a quarter of the plan, a day at a time | Keep a buffer of 4x: users get at most a quarter of the plan amount |
 | [BOARD-COLD-START.md](BOARD-COLD-START.md) | The first learner on a board never sees an empty shelf | We should never show 'no syllabus' or whatever. We should put them on a |
+| [BOARD-COLD-START.md: a refusal says what happened](BOARD-COLD-START.md) | A document whose text we cannot read is never called "not the syllabus"; the refusal carries the detail and every candidate it opened, all the way to the console | Uttar Pradesh's own Class 10 Mathematics pdf, refused as not being a syllabus (2026-09-16) |
 | [BOARD.md](BOARD.md) | BOARD.md — how Wobo draws |  |
 | [CACHES.md](CACHES.md) | The stores: what is kept, keyed on what, and reused where | Style caching and content caching are two different things, and so are |
 | [CLAIMS.md](CLAIMS.md) | CLAIMS.md — what we say, and what backs it |  |

@@ -600,6 +600,14 @@ class CurriculumStore(Protocol):
 
     def queued_jobs(self, *, limit: int = ...) -> list[DiscoveryJob]: ...
 
+    def recent_jobs(
+        self,
+        *,
+        limit: int = ...,
+        since: str | None = ...,
+        states: Sequence[str] | None = ...,
+    ) -> list[DiscoveryJob]: ...
+
     def stale_open_jobs(self, *, older_than_s: float) -> list[DiscoveryJob]: ...
 
     def claim_job(
@@ -959,8 +967,38 @@ class InMemoryStore(_PersonalDrafts):
     def queued_jobs(self, *, limit: int = 20) -> list[DiscoveryJob]:
         with self._lock:
             queued = [job for job in self._jobs.values() if job.state is JobState.QUEUED]
-        queued.sort(key=lambda job: job.created_at or "")
+        queued.sort(key=_queue_order)
         return queued[: max(1, limit)]
+
+    def recent_jobs(
+        self,
+        *,
+        limit: int = 200,
+        since: str | None = None,
+        states: Sequence[str] | None = None,
+    ) -> list[DiscoveryJob]:
+        """The last jobs of every state, newest first — the console's read of the whole queue.
+
+        Not ``queued_jobs``, which is the WORKER's question ("what may I claim next") and is
+        ordered for the drain. This is the OPERATOR's ("what is happening, what landed, what
+        refused and why"), and a refusal that scrolled off the end of a page is a board nobody
+        will ever pick up (docs/BOARD-COLD-START.md §5).
+
+        ``since`` (an ISO prefix, so a day is enough) and ``states`` narrow it at the source. The
+        money ceiling's recovery asks for exactly today's FINISHED rows
+        (``discovery/ceiling.py``): a page of the newest rows of every state would let a morning's
+        queue push the morning's spending off the end, and a day read back short is a day that
+        can be spent twice.
+        """
+        with self._lock:
+            rows = list(self._jobs.values())
+        if since is not None:
+            rows = [job for job in rows if str(job.updated_at or job.created_at or "") >= since]
+        if states is not None:
+            wanted = {str(state) for state in states}
+            rows = [job for job in rows if str(job.state.value) in wanted]
+        rows.sort(key=lambda job: job.updated_at or job.created_at or "", reverse=True)
+        return rows[: max(1, limit)]
 
     def stale_open_jobs(self, *, older_than_s: float) -> list[DiscoveryJob]:
         """Jobs a worker claimed and never finished: open, past ``queued``, and untouched for
@@ -1027,6 +1065,27 @@ def job_key_parts(
         version_rules.normalise(level or ""),
         version_rules.normalise(subject or ""),
     )
+
+
+#: What ``discovery_jobs.requested_by`` carries on a job the PREWARM queued rather than a learner
+#: (``curriculum/discovery/prewarm.py``). It is a marker and not an id, and it is defined HERE
+#: because :func:`_queue_order` is the one place that must be able to tell the two apart and
+#: ``prewarm`` imports this module, so the constant cannot live the other way round.
+PREWARM_REQUESTER = "prewarm"
+
+
+def _queue_order(job: DiscoveryJob) -> tuple[int, str]:
+    """The queue's order: a learner waiting on it first, then by age.
+
+    A job carries a LEARNER's ``requested_by`` only when a person picked that board and is on the
+    designed wait right now (``docs/BOARD-COLD-START.md`` §1). The prewarm pass (§4) queues jobs
+    nobody is waiting on, and it is meant to be long — ten state boards by student population, then
+    the rest — so without this rule the first learner on Bihar would wait behind two hundred boards.
+    The prewarm's own marker is read as the back of the queue and never as a waiting person: it is
+    the only value in that column that is not somebody.
+    """
+    asked = (job.requested_by or "").strip()
+    return (0 if asked and asked != PREWARM_REQUESTER else 1, job.created_at or "")
 
 
 def _job_key(
@@ -1614,15 +1673,40 @@ class PostgrestStore(_PersonalDrafts):
         return _job(rows[0]) if rows else None
 
     def queued_jobs(self, *, limit: int = 20) -> list[DiscoveryJob]:
+        # `requested_by.asc.nullslast` is what puts a job a learner is WAITING on ahead of the
+        # prewarm queue (docs/BOARD-COLD-START.md §1 and §4): the prewarm pass runs ahead of
+        # demand against the biggest boards, so the queue is rarely empty, and a learner sitting
+        # in front of an eight-second wait must not go behind it. PostgREST can only order by a
+        # column, so that clause selects the right PAGE and `_queue_order` puts the page in true
+        # order — oldest waiting learner first, then the prewarm jobs by age.
         rows = self._rows(
             "discovery_jobs",
             [
                 ("select", "*"),
                 ("state", "eq.queued"),
-                ("order", "created_at.asc"),
+                ("order", "requested_by.asc.nullslast,created_at.asc"),
                 ("limit", str(max(1, limit))),
             ],
         )
+        return sorted((_job(row) for row in rows), key=_queue_order)
+
+    def recent_jobs(
+        self,
+        *,
+        limit: int = 200,
+        since: str | None = None,
+        states: Sequence[str] | None = None,
+    ) -> list[DiscoveryJob]:
+        params = [
+            ("select", "*"),
+            ("order", "updated_at.desc.nullslast,created_at.desc"),
+            ("limit", str(max(1, limit))),
+        ]
+        if since is not None:
+            params.append(("updated_at", f"gte.{since}"))
+        if states is not None:
+            params.append(("state", f"in.({','.join(str(state) for state in states)})"))
+        rows = self._rows("discovery_jobs", params)
         return [_job(row) for row in rows]
 
     def stale_open_jobs(self, *, older_than_s: float) -> list[DiscoveryJob]:
