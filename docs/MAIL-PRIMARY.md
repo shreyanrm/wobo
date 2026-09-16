@@ -228,3 +228,61 @@ What to measure next, in this table, as each is sent for the first time: a messa
 image, one with a deep link, the Sunday note to a parent, and the launch mail. Each is a different
 shape and each earns its own row. A kind that lands outside Primary gets its row and its diagnosis
 here, not a rewrite of the theory above.
+
+## Watching where we land (the owner, 2026-09-16)
+
+The owner: *"we need to keep a track if we went to spam or not"*, and on what happens then: *"be
+tactical, dont slow down, and change whats necessary but make sure i get alerted at
+shreyan@doteventures.com"*.
+
+What is watched: the provider's delivery events (bounced, complained, delayed), received on a signed
+route; a daily placement check that sends one real mail per Primary-relevant kind to inboxes we own on
+Gmail, Outlook, Yahoo and Apple Mail and reads which folder it landed in; Google Postmaster Tools'
+domain reputation and user-reported spam rate, per Feedback-ID kind.
+
+What happens, without slowing anyone down: the cadence is never lowered across the board. The response
+is aimed at the cause. An address that complains or hard-bounces is suppressed at once. A kind whose
+complaint rate crosses 0.10 percent is paused on its own while every other kind carries on; at 0.30
+percent (Gmail's cliff) every kind that crossed it pauses. Sign-in codes and receipts are never paused.
+An authentication failure or a seed landing in spam raises an alert naming the cause.
+
+Who hears: every such event mails shreyan@doteventures.com (`DELIVERABILITY_ALERT_TO`), writes the
+alerts line and shows on the mail desk, because an alert about mail must not depend on mail alone.
+One bad hour is one alert, not a hundred.
+
+What never happens automatically: the sender name or address changing. The section above settles one
+sender for three reasons, and a sender that hops after landing in spam is the pattern filters are built
+to catch across the whole of heywobo.com. A sender change remains a single setting (`EMAIL_FROM`) that
+the owner makes by hand once the cause is fixed.
+
+## What the global senders do, adopted (the owner, 2026-09-16)
+
+The owner: *"how do all the global brands tackle these issues, we shall do the same"*. What large
+consumer senders converge on, and where each lands here:
+
+- **Authentication and one-click unsubscribe** (Gmail and Yahoo's bulk-sender rules, 2024): SPF, DKIM,
+  DMARC, RFC 8058 unsubscribe honoured promptly, user-reported spam under 0.30 percent. Already the spec
+  above.
+- **Send when the person usually shows up.** Already the hours law.
+- **Stop reminding someone the reminders are not reaching.** Duolingo's reminders stop after several
+  days without a response. Here: the taper in docs/EMAILS-AND-ANIMATIONS.md.
+- **A sunset policy.** Large senders stop mailing people who have not engaged for months, because
+  mail to the long-gone is what drags a domain toward spam. Here: after a long absence a learner steps
+  down to one encouraging note a month, then mail stops until they return. Both spells are console
+  dials (defaults 30 and 120 days), and returning restores the full cadence at once. Wave 56.
+- **Separate streams, set up once.** Transactional mail (sign-in codes, receipts) goes from its own
+  sending subdomain, so a bad week for learning notes never stops a family signing in or getting a
+  receipt. This revises "one sender" above for the transactional stream only: learning notes keep one
+  sender forever, and the display name is "Wobo" on both. It is set up once and warmed, never switched
+  in response to spam. The code reads `EMAIL_FROM_TRANSACTIONAL` and falls back to today's sender until
+  the owner's DNS exists. Wave 56.
+- **Watch placement continuously.** Postmaster Tools, feedback loops and seed inboxes. The section
+  above, wave 56.
+- **Put daily reminders on push, and richer mail on email.** The large learning apps nudge daily
+  through app notifications and keep email for progress and encouragement, which keeps email volume
+  and complaints down. This arrives with the store apps.
+- **The brand's logo in the inbox (BIMI).** Needs DMARC at enforcement and usually a registered
+  trademark, so it follows the trademark filing.
+- **Learn which message works.** Duolingo publishes a bandit method that rotates reminder wording and
+  avoids repeating what was just sent. Here, if built, it learns from aggregate results across all
+  learners, never from one child's profile (DPDP s.9(3)). Later, not wave 56.

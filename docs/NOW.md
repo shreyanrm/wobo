@@ -154,11 +154,17 @@ rather than remembered, and every line below was checked against the code on 202
 | The bar says "Refills overnight."; ALLOWANCE.md said "Resets at midnight." | *"Keep 'Refills overnight.'"* | **RULED.** The clock law wins. ALLOWANCE.md §2 amended |
 | Should the creative pool refuse work at 100 percent? | *"Keep alerting, don't refuse"* | **RULED.** It warns at 50, 80 and 100 and never stops mid-authoring; only the free pool closes. ALLOWANCE.md amended |
 | `WEEKLY_NUDGE_CAP`, a builder's two | *"Three a week"*, then the same day: *"we can honestly send more emails with a minimum of 3 a week depending on user behaviour and streak ... we need to constantly remind people that we exist and we are doing good for them"* | **REVISED.** Three is a FLOOR. `a09fb1f8` shipped three as a cap, which is now the interim. Wave 56 builds the floor, the behaviour-driven extras up to one a day, the taper for a family that has gone, and a true footer. EMAILS-AND-ANIMATIONS.md carries the revised law |
+| What the mail says | *"we wont say use more, we encourage and motivate to learn, that is our application"* | **RULED.** No mail asks anyone to use Wobo more; every one encourages learning. EMAILS-AND-ANIMATIONS.md carries it |
+| Track whether mail goes to spam, and respond | *"keep a track if we went to spam or not"*; then *"be tactical, dont slow down, and change whats necessary but make sure i get alerted at shreyan@doteventures.com"* | **RULED, building in wave 56.** Complaints, bounces, owned seed inboxes and Google Postmaster are watched. The cause is fixed, never the pace: a complained address is suppressed and only the kind drawing complaints pauses. Alerts go to that address, the log and the desk. The sender name and address never change automatically (MAIL-PRIMARY.md gives the reasons); that stays a manual setting. MAIL-PRIMARY.md carries it |
 
 ## Waiting on the owner, and nothing else
 
 | What | Why it matters | Effort |
 |---|---|---|
+| DNS for a transactional sending subdomain (sign-in codes, receipts), added in Resend | global practice: a bad week for learning notes never blocks a sign-in or a receipt. The code falls back to today's sender until it exists | a few DNS records |
+| The brand logo in the inbox (BIMI) | needs DMARC at enforcement and usually the registered trademark, so it follows the trademark filing | after the trademark |
+| Seed inboxes we own on Gmail, Outlook, Yahoo and Apple Mail, each with an app password | the daily spam check sends to them and reads which folder each mail landed in; without them it reports "not configured" | four sign-ups |
+| Verify `heywobo.com` in Google Postmaster Tools | Gmail reports spam complaints only there, not to the mail provider, and most families are on Gmail | one DNS record |
 | A money line for the promo field, in the owner's own words | `docs/copy/money.md` has no row for it, and the verbatim rule means nobody else may write one. Until then the field carries only the forbidden-word half of the law | one sentence |
 
 | Reserve the app name Wobo in Play Console and App Store Connect | a namespace, not a build; the owner's call whether to do it now | a form, about 10,500 rupees a year |

@@ -45,6 +45,10 @@ The laws that bind every one:
   learner came back, never an open-tracking pixel, which stays off. Content stays about the learner's
   learning, because DPDP s.9(3) bars behavioural monitoring of a child for any other purpose
   (docs/LEGAL-REVIEW.md). Wave 56 makes this true; until it lands the code still caps at three.
+- **What the mail is for (the owner, 2026-09-16).** *"we wont say use more, we encourage and motivate
+  to learn, that is our application."* No mail asks anyone to use Wobo more. Every one encourages and
+  motivates learning: what the learner did, what they cracked, what is next, why it is worth it. That
+  is also the side of DPDP s.9(3) this product stands on.
 - **Never a late hour** (the hours law): a nudge goes at the hour the learner usually learns, or at
   4 pm local, never after 8 pm.
 - **Under 13, the mail goes to the parent**, in the parent's register, about the child.
