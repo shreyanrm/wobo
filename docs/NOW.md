@@ -33,16 +33,15 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 ## The queue, in order
 
 Each is written and stamped Opus; each waits for the one before it to be verified, committed and
-deployed. Nothing here is lost, and nothing here has started.
+deployed. Nothing here is lost, and nothing here has started. Wave 55 was written on 2026-09-16 after its brief was MEASURED rather than assumed (the row in the open items below carries the correction); its script is at ~/.claude/projects/-Users-depl-Documents-classess-learner/waves/wave55-the-wire.js, written and deliberately not launched — wave 36 lands, verifies and deploys first.
 
 | # | What | Wave |
 |---|---|---|
-| 1 | The mail law enforced, and the animation library on every surface | 38 |
-| 2 | The daily allowance, the models desk, the free pool cap | 36 |
-| 3 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
-| 4 | The growth desk, the press page, chapter pages at tier two | 50 |
-| 5 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
-| 6 | The parent's account screens | 34 |
+| 1 | The wire: the course tells the teaching what just happened, and one answer ends a topic | 55 |
+| 2 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
+| 3 | The growth desk, the press page, chapter pages at tier two | 50 |
+| 4 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
+| 5 | The parent's account screens | 34 |
 
 ## Landed, with the proof
 
