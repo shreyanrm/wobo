@@ -68,7 +68,9 @@ const g = globalThis as unknown as { localStorage?: Storage; sessionStorage?: St
 g.localStorage = g.localStorage ?? (new MemoryStorage() as unknown as Storage);
 g.sessionStorage = g.sessionStorage ?? (new MemoryStorage() as unknown as Storage);
 
-const { groupFor, masteryOf, progressAlong } = await import('../../curriculum/blueprint');
+const { groupFor, progressAlong } = await import('../../curriculum/blueprint');
+const { topicHeld } = await import('./climb');
+const { createSdk, MASTERY_CACHE_KEY } = await import('@wobo/sdk');
 const { pool } = await import('../../suggest/fixture');
 const {
   APPROACHES,
@@ -340,11 +342,34 @@ describe('a learner who keeps getting it wrong is never left', () => {
    * count of what they did.
    */
   it('stops at the evidence, never at a module count', () => {
-    const slow = { heldIdeas: ['i5'], misconceptions: ['x2'] };
-    const done = { heldIdeas: ['i5'] };
-    // the misconception is still standing, so the topic is not held however much they did
-    expect(masteryOf(BP, TOPIC, slow)).toBe(false);
-    expect(masteryOf(BP, TOPIC, done)).toBe(true);
+    // The ending is the learner's durable band, fed by the answers the course records. Played
+    // through the real record: a node of its own, so no other file's learner is read.
+    globalThis.localStorage.removeItem(MASTERY_CACHE_KEY);
+    const real = createSdk({ devAuth: true, persistMode: 'local' });
+    const node = crypto.randomUUID();
+    const answer = (correct: boolean): boolean => {
+      real.events.record(
+        'practice.item.answered.v1',
+        {
+          node_id: node,
+          item_id: crypto.randomUUID(),
+          response: { kind: 'numeric', value: correct ? 5 : 9 },
+          correct,
+          latency_ms: 9000,
+          independence_signal: 0.95,
+        },
+        { ontologyNodeId: node },
+      );
+      return topicHeld(real.mastery.bands()[node]);
+    };
+    // the slow one: however many sittings of wrong answers they sit through, it is not held
+    for (let i = 0; i < 8; i += 1) expect(answer(false)).toBe(false);
+    // and once the evidence is there it is, however long that took: one right answer after eight
+    // wrong ones is not it, a run of them is
+    const rights: boolean[] = [];
+    while (rights.length < 10 && !rights.at(-1)) rights.push(answer(true));
+    expect(rights[0]).toBe(false);
+    expect(rights.at(-1)).toBe(true);
     // and their own bar is measured along THEIR group, not along the pool
     const state = { unmetAssumptions: ['a2'], misconceptions: ['x2'] };
     const group = groupFor(BP, TOPIC, state);

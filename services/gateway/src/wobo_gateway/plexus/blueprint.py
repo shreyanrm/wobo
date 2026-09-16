@@ -1122,8 +1122,10 @@ def group_for(bp: Blueprint, topic_id: str, state: LearnerState) -> list[Bluepri
 
     **It is re-chosen after every module, and this is what makes that possible.** What the learner
     has already finished is out, and what beat them twice is out for good, so calling this again
-    after each answer gives the group as it stands rather than the group as it was
-    (:mod:`wobo_gateway.climb` is what calls it that way). A repair is the one thing a finished
+    after each answer gives the group as it stands rather than the group as it was. Nothing in the
+    gateway calls it that way any more: the gateway's climb was retired on 2026-09-16 and the device
+    chooses (``groupFor`` in the web app; docs/LEARNING-MODEL.md, "Who chooses"), so this Python
+    copy is read by its own tests alone. A repair is the one thing a finished
     module can be twice: a misconception that comes back is a misconception still standing, and the
     module that undoes it is owed again.
     """

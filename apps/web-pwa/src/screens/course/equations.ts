@@ -167,6 +167,38 @@ export function firstMove(lin: Linear): Move {
   return { text: `divide both sides by ${fmt(a)}` };
 }
 
+const flat = (s: string) => s.replace(/\s+/g, '').replace(/−/g, '-');
+
+/**
+ * A TWIN of an equation: the same left side, a different whole-number answer, and the right side
+ * that answer makes. "x + 7 = 12" has "x + 7 = 13"; "x/2 = 5" has "x/2 = 6".
+ *
+ * Computed, never asserted: the right side is the left side evaluated at the new answer, and the
+ * twin is read back through `linearize` and kept only when it solves to exactly that answer. It is
+ * never one of `avoid`, so a card that works it through never hands over an answer the learner
+ * will be asked for. Null when the right side is not a plain number or no twin is near.
+ */
+export function twinEquation(
+  equation: string,
+  avoid: readonly string[] = [],
+): { equation: string; x: number } | null {
+  const lin = linearize(equation);
+  const [left, right] = equation.split('=');
+  if (!lin || !left || !right || !/^\s*-?\d+(\.\d+)?\s*$/.test(right)) return null;
+  if (!Number.isInteger(lin.x)) return null;
+  const taken = new Set([flat(equation), ...avoid.map(flat)]);
+  for (let step = 1; step <= 24; step += 1) {
+    const x = lin.x + step;
+    const c = lin.lhs(x);
+    if (!Number.isInteger(c)) continue;
+    const twin = `${left.trim()} = ${fmt(c)}`;
+    if (taken.has(flat(twin))) continue;
+    const back = linearize(twin);
+    if (back && Math.abs(back.x - x) < 1e-9) return { equation: twin, x };
+  }
+  return null;
+}
+
 /** Reduce k/d to a display string: "8/2" → "4", "7/2" → "7/2 = 3.5". */
 export function fractionText(k: number, d: number): string {
   if (d === 0) return '—';

@@ -46,6 +46,8 @@ WHAT IS NEVER COUNTED HERE:
   from a child's day (docs/ALLOWANCE.md, "Creative work is never on the allowance");
 * a cache hit, because it has no cost to record — the second learner to open a cell pays nothing
   for what the first one's ask rendered;
+* a read of a chapter's pool (``curriculum.blueprint``, ``budget.READ``), which reaches no model
+  and is what the device chooses every module out of, so a spent day never refuses it;
 * the platform's own jobs (``system:`` meter keys), which are bounded by ``spend.py``'s ceiling
   and belong to no learner.
 
@@ -457,6 +459,11 @@ def check(
     if not _is_learner(meter_key):
         return None
     if registry.platform_paid(registry.canonical_capability(capability)):
+        return None
+    # A read of the chapter's pool reaches no model and costs no money, and it is what the device
+    # chooses every module out of (``budget.READ``). A spent day must not take the tutor's choices
+    # away with the questions; its own counter still caps it.
+    if budget.classify(capability) == budget.READ:
         return None
     meter = state(meter_key, plan, now=now)
     # THE SECOND BOUND, AND ONLY ON THE FREE LANE (docs/ALLOWANCE.md, "Best of both worlds"

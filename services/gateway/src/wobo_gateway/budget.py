@@ -35,6 +35,15 @@ GENERATION = "generation"
 #: disclosure the turn itself had just refunded (``app.py``: NOTHING IS CHARGED FOR A DISCLOSURE).
 #: So speaking draws on its own counter, sized in LINES rather than questions.
 VOICE = "voice"
+#: Being taught is not asking Wobo either. ``curriculum.blueprint`` hands the device the chapter's
+#: pool, and the device chooses every module the learner meets out of it, for nothing
+#: (docs/LEARNING-MODEL.md, "Who chooses"). Charged to the turn counter, that one read cost an
+#: anonymous learner a sixth of their day, and once their questions were spent it was refused, so
+#: the course on their phone could never re-choose again: the child who got the most wrong, and
+#: so brought Wobo in most often, lost the tutor first. It reaches no model and costs no money,
+#: so it draws on a counter of its own, sized as an abuse cap a child opening chapters all day
+#: never meets. Still counted: an uncounted route is a way around the limit.
+READ = "read"
 
 # One dict, longest matching prefix wins. Generations are the expensive half: a whole lesson,
 # a video, a podcast. Turns are the cheap, frequent half.
@@ -63,6 +72,9 @@ CAPABILITY_CLASS: dict[str, str] = {
     # the brain owns and an uncounted route is a way around it. Longest prefix wins, so one entry
     # covers curriculum.search, .units, .overlay.apply and everything added after them.
     "curriculum.": TURN,
+    # …except the pool read, which is how the device chooses at all, so it never spends a
+    # question (``READ`` above). Longer prefix, so it wins.
+    "curriculum.blueprint": READ,
     # …except discovery, which is the expensive half of the curriculum: a search, a document
     # fetch, an extraction on the generate tier and a re-reading on the verify tier, for one
     # learner who typed a board we had never heard of (CURRICULUM.md §4). Longer prefix, so it
@@ -97,27 +109,36 @@ _FREE_TURNS, _FREE_GENERATIONS = 40, 8
 #: a runaway client still cannot spend the key without bound.
 _FREE_VOICE = _FREE_TURNS * 8
 _MULTIPLIER: dict[str, int] = {"free": 1, "pro": 5, "max": 20}
+#: Pool reads a day. One per chapter per session is what a screen asks, so this is a runaway
+#: client's ceiling and nothing a learner meets. The same on every plan: a plan buys more of the
+#: tutor, and reading the pool is not the tutor.
+_READS, _ANON_READS = 400, 120
 
 _DIALS: dict[tuple[str, str], tuple[str, int]] = {
     # (plan, class) -> (env var, default)
     ("free", TURN): ("FREE_DAILY_TURNS", _FREE_TURNS),
     ("free", GENERATION): ("FREE_DAILY_GENERATIONS", _FREE_GENERATIONS),
     ("free", VOICE): ("FREE_DAILY_VOICE_LINES", _FREE_VOICE),
+    ("free", READ): ("FREE_DAILY_POOL_READS", _READS),
     ("anon", TURN): ("ANON_DAILY_TURNS", 6),
     ("anon", GENERATION): ("ANON_DAILY_GENERATIONS", 1),
     ("anon", VOICE): ("ANON_DAILY_VOICE_LINES", 6 * 8),
+    ("anon", READ): ("ANON_DAILY_POOL_READS", _ANON_READS),
     # The priced plans are the free allowance multiplied, and nothing else.
     ("pro", TURN): ("PRO_DAILY_TURNS", _FREE_TURNS * _MULTIPLIER["pro"]),
     ("pro", GENERATION): ("PRO_DAILY_GENERATIONS", _FREE_GENERATIONS * _MULTIPLIER["pro"]),
     ("pro", VOICE): ("PRO_DAILY_VOICE_LINES", _FREE_VOICE * _MULTIPLIER["pro"]),
+    ("pro", READ): ("PRO_DAILY_POOL_READS", _READS),
     ("max", TURN): ("MAX_DAILY_TURNS", _FREE_TURNS * _MULTIPLIER["max"]),
     ("max", GENERATION): ("MAX_DAILY_GENERATIONS", _FREE_GENERATIONS * _MULTIPLIER["max"]),
     ("max", VOICE): ("MAX_DAILY_VOICE_LINES", _FREE_VOICE * _MULTIPLIER["max"]),
+    ("max", READ): ("MAX_DAILY_POOL_READS", _READS),
     # ``plus`` is the name the first paid tier shipped under; it resolves to pro so an
     # existing subscriber's plan string keeps working.
     ("plus", TURN): ("PLUS_DAILY_TURNS", _FREE_TURNS * _MULTIPLIER["pro"]),
     ("plus", GENERATION): ("PLUS_DAILY_GENERATIONS", _FREE_GENERATIONS * _MULTIPLIER["pro"]),
     ("plus", VOICE): ("PLUS_DAILY_VOICE_LINES", _FREE_VOICE * _MULTIPLIER["pro"]),
+    ("plus", READ): ("PLUS_DAILY_POOL_READS", _READS),
 }
 
 _STORE_MAX = 20_000
@@ -138,6 +159,7 @@ _EXHAUSTED: dict[str, str] = {
         "That is all the lessons I can build for you today. I will be ready again tomorrow."
     ),
     VOICE: "I have done a lot of reading out loud today. I can still write it all down for you.",
+    READ: "You have opened a lot of lessons today. Tomorrow there is room for more.",
 }
 
 
@@ -161,12 +183,16 @@ class Snapshot:
     reset_at: datetime
     #: Spoken lines left today. Its own counter, so hearing an answer never costs asking one.
     voice_remaining: int = 0
+    #: Pool reads left today. An abuse cap, so it is not part of what ``/v1/me`` tells a learner.
+    reads_remaining: int = 0
 
     def remaining(self, kind: str) -> int:
         if kind == GENERATION:
             return self.generations_remaining
         if kind == VOICE:
             return self.voice_remaining
+        if kind == READ:
+            return self.reads_remaining
         return self.turns_remaining
 
     def as_dict(self) -> dict[str, object]:
@@ -224,6 +250,7 @@ def limits_for(plan: str = "free", *, anonymous: bool = False) -> dict[str, int]
         TURN: _dial(key, TURN),
         GENERATION: _dial(key, GENERATION),
         VOICE: _dial(key, VOICE),
+        READ: _dial(key, READ),
     }
 
 
@@ -295,7 +322,7 @@ def _bucket(subject: str, *, now: datetime | None = None) -> dict[str, int]:
                 del _used[stale]
             if len(_used) >= _STORE_MAX:
                 _used.clear()
-        bucket = dict.fromkeys((TURN, GENERATION, VOICE), 0)
+        bucket = dict.fromkeys((TURN, GENERATION, VOICE, READ), 0)
         _used[key] = bucket
     return bucket
 
@@ -310,6 +337,7 @@ def _snapshot_locked(
         # and the 429 answer one question and must not answer it twice.
         reset_at=reset_at(moment, subject),
         voice_remaining=max(0, limits[VOICE] - bucket.get(VOICE, 0)),
+        reads_remaining=max(0, limits[READ] - bucket.get(READ, 0)),
     )
 
 

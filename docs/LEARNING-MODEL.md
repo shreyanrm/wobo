@@ -111,8 +111,9 @@ What now exists, end to end:
   of held attempts rides along so a screen can be honest about "not yet"
   (`curriculum/api.py`, `test_curriculum_blueprint_route.py`).
 - **`curriculum/pool.ts`** — one fetch per cell per session, validated by the same `isBlueprint`
-  gate the walker uses, and `usePool` for a screen. A failure is remembered as "no pool", never
-  retried on every render.
+  gate the walker uses, and `usePool` for a screen. The gateway's answer is remembered, "no pool"
+  included; a failed request is not an answer and is asked again the next time the chapter opens
+  (never once per render).
 - **The placement check asks the architect's own ground.** `Course.tsx` hands the pool to
   `usePlacementGate`, which hands `groundUnder` to `planPlacement`; what the learner answers is
   what `unmetAssumptions` feeds to `groupFor`. That is the loop this document exists for, closed.
@@ -153,3 +154,132 @@ What already exists: the chapter pool and the per-learner group (wave 37), the r
 REWARDS.md, docs/FEEL.md, docs/LEVELS.md, wave 38), the misconception-based feedback (docs/CONTENT-
 INTERACTION.md section 4). What this section adds is the proof: an adversary that plays a struggling
 learner end to end and reports where the tutor left, repeated, generalised, or stopped early.
+
+## Who chooses: the device, and only the device (2026-09-16)
+
+The group that teaches a topic is chosen **on the learner's device**, by `groupFor` in
+`apps/web-pwa/src/curriculum/blueprint.ts`, out of the pool that `curriculum.blueprint` hands over
+once per cell per session (`curriculum/pool.ts`). It is the only chooser, so nothing else can
+overrule it. Rule 1's re-choice after every module is a call to `groupFor` with the learner's state
+as it stands now. What ends a topic (rule 2) is decided on the device too, at one place
+(`topicClosed`, below in "Proved before it is said"). Choosing costs no model call, no network call and no turn
+from the learner's day, which is the property section 4 depends on.
+
+**`curriculum.climb` is retired.** Wave 54 built a second chooser on the gateway: `climb.py`, a
+handler in `curriculum/api.py`, a registry row at tier TINY with no cache, and `climb()` in the SDK.
+Nothing ever called it, and it could not have been the chooser without breaking the rules it was
+built for. This was measured on 2026-09-16 by playing the same learners through it and through
+`groupFor`, on the same pool (the gateway's CBSE class 8 Science "Force and Pressure" fixture):
+
+- **It was metered.** Every capability under `curriculum.` draws on the learner's turn counter
+  (`budget.py`), and the money meter refuses a spent day (`allowance.check`). The test learner
+  missed each module once and then got it. Signed in anonymously (six turns a day), that learner was
+  refused with a 429 on the seventh call. They were still inside the first topic and held two of
+  the chapter's six ideas. The climb ended at the meter, not at mastery, which breaks rules 2
+  and 5. On the free plan, the same learner walked the chapter in 19 calls. That is 19 of their 40
+  turns spent on being told what comes next, and the same counter pays for their questions to
+  Wobo. Through `groupFor`, the same walk reached all six ideas with no network call at all.
+- **It disagreed with the device on the first wrong answer.** On the same pool with the same
+  learner, the gateway gave `p1 r1 r1 p3 r1 p3` and went to the repair after one miss. The device
+  gave `p1 p1 p3 p3 r1 r1`, because the device counts one miss as a slip and two as a pattern
+  (`wobo/reteach.ts`, `RETEACH_AFTER_MISSES = 2`). When two choosers disagree on the first miss,
+  neither one is the authority. A test that proves one of them says nothing about what the learner
+  actually met. That is how wave 54 recorded rule 1 as "made true on the gateway" while no learner
+  ever reached that code.
+- **It served nobody.** It kept nothing: the evidence arrived with each request and left with each
+  answer. So it could not be the parent's view or a cross-device record. The cross-device record is
+  the learner's synced state (`packages/sdk/src/mastery.ts`). Choosing is a pure function of the
+  pool and that state, so every device derives the same group from it.
+- **It needed the network.** A learner who was offline got no next module.
+
+What was removed: the capability (its registry row and its entry in the expected list, the handler
+in `curriculum/api.py`, and the SDK's `climb()` with its three types),
+`services/gateway/src/wobo_gateway/climb.py`, and its two test files. All of it is recoverable from
+commit `39548ee9`. The gateway's remaining part in choosing is the pool. `curriculum.blueprint`
+serves it, once per cell per session, on a counter of its own that never spends one of the learner's
+questions (`budget.READ`), and `create.blueprint` builds and judges it with
+platform money.
+
+**From here on, re-choosing is never a gateway call.** This section rules out any capability that
+picks a learner's next module, per learner and per module, whatever it is called. A surface that
+needs "what comes next", such as a parent's or a teacher's view, computes it from the learner's
+synced state with the same pure function. It does not ask a gateway door. Three tests enforce this:
+
+- `services/gateway/tests/test_one_chooser.py`: the gateway has no chooser door, a call from a
+  stale client gets a 404 and costs no turn, and this section exists.
+- `packages/sdk/test/no-chooser.test.ts`
+- `apps/web-pwa/test/one-chooser.test.ts`: a struggling learner walks a whole chapter on one read
+  of the pool.
+
+**What the device's chooser does not read yet.** Rule 1 names five inputs: right, wrong, how wrong,
+how slow, and what the learner said. `groupFor` reads right and wrong through the miss tally
+(`stuckOn`), how wrong through `misconceptions`, and also the prerequisites and the style. It does
+not read **how slow** or **what they said**. The retired climb read both. Its `pace_of` compared the
+learner's seconds against the module's own minutes. Its `said_shows` matched the learner's own words
+against the chapter's declared misconceptions and never guessed. Port both into `LearnerState` from
+`39548ee9` instead of writing them again. Three more gaps were open when this section was written:
+
+- Nothing in the committed course set `stuckOn` (docs/NOW.md). Wave 55's course builder is wiring
+  it at the module boundary.
+- `groupFor` can return nothing when a learner shows a misconception the pool has no repair for.
+  The client's own fixture (`suggest/fixture.ts`) has no repair for `x3`. Played on that fixture, a
+  learner who shows `x3` in t5 got an empty group. The retired climb searched the whole chapter's
+  pool first, and when that failed it named the idea still open. `groupFor` has no such fallback,
+  so whatever calls it must have one; wave 55's course builder is adding one at the course
+  boundary. Either way, a pool without one repair per misconception fails section 5.
+- `plexus/blueprint.py` still holds `group_for`, `walk`, `mastered` and `LearnerState`, the Python
+  copy of the chooser. Only `test_plexus_blueprint.py` reads them now.
+
+## Proved before it is said (2026-09-16)
+
+Adversaries played the course after wave 55 and found three ways it still broke this section's
+rules. A child who got 8 of 12 wrong, and only copied back equations a worked card had just solved,
+was told the topic "is yours now". A child who got the first two right was finished after two
+answers, because the practice run records each answer twice (as a learn-loop attempt and as a
+practice answer) and both counted. The boss, on questions the child had never seen, came after the
+topic was already closed and decided nothing. The course also held a blank page until the pool
+request answered (66 s when it stalled), and it remembered a refused request as "no pool" for the
+whole session. And the course and the Learn board read the band under two different keys, so a
+chapter the course's own record said had slipped still read "Mastered".
+
+What stands now, each part played before and after (`apps/web-pwa/tests/tutor-proves-it.spec.ts`):
+
+- **One answer is one piece of evidence.** The mastery engine pairs the two reports of one answer
+  and counts it once. Two answers to the same item are still two
+  (`platform/kgtopg-contract-seed/src/reference/in-memory.ts`).
+- **A worked module solves a twin.** It works an equation of the same shape as the item that beat
+  the learner, with different numbers. Every line is computed, and the twin is never an item the
+  course asks (`workedFor`, `twinEquation`). Nothing the learner will be asked is shown solved.
+- **The boss is the proof, and the topic closes at one decision.** When the band holds, the boss
+  door opens. `topicClosed` is the band held AND the boss passed (two of three). The greeting and
+  completion come after it and never before. A boss that is not passed closes nothing. On a walk the
+  course chooses again (`again`), and the door reopens only after a check sitting lands clean. A
+  later round starts on a different question, and an exercise whose answer an earlier round showed
+  counts as aided. The journey without a pool follows the same decision.
+- **One record decides finished.** The course reads the band with the board's own function
+  (`topicNodeId`). That function now returns the topic's node id when the id is a UUID, which is
+  what the atom records its answers against. A completed topic whose band has slipped is walked
+  again, not replayed as the fixed journey.
+- **One tally decides stuck.** On a walk the practice run does not run Wobo's re-teach ladder. That
+  ladder is a second chooser, and its re-teach is a model call. The module tally and `groupFor`
+  decide.
+- **The lesson never waits on the pool for more than a second.** The door (the placement check,
+  then the lesson) waits at most `POOL_WAIT_MS` and then opens with the pool it has. That choice is
+  locked for the topic, so a pool that arrives later never re-plans a door the learner is already
+  through. It joins the walk at the next module boundary instead. A failed read is asked again the
+  next time the chapter opens.
+- **Reading the pool never spends a question.** On the gateway, `curriculum.blueprint` draws on a
+  counter of its own (`budget.READ`, 400 a day, 120 anonymous), and a spent money day never refuses
+  it (`tests/test_pool_read_costs_no_turn.py`).
+
+Still open:
+
+- The atom holds six items. After a boss round is not passed, the next round rotates the same three
+  questions, so a learner who fails the boss several times in one sitting meets questions whose
+  answers have been shown. Those answers count as aided, and the walk goes on, but no new unseen
+  question exists until the node has more items.
+- A boss passed two of three can, rarely, leave the band just under the floor (the reliability
+  window slides by three answers). The course then says nothing closed and hands more practice,
+  although the boss card has just said "a pass".
+- The composed player has no walk, so Wobo's re-teach ladder is still the one chooser there, and
+  its re-teach is still a model call.

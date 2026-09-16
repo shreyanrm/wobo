@@ -16,7 +16,6 @@ import {
   groupFor,
   insteadOf,
   isBlueprint,
-  masteryOf,
   progressAlong,
   sideDoorsAfter,
 } from './blueprint';
@@ -224,22 +223,6 @@ describe('progress is kept along the blueprint’s own modules', () => {
     );
     expect(progressAlong(pool(), 't4', behind, new Set(['q2', 'p9', 'r2', 'c2']))).toBe(1);
     expect(progressAlong(pool(), 't4', ahead, new Set(['p9', 'c2']))).toBe(1);
-  });
-});
-
-// --- mastery is evidence, never a module count ------------------------------------------------------
-
-describe('mastery is the topic’s ideas held and its misconceptions gone', () => {
-  test('a topic whose ideas are held and misconceptions gone is mastered', () => {
-    expect(masteryOf(pool(), 't4', { heldIdeas: ['i5'] })).toBe(true);
-  });
-
-  test('a topic with a misconception still showing is not, whatever was finished', () => {
-    expect(masteryOf(pool(), 't4', { heldIdeas: ['i5'], misconceptions: ['x2'] })).toBe(false);
-  });
-
-  test('an idea not held is not mastery, however many modules were done', () => {
-    expect(masteryOf(pool(), 't4', {})).toBe(false);
   });
 });
 

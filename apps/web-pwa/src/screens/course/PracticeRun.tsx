@@ -37,7 +37,28 @@ const HUE = 'var(--pig)';
 /** The thing that needs care (DESIGN.md §0): a retry glows rose, never a hardcoded amber. */
 const RETRY = 'var(--rose)';
 
-function Detonation({ item, theirs }: { item: PracticeItem; theirs: number }) {
+/**
+ * What happens to a missed item next, said only when it is true. It comes back in this run; or
+ * this miss was the second and the course takes the same idea another way; or the run is over for
+ * a better reason and nothing needs promising.
+ */
+export type AfterMiss = 'returns' | 'another_way' | 'nothing';
+
+const AFTER_MISS: Record<AfterMiss, string | null> = {
+  returns: 'this one comes back before the end — the finish is yours.',
+  another_way: 'next, the same idea from another side. the finish is still yours.',
+  nothing: null,
+};
+
+function Detonation({
+  item,
+  theirs,
+  then = 'returns',
+}: {
+  item: PracticeItem;
+  theirs: number;
+  then?: AfterMiss;
+}) {
   const lin = linearize(item.equation);
   if (!lin) return null;
   const lhsVal = lin.lhs(theirs);
@@ -173,9 +194,11 @@ function Detonation({ item, theirs }: { item: PracticeItem; theirs: number }) {
           {move.text}
           {move.result ? ` → ${move.result}` : ''}
         </div>
-        <div style={{ fontSize: '0.85rem', color: 'var(--wobo-ink-500)', marginTop: 6 }}>
-          this one comes back before the end — the finish is yours.
-        </div>
+        {AFTER_MISS[then] && (
+          <div style={{ fontSize: '0.85rem', color: 'var(--wobo-ink-500)', marginTop: 6 }}>
+            {AFTER_MISS[then]}
+          </div>
+        )}
       </motion.div>
     </div>
   );
@@ -189,6 +212,10 @@ export function PracticeRun({
   setSub,
   onAttempt,
   onDone,
+  onMiss,
+  onUnmiss,
+  until,
+  ladder = true,
   replay = false,
 }: {
   nodeId: string;
@@ -198,7 +225,31 @@ export function PracticeRun({
   setBar: (b: BarState | null) => void;
   setSub: (f: number) => void;
   onAttempt: () => void;
-  onDone: () => void;
+  /** The run is over. `misses` is how many answers in THIS run were wrong and stayed wrong. */
+  onDone: (misses: number) => void;
+  /**
+   * A wrong answer, told to the course the moment it happens, so the module on stage carries it in
+   * the product's tally (`screens/course/climb.ts`) even if the tab closes a second later.
+   */
+  onMiss?: (item: PracticeItem) => void;
+  /** A wrong answer the verifier then overturned: it was never a miss. */
+  onUnmiss?: () => void;
+  /**
+   * Asked after every answer and each time the learner moves on. Anything but false ends the run
+   * there: `beaten`, the module has beaten them twice, so the course chooses again rather than
+   * handing them the next item of the same run; `held`, the topic is held and there is nothing
+   * left to prove.
+   */
+  until?: () => 'beaten' | 'held' | false;
+  /**
+   * Wobo's own re-teach ladder (`wobo/reteach.ts`): on a second miss it picks another approach and
+   * asks the model for it. Off when the course itself chooses what follows a miss (a walk through
+   * the chapter's pool, `climb.ts`): one screen has one answer to "stuck", and choosing never
+   * costs a model call (docs/LEARNING-MODEL.md, "Who chooses"). Played 2026-09-16 before this: on
+   * the same second miss the course moved to a worked module for free while the ladder opened
+   * Wobo's drawer and sent the model a second "work one through" ask.
+   */
+  ladder?: boolean;
   /** A replay of a completed course — the correct-answer +xp chip is suppressed (no xp is earned). */
   replay?: boolean;
 }) {
@@ -215,6 +266,7 @@ export function PracticeRun({
   const [whyOpen, setWhyOpen] = useState(false);
   const [detReady, setDetReady] = useState(false);
   const [wrongValue, setWrongValue] = useState(0);
+  const [afterMiss, setAfterMiss] = useState<AfterMiss>('returns');
   // the assistance ladder at work: hint depth per item, and the "I think I'm right" contest
   const [hintLevel, setHintLevel] = useState(0);
   const lastHintRef = useRef<string>('');
@@ -224,6 +276,14 @@ export function PracticeRun({
   const startRef = useRef(Date.now());
   const attemptsByItem = useRef<Record<string, number>>({});
   const servedRef = useRef<Set<number>>(new Set());
+  // The misses that stand in this run, and whether the run has already been handed back.
+  const missesRef = useRef(0);
+  const finishedRef = useRef(false);
+  const finish = useCallback(() => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    onDone(missesRef.current);
+  }, [onDone]);
 
   const item = queue[pos];
 
@@ -275,8 +335,8 @@ export function PracticeRun({
 
   // done when the queue (including re-queued misses) is exhausted
   useEffect(() => {
-    if (pos >= queue.length && queue.length > 0) onDone();
-  }, [pos, queue.length, onDone]);
+    if (pos >= queue.length && queue.length > 0) finish();
+  }, [pos, queue.length, finish]);
 
   useEffect(() => {
     setSub(queue.length === 0 ? 0 : Math.min(1, pos / queue.length));
@@ -304,6 +364,12 @@ export function PracticeRun({
   useEffect(() => () => bus.publishCanvas(undefined), [bus]);
 
   const advance = useCallback(() => {
+    // The course may have seen enough: this run beat them twice, or the topic is held. Either way
+    // the next thing is the course's to choose, never the next item of this run.
+    if (until?.()) {
+      finish();
+      return;
+    }
     setPhase('answer');
     setEntry('');
     setWhyOpen(false);
@@ -313,7 +379,7 @@ export function PracticeRun({
     setContest('idle');
     setContestNote('');
     setPos((p) => p + 1);
-  }, []);
+  }, [until, finish]);
 
   // one clue at a time — depth escalates on request, capped by the ladder, delivered in Wobo's ink
   const giveHint = useCallback(() => {
@@ -392,6 +458,8 @@ export function PracticeRun({
       });
       noteCorrect();
       noteConceptCorrect(nodeId); // the grade bent to the proof: this concept was never missed
+      missesRef.current = Math.max(0, missesRef.current - 1);
+      onUnmiss?.();
       award('item');
       comboHit();
       setContest('upheld');
@@ -401,7 +469,7 @@ export function PracticeRun({
     } else {
       setContest('stood');
     }
-  }, [item, wrongValue, sdk, nodeId, pos, award, setMood]);
+  }, [item, wrongValue, sdk, nodeId, pos, award, setMood, onUnmiss]);
 
   const check = useCallback(() => {
     if (!item) return;
@@ -453,7 +521,12 @@ export function PracticeRun({
       window.setTimeout(() => setMood('idle'), 1400);
     } else {
       noteMiss();
-      reteach();
+      if (ladder) reteach();
+      // THE MISS, RECORDED WHERE IT HAPPENED: against the module on stage, not only the topic.
+      missesRef.current += 1;
+      onMiss?.(item);
+      const ends = until?.();
+      setAfterMiss(ends === 'beaten' ? 'another_way' : ends === 'held' ? 'nothing' : 'returns');
       comboBreak();
       sfx.wrong(); // a gentle low blip — kind, never punishing (correct blooms via award)
       // FSRS framing: a lapse, due again soon — and it literally returns later in this run
@@ -477,7 +550,20 @@ export function PracticeRun({
       window.setTimeout(() => setMood('idle'), 2000);
       window.setTimeout(() => setDetReady(true), 2600);
     }
-  }, [item, entry, sdk, nodeId, award, setMood, onAttempt, hintLevel, reteach]);
+  }, [
+    item,
+    entry,
+    sdk,
+    nodeId,
+    award,
+    setMood,
+    onAttempt,
+    hintLevel,
+    reteach,
+    onMiss,
+    until,
+    ladder,
+  ]);
 
   const checkRef = useRef(check);
   useEffect(() => {
@@ -605,7 +691,7 @@ export function PracticeRun({
             transition={{ duration: 0.3 }}
           >
             <Stage hue={RETRY} tint={0.06} minHeight={320} style={{ padding: '28px 18px' }}>
-              <Detonation item={item} theirs={wrongValue} />
+              <Detonation item={item} theirs={wrongValue} then={afterMiss} />
             </Stage>
             {/* the re-grade path: contesting is welcome, and the outcome is graceful either way */}
             <AnimatePresence initial={false}>

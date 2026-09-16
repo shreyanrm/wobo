@@ -61,7 +61,8 @@ const g = globalThis as unknown as { localStorage?: Storage; sessionStorage?: St
 g.localStorage = g.localStorage ?? (new MemoryStorage() as unknown as Storage);
 g.sessionStorage = g.sessionStorage ?? (new MemoryStorage() as unknown as Storage);
 
-const { groupFor, masteryOf } = await import('../../curriculum/blueprint');
+const { groupFor } = await import('../../curriculum/blueprint');
+const { topicHeld } = await import('./climb');
 const { pool } = await import('../../suggest/fixture');
 const { bloomHold } = await import('../../store/progress');
 const {
@@ -280,9 +281,12 @@ describe('one struggling learner, a group of modules, end to end', () => {
   });
 
   it('stops at the evidence rather than at a count of what they did', () => {
-    // the misconception is still standing, so the topic is not held however many modules they did
-    expect(masteryOf(BP, TOPIC, { heldIdeas: ['i5'], misconceptions: ['x2'] })).toBe(false);
-    expect(masteryOf(BP, TOPIC, { heldIdeas: ['i5'] })).toBe(true);
+    // the band is below the floor, so the topic is not held however many modules they did
+    for (const band of ['not_started', 'emerging', 'developing'] as const) {
+      expect(topicHeld(band)).toBe(false);
+    }
+    // and the evidence at the floor is the end, whatever it took to get there
+    expect(topicHeld('secure')).toBe(true);
   });
 });
 

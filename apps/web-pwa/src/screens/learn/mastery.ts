@@ -62,19 +62,24 @@ export function topicNodeUuid(topicId: string): string {
   return `00000000-0000-7000-8000-${a}${b}`;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
- * THE ID A TOPIC'S EVIDENCE IS FILED UNDER. One id, derived from the topic id, always.
+ * THE ID A TOPIC'S EVIDENCE IS FILED UNDER, for the board and the course alike.
  *
- * This used to prefer `topic.nodeId`, the concept the brain mapped the topic onto (registry.ts sets
- * it to `node.conceptIds[0]`, a slug like `fractions`). That could never be right: every payload
- * that records evidence types `node_id` as `zUuid` (packages/contracts/src/payloads.ts), so a
- * concept slug can never appear as an evidence node id, and the course files everything it records
- * under `topicNodeUuid(topicId)`. The band was therefore being read from a key nothing ever wrote,
- * which came back `not_started`, which the rules read as silence: for every topic the brain had
- * mapped, a chapter finished badly still said "Mastered". The two ids are joined here instead.
+ * The concept the brain mapped a topic onto (`topic.nodeId`, registry.ts sets it to
+ * `node.conceptIds[0]`) is the key when it IS an evidence id: a UUID. That is the atom: its course
+ * records every answer under `topic.nodeId`, so a board that read `topicNodeUuid(topic.id)` read a
+ * key nothing wrote, took the silence for "learnt", and called a chapter "Mastered" while the
+ * course's own record said the learner had slipped (played 2026-09-16).
+ *
+ * Anything else is derived from the topic id. A concept slug like `fractions` can never be an
+ * evidence node id (every payload types `node_id` as `zUuid`, packages/contracts/src/payloads.ts),
+ * so preferring it read a key nothing ever wrote, which is why this once stopped preferring
+ * `nodeId` at all; the composed course files what it records under `topicNodeUuid(topicId)`.
  */
-export function topicNodeId(topic: Pick<Topic, 'id'>): string {
-  return topicNodeUuid(topic.id);
+export function topicNodeId(topic: Pick<Topic, 'id' | 'nodeId'>): string {
+  return topic.nodeId && UUID.test(topic.nodeId) ? topic.nodeId : topicNodeUuid(topic.id);
 }
 
 /**

@@ -74,7 +74,16 @@ def test_they_are_metered_on_the_cheap_counter() -> None:
     for name in CURRICULUM:
         if name == "curriculum.own.read":
             continue  # a model reads the learner's document; see the test below
+        if name == "curriculum.blueprint":
+            continue  # the pool the device chooses from; see the test below
         assert budget.classify(name) == budget.TURN, name
+
+
+def test_the_pool_read_is_counted_but_never_spends_a_question() -> None:
+    """The device chooses every module out of this one read (docs/LEARNING-MODEL.md, "Who
+    chooses"), so it is counted on its own counter and never on the learner's turns
+    (``tests/test_pool_read_costs_no_turn.py`` plays it)."""
+    assert budget.classify("curriculum.blueprint") == budget.READ
 
 
 def test_the_own_syllabus_intake_is_metered_as_a_generation() -> None:

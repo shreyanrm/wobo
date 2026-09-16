@@ -5,6 +5,13 @@
  * fill-the-missing-step, choose-the-error. Answered in full, evaluated at the end. Calm, no fear;
  * a miss earns another look, never shame. Every exercise is derived arithmetically from verified
  * seed items — nothing invented.
+ *
+ * WHAT A PASS MEANS NOW (docs/LEARNING-MODEL.md, "The tutor never leaves"). The boss is the proof on
+ * questions the course never showed solved, so an answer to an exercise whose answer the boss has
+ * already put on screen (the move under the step, the slip in the error, once a round is checked)
+ * is recorded as aided, and the course closes the topic only when the band holds as well
+ * (`climb.ts`, `topicClosed`). On a walk a round that is not passed is not retried on the spot with
+ * its answers showing: the course chooses what comes next (`onFail`).
  */
 
 import type { PracticeItem } from '@wobo/sdk';
@@ -15,6 +22,7 @@ import { useSdk } from '../../store/sdk';
 import { BossSigil } from '../../ui/art';
 import { ComboMeter, comboBreak, comboHit } from '../../ui/combo';
 import { sfx } from '../../ui/sound';
+import { BOSS_PASS } from './climb';
 import { aX, firstMove, fmt, linearize } from './equations';
 import type { BarState } from './shared';
 import { CardBody, ChoiceButton, cardTitle, rgba, Stage, tryAgainRung, whisper } from './shared';
@@ -102,6 +110,9 @@ export function Boss({
   setSub,
   onAttempt,
   onPass,
+  onFail,
+  shown,
+  onRevealed,
 }: {
   nodeId: string;
   /** Three verified items: [solve, fill-the-step, choose-the-error]. */
@@ -111,6 +122,15 @@ export function Boss({
   onAttempt: () => void;
   /** Fires on a pass, carrying how many of the three were correct — the greeting's star signal. */
   onPass: (correct: number) => void;
+  /**
+   * A round that was not passed. Given, the round ends there and the course chooses what follows;
+   * absent, the learner takes one more look at the same three.
+   */
+  onFail?: (correct: number) => void;
+  /** Items whose answer the course has already shown in an earlier round: answered, they are aided. */
+  shown?: ReadonlySet<string>;
+  /** The items whose answers a checked round has just put on screen. */
+  onRevealed?: (itemIds: string[]) => void;
 }) {
   const sdk = useSdk();
   const bus = useWoboBus();
@@ -137,6 +157,8 @@ export function Boss({
   const [results, setResults] = useState<[boolean, boolean, boolean] | null>(null);
   const round = useRef(0);
   const startedAt = useRef(Date.now());
+  // What this workbook has already shown the answer to: the course's record, and its own rounds.
+  const revealed = useRef(new Set<string>(shown ?? []));
 
   const solveLin = solveItem ? linearize(solveItem.equation) : null;
   const solveValid = solveEntry !== '' && Number.isFinite(Number(solveEntry.replace('−', '-')));
@@ -183,8 +205,14 @@ export function Boss({
               response: { kind: 'numeric'; value: number } | { kind: 'choice'; selected: string[] };
             }[] = [
               { item_id: solveItem.id, response: { kind: 'numeric', value } },
-              { response: { kind: 'choice', selected: [step.choices[stepChoice ?? 0] ?? ''] } },
-              { response: { kind: 'choice', selected: [`line-${errorChoice}`] } },
+              {
+                item_id: items[1]?.id,
+                response: { kind: 'choice', selected: [step.choices[stepChoice ?? 0] ?? ''] },
+              },
+              {
+                item_id: items[2]?.id,
+                response: { kind: 'choice', selected: [`line-${errorChoice}`] },
+              },
             ];
             responses.forEach((resp, i) => {
               onAttempt();
@@ -195,7 +223,8 @@ export function Boss({
                   ...(resp.item_id ? { item_id: resp.item_id } : {}),
                   response: resp.response,
                   correct: r[i] ?? false,
-                  aided: false,
+                  // honest about what was on the screen: an answer the boss already showed is aided
+                  aided: Boolean(resp.item_id && revealed.current.has(resp.item_id)),
                   independence_signal: 0.9,
                   latency_ms: latency,
                   attempt_index: round.current,
@@ -204,6 +233,10 @@ export function Boss({
               );
             });
             round.current += 1;
+            // Checked, the round shows the move under the step and the slip in the error.
+            const nowShown = [items[1]?.id, items[2]?.id].filter((id): id is string => Boolean(id));
+            for (const id of nowShown) revealed.current.add(id);
+            onRevealed?.(nowShown);
             // the combo carries in from practice: each clean answer extends it, a miss breaks it —
             // silent here so the boss's own evaluation moment stays one idea, not a stack of tones
             for (const ok of r) {
@@ -211,7 +244,7 @@ export function Boss({
               else comboBreak();
             }
             // one tone for the whole evaluation: a soft bloom on a pass, a gentle blip otherwise
-            if (r.filter(Boolean).length >= 2) sfx.bloom();
+            if (r.filter(Boolean).length >= BOSS_PASS) sfx.bloom();
             else sfx.wrong();
             setResults(r);
             setEvaluated(true);
@@ -220,18 +253,20 @@ export function Boss({
       });
     } else {
       const correct = results?.filter(Boolean).length ?? 0;
-      const pass = correct >= 2;
+      const pass = correct >= BOSS_PASS;
       setBar({
         primary: pass
           ? { label: 'Continue', onClick: () => onPass(correct) }
-          : {
-              label: 'One more look',
-              onClick: () => {
-                setEvaluated(false);
-                setResults(null);
-                startedAt.current = Date.now();
+          : onFail
+            ? { label: 'Continue', onClick: () => onFail(correct) }
+            : {
+                label: 'One more look',
+                onClick: () => {
+                  setEvaluated(false);
+                  setResults(null);
+                  startedAt.current = Date.now();
+                },
               },
-            },
       });
     }
   }, [
@@ -249,6 +284,9 @@ export function Boss({
     nodeId,
     onAttempt,
     onPass,
+    onFail,
+    onRevealed,
+    items,
   ]);
 
   if (!solveItem || !step || !error) return null;
@@ -452,7 +490,7 @@ export function Boss({
                 identical words as many times as they tried; and that sentence carried two em
                 dashes in front of a child, which voice.md forbids outright.
               */}
-              {passCount >= 2
+              {passCount >= BOSS_PASS
                 ? passCount === 3
                   ? 'All three. Clean.'
                   : 'Two of three, and that is a pass, earned.'

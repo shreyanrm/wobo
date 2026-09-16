@@ -30,6 +30,7 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
+import type { Blueprint } from '../curriculum/blueprint';
 import { useRegistryRevision } from '../curriculum/hooks';
 import { usePool } from '../curriculum/pool';
 import { chapterById, subjectById, topicById } from '../curriculum/registry';
@@ -47,11 +48,30 @@ import { type LessonView, lessonView, useLessonView } from '../wobo/lesson-view'
 import { MuteButton, ReplayButton, useCardNarration } from '../wobo/speech';
 import { AtomJourney } from './course/AtomJourney';
 import { Composing } from './course/Composing';
+import { atomCardFor, atomResumeCard, useClimb } from './course/climb';
 import { hasKeptLesson } from './course/kept';
-import { type BarState, type LessonOutline, useAdvanceTarget } from './course/shared';
+import { atomCardFromLink } from './course/open-at';
+import {
+  type BarState,
+  type LessonOutline,
+  readCoursePos,
+  useAdvanceTarget,
+} from './course/shared';
 import { WhatIf } from './course/WhatIf';
 import { PlacementCheck, usePlacementGate } from './onboarding/PlacementCheck';
 import './course/lesson.css';
+
+/**
+ * THE LONGEST THE LESSON'S DOOR WAITS FOR THE CHAPTER'S POOL.
+ *
+ * The placement check asks about the ground the pool declares, so the door is decided with the pool
+ * when it is quick. It is never decided late: a pool that has not answered by now is taken as none
+ * for this door, the lesson opens, and a pool that answers after that joins the walk at the next
+ * module boundary (`course/AtomJourney.tsx`) without re-planning the door under the learner.
+ * Played 2026-09-16 before this bound: a stalled request held a blank page for 66 s, and a pool
+ * that took 8 s held it for 9.
+ */
+const POOL_WAIT_MS = 1_000;
 
 /** The three chips at the top: where Wobo's board shows. */
 const VIEWS: readonly { id: LessonView; label: string }[] = [
@@ -244,19 +264,52 @@ export function Course({
   // pool, the architect's own declared ground is what the learner is asked about, and what they
   // answer is what pulls the prerequisite module into their group.
   const pool = usePool(chapter, chapter ? subjectById(chapter.subjectId)?.name : undefined);
-  const placement = usePlacementGate(
-    topic,
-    completed,
-    !sandbox && !needsDownload && !resolving,
-    pool,
+  const gated = !sandbox && !needsDownload && !resolving;
+  // THE POOL THE DOOR IS DECIDED WITH: the pool, or none once POOL_WAIT_MS has passed. Latched per
+  // topic, so an answer that lands later never re-plans a door the learner is already through.
+  const waiting = pool === undefined;
+  const [waitedFor, setWaitedFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!waiting) return;
+    const t = window.setTimeout(() => setWaitedFor(topicId), POOL_WAIT_MS);
+    return () => window.clearTimeout(t);
+  }, [waiting, topicId]);
+  const door = useRef<{ topicId: string; pool: Blueprint | null } | null>(null);
+  if (door.current && door.current.topicId !== topicId) door.current = null;
+  if (!door.current && gated && (!waiting || waitedFor === topicId)) {
+    door.current = { topicId, pool: pool ?? null };
+  }
+  const poolAtTheDoor = door.current ? door.current.pool : undefined;
+  const placement = usePlacementGate(topic, completed, gated, poolAtTheDoor ?? null);
+  // The render the door's pool is settled in comes before the gate has planned with it; hold the
+  // paper for that frame too, so nothing flashes before a check that is about to replace it.
+  const [gatePlannedWith, setGatePlannedWith] = useState<Blueprint | null | undefined>(undefined);
+  useEffect(() => {
+    setGatePlannedWith(poolAtTheDoor);
+  }, [poolAtTheDoor]);
+  const doorOpening = gated && (poolAtTheDoor === undefined || gatePlannedWith !== poolAtTheDoor);
+
+  // THE MODULE BOUNDARY (screens/course/climb.ts, docs/LEARNING-MODEL.md "The tutor never leaves").
+  // The same pool chooses what this learner is handed: the group is asked for when the lesson
+  // opens, a miss is recorded against the module it happened in, and the group is asked for again
+  // every time a module ends, with what beat them named as `stuckOn`. A selection out of the pool
+  // in hand, so it costs nothing. Only the atom plays modules today: the composed player renders a
+  // level, which has no module inside it to end (docs/LEARNING-MODEL.md section 7).
+  // The LIVE pool, not the door's: one that answers after the door joins the walk at the next
+  // module boundary, starting on the module played on the card the learner is on by then.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `pool` is the trigger: where the learner is is read when it lands
+  const resumeOn = useMemo(
+    () => atomResumeCard(atomCardFromLink(cardId) ?? readCoursePos(topicId)),
+    [cardId, topicId, pool],
   );
+  const climb = useClimb(mode === 'atom' ? pool : null, topic?.id, atomCardFor, resumeOn);
 
   // Gated: hold a plain paper screen for the single frame before router.back() lands — no cold
   // skeleton, no white flash. The learner returns to where they were, download in flight. The same
   // paper holds while a cold address is being resolved against the world.
   // The same paper holds for the frame the placement gate takes to decide, so a lesson that is
   // about to be preceded by a check never flashes on screen first.
-  if (needsDownload || resolving || placement.status === 'planning') {
+  if (needsDownload || resolving || placement.status === 'planning' || doorOpening) {
     return <div style={{ height: '100dvh', background: 'var(--paper)' }} />;
   }
 
@@ -331,6 +384,7 @@ export function Course({
                   onExit={exit}
                   onResume={onResume}
                   onOutline={setOutline}
+                  climb={climb}
                 />
               )}
               {mode === 'composing' && (

@@ -17,7 +17,12 @@
  *   One parser, not two, and never half a pool.
  * * **One request per cell.** A pool is keyed on chapter x board x class x version and it changes
  *   about as often as a syllabus does, so it is fetched once per session per cell and shared by
- *   every screen that asks. A failure is remembered as "none", not retried on every render.
+ *   every screen that asks. The gateway's answer is remembered, "no pool" included.
+ * * **A failure is not an answer.** A refused, stalled or dropped request is not "this chapter has
+ *   no pool", and remembering it as one turned re-choosing off for the rest of the session: a
+ *   learner who left the lesson and came back was never chosen for again (played 2026-09-16). It
+ *   is forgotten, and the next screen that opens the chapter asks again: once per open, never once
+ *   per render.
  */
 
 import { useEffect, useState } from 'react';
@@ -63,11 +68,14 @@ export function cellFor(chapter: Chapter | undefined, subjectName?: string): Poo
 const keyOf = (cell: PoolCell) =>
   [cell.board, cell.grade, cell.subject, cell.contentVersion, cell.node].join('|');
 
-/** Resolved pools, and the requests in flight for them. A miss is remembered as null. */
+/** The gateway's answers, and the requests in flight for them. "No pool" is remembered as null. */
 const pools = new Map<string, Blueprint | null>();
 const inFlight = new Map<string, Promise<Blueprint | null>>();
 
-/** The pool for a cell, asked for at most once. Never throws: a failure is "no pool". */
+/**
+ * The pool for a cell. An answer is asked for once; a failure resolves to null for the screen that
+ * asked and is not remembered. Never throws.
+ */
 export async function fetchPool(cell: PoolCell): Promise<Blueprint | null> {
   const key = keyOf(cell);
   const known = pools.get(key);
@@ -78,12 +86,14 @@ export async function fetchPool(cell: PoolCell): Promise<Blueprint | null> {
 
   const request = curriculum()
     .blueprint(cell)
-    .then(({ blueprint }) => (isBlueprint(blueprint) ? blueprint : null))
-    .catch(() => null)
-    .then((pool) => {
+    .then(({ blueprint }) => {
+      const pool = isBlueprint(blueprint) ? blueprint : null;
       pools.set(key, pool);
-      inFlight.delete(key);
       return pool;
+    })
+    .catch(() => null)
+    .finally(() => {
+      inFlight.delete(key);
     });
   inFlight.set(key, request);
   return request;
@@ -96,32 +106,50 @@ export function clearPools(): void {
 }
 
 /**
- * The chapter's pool for a screen, or null.
+ * What is already known about a cell's pool without asking: the answer this session already got,
+ * null when there is no cell or no brain to ask, and undefined when the question is still open.
+ */
+function knownPool(cell: PoolCell | null): Blueprint | null | undefined {
+  if (!cell) return null;
+  const known = pools.get(keyOf(cell));
+  if (known !== undefined) return known;
+  return curriculumReady() ? undefined : null;
+}
+
+/**
+ * The chapter's pool for a screen: the pool, null, or undefined while the one request for it is
+ * still in flight.
  *
  * Null is the ordinary answer today and the screen must be written for it: most chapters have no
- * pool yet, and one that has none is taught exactly as it was.
+ * pool yet, and one that has none is taught exactly as it was. Undefined exists so a screen that
+ * CHOOSES from the pool (the course, `screens/course/climb.ts`) can wait for the answer instead of
+ * starting a learner down the unchosen road and changing it under them a moment later. A cell with
+ * no brain behind it, or one this session has already asked about, is never undefined.
  */
-export function usePool(chapter: Chapter | undefined, subjectName?: string): Blueprint | null {
-  const [pool, setPool] = useState<Blueprint | null>(null);
+export function usePool(
+  chapter: Chapter | undefined,
+  subjectName?: string,
+): Blueprint | null | undefined {
   const cell = cellFor(chapter, subjectName);
   const key = cell ? keyOf(cell) : '';
+  const [held, setHeld] = useState<{ key: string; pool: Blueprint | null }>({
+    key: '',
+    pool: null,
+  });
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the cell, which is the identity
   useEffect(() => {
-    if (!cell) {
-      setPool(null);
-      return;
-    }
+    if (!cell) return;
     let live = true;
     void fetchPool(cell).then((found) => {
-      if (live) setPool(found);
+      if (live) setHeld({ key, pool: found });
     });
     return () => {
       live = false;
     };
   }, [key]);
 
-  return pool;
+  return held.key === key && key !== '' ? held.pool : knownPool(cell);
 }
 
 /**

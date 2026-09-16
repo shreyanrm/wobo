@@ -242,15 +242,11 @@ _POLICIES: dict[str, RoutingPolicy] = {
         # the architect is a platform-paid job, not something a learner opening a chapter starts —
         # so it answers at the speed of a lookup and no tier is ever reached.
         _policy("curriculum.blueprint", Tier.TINY, CacheTier.NONE, max_latency_ms=1200),
-        # THE CLIMB (docs/LEARNING-MODEL.md, "The tutor never leaves", rule 1). The group that
-        # teaches a topic, re-chosen after EVERY module out of what the learner just did. A pure
-        # selection over a pool that already exists — no model, no build, no store write — so it
-        # sits with the other reads and answers at the speed of a lookup.
+        # There is no `curriculum.climb` row, on purpose. The group is chosen on the device out of
+        # the pool read above, and the gateway door that chose it was retired on 2026-09-16:
+        # every call drew a turn from the learner's day, so a climb run through it ended at the
+        # meter rather than at mastery (docs/LEARNING-MODEL.md, "Who chooses").
         #
-        # Cache tier NONE is not an optimisation choice: a cached climb step is one learner being
-        # handed another learner's next module, which is a correctness bug before it is a privacy
-        # one. Two learners on the same topic are supposed to get different answers.
-        _policy("curriculum.climb", Tier.TINY, CacheTier.NONE, max_latency_ms=1200),
         # The own-syllabus door (§6). `read` is the one that calls a model — the generate tier
         # structures the learner's own document, and a photo goes to the image-capable rung — so
         # it gets the latency of a generation, not of a lookup. The other three only move an
@@ -328,7 +324,6 @@ EXPECTED_CAPABILITIES: tuple[str, ...] = (
     "curriculum.overlay.apply",
     "curriculum.status",
     "curriculum.blueprint",
-    "curriculum.climb",
     "curriculum.own.read",
     "curriculum.own.confirm",
     "curriculum.own.publish",

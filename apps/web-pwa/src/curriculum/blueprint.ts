@@ -429,21 +429,12 @@ export function progressAlong(
   return walk.filter((id) => done.has(id)).length / walk.length;
 }
 
-/**
- * Is the topic held?
- *
- * "A topic declares what must be true for it to be held: the ideas that must be understood, and the
- * misconceptions that must be gone. Not a module count, and never a score."
- * (docs/LEARNING-MODEL.md section 3.) So this reads the evidence and never the walk.
+/*
+ * IS THE TOPIC HELD? Not answered here. It is the learner's durable band, read where a module ends
+ * (`screens/course/climb.ts`, `topicHeld`), because that is the record the course writes every
+ * answer to and the learn board already reads. A second answer computed from `heldIdeas`, which
+ * nothing in the product gathers, used to live here and was deleted on 2026-09-16.
  */
-export function masteryOf(bp: Blueprint, topicId: string, state: LearnerState): boolean {
-  const ideas = bp.ideas.filter((i) => i.topics.includes(topicId));
-  if (ideas.length === 0) return false;
-  const held = new Set(state.heldIdeas ?? []);
-  if (!ideas.every((i) => held.has(i.id))) return false;
-  const shown = new Set(state.misconceptions ?? []);
-  return !bp.misconceptions.some((m) => m.topics.includes(topicId) && shown.has(m.id));
-}
 
 /** The bonus levels that open after a module. Off the path, optional, never a nag. */
 export function sideDoorsAfter(bp: Blueprint, moduleId: string): string[] {

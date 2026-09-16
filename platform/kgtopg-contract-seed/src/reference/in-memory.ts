@@ -61,6 +61,19 @@ const EVIDENCE_CAP = 16;
 /** How many recent answers the reliability check looks at. */
 const RECENT_WINDOW = 10;
 
+/**
+ * THE TWO PLANES ONE ANSWER IS REPORTED ON. The practice run records every answer as a learn-loop
+ * attempt AND as a practice answer, and both are evidence-bearing. Counted separately, one answer
+ * was two points, and the bars below were met by half the answers they ask for: two right answers
+ * banded `independent`, and a course that ends a topic at the band told a child who got the first
+ * two right that the topic was theirs. The second report of an answer is paired with the first
+ * and adds nothing. Only a report on the OTHER plane pairs, and each report pairs once, so two
+ * answers to the same item are still two.
+ */
+const ANSWER_PLANES = new Set(['learn.attempt.submitted.v1', 'practice.item.answered.v1']);
+/** Reports waiting for their other half. A pair lands within a tick, so a few is plenty. */
+const UNPAIRED_CAP = 64;
+
 /** Clean answers with no help behind them that put a node at the floor. */
 const SECURE_UNAIDED_CORRECT = 3;
 
@@ -94,6 +107,8 @@ export interface InMemoryKgtopgOptions {
 export class InMemoryKgtopg implements KGtoPG, EventConsumer {
   private readonly nodes: Map<string, OntologyNode>;
   private readonly seen = new Set<string>();
+  /** One answer's first report, by what identifies the answer, waiting for its other plane. */
+  private readonly unpaired = new Map<string, string>();
   private readonly evidence = new Map<string, MasteryEvidencePoint[]>();
   private readonly onChange: InMemoryKgtopgOptions['onChange'];
   private consentTier: ConsentTierView;
@@ -214,8 +229,45 @@ export class InMemoryKgtopg implements KGtoPG, EventConsumer {
     return `${subjectId}|${nodeId}`;
   }
 
+  /**
+   * True when this event is the second report of an answer already counted on the other plane.
+   * The pairing is consumed, so a third report (a new answer) counts again.
+   */
+  private secondReport(event: WoboEvent): boolean {
+    if (!ANSWER_PLANES.has(event.event_type)) return false;
+    const p = event.payload as {
+      node_id?: string;
+      item_id?: string;
+      correct?: boolean;
+      latency_ms?: number;
+      response?: unknown;
+    };
+    if (!p.item_id) return false;
+    const answer = [
+      event.actor.subject_id,
+      p.node_id,
+      p.item_id,
+      p.correct,
+      p.latency_ms,
+      JSON.stringify(p.response ?? null),
+    ].join('|');
+    const first = this.unpaired.get(answer);
+    if (first !== undefined && first !== event.event_type) {
+      this.unpaired.delete(answer);
+      return true;
+    }
+    this.unpaired.delete(answer);
+    this.unpaired.set(answer, event.event_type);
+    if (this.unpaired.size > UNPAIRED_CAP) {
+      const oldest = this.unpaired.keys().next().value;
+      if (oldest !== undefined) this.unpaired.delete(oldest);
+    }
+    return false;
+  }
+
   private applyEvidence(event: WoboEvent): void {
     const subject = event.actor.subject_id;
+    if (this.secondReport(event)) return;
     let point: { nodeId: string; ev: Omit<MasteryEvidencePoint, 'event_id' | 'at'> } | null = null;
 
     if (event.event_type === 'evidence.recorded.v1') {
