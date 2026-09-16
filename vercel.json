@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": { "deploymentEnabled": { "the-life": false } },
   "installCommand": "(dnf install -y nspr nss atk at-spi2-atk cups-libs libdrm libXcomposite libXdamage libXrandr mesa-libgbm pango alsa-lib libxkbcommon at-spi2-core 2>/dev/null || true) && bun install && bun run --cwd apps/web-pwa browser",
   "buildCommand": "bun run --cwd apps/web-pwa build",
   "outputDirectory": "apps/web-pwa/dist",
