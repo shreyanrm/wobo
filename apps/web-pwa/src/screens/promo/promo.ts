@@ -28,11 +28,18 @@
 import { GATEWAY_COPY, gatewayFetch } from '@wobo/sdk';
 
 /**
- * The gateway's redeem door. Named here and nowhere else in the app, so a rename upstream is one
- * edit; it follows the shape every other learner-owned route on the gateway already has
- * (`/v1/me/erase`, `/v1/me/mail-preferences`, `/v1/me/subscription/cancel`).
+ * The gateway's redeem door, and it is the gateway's own address rather than the one this file
+ * wished for.
+ *
+ * It read `/v1/me/promo` until 2026-09-16, reasoned from the shape of the other learner-owned
+ * routes (`/v1/me/erase`, `/v1/me/mail-preferences`, `/v1/me/subscription/cancel`). The gateway
+ * registers no such route: `promo.py` declares `REDEEM_PATH = "/v1/promo/redeem"`, registers that
+ * one and rate-limits that one, and `tests/test_promo.py` posts to it. So every code a learner
+ * ever typed was posted into a 404 and answered with "That code did not work", on both surfaces.
+ * The browser suite did not catch it because its fake brain answered whatever path the app asked
+ * for; it now routes the gateway's real address, so a drift like this fails there too.
  */
-export const PROMO_PATH = '/v1/me/promo';
+export const PROMO_PATH = '/v1/promo/redeem';
 
 // --- the words -----------------------------------------------------------------------------------
 
@@ -70,8 +77,16 @@ export const PROMO_REFUSALS: Readonly<Record<string, string>> = {
 
 // --- the code itself -----------------------------------------------------------------------------
 
-/** How long a code may be. Long enough for anything the console can make, short enough to bound. */
-export const MAX_CODE = 64;
+/**
+ * How long a code may be, and it is the gateway's number.
+ *
+ * `promo.py` mints and accepts `MAX_CODE = 32` (its `CODE_RE` allows three to thirty two upper-case
+ * characters), and the field allowed sixty four. A longer code was not refused here with a sentence
+ * a learner could act on; it was posted, refused by the body validator as a 422 with no reason code
+ * in it, and reported as "That code did not work" — the same words as a wrong code. The field now
+ * bounds what it sends to what the console can actually mint.
+ */
+export const MAX_CODE = 32;
 
 /**
  * The code as the gateway should see it: upper case, no spaces anywhere, trimmed to a length.

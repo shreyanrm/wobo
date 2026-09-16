@@ -801,6 +801,13 @@ def reengage(data: dict[str, Any]) -> dict[str, str]:
     }
 
 
+#: THE MONEY'S VOICE, quoted (docs/copy/money.md, "plan opened mail"; the owner, 2026-09-15, and
+#: docs/SELL.md "The money's voice"). The document is the source and this is a copy of it word for
+#: word: ``tests/test_money_voice.py`` reads that file off disk and fails if the two ever differ,
+#: so the mail and the plans page say the same sentence rather than two versions of it.
+MONEY_PLAN_OPENED = "Thank you for choosing a plan. It pays for the drawings, the voice, and the next child's first lesson."  # noqa: E501
+
+
 def plan_opened(data: dict[str, Any]) -> dict[str, str]:
     """The whole plan is on for a while, said as a fact. Account mail, and it belongs in Updates.
 
@@ -819,6 +826,11 @@ def plan_opened(data: dict[str, Any]) -> dict[str, str]:
            "the account you are signed in to.")
         + _p("follow a rabbit hole, build something out of syllabus, take a harder road through "
              "a chapter. it is the same Wobo, with the ceiling lifted.")
+        # WHERE THE MONEY GOES, once, at the end. Last rather than first because the reader opened
+        # this to learn a fact about their account, and the thanks is owed after the fact, not
+        # instead of it; the mail law scans the FIRST sentence for anything that sounds like an
+        # offer, and this must never become that sentence.
+        + _p(MONEY_PLAN_OPENED)
     )
     preheader = "nothing to enter, and nothing to set up."
     html_out = _shell(
@@ -835,6 +847,7 @@ def plan_opened(data: dict[str, Any]) -> dict[str, str]:
         "nothing to enter and nothing to set up: it is already on the account you are signed "
         "in to.\n\nfollow a rabbit hole, build something out of syllabus, take a harder road "
         "through a chapter.\n\n"
+        f"{MONEY_PLAN_OPENED}\n\n"
         f"open Wobo: {_link(data, 'cta_url', '/learn')}\n\n— Wobo"
     ) + _shell_foot_text(data)
     return {

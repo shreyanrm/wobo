@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, date, datetime, timedelta
+
 import pytest
 from wobo_gateway import budget
 from wobo_gateway.app import Gateway, create_app
@@ -378,3 +380,138 @@ def test_charge_is_atomic_under_threads(monkeypatch: pytest.MonkeyPatch) -> None
     for t in threads:
         t.join()
     assert sum(granted) == 5
+
+
+# --- the day these counters count, which has to be the LEARNER's ----------------------
+#
+# THE HALF THE MIDNIGHT WORK MISSED. ``allowance.py`` was given the learner's own zone and its own
+# local day, and was tested at Asia/Kolkata and west of UTC. These counters are the SECOND bound on
+# the very same request (``budget.charge`` asks the money meter first and then counts the act), and
+# they were left keyed on ``now.strftime("%Y-%m-%d")`` in UTC. So for a learner in Los Angeles the
+# turn, generation and voice counters handed out a fresh full day at four or five in the afternoon,
+# their time — and for a learner in Kolkata a counter refusal named 05:30 in the morning as the hour
+# the day comes back, because whichever bound fires puts its own ``reset_at`` on the wire
+# (``app.py``, the two 429 handlers).
+#
+# One day boundary in this product, computed in one place: ``allowance._next_local_midnight``,
+# through ``allowance.local_day`` and ``allowance.resets_at``. Anything that is not a learner — the
+# platform's own jobs, the public Ask box, the spend ceiling — keeps the UTC day it always had,
+# which is the right day for a thing that belongs to the server rather than to a child.
+@pytest.fixture
+def _clean_zones():
+    from wobo_gateway import allowance
+
+    budget.reset()
+    allowance.reset()
+    yield
+    budget.reset()
+    allowance.reset()
+
+
+def _at(moment: datetime):
+    return lambda: moment
+
+
+def test_the_counters_turn_over_at_the_learners_midnight_and_not_the_servers(
+    monkeypatch: pytest.MonkeyPatch, _clean_zones
+) -> None:
+    """Los Angeles, across the server's midnight. 23:00Z and 01:00Z are four and five o'clock on
+    the SAME afternoon in California: a learner who has spent their day has still spent it."""
+    from wobo_gateway import allowance
+
+    allowance.set_zone_resolver(lambda key: "America/Los_Angeles")
+    key = "sub:la-learner"
+    before_utc_midnight = datetime(2026, 9, 16, 23, 0, tzinfo=UTC)
+    after_utc_midnight = datetime(2026, 9, 17, 1, 0, tzinfo=UTC)
+
+    monkeypatch.setattr(budget, "_now", _at(before_utc_midnight))
+    monkeypatch.setenv("FREE_DAILY_TURNS", "2")
+    budget.charge(key, "wobo.turn")
+    budget.charge(key, "wobo.turn")
+    assert allowance.local_day(key, before_utc_midnight) == date(2026, 9, 16)
+
+    monkeypatch.setattr(budget, "_now", _at(after_utc_midnight))
+    # Still the same local day, so still spent — not a second full day two hours later.
+    assert allowance.local_day(key, after_utc_midnight) == date(2026, 9, 16)
+    assert budget.snapshot(key).turns_remaining == 0
+    with pytest.raises(budget.BudgetExhausted):
+        budget.charge(key, "wobo.turn")
+
+
+def test_the_new_day_arrives_at_the_learners_own_midnight(
+    monkeypatch: pytest.MonkeyPatch, _clean_zones
+) -> None:
+    """And it does arrive: the counters are not frozen, they are on the child's clock."""
+    from wobo_gateway import allowance
+
+    allowance.set_zone_resolver(lambda key: "America/Los_Angeles")
+    key = "sub:la-learner-2"
+    monkeypatch.setenv("FREE_DAILY_TURNS", "1")
+    monkeypatch.setattr(budget, "_now", _at(datetime(2026, 9, 16, 23, 0, tzinfo=UTC)))
+    budget.charge(key, "wobo.turn")
+    # 08:00Z on the 17th is one in the morning in California: their midnight has passed.
+    monkeypatch.setattr(budget, "_now", _at(datetime(2026, 9, 17, 8, 0, tzinfo=UTC)))
+    assert budget.snapshot(key).turns_remaining == 1
+
+
+def test_a_spent_counter_names_the_learners_own_midnight_and_not_the_servers(
+    monkeypatch: pytest.MonkeyPatch, _clean_zones
+) -> None:
+    """``exc.reset_at`` goes on the wire as ``X-Wobo-Budget-Reset``. An IST learner told their day
+    comes back at 05:30 was being told the server's midnight in their own morning."""
+    from wobo_gateway import allowance
+
+    allowance.set_zone_resolver(lambda key: "Asia/Kolkata")
+    key = "sub:ist-learner"
+    monkeypatch.setenv("FREE_DAILY_TURNS", "1")
+    now = datetime(2026, 9, 16, 12, 0, tzinfo=UTC)
+    monkeypatch.setattr(budget, "_now", _at(now))
+    budget.charge(key, "wobo.turn")
+    with pytest.raises(budget.BudgetExhausted) as raised:
+        budget.charge(key, "wobo.turn")
+    assert raised.value.reset_at == allowance.resets_at(key, now)
+    assert raised.value.reset_at.utcoffset() == timedelta(hours=5, minutes=30)
+    assert (raised.value.reset_at.hour, raised.value.reset_at.minute) == (0, 0)
+
+
+def test_the_snapshot_carries_the_same_midnight_the_refusal_would(
+    monkeypatch: pytest.MonkeyPatch, _clean_zones
+) -> None:
+    """``/v1/me`` shows one and the 429 shows the other; two answers to one question is a bug."""
+    from wobo_gateway import allowance
+
+    allowance.set_zone_resolver(lambda key: "Asia/Kolkata")
+    key = "sub:ist-learner-2"
+    now = datetime(2026, 9, 16, 12, 0, tzinfo=UTC)
+    monkeypatch.setattr(budget, "_now", _at(now))
+    assert budget.snapshot(key).reset_at == allowance.resets_at(key, now)
+
+
+def test_what_is_not_a_learner_keeps_the_servers_own_day(
+    monkeypatch: pytest.MonkeyPatch, _clean_zones
+) -> None:
+    """The platform's own jobs have no zone and no child: UTC is the right day for them, and
+    ``spend.py`` and the public Ask box read this same function with no subject at all."""
+    from wobo_gateway import allowance
+
+    allowance.set_zone_resolver(lambda key: "Asia/Kolkata")
+    now = datetime(2026, 9, 16, 12, 0, tzinfo=UTC)
+    assert budget.reset_at(now) == datetime(2026, 9, 17, 0, 0, tzinfo=UTC)
+    assert budget.reset_at(now, subject="system:curriculum") == datetime(
+        2026, 9, 17, 0, 0, tzinfo=UTC
+    )
+
+
+def test_a_zone_that_cannot_be_read_falls_to_the_servers_day_rather_than_failing(
+    monkeypatch: pytest.MonkeyPatch, _clean_zones
+) -> None:
+    """A resolver that throws must never take a learner's turn down with it: the counters keep
+    counting, on UTC, which is exactly what they did before they knew about zones."""
+    from wobo_gateway import allowance
+
+    def _boom(key: str) -> str:
+        raise RuntimeError("the zone store is down")
+
+    allowance.set_zone_resolver(_boom)
+    monkeypatch.setenv("FREE_DAILY_TURNS", "2")
+    assert budget.charge("sub:zoneless", "wobo.turn").turns_remaining == 1

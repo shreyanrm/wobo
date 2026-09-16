@@ -66,9 +66,22 @@ AUTH_FAILURE_BURST = "auth_failure_burst"
 #: A model provider refused or timed out. One is weather; :mod:`wobo_gateway.health` decides
 #: when a run of them is an outage.
 PROVIDER_OUTAGE = "provider_outage"
+#: One of the two pools the platform pays for itself crossed a fraction of its own daily cap
+#: (:mod:`wobo_gateway.pools`): the creative pool, or the day's spend on free learners. Carries
+#: ``pool`` and ``threshold``, so "the goodwill is running out" and "the authoring is running
+#: out" are one alarm with two faces rather than two alarms nobody wires up.
+POOL_THRESHOLD = "pool_threshold"
 
 EVENTS = frozenset(
-    {STARTUP, SERVER_ERROR, SAFETY_GATE, SPEND_THRESHOLD, AUTH_FAILURE_BURST, PROVIDER_OUTAGE}
+    {
+        STARTUP,
+        SERVER_ERROR,
+        SAFETY_GATE,
+        SPEND_THRESHOLD,
+        AUTH_FAILURE_BURST,
+        PROVIDER_OUTAGE,
+        POOL_THRESHOLD,
+    }
 )
 
 INFO, WARN, CRITICAL = "info", "warn", "critical"
@@ -219,6 +232,7 @@ __all__ = [
     "PROVIDER_OUTAGE",
     "SAFETY_GATE",
     "SERVER_ERROR",
+    "POOL_THRESHOLD",
     "SPEND_THRESHOLD",
     "STARTUP",
     "WARN",

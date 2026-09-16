@@ -45,7 +45,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from wobo_gateway import dials, health, ledger, pace, registry, routing, spend
+from wobo_gateway import dials, health, ledger, pace, pools, registry, routing, spend
 from wobo_gateway.admin_auth import (
     ADMIN_MANAGE,
     CONSOLE_READ,
@@ -344,6 +344,13 @@ def models_view(rows: list[dict[str, Any]] | None, *, today: date | None = None)
             ),
             "alert_fractions": list(dials.ALERT_FRACTIONS),
             "capabilities": sorted(registry.PLATFORM_PAID),
+            # THE FIGURE THE CAP IS ACTUALLY ENFORCED AGAINST (``pools.py``). Everything above
+            # is the ledger's rollup, which can be a quarter of an hour behind; this is the
+            # in-process accumulator that raises the 50/80/100 alarms and, for the free pool,
+            # closes the lane. They disagree by design, exactly as the platform ceiling and the
+            # rollup already do on the spend desk, and the desk shows both with their own names
+            # rather than quietly picking one.
+            "live": pools.creative_state().as_dict(),
         },
         "spend": {
             "by_tier": spend_today if readable else None,
@@ -399,6 +406,13 @@ def allowance_view(*, today: date | None = None) -> dict[str, Any]:
         "creative_pool_usd": dials.creative_pool_usd(),
         "free_pool_paise": free_pool,
         "free_pool": dials.rupees(free_pool) if free_pool is not None else None,
+        # The day's goodwill as it actually stands, and the line docs/ALLOWANCE.md "Best of both
+        # worlds" point 4 asks for: what every free learner together has cost the platform today,
+        # against the cap, with the same 50/80/100 alarms. ``fraction`` is None when no cap is
+        # set — not zero, which would read as "none of it used" rather than "nothing to use it
+        # against" — and the lane is never closed until the owner turns that dial.
+        "free_pool_today": pools.free_state().as_dict(),
+        "creative_pool_today": pools.creative_state().as_dict(),
         "alert_fractions": list(dials.ALERT_FRACTIONS),
         "days_in_month": dials.days_in(now),
         "effect": dials.allowance_effect(today=now),

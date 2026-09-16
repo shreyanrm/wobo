@@ -175,7 +175,12 @@ def test_a_spend_threshold_crossing_reaches_the_sink(
 
 
 def test_every_event_name_the_operations_page_promises_exists() -> None:
-    """docs/OPERATIONS.md names these six. A rename breaking a runbook grep fails here."""
+    """docs/OPERATIONS.md names these seven. A rename breaking a runbook grep fails here.
+
+    ``pool_threshold`` joined them when the two pools the platform pays for itself were given
+    the caps their dials had always implied (``pools.py``, docs/ALLOWANCE.md "Best of both
+    worlds" point 4): the creative pool, and the day's spend on every free learner together.
+    """
     assert {
         "startup",
         "server_error",
@@ -183,4 +188,41 @@ def test_every_event_name_the_operations_page_promises_exists() -> None:
         "spend_threshold",
         "auth_failure_burst",
         "provider_outage",
+        "pool_threshold",
     } == alerts.EVENTS
+
+
+def test_the_runbook_counts_the_events_it_actually_lists() -> None:
+    """docs/OPERATIONS.md §3 opens with a COUNT, and a runbook that miscounts its own table is
+    a runbook an operator stops trusting at three in the morning.
+
+    The test above pins the NAMES, which is why ``pool_threshold`` could be added to the module,
+    to the table and to that assertion while the sentence directly above the table went on saying
+    "Six events". Prose is not checked by a set comparison, so it is checked here: the number the
+    page says, the number of rows in its table, and the number of events the module exports are
+    one number or this fails.
+    """
+    import re
+    from pathlib import Path
+
+    words = {
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+    }
+    page = (Path(__file__).resolve().parents[3] / "docs" / "OPERATIONS.md").read_text()
+    said = re.search(r"([A-Za-z]+) events, one JSON log line each", page)
+    assert said is not None, "docs/OPERATIONS.md §3 no longer says how many events there are"
+    counted = words.get(said.group(1).lower())
+    assert counted is not None, said.group(1)
+    assert counted == len(alerts.EVENTS)
+    # And every event has a row of its own in that table, so the count is not right by luck.
+    for event in alerts.EVENTS:
+        assert f"`{event}`" in page, event

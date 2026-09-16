@@ -278,6 +278,22 @@ LADDER_ENV = "WOBO_GENERATION_LADDER"
 _PAID_PLANS: frozenset[str] = frozenset({"plus", "pro", "max"})
 _FREE_LANE: dict[Tier, Tier] = {Tier.TURN: Tier.TINY}
 
+#: Capabilities the lane never steps down, whatever plan is named — or not named.
+#:
+#: THE LANE IS A LEARNER'S. docs/ALLOWANCE.md, "The free tier", steps down "a free learner's
+#: turns", and the funnel reads a missing plan as free on purpose, so that a caller which does
+#: not name itself gets the cheap lane rather than a paying learner's. Both halves are right, and
+#: together they broke something: ``parent_mind`` reaches ``invoke`` with no plan at all (there is
+#: no learner on that request — a parent is asking about their child), so the parent's companion
+#: silently dropped from Terra to Luna for every family on every plan, Max included.
+#:
+#: A parent is not a free learner. They have no allowance, they are not metered on a child's day,
+#: and the parent account is itself one of the things a plan buys ("Best of both worlds": a bigger
+#: day, Terra turns, more voice and doubts, downloads, the parent account). So this capability
+#: leaves the lane by name rather than by having a plan threaded down a second path — because the
+#: threading is exactly what the next call site will forget, and a forgotten plan is silent.
+LANE_EXEMPT: frozenset[str] = frozenset({"parent.companion.turn"})
+
 
 def lane_tier(tier: Tier, plan: str | None) -> Tier:
     """The tier a call actually runs on for this plan: the free lane steps a turn down to tiny."""

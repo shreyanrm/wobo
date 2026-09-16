@@ -33,7 +33,7 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 ## The queue, in order
 
 Each is written and stamped Opus; each waits for the one before it to be verified, committed and
-deployed. Nothing here is lost, and nothing here has started. Wave 55 was written on 2026-09-16 after its brief was MEASURED rather than assumed (the row in the open items below carries the correction); its script is at ~/.claude/projects/-Users-depl-Documents-classess-learner/waves/wave55-the-wire.js, written and deliberately not launched — wave 36 lands, verifies and deploys first.
+deployed. Nothing here is lost, and nothing here has started. Wave 55 was written on 2026-09-16 after its brief was MEASURED rather than assumed (the row in the open items below carries the correction); its script is `wave55-the-wire.js`, in this session's durable waves directory rather than the swept scratchpad, written and deliberately not launched — wave 36 lands, verifies and deploys first.
 
 | # | What | Wave |
 |---|---|---|

@@ -227,19 +227,71 @@ def limits_for(plan: str = "free", *, anonymous: bool = False) -> dict[str, int]
     }
 
 
-def reset_at(now: datetime | None = None) -> datetime:
-    """The next UTC midnight — when both counters go back to full."""
-    moment = now or datetime.now(UTC)
+def _now() -> datetime:
+    """The clock, in one place, so a test can hold it still without patching the stdlib."""
+    return datetime.now(UTC)
+
+
+def _learner_zone_day(subject: str, moment: datetime) -> str | None:
+    """This learner's own calendar day, or None for anything that is not a learner.
+
+    THE DAY THESE COUNTERS COUNT IS THE LEARNER'S, NOT THE SERVER'S (docs/ALLOWANCE.md §4.6).
+    ``allowance.py`` was given the learner's zone and its own local day; these counters are the
+    SECOND bound on the very same request and were left on ``strftime`` in UTC — so a learner in
+    Los Angeles was handed a fresh full day at four in the afternoon, their time, and an IST
+    learner who ran out was told their day came back at half past five in the morning.
+
+    One boundary, computed in one place: ``allowance._next_local_midnight``. Imported lazily
+    because ``allowance`` imports this module for its exception and its classification, and two
+    modules cannot import each other at import time. A zone we cannot read is not an error a
+    learner may ever meet: it falls to the server's day, which is what this did before it knew
+    zones existed.
+    """
+    try:
+        from wobo_gateway import allowance
+
+        if not subject or not subject.startswith(allowance.LEARNER_PREFIXES):
+            return None
+        return allowance.local_day(subject, moment).isoformat()
+    except Exception:  # noqa: BLE001 — a zone lookup must never take a learner's turn down
+        return None
+
+
+def reset_at(now: datetime | None = None, subject: str | None = None) -> datetime:
+    """When the counters go back to full.
+
+    The LEARNER's next midnight when we know whose counters these are, and the next UTC midnight
+    when we do not — the platform's own jobs (``spend.py``) and the public Ask box have no zone
+    and no child, and the server's day is the right day for a thing that belongs to the server.
+
+    This value goes on the wire as ``X-Wobo-Budget-Reset`` and inside the 429 body, and it has to
+    be the same instant ``allowance`` names, or whichever of the two bounds fires first decides
+    whether the child is told their own midnight or ours.
+    """
+    moment = now or _now()
+    if subject:
+        day = _learner_zone_day(subject, moment)
+        if day is not None:
+            from wobo_gateway import allowance
+
+            return allowance.resets_at(subject, moment)
     return (moment + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def _bucket(subject: str, *, now: datetime | None = None) -> dict[str, int]:
-    day = (now or datetime.now(UTC)).strftime("%Y-%m-%d")
+    moment = now or _now()
+    day = _learner_zone_day(subject, moment) or moment.strftime("%Y-%m-%d")
     key = (subject, day)
     bucket = _used.get(key)
     if bucket is None:
-        if len(_used) >= _STORE_MAX:  # ponytail: drop yesterday before growing further
-            for stale in [k for k in _used if k[1] != day]:
+        if len(_used) >= _STORE_MAX:  # ponytail: drop what is over before growing further
+            # The days here are the LEARNERS' days now, so two live keys legitimately carry
+            # different dates at the same instant — Kolkata is a day ahead of Los Angeles for
+            # five and a half hours of every day. Dropping "everything that is not today" would
+            # therefore hand somebody a second full day every time the store filled up, so only
+            # days that are over in EVERY zone go: no zone is more than 26 hours from UTC.
+            over = (moment - timedelta(days=2)).strftime("%Y-%m-%d")
+            for stale in [k for k in _used if k[1] < over]:
                 del _used[stale]
             if len(_used) >= _STORE_MAX:
                 _used.clear()
@@ -248,19 +300,24 @@ def _bucket(subject: str, *, now: datetime | None = None) -> dict[str, int]:
     return bucket
 
 
-def _snapshot_locked(bucket: dict[str, int], limits: dict[str, int]) -> Snapshot:
+def _snapshot_locked(
+    subject: str, bucket: dict[str, int], limits: dict[str, int], moment: datetime
+) -> Snapshot:
     return Snapshot(
         turns_remaining=max(0, limits[TURN] - bucket[TURN]),
         generations_remaining=max(0, limits[GENERATION] - bucket[GENERATION]),
-        reset_at=reset_at(),
+        # This learner's own midnight, and the same instant the refusal below names: ``/v1/me``
+        # and the 429 answer one question and must not answer it twice.
+        reset_at=reset_at(moment, subject),
         voice_remaining=max(0, limits[VOICE] - bucket.get(VOICE, 0)),
     )
 
 
 def snapshot(subject: str, plan: str = "free", *, anonymous: bool = False) -> Snapshot:
     limits = limits_for(plan, anonymous=anonymous)
+    moment = _now()
     with _lock:
-        return _snapshot_locked(_bucket(subject), limits)
+        return _snapshot_locked(subject, _bucket(subject, now=moment), limits, moment)
 
 
 def charge(
@@ -286,19 +343,20 @@ def charge(
     allowance.check(subject, capability, resolve_plan(plan, anonymous=anonymous))
     kind = classify(capability)
     limits = limits_for(plan, anonymous=anonymous)
+    moment = _now()
     with _lock:  # read, compare and increment are one operation or they are not a limit
-        bucket = _bucket(subject)
+        bucket = _bucket(subject, now=moment)
         if bucket.get(kind, 0) >= limits[kind]:
-            raise BudgetExhausted(kind, reset_at())
+            raise BudgetExhausted(kind, reset_at(moment, subject))
         bucket[kind] = bucket.get(kind, 0) + 1
-        return _snapshot_locked(bucket, limits)
+        return _snapshot_locked(subject, bucket, limits, moment)
 
 
 def refund(subject: str, capability: str) -> None:
     """Give the call back — it failed before it reached a model, so it cost the learner nothing."""
     kind = classify(capability)
     with _lock:
-        bucket = _bucket(subject)
+        bucket = _bucket(subject, now=_now())
         bucket[kind] = max(0, bucket.get(kind, 0) - 1)
 
 

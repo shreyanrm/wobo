@@ -9,6 +9,7 @@
  */
 
 import type { Route } from '../../shell/router';
+import { MONEY_LINES } from '../money-voice';
 import { ctaFor } from '../site/cta';
 import { LIST } from '../site/invitation';
 import { DEFAULT_PERIOD, type Period, PLAN_TIERS, type PlanTier, tierById } from './prices';
@@ -61,6 +62,14 @@ export const PLANS_PAGE = {
   title: 'Free every day.',
   titleEm: 'More when exams get close.',
   lead: 'Every learner gets a daily allowance of questions, forever, with no card and no trial that ends. Pro and Max raise it for the weeks that need it. Cancelling takes as many taps as subscribing.',
+  /**
+   * WHERE THE MONEY GOES, said once, above the plans (the owner, 2026-09-15; docs/SELL.md "The
+   * money's voice"). Verbatim from `docs/copy/money.md`, which is the one place these sentences
+   * are written; `money-voice.test.ts` holds this equal to that document's row and greps this
+   * page for the words it forbids. One line per surface and never two, so it is stated here and
+   * not repeated in the cards, the table or the questions below.
+   */
+  money: MONEY_LINES.plansPage,
   /**
    * WHEN, on the page that says what it costs (`docs/DOORS-CLOSED.md` §5: "the plans page keeps
    * its prices and says the same thing about when").
@@ -122,6 +131,12 @@ export const PLANS_PAGE = {
   checkout: {
     eyebrow: 'At checkout',
     title: 'Two boxes, both in plain words.',
+    /**
+     * The checkout's own line, beside the price (docs/copy/money.md). Different words from the
+     * plans page's on purpose: this is the moment money actually moves, and the document gives
+     * the moment its own sentence rather than repeating the one above it.
+     */
+    money: MONEY_LINES.checkout,
     lead: {
       yearly:
         'We ask for exactly two things before taking money: that the person paying is an adult who agrees to the terms, and that they know what a year costs, that it comes round again, and how to stop it. Nothing pre-ticked.',
@@ -238,8 +253,20 @@ export function faqItems(period: Period = DEFAULT_PERIOD): FaqItem[] {
   return [
     {
       question: 'What happens when the free allowance runs out for the day?',
+      // THE WORD "UPGRADE" IS NOT SAID ON A MONEY SURFACE (docs/copy/money.md, the last paragraph;
+      // the owner, 2026-09-15). This answer carried it, on the page that takes money, in the
+      // sentence promising we would not nag: the promise and the company's word for the nag in
+      // one line. What it was actually promising is that nothing interrupts a lesson to sell, and
+      // that is what it says now.
+      // AND THE HOUR WAS NOT TRUE EITHER. This answer told a buyer, on the page that takes their
+      // money, that Wobo "shows the time it resets (6 am)". Nothing in the product resets at six:
+      // `allowance.resets_at` is the learner's own local midnight, `budget.reset_at` is now that
+      // same midnight, and the only meter a learner ever sees is the bar on You, whose caption is
+      // "Refills overnight." (`screens/you/today.ts`). The hour was invented — there is no "6 am"
+      // anywhere in docs/ — and an invented hour on a money surface is a false promise about
+      // somebody's day, on top of the clock law it breaks. It now says what the bar says.
       answer:
-        "Wobo tells you kindly, shows the time it resets (6 am), and offers to save your question for the morning. Nothing you've done is lost, and nothing nags you to upgrade mid-lesson.",
+        "Wobo tells you kindly, shows when it refills, and offers to save your question for the morning. Nothing you've done is lost, and nothing interrupts the lesson to sell you anything.",
     },
     {
       question: 'Is the Sunday note only on paid plans?',

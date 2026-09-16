@@ -64,7 +64,11 @@ async function fakeBrain(
         can_cancel: true,
       });
     }
-    if (path === '/v1/me/promo') {
+    // The gateway's own redeem address (`promo.py`, REDEEM_PATH). This used to answer whatever
+    // path the app asked for, which is how the app shipped posting to `/v1/me/promo` — a route the
+    // gateway does not register — with this suite green. It is pinned to the real one now, so the
+    // two drifting apart fails here rather than in somebody's hands.
+    if (path === '/v1/promo/redeem') {
       const body = (req.postDataJSON() ?? {}) as { code?: string };
       codes.push(String(body.code));
       if (opts.promo === 'dead') return route.abort('failed');

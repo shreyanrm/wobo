@@ -276,8 +276,19 @@ describe('the allowance is described the way it actually resets', () => {
    */
   it('never promises a morning to a reader whose morning is not UTC', () => {
     nowhere(/resets? (?:each|every) morning|reset each morning/i, 'say "once a day"');
+    /*
+     * THE ANCHOR MOVED BECAUSE THE PRODUCT DID, and the copy rule above is unchanged.
+     *
+     * When this was written, `budget.reset_at` really was "the next UTC midnight", and that is
+     * what made a promised morning false abroad. It is now the LEARNER's own midnight: the
+     * counters are keyed on `allowance.local_day` and refuse with `allowance.resets_at`, the same
+     * boundary the money meter has used since the zones work. So what is pinned here is the fix
+     * rather than the fault — and the copy still may not promise a morning, because a midnight in
+     * the reader's own zone is not one.
+     */
     const budget = repoFile('services', 'gateway', 'src', 'wobo_gateway', 'budget.py');
-    expect(budget).toContain('The next UTC midnight');
+    expect(budget).toContain('allowance.local_day(subject, moment)');
+    expect(budget).toContain('allowance.resets_at(subject, moment)');
   });
 });
 

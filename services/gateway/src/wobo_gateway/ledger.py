@@ -68,7 +68,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 from typing import Any
 
-from wobo_gateway import allowance
+from wobo_gateway import allowance, pools
 
 logger = logging.getLogger("wobo.gateway.ledger")
 
@@ -956,6 +956,19 @@ def record(
             ctx.meter_key,
             cost_usd=row.cost_usd,
             capability=capability,
+            occurred_at=row.occurred_at,
+        )
+        # AND THE PLATFORM'S OWN TWO POOLS, on the same funnel and for the same reason
+        # (``pools.py``, docs/ALLOWANCE.md "Best of both worlds" point 4). The meter above bounds
+        # ONE learner's day; these bound what the platform is spending on everybody — the
+        # creative work that is made once and shared, and the whole free lane's goodwill — each
+        # against its own dial, each with its own alarm at 50/80/100 percent. Neither can fail a
+        # turn: :func:`pools.note` swallows everything, exactly as the debit above does.
+        pools.note(
+            capability=capability,
+            plan=ctx.plan,
+            cost_usd=row.cost_usd,
+            meter_key=ctx.meter_key,
             occurred_at=row.occurred_at,
         )
         _LEDGER.record(row)

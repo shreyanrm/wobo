@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
  * The daily allowance's own proof run (tests/allowance-bar.spec.ts).
  *
  * It needs what the journey config deliberately does not have: a gateway address. The bar under
- * the plan is filled from `GET /v1/me` and the promo field posts to `POST /v1/me/promo`, and both
+ * the plan is filled from `GET /v1/me` and the promo field posts to `POST /v1/promo/redeem`, and both
  * go through `VITE_GATEWAY_URL` — so the server here is pointed at a path on its own origin
  * (`/gw`) that nothing serves, and the spec answers every request to it in the browser
  * (`page.route`). Nothing leaves the machine, and the app's real SDK, parser and components run.

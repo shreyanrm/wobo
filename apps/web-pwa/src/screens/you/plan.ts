@@ -26,6 +26,7 @@
  */
 
 import { multipleInWords } from '../allowance-words';
+import { MONEY_LINES } from '../money-voice';
 import { PLAN_TIERS } from '../plans/prices';
 import type { BillingOutcome, PlanSource, Subscription, SubscriptionRead } from './billing';
 
@@ -218,6 +219,30 @@ export function panelView(model: PlanModel, now: Date): PanelView {
   // that has passed rather than leaving a stale "until" on the screen.
   if (sub.state === 'cancelling') return stillRunning(sub, now) ? 'cancelled' : 'free';
   return 'active';
+}
+
+/**
+ * The money's line under the day's bar: the one sentence that is TRUE for this learner, or none.
+ *
+ * `docs/copy/money.md` writes the bar on You two rows, not one — "the bar on You, under the day's
+ * allowance" for a learner whose plan pays, and "free learner, once, on You" for a learner whose
+ * does not. The panel used to render only the first, behind `paid`, which was right as far as it
+ * went: on free, "Today's lessons are paid for by your plan" is simply untrue. What was wrong is
+ * what happened next — nothing. The free learner's own approved sentence sat in the table unused,
+ * filed under "a surface another wave owns", while the wave that owns this bar shipped without it.
+ *
+ * Loading and unreadable get NOTHING, for the reason the heading above them is also withheld: a
+ * sentence about somebody's money made out of a read that never landed is a claim we cannot
+ * support, and silence for a second is cheaper than being wrong about a family's plan.
+ *
+ * One line, never two: that is money.md's own rule, and it is why this returns a single string.
+ */
+export function moneyLine(view: PanelView): string | null {
+  // A cancelled plan is paid for until the period ends, and that stretch is exactly what the
+  // sentence is about, so it keeps the paid line until the day it becomes 'free'.
+  if (view === 'active' || view === 'cancelled') return MONEY_LINES.youBar;
+  if (view === 'free') return MONEY_LINES.freeLearnerYou;
+  return null;
 }
 
 /**

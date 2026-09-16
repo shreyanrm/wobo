@@ -33,6 +33,7 @@ import {
   confirmControls,
   initialModel,
   isConfirming,
+  moneyLine,
   type PlanControl,
   panelControls,
   panelLines,
@@ -214,7 +215,7 @@ function CancelConfirm({
  * announce is a percentage and the copy law forbids printing a raw allowance (DESIGN.md §0); the
  * same fact goes to a screen reader as a sentence instead, which is what `todaySpoken` is.
  */
-function TodayBar({ today }: { today: Today }) {
+function TodayBar({ today, money }: { today: Today; money: string | null }) {
   const fill = todayFill(today);
   if (fill === null) return null;
   const lines = todayLines(today);
@@ -229,6 +230,16 @@ function TodayBar({ today }: { today: Today }) {
       {lines.map((line) => (
         <span key={line}>{line}</span>
       ))}
+      {/*
+       * WHERE THE MONEY GOES, under the day's allowance (docs/copy/money.md, the two rows written
+       * for this bar; the owner, 2026-09-15). It says where a plan's money went and never how
+       * much: the learner's surfaces carry no currency at all (docs/ALLOWANCE.md §2), which is why
+       * these lines name the drawings and the voice rather than a figure.
+       *
+       * WHICH of the two is true for this learner is `moneyLine` in ./plan.ts, with the rule and
+       * the reason. One sentence or none, never two.
+       */}
+      {money ? <span className="wp-money">{money}</span> : null}
     </div>
   );
 }
@@ -335,7 +346,15 @@ export function PlanPanel({
       {/* TODAY, under the plan and above the way out of it. It is a separate reading from the
           subscription, so it draws whatever it has whichever state the plan is in, and nothing at
           all when the brain has not answered with an allowance. */}
-      <TodayBar today={today} />
+      {/*
+        The view is what decides WHICH money line under the bar is true: the paid sentence for a
+        plan that pays (a cancelled plan counts — it is paid for until the period ends, and that
+        is exactly the stretch the sentence is about), the free learner's own sentence on free,
+        and nothing at all while the plan is loading or unreadable, because a line about somebody's
+        money made out of a read that never landed is a claim we cannot support — the same trap
+        the heading above already refuses to fall into.
+      */}
+      <TodayBar today={today} money={moneyLine(view)} />
       {state.error && !confirming ? (
         <p className="wp-bad" role="alert">
           {state.error}

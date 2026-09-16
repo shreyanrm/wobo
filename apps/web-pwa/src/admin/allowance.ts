@@ -18,7 +18,32 @@
  * otherwise.
  */
 
+// The pool tone is the models desk's own (`toneOfPool`), imported rather than copied: the free
+// pool and the creative pool are read against the same three fractions, and two desks disagreeing
+// about what "amber" means for a cap would be two opinions about one number. `models.ts` imports
+// nothing from here, so this is a one-way edge.
+import { toneOfPool } from './models';
 import { asOf, count, type Panel, percent, type Tone, usd } from './panels';
+
+/**
+ * One of the two pools the platform pays for ITSELF, as it stands today (`wobo_gateway.pools`).
+ * Never added to the learners' spend and never shown beside it: the creative pool is an
+ * investment whose per-learner cost falls every day the cache is warm, and the free pool is
+ * recurring goodwill. One figure covering both would mislead about each.
+ *
+ * `fraction` is `null` when no cap is set — not `0`, which reads as "none of it used" rather
+ * than "there is nothing to use it against".
+ */
+export interface PoolToday {
+  readonly pool: string;
+  readonly day: string;
+  readonly spent_usd: number;
+  readonly spent_paise: number;
+  readonly cap_usd: number | null;
+  readonly cap_paise: number | null;
+  readonly fraction: number | null;
+  readonly spent: boolean;
+}
 
 export interface AllowanceEffectRow {
   readonly plan: string;
@@ -63,6 +88,14 @@ export interface AllowanceDesk {
   /** `null` means NO CAP HAS BEEN SET, which is not zero and not unlimited-by-design. */
   readonly free_pool_paise: number | null;
   readonly free_pool: string | null;
+  /**
+   * THE DAY AS IT ACTUALLY STANDS, from the in-process accumulator that enforces the cap
+   * (`wobo_gateway.pools`) rather than from the ledger's rollup, which can be a quarter of an
+   * hour behind. Optional because a gateway older than that module answers without it, and an
+   * older gateway must read as "not deployed" rather than as a quiet day.
+   */
+  readonly free_pool_today?: PoolToday;
+  readonly creative_pool_today?: PoolToday;
   readonly alert_fractions: readonly number[];
   readonly days_in_month: number;
   readonly effect: readonly AllowanceEffectRow[];
@@ -81,6 +114,18 @@ const SOURCE = 'GET /v1/admin/allowance — ops.settings, and ops.learner_day fo
 const INTERNAL_ONLY =
   'Internal only. No learner and no parent surface shows a currency anywhere; the bar on the You ' +
   'page is a fraction of a day, and these rupees exist in the gateway’s arithmetic and here.';
+
+/**
+ * Paise as an operator reads them, in the gateway's own spelling (`dials.rupees`): two decimal
+ * places, grouped. The console is the ONE place in this product money is written down, so the
+ * figure is given exactly and never rounded up to a friendlier number.
+ */
+export function rupees(paise: number): string {
+  return `₹${(paise / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
 export function isAllowanceDesk(value: unknown): value is AllowanceDesk {
   if (typeof value !== 'object' || value === null) return false;
@@ -175,17 +220,32 @@ export function allowancePanels(desk: AllowanceDesk | null, at: string | null): 
   ];
 
   // The two pools the platform pays for itself, each with its cap or the honest absence of one.
+  // THE GOODWILL, IN RUPEES, TODAY (docs/ALLOWANCE.md "Best of both worlds" point 4: "the day's
+  // spend on free learners, with a dial and an alert, so growth cannot outrun the money"). The
+  // cap alone was decoration until the gateway started counting the day against it; this shows
+  // what has actually been spent, so the owner sees the goodwill rather than a setting.
+  const freeToday = desk.free_pool_today;
   panels.push({
     kind: 'figure',
     id: 'allowance-free-pool',
-    label: 'The free pool’s cap',
-    value: desk.free_pool ?? 'no cap set',
+    label: 'The free pool today',
+    value:
+      freeToday === undefined
+        ? (desk.free_pool ?? 'no cap set')
+        : desk.free_pool === null
+          ? `${rupees(freeToday.spent_paise)} spent, no cap set`
+          : `${rupees(freeToday.spent_paise)} of ${desk.free_pool}`,
     note:
       desk.free_pool === null
         ? 'Free learners are bounded only per learner, by the day above. Growth is not bounded in ' +
           'total until this dial is set.'
-        : `Alerts at ${desk.alert_fractions.map((f) => percent(f)).join(', ')} of it.`,
-    tone: desk.free_pool === null ? 'warn' : 'ok',
+        : `Alerts at ${desk.alert_fractions.map((f) => percent(f)).join(', ')} of it. ` +
+          (freeToday?.spent
+            ? 'The day is spent: free learners meet the kind line until midnight.'
+            : 'When it is spent, free learners meet one kind line and never a thinner answer.'),
+    // No cap set is amber whatever has been spent: an unbounded free lane is the exposure, and
+    // a comfortable-looking figure under no ceiling is exactly the thing not to reassure about.
+    tone: desk.free_pool === null ? 'warn' : toneOfPool(freeToday?.fraction ?? null),
     provenance: { source: SOURCE, at, caveat: INTERNAL_ONLY },
   });
 

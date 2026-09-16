@@ -15,6 +15,7 @@ import { describe, expect, it } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { GIFT_FOR, GIFT_PAGE } from '../gift/copy';
+import { RESETS_LINE } from '../you/today';
 import { CTA, LIST_DOOR, RETIRED_CTA } from '../site/cta';
 import {
   BENEFITS,
@@ -478,5 +479,36 @@ describe('law v5 over the whole plans page', () => {
   it('offers no country switch to render', () => {
     expect('regions' in PLANS_PAGE).toBe(false);
     expect('regionLabel' in PLANS_PAGE).toBe(false);
+  });
+});
+
+/**
+ * THE RESET THIS PAGE PROMISES IS THE RESET THE PRODUCT PERFORMS.
+ *
+ * The FAQ answer for "what happens when the free allowance runs out" told a buyer, on the page
+ * that takes their money, that Wobo "shows the time it resets (6 am)". Nothing in the product
+ * resets at six: `allowance.resets_at` is the learner's own LOCAL MIDNIGHT, `budget.reset_at` is
+ * the same midnight on the same learner's clock, and the only meter a learner ever sees is the
+ * bar on You, whose caption is `RESETS_LINE` — "Refills overnight." The hour was invented, and
+ * `grep -rn '6 am' docs/` finds nothing to support it.
+ *
+ * A clock hour on this page is therefore two faults at once: the clock law (no public surface
+ * pictures a child at a table at an hour) and a false claim about somebody's money. The clock
+ * law's own scanner never caught this one — its patterns start at "6:00 pm" and at bare evening
+ * hours — so the page is held to the PRODUCT here rather than to a word list.
+ */
+describe('what the page says about the day turning over', () => {
+  it('names no clock hour anywhere, because the product has no hour to name', () => {
+    const guilty = STRINGS.filter(([, text]) => /\b\d{1,2}\s*(a\.?m\.?|p\.?m\.?)\b/i.test(text));
+    expect(guilty).toEqual([]);
+  });
+
+  it('answers the allowance question in the same word the bar on You uses', () => {
+    const item = faqItems().find((i) => /runs out/i.test(i.question));
+    expect(item).toBeDefined();
+    // "Refills overnight." is the caption the learner actually reads; the page may not describe
+    // the same boundary with a different mechanism.
+    expect(RESETS_LINE).toMatch(/refills/i);
+    expect(item?.answer ?? '').toMatch(/refills/i);
   });
 });

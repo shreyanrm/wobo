@@ -67,7 +67,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from wobo_gateway import budget, dials, registry
+from wobo_gateway import budget, dials, pools, registry
 
 logger = logging.getLogger("wobo.gateway.allowance")
 
@@ -459,6 +459,15 @@ def check(
     if registry.platform_paid(registry.canonical_capability(capability)):
         return None
     meter = state(meter_key, plan, now=now)
+    # THE SECOND BOUND, AND ONLY ON THE FREE LANE (docs/ALLOWANCE.md, "Best of both worlds"
+    # point 4: *"the owner's exposure is bounded twice"*). The meter above bounds one learner's
+    # day; ``pools.free_pool_spent`` bounds what every free learner together has cost the
+    # platform today, so growth cannot outrun the money while each individual day still looks
+    # modest. A learner who PAID is never refused by it: they are spending the allowance they
+    # bought, and a cap on the platform's goodwill has no claim on that. When no cap has been
+    # set the pool is never spent, so this is dormant until the owner turns the dial.
+    if _plan_key(plan) == "free" and pools.free_pool_spent(now=now):
+        raise budget.BudgetExhausted(budget.classify(capability), meter.resets_at)
     if meter.spent:
         raise budget.BudgetExhausted(budget.classify(capability), meter.resets_at)
     return meter

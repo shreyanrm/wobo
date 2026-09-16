@@ -101,7 +101,7 @@ which carries `spent_usd`, `ceiling_usd`, `fraction` and `calls` for the current
 
 ## 3. The alarm
 
-`services/gateway/src/wobo_gateway/alerts.py`. Six events, one JSON log line each, and a webhook
+`services/gateway/src/wobo_gateway/alerts.py`. Seven events, one JSON log line each, and a webhook
 when one is configured.
 
 ```bash

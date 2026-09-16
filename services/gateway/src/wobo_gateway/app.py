@@ -112,7 +112,14 @@ from wobo_gateway.promo import LIMITED_PATHS as PROMO_LIMITED_PATHS
 from wobo_gateway.promo import register_promo, register_promo_desk
 from wobo_gateway.reports import LIMITED_PATHS as REPORT_LIMITED_PATHS
 from wobo_gateway.reports import register_reports
-from wobo_gateway.routing import resolve, resolve_any, tier_fallbacks, tier_primary
+from wobo_gateway.routing import (
+    LANE_EXEMPT,
+    lane_tier,
+    resolve,
+    resolve_any,
+    tier_fallbacks,
+    tier_primary,
+)
 from wobo_gateway.safety import (
     CATEGORY_CRISIS,
     DEFAULT_CLASSIFIER,
@@ -316,6 +323,7 @@ class Gateway:
         consent_tier: ConsentTier = ConsentTier.UN_ELEVATED,
         subject: str | None = None,
         priority: spend.Priority = spend.Priority.STRANGER,
+        plan: str | None = None,
     ) -> CapabilityResponse:
         # subject is the VERIFIED subject from the door (never payload-supplied), and
         # consent_tier is the SERVER-DERIVED tier (consent.get_tier of the verified subject),
@@ -332,7 +340,33 @@ class Gateway:
         if not pol.allows(consent_tier):
             raise ConsentDenied(capability, consent_tier)
 
-        spec = resolve(pol.primary, pol.track)
+        # THE FREE LANE (docs/ALLOWANCE.md, "The free tier: five rupees a day, on Luna"). The
+        # owner's ruling is that a plan buys QUANTITY and never quality: a free learner's live
+        # turn runs on the tiny chain (Luna), a paid learner's on the turn chain (Terra), and
+        # NOTHING else moves — ``routing.lane_tier`` steps only ``turn``, so verify, safety,
+        # voice, vision and the creative tier are byte-for-byte the same on every plan, which is
+        # where the quality actually lives (it is made once, judged, cached and shared).
+        #
+        # ``plan`` defaults to None, which ``lane_tier`` reads as free, for the same reason
+        # ``consent_tier`` defaults to un-elevated and ``priority`` to stranger: a caller that
+        # does not name itself gets the cheap lane, never a paying learner's. A plan name nobody
+        # recognises is free as well — a billing bug must cost questions, never hand out a lane
+        # nobody paid for, which is the rule ``budget`` and ``spend`` already keep.
+        #
+        # Resolved through the TIER rather than through ``pol.primary`` so the lane and the
+        # owner's live routing table can never disagree: a dial moved on the models desk changes
+        # the tier, and this reads the tier.
+        #
+        # …EXCEPT WHERE THERE IS NO LEARNER TO BE FREE (``routing.LANE_EXEMPT``). The default
+        # above is right for a caller that forgot to name a plan and wrong for one that has none
+        # to name: ``parent_mind`` reaches this door with no plan because a PARENT is asking about
+        # their child, and reading that as "free" quietly dropped the parent's companion from
+        # Terra to Luna for every family, on every plan, with the whole suite green.
+        if canonical_capability(capability) in LANE_EXEMPT:
+            lane = pol.tier
+        else:
+            lane = lane_tier(pol.tier, plan)
+        spec = resolve(tier_primary(lane), pol.track)
 
         # safety.moderate runs the deterministic child-safety classifier in every mode — the
         # keyword screen today, the trained slm.safety model through the same seam tomorrow.
@@ -439,11 +473,16 @@ class Gateway:
                 },
             )
             raise spend.SpendCeilingReached(priority, capability=capability)
-        fallback_names = pol.fallback
+        fallback_names = tier_fallbacks(lane)
         if verdict is spend.Verdict.DEGRADE:
             # Degrade rather than break: one rung DOWN the routing ladder, same track, same
             # capability, same safety screens. A cheaper answer beats no answer.
-            cheaper = spend.cheaper_tier(pol.tier)
+            #
+            # From the LANE, not from the policy's own tier: a free learner is already on tiny,
+            # which is the floor, so there is nothing below it to fall to and the call is served
+            # as it is. Degrading from ``pol.tier`` here would have stepped a free turn "down"
+            # to the tier it was already on and logged a degrade that never happened.
+            cheaper = spend.cheaper_tier(lane)
             if cheaper is not None:
                 spec = resolve(tier_primary(cheaper), pol.track)
                 fallback_names = tier_fallbacks(cheaper)
@@ -453,7 +492,7 @@ class Gateway:
                         "fields": {
                             "capability": capability,
                             "priority": priority.value,
-                            "from_tier": pol.tier.value,
+                            "from_tier": lane.value,
                             "to_tier": cheaper.value,
                             **spend.state().as_dict(),
                         }
@@ -954,6 +993,16 @@ def stream_board_turn(
     from wobo_gateway.board import stream as board_stream
     from wobo_gateway.board.planner import Plan, TooMuchAtOnce, plan_board
 
+    # THE BILLING PLAN, UNDER A NAME NOTHING IN THIS FUNCTION CAN SHADOW.
+    #
+    # ``plan`` is the parameter's meaning for the first forty lines and then stops being it: from
+    # the planner onwards this function rebinds ``plan`` to a board ``Plan`` three times, which is
+    # why the money lines near the top are careful to read it "before ``plan`` is rebound". Anything
+    # below that point which still means "free or pro" has to say so in a different word, or it
+    # silently receives a dataclass — the free lane's ``lane_tier`` did exactly that and answered
+    # every board turn with ``TypeError: unhashable type: 'Plan'``.
+    metered_plan = plan
+
     principal: Principal = http.state.principal
     meter = http.state.meter_key
     # The meter counts per address for anonymous learners; ownership does not (see board_key).
@@ -1111,7 +1160,14 @@ def stream_board_turn(
             # Nothing to draw: fall back to the ordinary five-path turn, which carries its own
             # safety screens, cache and telemetry, and stream Wobo's line over the same wire.
             result = gw.invoke(
-                name, request, profile.tier, subject=principal.subject, priority=priority
+                name,
+                request,
+                profile.tier,
+                subject=principal.subject,
+                priority=priority,
+                # NOT ``plan``: by this line that name is the board's Plan (see the top of this
+                # function). This is the learner's free-or-paid lane.
+                plan=metered_plan,
             )
             output = result.output
             plan = Plan(say=str(output.get("say") or ""), presentation="screen", refusals=refusals)
@@ -1897,6 +1953,7 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                         profile.tier,
                         subject=principal.subject,
                         priority=priority,
+                        plan=plan,
                     )
                 except ConceptRejected as exc:
                     # The caller asked for something we will not generate. That is a bad request,
@@ -1931,7 +1988,12 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
                     )
             else:
                 result = gw.invoke(
-                    name, request, profile.tier, subject=principal.subject, priority=priority
+                    name,
+                    request,
+                    profile.tier,
+                    subject=principal.subject,
+                    priority=priority,
+                    plan=plan,
                 )
         except ProviderUnavailable as exc:
             # Nobody could answer: the turn is given back, and the answer is Wobo's line in the

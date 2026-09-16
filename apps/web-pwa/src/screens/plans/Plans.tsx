@@ -409,6 +409,8 @@ export function Plans() {
             {PLANS_PAGE.title} <em>{PLANS_PAGE.titleEm}</em>
           </h1>
           <p className="pl-sub">{PLANS_PAGE.lead}</p>
+          {/* Where the money goes, once, above the plans (docs/copy/money.md). */}
+          <p className="pl-money">{PLANS_PAGE.money}</p>
           {/* The prices are the prices. What is not open is the door, and a reader about to
               compare three numbers is told so before they compare them (DOORS-CLOSED.md §5). */}
           {open ? null : <p className="pl-when">{PLANS_PAGE.when}</p>}
@@ -511,6 +513,8 @@ export function Plans() {
               <Label>{c.eyebrow}</Label>
               <h2>{c.title}</h2>
               <p>{c.lead[period]}</p>
+              {/* The checkout's own line from docs/copy/money.md, beside the price. */}
+              <p className="pl-money">{c.money}</p>
               <div className="pl-say">
                 {c.say} <em>{c.sayEm}</em>
               </div>
