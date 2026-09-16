@@ -16,6 +16,7 @@ from wobo_gateway.email import MailLog, idempotency_key, mail_log, send_email
 from wobo_gateway.email_templates import (
     HAND_KINDS,
     KINDS,
+    NOTE_KINDS,
     NUDGE_KINDS,
     PAPER_KINDS,
     SUBSCRIBED_KINDS,
@@ -23,9 +24,13 @@ from wobo_gateway.email_templates import (
 )
 from wobo_gateway.hospitality.tokens import stop_link
 
-# The ultramarine shell's own kinds: not the paper set, and not the five nudges, which are on
-# the paper with a dark-client declaration of their own (test_mail_nudges.py).
-SHELL_KINDS = tuple(k for k in KINDS if k not in PAPER_KINDS and k not in NUDGE_KINDS)
+# The ultramarine shell's own kinds: not the paper set, and not the note document — the five
+# nudges (test_mail_nudges.py) and course_ready, which joined them when the movie-poster law was
+# applied to it. ``NOTE_KINDS`` is the product's own name for that document, so a kind that moves
+# between shells moves here with it rather than being remembered by hand in this line.
+SHELL_KINDS = tuple(
+    k for k in KINDS if k not in PAPER_KINDS and k not in NUDGE_KINDS and k not in NOTE_KINDS
+)
 
 INTERNAL_HEADER = {"X-Wobo-Internal": "test-internal-key"}
 
@@ -623,7 +628,14 @@ def test_an_unverified_sending_domain_degrades_to_queued(
     live: list[float], monkeypatch: pytest.MonkeyPatch, caplog: Any
 ) -> None:
     """Until heywobo.com is verified with the provider, every live send is a logged would-send:
-    recorded (so the same period never goes twice once the domain is), never raised."""
+    recorded on the mail desk, never raised — and RETRIED when the condition clears.
+
+    This test used to assert the opposite of its last clause, and that assertion was the bug. A
+    ``queued`` row wrote the idempotency key, so ``send_email`` answered ``duplicate`` for that
+    (kind, recipient, period) for ever: a mail held by a missing key, an unverified domain, the
+    day's cap or a switched-off kind was never sent once the condition cleared, and the address
+    was silenced for twenty-four hours on behalf of a message nobody ever received. A deferral
+    that cannot be un-deferred is a destruction."""
     import logging
 
     refusal = (
@@ -648,8 +660,8 @@ def test_an_unverified_sending_domain_degrades_to_queued(
     assert len(calls) == 1 and live == []  # a config state is not retried
     assert [r.provider_id for r in mail_log().records()] == ["queued"]
     assert any("would send" in r.getMessage() for r in caplog.records)
-    # the second run of the same period does not even try
-    calls = _scripted(monkeypatch, [])
+    # The domain is verified, the cron comes round again, and the mail the family was owed goes.
+    calls = _scripted(monkeypatch, [b'{"id": "em_9"}'])
     again = send_email(
         "sunday_note",
         "parent@example.test",
@@ -657,7 +669,20 @@ def test_an_unverified_sending_domain_degrades_to_queued(
         learner_id="L1",
         period="2026-W36",
     )
-    assert again["duplicate"] is True and calls == []
+    assert again.get("duplicate") is not True, "a would-send was read back as a send"
+    assert again["ok"] is True and again["id"] == "em_9"
+    assert len(calls) == 1
+    # And now that it has actually reached somebody, the period is spent for good: the whole
+    # point of the key is that a cron firing twice cannot send a second note about a child.
+    calls = _scripted(monkeypatch, [])
+    third = send_email(
+        "sunday_note",
+        "parent@example.test",
+        {"unsubscribe_url": stop},
+        learner_id="L1",
+        period="2026-W36",
+    )
+    assert third["duplicate"] is True and calls == []
 
 
 def test_headers_and_the_idempotency_key_ride_to_the_provider(

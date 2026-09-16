@@ -69,8 +69,15 @@ def _clean(monkeypatch: pytest.MonkeyPatch) -> Any:
     email_mod.reset_mail_log()
 
 
+#: What a nudge needs to land on the card its own sentence names (design §4). Four of the five
+#: kinds are HELD without it now, rather than falling back to a generic page, so every fixture
+#: that is not specifically testing that rule carries one.
+CARD = {"course_id": "m2-1", "card_id": "c7"}
+
+
 def a_nudge(kind: str = "quick_one", learner: Learner = TEEN, **data: Any) -> Nudge:
-    return Nudge(kind=kind, learner=learner, once_key=data.pop("once_key", "k1"), data=data)
+    facts = {**CARD, **data}
+    return Nudge(kind=kind, learner=learner, once_key=facts.pop("once_key", "k1"), data=facts)
 
 
 # --- the dial --------------------------------------------------------------------------------
@@ -227,9 +234,20 @@ def test_the_button_carries_a_signed_link_to_the_exact_card() -> None:
 
 
 def test_without_a_card_the_button_still_goes_somewhere_true() -> None:
+    """The streak is the one kind that may go with no card: it is about the days, not about a
+    place in a chapter, and home is where the days are. Every other kind is HELD without one
+    rather than sent to a generic page, which is the next test."""
     send = Recorder()
-    send_nudge(a_nudge("streak", days=7), now=FOUR_PM_IST, send=send)
+    bare = Nudge(kind="streak", learner=TEEN, once_key="7", data={"days": 7})
+    send_nudge(bare, now=FOUR_PM_IST, send=send)
     assert "cta_url" not in send.sent[0]["data"] or "/card/" not in send.sent[0]["data"]["cta_url"]
+
+
+def test_a_nudge_that_names_a_card_is_held_rather_than_sent_somewhere_generic() -> None:
+    send = Recorder()
+    bare = Nudge(kind="quick_one", learner=TEEN, once_key="k", data={})
+    assert send_nudge(bare, now=FOUR_PM_IST, send=send)["error"] == "no_destination"
+    assert send.sent == []
 
 
 # --- the pass ---------------------------------------------------------------------------------

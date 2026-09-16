@@ -235,18 +235,35 @@ ${bodyKeyframes(`wobo-orb-${name}`, track)}
   }
 }`);
 
-  // Rule 4 of the library, without exception: a still, with the spark.
-  out.push(`@media (prefers-reduced-motion: reduce) {
-  .wobo-orb__body,
-  .wobo-orb__prop {
-    animation: none;
-    transform: none;
-  }
+  // Rule 4 of the library, WITHOUT EXCEPTION: a still, with the spark.
+  //
+  // TWO SWITCHES, ONE RULE. The device's setting is the media query. The app's own "Reduce motion ·
+  // Still frames instead of animation" row on the You screen (`ui/motion.ts`) never touches the
+  // device's setting: it stamps `data-motion="reduce"` on the document root instead, and
+  // `packages/motion`'s `useReducedMotion` counts that attribute as exactly equal to the media
+  // query, in its own words "so a learner without a system-wide preference still gets still frames
+  // everywhere the library draws". The app's other sheets answer it the same way
+  // (`screens/progress/progress.css`, `screens/learn/Climb.css`, `ui/primitives/ui.css`).
+  //
+  // A sheet that answered only the media query would leave the orb moving for the learner who asked
+  // it to stop, in the one place they were ever offered the ask. So the still is written ONCE here
+  // and emitted under both, which is the only way the two can never drift apart.
+  const still = (prefix: string, indent: string) =>
+    `${indent}${prefix}.wobo-orb__body,
+${indent}${prefix}.wobo-orb__prop {
+${indent}  animation: none;
+${indent}  transform: none;
+${indent}}
 
-  .wobo-orb__spark {
-    opacity: 1;
-  }
+${indent}${prefix}.wobo-orb__spark {
+${indent}  opacity: 1;
+${indent}}`;
+
+  out.push(`@media (prefers-reduced-motion: reduce) {
+${still('', '  ')}
 }`);
+
+  out.push(still('[data-motion="reduce"] ', ''));
 
   return `${out.join('\n\n')}\n`;
 }

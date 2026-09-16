@@ -1151,3 +1151,24 @@ a wave, with a test that a board timing out three times rests before it eats the
 **Also observed and not a fault:** `/v1/doors` takes about 316 requests in the retained log window,
 roughly one a second, across a dozen rotating `ip_hash` values with none dominant. That is the CDN
 edge fanning out, not a runaway client.
+
+### Pushing to `main` now triggers a deploy of its own (2026-09-16)
+
+Since `main` was brought current, the Railway service's GitHub integration is live again, and that
+changes the deploy rule written above.
+
+Observed at 11:4x: `railway deployment list` showed TWO builds in flight at once —
+`924661cf` from an uploaded snapshot and `e8b753bb` from `branch: main`. Both were the same commit
+(`39548ee`), so the race was harmless; whichever landed last won and either was correct.
+
+**The rule from here: push OR upload, not both.**
+
+* `git push origin the-life:main` is now enough on its own — Railway builds it, and because `main` is
+  current that build is the right code. This is the simple path and the one to prefer.
+* `railway up` from a git-less export remains the way to deploy something that is NOT on `main`
+  (a verification snapshot, a rollback, a fix that has not been pushed).
+* Doing both starts two builds of possibly different code, and the loser is discarded silently. If
+  they ever differ, the survivor is decided by build duration rather than by intent.
+
+The Vercel side is unchanged and still needs the export: it blocks a deploy whose commit author is
+not a team member, and the 192 commits made before 2026-09-16 are authored by the machine.

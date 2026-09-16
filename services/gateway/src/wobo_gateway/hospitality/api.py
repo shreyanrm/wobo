@@ -44,6 +44,27 @@ from wobo_gateway.hospitality.tokens import StopClaim, parse_stop_token, stop_ur
 
 logger = logging.getLogger("wobo.gateway.hospitality")
 
+
+def _note(event: str, *, kind: str, learner_id: str, detail: dict[str, Any] | None = None) -> None:
+    """Record a click or an unsubscribe on the mail log, and never fail the press.
+
+    The reader has already pressed the button and the dial is already flipped by the time this
+    runs. Losing the record of either is a warning; raising here would lose the thing itself.
+
+    The import is local because the mail log is the sender's, and the sender imports the
+    templates, which import this package's tokens: a module-level import here would close that
+    ring at start-up for no gain.
+    """
+    try:
+        from wobo_gateway.email import mail_log
+
+        mail_log().note_event(event, kind=kind, learner_id=learner_id, detail=detail or {})
+    except Exception as exc:  # the press stands whatever the log does
+        logger.warning(
+            "mail log: could not record an event",
+            extra={"fields": {"error": str(exc), "event": event, "kind": kind}},
+        )
+
 APP_NAME = os.getenv("APP_NAME", "Wobo")
 APP_URL = os.getenv("APP_URL", "https://heywobo.com").rstrip("/")
 
@@ -276,6 +297,7 @@ def register_mail_preferences(app: FastAPI) -> None:
             "mail stopped by link",
             extra={"fields": {"subject": claim.learner_id, "audience": claim.audience}},
         )
+        _note("unsubscribe", kind=claim.audience, learner_id=claim.learner_id)
         _, _, title, line = _STOP_COPY[claim.audience]
         return _page(title, line)
 
@@ -343,6 +365,12 @@ def register_mail_preferences(app: FastAPI) -> None:
                     "sign_in": sign_in,
                 }
             },
+        )
+        _note(
+            "click",
+            kind="card_link",
+            learner_id=claim.learner_id,
+            detail={"path": claim.path},
         )
         return {"destination": claim.path, "sign_in": sign_in}
 

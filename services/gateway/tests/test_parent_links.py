@@ -180,7 +180,18 @@ def test_the_invite_renders_in_the_hand_with_no_vendor_and_no_gendered_pronoun(
         assert not VENDOR.search(blob), VENDOR.search(blob)
         assert not GENDERED.search(blob), GENDERED.search(blob)
         assert not KINSHIP.search(blob)
-        assert "!" not in blob.replace("<!DOCTYPE", "")
+        # The register law is about prose a person reads, which is why `<!DOCTYPE` was already
+        # carved out of this check. The dark-mode stylesheet is carved out for the same reason:
+        # CSS's `!important` is a keyword in a declaration nobody reads, and the invite needs it
+        # to beat its own inline colours when a client darkens the mail (the five nudges have
+        # shipped the same block since they were written). Every word a reader sees is still
+        # scanned, including the whole body, the subject and the preheader.
+        prose = blob.replace("<!DOCTYPE", "")
+        if "<style>" in prose:
+            head, _, rest = prose.partition("<style>")
+            _, _, tail = rest.partition("</style>")
+            prose = head + tail
+        assert "!" not in prose
     # no plan pitch, nothing that implies the learner is behind (the spec's rules)
     for word in ("Plus", "Pro", "offer", "behind", "at risk", "struggl"):
         assert word not in text, word

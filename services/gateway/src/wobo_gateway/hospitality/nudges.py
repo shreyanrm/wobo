@@ -46,8 +46,8 @@ from typing import Any, Protocol
 
 from fastapi import FastAPI, Request
 
-from wobo_gateway.email import send_email
-from wobo_gateway.email_templates import NUDGE_KINDS, ORB_MOVES
+from wobo_gateway.email import mail_log, send_email
+from wobo_gateway.email_templates import NUDGE_KINDS, ORB_MOVES, brand_orb_url
 from wobo_gateway.hospitality import jobs
 from wobo_gateway.hospitality.festivals import get_calendar
 from wobo_gateway.hospitality.links import card_link
@@ -66,6 +66,26 @@ ENOUGH_DAYS = 3
 #: The kinds whose whole purpose is to bring a learner back. The streak note is not one of them,
 #: and the doubt answers a question the learner asked, so neither is silenced by a good week.
 RETURN_NUDGES: frozenset[str] = frozenset({"quick_one", "mid_chapter", "bonus_level"})
+
+#: THE CADENCE, which one-per-day was not. The inbox law caps a DAY, and a day cap is a licence
+#: for thirty mails a month: driven with every surface raising its nudge, one lapsed learner's
+#: parent got thirteen mails on thirteen of fourteen days and not one of the rules below stopped
+#: it. ``came_enough`` silences only the learner who came three days this week, so the ENGAGED
+#: family was capped and the LAPSED one was not, which is exactly backwards from the parent's
+#: chair: the family hearing from us most was the one showing least interest in hearing from us.
+#: Two a week, counted by ADDRESS over a rolling seven days and across every nudge kind, because
+#: what a parent experiences is an inbox and not a taxonomy.
+WEEKLY_NUDGE_CAP = 2
+NUDGE_WEEK = timedelta(days=7)
+
+#: The kinds whose own sentence names a card ("the next card is waiting", "two cards are left").
+#: Design §4 is that the button lands on the exact card; without one these five fell back to
+#: /learn, /doubt or the home page, so the mail promised a place and delivered a front door.
+#: A nudge that cannot say where it goes is HELD rather than sent somewhere generic: the streak
+#: is the one kind exempt, because it is about the days and home is where the days are.
+NEEDS_A_DESTINATION: frozenset[str] = frozenset(
+    {"quick_one", "mid_chapter", "bonus_level", "doubt"}
+)
 
 
 @dataclass(frozen=True)
@@ -161,6 +181,20 @@ def recipient(learner: Learner) -> tuple[str, str] | None:
     return (learner.parent_email, "parent") if learner.parent_email else None
 
 
+def destination(nudge: Nudge, *, at: datetime) -> str | None:
+    """The signed link to the exact card this nudge is about, or ``None`` when there is none.
+
+    One definition, read by the rule that HOLDS a nudge with no destination and by the facts
+    handed to the template, so the mail a reader gets and the rule that let it go can never
+    disagree about where the button points.
+    """
+    course_id = str(nudge.data.get("course_id") or "").strip()
+    card_id = str(nudge.data.get("card_id") or "").strip()
+    if not (course_id and card_id):
+        return None
+    return card_link(nudge.learner.learner_id, course_id, card_id, issued=at)
+
+
 def _facts(nudge: Nudge, audience: str, *, at: datetime) -> dict[str, Any]:
     """What the template is given: the kind's own facts, who is reading, and the two links."""
     learner = nudge.learner
@@ -171,13 +205,19 @@ def _facts(nudge: Nudge, audience: str, *, at: datetime) -> dict[str, Any]:
     data["learner_name"] = learner.name
     if audience == "learner":
         data["name"] = learner.name
-    data["orb_move"] = ORB_MOVES[nudge.kind]
-    course_id = str(nudge.data.get("course_id") or "").strip()
-    card_id = str(nudge.data.get("card_id") or "").strip()
-    if course_id and card_id:
-        link = card_link(learner.learner_id, course_id, card_id, issued=at)
-        if link:
-            data["cta_url"] = link
+    # The move this kind carries, and the picture of it. ``orb_move`` was written here and read
+    # by nothing; ``orb_url`` was read by the template and written by nothing, so the two halves
+    # of the owner's whole brief — one animated character doing one thing — never met and not a
+    # single mail carried an orb. They meet here. The URL is empty until the seed test has
+    # measured what an image does to our placement, which is the law's own gate on shipping it.
+    move = ORB_MOVES[nudge.kind]
+    data["orb_move"] = move
+    orb = brand_orb_url(move)
+    if orb:
+        data["orb_url"] = orb
+    link = destination(nudge, at=at)
+    if link:
+        data["cta_url"] = link
     stop = stop_link(learner.learner_id, nudge.kind)
     if stop:
         data["unsubscribe_url"] = stop
@@ -215,10 +255,22 @@ def send_nudge(
         return {"ok": False, "error": "not_the_hour"}
     if calendar.is_quiet_day(prefs.country, local.date()):
         return {"ok": False, "error": "quiet_day"}
+    # SUNDAY BELONGS TO THE NOTE. The nudge window opens at eight in the morning and the default
+    # hour is four in the afternoon; the Sunday note is pinned to six in the evening. So on any
+    # Sunday where any nudge was due, the nudge took the address's one twenty-four-hour slot
+    # hours before the note was even eligible, and the note — the single mail §1 guarantees a
+    # family, and the one thing a learner who came three days running still gets — was dropped.
+    # Driven with the clock handed in: a learner who came once got thirteen mails in fourteen
+    # days and ZERO Sunday notes. A nudge is never the reason a family loses their note.
+    if local.weekday() == jobs.SUNDAY:
+        return {"ok": False, "error": "sunday_note_first"}
     if learner.last_seen is not None and learner.last_seen >= local.date():
         return {"ok": False, "error": "came_today"}
     if nudge.kind in RETURN_NUDGES and learner.days_this_week >= ENOUGH_DAYS:
         return {"ok": False, "error": "came_enough"}
+    if nudge.kind in NEEDS_A_DESTINATION and destination(nudge, at=moment) is None:
+        # The mail says a card is waiting. If we cannot say which, we do not say it.
+        return {"ok": False, "error": "no_destination"}
 
     where = recipient(learner)
     if where is None:
@@ -227,6 +279,8 @@ def send_nudge(
     gap = jobs.gap_until(to, moment)
     if gap is not None:
         return {"ok": False, "error": "gap", "next_at": gap.isoformat()}
+    if mail_log().sent_to_since(to, moment - NUDGE_WEEK, kinds=NUDGE_KINDS) >= WEEKLY_NUDGE_CAP:
+        return {"ok": False, "error": "weekly_cap"}
 
     period = f"{nudge.kind}:{nudge.once_key}"
     return send(

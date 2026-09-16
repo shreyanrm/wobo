@@ -1120,3 +1120,13 @@
     opacity: 1;
   }
 }
+
+[data-motion="reduce"] .wobo-orb__body,
+[data-motion="reduce"] .wobo-orb__prop {
+  animation: none;
+  transform: none;
+}
+
+[data-motion="reduce"] .wobo-orb__spark {
+  opacity: 1;
+}

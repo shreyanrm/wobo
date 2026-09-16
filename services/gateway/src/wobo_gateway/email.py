@@ -40,13 +40,14 @@ import hashlib
 import json
 import logging
 import os
+import re
 import secrets
 import threading
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -56,6 +57,7 @@ from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from wobo_gateway.email_templates import (
+    APP_NAME,
     HAND_KINDS,
     KINDS,
     SUBSCRIBED_KINDS,
@@ -114,6 +116,23 @@ class MailRecord:
     provider_id: str
 
 
+#: The ``provider_id`` value that means THE MAIL WAS NEVER ATTEMPTED. A ``queued`` row is a
+#: would-send held by config: a missing provider key, an unverified sending domain, the day's
+#: cap, a kind the superadmin switched off. Every rule that asks "has this person already had
+#: this" must exclude it, or a temporary condition becomes a permanent silence — the mail is
+#: never retried once the condition clears, and the inbox is muted for a day on behalf of a
+#: message nobody ever received.
+#:
+#: ``console`` is deliberately NOT here, though :meth:`sent_today` excludes it from the daily
+#: cap. The two questions are different. The cap asks "what has this domain's reputation spent
+#: today", and a console render spends nothing. Idempotency and the inbox gap ask "have we
+#: already done this one", and in console mode the answer is yes: the render is the send, that
+#: is the whole point of the mode, and a cron replayed against a console log must still be a
+#: no-op. Treating a console row as never-happened would make every local run and every suite
+#: send the same mail twice.
+NOT_A_SEND: frozenset[str] = frozenset({"queued"})
+
+
 class MailLog:
     """The send record beside the sender: in memory, thread-safe, and mirrored to a JSONL file
     when ``MAIL_LOG_PATH`` is set so a restart does not forget what went out.
@@ -122,9 +141,16 @@ class MailLog:
     table with a unique index on ``key`` behind this same interface.
     """
 
+    #: The digest written when we know WHO a thing happened to but not the address it happened
+    #: at: a click and an unsubscribe are measured at routes that hold a signed learner id and
+    #: never an inbox. Sixteen zeroes is a valid digest by shape and obviously not one by value,
+    #: which is what stops it being counted as a recipient by anything reading this column.
+    NO_ADDRESS = "0" * 16
+
     def __init__(self, path: str | os.PathLike[str] | None = None) -> None:
         self._lock = threading.Lock()
         self._by_key: dict[str, MailRecord] = {}
+        self._events: list[dict[str, Any]] = []
         self._path = Path(path) if path else None
         if self._path and self._path.exists():
             self._load()
@@ -136,6 +162,12 @@ class MailLog:
                 if not line.strip():
                     continue
                 row = json.loads(line)
+                # Two shapes share this file: a send, which is keyed, and an event, which is
+                # not. A click and an unsubscribe carry no idempotency key by design, so the
+                # key is what tells them apart on the way back in.
+                if row.get("event") and not row.get("key"):
+                    self._events.append(row)
+                    continue
                 record = MailRecord(**{k: row.get(k) for k in MailRecord.__dataclass_fields__})
                 self._by_key[record.key] = record
         except (OSError, ValueError, TypeError) as exc:
@@ -145,8 +177,20 @@ class MailLog:
             )
 
     def seen(self, key: str) -> MailRecord | None:
+        """The send this key already made, or ``None`` — and a would-send is not a send.
+
+        ``queued`` rows are held mail: the render was proven and the provider hop was withheld
+        because a key was missing, the domain was unverified, the cap was reached or the
+        superadmin had the kind switched off. Reading one back as a send turned every one of
+        those temporary conditions into a PERMANENT silence: the mail was never retried when the
+        condition cleared, and the reader never got a message that was never sent.
+
+        :meth:`sent_today` already excluded ``queued`` from the daily cap, which is the same
+        rule stated once and then not carried here or in :meth:`latest_to`. It is carried now.
+        """
         with self._lock:
-            return self._by_key.get(key)
+            record = self._by_key.get(key)
+        return None if record is not None and record.provider_id in NOT_A_SEND else record
 
     def record(self, record: MailRecord) -> None:
         with self._lock:
@@ -181,9 +225,30 @@ class MailLog:
             times = [
                 datetime.fromisoformat(r.sent_at)
                 for r in self._by_key.values()
-                if r.to_hash == digest
+                if r.to_hash == digest and r.provider_id not in NOT_A_SEND
             ]
         return max(times) if times else None
+
+    def sent_to_since(
+        self, to: str, since: datetime, *, kinds: Collection[str] | None = None
+    ) -> int:
+        """How many mails this address has actually received since ``since``.
+
+        The inbox law counts a day; a cadence counts a week, and nothing could count one before
+        this. ``kinds`` narrows it to a family of mail (the nudges), because the Sunday note and
+        the account mail are not what makes an inbox feel hunted.
+        """
+        digest = to_hash(to)
+        floor = since.astimezone(UTC)
+        with self._lock:
+            return sum(
+                1
+                for r in self._by_key.values()
+                if r.to_hash == digest
+                and r.provider_id not in NOT_A_SEND
+                and (kinds is None or r.kind in kinds)
+                and datetime.fromisoformat(r.sent_at).astimezone(UTC) >= floor
+            )
 
     def sent_today(self, moment: datetime) -> int:
         """How many mails have actually LEFT on the UTC day of ``moment``.
@@ -199,6 +264,49 @@ class MailLog:
                 if r.provider_id not in {"queued", "console"}
                 and datetime.fromisoformat(r.sent_at).astimezone(UTC).date() == day
             )
+
+    def note_event(
+        self,
+        event: str,
+        *,
+        kind: str,
+        to: str = "",
+        at: datetime | None = None,
+        detail: dict[str, Any] | None = None,
+        learner_id: str | None = None,
+    ) -> None:
+        """A click at our own deep-link landing, or an unsubscribe honoured.
+
+        No idempotency key, ever: two clicks on one mail are two facts and not a duplicate, and
+        a key would silently collapse them into one. Never an address and never the token that
+        was pressed — the row says that something happened to a mail of this kind, and no more.
+        """
+        row: dict[str, Any] = {
+            "event": event,
+            "kind": kind,
+            "key": None,
+            "learner_id": learner_id,
+            "to_hash": to_hash(to) if to else self.NO_ADDRESS,
+            "sent_at": (at or datetime.now(UTC)).astimezone(UTC).isoformat(),
+            "detail": detail or {},
+        }
+        with self._lock:
+            self._events.append(row)
+            if self._path is not None:
+                try:
+                    self._path.parent.mkdir(parents=True, exist_ok=True)
+                    with self._path.open("a", encoding="utf-8") as fh:
+                        fh.write(json.dumps(row) + "\n")
+                except OSError as exc:
+                    logger.warning(
+                        "mail log: could not persist an event",
+                        extra={"fields": {"error": str(exc)}},
+                    )
+
+    def events(self) -> list[dict[str, Any]]:
+        """Every click and unsubscribe this log holds, oldest first. What the mail desk reads."""
+        with self._lock:
+            return list(self._events)
 
     def records(self) -> list[MailRecord]:
         with self._lock:
@@ -326,23 +434,20 @@ class DatabaseMailLog(MailLog):
         event: str,
         *,
         kind: str,
-        to: str,
+        to: str = "",
         at: datetime | None = None,
         detail: dict[str, Any] | None = None,
+        learner_id: str | None = None,
     ) -> None:
         """A click at our own deep-link landing, an unsubscribe honoured, a seed's tab placement.
 
-        These carry no idempotency key: two clicks on one mail are two facts, not a duplicate.
+        The row is built once, by the base log, and then written through, so the table and the
+        memory behind it can never disagree about what happened.
         """
-        self._write(
-            {
-                "event": event,
-                "kind": kind,
-                "to_hash": to_hash(to),
-                "sent_at": (at or datetime.now(UTC)).astimezone(UTC).isoformat(),
-                "detail": detail or {},
-            }
+        super().note_event(
+            event, kind=kind, to=to, at=at, detail=detail, learner_id=learner_id
         )
+        self._write(self.events()[-1])
 
     def _write(self, row: dict[str, Any]) -> None:
         try:
@@ -558,6 +663,96 @@ def over_the_daily_cap(*, at: datetime | None = None) -> str | None:
     return None
 
 
+#: The inboxes we own, that the seed test sends to (docs/MAIL-PRIMARY.md §3, "Then, the proof").
+SEED_INBOXES: tuple[str, ...] = ("gmail", "outlook", "yahoo", "apple")
+#: Where a seeded message landed. "unknown" is a real answer and is recorded as one.
+SEED_TABS: tuple[str, ...] = ("primary", "updates", "promotions", "social", "spam", "unknown")
+
+
+def record_seed_placement(
+    *,
+    kind: str,
+    inbox: str,
+    tab: str,
+    at: datetime | None = None,
+    learner_id: str | None = None,
+) -> bool:
+    """Record which tab a seeded message landed in. The gate on ever shipping the orb image.
+
+    MAIL-PRIMARY is blunt about this: nothing has ever been delivered from our domain, so we
+    have zero placement data of our own, and the orb GIF "takes every template from zero remote
+    fetches to one and is the single largest planned change to our promotional profile. Measure
+    the same five mails before and after, same sending identity, one variable, or ship nothing."
+
+    The measurement is a human act — a person opens the seeded inbox and reads which tab it is
+    in — so this is the place that act is WRITTEN DOWN, on the same append-only log as the sends,
+    where the mail desk reads it. It carries no address: which of our own inboxes it was is the
+    whole fact, and ``note_event`` stamps the no-address digest.
+
+    Returns ``False`` for an inbox or a tab that is not one of the named ones, so a typo becomes
+    a refusal rather than a row nobody can compare against next month's.
+    """
+    if inbox not in SEED_INBOXES or tab not in SEED_TABS:
+        logger.warning(
+            "mail seed: not a placement we can compare",
+            extra={"fields": {"inbox": inbox, "tab": tab}},
+        )
+        return False
+    mail_log().note_event(
+        "seed",
+        kind=kind,
+        at=at,
+        learner_id=learner_id,
+        detail={"inbox": inbox, "tab": tab},
+    )
+    return True
+
+
+# --- the envelope (docs/MAIL-PRIMARY.md, "The envelope") --------------------------------------
+#: A constant 5 to 15 characters across EVERY mail stream. Feedback loops attribute a complaint
+#: to the sender by this string, so a value that moved per kind would scatter our own complaint
+#: data across as many senders as we have kinds and tell us nothing about any of them.
+SENDER_ID = os.getenv("MAIL_SENDER_ID", "wobomail")
+
+
+def _list_domain() -> str:
+    """The domain the lists are named under: the From's own, read off it rather than repeated.
+
+    One name in three places (the address, the List-Id, the DKIM signature) is the whole of what
+    a reader is being asked to recognise, and a second constant here is how those drift apart.
+    """
+    address = _FROM.split("<")[-1].rstrip(">").strip()
+    return address.split("@")[-1] or "mail.heywobo.com"
+
+
+def _envelope_headers(kind: str, period: str | None, headers: dict[str, str]) -> dict[str, str]:
+    """``List-Id`` and ``Feedback-ID``, added to whatever the template and the caller already set.
+
+    ``List-Id`` is asked for by name in Google's subscription guidelines, one per kind and human
+    readable. It goes on SUBSCRIBED kinds only: a verification code is not a list and must never
+    look like one. The honest caveat, recorded here so nobody promises more than it does: Gmail's
+    Manage subscriptions is documented as unsubscribing a reader from everything related to a
+    sender, so per-kind granularity there is not proven. We set it because it is asked for and
+    costs nothing, and we never tell anyone it protects the other kinds.
+
+    ``Feedback-ID`` is monitoring only, with no documented classification effect. It is what
+    turns "a kind nobody engages with is switched off by the superadmin" into a measurement
+    rather than a guess, because the complaint data arrives already split by kind.
+
+    Neither ever overwrites a header a caller set: the caller is closer to the send than we are.
+    """
+    out = dict(headers)
+    if kind in SUBSCRIBED_KINDS and "List-Id" not in out:
+        label = kind.replace("_", "-")
+        out["List-Id"] = f"{APP_NAME} {kind.replace('_', ' ')} <{label}.{_list_domain()}>"
+    if "Feedback-ID" not in out:
+        # The colon is the separator, so nothing that rides in a segment may contain one.
+        stream = "subscribed" if kind in SUBSCRIBED_KINDS else "transactional"
+        campaign = re.sub(r"[^A-Za-z0-9._-]", "-", period or "none")[:64] or "none"
+        out["Feedback-ID"] = f"{kind}:{stream}:{campaign}:{SENDER_ID}"
+    return out
+
+
 def send_email(
     kind: str,
     to: str,
@@ -601,6 +796,7 @@ def send_email(
         logger.warning("email render skipped: unknown kind", extra={"fields": {"kind": kind}})
         return {"ok": False, "mode": mode, "error": "unknown_kind"}
     mail_headers = {**(email.get("headers") or {}), **(headers or {})}
+    mail_headers = _envelope_headers(kind, period, mail_headers)
 
     def remember(provider_id: str) -> None:
         if key:
@@ -643,6 +839,18 @@ def send_email(
             "subject": email["subject"],
         }
 
+    # The superadmin's switch and the day's ceiling are read BEFORE the console branch, not
+    # after it. They used to sit below both early returns, which meant neither was ever
+    # consulted in the mode the whole suite and every local run use: the cap was correct code
+    # that nothing could reach, and a kind the superadmin had switched off still rendered and
+    # still wrote its idempotency key. Held here, both rules hold in every mode, and a held
+    # mail is retried when the condition clears because a would-send is no longer a send.
+    if kind_is_off(kind):
+        return queued("kind_switched_off")
+    over = over_the_daily_cap(at=at)
+    if over is not None:
+        return queued(over)
+
     if mode != "live":
         # console (default): render is proven, nothing sent — the structured line is the proof.
         logger.info(
@@ -681,11 +889,6 @@ def send_email(
         return queued("no_stop_link")
     if kind in HAND_KINDS and "List-Unsubscribe-Post" not in mail_headers:
         return queued("no_stop_link")
-    if kind_is_off(kind):
-        return queued("kind_switched_off")
-    over = over_the_daily_cap(at=at)
-    if over is not None:
-        return queued(over)
 
     envelope: dict[str, Any] = {
         "from": _FROM,

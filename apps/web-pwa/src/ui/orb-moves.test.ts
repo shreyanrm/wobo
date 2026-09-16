@@ -170,4 +170,32 @@ describe('orb-moves.css', () => {
     expect(block).toContain('.wobo-orb__spark');
     expect(block).toContain('opacity: 1');
   });
+
+  /**
+   * And answers the OTHER switch, which is the one a learner is actually offered.
+   *
+   * The app carries its own "Reduce motion · Still frames instead of animation" row on the You
+   * screen (`ui/motion.ts`), and it stamps `data-motion="reduce"` on the document root rather than
+   * touching the device's setting. `packages/motion`'s `useReducedMotion` counts that attribute as
+   * EXACTLY equal to `prefers-reduced-motion`, in its own words, "so a learner without a
+   * system-wide preference still gets still frames everywhere the library draws"; and every other
+   * stylesheet in the app answers it (`screens/progress/progress.css`,
+   * `screens/learn/Climb.css`, `ui/primitives/ui.css`).
+   *
+   * A sheet that answers only the media query leaves the orb moving for the learner who asked it to
+   * stop, in the one place they were offered the ask. Rule 4 of the library is "reduced motion is a
+   * still with the spark, everywhere, WITHOUT EXCEPTION", so the two switches are one rule here.
+   */
+  it("answers the app's own reduce-motion switch, not only the device's", () => {
+    const text = css();
+    const at = text.indexOf('[data-motion="reduce"] .wobo-orb__body');
+    expect(at).toBeGreaterThan(-1);
+    const block = text.slice(at);
+    expect(block).toContain('animation: none');
+    expect(block).toContain('transform: none');
+    // The same still, and the same spark left on it, as the device's setting gets.
+    expect(block).toContain('[data-motion="reduce"] .wobo-orb__prop');
+    expect(block).toContain('[data-motion="reduce"] .wobo-orb__spark');
+    expect(block).toContain('opacity: 1');
+  });
 });
