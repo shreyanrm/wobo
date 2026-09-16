@@ -266,10 +266,13 @@ consumer senders converge on, and where each lands here:
 - **Send when the person usually shows up.** Already the hours law.
 - **Stop reminding someone the reminders are not reaching.** Duolingo's reminders stop after several
   days without a response. Here: the taper in docs/EMAILS-AND-ANIMATIONS.md.
-- **A sunset policy.** Large senders stop mailing people who have not engaged for months, because
-  mail to the long-gone is what drags a domain toward spam. Here: after a long absence a learner steps
-  down to one encouraging note a month, then mail stops until they return. Both spells are console
-  dials (defaults 30 and 120 days), and returning restores the full cadence at once. Wave 56.
+- **A sunset policy, which the owner overrode.** Large senders stop mailing people who have been gone
+  for months. The owner ruled otherwise: *"for unresponsive users, we should still keep sending emails
+  but frequency should gradually keep reducing to once a month, and that is bare minimum"*. So mail
+  steps down with time away (the ladder in docs/EMAILS-AND-ANIMATIONS.md) and never falls below one a
+  month. The risk a sunset exists for is an abandoned address that a mailbox provider has recycled into
+  a spam trap. Here that is carried by hard-bounce suppression and by the watch above, which pauses
+  whatever kind starts drawing trouble and alerts the owner. Wave 56.
 - **Separate streams, set up once.** Transactional mail (sign-in codes, receipts) goes from its own
   sending subdomain, so a bad week for learning notes never stops a family signing in or getting a
   receipt. This revises "one sender" above for the transactional stream only: learning notes keep one

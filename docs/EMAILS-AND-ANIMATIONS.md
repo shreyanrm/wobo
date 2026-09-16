@@ -38,10 +38,14 @@ The laws that bind every one:
   floor, behaviour earns more: a streak about to break, a chapter nearly done, a quiet spell. The
   ceiling is the inbox law's one a day. Still binding on every one: never twice in twenty-four hours,
   never after 8 pm, one-click unsubscribe per kind, under-13 mail to the parent, never narrate.
-  Two guards come with sending more. A "come back" mail never goes to someone who came that day. And
-  a family that has not come back after several "come back" mails falls back to the floor rather
-  than hearing daily from a product it has left; that number is a console dial, because a spam
-  complaint costs the Primary tab for every family (docs/MAIL-PRIMARY.md). The signal is whether the
+  A "come back" mail never goes to someone who came that day. And a learner who stops coming is
+  never dropped (the owner: *"for unresponsive users, we should still keep sending emails but
+  frequency should gradually keep reducing to once a month, and that is bare minimum"*): by days since
+  they last came, up to 14 the full cadence, 15 to 30 two a week, 31 to 60 one a week, 61 to 90 one a
+  fortnight, and beyond 90 one a month for as long as the address is reachable. Coming back restores
+  the full cadence at once. The steps are one console dial. Every mail on the way down encourages
+  learning, never guilt. Only an unsubscribe, a spam complaint or a hard bounce stops mail to an
+  address, because the law and Gmail require it. The signal is whether the
   learner came back, never an open-tracking pixel, which stays off. Content stays about the learner's
   learning, because DPDP s.9(3) bars behavioural monitoring of a child for any other purpose
   (docs/LEGAL-REVIEW.md). Wave 56 makes this true; until it lands the code still caps at three.

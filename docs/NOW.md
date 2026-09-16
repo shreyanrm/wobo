@@ -37,7 +37,7 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | # | What | Wave |
 |---|---|---|
-| 1 | The cadence: at least three mails a week, more when behaviour calls for it, a taper for the family that has gone | 56 |
+| 1 | The activity record, the cadence (at least three a week, a ladder down to once a month, never zero), and the spam watch | 56 |
 | 2 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
 | 3 | The growth desk, the press page, chapter pages at tier two | 50 |
 | 4 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
@@ -156,6 +156,8 @@ rather than remembered, and every line below was checked against the code on 202
 | `WEEKLY_NUDGE_CAP`, a builder's two | *"Three a week"*, then the same day: *"we can honestly send more emails with a minimum of 3 a week depending on user behaviour and streak ... we need to constantly remind people that we exist and we are doing good for them"* | **REVISED.** Three is a FLOOR. `a09fb1f8` shipped three as a cap, which is now the interim. Wave 56 builds the floor, the behaviour-driven extras up to one a day, the taper for a family that has gone, and a true footer. EMAILS-AND-ANIMATIONS.md carries the revised law |
 | What the mail says | *"we wont say use more, we encourage and motivate to learn, that is our application"* | **RULED.** No mail asks anyone to use Wobo more; every one encourages learning. EMAILS-AND-ANIMATIONS.md carries it |
 | Track whether mail goes to spam, and respond | *"keep a track if we went to spam or not"*; then *"be tactical, dont slow down, and change whats necessary but make sure i get alerted at shreyan@doteventures.com"* | **RULED, building in wave 56.** Complaints, bounces, owned seed inboxes and Google Postmaster are watched. The cause is fixed, never the pace: a complained address is suppressed and only the kind drawing complaints pauses. Alerts go to that address, the log and the desk. The sender name and address never change automatically (MAIL-PRIMARY.md gives the reasons); that stays a manual setting. MAIL-PRIMARY.md carries it |
+| Unresponsive learners | *"we should still keep sending emails but frequency should gradually keep reducing to once a month, and that is bare minimum"* | **RULED, building in wave 56.** A ladder by days away (14, 30, 60, 90) down to one a month, never zero; returning restores the full cadence. Replaces the stop-after-120-days sunset written an hour earlier. Only unsubscribe, complaint or hard bounce stops mail |
+| A record of application activity | *"make sure you have a record of application activity and stuff"* | **MEASURED, building in wave 56.** Today the only durable record is `learner.meter_state` (one row per active day), and the mail system reads it 30 days back, so a learner gone 45 days looks like one who never came. `learner.sessions` is declared and never written (production: 0 rows); `learner.mastery_cache` holds 0 rows. Wave 56's first builder makes one durable record (days, sessions, modules finished, topics mastered, streak), a true last-came with no horizon, erasure through `/v1/me/erase`, and an activity desk for the owner |
 
 ## Waiting on the owner, and nothing else
 
