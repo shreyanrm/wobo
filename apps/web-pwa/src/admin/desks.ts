@@ -24,10 +24,12 @@ export type DeskId =
   | 'alerts'
   | 'health'
   | 'syllabus'
+  | 'boardChanges'
   | 'flag'
   | 'bug'
   | 'support'
-  | 'refund';
+  | 'refund'
+  | 'register';
 
 export type Supply =
   /** Something deployed answers this. `from` is what an operator would chase. */
@@ -227,10 +229,37 @@ export const DESKS: readonly Desk[] = [
     },
   },
   {
+    id: 'boardChanges',
+    name: 'Board changes',
+    question:
+      'Who has asked a person to change their board, from what to what, and when did they last ' +
+      'change?',
+    supply: {
+      kind: 'live',
+      from:
+        'GET /v1/admin/board-changes: ops.board_change_requests (migration 0031) and the three ' +
+        'board dials in ops.settings. Operators grant, and the owner turns the dials',
+    },
+  },
+  {
     id: 'health',
     name: 'Health',
     question: 'Is the gateway up, are the providers answering, what is failing?',
     supply: { kind: 'live', from: 'wobo_gateway.health.snapshot(), read through the console door' },
+  },
+  {
+    id: 'register',
+    name: 'Register',
+    question:
+      'Who has a seat, what each person can actually see and do, who gave it to them, and ' +
+      'whose invitation is still waiting?',
+    supply: {
+      kind: 'live',
+      from:
+        'GET /v1/admin/admins: ops.admins and ops.admin_capabilities (migrations 0015, 0029 and ' +
+        '0037), each seat shown with its effective set. The owner invites, grants, revokes and ' +
+        'suspends from here, and every change is a row in ops.admin_audit',
+    },
   },
 ];
 

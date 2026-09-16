@@ -18,7 +18,7 @@
 import type { PracticeItem } from '@wobo/sdk';
 import { useRegisterTarget } from '@wobo/wobo';
 import { motion } from 'framer-motion';
-import { useEffect, useMemo, useState } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { aX, fmt, linearize } from './equations';
 import type { BarState } from './shared';
 import { CardBody, cardTitle, lead, Stage, whisper } from './shared';
@@ -70,10 +70,13 @@ export function Worked({
   item,
   setBar,
   onDone,
+  after,
 }: {
   item: PracticeItem;
   setBar: (b: BarState | null) => void;
   onDone: () => void;
+  /** What sits under the card once every move is shown: the next thing, when there is one. */
+  after?: ReactNode;
 }) {
   const moves = useMemo(() => workedMoves(item.equation), [item.equation]);
   const [shown, setShown] = useState(0);
@@ -135,6 +138,7 @@ export function Worked({
           ? 'one move at a time. each one keeps both sides equal.'
           : 'every move kept the scale level, so the answer holds.'}
       </div>
+      {shown >= moves.length ? after : null}
     </CardBody>
   );
 }

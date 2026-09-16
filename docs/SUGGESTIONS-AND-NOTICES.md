@@ -62,7 +62,11 @@ consent request. A parent is never pushed at all in the first release.
 | | |
 |---|---|
 | ask suggestion chips, the board's closing ask | **built** |
-| the four suggestion kinds above, with their rules | **not built** |
+| the four suggestion kinds above, with their rules | **built as rules** (`apps/web-pwa/src/suggest/`): one on screen at a time, a no remembered for the session, quiet by token sheet |
+| the way back and the next thing, on a screen | **built on the atom course** (2026-09-17): the way back on the practice run's second miss, the next thing at the end of the run and of a worked card. Both name what the course is about to show, asked of `screens/course/climb.ts` (`peek`), never chosen themselves (`suggest/one-chooser.test.ts`, `tests/suggestions.spec.ts`) |
+| the side door, on a screen | **built** at the end of a composed topic, through the same gate |
+| the question to ask, on a screen | **not on any screen yet**: no page's glass declares a `misconception:` meaning that names a pool misconception, so the rule offers nothing, which is the law's own answer |
+| push notifications' four rules, as tests against the design | **built** (`suggest/push.ts`, `push.test.ts`); nothing in it can reach a phone |
 | mail, verified and delivering | **built** |
 | the five nudge kinds | **not built** (wave 38) |
 | push notifications | **not built**, and deliberately last |

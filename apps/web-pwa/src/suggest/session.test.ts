@@ -9,8 +9,8 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { declinedIds, decline, forgetDeclines, SUGGEST_SESSION_KEY, wasDeclined } from './session';
 import { SCOPED_SESSION_KEYS } from '../store/scope';
+import { decline, declinedIds, forgetDeclines, SUGGEST_SESSION_KEY, wasDeclined } from './session';
 
 beforeEach(() => {
   forgetDeclines();

@@ -324,11 +324,12 @@ def test_an_invitation_binds_to_the_account_that_accepts_it(
     """The invited row has no account id until the person signs in and proves the address."""
     _register(_admin_env, OWNER_SUBJECT, OWNER, "owner@example.com")
     token = _sign_in(client, OWNER_SUBJECT)
-    client.post(
+    invitation = client.post(
         f"{ADMIN_PREFIX}/admins",
         headers=_console(OWNER_SUBJECT, token),
         json={"email": "newcomer@example.com", "role": VIEWER},
     )
+    assert invitation.status_code == 200, invitation.text
     invited = next(a for a in _admin_env.list_admins() if a.email == "newcomer@example.com")
     assert invited.subject_id is None
     assert invited.status == "invited"
@@ -348,8 +349,21 @@ def test_an_invitation_binds_to_the_account_that_accepts_it(
     assert unproven.status_code == 403
     assert next(a for a in _admin_env.list_admins() if a.email == "newcomer@example.com").subject_id is None
 
+    # The right address, verified, and still no seat: a token alone never binds one
+    # (2026-09-15). The person arrives through the link in their invitation.
+    alone = client.post(
+        f"{ADMIN_PREFIX}/session",
+        headers=_bearer(NEWCOMER_SUBJECT, email="newcomer@example.com", email_verified=True),
+    )
+    assert alone.status_code == 403
+    assert alone.json()["detail"]["code"] == "invitation_link_required"
+
+    link = invitation.json()["invitation"]["link"]
+    token = link.split("invite=", 1)[1]
     opened = client.post(
-        f"{ADMIN_PREFIX}/session", headers=_bearer(NEWCOMER_SUBJECT, email="newcomer@example.com", email_verified=True)
+        f"{ADMIN_PREFIX}/session",
+        headers=_bearer(NEWCOMER_SUBJECT, email="newcomer@example.com", email_verified=True),
+        json={"invitation": token},
     )
     assert opened.status_code == 200, opened.text
     bound = next(a for a in _admin_env.list_admins() if a.email == "newcomer@example.com")

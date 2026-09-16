@@ -30,12 +30,14 @@
 import type { PracticeItem } from '@wobo/sdk';
 import { useWoboBus, WaitScene } from '@wobo/wobo';
 import { motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { groundFor } from '../../curriculum/placement';
 import { chapterById, topicById } from '../../curriculum/registry';
 import type { Topic } from '../../data/model';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
+import { nextThing, wayBack } from '../../suggest/kind';
+import { Suggestions } from '../../suggest/Suggestions';
 import { BossSigil } from '../../ui/art';
 import { CourseIntroScene } from '../../ui/courseIntro';
 import { hueForTopic, subjectForTopic } from '../../ui/hues';
@@ -390,6 +392,36 @@ export function AtomJourney({
   );
   const endClean = useCallback(() => endModule(0), [endModule]);
 
+  /**
+   * THE NEXT THING AND THE WAY BACK (docs/SUGGESTIONS-AND-NOTICES.md §2), at the moment the module
+   * on stage is about to end with `misses`. Both name what `endModule` is about to put on stage,
+   * asked of the course (`climb.peek`) and never chosen here, so a suggestion cannot contradict the
+   * course. Nothing when the course is going to the boss door, when it would hand back the module
+   * on stage, or when it has nothing this screen can show. `take` is the card's own way on.
+   */
+  const suggestAt = useCallback(
+    (misses: number, ending: 'beaten' | 'done', take: () => void): ReactNode => {
+      if (walkRef.current !== 'on' || !climb) return null;
+      const ended = climb.on;
+      const bossNext =
+        topicHeld(bandNow()) && (bossDue.current || (misses === 0 && ended.role === 'check'));
+      if (bossNext) return null;
+      const next = climb.peek(misses);
+      if (!next || next.id === ended.id || !atomCardFor(next)) return null;
+      const offer =
+        ending === 'beaten'
+          ? wayBack({ bp: climb.pool, topicId: topic.id, from: ended.id, held: climb.held(), next })
+          : nextThing({ bp: climb.pool, topicId: topic.id, next });
+      return <Suggestions candidates={[offer]} hue={hueForTopic(topic.id)} onTake={() => take()} />;
+    },
+    [climb, bandNow, topic.id],
+  );
+  const practiceOffer = useCallback(
+    (at: { misses: number; ending: 'beaten' | 'done'; take: () => void }) =>
+      suggestAt(at.misses, at.ending, at.take),
+    [suggestAt],
+  );
+
   /** The walk starts here if it has not and a pool that can serve this screen is now in hand. */
   const joinWalk = useCallback((): boolean => {
     if (walkRef.current === 'open' && climb) walkRef.current = 'on';
@@ -664,6 +696,7 @@ export function AtomJourney({
               item={workedItem}
               setBar={setBar}
               onDone={walking ? endClean : workedDone}
+              after={walking ? suggestAt(0, 'done', endClean) : null}
             />
           ) : null)}
 
@@ -683,6 +716,7 @@ export function AtomJourney({
               until={walking ? until : undefined}
               ladder={!walking}
               replay={replay}
+              offer={walking ? practiceOffer : undefined}
             />
           ) : (
             <CardBody>

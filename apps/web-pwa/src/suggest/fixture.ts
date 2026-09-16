@@ -49,14 +49,19 @@ function mod(
 export function pool(): Blueprint {
   const modules: BlueprintModule[] = [
     mod('q2', 'worked', 'prerequisite', ['t4'], ['i5'], { assumes: ['a2'], minutes: 5 }),
-    mod('p9', 'simulation', 'way_in', ['t4'], ['i5'], { aim: 'spread the same push over more area' }),
+    mod('p9', 'simulation', 'way_in', ['t4'], ['i5'], {
+      aim: 'spread the same push over more area',
+    }),
     mod('p10', 'worked', 'way_in', ['t4'], ['i5'], { aim: 'work out the pressure under a brick' }),
     mod('p11', 'film', 'way_in', ['t5'], ['i6']),
     mod('r2', 'simulation', 'repair', ['t4'], ['i5'], {
       repairs: 'x2',
       aim: 'weigh two blocks that press the same',
     }),
-    mod('c2', 'items', 'check', ['t4', 't5'], ['i5', 'i6'], { minutes: 6, aim: 'six of them, mixed' }),
+    mod('c2', 'items', 'check', ['t4', 't5'], ['i5', 'i6'], {
+      minutes: 6,
+      aim: 'six of them, mixed',
+    }),
     mod('s1', 'simulation', 'stretch', ['t4'], ['i5'], { minutes: 9, aim: 'the snowshoe problem' }),
     mod('g2', 'game', 'side_door', ['t5'], ['i6'], { minutes: 5 }),
     mod('b1', 'boss', 'boss', ['t4', 't5'], ['i5', 'i6'], { minutes: 10 }),
@@ -74,14 +79,20 @@ export function pool(): Blueprint {
       { id: 't5', name: 'Pressure in liquids and gases' },
     ],
     ideas: [
-      { id: 'i5', what: 'pressure is the force spread over the area it presses on', topics: ['t4'] },
+      {
+        id: 'i5',
+        what: 'pressure is the force spread over the area it presses on',
+        topics: ['t4'],
+      },
       { id: 'i6', what: 'a liquid presses on every wall it touches', topics: ['t5'] },
     ],
     misconceptions: [
       { id: 'x2', what: 'a heavier object always presses harder', topics: ['t4'] },
       { id: 'x3', what: 'a liquid presses only downwards', topics: ['t5'] },
     ],
-    assumptions: [{ id: 'a2', what: 'the area of a rectangle', fromChapter: 'Mensuration, class 7' }],
+    assumptions: [
+      { id: 'a2', what: 'the area of a rectangle', fromChapter: 'Mensuration, class 7' },
+    ],
     modules,
     flow: {
       order: ['q2', 'p9', 'p10', 'r2', 'c2', 's1', 'p11', 'b1'],
@@ -91,7 +102,13 @@ export function pool(): Blueprint {
       bossProves: 'the shape that survives the load, and why',
       skippable: ['p10'],
       neverSkip: ['p9', 'b1'],
-      stuck: [{ module: 'p9', instead: 'p10', why: 'the numbers land for some learners before the picture does' }],
+      stuck: [
+        {
+          module: 'p9',
+          instead: 'p10',
+          why: 'the numbers land for some learners before the picture does',
+        },
+      ],
     },
   };
 }

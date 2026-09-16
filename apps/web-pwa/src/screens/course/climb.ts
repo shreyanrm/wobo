@@ -114,8 +114,9 @@ function groupNow(
   topicId: string,
   plays: Plays,
   state: LearnerState,
+  stuck: readonly string[] = stuckIn(pool),
 ): BlueprintModule[] {
-  return groupInPool(pool, topicId, { ...state, stuckOn: stuckIn(pool) }).filter((m) => plays(m));
+  return groupInPool(pool, topicId, { ...state, stuckOn: [...stuck] }).filter((m) => plays(m));
 }
 
 function choose(
@@ -125,8 +126,9 @@ function choose(
   plays: Plays,
   state: LearnerState,
   prefer?: (m: BlueprintModule) => boolean,
+  stuck?: readonly string[],
 ): BlueprintModule | null {
-  const group = groupNow(pool, topicId, plays, state);
+  const group = groupNow(pool, topicId, plays, state, stuck);
   const open = group.filter((m) => !walk.landed.has(m.id));
   const fresh = (prefer && open.find(prefer)) ?? open[0];
   if (fresh) return fresh;
@@ -178,6 +180,38 @@ export function againIn(
 }
 
 /**
+ * WHAT A MODULE'S END CHANGES, worked out before anything is written.
+ *
+ * `lifted` is every module whose tally starts again: the one that just came back clean, and any
+ * check that had beaten them now that something else landed. `landed` is the walk's set as it will
+ * stand. `endIn` writes exactly this and `nextIn` only reads it, so the two cannot drift apart.
+ */
+function afterEnd(
+  pool: Blueprint,
+  walk: Walk,
+  moduleId: string,
+  misses: number,
+): { lifted: string[]; landed: Set<string> } {
+  const landed = new Set(walk.landed);
+  const lifted: string[] = [];
+  if (misses === 0) {
+    landed.add(moduleId);
+    // A whole sitting came back clean: the way this module teaches it landed.
+    lifted.push(moduleId);
+    // Something landed that is not the check that beat them, so the check's tally starts again.
+    for (const m of pool.modules) {
+      if (m.role === 'check' && m.id !== moduleId && beatenBy(pool, m.id)) {
+        lifted.push(m.id);
+        landed.delete(m.id);
+      }
+    }
+  } else {
+    landed.delete(moduleId);
+  }
+  return { lifted, landed };
+}
+
+/**
  * THE MODULE BOUNDARY. A module ended with `misses` in this sitting; record what that means and
  * hand back the module that follows, chosen again.
  */
@@ -190,21 +224,33 @@ export function endIn(
   plays: Plays,
   state: LearnerState = {},
 ): BlueprintModule | null {
-  if (misses === 0) {
-    walk.landed.add(moduleId);
-    // A whole sitting came back clean: the way this module teaches it landed.
-    noteConceptCorrect(moduleKey(pool, moduleId));
-    // Something landed that is not the check that beat them, so the check's tally starts again.
-    for (const m of pool.modules) {
-      if (m.role === 'check' && m.id !== moduleId && beatenBy(pool, m.id)) {
-        noteConceptCorrect(moduleKey(pool, m.id));
-        walk.landed.delete(m.id);
-      }
-    }
-  } else {
-    walk.landed.delete(moduleId);
-  }
+  const { lifted, landed } = afterEnd(pool, walk, moduleId, misses);
+  for (const id of lifted) noteConceptCorrect(moduleKey(pool, id));
+  walk.landed.clear();
+  for (const id of landed) walk.landed.add(id);
   return hand(walk, choose(pool, topicId, walk, plays, state));
+}
+
+/**
+ * WHAT `endIn` WOULD HAND BACK, recording nothing (docs/SUGGESTIONS-AND-NOTICES.md §2).
+ *
+ * The next thing and the way back name a module before the module on stage has ended. They are
+ * not allowed a chooser of their own (docs/LEARNING-MODEL.md, "Who chooses"), so they ask this:
+ * the same choice, from the same tally, as it will stand once the module ends. The tally and the
+ * walk are left exactly as they were.
+ */
+export function nextIn(
+  pool: Blueprint,
+  topicId: string,
+  walk: Walk,
+  moduleId: string,
+  misses: number,
+  plays: Plays,
+  state: LearnerState = {},
+): BlueprintModule | null {
+  const { lifted, landed } = afterEnd(pool, walk, moduleId, misses);
+  const stuck = stuckIn(pool).filter((id) => !lifted.includes(id));
+  return choose(pool, topicId, { handed: walk.handed, landed }, plays, state, undefined, stuck);
 }
 
 // --- the ending -----------------------------------------------------------------------------------
@@ -313,6 +359,8 @@ export function atomCardFor(m: BlueprintModule): AtomModuleCard | null {
 
 /** The walk, as a course screen holds it. */
 export interface Climb {
+  /** The chapter's pool the walk is chosen from, for the words a suggestion says about it. */
+  pool: Blueprint;
   /** The module on stage. */
   on: BlueprintModule;
   /** Module ids handed in this sitting, in order. */
@@ -323,11 +371,18 @@ export interface Climb {
   unmiss(): void;
   /** True once the module on stage has beaten the learner twice. */
   beaten(): boolean;
+  /** How many misses stand against the module on stage, in the product's one tally. */
+  held(): number;
   /**
    * The module on stage ended. Returns what follows, or null when the pool can offer this screen
    * nothing more (a pool fault, judged elsewhere; the screen carries on as it did without a pool).
    */
   end(misses: number): BlueprintModule | null;
+  /**
+   * What `end(misses)` would hand back, with nothing recorded: the only way a suggestion learns
+   * what comes next (`suggest/kind.ts`), so it can never name something the course will not show.
+   */
+  peek(misses: number): BlueprintModule | null;
   /** Something that is not a module ended (a boss not passed): choose again, ending nothing. */
   again(): BlueprintModule | null;
 }
@@ -370,6 +425,10 @@ export function useClimb(
     const id = onStage();
     return Boolean(sitting && id && beatenBy(sitting.pool, id));
   }, [sitting, onStage]);
+  const held = useCallback(() => {
+    const id = onStage();
+    return sitting && id ? conceptMisses(moduleKey(sitting.pool, id)) : 0;
+  }, [sitting, onStage]);
   const end = useCallback(
     (misses: number) => {
       const id = onStage();
@@ -377,6 +436,15 @@ export function useClimb(
       const next = endIn(sitting.pool, sitting.topicId, sitting.walk, id, misses, plays);
       setMoved({ sitting, module: next });
       return next;
+    },
+    [sitting, onStage, plays],
+  );
+
+  const peek = useCallback(
+    (misses: number) => {
+      const id = onStage();
+      if (!sitting || !id) return null;
+      return nextIn(sitting.pool, sitting.topicId, sitting.walk, id, misses, plays);
     },
     [sitting, onStage, plays],
   );
@@ -391,8 +459,19 @@ export function useClimb(
   return useMemo(
     () =>
       sitting && module
-        ? { on: module, handed: sitting.walk.handed, miss, unmiss, beaten, end, again }
+        ? {
+            pool: sitting.pool,
+            on: module,
+            handed: sitting.walk.handed,
+            miss,
+            unmiss,
+            beaten,
+            held,
+            end,
+            peek,
+            again,
+          }
         : null,
-    [sitting, module, miss, unmiss, beaten, end, again],
+    [sitting, module, miss, unmiss, beaten, held, end, peek, again],
   );
 }

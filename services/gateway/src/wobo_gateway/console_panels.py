@@ -41,8 +41,10 @@ named panel at a time.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Any
 
 #: Every admin path starts here. Kept as a literal rather than imported from ``admin_auth`` because
 #: that module imports this one, and a cycle between the door and its map helps nobody.
@@ -305,6 +307,47 @@ def view(held: Iterable[str]) -> list[dict[str, object]]:
     ]
 
 
+# --- the money that rides on other desks ----------------------------------------------------------
+#
+# The panel gate closes the money desk's own routes. It could not close the figures that four other
+# desks carry beside their real job: the health desk's spend check, the syllabus desk's day against
+# its ceiling and its cost list, the stores desk's saved dollars, the models desk's prices and pool
+# cap. A seat without ``panel.money.read`` that could still read all four was holding the money
+# panel in everything but name. So every admin response passes through :func:`without_money`
+# (``admin_auth.admin_router`` installs it on every route, the same way it installs the guard), and
+# a key that names money is ABSENT for such a seat, not zeroed and not greyed.
+#
+# The rule is by KEY NAME, which is the convention every desk already follows (``*_usd``,
+# ``*_paise``, ``price``, ``cost``, ``spend``...). A fraction is money only when it sits beside a
+# money figure, where it is a share of the ceiling or the pool; a judge's pass fraction is not.
+MONEY_READ = "panel.money.read"
+_MONEY_KEY = re.compile(
+    r"usd|paise|inr|rupee|price|cost|spend|spent|ceiling|saved|per_million", re.I
+)
+_SHARE_KEY = re.compile(r"fraction", re.I)
+
+
+def _strip_money(value: Any) -> Any:
+    if isinstance(value, dict):
+        carried = any(_MONEY_KEY.search(str(key)) for key in value)
+        return {
+            key: _strip_money(inner)
+            for key, inner in value.items()
+            if not _MONEY_KEY.search(str(key))
+            and not (carried and _SHARE_KEY.search(str(key)))
+        }
+    if isinstance(value, list):
+        return [_strip_money(inner) for inner in value]
+    return value
+
+
+def without_money(payload: Any, held: Iterable[str]) -> Any:
+    """The payload as this seat may see it: untouched with the money panel, money-free without."""
+    if MONEY_READ in set(held):
+        return payload
+    return _strip_money(payload)
+
+
 def vocabulary() -> list[dict[str, object]]:
     """Every panel and both of its capabilities. The owner's register screen, and nothing else."""
     return [
@@ -324,6 +367,7 @@ __all__ = [
     "CAPABILITIES",
     "DEFAULTS",
     "IDENTITY_PATHS",
+    "MONEY_READ",
     "PANELS",
     "Panel",
     "capability_for",
@@ -334,4 +378,5 @@ __all__ = [
     "panel_for",
     "view",
     "vocabulary",
+    "without_money",
 ]

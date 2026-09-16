@@ -66,9 +66,12 @@ def _store() -> board_change.InMemoryBoardChangeStore:
     store = board_change.InMemoryBoardChangeStore()
     board_change.set_store(store)
     doors.set_store(doors.InMemorySettingsStore(open_default=True))
+    # The dials are cached for up to thirty seconds; one test's turned dial is not the next one's.
+    board_change.reset_dials()
     yield store
     board_change.set_store(None)
     doors.set_store(None)
+    board_change.reset_dials()
 
 
 @pytest.fixture(autouse=True)
@@ -207,6 +210,17 @@ def test_the_standing_before_anything_offers_the_change_and_says_what_it_costs(
     joined = " ".join(body["cost"]).lower()
     assert "keep" in joined or "kept" in joined
     assert "delete" not in joined
+
+
+def test_the_cost_claims_only_what_the_product_does() -> None:
+    """Copy is a contract (voice.md §6). Completion is filed under each board's own topic ids
+    (apps/web-pwa/src/screens/learn/mastery.ts), so nothing a learner finished on one board is
+    counted as finished on another. A sentence promising their work is re-mapped onto the new
+    syllabus was a promise the product did not keep. What IS kept, and marked with the board it
+    came from, is the record the You screen shows (apps/web-pwa/src/screens/you/kept.ts)."""
+    joined = " ".join(board_change.COST).lower()
+    assert "re-map" not in joined and "remap" not in joined
+    assert "marked with the board" in joined
 
 
 def test_a_signed_out_visitor_has_no_standing_to_read(client: TestClient) -> None:
@@ -509,3 +523,283 @@ def test_the_queue_is_reached_with_the_service_key_and_the_ops_profile() -> None
     assert all(schema == board_change.OPS_SCHEMA for _, _, _, schema in queue_calls)
     trail = [call for call in calls if "/rest/v1/board_changes" in call[0]]
     assert trail and all(schema == board_change.LEARNER_SCHEMA for _, _, _, schema in trail)
+
+
+# --- 8. the console holds the dials (§1: "the dials the console holds") -------------------------
+DIALS = f"{ADMIN_PREFIX}/board-changes/dials"
+
+
+def test_the_queue_shows_the_three_dials_as_they_stand(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    seat = _console(client, _admin_env)
+    desk = client.get(QUEUE, headers=seat).json()
+    assert desk["dials"] == {
+        "free_changes": 1,
+        "parent_change_counts": True,
+        "rule_off_for": [],
+    }
+
+
+def test_the_owner_turns_a_dial_and_the_next_learner_meets_it(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    seat = _console(client, _admin_env, role=admin_auth.OWNER)
+    turned = client.post(
+        DIALS,
+        json={"free_changes": 2, "rule_off_for": ["board:icse"], "note": "a school moved"},
+        headers=seat,
+    )
+    assert turned.status_code == 200, turned.text
+    assert turned.json()["dials"]["free_changes"] == 2
+    assert turned.json()["dials"]["rule_off_for"] == ["board:icse"]
+    # Written to ops.settings, where the audit trigger sees it, and to the console's own trail.
+    assert doors.get_store().read(board_change.FREE_CHANGES_KEY) == 2
+    assert "board.dials.set" in [row.get("action") for row in _admin_env.audit]
+
+    # Live: no deploy and no wait. Two changes are now free.
+    _onboarded(client, LEARNER, "state", "9")
+    assert _change(client, LEARNER, "cbse", "9").status_code == 200
+    assert _change(client, LEARNER, "ib", "9").status_code == 200
+    assert _change(client, LEARNER, "state", "9").status_code == 409
+
+
+def test_a_dial_left_out_of_the_body_is_left_alone(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    doors.get_store().write(board_change.PARENT_COUNTS_KEY, False, actor=None, note=None)
+    board_change.reset_dials()
+    seat = _console(client, _admin_env, role=admin_auth.OWNER)
+    turned = client.post(DIALS, json={"free_changes": 3}, headers=seat)
+    assert turned.status_code == 200, turned.text
+    assert turned.json()["dials"]["parent_change_counts"] is False
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"free_changes": -1},
+        {"free_changes": 101},
+        {"free_changes": True},
+        {"rule_off_for": ["somebody"]},
+        {"rule_off_for": ["board:"]},
+        {},
+    ],
+)
+def test_a_dial_the_gateway_cannot_obey_is_refused_and_nothing_is_written(
+    client: TestClient, _admin_env: InMemoryAdminStore, body: dict
+) -> None:
+    seat = _console(client, _admin_env, role=admin_auth.OWNER)
+    refused = client.post(DIALS, json=body, headers=seat)
+    assert refused.status_code == 422, refused.text
+    assert doors.get_store().read(board_change.FREE_CHANGES_KEY) is None
+    assert doors.get_store().read(board_change.RULE_OFF_KEY) is None
+
+
+def test_an_operator_clears_the_queue_but_does_not_turn_the_dials(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    seat = _console(client, _admin_env, role=OPERATOR)
+    assert client.post(DIALS, json={"free_changes": 5}, headers=seat).status_code == 403
+    assert doors.get_store().read(board_change.FREE_CHANGES_KEY) is None
+
+
+# --- the owner's grant is the whole answer (closer, 2026-09-17) -----------------------------------
+# docs/CONSOLE-ROLES-AND-BOARD.md §2: a person's capabilities are the role's defaults plus the
+# owner's grants. The grant route used to demand the role's `support.act` as well as the panel's
+# act, so a viewer the owner had given `panel.boards.act` was still refused: the grant did nothing.
+def _asked(client: TestClient, store: board_change.InMemoryBoardChangeStore) -> str:
+    _onboarded(client, LEARNER, "cbse", "9")
+    assert _change(client, LEARNER, "icse", "9").status_code == 200
+    client.post(ASK, json={"framework_id": "cbse", "level": "9"}, headers=_bearer(LEARNER))
+    return store.open_request(LEARNER).id
+
+
+def _set(store: InMemoryAdminStore, capability: str, effect: str) -> None:
+    admin = store.admin_by_subject(OPERATOR_SUBJECT)
+    assert admin is not None
+    store.set_capability(admin_id=admin.id, capability=capability, effect=effect, granted_by=None)
+
+
+def test_a_viewer_the_owner_gave_the_board_act_may_grant(
+    client: TestClient, _admin_env: InMemoryAdminStore, _store: board_change.InMemoryBoardChangeStore
+) -> None:
+    request_id = _asked(client, _store)
+    seat = _console(client, _admin_env, role=VIEWER)
+    _set(_admin_env, "panel.boards.act", "grant")
+    granted = client.post(GRANT, json={"id": request_id}, headers=seat)
+    assert granted.status_code == 200, granted.text
+    assert granted.json()["state"] == "granted"
+
+
+def test_the_board_act_opens_the_board_desk_and_nothing_else(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    seat = _console(client, _admin_env, role=VIEWER)
+    _set(_admin_env, "panel.boards.act", "grant")
+    other = client.post(
+        f"{ADMIN_PREFIX}/reports/state", json={"id": "x", "state": "closed"}, headers=seat
+    )
+    assert other.status_code == 403, other.text
+
+
+def test_an_operator_without_the_board_act_may_not_grant(
+    client: TestClient, _admin_env: InMemoryAdminStore, _store: board_change.InMemoryBoardChangeStore
+) -> None:
+    request_id = _asked(client, _store)
+    seat = _console(client, _admin_env)
+    _set(_admin_env, "panel.boards.act", "revoke")
+    assert client.post(GRANT, json={"id": request_id}, headers=seat).status_code == 403
+    assert _store.open_request(LEARNER) is not None
+
+
+def test_owner_work_is_never_widened_by_a_panel_grant(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    """The dials and the router are the owner's (`admin.manage`); a panel grant does not reach them."""
+    seat = _console(client, _admin_env)
+    _set(_admin_env, "panel.models.act", "grant")
+    moved = client.post(f"{ADMIN_PREFIX}/models", json={"reset": True}, headers=seat)
+    assert moved.status_code == 403, moved.text
+    dials = client.post(f"{QUEUE}/dials", json={"free_changes": 3}, headers=seat)
+    assert dials.status_code == 403, dials.text
+
+
+# --- where they came from, when the gateway has no trail (closer, 2026-09-17) ---------------------
+# With no trail, the gateway used to take the app's word for the board a learner was on. An app
+# that left the field out, or named the board it was moving to, had its first real move recorded
+# as an anchor, which is never counted: one free board change. The learner's syllabus pins are the
+# gateway's own record of a board they committed to (a pin is written only on a choice, an upgrade,
+# an edit or their own syllabus), so they decide it now whenever the app's word cannot.
+@pytest.fixture()
+def _pins():
+    from wobo_gateway.curriculum import store as curriculum_store
+
+    store = curriculum_store.InMemoryStore()
+    curriculum_store.set_store(store)
+    yield store
+    curriculum_store.set_store(None)
+
+
+def test_a_move_with_no_stated_origin_counts_when_they_already_had_a_pinned_board(
+    client: TestClient, _pins, _store: board_change.InMemoryBoardChangeStore
+) -> None:
+    _pins.put_pin(LEARNER, "cbse", "v-cbse")
+    moved = _change(client, LEARNER, "icse", "9")
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["used"] == 1
+    assert _store.changes(LEARNER)[-1].from_framework_id == "cbse"
+    # And the next one needs a person.
+    again = _change(client, LEARNER, "ib", "9")
+    assert again.status_code == 409
+    assert again.json()["detail"]["code"] == "needs_a_person"
+
+
+def test_claiming_to_be_on_the_board_they_are_moving_to_does_not_hide_the_move(
+    client: TestClient, _pins
+) -> None:
+    _pins.put_pin(LEARNER, "cbse", "v-cbse")
+    moved = _change(client, LEARNER, "icse", "9", coming_from="icse")
+    assert moved.status_code == 200, moved.text
+    assert moved.json()["used"] == 1
+
+
+def test_a_learner_with_no_pinned_board_still_sets_their_first_one_for_nothing(
+    client: TestClient, _pins
+) -> None:
+    first = _change(client, LEARNER, "icse", "9")
+    assert first.status_code == 200, first.text
+    assert first.json()["used"] == 0
+
+
+def test_a_pin_on_the_board_they_are_moving_to_is_not_a_second_board(
+    client: TestClient, _pins
+) -> None:
+    _pins.put_pin(LEARNER, "icse", "v-icse")
+    first = _change(client, LEARNER, "icse", "9")
+    assert first.status_code == 200, first.text
+    assert first.json()["used"] == 0
+
+
+def test_pins_that_cannot_be_read_refuse_rather_than_hand_out_a_move(client: TestClient) -> None:
+    from wobo_gateway.curriculum import store as curriculum_store
+
+    class Down(curriculum_store.InMemoryStore):
+        def pinned_frameworks(self, subject: str) -> list[str]:
+            raise curriculum_store.StoreUnavailable("down")
+
+    curriculum_store.set_store(Down())
+    try:
+        assert _change(client, LEARNER, "icse", "9").status_code == 503
+    finally:
+        curriculum_store.set_store(None)
+
+
+# --- the dials are written whole, and the trail follows the write (closer, 2026-09-17) ------------
+class _FailingSettings(doors.InMemorySettingsStore):
+    """Refuses any write that names the cohort dial, after the others would have gone in."""
+
+    def write(self, key, value, *, actor, note):  # noqa: ANN001
+        if key == board_change.RULE_OFF_KEY:
+            raise doors.DoorsUnavailable("down")
+        super().write(key, value, actor=actor, note=note)
+
+    def write_many(self, values, *, actor, note):  # noqa: ANN001
+        if board_change.RULE_OFF_KEY in values:
+            raise doors.DoorsUnavailable("down")
+        super().write_many(values, actor=actor, note=note)
+
+
+def test_a_dial_write_that_fails_turns_nothing_and_writes_no_dial_row(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    doors.set_store(_FailingSettings(open_default=True))
+    seat = _console(client, _admin_env, role=admin_auth.OWNER)
+    failed = client.post(
+        DIALS, json={"free_changes": 4, "rule_off_for": ["everyone"]}, headers=seat
+    )
+    assert failed.status_code == 503, failed.text
+    # Half a turn is not a turn: the dial that would have gone in first did not.
+    assert doors.get_store().read(board_change.FREE_CHANGES_KEY) is None
+    # And the trail does not record a change that never happened.
+    assert "board.dials.set" not in [row.get("action") for row in _admin_env.audit]
+
+
+def test_the_dial_row_carries_what_the_dials_were_before(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    doors.get_store().write(board_change.FREE_CHANGES_KEY, 2, actor=None, note=None)
+    seat = _console(client, _admin_env, role=admin_auth.OWNER)
+    assert client.post(DIALS, json={"free_changes": 3}, headers=seat).status_code == 200
+    row = next(r for r in _admin_env.audit if r.get("action") == "board.dials.set")
+    assert row["detail"]["before"] == {board_change.FREE_CHANGES_KEY: 2}
+    assert row["detail"]["after"] == {board_change.FREE_CHANGES_KEY: 3}
+
+
+def test_the_project_store_writes_every_dial_in_one_request() -> None:
+    """One upsert of several rows is one statement: all of them or none."""
+    calls: list[tuple[str, str, object]] = []
+
+    def fake(url, key, method, *, body=None):  # noqa: ANN001
+        calls.append((url, method, body))
+        return []
+
+    store = doors.PostgrestSettingsStore("https://example.supabase.co", "k", request=fake)
+    store.write_many({"a": 1, "b": [2]}, actor="x", note="n")
+    assert len(calls) == 1
+    assert calls[0][1] == "POST"
+    assert {row["key"] for row in calls[0][2]} == {"a", "b"}
+
+
+def test_the_queue_says_no_parent_can_change_a_board_yet(
+    client: TestClient, _admin_env: InMemoryAdminStore
+) -> None:
+    """§1's parent path is not built (no age signal, and the parent plane holds four actions).
+
+    Until it is, the "a parent's change counts" dial governs nothing, and the owner turning it
+    must be told so rather than believe it moved something.
+    """
+    seat = _console(client, _admin_env)
+    desk = client.get(QUEUE, headers=seat).json()
+    assert desk["parent_changes_possible"] is False
+    assert "parent" not in board_change.MAKERS_WRITTEN

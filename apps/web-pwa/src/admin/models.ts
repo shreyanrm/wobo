@@ -41,7 +41,8 @@ export interface TierRow {
   readonly primary: string;
   readonly fallbacks: readonly string[];
   readonly chain: readonly string[];
-  readonly price: CataloguePrice | null;
+  /** Absent, with the two spend fields below, for a seat without the money panel. */
+  readonly price?: CataloguePrice | null;
   /** The model answering this tier right now, with the provider marks applied. `null` means every
    *  rung is out and a call on this tier would not be served at all. */
   readonly carrying: string | null;
@@ -50,8 +51,8 @@ export interface TierRow {
   /** What the DESK holds, whether or not it is what the gateway is using. */
   readonly desk_value: string | null;
   readonly desk_chain: readonly string[] | null;
-  readonly spend_today: RollupTotals | null;
-  readonly spend_yesterday: RollupTotals | null;
+  readonly spend_today?: RollupTotals | null;
+  readonly spend_yesterday?: RollupTotals | null;
 }
 
 export interface ModelsDesk {
@@ -68,16 +69,19 @@ export interface ModelsDesk {
     readonly judge_pass_rate: number | null;
     readonly judge_not_known: string;
   };
+  /** The money half (cap, spend, the fractions of the cap) is absent for a seat without the
+   *  money panel; the gateway cuts it (`console_panels.without_money`). */
   readonly creative_pool: {
-    readonly cap_usd: number;
-    readonly spent_today_usd: number | null;
+    readonly cap_usd?: number;
+    readonly spent_today_usd?: number | null;
     readonly created_today: number | null;
     readonly cache_hit_rate: number | null;
-    readonly fraction: number | null;
-    readonly alert_fractions: readonly number[];
+    readonly fraction?: number | null;
+    readonly alert_fractions?: readonly number[];
     readonly capabilities: readonly string[];
   };
-  readonly spend: {
+  /** Absent as a whole for a seat without the money panel. Its absence is how this file knows. */
+  readonly spend?: {
     readonly by_tier: Readonly<Record<string, RollupTotals>> | null;
     readonly by_model: Readonly<Record<string, RollupTotals>> | null;
     readonly by_capability: Readonly<Record<string, RollupTotals>> | null;
@@ -133,7 +137,10 @@ export function isModelsDesk(value: unknown): value is ModelsDesk {
   const ladder = body.ladder as Record<string, unknown> | undefined;
   const pool = body.creative_pool as Record<string, unknown> | undefined;
   if (typeof ladder !== 'object' || ladder === null || !Array.isArray(ladder.rungs)) return false;
-  if (typeof pool !== 'object' || pool === null || typeof pool.cap_usd !== 'number') return false;
+  if (typeof pool !== 'object' || pool === null) return false;
+  // The cap is required exactly when the money is there at all: a seat without the money panel
+  // gets neither, and a desk with spend but no cap is malformed.
+  if (body.spend !== undefined && typeof pool.cap_usd !== 'number') return false;
   return body.tiers.every(
     (row) =>
       typeof row === 'object' &&
@@ -213,6 +220,11 @@ export function routerPanels(desk: ModelsDesk | null, at: string | null): Panel[
 
   const provenance = { source: SOURCE, at, caveat: RECONCILE_CAVEAT };
   const panels: Panel[] = [];
+  // A seat without the money panel is sent no money (`console_panels.without_money`), and the
+  // spend block is the part that is always there when money is. Without it, every price and spend
+  // column and the two money panels are left out: absent, not "cannot say", because the gateway
+  // could say and this seat is not the one it says it to.
+  const spend = desk.spend;
 
   // A rejected dial FIRST. Somebody typed a model into the SQL editor and believes a tier moved.
   const rejected = Object.entries(desk.dials.rejected);
@@ -247,8 +259,7 @@ export function routerPanels(desk: ModelsDesk | null, at: string | null): Panel[
       'Jobs on it',
       'Primary',
       'Behind it',
-      'Price in / out per M',
-      'Spent today',
+      ...(spend ? ['Price in / out per M', 'Spent today'] : []),
       'Carrying now',
       'Set by',
     ],
@@ -262,10 +273,9 @@ export function routerPanels(desk: ModelsDesk | null, at: string | null): Panel[
           : `${row.jobs.length}: ${row.jobs.join(', ')}`,
         row.primary,
         row.fallbacks.length === 0 ? 'nothing' : row.fallbacks.join(' → '),
-        priceWords(row.price),
         // No money column at all when the ledger could not be reached: a zero would say the tier
         // was idle, which is the opposite of what we know.
-        rollupSpent(row.spend_today),
+        ...(spend ? [priceWords(row.price), rollupSpent(row.spend_today ?? null)] : []),
         carryingWords(row),
         sourceWords(row),
       ],
@@ -277,7 +287,13 @@ export function routerPanels(desk: ModelsDesk | null, at: string | null): Panel[
     kind: 'rows',
     id: 'router-ladder',
     label: 'The generation ladder, cheapest rung first',
-    columns: ['Rung', 'Model', `Reached since ${desk.ladder.since}`, 'Spent', 'Judge’s pass rate'],
+    columns: [
+      'Rung',
+      'Model',
+      `Reached since ${desk.ladder.since}`,
+      ...(spend ? ['Spent'] : []),
+      'Judge’s pass rate',
+    ],
     rows: desk.ladder.rungs.map((model, index) => {
       const reached = desk.ladder.reached?.find((entry) => entry.model === model);
       return {
@@ -289,11 +305,15 @@ export function routerPanels(desk: ModelsDesk | null, at: string | null): Panel[
           // The gateway lists only the rungs the window reached. A rung it left out was not
           // reached at all, and that is said in words rather than as a zero this file made up.
           ladderCount(desk.ladder.reached, reached),
-          desk.ladder.reached === null
-            ? 'cannot say'
-            : reached
-              ? rollupSpent(reached)
-              : 'not reached',
+          ...(spend
+            ? [
+                desk.ladder.reached === null
+                  ? 'cannot say'
+                  : reached
+                    ? rollupSpent(reached)
+                    : 'not reached',
+              ]
+            : []),
           // Never a number, and never a blank either: the absence is the reading.
           'not counted anywhere',
         ],
@@ -302,69 +322,71 @@ export function routerPanels(desk: ModelsDesk | null, at: string | null): Panel[
     provenance: { source: SOURCE, at, caveat: desk.ladder.judge_not_known },
   });
 
-  const pool = desk.creative_pool;
-  panels.push({
-    kind: 'figure',
-    id: 'router-creative-pool',
-    label: 'The creative pool today',
-    value:
-      pool.spent_today_usd === null
-        ? 'cannot say'
-        : `${usd(pool.spent_today_usd)} of ${usd(pool.cap_usd)}`,
-    note:
-      pool.spent_today_usd === null
-        ? 'The ledger could not be reached, so the day’s creative spend is unknown. The cap stands.'
-        : `${count(pool.created_today)} creations, cache hit rate ` +
-          `${pool.cache_hit_rate === null ? 'not yet meaningful' : percent(pool.cache_hit_rate)}. ` +
-          'The platform pays for these and no learner’s day is touched by them.',
-    tone: toneOfPool(pool.fraction),
-    provenance: {
-      source: SOURCE,
-      at,
-      caveat:
-        `Paid once per concept and then cached for everyone: ${pool.capabilities.join(', ')}. ` +
-        'Never mixed with the learners’ spend, and never subtracted from anyone’s day.',
-    },
-  });
+  if (spend) {
+    const pool = desk.creative_pool;
+    panels.push({
+      kind: 'figure',
+      id: 'router-creative-pool',
+      label: 'The creative pool today',
+      value:
+        pool.spent_today_usd == null
+          ? 'cannot say'
+          : `${usd(pool.spent_today_usd)} of ${usd(pool.cap_usd ?? 0)}`,
+      note:
+        pool.spent_today_usd == null
+          ? 'The ledger could not be reached, so the day’s creative spend is unknown. The cap stands.'
+          : `${count(pool.created_today)} creations, cache hit rate ` +
+            `${pool.cache_hit_rate === null ? 'not yet meaningful' : percent(pool.cache_hit_rate)}. ` +
+            'The platform pays for these and no learner’s day is touched by them.',
+      tone: toneOfPool(pool.fraction ?? null),
+      provenance: {
+        source: SOURCE,
+        at,
+        caveat:
+          `Paid once per concept and then cached for everyone: ${pool.capabilities.join(', ')}. ` +
+          'Never mixed with the learners’ spend, and never subtracted from anyone’s day.',
+      },
+    });
 
-  const payers = desk.spend.by_payer;
-  panels.push(
-    payers === null
-      ? {
-          kind: 'absent',
-          id: 'router-payers',
-          label: 'Who paid for today',
-          because:
-            'The usage ledger could not be reached, so nothing can be said about what today ' +
-            'cost or who it was booked to. A zero here would read as a quiet day.',
-          wouldFill: 'The ledger answering — ops.usage_daily, behind GET /v1/admin/models.',
-        }
-      : {
-          kind: 'rows',
-          id: 'router-payers',
-          label: 'Who paid for today',
-          columns: ['Payer', 'Calls', 'Spent', 'Cache hits', 'Unpriced calls'],
-          rows: byRollupSpend(Object.entries(payers)).map(([payer, totals]) => ({
-            id: payer,
-            tone: (totals.unpriced_calls > 0 ? 'warn' : 'plain') as Tone,
-            cells: [
-              payer === 'creative_pool' ? 'the creative pool' : payer,
-              count(totals.calls),
-              rollupSpent(totals),
-              count(totals.cache_hits),
-              count(totals.unpriced_calls),
-            ],
-          })),
-          provenance: {
-            source: SOURCE,
-            at,
-            caveat:
-              'A platform-paid capability is booked to the creative pool whatever plan the ' +
-              'learner who triggered it is on — that is the ruling, not a rounding. ' +
-              RECONCILE_CAVEAT,
+    const payers = spend.by_payer;
+    panels.push(
+      payers === null
+        ? {
+            kind: 'absent',
+            id: 'router-payers',
+            label: 'Who paid for today',
+            because:
+              'The usage ledger could not be reached, so nothing can be said about what today ' +
+              'cost or who it was booked to. A zero here would read as a quiet day.',
+            wouldFill: 'The ledger answering — ops.usage_daily, behind GET /v1/admin/models.',
+          }
+        : {
+            kind: 'rows',
+            id: 'router-payers',
+            label: 'Who paid for today',
+            columns: ['Payer', 'Calls', 'Spent', 'Cache hits', 'Unpriced calls'],
+            rows: byRollupSpend(Object.entries(payers)).map(([payer, totals]) => ({
+              id: payer,
+              tone: (totals.unpriced_calls > 0 ? 'warn' : 'plain') as Tone,
+              cells: [
+                payer === 'creative_pool' ? 'the creative pool' : payer,
+                count(totals.calls),
+                rollupSpent(totals),
+                count(totals.cache_hits),
+                count(totals.unpriced_calls),
+              ],
+            })),
+            provenance: {
+              source: SOURCE,
+              at,
+              caveat:
+                'A platform-paid capability is booked to the creative pool whatever plan the ' +
+                'learner who triggered it is on — that is the ruling, not a rounding. ' +
+                RECONCILE_CAVEAT,
+            },
           },
-        },
-  );
+    );
+  }
 
   panels.push({
     kind: 'figure',

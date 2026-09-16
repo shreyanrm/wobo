@@ -199,7 +199,7 @@ export function byRollupSpend<Name extends string>(
 // console lives under.
 
 /** What one discovery run cost, or `null` when nothing on it could be priced. */
-export function jobCost(row: { readonly cost_usd: number | null }): number | null {
+export function jobCost(row: { readonly cost_usd?: number | null }): number | null {
   return typeof row.cost_usd === 'number' && Number.isFinite(row.cost_usd) ? row.cost_usd : null;
 }
 

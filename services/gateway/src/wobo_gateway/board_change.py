@@ -22,11 +22,11 @@ class move is still stamped on the account and still readable in the console; it
 count. §1's own reasons are all about boards, and this file says so out loud rather than leaving
 the next reader to guess which way it went.
 
-**What the learner ever reads.** Three facts before they confirm (the climb re-anchors, progress
-re-maps, and what the new board does not teach is KEPT and marked), and after that one line and
-one button. §1's last sentence is a hard rule and :data:`NEVER_SAID` in the suite enforces it:
-nothing here mentions money, a limit, a policy, an allowance or a count. It says a person will
-look at it, because a person will.
+**What the learner ever reads.** Three facts before they confirm (the climb re-anchors, their
+record stays, and the old board's topics are KEPT and marked with where they came from), and
+after that one line and one button. §1's last sentence is a hard rule and :data:`NEVER_SAID` in
+the suite enforces it: nothing here mentions money, a limit, a policy, an allowance or a count.
+It says a person will look at it, because a person will.
 
 **The dials, live and audited** (``ops.settings``, migration 0024, no deploy):
 
@@ -42,7 +42,7 @@ A cohort is a name this gateway can actually evaluate today, and there are three
 affiliation looks like), and ``plan:<plan>``. A name outside that set matches nobody, which is the
 safe direction: an unrecognised cohort leaves the rule ON.
 
-**Two tables, migration 0028.** ``learner.board_changes`` is the stamp on the account, append
+**Two tables, migration 0031.** ``learner.board_changes`` is the stamp on the account, append
 only, one row per change. ``ops.board_change_requests`` is the console's queue, one open row per
 learner. There is no third table for the grant: granting is a state on the request, and the
 allowance of one is reset by counting only the changes made SINCE the newest granted request. A
@@ -70,10 +70,11 @@ from datetime import UTC, datetime
 from typing import Any, Protocol
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictBool, StrictInt
 
 from wobo_gateway import doors
 from wobo_gateway.admin_auth import (
+    ADMIN_MANAGE,
     CONSOLE_READ,
     SUPPORT_ACT,
     AdminContext,
@@ -92,6 +93,14 @@ _HTTP_TIMEOUT_S = 5.0
 
 #: Who made a change. An operator's own change is a correction and never counts against anybody.
 MAKERS: tuple[str, ...] = ("learner", "parent", "operator")
+#: Who this gateway ACTUALLY writes today. ``parent`` is in the schema and in the counting rule, and
+#: nothing writes it: §1's "under 13, the parent does it" needs an age signal on the server (there
+#: is none; ``under_13`` is unknown almost everywhere) and a fifth parent action, which the parent
+#: plane refuses (``parent_account.PARENT_ACTIONS`` holds four, and ``boards`` is on its forbidden
+#: list). Both are the owner's to rule on. Until then the parent dial governs nothing, and the
+#: console is told so by :data:`PARENT_CHANGES_POSSIBLE` rather than left to believe otherwise.
+MAKERS_WRITTEN: tuple[str, ...] = ("learner",)
+PARENT_CHANGES_POSSIBLE = "parent" in MAKERS_WRITTEN
 #: Where a request stands. ``granted`` is the only state that hands back a change.
 REQUEST_STATES: tuple[str, ...] = ("new", "granted", "declined")
 
@@ -196,6 +205,29 @@ def rule_off_for() -> tuple[str, ...]:
     return tuple(str(name).strip().lower() for name in held if str(name).strip())
 
 
+def valid_cohort(name: str) -> bool:
+    """True for a cohort name this gateway can evaluate. The console refuses any other.
+
+    Reading is forgiving (an unknown name matches nobody, which leaves the rule ON); writing is
+    not, because an owner who types a cohort the gateway cannot evaluate would believe the rule
+    is off for somebody when it is off for nobody.
+    """
+    text = name.strip().lower()
+    if text == COHORT_EVERYONE:
+        return True
+    kind, _, value = text.partition(":")
+    return kind in ("board", "plan") and bool(value.strip()) and len(text) <= MAX_FRAMEWORK_ID
+
+
+def dials_view() -> dict[str, Any]:
+    """The three dials as the gateway is obeying them right now, defaults included."""
+    return {
+        "free_changes": free_changes(),
+        "parent_change_counts": parent_change_counts(),
+        "rule_off_for": list(rule_off_for()),
+    }
+
+
 def cohorts_of(*, framework_id: str | None, plan: str | None) -> frozenset[str]:
     """The cohort names this learner is in. Three, and every one of them computable today."""
     names = {COHORT_EVERYONE}
@@ -206,13 +238,18 @@ def cohorts_of(*, framework_id: str | None, plan: str | None) -> frozenset[str]:
     return frozenset(names)
 
 
-# --- the words a learner reads -----------------------------------------------------------------------
+# --- the words a learner reads --------------------------------------------------------------------
 #: The three facts of §1, shown BEFORE the change and never after it. Every one is true of what
 #: the product actually does, and the third one carries the word that matters: kept.
+#:
+#: The second line used to say progress was "re-mapped onto the new syllabus". It was not:
+#: completion is filed under each board's own topic ids (``screens/learn/mastery.ts``), so a
+#: topic finished on one board is not finished on another. The lines now say what happens, and
+#: the third is backed by the kept record the You screen draws (``screens/you/kept.ts``).
 COST: tuple[str, ...] = (
     "Your climb starts again from where the new board puts you.",
-    "Everything you have done is kept and re-mapped onto the new syllabus.",
-    "Anything the new board does not teach stays in your record, marked as not on this board.",
+    "Everything you have done stays in your record.",
+    "Topics from your old board are kept, marked with the board they came from.",
 )
 
 #: §1: "one line saying a board change needs a person". Never a wall of text, never a rule.
@@ -227,7 +264,7 @@ GRANTED_LINE = "Somebody looked at this. Your board is yours to change again."
 PARENT_DOES_IT = "A parent changes this from their account."
 
 
-# --- what a change and a request are ----------------------------------------------------------------
+# --- what a change and a request are --------------------------------------------------------------
 @dataclass(frozen=True)
 class Change:
     """One row of ``learner.board_changes``: the stamp on the account."""
@@ -375,7 +412,7 @@ def standing(
     )
 
 
-# --- the store seam -----------------------------------------------------------------------------------
+# --- the store seam -------------------------------------------------------------------------------
 class Unavailable(Exception):
     """The trail could not be reached. Never answered from nothing; see the module note."""
 
@@ -708,6 +745,15 @@ class AskBody(BaseModel):
     current_level: str | None = Field(default=None, max_length=MAX_LEVEL)
 
 
+class DialsBody(BaseModel):
+    """The three dials. A field left out is left alone; a body with none of them is refused."""
+
+    free_changes: StrictInt | None = Field(default=None, ge=0, le=MAX_FREE_CHANGES)
+    parent_change_counts: StrictBool | None = None
+    rule_off_for: list[str] | None = Field(default=None, max_length=50)
+    note: str | None = Field(default=None, max_length=280)
+
+
 class GrantBody(BaseModel):
     id: str = Field(default="", max_length=64)
 
@@ -804,21 +850,52 @@ def _standing_view(
     return view
 
 
+def _pinned_elsewhere(subject: str, wanted: str) -> list[str]:
+    """The boards this learner has a syllabus pinned on, other than the one they are asking for.
+
+    A pin is written only when a learner commits to a board (a choice in onboarding, an upgrade,
+    an edit, their own syllabus), so it is the gateway's own evidence that they already had one.
+    Unreadable pins refuse: answering "none" would hand out an uncounted move.
+    """
+    from wobo_gateway.curriculum import store as curriculum_store
+
+    try:
+        pinned = curriculum_store.get_store().pinned_frameworks(subject)
+    except curriculum_store.StoreUnavailable as exc:
+        raise Unavailable(f"the syllabus pins did not answer ({exc})") from exc
+    return sorted(board for board in pinned if board and board != wanted)
+
+
 def _where_they_are(
-    where: Standing, stated_board: str | None, stated_level: str | None
+    where: Standing,
+    stated_board: str | None,
+    stated_level: str | None,
+    *,
+    subject: str,
+    wanted: str,
 ) -> tuple[str | None, str | None]:
-    """The board they are on: this gateway's trail, or — only when it has none — what they say.
+    """The board they are on: this gateway's trail, or, only when it has none, the best evidence.
 
     See :class:`ChangeBody`. The trail wins the moment there is one, so the stated board can be
     read at most once in an account's life and can never overwrite a recorded change.
+
+    WITH NO TRAIL, THE APP'S WORD IS TAKEN ONLY WHEN IT NAMES A MOVE. A stated board other than
+    the one asked for is a change and is counted, so a lie there costs the liar. A missing board,
+    or the board they are asking for, would record an anchor, which is never counted; so in those
+    two cases the learner's syllabus pins decide. A pin on any other board means they were on a
+    board already, and this is their change. No such pin is a learner setting their first board.
     """
     held = where.board.get("framework_id")
     if held:
         return held, where.board.get("level")
-    return (
-        _clean(stated_board, cap=MAX_FRAMEWORK_ID),
-        _clean(stated_level, cap=MAX_LEVEL),
-    )
+    stated = _clean(stated_board, cap=MAX_FRAMEWORK_ID)
+    level = _clean(stated_level, cap=MAX_LEVEL)
+    if stated and stated != wanted:
+        return stated, level
+    elsewhere = _pinned_elsewhere(subject, wanted)
+    if elsewhere:
+        return elsewhere[0], level
+    return stated, level
 
 
 def _pending(store: BoardChangeStore, subject: str) -> ChangeRequest | None:
@@ -853,9 +930,16 @@ def register_board_change(app: FastAPI) -> None:
                 },
             )
         where, store = _standing_for(subject, plan=_plan_of(request))
-        on_board, on_level = _where_they_are(
-            where, body.current_framework_id, body.current_level
-        )
+        try:
+            on_board, on_level = _where_they_are(
+                where,
+                body.current_framework_id,
+                body.current_level,
+                subject=subject,
+                wanted=wanted,
+            )
+        except Unavailable as exc:
+            raise unavailable() from exc
         moving_board = bool(on_board) and on_board != wanted
 
         # A class move on the same board is not a board change, and neither is choosing the board
@@ -919,9 +1003,16 @@ def register_board_change(app: FastAPI) -> None:
                 },
             )
         where, store = _standing_for(subject, plan=_plan_of(request))
-        on_board, on_level = _where_they_are(
-            where, body.current_framework_id, body.current_level
-        )
+        try:
+            on_board, on_level = _where_they_are(
+                where,
+                body.current_framework_id,
+                body.current_level,
+                subject=subject,
+                wanted=wanted,
+            )
+        except Unavailable as exc:
+            raise unavailable() from exc
         standing_open = _pending(store, subject)
         now = datetime.now(UTC)
         row = ChangeRequest(
@@ -975,7 +1066,62 @@ def register_board_change(app: FastAPI) -> None:
             "limit": limit,
             "shown": len(rows),
             "more": len(rows) >= limit,
+            "dials": dials_view(),
+            "parent_changes_possible": PARENT_CHANGES_POSSIBLE,
         }
+
+    @router.post("/board-changes/dials")
+    def turn_board_dials(
+        body: DialsBody,
+        ctx: AdminContext = Depends(requires(ADMIN_MANAGE)),  # noqa: B008
+    ) -> dict[str, Any]:
+        """Turn the three dials. Owner work, like every dial that decides who may do what.
+
+        Written to ``ops.settings`` (whose trigger keeps the before and after) and to the
+        console's own trail, then read back at once so the answer is what the gateway obeys.
+        """
+        writes: dict[str, Any] = {}
+        if body.free_changes is not None:
+            writes[FREE_CHANGES_KEY] = body.free_changes
+        if body.parent_change_counts is not None:
+            writes[PARENT_COUNTS_KEY] = body.parent_change_counts
+        if body.rule_off_for is not None:
+            names = [name.strip().lower() for name in body.rule_off_for if name.strip()]
+            wrong = [name for name in names if not valid_cohort(name)]
+            if wrong:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "not_a_cohort",
+                        "message": "A cohort is everyone, board:<id> or plan:<plan>.",
+                        "refused": wrong,
+                    },
+                )
+            writes[RULE_OFF_KEY] = sorted(set(names))
+        if not writes:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "nothing_to_turn", "message": "Name at least one dial."},
+            )
+        # WRITE FIRST, THEN SAY SO. The row below used to be written before the dials were, so a
+        # write that failed left the trail describing a turn that never happened. And the dials go
+        # in as ONE write, so a failure part-way cannot leave the rule half turned.
+        store = doors.get_store()
+        try:
+            before = store.read_many(list(writes))
+            store.write_many(writes, actor=ctx.admin.subject_id, note=body.note)
+        except Exception as exc:  # noqa: BLE001 — the settings store names its own failures
+            logger.warning("board dials: write failed (%s)", type(exc).__name__)
+            raise unavailable() from exc
+        reset_dials()
+        # ops.settings keeps its own before and after by trigger, so even if this row cannot be
+        # written the turn is not unrecorded; the guard has also already written the request row.
+        ctx.audit(
+            "board.dials.set",
+            resource_type="ops.settings",
+            detail={"before": before, "after": writes, "note": body.note},
+        )
+        return {"saved": True, "dials": dials_view()}
 
     @router.post("/board-changes/grant")
     def grant_board_change(
@@ -1042,6 +1188,8 @@ __all__ = [
     "FREE_CHANGES_KEY",
     "GRANTED_LINE",
     "MAKERS",
+    "MAKERS_WRITTEN",
+    "PARENT_CHANGES_POSSIBLE",
     "NEEDS_A_PERSON",
     "PARENT_COUNTS_KEY",
     "PARENT_DOES_IT",
@@ -1057,6 +1205,7 @@ __all__ = [
     "build_store",
     "cohorts_of",
     "dial_keys",
+    "dials_view",
     "free_changes",
     "get_store",
     "parent_change_counts",
@@ -1065,4 +1214,5 @@ __all__ = [
     "rule_off_for",
     "set_store",
     "standing",
+    "valid_cohort",
 ]

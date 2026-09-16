@@ -17,16 +17,16 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   DIAL_FOR,
-  MAIL_MAX_PER_24H,
-  PUSH_BUILT,
-  PUSH_KINDS,
-  PUSH_MAX_PER_24H,
   inboxLawAllows,
   isAPushKind,
   isReminder,
+  MAIL_MAX_PER_24H,
   mayAskToTurnOn,
   mayPushAt,
   oneMessage,
+  PUSH_BUILT,
+  PUSH_KINDS,
+  PUSH_MAX_PER_24H,
 } from './push';
 
 // --- rule 1: off until asked for ------------------------------------------------------------------
@@ -51,7 +51,9 @@ describe('rule 1: off until asked for', () => {
 
   it('never asks again once it has been declined, at any number of returns', () => {
     for (const returns of [3, 10, 100]) {
-      expect(mayAskToTurnOn({ selfDirectedReturns: returns, offered: false, declined: true })).toBe(false);
+      expect(mayAskToTurnOn({ selfDirectedReturns: returns, offered: false, declined: true })).toBe(
+        false,
+      );
     }
   });
 });
@@ -137,7 +139,11 @@ describe('rule 3: never at a late hour, never during school on a school day', ()
 
 describe('rule 4: only three kinds ever', () => {
   it('is exactly the three the law names', () => {
-    expect([...PUSH_KINDS].sort()).toEqual(['doubt_answered', 'left_half_done', 'streak_ends_today']);
+    expect([...PUSH_KINDS].sort()).toEqual([
+      'doubt_answered',
+      'left_half_done',
+      'streak_ends_today',
+    ]);
   });
 
   it('refuses everything the law forbids by name', () => {
@@ -176,11 +182,15 @@ describe('the inbox law is inherited exactly, and nothing here loosens it', () =
   });
 
   it('holds the one reminder on a day the learner came', () => {
-    expect(inboxLawAllows('streak_ends_today', { messagedWithin24h: false, cameToday: true })).toBe(false);
+    expect(inboxLawAllows('streak_ends_today', { messagedWithin24h: false, cameToday: true })).toBe(
+      false,
+    );
   });
 
   it('still delivers a result of the learner’s own asking on a day they came', () => {
-    expect(inboxLawAllows('doubt_answered', { messagedWithin24h: false, cameToday: true })).toBe(true);
+    expect(inboxLawAllows('doubt_answered', { messagedWithin24h: false, cameToday: true })).toBe(
+      true,
+    );
   });
 });
 

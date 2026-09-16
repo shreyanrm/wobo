@@ -14,7 +14,14 @@ import './console.css';
 import '../ui/tokens.css';
 import { Console } from './Console';
 import { Door } from './Door';
-import type { Session } from './session';
+import { type Session, takeInvitation } from './session';
+
+// An invitation link carries its token in the address. It is taken out before anything renders,
+// so it is not left in the address bar, the history or a screenshot, and it is held in memory for
+// this tab only, like every other proof here.
+const taken = takeInvitation(window.location.href);
+if (taken.cleaned !== null) window.history.replaceState(null, '', taken.cleaned);
+let invitation = taken.invitation;
 
 function Root() {
   // Locked, from the first frame. The two proofs the guard needs live in memory only, so a fresh
@@ -25,7 +32,19 @@ function Root() {
   // greyed-out desk: a screen that draws its own shape before it knows who is looking has already
   // told a stranger what is behind it.
   if (session.state === 'checking') return <div className="ac-door" aria-busy="true" />;
-  if (session.state === 'locked') return <Door why={session.why} onOpen={setSession} />;
+  if (session.state === 'locked') {
+    return (
+      <Door
+        why={session.why}
+        invitation={invitation}
+        onOpen={(next) => {
+          // A seat is taken once. After that the account itself is what opens it.
+          if (next.state === 'open') invitation = null;
+          setSession(next);
+        }}
+      />
+    );
+  }
   return (
     <Console
       admin={session.admin}

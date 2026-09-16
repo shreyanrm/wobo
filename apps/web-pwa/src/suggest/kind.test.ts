@@ -7,47 +7,47 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { nextThing, questionsToAsk, sideDoor, wayBack } from './kind';
-import { pool } from './fixture';
-import type { DoorOffer } from '../screens/course/side-door';
 import { parseArcade } from '../engines/arcade/spec';
+import type { DoorOffer } from '../screens/course/side-door';
+import { pool } from './fixture';
+import { nextThing, questionsToAsk, sideDoor, wayBack } from './kind';
 
 const bp = pool();
-const none = new Set<string>();
 
 // --- the next thing -------------------------------------------------------------------------------
 
+/** A module of the fixture, by id. What the course hands over is played in `one-chooser.test.ts`. */
+const mod = (id: string) => bp.modules.find((m) => m.id === id) ?? null;
+
 describe('the next thing: one thing, named, and why it follows', () => {
-  it('names one module, and it is the first of THIS learner’s own group', () => {
-    const s = nextThing({ bp, topicId: 't4', done: none });
+  it('names the one module the course hands over, and nothing else', () => {
+    const s = nextThing({ bp, topicId: 't4', next: mod('p9') });
     expect(s).not.toBeNull();
     expect(s?.kind).toBe('next');
-    // the plain learner's group for t4 is the one way in, then the check
     expect(s?.target).toEqual({ to: 'module', moduleId: 'p9' });
     expect(s?.title).toBe('spread the same push over more area');
   });
 
-  it('follows the learner rather than the pool: an unmet assumption puts the ground first', () => {
-    const s = nextThing({ bp, topicId: 't4', done: none, state: { unmetAssumptions: ['a2'] } });
+  it('says why ground comes first, in the pool’s own words for that ground', () => {
+    const s = nextThing({ bp, topicId: 't4', next: mod('q2') });
     expect(s?.target).toEqual({ to: 'module', moduleId: 'q2' });
     expect(s?.why).toContain('the area of a rectangle');
   });
 
   it('says why it follows in the pool’s own words, never in a general one', () => {
-    const s = nextThing({ bp, topicId: 't4', done: none });
+    const s = nextThing({ bp, topicId: 't4', next: mod('p9') });
     expect(s?.why).toContain('pressure is the force spread over the area it presses on');
+    expect(nextThing({ bp, topicId: 't4', next: mod('r2') })?.why).toContain(
+      'a heavier object always presses harder',
+    );
   });
 
-  it('moves on as the learner does, and is nothing at all when the group is walked', () => {
-    expect(nextThing({ bp, topicId: 't4', done: new Set(['p9']) })?.target).toEqual({
-      to: 'module',
-      moduleId: 'c2',
-    });
-    expect(nextThing({ bp, topicId: 't4', done: new Set(['p9', 'c2']) })).toBeNull();
+  it('is nothing at all when the course has nothing to hand over', () => {
+    expect(nextThing({ bp, topicId: 't4', next: null })).toBeNull();
   });
 
   it('is never a list to choose from and never a ranking', () => {
-    const s = nextThing({ bp, topicId: 't4', done: none });
+    const s = nextThing({ bp, topicId: 't4', next: mod('p9') });
     // one target, one title, and no second option anywhere in the shape
     expect(Array.isArray(s?.target)).toBe(false);
     expect(s?.questions).toEqual([]);
@@ -55,15 +55,25 @@ describe('the next thing: one thing, named, and why it follows', () => {
   });
 
   it('never nudges anyone to keep going', () => {
-    const s = nextThing({ bp, topicId: 't4', done: none });
-    const said = `${s?.title} ${s?.why} ${s?.action}`.toLowerCase();
-    for (const nag of ['keep going', 'don’t stop', "don't stop", 'streak', 'almost there', 'you can do it']) {
-      expect(said).not.toContain(nag);
+    for (const id of ['q2', 'p9', 'p10', 'r2', 'c2', 's1']) {
+      const s = nextThing({ bp, topicId: 't4', next: mod(id) });
+      const said = `${s?.title} ${s?.why} ${s?.action}`.toLowerCase();
+      for (const nag of [
+        'keep going',
+        'don’t stop',
+        "don't stop",
+        'streak',
+        'almost there',
+        'you can do it',
+      ]) {
+        expect(said).not.toContain(nag);
+      }
     }
   });
 
-  it('offers nothing at all for a topic this pool does not teach', () => {
-    expect(nextThing({ bp, topicId: 'nope', done: none })).toBeNull();
+  it('offers nothing for a module that does not serve this topic', () => {
+    expect(nextThing({ bp, topicId: 'nope', next: mod('p9') })).toBeNull();
+    expect(nextThing({ bp, topicId: 't4', next: mod('p11') })).toBeNull();
   });
 });
 
@@ -71,55 +81,60 @@ describe('the next thing: one thing, named, and why it follows', () => {
 
 describe('the way back: a different route into the same idea, and only after twice', () => {
   it('is not offered the first time', () => {
-    expect(wayBack({ bp, topicId: 't4', moduleId: 'p9', held: 1, met: new Set(['p9']) })).toBeNull();
+    expect(wayBack({ bp, topicId: 't4', from: 'p9', held: 1, next: mod('p10') })).toBeNull();
   });
 
-  it('is offered the second time, from the chapter’s OWN pool', () => {
-    const s = wayBack({ bp, topicId: 't4', moduleId: 'p9', held: 2, met: new Set(['p9']) });
+  it('is offered the second time, naming the route the course takes', () => {
+    const s = wayBack({ bp, topicId: 't4', from: 'p9', held: 2, next: mod('p10') });
     expect(s?.kind).toBe('way_back');
-    // the architect wrote the route: p9 stuck -> p10
     expect(s?.target).toEqual({ to: 'module', moduleId: 'p10' });
     expect(bp.modules.some((m) => m.id === 'p10')).toBe(true);
   });
 
   it('is a DIFFERENT way in, never the same one again', () => {
-    const s = wayBack({ bp, topicId: 't4', moduleId: 'p9', held: 2, met: new Set(['p9']) });
-    expect(s?.target).not.toEqual({ to: 'module', moduleId: 'p9' });
+    expect(wayBack({ bp, topicId: 't4', from: 'p9', held: 2, next: mod('p9') })).toBeNull();
   });
 
-  it('falls to another way into the same idea when the architect’s route is already met', () => {
-    const s = wayBack({ bp, topicId: 't4', moduleId: 'p10', held: 3, met: new Set(['p10']) });
-    expect(s?.target).toEqual({ to: 'module', moduleId: 'p9' });
-  });
-
-  it('offers nothing rather than a route the learner has already walked', () => {
-    const met = new Set(['p9', 'p10']);
-    expect(wayBack({ bp, topicId: 't4', moduleId: 'p9', held: 4, met })).toBeNull();
+  it('says what the other route is, whichever the course took', () => {
+    expect(wayBack({ bp, topicId: 't4', from: 'p10', held: 3, next: mod('p9') })?.why).toContain(
+      'as something to push around',
+    );
+    expect(wayBack({ bp, topicId: 't4', from: 'p9', held: 2, next: mod('p10') })?.why).toContain(
+      'worked through a number at a time',
+    );
   });
 
   it('never says they are struggling, and never reads as a verdict', () => {
-    const s = wayBack({ bp, topicId: 't4', moduleId: 'p9', held: 2, met: new Set(['p9']) });
-    const said = `${s?.title} ${s?.why} ${s?.action} ${s?.note ?? ''}`.toLowerCase();
-    for (const verdict of [
-      'stuck',
-      'struggl',
-      'wrong',
-      'mistake',
-      'missed',
-      'failed',
-      'trouble',
-      'difficult',
-      'too hard',
-      'try again',
-      'instead',
-      'easier',
-    ]) {
-      expect(said).not.toContain(verdict);
+    for (const [from, to] of [
+      ['p9', 'p10'],
+      ['p10', 'p9'],
+      ['c2', 'r2'],
+      ['p9', 'q2'],
+    ] as const) {
+      const s = wayBack({ bp, topicId: 't4', from, held: 2, next: mod(to) });
+      expect(s).not.toBeNull();
+      const said = `${s?.title} ${s?.why} ${s?.action} ${s?.note ?? ''}`.toLowerCase();
+      for (const verdict of [
+        'stuck',
+        'struggl',
+        'wrong',
+        'mistake',
+        'missed',
+        'failed',
+        'trouble',
+        'difficult',
+        'too hard',
+        'try again',
+        'instead',
+        'easier',
+      ]) {
+        expect(said).not.toContain(verdict);
+      }
     }
   });
 
   it('names the same idea, so the learner knows it is the same thing from another side', () => {
-    const s = wayBack({ bp, topicId: 't4', moduleId: 'p9', held: 2, met: new Set(['p9']) });
+    const s = wayBack({ bp, topicId: 't4', from: 'p9', held: 2, next: mod('p10') });
     expect(s?.why).toContain('pressure is the force spread over the area it presses on');
   });
 });
@@ -160,7 +175,14 @@ describe('the side door: the arcade opened, and it is optional', () => {
   it('promises no reward that a learner loses by not taking it', () => {
     const s = sideDoor(offer);
     const said = `${s.title} ${s.why} ${s.action} ${s.note ?? ''}`.toLowerCase();
-    for (const loss of ['lose', 'expires', 'only today', 'last chance', 'miss out', 'before it closes']) {
+    for (const loss of [
+      'lose',
+      'expires',
+      'only today',
+      'last chance',
+      'miss out',
+      'before it closes',
+    ]) {
       expect(said).not.toContain(loss);
     }
   });
@@ -193,7 +215,9 @@ describe('the question to ask: two or three this page can genuinely answer', () 
 
   it('never offers one the page cannot answer', () => {
     const s = questionsToAsk({ bp, topicId: 't4', asks, onGlass: new Set(['misconception:x2']) });
-    expect(s?.questions.every((q) => q !== 'why does water push on the side of the glass')).toBe(true);
+    expect(s?.questions.every((q) => q !== 'why does water push on the side of the glass')).toBe(
+      true,
+    );
   });
 
   it('never offers one whose misconception this pool never declared', () => {
@@ -224,7 +248,12 @@ describe('the question to ask: two or three this page can genuinely answer', () 
       { text: 'c', meaning: 'misconception:x2' },
       { text: 'd', meaning: 'misconception:x2' },
     ];
-    const s = questionsToAsk({ bp, topicId: 't4', asks: many, onGlass: new Set(['misconception:x2']) });
+    const s = questionsToAsk({
+      bp,
+      topicId: 't4',
+      asks: many,
+      onGlass: new Set(['misconception:x2']),
+    });
     expect(s?.questions.length).toBe(3);
     const one = questionsToAsk({
       bp,
@@ -244,17 +273,26 @@ describe('the question to ask: two or three this page can genuinely answer', () 
 
 function every() {
   return [
-    nextThing({ bp, topicId: 't4', done: none }),
-    wayBack({ bp, topicId: 't4', moduleId: 'p9', held: 2, met: new Set(['p9']) }),
+    nextThing({ bp, topicId: 't4', next: mod('p9') }),
+    wayBack({ bp, topicId: 't4', from: 'p9', held: 2, next: mod('p10') }),
     sideDoor(offer),
-    questionsToAsk({ bp, topicId: 't4', asks, onGlass: new Set(['misconception:x2', 'misconception:x3']) }),
+    questionsToAsk({
+      bp,
+      topicId: 't4',
+      asks,
+      onGlass: new Set(['misconception:x2', 'misconception:x3']),
+    }),
   ].filter((s) => s !== null);
 }
 
 describe('the rules that bind every kind', () => {
   it('there are four kinds, and every one of them was built', () => {
     expect(every().length).toBe(4);
-    expect(every().map((s) => s.kind).sort()).toEqual(['ask', 'next', 'side_door', 'way_back']);
+    expect(
+      every()
+        .map((s) => s.kind)
+        .sort(),
+    ).toEqual(['ask', 'next', 'side_door', 'way_back']);
   });
 
   it('every one carries a stable id, so a decline can stick to it', () => {
@@ -265,8 +303,19 @@ describe('the rules that bind every kind', () => {
 
   it('is never an advertisement for a plan', () => {
     for (const s of every()) {
-      const said = `${s.title} ${s.why} ${s.action} ${s.note ?? ''} ${s.questions.join(' ')}`.toLowerCase();
-      for (const sell of ['upgrade', 'pro', 'max', 'plan', 'subscribe', 'free trial', 'unlock', 'rupees', '₹']) {
+      const said =
+        `${s.title} ${s.why} ${s.action} ${s.note ?? ''} ${s.questions.join(' ')}`.toLowerCase();
+      for (const sell of [
+        'upgrade',
+        'pro',
+        'max',
+        'plan',
+        'subscribe',
+        'free trial',
+        'unlock',
+        'rupees',
+        '₹',
+      ]) {
         expect(said).not.toContain(sell);
       }
     }

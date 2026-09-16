@@ -92,3 +92,61 @@ link with a token whose verified address matches. A token alone, however verifie
 Reason: the address claim is only as strong as the identity provider's confirmation step, and an
 administrator's seat should not rest on one provider setting. The invited row already carries
 `mfa_required`; the link is the out-of-band half.
+
+**Built (2026-09-17).** The link: `wobo_gateway/admin_invite.py` (signed with `ADMIN_INVITE_SECRET`,
+72 hours by default, bound to a keyed digest of the address, never the address). The register row
+keeps only the link's SHA-256 and its deadline (migration 0037, in the repository, not applied), and
+the write that binds the seat names that digest and clears it, so the link works once. A verified
+token with no link, a link with an unverified or different address, a spent link, an expired link
+and another seat's link all bind nothing (`tests/test_console_invitation.py`). Nothing sends the
+mail: the owner's Register desk shows the link and the message once, with copy buttons, and a person
+sends it. The route no longer accepts an account id, so every seat is taken through its link. Setup
+and the fresh-link step are in docs/OPERATIONS.md section 13.6.
+
+**What the console shows (2026-09-17).** The rail, the controls and the reads follow the seat's
+effective set from `GET /v1/admin/panels` (`apps/web-pwa/src/admin/seats.ts`, checked against
+`console_panels.py` by `seats.test.ts`). A desk the seat cannot read is not drawn and is never
+asked for. The Register desk shows each person's effective set with where each part came from, and
+the owner grants, revokes, puts back, re-links and suspends from it, one audited row per change.
+
+## What the closer found and settled (2026-09-17)
+
+**A panel's figures do not ride on another desk.** Revoking the money panel closed the money
+routes, but the health, syllabus, stores and models desks still carried spend, ceilings, prices
+and savings. Every admin answer now passes through `console_panels.without_money`, installed on
+the route class that `admin_router` gives every desk, so a seat without `panel.money.read` gets
+no key that names money on any desk, and a desk added later is cut the same way. The models and
+syllabus desks draw without those columns rather than breaking
+(`tests/test_console_money_hidden.py`, `src/admin/moneyHidden.test.ts`).
+
+**The owner's grant is the whole answer.** A route's coarse permission is also met when the seat
+holds the exact panel capability the guard asked of that path, so a viewer given
+`panel.boards.act` can grant a board change and nothing else. `admin.manage` (the register, the
+dials, the router) is never widened by a panel grant. The Grant button is drawn only for a seat
+that holds the board desk's act.
+
+**Where a learner came from, when the gateway has no trail.** The app's word is taken only when it
+names a move. A missing board, or the board they are moving to, is decided by the learner's
+syllabus pins: a pin on another board means this is their change and it is counted. Pins that
+cannot be read refuse. An unlisted board picked on the You screen asks for the board to be found
+and moves nothing; the move happens when they pick the found board, through the rule.
+
+**The dials are written whole, then recorded.** One upsert for every dial, and the audit row,
+with the values before and after, is written only once the write has taken.
+
+**Still the owner's to rule on:**
+
+1. **The parent path (§1, "under 13, the parent does it").** Not built, and it cannot be without
+   two rulings: the server has no age signal (`under_13` is unknown almost everywhere), and the
+   parent plane holds exactly four actions with `boards` on its forbidden list
+   (`parent_account.py`). Until then nothing writes a parent's change, the "a parent's change
+   counts" dial governs nothing, and the console says so under the dial
+   (`board_change.PARENT_CHANGES_POSSIBLE`).
+2. **"Their progress stays but re-maps to the new syllabus" (§1).** The product does not re-map:
+   completion is filed under each board's own topic ids. What it does is keep the old board's
+   topics by name and mark where they came from, and the three lines a learner confirms say
+   exactly that. The sentence above is the owner's and is left as spoken; the owner decides
+   whether re-mapping is still wanted or the sentence should change.
+3. **The kept record lives on the device**, like the rest of a learner's progress (stars,
+   completion, practice marks). A second device does not show it. Carrying it across devices is
+   the same question as carrying progress across devices, under docs/MEMORY-LAW.md.

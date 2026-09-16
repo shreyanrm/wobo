@@ -7,14 +7,15 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { choose, PRIORITY } from './choose';
-import { decline, forgetDeclines } from './session';
-import { nextThing, questionsToAsk, sideDoor, wayBack } from './kind';
-import { pool } from './fixture';
 import { parseArcade } from '../engines/arcade/spec';
 import type { DoorOffer } from '../screens/course/side-door';
+import { choose, PRIORITY } from './choose';
+import { pool } from './fixture';
+import { nextThing, questionsToAsk, sideDoor, wayBack } from './kind';
+import { decline, forgetDeclines } from './session';
 
 const bp = pool();
+const mod = (id: string) => bp.modules.find((m) => m.id === id) ?? null;
 
 const spec = parseArcade({
   id: 'bonus-3-sort',
@@ -42,8 +43,8 @@ const asks = [
 
 function all() {
   return [
-    nextThing({ bp, topicId: 't4', done: new Set<string>() }),
-    wayBack({ bp, topicId: 't4', moduleId: 'p9', held: 2, met: new Set(['p9']) }),
+    nextThing({ bp, topicId: 't4', next: mod('p10') }),
+    wayBack({ bp, topicId: 't4', from: 'p9', held: 2, next: mod('p10') }),
     sideDoor(offer),
     questionsToAsk({ bp, topicId: 't4', asks, onGlass: new Set(['misconception:x2']) }),
   ];

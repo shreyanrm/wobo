@@ -13,7 +13,7 @@
  */
 
 import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useIsPresent } from 'framer-motion';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { BarState } from './shared';
 import { CardBody, cardTitle, GOLD, lead, Stage, whisper } from './shared';
@@ -41,6 +41,11 @@ function UnitWeight({
   removable: boolean;
   restore?: boolean;
 }) {
+  // A weight that has just been taken off stays in the page while it leaves. It must not still be
+  // a weight: under reduced motion the next tap used to land on it and do nothing, so every other
+  // tap was lost. Leaving, it has no name, takes no tap and lets the tap through to the next one.
+  const present = useIsPresent();
+  const live = present && (removable || restore);
   return (
     <motion.div
       layout
@@ -48,17 +53,18 @@ function UnitWeight({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, y: restore ? 10 : -22, scale: 0.7 }}
       transition={{ type: 'spring', stiffness: 420, damping: 26 }}
-      drag={removable && !restore}
+      drag={present && removable && !restore}
       dragSnapToOrigin
       whileDrag={{ scale: 1.15, zIndex: 6 }}
       whileTap={{ scale: 0.94 }}
       onDragEnd={(_, info) => {
-        if (removable && Math.hypot(info.offset.x, info.offset.y) > 52) onRemove();
+        if (present && removable && Math.hypot(info.offset.x, info.offset.y) > 52) onRemove();
       }}
       onTap={() => {
-        if (removable || restore) onRemove();
+        if (live) onRemove();
       }}
-      aria-label={restore ? 'put this weight back' : 'take this weight off'}
+      aria-label={present ? (restore ? 'put this weight back' : 'take this weight off') : undefined}
+      aria-hidden={present ? undefined : true}
       style={{
         width: 30,
         height: 28,
@@ -71,7 +77,8 @@ function UnitWeight({
         fontSize: '0.72rem',
         fontWeight: 600,
         color: INK,
-        cursor: removable || restore ? 'grab' : 'default',
+        cursor: live ? 'grab' : 'default',
+        pointerEvents: present ? undefined : 'none',
         touchAction: 'none',
         userSelect: 'none',
       }}
@@ -265,7 +272,7 @@ export function BalanceScale({
     <CardBody maxWidth={680}>
       <div style={whisper}>Guided discovery</div>
       <div style={cardTitle}>Get x alone</div>
-      <div style={lead}>Take weights off the pans — the scale must end level.</div>
+      <div style={lead}>Take weights off the pans. The scale must end level.</div>
 
       <Stage hue={HUE} tint={0.055} minHeight={340} style={{ padding: '20px 16px 12px' }}>
         {/* the equation, morphing at the reveal */}
@@ -458,7 +465,7 @@ export function BalanceScale({
             </AnimatePresence>
           </div>
           {(leftOff.length > 0 || rightOff.length > 0) && !revealed && (
-            <div style={{ ...whisper, textAlign: 'center' }}>Off the scale — tap to put back</div>
+            <div style={{ ...whisper, textAlign: 'center' }}>Off the scale. Tap to put back.</div>
           )}
           <div style={{ display: 'flex', gap: 5, minHeight: 26 }}>
             <AnimatePresence>
@@ -483,7 +490,7 @@ export function BalanceScale({
             >
               whatever you do to one side, do to the other.
               <div style={{ ...lead, marginTop: 4 }}>
-                you took 3 from both pans — that is all algebra ever asks.
+                you took 3 from both pans, and that is all algebra ever asks.
               </div>
             </motion.div>
           ) : hint ? (

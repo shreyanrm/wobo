@@ -125,22 +125,44 @@ export function syllabusPanels(desk: SyllabusDesk | null, at: string | null): Pa
     provenance,
   });
 
-  // 2. THE DAY, against the ceiling §5 asks for an alert on.
-  panels.push({
-    kind: 'figure',
-    id: 'syllabus-day',
-    label: 'The platform’s day',
-    value: `${usd(desk.day.spent_usd)} of ${usd(desk.day.ceiling_usd)}`,
-    tone: desk.day.shedding
-      ? 'critical'
-      : desk.day.fraction && desk.day.fraction > 0.5
-        ? 'warn'
-        : 'ok',
-    note: desk.day.shedding
-      ? 'The day is spent for internal work. Queued boards are left queued and looked at tomorrow.'
-      : `${desk.day.fraction === null ? '—' : percent(desk.day.fraction)} of the ceiling. A discovery is shed in the ${desk.day.lane} lane, so it stops long before a paying learner does.`,
-    provenance,
-  });
+  // A seat without the money panel is sent no money (`console_panels.without_money`): no day's
+  // figures, no cost list, no cost on a run. The day's ceiling is the field that is always there
+  // when money is, so its absence is how this file knows. What is withheld is left out, never
+  // written as "not priced", which would say nothing could price it.
+  const { spent_usd: spent, ceiling_usd: ceiling } = desk.day;
+  const moneyShown = ceiling !== undefined;
+
+  // 2. THE DAY, against the ceiling §5 asks for an alert on. Without the money, only whether the
+  // day is still open for discovery, which is what an operator working the queue needs.
+  if (!moneyShown) {
+    panels.push({
+      kind: 'figure',
+      id: 'syllabus-day',
+      label: 'The platform’s day',
+      value: desk.day.shedding ? 'closed for discovery' : 'open for discovery',
+      tone: desk.day.shedding ? 'critical' : 'ok',
+      note: desk.day.shedding
+        ? 'The day is spent for internal work. Queued boards are left queued and looked at tomorrow.'
+        : `A discovery is shed in the ${desk.day.lane} lane, so it stops long before a paying learner does.`,
+      provenance,
+    });
+  } else {
+    panels.push({
+      kind: 'figure',
+      id: 'syllabus-day',
+      label: 'The platform’s day',
+      value: `${usd(spent ?? 0)} of ${usd(ceiling)}`,
+      tone: desk.day.shedding
+        ? 'critical'
+        : desk.day.fraction && desk.day.fraction > 0.5
+          ? 'warn'
+          : 'ok',
+      note: desk.day.shedding
+        ? 'The day is spent for internal work. Queued boards are left queued and looked at tomorrow.'
+        : `${desk.day.fraction == null ? 'An unknown share' : percent(desk.day.fraction)} of the ceiling. A discovery is shed in the ${desk.day.lane} lane, so it stops long before a paying learner does.`,
+      provenance,
+    });
+  }
 
   // 3. HOW MANY BOARDS ACTUALLY HAVE ANYTHING. The honest count (WOBO-TASKS §10.21).
   const held = desk.counts?.with_syllabus ?? desk.boards.filter((row) => row.has_syllabus).length;
@@ -241,7 +263,15 @@ export function syllabusPanels(desk: SyllabusDesk | null, at: string | null): Pa
           kind: 'rows',
           id: 'syllabus-refused',
           label: 'Could not be read, and why',
-          columns: ['Board', 'Class', 'Subject', 'Why', 'What we saw', 'Cost', 'When'],
+          columns: [
+            'Board',
+            'Class',
+            'Subject',
+            'Why',
+            'What we saw',
+            ...(moneyShown ? ['Cost'] : []),
+            'When',
+          ],
           rows: desk.refused.map((row) => ({
             id: row.job_id,
             cells: [
@@ -250,7 +280,7 @@ export function syllabusPanels(desk: SyllabusDesk | null, at: string | null): Pa
               row.subject ?? '—',
               row.reason_plain ?? row.message ?? 'not recorded',
               evidence(row),
-              money(jobCost(row)),
+              ...(moneyShown ? [money(jobCost(row))] : []),
               when(row.updated_at ?? row.created_at),
             ],
             tone: toneOfJob(row),
@@ -265,13 +295,14 @@ export function syllabusPanels(desk: SyllabusDesk | null, at: string | null): Pa
   );
 
   // 7. WHAT EACH BOARD COST.
-  if (desk.cost.length > 0) {
+  const cost = moneyShown ? (desk.cost ?? []) : [];
+  if (cost.length > 0) {
     panels.push({
       kind: 'rows',
       id: 'syllabus-cost',
       label: 'What each board cost to read',
       columns: ['Board', 'Readings', 'Spent', 'Unpriced'],
-      rows: desk.cost.map((row) => ({
+      rows: cost.map((row) => ({
         id: row.framework_id,
         cells: [row.framework_name, String(row.jobs), money(boardSpend(row)), String(row.unpriced)],
         tone: 'plain' as Tone,

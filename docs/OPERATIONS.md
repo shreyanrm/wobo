@@ -892,12 +892,10 @@ the owner's." This is that page. It is the only way the owner's row in `ops.admi
   `ops.break_glass`, which must be `on` inside the transaction doing the write. PostgREST cannot
   send `set local`, so no console route can open it: it takes a direct SQL connection and the
   project's service role, which is you and nobody else.
-* **0029 is in the repository and NOT on the project.** `list_migrations` on 2026-09-14 shows
-  `0001` to `0023` applied (§8, and `docs/NOW.md`). Until 0029 is applied, the gateway's refusals are
-  the only protection, a direct SQL write on the owner's row needs no setting at all, and a second
-  active owner is refused by the gateway but not by the database. Apply 0029 before you need this
-  page rather than during. If the index fails to create, the project already holds two active
-  owners; the third recipe below is the fix, then apply again.
+* **0029 is applied to production** (`list_migrations`, 2026-09-17: applied 2026-09-16 as
+  `20260916030041`). An earlier version of this page said it was not; that was true on 2026-09-14
+  and is not now. If `admins_one_active_owner` ever fails to create on a fresh project, that
+  project already holds two active owners; recipe 13.3 is the fix, then apply again.
 
 **What the trigger does not do.** A trigger that raises aborts its own transaction, so it cannot
 write its own audit row; the gateway audits attempts instead. It follows that a break-glass write is
@@ -909,7 +907,14 @@ thing this whole section exists to prevent.
 connection string from the dashboard. The SQL editor runs as the `postgres` role; the trigger fires
 for that role too, so the `set local` line is still required. Run each recipe as ONE block, from
 `begin` to `commit`, because `set local` lives and dies with its transaction and is worthless
-outside one. Nothing here is typed into the console, and nothing here goes through the gateway.
+outside one. Nothing here is typed into the console, and nothing here goes through the gateway. Use the
+direct connection string (Project Settings, Database, the direct URI, not the pooler). Never `set`
+`ops.break_glass` at the role or database level: that would leave the trigger open for every
+connection that follows. `set local` inside the transaction is the only form this page uses.
+
+**When to use it.** The owner has lost the account or the factor bound to the owner row, the seat
+must move to a different account, or the register holds a wrong or second owner. Nothing else:
+adding, shaping and suspending every other person is done from the console's Register desk.
 
 **Before any recipe, look.** Do not guess which row is the owner's.
 
@@ -979,6 +984,22 @@ values ('<your auth user id>', 'owner', 'admin.break_glass',
 commit;
 ```
 
+If the seat is changing hands to a person already in the register, retire the old row with the
+block above first (the unique index allows one active owner), then, in a second block:
+
+```sql
+begin;
+update ops.admins set role = 'owner', updated_at = now()
+ where id = '<the new person''s admin id>' and status = 'active';
+insert into ops.admin_audit (actor_subject, actor_role, action, resource_type, resource_id, detail)
+values ('<their auth user id>', 'owner', 'admin.break_glass',
+        'admin', '<the new person''s admin id>', '{"what": "promote", "why": "<one line, no names>"}');
+commit;
+```
+
+No `set local` is needed for that one: the trigger guards changes to an existing owner's row, not
+promotion into an empty seat.
+
 ### 13.4 No active owner at all
 
 The console cannot add an owner from inside itself, on purpose. The first row is the 0015 recipe,
@@ -1008,67 +1029,50 @@ run it again with `set local ops.break_glass = 'on'` as the first line after `be
   `admin.denied.owner` that preceded it, which is how you tell an accident from an attempt.
 * The setting is gone the moment the transaction ends. There is nothing to switch back off.
 
-**What this does not cover, honestly.** Nothing has run the trigger against a real project yet:
+### 13.6 Inviting a person (migration 0037, the signed link)
+
+Adding a person is the Register desk's "Invite a person": an address, a role to start from, and the
+capabilities. The gateway answers with a signed link and the message to send; **nothing sends it**.
+Copy both and send them from your own mail to that address. The link works once, only for an
+account that signs in with that address verified, and only until it runs out (72 hours by default,
+`ADMIN_INVITE_HOURS`). A verified sign-in without the link binds nothing (docs/CONSOLE-ROLES-AND-BOARD.md,
+2026-09-15). "Make a fresh link" on the person's row replaces the link, and the old one stops.
+
+What the gateway needs before it will invite anyone, or it answers `invitation_unavailable` and
+adds nobody:
+
+* `CONSOLE_URL`: the full https address the console opens at, for example
+  `https://console.example/admin.html`. The console has no public host by default
+  (`apps/web-pwa/vite.admin.config.ts`), so this is your decision, made once.
+* a signing key: `ADMIN_INVITE_SECRET` (preferred, its own value), or, without it, a key derived
+  from `SUPABASE_JWT_SECRET` under the console's own label.
+* **migration 0037 applied** (`0037_console_invitation_link.sql`, applied to production on
+  2026-09-17). Until it is, the gateway's writes of `invite_token_hash` are refused by
+  PostgREST and no invitation can be made. Apply it before the first invite.
+
+Any row that was already `invited` before 0037 has no link and can never be taken: open it on the
+Register desk and make a fresh link.
+
+**Driven against production, 2026-09-17, inside one transaction that was rolled back.** With a
+temporary owner row that never persisted (checked afterwards: `ops.admins` still holds 0 rows), as
+the service role: a second active owner was refused by the unique index; suspending, demoting and
+rebinding the owner were each refused by the trigger; deleting the owner was refused; the same
+suspension went through with `ops.break_glass` set; and `authenticated` has no usage on `ops` and no
+select on `ops.admin_capabilities`, nor does `anon` on `ops.admins`. So checks 1 to 4 below are done
+for 0029. **Production has no owner seat at all yet** (0 rows): section 13.4 is the first thing to
+run, with the owner's own auth user id and address.
+
+**What this does not cover, honestly.** Before 2026-09-17 nothing had run the trigger against a real project:
 `services/gateway/tests/test_console_roles_schema.py` matches the text of 0029 and lists the four
-things to drive by hand on a Supabase branch before this is relied on. Do that when 0029 is applied.
+things to drive by hand on a Supabase branch before this is relied on. 0029 is applied, so that is
+now overdue. Also drive, on the same branch, 0037: an invited row written with both columns, a second row
+holding the same digest refused by `admins_one_row_per_invitation`, and a digest on a non-invited
+row refused by `admins_invitation_only_while_invited`. **Done on production, 2026-09-17, rolled back:**
+an invited row with a digest was accepted, a second row with the same digest was refused, a digest
+on an active seat was refused, and a value that is not a digest was refused.
 
-## 13. Break-glass: the owner's seat (migration 0029)
-
-The console has exactly one owner account (docs/CONSOLE-ROLES-AND-BOARD.md §2). Migration
-`0029_console_owner_and_capabilities.sql` makes that a constraint: a partial unique index allows one
-active row with the owner role, and the trigger `ops.the_owner_is_not_yours_to_take` refuses any
-statement that would demote, suspend, delete or rebind that row, whoever is asking, including the
-service key the gateway runs on. The gateway refuses first and audits the attempt as
-`admin.denied.owner`; the trigger is the backstop for the day the gateway is the problem.
-
-That is a locked building with no key unless the way back is written down, so here it is. The
-trigger has one bypass: the session setting `ops.break_glass`, read with `current_setting` inside
-the transaction doing the write. PostgREST cannot issue `set local`, so no console route and no bug
-in one can open it. It takes a direct SQL connection with the service role, which the owner holds
-and nobody else does.
-
-**When to use it.** The owner has lost access to the account bound to the owner row (a lost second
-factor with no recovery code, a lost address), or the owner's row needs to move to a different
-account. Nothing else. Adding, suspending and shaping every other person is done from the console.
-
-**The procedure.** From a machine the owner controls, with the direct connection string (Supabase
-dashboard, Project Settings, Database, the direct URI, not the pooler), in one transaction:
-
-```sql
-begin;
-set local ops.break_glass = 'on';
-
--- 1. Look before touching. There is one active owner; note its id.
-select id, subject_id, email, role, status from ops.admins where role = 'owner';
-
--- 2a. Move the seat to a different account: rebind the row to the new auth user's id.
-update ops.admins
-   set subject_id = '<the new auth.users.id>', email = '<the address on that account>'
- where role = 'owner' and status = 'active';
-
--- 2b. Or, if the seat must change hands entirely: retire the old row, then promote the new one.
---     The unique index allows one active owner, so the old row is retired first.
--- update ops.admins set status = 'suspended' where role = 'owner' and status = 'active';
--- update ops.admins set role = 'owner' where id = '<the new person's admin id>';
-
--- 3. End every console session on the row that moved.
-update ops.admin_sessions
-   set revoked_at = now(), revoked_reason = 'break_glass'
- where admin_id = '<the owner row id>' and revoked_at is null;
-
-commit;
-```
-
-`set local` scopes the setting to this transaction and nothing else; a second session, or the same
-session after `commit`, is back behind the trigger. Never `set` it at the role or database level,
-which would leave the door open for every connection that follows.
-
-**Afterwards.** Sign in to the console with the account now bound to the row and confirm the
-register shows one owner. The trail carries no row for a change made this way, because it went
-around the gateway on purpose, so write the date, the reason and the two ids in this section's
-history below.
-
-History: none yet.
+History of break-glass use: none yet. Write the date, the reason and the two ids here when it
+happens, besides the `admin.break_glass` row the recipes insert.
 
 ### The database advisors, and the 34 findings that are the design (2026-09-16)
 

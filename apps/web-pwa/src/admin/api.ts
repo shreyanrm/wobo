@@ -32,7 +32,14 @@ export const READ_TIMEOUT_MS = 8000;
 
 export type Fetched<T> =
   | { readonly ok: true; readonly value: T; readonly at: string }
-  | { readonly ok: false; readonly reason: FailureReason; readonly status: number | null };
+  | {
+      readonly ok: false;
+      readonly reason: FailureReason;
+      readonly status: number | null;
+      /** The gateway's own refusal code (`detail.code`), when it gave one in a shape we trust.
+       *  A word, never a sentence: the console chooses what to say about it. */
+      readonly code?: string;
+    };
 
 /** Why a read did not produce a number. These words go on the screen; every one is about OUR
  *  system, none is about the operator, and none implies data that is not there. */
@@ -90,6 +97,22 @@ function statusToReason(status: number): FailureReason {
   return 'gateway_error';
 }
 
+/** `detail.code` from a refusal, when it is one short lower-case word. Anything else is dropped:
+ *  a proxy's error page must not be able to put words on this screen. */
+async function refusalCode(response: Response): Promise<string | undefined> {
+  try {
+    const body = (await response.json()) as { detail?: { code?: unknown } } | null;
+    const code = body?.detail?.code;
+    return typeof code === 'string' && /^[a-z_]{1,64}$/.test(code) ? code : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** A per-person tail on an endpoint: `/<uuid>` and at most one lower-case word after it. Nothing
+ *  that could climb out of the endpoint, and nothing an operator typed. */
+const SUBPATH = /^\/[0-9a-f-]{8,64}(\/[a-z]{1,32})?$/;
+
 async function send<T>(
   url: string,
   init: RequestInit,
@@ -106,7 +129,13 @@ async function send<T>(
       signal: timer.signal,
     });
     if (!response.ok) {
-      return { ok: false, reason: statusToReason(response.status), status: response.status };
+      const code = await refusalCode(response);
+      return {
+        ok: false,
+        reason: statusToReason(response.status),
+        status: response.status,
+        ...(code ? { code } : {}),
+      };
     }
     const body: unknown = response.status === 204 ? {} : await response.json();
     if (!guard(body)) return { ok: false, reason: 'unrecognised', status: response.status };
@@ -153,13 +182,15 @@ export async function write<T>(
   guard: (value: unknown) => value is T,
   fetcher: typeof fetch = fetch,
   method: 'POST' | 'DELETE' = 'POST',
+  subpath = '',
 ): Promise<Fetched<T>> {
   const base = gatewayBase();
   if (!base) return { ok: false, reason: 'unconfigured', status: null };
+  if (subpath && !SUBPATH.test(subpath)) return { ok: false, reason: 'unrecognised', status: null };
   const headers = proofHeaders();
   if (body !== undefined) headers['content-type'] = 'application/json';
   return send(
-    `${base}${ENDPOINT[endpoint]}`,
+    `${base}${ENDPOINT[endpoint]}${subpath}`,
     {
       method,
       headers,

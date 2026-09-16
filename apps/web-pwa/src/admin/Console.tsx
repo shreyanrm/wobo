@@ -11,20 +11,16 @@
  * about data it did not fetch.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityLookup } from './ActivityLookup';
 import { type ActivityDesk, activityPanels, isActivityDesk } from './activity';
 import { type AllowanceDesk, allowancePanels, isAllowanceDesk } from './allowance';
-import { read } from './api';
-import {
-  type AdminIdentity,
-  type Economics,
-  type HealthSnapshot,
-  LEARNER_READ,
-  type UsageWindow,
-} from './contract';
+import { type Fetched, read as readGateway } from './api';
+import { BoardChangeActions } from './BoardChangeActions';
+import { type BoardChangeDesk, boardChangePanels, isBoardChangeDesk } from './boardChanges';
+import type { AdminIdentity, Economics, HealthSnapshot, UsageWindow } from './contract';
 import { AllowanceActions, ModelsActions, mayTurn } from './DialActions';
-import { DESKS, type DeskId, desk as deskById } from './desks';
+import { type DeskId, desk as deskById } from './desks';
 import { MailActions } from './MailActions';
 import { isMailDesk, type MailDesk, mailPanels } from './mail';
 import { isModelsDesk, type ModelsDesk, routerPanels } from './models';
@@ -48,6 +44,7 @@ import {
   queuePanels,
   urgentTile,
 } from './queues';
+import { RegisterActions } from './RegisterActions';
 import {
   healthPanels,
   isEconomics,
@@ -58,7 +55,9 @@ import {
   spendPanels,
   summary,
 } from './readings';
+import { isRegister, type Register, registerPanels } from './register';
 import { SyllabusActions } from './SyllabusActions';
+import { firstDesk, holdsEndpoint, isPanelsAnswer, mayAct, mayRead, visibleDesks } from './seats';
 import { mayReadConsole, signOut } from './session';
 import { isSyllabusDesk, type SyllabusDesk, syllabusPanels } from './syllabus';
 
@@ -74,6 +73,12 @@ const WINDOW_DAYS = '30';
  *  to close some, not to load more. */
 const QUEUE_PAGE = '50';
 
+/** A read this seat does not hold, never sent. Not a refusal: nothing was asked. */
+const NOT_HELD = 'not_held';
+function notHeld<T>(): Fetched<T> {
+  return { ok: false, reason: 'not_permitted', status: null, code: NOT_HELD };
+}
+
 export function Console({
   admin,
   weakFactor,
@@ -84,6 +89,13 @@ export function Console({
   onClosed: () => void;
 }) {
   const [open, setOpen] = useState<DeskId>('spend');
+  // What this seat EFFECTIVELY holds (docs/CONSOLE-ROLES-AND-BOARD.md §2): the rail, the controls
+  // and the reads all follow it. Seeded from the session the gateway minted and replaced by every
+  // GET /v1/admin/panels, so a grant or a revocation shows on the next refresh.
+  const [held, setHeld] = useState<readonly string[]>(admin.capabilities ?? []);
+  const heldRef = useRef<readonly string[]>(admin.capabilities ?? []);
+  // The register (ops.admins), read only by a seat that holds its panel.
+  const [register, setRegister] = useState<Register | null>(null);
   const [health, setHealth] = useState<HealthSnapshot | null>(null);
   const [usage, setUsage] = useState<UsageWindow | null>(null);
   const [economics, setEconomics] = useState<Economics | null>(null);
@@ -108,10 +120,40 @@ export function Console({
   // The mail desk (ops.mail_watch, migration 0036): where our mail lands, and what was paused.
   const [mail, setMail] = useState<MailDesk | null>(null);
   const [redeemed, setRedeemed] = useState<RedemptionPage | null>(null);
+  // The board-change queue (ops.board_change_requests, migration 0031) and its three dials.
+  const [boardChanges, setBoardChanges] = useState<BoardChangeDesk | null>(null);
   const [at, setAt] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
 
+  // After a change on the register, only the register and this seat's own panels are read again.
+  // A whole refresh is about twenty requests against the console's sixty a minute, and an owner
+  // shaping one person's seat presses several cells in a row.
+  const rereadRegister = useCallback(async () => {
+    const gotPanels = await readGateway('panels', isPanelsAnswer);
+    if (gotPanels.ok) {
+      heldRef.current = gotPanels.value.capabilities;
+      setHeld(gotPanels.value.capabilities);
+    }
+    if (!holdsEndpoint(heldRef.current, 'admins')) return;
+    const gotRegister = await readGateway('admins', isRegister);
+    setRegister(gotRegister.ok ? gotRegister.value : null);
+  }, []);
+
   const refresh = useCallback(async () => {
+    const gotPanels = await readGateway('panels', isPanelsAnswer);
+    if (gotPanels.ok) {
+      heldRef.current = gotPanels.value.capabilities;
+      setHeld(gotPanels.value.capabilities);
+    }
+    // Every read below asks only for a desk this seat holds. A desk it does not hold is not there,
+    // and asking anyway would come back refused and read as a closed session.
+    const read: typeof readGateway = (endpoint, guard, options, fetcher) =>
+      holdsEndpoint(heldRef.current, endpoint)
+        ? readGateway(endpoint, guard, options, fetcher)
+        : Promise.resolve(notHeld());
+    const gotRegister = await read('admins', isRegister);
+    // Dropped rather than kept: an old list is a person who was suspended, still looking seated.
+    setRegister(gotRegister.ok ? gotRegister.value : null);
     const [
       gotHealth,
       gotUsage,
@@ -124,6 +166,7 @@ export function Console({
       gotSyllabus,
       gotActivity,
       gotMail,
+      gotBoardChanges,
       ...gotQueues
     ] = await Promise.all([
       read('health', isHealthSnapshot),
@@ -137,6 +180,7 @@ export function Console({
       read('syllabus', isSyllabusDesk, { query: { limit: QUEUE_PAGE } }),
       read('activity', isActivityDesk),
       read('mail', isMailDesk),
+      read('boardChanges', isBoardChangeDesk, { query: { limit: QUEUE_PAGE } }),
       ...QUEUE_KINDS.map((kind) =>
         read('reports', isQueuePage, { query: { kind, limit: QUEUE_PAGE } }),
       ),
@@ -162,6 +206,8 @@ export function Console({
     // Dropped rather than kept: an old rate under a fresh timestamp is a pause that was lifted, or
     // a complaint that arrived, still reading as it was.
     setMail(gotMail.ok ? gotMail.value : null);
+    // Dropped rather than kept: a stale queue is a request somebody already granted, still open.
+    setBoardChanges(gotBoardChanges.ok ? gotBoardChanges.value : null);
     const pages: Partial<Record<QueueKind, QueuePage>> = {};
     QUEUE_KINDS.forEach((kind, index) => {
       const got = gotQueues[index];
@@ -174,6 +220,8 @@ export function Console({
     // A console session is short and revocable. When the guard starts refusing, the console
     // closes rather than sitting there refreshing into a wall.
     const refused = [
+      gotPanels,
+      gotRegister,
       gotHealth,
       gotUsage,
       gotEconomics,
@@ -184,7 +232,7 @@ export function Console({
       gotActivity,
       gotMail,
       ...gotQueues,
-    ].some((result) => !result.ok && result.reason === 'not_permitted');
+    ].some((result) => !result.ok && result.reason === 'not_permitted' && result.code !== NOT_HELD);
     setEnded(refused);
   }, []);
 
@@ -198,7 +246,9 @@ export function Console({
   // The safety-flag tile goes FIRST on the strip. A child saying something upset them outranks
   // every other reading on this console, including the money.
   const tiles = [urgentTile(deskSummary, at), ...summary(health, usage, at)];
-  const desk = deskById(open);
+  const rail = visibleDesks(held);
+  const shown = firstDesk(held, open);
+  const desk = deskById(shown ?? open);
   const panels = panelsFor(desk.id, {
     health,
     usage,
@@ -212,6 +262,8 @@ export function Console({
     syllabus,
     activity,
     mail,
+    boardChanges,
+    register,
     at,
     permitted,
   });
@@ -258,7 +310,7 @@ export function Console({
 
       <div className="ac-body">
         <nav className="ac-rail" aria-label="Desks">
-          {DESKS.map((entry) => (
+          {rail.map((entry) => (
             <button
               className="ac-desk"
               type="button"
@@ -277,67 +329,97 @@ export function Console({
         </nav>
 
         <main className="ac-main">
-          <div className="ac-head">
-            <h1>{desk.name}</h1>
-            <p>{desk.question}</p>
-            {desk.supply.kind === 'live' && (
-              <p>
-                Sourced from {desk.supply.from}. {asOf(at)}.
-              </p>
-            )}
-          </div>
-          <div className="ac-panels">
-            {panels.map((panel) => (
-              <PanelView panel={panel} key={panel.id} />
-            ))}
-            {/* The two things on this console that change anything: working a queue, and minting
+          {shown === null ? (
+            <p className="ac-none">
+              This seat holds no desks yet. The owner decides what it can see, and it appears here
+              as soon as they do.
+            </p>
+          ) : (
+            <>
+              <div className="ac-head">
+                <h1>{desk.name}</h1>
+                <p>{desk.question}</p>
+                {desk.supply.kind === 'live' && (
+                  <p>
+                    Sourced from {desk.supply.from}. {asOf(at)}.
+                  </p>
+                )}
+              </div>
+              <div className="ac-panels">
+                {panels.map((panel) => (
+                  <PanelView panel={panel} key={panel.id} />
+                ))}
+                {/* The two things on this console that change anything: working a queue, and minting
                 a code. Each is mounted with the desk id as its key, so switching desks throws the
                 component and its half-typed state away rather than carrying it somewhere else. */}
-            {isQueueKind(desk.id) && (
-              <QueueActions
-                key={desk.id}
-                kind={desk.id}
-                page={queues[desk.id] ?? null}
-                onMoved={() => void refresh()}
-              />
-            )}
-            {/* Owner only. A seat without admin.manage sees the desk and no controls, rather
+                {isQueueKind(desk.id) && mayAct(held, desk.id) && (
+                  <QueueActions
+                    key={desk.id}
+                    kind={desk.id}
+                    page={queues[desk.id] ?? null}
+                    onMoved={() => void refresh()}
+                  />
+                )}
+                {/* Owner only. A seat without admin.manage sees the desk and no controls, rather
                 than a control that answers 403: the seat already knows what it is. */}
-            {desk.id === 'models' && mayTurn(admin.permissions) && (
-              <ModelsActions key={desk.id} desk={models} onSaved={() => void refresh()} />
-            )}
-            {desk.id === 'allowance' && mayTurn(admin.permissions) && (
-              <AllowanceActions key={desk.id} desk={allowance} onSaved={() => void refresh()} />
-            )}
-            {desk.id === 'promo' && permitted && (
-              <PromoActions
-                key={desk.id}
-                admin={admin}
-                page={promo}
-                onChanged={() => void refresh()}
-              />
-            )}
-            {/* One learner's page. Drawn only for a seat that carries learner.read: the gateway
-                refuses anyone else, and a box that can only ever answer 403 is not a control. */}
-            {desk.id === 'activity' && permitted && admin.permissions.includes(LEARNER_READ) && (
-              <ActivityLookup key={desk.id} />
-            )}
-            {/* Owner only: lifting the watch's pause on a kind. */}
-            {desk.id === 'mail' && mayTurn(admin.permissions) && (
-              <MailActions key={desk.id} desk={mail} onLifted={() => void refresh()} />
-            )}
-            {/* Retrying a refusal is an operator's act; confirming a reading and turning the
+                {desk.id === 'models' && mayTurn(admin.permissions) && mayAct(held, desk.id) && (
+                  <ModelsActions key={desk.id} desk={models} onSaved={() => void refresh()} />
+                )}
+                {desk.id === 'allowance' && mayTurn(admin.permissions) && mayAct(held, desk.id) && (
+                  <AllowanceActions key={desk.id} desk={allowance} onSaved={() => void refresh()} />
+                )}
+                {desk.id === 'promo' && permitted && mayAct(held, desk.id) && (
+                  <PromoActions
+                    key={desk.id}
+                    admin={admin}
+                    page={promo}
+                    onChanged={() => void refresh()}
+                  />
+                )}
+                {/* One learner's page. Drawn only for a seat that holds the learner desk's read,
+                by role or by the owner's grant, which is exactly what the gateway asks: a box
+                that can only ever answer 403 is not a control. */}
+                {desk.id === 'activity' && permitted && mayRead(held, 'users') && (
+                  <ActivityLookup key={desk.id} />
+                )}
+                {/* Owner only: lifting the watch's pause on a kind. */}
+                {desk.id === 'mail' && mayTurn(admin.permissions) && mayAct(held, desk.id) && (
+                  <MailActions key={desk.id} desk={mail} onLifted={() => void refresh()} />
+                )}
+                {/* Retrying a refusal is an operator's act; confirming a reading and turning the
                 queue's order are the owner's, and the component draws only what this seat
                 carries. */}
-            {desk.id === 'syllabus' && permitted && (
-              <SyllabusActions
-                key={desk.id}
-                desk={syllabus}
-                mayTurn={mayTurn(admin.permissions)}
-                onChanged={() => void refresh()}
-              />
-            )}
-          </div>
+                {/* Granting is this seat's act on the desk; the dials are the owner's. */}
+                {desk.id === 'boardChanges' && permitted && (
+                  <BoardChangeActions
+                    key={desk.id}
+                    desk={boardChanges}
+                    mayGrant={mayAct(held, desk.id)}
+                    mayTurn={mayTurn(admin.permissions) && mayAct(held, desk.id)}
+                    onChanged={() => void refresh()}
+                  />
+                )}
+                {desk.id === 'syllabus' && permitted && mayAct(held, desk.id) && (
+                  <SyllabusActions
+                    key={desk.id}
+                    desk={syllabus}
+                    mayTurn={mayTurn(admin.permissions)}
+                    onChanged={() => void refresh()}
+                  />
+                )}
+                {/* The owner's alone: admin.manage AND the register's act. Anyone else who reads the
+                register sees who has a seat and no controls. */}
+                {desk.id === 'register' && mayTurn(admin.permissions) && mayAct(held, desk.id) && (
+                  <RegisterActions
+                    key={desk.id}
+                    admin={admin}
+                    register={register}
+                    onChanged={() => void rereadRegister()}
+                  />
+                )}
+              </div>
+            </>
+          )}
         </main>
       </div>
     </div>
@@ -361,6 +443,8 @@ function panelsFor(
     syllabus: SyllabusDesk | null;
     activity: ActivityDesk | null;
     mail: MailDesk | null;
+    boardChanges: BoardChangeDesk | null;
+    register: Register | null;
     at: string | null;
     permitted: boolean;
   },
@@ -410,6 +494,10 @@ function panelsFor(
       return activityPanels(ctx.activity, ctx.at);
     case 'mail':
       return mailPanels(ctx.mail, ctx.at);
+    case 'boardChanges':
+      return boardChangePanels(ctx.boardChanges, ctx.at);
+    case 'register':
+      return registerPanels(ctx.register, ctx.at);
     default:
       return healthPanels(ctx.health, ctx.at);
   }
@@ -437,7 +525,7 @@ function PanelView({ panel }: { panel: Panel }) {
 
   if (panel.kind === 'rows') {
     return (
-      <section className="ac-panel">
+      <section className="ac-panel" data-panel={panel.id}>
         <span className="ac-panel-label">{panel.label}</span>
         <div className="ac-scroll">
           <table className="ac-table">

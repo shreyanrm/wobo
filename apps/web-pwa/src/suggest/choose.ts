@@ -29,9 +29,7 @@ export const PRIORITY: readonly SuggestionKind[] = ['way_back', 'ask', 'next', '
  * One suggestion, or nothing. Nothing is the ordinary answer on most screens most of the time, and
  * it is the right one: silence is what a tutor does when there is nothing worth saying.
  */
-export function choose(
-  candidates: readonly (Suggestion | null | undefined)[],
-): Suggestion | null {
+export function choose(candidates: readonly (Suggestion | null | undefined)[]): Suggestion | null {
   const live = candidates.filter((s): s is Suggestion => !!s && !wasDeclined(s.id));
   for (const kind of PRIORITY) {
     const found = live.find((s) => s.kind === kind);

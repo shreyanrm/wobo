@@ -21,8 +21,8 @@ import type { ReactNode } from 'react';
 import { useCallback, useState } from 'react';
 import { choose } from './choose';
 import type { Suggestion as Offer } from './kind';
-import { decline } from './session';
 import { DeclineButton, Suggestion } from './Suggestion';
+import { decline } from './session';
 
 export function Suggestions({
   candidates,

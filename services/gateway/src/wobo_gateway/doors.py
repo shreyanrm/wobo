@@ -160,6 +160,19 @@ class SettingsStore(Protocol):
 
     def write(self, key: str, value: Any, *, actor: str | None, note: str | None) -> None: ...
 
+    def write_many(
+        self, values: dict[str, Any], *, actor: str | None, note: str | None
+    ) -> None:
+        """Several dials as ONE write: all of them take, or none does.
+
+        A desk that turns three dials and fails on the third must not leave the first two turned
+        (the board-change dials, board_change.py). The project store does it in one upsert, which
+        is one statement. This default is for a store written before it existed and is NOT
+        atomic; every store in this file overrides it.
+        """
+        for key, value in values.items():
+            self.write(key, value, actor=actor, note=note)
+
     def record_refusal(
         self, *, reason: str, path: str, ip_hash: str | None, count: int
     ) -> None: ...
@@ -208,6 +221,16 @@ class InMemorySettingsStore:
             self.changed[key] = datetime.now(UTC)
             self.changes.append({"key": key, "value": value, "actor": actor, "note": note})
 
+    def write_many(
+        self, values: dict[str, Any], *, actor: str | None, note: str | None
+    ) -> None:
+        now = datetime.now(UTC)
+        with self._lock:
+            for key, value in values.items():
+                self.values[key] = value
+                self.changed[key] = now
+                self.changes.append({"key": key, "value": value, "actor": actor, "note": note})
+
     def changed_at(self, key: str) -> datetime | None:
         with self._lock:
             return self.changed.get(key)
@@ -239,6 +262,11 @@ class UnconfiguredSettingsStore:
         return None
 
     def write(self, key: str, value: Any, *, actor: str | None, note: str | None) -> None:
+        raise DoorsUnavailable("no project is configured, so there is no dial to turn")
+
+    def write_many(
+        self, values: dict[str, Any], *, actor: str | None, note: str | None
+    ) -> None:
         raise DoorsUnavailable("no project is configured, so there is no dial to turn")
 
     def record_refusal(
@@ -344,6 +372,22 @@ class PostgrestSettingsStore:
             self.key,
             "POST",
             body=[{"key": key, "value": value, "updated_by": actor, "note": note}],
+        )
+
+    def write_many(
+        self, values: dict[str, Any], *, actor: str | None, note: str | None
+    ) -> None:
+        """Every dial in one upsert, which Postgres runs as one statement: all or nothing."""
+        if not values:
+            return
+        self._request(
+            self._url(TABLE, {"on_conflict": "key"}),
+            self.key,
+            "POST",
+            body=[
+                {"key": key, "value": value, "updated_by": actor, "note": note}
+                for key, value in values.items()
+            ],
         )
 
     def record_refusal(

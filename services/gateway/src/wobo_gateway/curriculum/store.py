@@ -551,6 +551,8 @@ class CurriculumStore(Protocol):
 
     def get_pin(self, subject: str, framework_id: str) -> str | None: ...
 
+    def pinned_frameworks(self, subject: str) -> list[str]: ...
+
     def put_pin(self, subject: str, framework_id: str, version_id: str) -> None: ...
 
     def get_personal(self, subject: str, framework_id: str) -> dict[str, Any] | None: ...
@@ -828,6 +830,10 @@ class InMemoryStore(_PersonalDrafts):
     def get_pin(self, subject: str, framework_id: str) -> str | None:
         with self._lock:
             return self._pins.get((subject, framework_id))
+
+    def pinned_frameworks(self, subject: str) -> list[str]:
+        with self._lock:
+            return sorted({fw for (who, fw) in self._pins if who == subject})
 
     def put_pin(self, subject: str, framework_id: str, version_id: str) -> None:
         with self._lock:
@@ -1517,6 +1523,24 @@ class PostgrestStore(_PersonalDrafts):
             ],
         )
         return str(rows[0]["version_id"]) if rows and rows[0].get("version_id") else None
+
+    def pinned_frameworks(self, subject: str) -> list[str]:
+        """Every board this learner has a pin on. FAILS CLOSED, unlike :meth:`_rows`.
+
+        The board-change rule reads this as the gateway's own evidence that a learner already had
+        a board (board_change.py). A read that failed and answered "no pins" would hand out an
+        uncounted board change, so a refusal from the project is a refusal here.
+        """
+        safe = safe_subject(subject)
+        if not safe:
+            return []
+        params = [("select", "framework_id"), ("subject_id", f"eq.{safe}"), ("limit", "200")]
+        status, body = self._call("GET", self._url("pins", params), self._headers(), None)
+        if status >= 400 or not isinstance(body, list):
+            raise StoreUnavailable(f"pins could not be read (status {status})")
+        return sorted(
+            {str(row["framework_id"]) for row in body if isinstance(row, dict) and row.get("framework_id")}
+        )
 
     def put_pin(self, subject: str, framework_id: str, version_id: str) -> None:
         safe = safe_subject(subject)

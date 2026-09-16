@@ -107,6 +107,19 @@ export const cache = {
     write(overlayKey(frameworkId, versionId), ops);
   },
 
+  /**
+   * Every topics page cached for a framework, whatever its version. Read by the board change
+   * (`screens/you/kept.ts`) BEFORE `forget` drops them, so the names of what a learner did on
+   * their old board are kept in their record rather than lost with the cache.
+   */
+  topicsOf(frameworkId: string): CurriculumTopicsView[] {
+    const lead = `${PREFIX}:topics:${frameworkId}:`;
+    return index()
+      .filter((key) => key.startsWith(lead))
+      .map((key) => read<CurriculumTopicsView>(key))
+      .filter((view): view is CurriculumTopicsView => Boolean(view && Array.isArray(view.topics)));
+  },
+
   /** Drop everything cached for a framework — used when the learner moves off a version. */
   forget(frameworkId: string, versionId?: string | null): void {
     const match = (key: string) =>

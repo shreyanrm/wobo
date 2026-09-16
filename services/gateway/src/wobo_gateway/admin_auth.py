@@ -48,6 +48,7 @@ server-driven challenge would be. It is written down rather than glossed.
 from __future__ import annotations
 
 import hashlib
+import hmac
 import json
 import logging
 import os
@@ -62,10 +63,11 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, Protocol
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Depends, FastAPI, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from fastapi.routing import APIRoute
 
-from wobo_gateway import console_panels
+from wobo_gateway import admin_invite, console_panels
 from wobo_gateway.auth import dev_auth_requested
 
 logger = logging.getLogger("wobo.admin")
@@ -92,6 +94,8 @@ SESSION_HEADER = "x-wobo-admin-session"
 SESSION_COOKIE = "wobo_admin_session"
 
 _SCHEMA = "ops"
+#: One plain address, and nothing a PostgREST filter would read as syntax or a wildcard.
+_ADDRESS_RE = re.compile(r"[a-z0-9.!#$&'+/=?^_`{|}~-]{1,64}@[a-z0-9-]+(\.[a-z0-9-]+)+")
 _HTTP_TIMEOUT_S = 5.0
 _UUID_RE = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
@@ -217,6 +221,11 @@ class Admin:
     revokes: frozenset[str] = frozenset()
     #: Who added this person. Null only for the first row, which by definition nobody granted.
     granted_by: str | None = None
+    #: The outstanding invitation link, as its SHA-256 (never the link), and when it stops
+    #: working. Both are cleared the moment the seat binds, which is what makes the link single-use
+    #: (admin_invite, migration 0037). Never put on a screen.
+    invite_token_hash: str | None = None
+    invite_expires_at: datetime | None = None
 
     @property
     def active(self) -> bool:
@@ -276,8 +285,26 @@ class AdminContext:
     ip_hash: str | None = None
     user_agent: str | None = None
 
+    def granted_here(self, permission: str) -> bool:
+        """Whether the owner's per-person grant covers this route's permission.
+
+        The law makes a seat "the union of their role's defaults and the owner's explicit grants",
+        so a viewer the owner has given ``panel.boards.act`` must be able to press Grant. The role
+        table alone cannot say that. So a route's permission is ALSO met when the seat holds the
+        exact panel capability the guard asked of this path, which confines the grant to the one
+        desk it names. Only :func:`requires` calls :meth:`require`, with the route's own
+        permission, so the path and the permission always belong together.
+
+        ``admin.manage`` is never widened: the register, the dials and the router are the owner's
+        work, and no panel grant reaches them.
+        """
+        if permission == ADMIN_MANAGE:
+            return False
+        capability = console_panels.capability_for(self.request.url.path, self.request.method)
+        return capability is not None and self.admin.may_panel(capability)
+
     def require(self, permission: str) -> None:
-        if not self.admin.may(permission):
+        if not (self.admin.may(permission) or self.granted_here(permission)):
             raise AdminDenied(NOT_PERMITTED, f"Your access does not include {permission}.")
         if permission in WRITE_PERMISSIONS and not self.session.stepped_up(
             datetime.now(UTC), reauth_window_s()
@@ -476,9 +503,15 @@ class AdminStore(Protocol):
         granted_by: str | None,
         mfa_required: bool,
         status: str = "active",
+        invite_token_hash: str | None = None,
+        invite_expires_at: datetime | None = None,
     ) -> Admin: ...
 
-    def bind_subject(self, admin_id: str, subject_id: str) -> Admin | None: ...
+    def bind_subject(self, admin_id: str, subject_id: str, token_hash: str) -> Admin | None: ...
+
+    def set_invitation(
+        self, admin_id: str, token_hash: str, expires_at: datetime
+    ) -> Admin | None: ...
 
     def set_admin_status(self, admin_id: str, status: str) -> Admin | None: ...
 
@@ -596,6 +629,8 @@ class InMemoryAdminStore:
         granted_by: str | None,
         mfa_required: bool,
         status: str = "active",
+        invite_token_hash: str | None = None,
+        invite_expires_at: datetime | None = None,
     ) -> Admin:
         with self._lock:
             for existing in self.admins.values():
@@ -610,6 +645,8 @@ class InMemoryAdminStore:
                         status=status,
                         mfa_required=mfa_required,
                         granted_by=granted_by or existing.granted_by,
+                        invite_token_hash=invite_token_hash,
+                        invite_expires_at=invite_expires_at,
                     )
                     self.admins[existing.id] = updated
                     return self._held(updated)
@@ -622,16 +659,42 @@ class InMemoryAdminStore:
                 status=status,
                 mfa_required=mfa_required,
                 granted_by=granted_by,
+                invite_token_hash=invite_token_hash,
+                invite_expires_at=invite_expires_at,
             )
             self.admins[admin_id] = admin
             return self._held(admin)
 
-    def bind_subject(self, admin_id: str, subject_id: str) -> Admin | None:
+    def bind_subject(self, admin_id: str, subject_id: str, token_hash: str) -> Admin | None:
+        """The same four conditions the database store puts in its filter, and the same clear."""
         with self._lock:
             current = self.admins.get(admin_id)
-            if current is None:
+            if (
+                current is None
+                or current.subject_id is not None
+                or current.status != "invited"
+                or not current.invite_token_hash
+                or not hmac.compare_digest(current.invite_token_hash, token_hash or "")
+                or current.invite_expires_at is None
+                or current.invite_expires_at <= datetime.now(UTC)
+            ):
                 return None
-            updated = replace(current, subject_id=subject_id, status="active")
+            updated = replace(
+                current,
+                subject_id=subject_id,
+                status="active",
+                invite_token_hash=None,
+                invite_expires_at=None,
+            )
+            self.admins[admin_id] = updated
+            return self._held(updated)
+
+    def set_invitation(self, admin_id: str, token_hash: str, expires_at: datetime) -> Admin | None:
+        with self._lock:
+            current = self.admins.get(admin_id)
+            if current is None or current.subject_id is not None or current.status != "invited":
+                return None
+            updated = replace(current, invite_token_hash=token_hash, invite_expires_at=expires_at)
             self.admins[admin_id] = updated
             return self._held(updated)
 
@@ -641,6 +704,9 @@ class InMemoryAdminStore:
             if current is None:
                 return None
             updated = replace(current, status=status)
+            if status != "invited":
+                # A suspended seat holds no live link (0037's check says so too).
+                updated = replace(updated, invite_token_hash=None, invite_expires_at=None)
             self.admins[admin_id] = updated
             return self._held(updated)
 
@@ -834,6 +900,8 @@ def _admin_from_row(row: dict[str, Any]) -> Admin | None:
         grants=frozenset(grants),
         revokes=frozenset(revokes),
         granted_by=str(row.get("granted_by") or "") or None,
+        invite_token_hash=str(row.get("invite_token_hash") or "") or None,
+        invite_expires_at=_when(row.get("invite_expires_at")),
     )
 
 
@@ -942,16 +1010,21 @@ class PostgrestAdminStore:
     def admin_by_email(self, email: str) -> Admin | None:
         """Used only to accept an invitation, so a suspended row can never be matched into life."""
         wanted = (email or "").strip().lower()
-        if not wanted or "@" not in wanted or any(c in wanted for c in ",.()"):
-            # The address goes into a PostgREST filter, whose grammar uses these as operators.
-            # An address that carries one is not looked up at all.
+        # The address goes into a PostgREST filter as an EXACT match. A dot is ordinary there (the
+        # operator is split off at the first one), and refusing dots, as this once did, refused
+        # every real address, so no invitation could ever be accepted. What is refused is what
+        # the filter grammar or a pattern would read as more than a character: `*` and `%` (the
+        # old `ilike` read them, and `_`, as wildcards), commas and parentheses (list syntax), and
+        # anything that is not one plain address. Rows written by the console are lower-cased
+        # (``grant_admin``), which is why an exact match on the lower-cased form is enough.
+        if not _ADDRESS_RE.fullmatch(wanted):
             raise BadIdentifier("that is not an address I can look up")
         rows = self._call(
             "GET",
             "admins",
             {
                 "select": self._WITH_CAPABILITIES,
-                "email": f"ilike.{wanted}",
+                "email": f"eq.{wanted}",
                 "status": "neq.suspended",
                 "limit": "2",
             },
@@ -976,6 +1049,8 @@ class PostgrestAdminStore:
         granted_by: str | None,
         mfa_required: bool,
         status: str = "active",
+        invite_token_hash: str | None = None,
+        invite_expires_at: datetime | None = None,
     ) -> Admin:
         body = {
             "subject_id": self._uuid(subject_id) if subject_id else None,
@@ -985,26 +1060,27 @@ class PostgrestAdminStore:
             "mfa_required": mfa_required,
             "granted_by": granted_by,
             "updated_at": _iso(datetime.now(UTC)),
+            "invite_token_hash": self._digest(invite_token_hash) if invite_token_hash else None,
+            "invite_expires_at": _iso(invite_expires_at),
         }
-        # An invitation has no subject to conflict on, so the conflict target is the address; a
-        # re-grant to somebody who already has an account still keys on the account.
-        conflict = "subject_id" if subject_id else "email"
-        rows = self._call(
-            "POST",
-            "admins",
-            {"select": "*", "on_conflict": conflict},
-            body=[body],
-        )
+        # An invitation is a plain INSERT. There is no unique constraint on the address to upsert
+        # against (0029's index is partial and on lower(email)), so `on_conflict=email` was refused
+        # by Postgres on every call; ``grant_admin`` checks for a live row first, and that partial
+        # index refuses the race. A row with an account still upserts on the account.
+        params = {"select": "*", "on_conflict": "subject_id"} if subject_id else {"select": "*"}
+        rows = self._call("POST", "admins", params, body=[body])
         admin = _admin_from_row(rows[0]) if rows else None
         if admin is None:
             raise StoreUnavailable("the grant did not land")
         return admin
 
-    def bind_subject(self, admin_id: str, subject_id: str) -> Admin | None:
-        """Accepting an invitation: the seat gets its account, and only the first time.
+    def bind_subject(self, admin_id: str, subject_id: str, token_hash: str) -> Admin | None:
+        """Accepting an invitation: the seat gets its account, through its link, once.
 
-        ``subject_id=is.null`` is in the filter rather than in a read-then-write, so two people
-        racing the same invitation cannot both bind it: the second PATCH matches no row.
+        Every condition is in the FILTER rather than in a read-then-write: no account yet, still
+        invited, this link's digest, and a deadline still ahead. The same write clears the digest,
+        so two people racing one link cannot both bind it, and the second arrival through a spent
+        link matches no row at all.
         """
         rows = self._call(
             "PATCH",
@@ -1012,11 +1088,35 @@ class PostgrestAdminStore:
             {
                 "id": f"eq.{self._uuid(admin_id)}",
                 "subject_id": "is.null",
+                "status": "eq.invited",
+                "invite_token_hash": f"eq.{self._digest(token_hash)}",
+                "invite_expires_at": f"gt.{_iso(datetime.now(UTC))}",
                 "select": self._WITH_CAPABILITIES,
             },
             body={
                 "subject_id": self._uuid(subject_id),
                 "status": "active",
+                "invite_token_hash": None,
+                "invite_expires_at": None,
+                "updated_at": _iso(datetime.now(UTC)),
+            },
+        )
+        return _admin_from_row(rows[0]) if rows else None
+
+    def set_invitation(self, admin_id: str, token_hash: str, expires_at: datetime) -> Admin | None:
+        """A fresh link replaces the old digest, so the old link dies. Only on an untaken seat."""
+        rows = self._call(
+            "PATCH",
+            "admins",
+            {
+                "id": f"eq.{self._uuid(admin_id)}",
+                "subject_id": "is.null",
+                "status": "eq.invited",
+                "select": self._WITH_CAPABILITIES,
+            },
+            body={
+                "invite_token_hash": self._digest(token_hash),
+                "invite_expires_at": _iso(expires_at),
                 "updated_at": _iso(datetime.now(UTC)),
             },
         )
@@ -1027,7 +1127,17 @@ class PostgrestAdminStore:
             "PATCH",
             "admins",
             {"id": f"eq.{self._uuid(admin_id)}", "select": self._WITH_CAPABILITIES},
-            body={"status": status, "updated_at": _iso(datetime.now(UTC))},
+            body={
+                "status": status,
+                "updated_at": _iso(datetime.now(UTC)),
+                # Suspending a seat nobody took kills its link in the same write; 0037 refuses a
+                # digest on any row that is not a waiting invitation.
+                **(
+                    {"invite_token_hash": None, "invite_expires_at": None}
+                    if status != "invited"
+                    else {}
+                ),
+            },
         )
         return _admin_from_row(rows[0]) if rows else None
 
@@ -1553,9 +1663,51 @@ def guard(request: Request) -> AdminContext:
     try:
         ctx = resolve_context(request)
         _require_panel(ctx)
+        # Left on the request for :class:`_SeatRoute`, which shapes the ANSWER to the same seat.
+        request.state.admin_capabilities = ctx.admin.capabilities
         return ctx
     except AdminDenied as denied:
         raise denied.http() from denied
+
+
+class _SeatRoute(APIRoute):
+    """An admin route whose JSON answer is cut to the seat that asked.
+
+    The guard decides whether a seat may reach a desk; this decides what the desk may say to it.
+    Today that is one rule, :func:`console_panels.without_money`: a seat without the money panel
+    reads no money figure on any desk it does hold. It lives on the ROUTE CLASS for the same reason
+    the guard lives on the router: a desk mounted tomorrow through :func:`admin_router` is cut the
+    same way without its author having to know. A response that is not JSON, or a request the
+    guard never saw (it refused first), passes through untouched.
+    """
+
+    def get_route_handler(self) -> Any:
+        original = super().get_route_handler()
+
+        async def handler(request: Request) -> Response:
+            response = await original(request)
+            held = getattr(request.state, "admin_capabilities", None)
+            if held is None or console_panels.MONEY_READ in held:
+                return response
+            if not (response.headers.get("content-type") or "").startswith("application/json"):
+                return response
+            body = getattr(response, "body", None)
+            if not body:
+                return response
+            cut = console_panels.without_money(json.loads(body), held)
+            headers = {
+                key: value
+                for key, value in response.headers.items()
+                if key.lower() not in {"content-length", "content-type"}
+            }
+            return JSONResponse(
+                cut,
+                status_code=response.status_code,
+                headers=headers,
+                background=response.background,
+            )
+
+        return handler
 
 
 def requires(permission: str) -> Any:
@@ -1590,6 +1742,7 @@ def admin_router(**kwargs: Any) -> APIRouter:
     """
     deps = list(kwargs.pop("dependencies", []) or [])
     kwargs.setdefault("include_in_schema", False)
+    kwargs.setdefault("route_class", _SeatRoute)
     return APIRouter(prefix=ADMIN_PREFIX, dependencies=[Depends(guard), *deps], **kwargs)
 
 
@@ -1729,11 +1882,39 @@ class OpenedSession:
     admin: Admin
 
 
-def open_session(request: Request) -> OpenedSession:
+#: What a person hears when their address has a seat waiting and they did not come through its
+#: link. They have already proved the address, so saying a link exists tells them nothing new.
+INVITATION_LINK_LINE = (
+    "Open the invitation link that was sent to this address, and sign in from there."
+)
+
+
+def _presented_link(admin: Admin, principal: Any, invitation: str | None) -> str | None:
+    """The digest of the link this person arrived through, when it is THIS seat's live link.
+
+    Three proofs, all required: the link is ours and unexpired and was minted for the address
+    this token proves as verified (``admin_invite.verify``), the seat is still waiting on exactly
+    that link, and the seat's own deadline has not passed. The store checks the last two again
+    inside the write that binds, so a race cannot slip between this and that.
+    """
+    presented = admin_invite.verify(invitation, _claim_email(principal))
+    held = admin.invite_token_hash
+    if presented is None or not held or not hmac.compare_digest(presented, held):
+        return None
+    if admin.invite_expires_at is None or admin.invite_expires_at <= datetime.now(UTC):
+        return None
+    return presented
+
+
+def open_session(request: Request, invitation: str | None = None) -> OpenedSession:
     """The login. The FACTOR is already proved by the Supabase token; this is the REGISTER check.
 
     Nothing here mints a credential for somebody who was not already signed in to the product: a
     console session is only ever issued to a verified subject that has a row in ``ops.admins``.
+
+    ``invitation`` is the token from the link in an invitation. It matters only for a seat nobody
+    has taken yet, and for that seat it is required: "a token alone, however verified, never
+    binds a seat" (docs/CONSOLE-ROLES-AND-BOARD.md, 2026-09-15).
     """
     now = datetime.now(UTC)
     ip = client_ip(request)
@@ -1771,6 +1952,15 @@ def open_session(request: Request) -> OpenedSession:
     if admin is None or not (admin.active or admin.invited):
         raise _refuse_stranger(request, "not_registered", subject)
 
+    link_digest: str | None = None
+    if admin.invited:
+        # The out-of-band half. Checked before the factor, so a person who came without the
+        # link is told the one thing they need, and the link is not spent by any refusal.
+        link_digest = _presented_link(admin, principal, invitation)
+        if link_digest is None:
+            _audit_denial(store, request, admin, "admin.invite.denied", ip_hash, ua)
+            raise AdminDenied("invitation_link_required", INVITATION_LINK_LINE)
+
     aal = _claim_aal(principal)
     if mfa_enforced() and admin.mfa_required and aal != "aal2":
         _audit_denial(store, request, admin, "admin.session.denied.mfa", ip_hash, ua)
@@ -1786,7 +1976,7 @@ def open_session(request: Request) -> OpenedSession:
         # sign-in". Binding is conditional on the row still having no account, so two people
         # racing one invitation cannot both take it.
         try:
-            bound = store.bind_subject(admin.id, subject)
+            bound = store.bind_subject(admin.id, subject, link_digest or "")
         except StoreUnavailable as exc:
             raise AdminDenied(
                 "register_unavailable", "I could not open the console just now.", status=503
@@ -1924,6 +2114,9 @@ def _admin_view(admin: Admin) -> dict[str, Any]:
         "granted": sorted(admin.grants),
         "revoked": sorted(admin.revokes),
         "granted_by": admin.granted_by,
+        # When an outstanding link stops working, so the owner can see it needs a fresh one. The
+        # digest itself never leaves the server.
+        "invitation_expires_at": _iso(admin.invite_expires_at) if admin.invited else None,
     }
 
 
@@ -1948,10 +2141,19 @@ def register_admin(app: FastAPI) -> None:
     # one admin path mounted straight on the app, so it is the one that would otherwise still
     # appear in ``/openapi.json`` and name the door.
     @app.post(f"{ADMIN_PREFIX}/session", tags=["admin"], include_in_schema=False)
-    def open_console_session(request: Request, response: Response) -> dict[str, Any]:
-        """Exchange a verified, second-factored product sign-in for a short console session."""
+    def open_console_session(
+        request: Request,
+        response: Response,
+        body: Annotated[dict[str, Any] | None, Body()] = None,
+    ) -> dict[str, Any]:
+        """Exchange a verified, second-factored product sign-in for a short console session.
+
+        The body may carry ``invitation``, the token from an invitation link, which is how a seat
+        nobody has taken yet is taken (:func:`open_session`)."""
+        raw = (body or {}).get("invitation")
+        invitation = raw if isinstance(raw, str) else None
         try:
-            opened = open_session(request)
+            opened = open_session(request, invitation)
         except AdminDenied as denied:
             raise denied.http() from denied
         # Set on the cookie AND returned in the body: see SESSION_COOKIE for why both, and why
@@ -2192,8 +2394,10 @@ def register_admin(app: FastAPI) -> None:
         constraint), and the way it ever moves is the break-glass in docs/OPERATIONS.md, which
         needs a direct SQL connection and nobody's cooperation but the owner's.
         """
-        subject = str(body.get("subject_id") or "").strip()
-        email = str(body.get("email") or "").strip()
+        # An ACCOUNT ID IS NOT ACCEPTED ANY MORE. The route used to take one and make the seat
+        # live on the spot, which is a seat nobody ever arrived through a link to take; every
+        # person is now added by address and takes the seat through their invitation.
+        email = str(body.get("email") or "").strip().lower()
         role = str(body.get("role") or VIEWER).strip()
         changes = _capability_changes(body.get("capabilities"))
         if role == OWNER:
@@ -2215,21 +2419,48 @@ def register_admin(app: FastAPI) -> None:
                 "I need the person's address and one of: " + ", ".join(ROLES) + ".",
                 status=400,
             ).http()
-        if subject and not _UUID_RE.match(subject):
-            raise AdminDenied(
-                "not_an_id", "That is not an account id, so nobody was added.", status=400
-            ).http()
         store = get_store()
         try:
+            existing = store.admin_by_email(email)
+        except BadIdentifier as exc:
+            raise AdminDenied(
+                "not_a_grant", "That address is not one I can invite.", status=400
+            ).http() from exc
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "Nothing has changed.", status=503
+            ).http() from exc
+        if existing is not None:
+            # Inviting a live address again would turn a working seat back into an invitation
+            # and lock its holder out. A waiting seat gets a fresh link instead.
+            waiting = existing.invited
+            raise AdminDenied(
+                "already_invited" if waiting else "already_seated",
+                "This address is already invited. Send a fresh link from its row instead."
+                if waiting
+                else "This address already has a seat. Change what it holds from its row.",
+                status=409,
+            ).http()
+        made = admin_invite.mint(email)
+        if made is None:
+            raise AdminDenied(
+                "invitation_unavailable",
+                "No invitation link can be made on this gateway, so nobody was added. "
+                "It needs CONSOLE_URL and a signing key.",
+                status=503,
+            ).http()
+        try:
             admin = store.upsert_admin(
-                subject_id=subject or None,
+                subject_id=None,
                 email=email,
                 role=role,
                 granted_by=ctx.admin.id,
                 # Never granted without a second factor. Their first sign-in is refused until
                 # they enrol one, which is the correct order.
                 mfa_required=True,
-                status="active" if subject else "invited",
+                status="invited",
+                invite_token_hash=made.token_hash,
+                invite_expires_at=made.expires_at,
             )
             for name, effect in changes:
                 store.set_capability(
@@ -2249,16 +2480,89 @@ def register_admin(app: FastAPI) -> None:
                 "register_unavailable", "Nothing has changed.", status=503
             ).http() from exc
         ctx.audit(
-            "admin.invite" if admin.invited else "admin.grant",
+            "admin.invite",
             resource_type="admin",
             resource_id=admin.id,
             detail={
                 "role": role,
                 "status": admin.status,
                 "capabilities": [{"capability": n, "effect": e} for n, e in changes],
+                "expires_at": _iso(made.expires_at),
             },
         )
-        return {"admin": _admin_view(admin), "granted": True}
+        return {
+            "admin": _admin_view(admin),
+            "granted": True,
+            "invitation": _invitation_view(admin, made),
+        }
+
+    def _invitation_view(admin: Admin, made: admin_invite.Invitation) -> dict[str, Any]:
+        """The link and the message, for the owner to hand to a person who sends it.
+
+        Shown once, in this answer only: the register keeps the digest, and the trail keeps
+        neither. ``sent`` is false because nothing in this gateway sends it.
+        """
+        return {
+            "to": admin.email,
+            "link": made.link,
+            "expires_at": _iso(made.expires_at),
+            "sent": False,
+            "mail": admin_invite.invitation_mail(
+                {"link": made.link, "role": admin.role, "expires_at": made.expires_at}
+            ),
+        }
+
+    @router.post("/admins/{admin_id}/invitation")
+    def renew_invitation(admin_id: str, ctx: CanManage) -> dict[str, Any]:
+        """A fresh link for a seat nobody has taken. The old link dies in the same write."""
+        store = get_store()
+        try:
+            target = store.admin_by_id(admin_id)
+        except BadIdentifier as exc:
+            raise AdminDenied(
+                "not_an_id", "That is not an admin id, so nothing was changed.", status=400
+            ).http() from exc
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "Nothing has changed.", status=503
+            ).http() from exc
+        if target is None:
+            raise AdminDenied(
+                "no_such_admin", "There is no such person in the register.", status=404
+            ).http()
+        if not target.invited or target.subject_id is not None:
+            raise AdminDenied(
+                "not_an_invitation",
+                "This seat has already been taken, so there is no link to send.",
+                status=400,
+            ).http()
+        made = admin_invite.mint(target.email)
+        if made is None:
+            raise AdminDenied(
+                "invitation_unavailable",
+                "No invitation link can be made on this gateway. It needs CONSOLE_URL and a "
+                "signing key.",
+                status=503,
+            ).http()
+        try:
+            renewed = store.set_invitation(target.id, made.token_hash, made.expires_at)
+        except StoreUnavailable as exc:
+            raise AdminDenied(
+                "register_unavailable", "Nothing has changed.", status=503
+            ).http() from exc
+        if renewed is None:
+            raise AdminDenied(
+                "not_an_invitation",
+                "This seat has already been taken, so there is no link to send.",
+                status=400,
+            ).http()
+        ctx.audit(
+            "admin.invite.renewed",
+            resource_type="admin",
+            resource_id=renewed.id,
+            detail={"expires_at": _iso(made.expires_at)},
+        )
+        return {"admin": _admin_view(renewed), "invitation": _invitation_view(renewed, made)}
 
     @router.post("/admins/{admin_id}/capabilities")
     def set_capability(admin_id: str, body: dict[str, Any], ctx: CanManage) -> dict[str, Any]:
@@ -2424,6 +2728,7 @@ __all__ = [
     "AdminDenied",
     "AdminSession",
     "AdminStore",
+    "INVITATION_LINK_LINE",
     "InMemoryAdminStore",
     "PostgrestAdminStore",
     "StoreUnavailable",

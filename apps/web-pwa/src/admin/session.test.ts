@@ -22,7 +22,15 @@ import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { SESSION_HEADER } from './api';
-import { isAdminEnvelope, isOpenedSession, mayReadConsole, signIn, signOut } from './session';
+import {
+  isAdminEnvelope,
+  isOpenedSession,
+  LOCK_COPY,
+  mayReadConsole,
+  signIn,
+  signOut,
+  takeInvitation,
+} from './session';
 
 const OK_ADMIN = {
   id: 'a1',
@@ -192,5 +200,83 @@ describe('no credential is ever written to browser storage', () => {
       expect(text).toContain("credentials: 'omit'");
       expect(text).not.toContain("credentials: 'include'");
     }
+  });
+});
+
+describe('a seat is taken through its invitation link', () => {
+  const CREDENTIALS = { email: 'new@example.com', password: 'x', code: '123456' };
+
+  it('reads the token from the address and hands back an address without it', () => {
+    const taken = takeInvitation('https://console.test/admin.html?invite=abc.def&x=1#top');
+    expect(taken.invitation).toBe('abc.def');
+    expect(taken.cleaned).toBe('https://console.test/admin.html?x=1#top');
+    const bare = takeInvitation('https://console.test/admin.html?invite=abc.def');
+    expect(bare.cleaned).toBe('https://console.test/admin.html');
+  });
+
+  it('takes nothing from an address with no token, or with one that is not a token', () => {
+    expect(takeInvitation('https://console.test/admin.html').invitation).toBeNull();
+    expect(takeInvitation('https://console.test/admin.html').cleaned).toBeNull();
+    expect(takeInvitation('https://console.test/admin.html?invite=').invitation).toBeNull();
+    expect(takeInvitation('https://console.test/admin.html?invite=<script>').invitation).toBeNull();
+    expect(takeInvitation(`https://console.test/admin.html?invite=${'a'.repeat(600)}`).invitation).toBeNull();
+    // A bad token is still taken out of the address bar.
+    expect(takeInvitation('https://console.test/admin.html?invite=<script>').cleaned).toBe(
+      'https://console.test/admin.html',
+    );
+    expect(takeInvitation('not a url').invitation).toBeNull();
+  });
+
+  it('sends the token with the sign-in, and only in the body', async () => {
+    const fetcher = fetcherFor(() => Response.json({ admin: OK_ADMIN, session_token: 'sess-9' }));
+    const session = await signIn(CREDENTIALS, fetcher, 'abc.def');
+    expect(session.state).toBe('open');
+    const call = seen(fetcher).find((one) => one.url.endsWith('/v1/admin/session'));
+    expect(JSON.parse(String(call?.init.body))).toEqual({ invitation: 'abc.def' });
+    expect(call?.url).not.toContain('abc.def');
+  });
+
+  it('sends an empty body when there is no invitation, as it always has', async () => {
+    const fetcher = fetcherFor(() => Response.json({ admin: OK_ADMIN, session_token: 'sess-8' }));
+    await signIn(CREDENTIALS, fetcher);
+    const call = seen(fetcher).find((one) => one.url.endsWith('/v1/admin/session'));
+    expect(JSON.parse(String(call?.init.body))).toEqual({});
+  });
+
+  it('tells a person with a waiting seat to come through the link', async () => {
+    const fetcher = fetcherFor(() =>
+      Response.json(
+        { detail: { code: 'invitation_link_required', message: 'Open the invitation link' } },
+        { status: 403 },
+      ),
+    );
+    const session = await signIn(CREDENTIALS, fetcher);
+    expect(session.state).toBe('locked');
+    if (session.state === 'locked') expect(session.why).toBe('invitation_link_required');
+  });
+
+  it('says a link that did not open a seat may be spent or expired, and not why', async () => {
+    const fetcher = fetcherFor(() =>
+      Response.json({ detail: { code: 'invitation_link_required', message: 'x' } }, { status: 403 }),
+    );
+    const session = await signIn(CREDENTIALS, fetcher, 'abc.def');
+    if (session.state === 'locked') expect(session.why).toBe('invitation_refused');
+    const stranger = fetcherFor(() =>
+      Response.json({ detail: { code: 'not_registered', message: 'x' } }, { status: 403 }),
+    );
+    const refused = await signIn(CREDENTIALS, stranger, 'abc.def');
+    if (refused.state === 'locked') expect(refused.why).toBe('invitation_refused');
+  });
+
+  it('asks for the second factor when that is what stands in the way', async () => {
+    const fetcher = fetcherFor(() =>
+      Response.json({ detail: { code: 'mfa_required', message: 'x' } }, { status: 401 }),
+    );
+    const session = await signIn(CREDENTIALS, fetcher, 'abc.def');
+    if (session.state === 'locked') expect(session.why).toBe('mfa_required');
+  });
+
+  it('carries no em dash in anything it says', () => {
+    for (const line of Object.values(LOCK_COPY)) expect(line).not.toContain('\u2014');
   });
 });

@@ -36,6 +36,9 @@ export type Session =
 export type LockReason =
   | SignInProblem
   | 'not_registered'
+  | 'invitation_link_required'
+  | 'invitation_refused'
+  | 'mfa_required'
   | 'guard_unreachable'
   | 'guard_unrecognised'
   | 'guard_error';
@@ -53,6 +56,17 @@ export const LOCK_COPY: Record<LockReason, string> = {
     'The console did not open. Either this account is not in the operator register, or the ' +
     'console is not deployed on the gateway this build points at. The gateway will not say ' +
     'which, and that is deliberate.',
+  // The two below are said only to somebody who has already proved the address the seat was
+  // made for, so naming the invitation tells them nothing they did not know.
+  invitation_link_required:
+    'This address has a seat waiting. Open the invitation link that was sent to it, and sign in ' +
+    'from there.',
+  invitation_refused:
+    'That invitation did not open a seat. The link works once, for the address it was sent to, ' +
+    'and only until it runs out. Ask the owner for a fresh one.',
+  mfa_required:
+    'This console needs your second factor. Set one up on your account, then open the link ' +
+    'again and sign in with its code.',
   guard_unreachable: 'The gateway is unreachable from here, so no sign-in could be checked.',
   guard_unrecognised: 'The gateway returned something this console does not recognise.',
   guard_error: 'The gateway answered with an error while opening the console.',
@@ -84,12 +98,43 @@ export function isOpenedSession(
 }
 
 function identityOf(admin: AdminIdentity): AdminIdentity {
+  const held = Array.isArray(admin.capabilities) ? admin.capabilities : [];
   return {
     id: admin.id,
     email: admin.email,
     role: admin.role,
     permissions: [...admin.permissions],
+    // Only words: anything that is not a string grants nothing.
+    capabilities: held.filter((entry): entry is string => typeof entry === 'string'),
   };
+}
+
+/** The query parameter an invitation link carries (`admin_invite.PARAM`). */
+export const INVITE_PARAM = 'invite';
+
+/**
+ * Take the invitation token out of the address the console was opened at.
+ *
+ * `cleaned` is the same address without it, for `history.replaceState`, so the token does not sit
+ * in the address bar, the history or a screenshot. It is null when there was nothing to remove.
+ * The token is held in memory only, like every other proof in this console.
+ */
+export function takeInvitation(href: string): {
+  invitation: string | null;
+  cleaned: string | null;
+} {
+  let url: URL;
+  try {
+    url = new URL(href);
+  } catch {
+    return { invitation: null, cleaned: null };
+  }
+  if (!url.searchParams.has(INVITE_PARAM)) return { invitation: null, cleaned: null };
+  const raw = url.searchParams.get(INVITE_PARAM) ?? '';
+  url.searchParams.delete(INVITE_PARAM);
+  const cleaned = url.toString();
+  const invitation = /^[A-Za-z0-9_-]{1,400}\.[A-Za-z0-9_-]{1,128}$/.test(raw) ? raw : null;
+  return { invitation, cleaned };
 }
 
 /** May this seat read the console's aggregates at all? Asked before a money desk is drawn, so a
@@ -105,6 +150,7 @@ export function mayReadConsole(admin: AdminIdentity): boolean {
 export async function signIn(
   credentials: { readonly email: string; readonly password: string; readonly code: string },
   fetcher: typeof fetch = fetch,
+  invitation: string | null = null,
 ): Promise<Session> {
   const product = await signInToProduct(credentials, fetcher);
   if (!product.ok) {
@@ -114,9 +160,18 @@ export async function signIn(
 
   // The product token alone opens nothing. It is held only so the next call can carry it.
   holdProofs(product.token, null);
-  const opened = await write('session', {}, isOpenedSession, fetcher);
+  // The invitation rides in the BODY, never in a URL the gateway would log.
+  const body = invitation ? { invitation } : {};
+  const opened = await write('session', body, isOpenedSession, fetcher);
   if (!opened.ok) {
     clearProofs();
+    if (opened.code === 'mfa_required') return { state: 'locked', why: 'mfa_required' };
+    if (invitation && opened.reason === 'not_permitted') {
+      return { state: 'locked', why: 'invitation_refused' };
+    }
+    if (opened.code === 'invitation_link_required') {
+      return { state: 'locked', why: 'invitation_link_required' };
+    }
     switch (opened.reason) {
       case 'not_permitted':
       case 'not_deployed':

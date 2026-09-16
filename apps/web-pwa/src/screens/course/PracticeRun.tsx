@@ -10,7 +10,7 @@
 import { type PracticeItem, reviewCard } from '@wobo/sdk';
 import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { preferredAnalogy } from '../../store/mind';
 import { useProgress, XP_AWARDS } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
@@ -217,6 +217,7 @@ export function PracticeRun({
   until,
   ladder = true,
   replay = false,
+  offer,
 }: {
   nodeId: string;
   /** What is being practised, in the learner's words. Wobo re-teaches by name, never by node id. */
@@ -252,6 +253,13 @@ export function PracticeRun({
   ladder?: boolean;
   /** A replay of a completed course — the correct-answer +xp chip is suppressed (no xp is earned). */
   replay?: boolean;
+  /**
+   * What the course would suggest at the moment this run is about to end, or nothing
+   * (docs/SUGGESTIONS-AND-NOTICES.md §2). Asked with how the run ends: `beaten`, on the miss that
+   * ends it; `done`, on the last item answered. `take` is the run's own Continue, so taking a
+   * suggestion can never lead anywhere the course was not already going.
+   */
+  offer?: (at: { misses: number; ending: 'beaten' | 'done'; take: () => void }) => ReactNode;
 }) {
   const sdk = useSdk();
   const bus = useWoboBus();
@@ -714,6 +722,10 @@ export function PracticeRun({
                 </motion.div>
               )}
             </AnimatePresence>
+            {/* The way back, once the detonation has had its moment, and only while the run ends here. */}
+            {offer && detReady && contest !== 'checking' && until?.() === 'beaten'
+              ? offer({ misses: missesRef.current, ending: 'beaten', take: advance })
+              : null}
           </motion.div>
         ) : (
           <motion.div
@@ -835,6 +847,10 @@ export function PracticeRun({
                 </div>
               )}
             </Stage>
+            {/* The next thing, on the last answer of the run, and never over the pad. */}
+            {offer && phase === 'correct' && pos === queue.length - 1 && !until?.()
+              ? offer({ misses: missesRef.current, ending: 'done', take: advance })
+              : null}
           </motion.div>
         )}
       </AnimatePresence>

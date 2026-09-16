@@ -49,6 +49,18 @@ export const ENDPOINT = {
   sessionEnd: '/v1/admin/session',
   /** GET: who the console is talking to, and what this session may still do. */
   whoami: '/v1/admin/whoami',
+  /** GET: the panels this seat may READ, each with whether it may also act, and the effective
+   *  capability list. Only held panels are in the answer: the rail is drawn from it, and a panel
+   *  that is not in it is not drawn at all (docs/CONSOLE-ROLES-AND-BOARD.md §2). */
+  panels: '/v1/admin/panels',
+  /** GET: the trail. Every seat reads its own rows; the owner reads everybody's. */
+  audit: '/v1/admin/audit',
+  /** GET: the register, owner only: every seat with its EFFECTIVE capabilities, what the owner
+   *  granted and revoked by hand, the whole vocabulary, each role's defaults and the owner count.
+   *  POST on the same path invites a person by address and answers with the invitation link and
+   *  its message, which nothing sends. Per person, on `/<id>/capabilities`, `/<id>/suspend` and
+   *  `/<id>/invitation` (a fresh link), through `api.write`'s checked tail. */
+  admins: '/v1/admin/admins',
   /** GET: `ops.usage_daily` rows for a window, plus the live in-process ceiling. */
   usage: '/v1/admin/usage',
   /** GET: what a 1x day costs, split by what consumed it, with its own list of holes. */
@@ -118,6 +130,15 @@ export const ENDPOINT = {
   /** POST: the prewarm queue's order, its switch and its pace. `admin.manage`, because the order
    *  decides which boards the platform pays to read and in what order. */
   syllabusPrewarm: '/v1/admin/syllabus/prewarm',
+  /** GET: every board-change request (the board a learner is on, the one they asked for, when
+   *  they last changed, a keyed handle) and the three dials as the gateway obeys them
+   *  (docs/CONSOLE-ROLES-AND-BOARD.md §1). `?state=&limit=`. */
+  boardChanges: '/v1/admin/board-changes',
+  /** POST: grant one request. `panel.boards.act`: Support work, so an operator clears the queue,
+   *  and the owner may give it to or take it from any seat. */
+  boardChangeGrant: '/v1/admin/board-changes/grant',
+  /** POST: turn the three dials in ops.settings. `admin.manage`, owner only, audited. */
+  boardChangeDials: '/v1/admin/board-changes/dials',
 } as const;
 
 export type EndpointName = keyof typeof ENDPOINT;
@@ -143,6 +164,9 @@ export interface AdminIdentity {
   readonly email: string;
   readonly role: string;
   readonly permissions: readonly string[];
+  /** The EFFECTIVE panel capabilities the gateway minted with the session (`panel.<id>.read` /
+   *  `.act`). Replaced by every `GET /v1/admin/panels`. Missing means none: fail closed. */
+  readonly capabilities?: readonly string[];
 }
 
 /** `wobo_gateway.health.snapshot()` as it comes over the wire. */
@@ -318,7 +342,8 @@ export interface JobRow {
   readonly attempts: number;
   /** "a learner", "the prewarm" or "nobody yet". Never who. */
   readonly waiting_on: string;
-  readonly cost_usd: number | null;
+  /** Absent for a seat without the money panel (`console_panels.without_money`). */
+  readonly cost_usd?: number | null;
   readonly created_at: string | null;
   readonly updated_at: string | null;
 }
@@ -354,7 +379,8 @@ export interface SyllabusDesk {
   readonly queue: readonly JobRow[];
   readonly landed: readonly JobRow[];
   readonly refused: readonly JobRow[];
-  readonly cost: readonly {
+  /** Absent, with the day's figures, for a seat without the money panel. */
+  readonly cost?: readonly {
     readonly framework_id: string;
     readonly framework_name: string;
     readonly jobs: number;
@@ -362,9 +388,9 @@ export interface SyllabusDesk {
     readonly unpriced: number;
   }[];
   readonly day: {
-    readonly spent_usd: number;
-    readonly ceiling_usd: number;
-    readonly fraction: number | null;
+    readonly spent_usd?: number;
+    readonly ceiling_usd?: number;
+    readonly fraction?: number | null;
     readonly lane: string;
     readonly shedding: boolean;
   };

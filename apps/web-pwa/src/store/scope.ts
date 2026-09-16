@@ -79,6 +79,7 @@ export const SCOPED_KEYS = [
   'wobo-parent-link-v1', // the parent they linked by phone
   'wobo-referral-code-v1', // the code that rides in their invite links
   'wobo-curriculum-world-v1', // which board and class they follow (curriculum/world.ts)
+  'wobo-kept-boards-v1', // what they did on a board they moved off, by name (screens/you/kept.ts)
   'wobo-brain-erase-v1', // an erase the brain still has to be told about (store/mind.ts)
   // The mind's offline queue and what this device knows about the record (store/mind-queue.ts).
   // The queue is the learner's own unsaved words and counts: it moves with an anonymous learner

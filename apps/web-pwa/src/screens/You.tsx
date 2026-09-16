@@ -14,6 +14,7 @@ import { erasureGapSentence, type Me } from '@wobo/sdk';
 import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { adoptFramework, adoptOwnSyllabus, askDiscovery, chooseLevel } from '../curriculum/adopt';
+import { cache } from '../curriculum/cache';
 import { useFramework, useRegistryRevision, useWorld } from '../curriculum/hooks';
 import { OwnSyllabus } from '../curriculum/OwnSyllabus';
 
@@ -43,8 +44,11 @@ import {
 } from '../ui/primitives';
 import { setThemePref, type ThemePref, useThemePref } from '../ui/theme';
 import { DoubtMemory } from './doubt/DoubtMemory';
+import { BoardChoice } from './you/BoardChoice';
+import { changeBoard } from './you/boardChange';
 import { eraseEverything } from './you/eraseAll';
-import { chosenBoard, GradeBoardPicker } from './you/GradeBoardPicker';
+import { chosenBoard } from './you/GradeBoardPicker';
+import { heldTopics, keepBoard, keptExcept, keptMark, loadKept } from './you/kept';
 import { weeklyNote } from './you/ledger';
 import { MindMemory } from './you/MindMemory';
 import { chosenNames, type MailPrefsView, readMailPrefs, writeCalendars } from './you/mailPrefs';
@@ -168,6 +172,24 @@ export function You() {
   const [changingSchool, setChangingSchool] = useState(false);
   const [showOwnSyllabus, setShowOwnSyllabus] = useState(false);
   const [sourcing, setSourcing] = useState<string | null>(null);
+  const [ownNote, setOwnNote] = useState<string | null>(null);
+  // What they did on boards they moved off, kept and marked with where it came from (§1).
+  const [kept, setKept] = useState(() => loadKept());
+  /**
+   * Before the device moves to a new board, keep what they did on the old one by name. The move
+   * drops the old board's cached chapters, and the names go with them unless they are kept here.
+   */
+  const keepOldBoard = () => {
+    if (!world) return;
+    setKept(
+      keepBoard({
+        boardId: world.frameworkId,
+        boardName: framework.view?.framework.name || world.frameworkName,
+        at: new Date().toISOString(),
+        topics: heldTopics(cache.topicsOf(world.frameworkId), completed, topicProgress),
+      }),
+    );
+  };
   const commitProfile = (patch: Partial<StoredProfile>) => {
     const next = { ...profile, ...patch };
     setProfile(next);
@@ -369,10 +391,12 @@ export function You() {
     kind: 'picker',
     label: 'the class and board picker: which syllabus this learner is on',
     getSceneState: () => ({ grade: profile.grade, board }),
-    getValidActions: () => ['change the class', 'change the board'],
+    // A board change is the learner's to confirm after reading what it costs (§1), so the tutor
+    // may open the picker and never move the board itself.
+    getValidActions: () => ['change the class', 'open the board picker'],
     applyTutorAction: (patch) => {
       if (typeof patch.grade === 'string') commitProfile({ grade: patch.grade });
-      if (typeof patch.boardId === 'string') commitProfile({ boardId: patch.boardId });
+      if (typeof patch.boardId === 'string') setChangingSchool(true);
     },
   });
   const settingsRef = useRegisterTarget<HTMLDivElement>('you-settings', {
@@ -456,7 +480,7 @@ export function You() {
 
       {changingSchool && (
         <div ref={pickerRef} style={{ display: 'grid', gap: 16, maxWidth: 560 }}>
-          <GradeBoardPicker
+          <BoardChoice
             grade={profile.grade || null}
             // THE CLASSES COME OFF THE FRAMEWORK, so the framework has to be here. This used to
             // hand the picker `framework: null`, and `levelsFor` reads `board.framework.levels`,
@@ -466,19 +490,32 @@ export function You() {
             board={chosenBoard(world, framework.view)}
             loading={framework.loading}
             onGrade={(g) => {
+              const was = profile.grade || null;
               commitProfile({ grade: g });
               void chooseLevel(g);
-            }}
-            onBoard={(b) => {
-              commitProfile({ boardId: b.id });
-              if (b.unlisted)
-                void askDiscovery(b.name, profile.grade || null).then(() => setSourcing(b.name));
-              else
-                void adoptFramework({
-                  frameworkId: b.id,
-                  name: b.name,
-                  level: profile.grade || null,
+              // A class on the same board is not a board change; it is still stamped on the
+              // account, and nothing waits on the stamp.
+              if (world)
+                void changeBoard({
+                  to: world.frameworkId,
+                  level: g,
+                  from: world.frameworkId,
+                  fromLevel: was,
                 });
+            }}
+            onBoardMoved={(b) => {
+              keepOldBoard();
+              commitProfile({ boardId: b.id });
+              void adoptFramework({
+                frameworkId: b.id,
+                name: b.name,
+                level: profile.grade || null,
+              });
+            }}
+            // Asking for a board to be found is not a move: the board they study, and the one the
+            // tutor reads, stay where they are until they pick the found board through the rule.
+            onUnlisted={(b) => {
+              void askDiscovery(b.name, profile.grade || null).then(() => setSourcing(b.name));
             }}
             onOwnSyllabus={() => setShowOwnSyllabus(true)}
           />
@@ -497,12 +534,32 @@ export function You() {
               suggestedName={world?.frameworkName ?? ''}
               onCancel={() => setShowOwnSyllabus(false)}
               onReady={(view) => {
-                const next = adoptOwnSyllabus(view);
-                commitProfile({ boardId: next.frameworkId, grade: next.level ?? '' });
-                setShowOwnSyllabus(false);
+                // Their own syllabus is a board of its own, so it moves through the same rule.
+                setOwnNote(null);
+                void changeBoard({
+                  to: view.framework.id,
+                  level: view.level || null,
+                  from: world?.frameworkId ?? null,
+                  fromLevel: profile.grade || null,
+                }).then((got) => {
+                  if (!got.ok) {
+                    setOwnNote(got.message);
+                    setShowOwnSyllabus(false);
+                    return;
+                  }
+                  keepOldBoard();
+                  const next = adoptOwnSyllabus(view);
+                  commitProfile({ boardId: next.frameworkId, grade: next.level ?? '' });
+                  setShowOwnSyllabus(false);
+                });
               }}
             />
           )}
+          {ownNote ? (
+            <p role="status" style={{ margin: 0 }}>
+              {ownNote}
+            </p>
+          ) : null}
           <UpgradeCard />
         </div>
       )}
@@ -541,6 +598,25 @@ export function You() {
           </Card>
         </div>
 
+        {/* what they did on a board they moved off: kept, and marked with where it came from */}
+        {keptExcept(kept, world?.frameworkId ?? null).map((row) => (
+          <Card compact key={row.boardId}>
+            <Tag>{keptMark(row.boardName)}</Tag>
+            <ul
+              style={{ margin: 0, paddingLeft: 18, display: 'grid', gap: 6, color: 'var(--ink)' }}
+            >
+              {row.topics.map((t) => (
+                <li key={t.id}>
+                  {t.name}
+                  <span style={{ color: 'var(--ink-3)' }}>
+                    {t.done ? ' · finished' : ' · started'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        ))}
+
         {/* learning strengths */}
         <Card compact>
           <Tag>Learning strengths</Tag>
@@ -572,8 +648,7 @@ export function You() {
               <p style={{ color: 'var(--ink)' }}>{link.line}</p>
             ) : (
               <p style={{ color: 'var(--ink)' }}>
-                They get the Sunday note and short notes about your learning in the week. You
-                can{' '}
+                They get the Sunday note and short notes about your learning in the week. You can{' '}
                 <a
                   href="/parent"
                   onClick={(e) => {

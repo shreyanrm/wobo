@@ -23,6 +23,7 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 | [CONSENT-PLAN.md](CONSENT-PLAN.md) | The consent plan |  |
 | [CONSOLE-MODELS.md](CONSOLE-MODELS.md) | The models desk: what answers what, at what price, changed from one pl | In the superadmin make sure I see what models are being used for what |
 | [CONSOLE-ROLES-AND-BOARD.md](CONSOLE-ROLES-AND-BOARD.md) | The board a learner may change once, and who may see what in the conso | A constraint in the database, not a convention: at most one row |
+| [CONSOLE-ROLES-AND-BOARD.md: what the closer settled](CONSOLE-ROLES-AND-BOARD.md) | No money on any desk a seat without the money panel holds; a panel grant widens one desk and never owner work; pins decide where a learner came from; the parent path and the re-map sentence wait on the owner | "I should be able to assign their roles and what all visible to them" (2026-09-09), measured 2026-09-17 |
 | [CONTENT-INTERACTION.md](CONTENT-INTERACTION.md) | Interactive content: the concept is cached, the level and the interact | For interactive content, think of the quality gate where you decide it |
 | [CONTENT-INTERACTION.md 5b](CONTENT-INTERACTION.md) | A concept core is keyed on concept x depth band, never class-neutral, never per class | Decided 2026-09-11 rather than asked: one core cannot be honest for a class 4 child and a class 11 student at once, and bending the fidelity bar would lower quality for exactly the learners we promised not to |
 | [CURRICULUM-OBSERVER.md](CURRICULUM-OBSERVER.md) | The syllabus observer | it's worth verifying from the web the first time a user selects a board |
@@ -65,6 +66,7 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 | [SELL.md: the money's voice](SELL.md) | Every money surface says where the money goes, once, like a person; the company words are forbidden | We use this money to invest in improving the application, create more beautiful content. We aren't showing ourselves like a business (2026-09-15) |
 | [SITE.md](SITE.md) | SITE.md — the public site: map, navigation, and how every page pitches |  |
 | [START-HERE.md](START-HERE.md) | Wobo — Build Documentation Suite |  |
+| [SUGGESTIONS-AND-NOTICES.md](SUGGESTIONS-AND-NOTICES.md) | Four kinds of suggestion, one at a time, never repeated after a no, never louder than the page; they ask the course's own pick | Motivating, continuous support, guiding where they went wrong (2026-09-15); one chooser (2026-09-16) |
 | [THE-WAIT.md](THE-WAIT.md) | The wait: what a learner does while Wobo is making something | ChatGPT gives a very light game while the |
 | [TWO-MINDS.md](TWO-MINDS.md) | Two minds, and what may cross between them | the parent side does carry mind/context cause it needs to remember |
 | [WOBO-PLAN.md](WOBO-PLAN.md) | Wobo — the build plan |  |

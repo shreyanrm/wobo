@@ -22,23 +22,22 @@
  * group chosen for them, the glass in front of them. Nothing is generated, nothing is fetched, and
  * nothing reads what learners in general do. That is the difference between a tutor and a
  * recommendation engine, and it is structural here rather than a promise.
+ *
+ * AND NOTHING HERE CHOOSES (docs/LEARNING-MODEL.md, "Who chooses", 2026-09-16). The next thing and
+ * the way back are handed the module the course is about to show, by the course's own seam
+ * (`screens/course/climb.ts`, `nextIn` and the hook's `peek`), and they only say it. Until
+ * 2026-09-17 they each picked for themselves, and after a module had beaten a learner twice the
+ * next thing still named that module while the course showed another. `one-chooser.test.ts` holds
+ * this file to having no chooser to reach for.
  */
 
-import {
-  type Blueprint,
-  type BlueprintModule,
-  type LearnerState,
-  groupFor,
-  insteadOf,
-} from '../curriculum/blueprint';
+import type { Blueprint, BlueprintModule } from '../curriculum/blueprint';
 import type { DoorOffer } from '../screens/course/side-door';
 
 export type SuggestionKind = 'next' | 'way_back' | 'side_door' | 'ask';
 
 /** Where the one action goes. One target, never a set of them: a suggestion is one thing. */
-export type SuggestTarget =
-  | { to: 'module'; moduleId: string }
-  | { to: 'arcade'; topicId: string };
+export type SuggestTarget = { to: 'module'; moduleId: string } | { to: 'arcade'; topicId: string };
 
 export interface Suggestion {
   kind: SuggestionKind;
@@ -105,21 +104,19 @@ function whyItFollows(bp: Blueprint, topicId: string, m: BlueprintModule): strin
 /**
  * THE NEXT THING: one module, named, and why it follows.
  *
- * It reads THIS learner's own group rather than the pool's printed order, which is the whole point
- * of docs/LEARNING-MODEL.md §2: two learners on the same chapter walk two different paths, and the
- * thing that follows is different for each of them. Nothing left in the group is the ordinary
- * answer at the end of a topic, and it is silence rather than a nudge.
+ * `next` is what the course will hand over when the module on stage ends (`climb.ts`, `peek`),
+ * which reads THIS learner's own group and what has beaten them, never the pool's printed order:
+ * two learners on the same chapter walk two different paths (docs/LEARNING-MODEL.md §2). Nothing
+ * to hand over is silence rather than a nudge.
  */
 export function nextThing(args: {
   bp: Blueprint;
   topicId: string;
-  done: ReadonlySet<string>;
-  state?: LearnerState;
+  /** The course's own pick. Never computed here. */
+  next: BlueprintModule | null;
 }): Suggestion | null {
-  const { bp, topicId, done } = args;
-  const group = groupFor(bp, topicId, args.state ?? {});
-  const next = group.find((m) => !done.has(m.id));
-  if (!next) return null;
+  const { bp, topicId, next } = args;
+  if (!next?.serves.includes(topicId)) return null;
   return {
     kind: 'next',
     id: `next:${topicId}:${next.id}`,
@@ -151,14 +148,16 @@ const AS_WORDS: Record<BlueprintModule['kind'], string> = {
  *
  * *"when a learner is stuck twice on one idea ... a different way into the same idea, from the
  * chapter's own pool"*, and it may never say *"that they are struggling, or anything that reads as
- * a verdict"*. Both halves are structural here:
+ * a verdict"*. Every half of that is a gate here:
  *
  *   TWICE, NOT ONCE.   One idea that does not land first time is ordinary and needs no help; a
  *                      route offered then would be the product telling a learner they are slow.
- *   THE POOL'S OWN.    The route is `flow.stuck` where the architect wrote one, and otherwise
- *                      another way into the same idea from the same chapter. Nothing outside the
- *                      pool is ever reached for, so the alternative is one somebody designed to
- *                      teach exactly this.
+ *   THE COURSE'S OWN.  `next` is what the course hands over once this module ends, chosen by the
+ *                      one chooser from the chapter's pool with what beat them named. The way back
+ *                      only says it, so it can never promise a route the course does not take.
+ *   ANOTHER WAY IN.    It is offered only when that module is a different one AND teaches an idea
+ *                      the stuck one teaches. Anything else is simply what comes next, and is not
+ *                      dressed up as a way back.
  *
  * The words say what the other route IS ("filmed", "worked through a number at a time") and name
  * the idea it goes into. They never mention the attempt that came before, which is what keeps a
@@ -168,39 +167,18 @@ export function wayBack(args: {
   bp: Blueprint;
   topicId: string;
   /** The module they are on. */
-  moduleId: string;
-  /** How many times this one idea has held them up. Fewer than two and nothing is offered. */
+  from: string;
+  /** How many times this one module has held them up. Fewer than two and nothing is offered. */
   held: number;
-  /** What they have already met, so the way back is genuinely another way. */
-  met: ReadonlySet<string>;
+  /** The course's own pick for what follows. Never computed here. */
+  next: BlueprintModule | null;
 }): Suggestion | null {
-  const { bp, topicId, moduleId, held, met } = args;
-  if (held < 2) return null;
-  const from = bp.modules.find((m) => m.id === moduleId);
+  const { bp, topicId, from: fromId, held, next: alt } = args;
+  if (held < 2 || !alt || alt.id === fromId) return null;
+  const from = bp.modules.find((m) => m.id === fromId);
   if (!from) return null;
-
-  const byId = (id: string | null): BlueprintModule | undefined =>
-    id ? bp.modules.find((m) => m.id === id) : undefined;
-  const usable = (m: BlueprintModule | undefined): m is BlueprintModule =>
-    !!m && m.id !== moduleId && !met.has(m.id);
-
-  // The architect's own route first: they wrote it knowing what this module assumes.
-  let alt = byId(insteadOf(bp, moduleId));
-  if (!usable(alt)) {
-    const order = bp.flow.order;
-    alt = bp.modules
-      .filter(
-        (m) =>
-          usable(m) &&
-          m.role === 'way_in' &&
-          m.serves.includes(topicId) &&
-          m.teaches.some((i) => from.teaches.includes(i)),
-      )
-      .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))[0];
-  }
-  if (!usable(alt)) return null;
-
   const shared = from.teaches.find((i) => alt.teaches.includes(i));
+  if (!shared) return null;
   const idea = bp.ideas.find((i) => i.id === shared);
   const topic = bp.topics.find((t) => t.id === topicId)?.name ?? bp.chapter;
   return {

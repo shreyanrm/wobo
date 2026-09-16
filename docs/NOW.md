@@ -28,7 +28,7 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 
 | What | Wave | Where it is |
 |---|---|---|
-| Nothing. Wave 56 landed; the mail it built waits on the owner's review of its wording | 56 | Verified on an isolated index: gateway 7365 passed / 0 failed; web 4040 tests, 0 failed; board 1139; sdk 191; engine 30; typecheck 7; ruff clean; build and gate clean. Migrations 0034, 0035, 0036 applied to production and verified. The measurement found the live mail had never sent anything but the welcome: no schedule calls the mail jobs, the nudge source read a key that never existed, and the day ledger was never written. **Next: the owner's wording review (95 lines, published), then the webhook, the env and the schedule; then wave 49** |
+| Nothing. Wave 49 landed; wave 50 is next | 49 | Verified on an isolated index: gateway 7434 / 0 failed; web 4115 tests, 0 failed; board 1139; sdk 191; engine 30; typecheck 7. After it, the lint errors (3 old comment dividers, 1 new line) and a brand-gate failure (vendor model ids as test data in a new test) were fixed and re-run. Migration 0037 applied; the 0029 owner protection and 0037's constraints driven on production inside rolled-back transactions, all holding |
 
 ## The queue, in order
 
@@ -37,15 +37,15 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | # | What | Wave |
 |---|---|---|
-| 1 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
-| 2 | The growth desk, the press page, chapter pages at tier two | 50 |
-| 3 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
-| 4 | The parent's account screens | 34 |
+| 1 | The growth desk, the press page, chapter pages at tier two | 50 |
+| 2 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
+| 3 | The parent's account screens | 34 |
 
 ## Landed, with the proof
 
 | What | Wave | Proof |
 |---|---|---|
+| The console seats people properly, board changes follow the rule, suggestions ask the one chooser | 49 | No invitation could ever have been accepted in production (the lookup refused every address with a dot; the write relied on a unique constraint that does not exist): fixed, with a signed single-use expiring link (0037). The console now draws only the desks a seat holds; money figures are stripped from every desk for a seat without the money panel. The app had never called the board-change rule (the picker wrote straight to the device); now it does, with only true cost sentences and a kept record of the old board's work. Suggestions were reachable only from tests and could name a module the course would not show; now they ask the course's own pick. A reduced-motion learner lost every other tap on the balance scale; fixed |
 | The allowance, the money's voice, and two leaks found in the wave's own work | 36 | `22008958`. The free lane finally wired (every free turn had been served by Terra at about eleven times Luna's price); both platform pools made real; the money's voice placed and held equal to money.md; every promo code had been 404ing, now fixed. The judge caught the parent companion dropping from Terra to Luna for every family, Max included, and the turn counters resetting on the server's day instead of the learner's; both closed red-first. Isolated index: gateway 6878/0, web 3970/0, board 1139/0 |
 | The ink's correctness at four out of four | 42, 47 | correctness scores 4.00; craft is what wave 48 is closing |
 | The public site readable by a crawler that runs no script | 43 | 440 pages of real HTML, a canonical on each, a real 404 |
@@ -162,7 +162,11 @@ rather than remembered, and every line below was checked against the code on 202
 
 | What | Why it matters | Effort |
 |---|---|---|
-| Approve the 95 new lines a family could read (the learning notes, subjects, footers, stop pages, parent invitation, help centre) | nothing new is sent to any family until this is done; the page lists every line, checked against the final code | a read-through |
+| Take the console owner's seat | production has NO owner row (0 rows in ops.admins); OPERATIONS.md 13.4 is one statement with the owner's auth user id and address. The owner says which account, and it can be run for them | minutes |
+| Where the console lives (`CONSOLE_URL`) | the console has no public address, and an invitation link needs one; nobody but the owner uses the console today, so nothing waits on it | a decision |
+| Board changes for under-13s | the server has no age signal, and the parent account allows four actions with boards forbidden; a ruling on both before the parent path can exist | two rulings |
+| Progress across boards | CONSOLE-ROLES-AND-BOARD.md says progress re-maps to the new board; it does not (completion is stored per board). Build the re-map, or change the sentence | a ruling |
+| Approve the 133 new lines a family could read (mail, board change, suggestions, the lesson), and glance at 135 console lines | nothing new is sent to any family until this is done; the page lists every line, checked against the final code | a read-through |
 | DNS for a transactional sending subdomain (sign-in codes, receipts), added in Resend | global practice: a bad week for learning notes never blocks a sign-in or a receipt. The code falls back to today's sender until it exists | a few DNS records |
 | The brand logo in the inbox (BIMI) | needs DMARC at enforcement and usually the registered trademark, so it follows the trademark filing | after the trademark |
 | Seed inboxes we own on Gmail, Outlook, Yahoo and Apple Mail, each with an app password | the daily spam check sends to them and reads which folder each mail landed in; without them it reports "not configured" | four sign-ups |
@@ -234,7 +238,7 @@ Asked whether everything discussed is ready. It is not, and this is measured rat
 | the allowance, the free pool cap | **in flight, wave 36** |
 | growth attribution, the campaign id, the five shapes, the two posting rules | **in flight, wave 50** |
 | the parent's account screens | **queued, wave 34** |
-| the four kinds of suggestion, and one owner with per-person roles | **in flight, wave 49** |
+| the four kinds of suggestion, and one owner with per-person roles | **built, waiting on verification and commit (wave 49)**; the ask kind is on no screen |
 | push notifications | **held last on purpose**, see above |
 | the 67 pages measured for real distinctness, the core's depth band | **in flight, wave 51** |
 | the discovery worker | **not switched on** (one Railway variable, on the owner's list) |
@@ -245,3 +249,16 @@ Asked whether everything discussed is ready. It is not, and this is measured rat
 | The tutor never leaves — on the gateway | 54 | SUPERSEDED 2026-09-16: `climb.py` is retired and the device chooses (docs/LEARNING-MODEL.md "Who chooses"). Played against the real 31-module pool rather than read: the standard was NOT true and three defects were found. The group was chosen ONCE and never again (no climb existed on the gateway at all); a learner wrong twice got THE SAME MODULE AGAIN, for ever; and the climb had no ending. New `climb.py`, `LearnerState` gains done/struggled/pace, `mastered()` reads ideas held and misconceptions gone. 29 played tests; a whole struggling climb played with `model_call.complete` rigged to raise, so re-choosing provably costs no model call |
 | The phone, three of four: the install prompt, the share target, offline lessons | 53 | Verified on the exact index: typecheck clean, board 1139 pass, web 3836 pass 0 fail, gateway 6259 pass. The install offer is armed at the entry (`main.tsx`) so Chromium's event is never fired into an empty room, made once after a first earned moment, never on a public surface. The share target works end to end on Android/Chromium. Offline lessons were FALSE before this and are now real: a played lesson kept its own cards, and the five faces are precached so an offline learner does not read the product in a fallback font |
 | Two real leaks closed while building the phone | 53 | A shared photo could open in a sibling's solver within ten minutes and be sent under THEIR account; and a QA engines bench was shipped and precached inside a children's app (486 kB, the largest precached file). Both found by the wave's own adversaries, both closed |
+
+## Named by wave 49's closer, and open
+
+| What | Owner |
+|---|---|
+| Migration 0037 (the invitation link) is in the repository and not applied; production also needs `CONSOLE_URL` and `ADMIN_INVITE_SECRET` set, and every seat still marked invited needs a fresh link (docs/OPERATIONS.md 13.6). The four 0029 and three 0037 SQL checks have not been run on a branch | OWNER |
+| The parent path of the board rule: no server age signal, and a fifth parent action the parent plane forbids. Until ruled, the parent dial governs nothing and the console says so | OWNER (docs/CONSOLE-ROLES-AND-BOARD.md, closer's section, item 1) |
+| "Progress re-maps to the new syllabus" in §1 is not what the product does; keep the sentence and build it, or change the sentence | OWNER (same section, item 2) |
+| The kept record, like all progress, lives on one device | the cross-device progress question, docs/MEMORY-LAW.md |
+| The question-to-ask suggestion (`ask`) is built and on no screen | wave 49's suggestions follow-on |
+| At 390, the Wobo line beside "I think I'm right" and Continue is squeezed to one word per line; the practice feedback carries two long dashes where a learner reads (the "scale tipped" line and the "finish is yours" line) | the course's next pass; seen in `tests/shots/suggestions` lab frames |
+| At 390, the board dials table needs a sideways scroll to reach its values | the console's next pass |
+| The e2e specs (suggestions, balance-scale-taps) still run outside `bun run test` and the gate | whoever gives the e2e specs a gate |

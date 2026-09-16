@@ -25,9 +25,12 @@ const COOL_OFF_MS = 30_000;
 
 export function Door({
   why,
+  invitation = null,
   onOpen,
 }: {
   why: LockReason | null;
+  /** The token from an invitation link, when the console was opened through one. */
+  invitation?: string | null;
   onOpen: (session: Session) => void;
 }) {
   const [email, setEmail] = useState('');
@@ -49,7 +52,7 @@ export function Door({
     event.preventDefault();
     if (busy || resting) return;
     setBusy(true);
-    const session = await signIn({ email, password, code });
+    const session = await signIn({ email, password, code }, undefined, invitation);
     setBusy(false);
     if (session.state === 'open') {
       onOpen(session);
@@ -81,6 +84,13 @@ export function Door({
           Operator access. Every sign-in and every screen opened here is written to a trail that
           cannot be edited or deleted, including this attempt.
         </p>
+
+        {invitation && (
+          <p className="ac-door-sub" role="note">
+            You are taking a seat you were invited to. Sign in with the address the invitation was
+            sent to, and have your authenticator ready.
+          </p>
+        )}
 
         {said && (
           <div className={nothingToSignInTo ? 'ac-diag' : 'ac-refused'}>
