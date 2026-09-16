@@ -17,7 +17,7 @@ import { ComboMeter, comboBreak, comboHit } from '../../ui/combo';
 import { sfx } from '../../ui/sound';
 import { aX, firstMove, fmt, linearize } from './equations';
 import type { BarState } from './shared';
-import { CardBody, ChoiceButton, cardTitle, rgba, Stage, whisper } from './shared';
+import { CardBody, ChoiceButton, cardTitle, rgba, Stage, tryAgainRung, whisper } from './shared';
 
 const HUE = 'var(--wobo-ultramarine)';
 
@@ -446,11 +446,17 @@ export function Boss({
               transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
               style={{ textAlign: 'center', color: 'var(--wobo-ink-700)', fontSize: '0.95rem' }}
             >
+              {/*
+                The boss climbs the same ladder the workbook does (`shared.tsx`). It used to say
+                one fixed sentence on every failed round, so a learner who could not pass read the
+                identical words as many times as they tried; and that sentence carried two em
+                dashes in front of a child, which voice.md forbids outright.
+              */}
               {passCount >= 2
                 ? passCount === 3
                   ? 'All three. Clean.'
-                  : 'Two of three — that is a pass, earned.'
-                : 'Close. The scale is still yours — take one more look.'}
+                  : 'Two of three, and that is a pass, earned.'
+                : tryAgainRung(passCount, 3, round.current - 1)}
             </motion.div>
           )}
         </div>

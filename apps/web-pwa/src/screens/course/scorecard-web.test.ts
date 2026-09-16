@@ -97,6 +97,9 @@ describe('#2 zero of three is not a pass', () => {
     expect(roundVerdict(3, 3, WORKBOOK_PASS_NEEDED)).toEqual({
       advance: true,
       line: 'All of them. Clean.',
+      // A round that passed has no rung to climb, so it never asks for another way in
+      // (`shared.tsx`, the try-again ladder).
+      anotherWay: false,
     });
   });
 

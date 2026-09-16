@@ -1521,7 +1521,7 @@
       "type": "object"
     },
     "Item": {
-      "description": "A workbook / boss recall item with a structurally verified answer.",
+      "description": "A workbook / boss recall item with a structurally verified answer.\n\n``explanation`` is WHY that answer is the answer, and it is the line a learner reads when they\nget this item wrong (``screens/course/Composing.tsx`` prints it beside the answer on a miss).\ndocs/LEARNING-MODEL.md rule 3: *\"Every wrong answer gets the reason it is wrong ... Never\n'incorrect, try again'. Never a generic hint.\"*\n\nIt was missing, and the client's branch that renders it was therefore dead on every course ever\nserved: every miss in the workbook and the boss read \"Not this one. The answer is X.\" — the\nsame sentence for all three items, in every module. Optional on the model, because a course\nalready in the cache has none and must still validate; the floor always fills it.",
       "properties": {
         "id": {
           "title": "Id",
@@ -1557,6 +1557,18 @@
         "answer": {
           "title": "Answer",
           "type": "string"
+        },
+        "explanation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Explanation"
         }
       },
       "required": [

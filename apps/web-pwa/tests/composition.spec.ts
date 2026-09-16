@@ -314,6 +314,67 @@ test.describe('the composer renders any valid composition', () => {
     }
   });
 
+  /**
+   * RULE 3, ON A REAL SCREEN (docs/LEARNING-MODEL.md, "the tutor never leaves", the owner
+   * 2026-09-15): *"Every wrong answer gets the reason it is wrong, DRAWN WHERE THE MISTAKE IS."*
+   *
+   * A drop is wrong as a PAIR — this token, that bin — so the line a learner reads must be the
+   * refusal of the bin they chose, not the token's own description. `DropPlay` passed only the
+   * token, so the zone's refusal was unreachable and the learner read why marble is marble instead
+   * of why it is not igneous. Measured at both widths and in both themes, because a line nobody
+   * can read is a line that was not said.
+   */
+  for (const size of [PHONE, DESK]) {
+    for (const theme of ['light', 'dark']) {
+      test(`a wrong drop reads as the bin's own refusal, at ${size.width} in ${theme}`, async ({
+        page,
+      }) => {
+        const section = await open(page, 'floor-classify', size, theme);
+        const cx = section.locator('.cx');
+        const marble = cx.locator('[data-cx="tray"] > button', { hasText: 'Marble' });
+        const igneous = cx.locator('[data-cx="zones"] > button', {
+          hasText: 'Cooled from molten rock',
+        });
+        const teach = cx.locator('[data-cx="teach"]');
+
+        // Marble is metamorphic. Putting it with the molten rocks is a real, specific mistake.
+        await marble.click();
+        await igneous.click();
+        await expect(teach).toBeVisible();
+        const first = (await teach.innerText()).trim();
+
+        // THE BIN'S reason, not the token's. "never melted" is what this zone refuses for;
+        // "recrystallised" is marble's own story and answers a question nobody asked.
+        expect(first.toLowerCase()).toContain('never melted');
+        expect(first.toLowerCase()).not.toContain('recrystallised');
+
+        // ...and the ink is legible on whichever ground this theme paints.
+        const seen = await teach.evaluate((el) => ({
+          color: getComputedStyle(el).color,
+          ground: getComputedStyle(el).backgroundColor,
+        }));
+        expect(seen.color).not.toBe(seen.ground);
+        expect(seen.color).not.toBe('rgba(0, 0, 0, 0)');
+
+        // RULE 4: the same mistake again is never answered with the same sentence again.
+        // A refused token stays IN HAND (the zones are armed only while something is held), so the
+        // learner simply tries the same bin again. Picking marble up a second time would put it
+        // back down and disarm every bin.
+        await igneous.click();
+        // The teaching line animates out before the next one animates in (AnimatePresence
+        // `mode="wait"`), so the exiting paragraph is still in the DOM and `toBeVisible` would
+        // resolve against the sentence that is on its way off. Wait for the words themselves to
+        // change, which is what a learner actually waits for.
+        await expect(teach).not.toHaveText(first);
+        const second = (await teach.innerText()).trim();
+        expect(second).not.toBe(first);
+        expect(second.length).toBeGreaterThan(10);
+        expect(second.toLowerCase()).not.toMatch(/\b(wrong|incorrect|try again|oops|nope)\b/);
+        expect(second).not.toContain('—');
+      });
+    }
+  }
+
   test('the moment of surprise is what lands, and only once the act is done', async ({ page }) => {
     const section = await open(page, 'designed-equivalent-fractions', PHONE);
     await expect(section.locator('[data-cx="reveal"]')).toHaveCount(0);

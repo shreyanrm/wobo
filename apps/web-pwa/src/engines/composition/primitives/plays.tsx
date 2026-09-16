@@ -43,7 +43,12 @@ export interface PlayProps {
   /** True once the beat is revealed: the play becomes a picture of what happened. */
   frozen: boolean;
   onRight: (pieceId?: string) => void;
-  onWrong: (pieceId?: string) => void;
+  /**
+   * A wrong move, and WHERE it was made. `intoId` is the drop zone a token was put into: a drop is
+   * wrong as a pair, and the bin's own refusal is the only line that says why the PLACEMENT was
+   * wrong rather than why the piece is what it is.
+   */
+  onWrong: (pieceId?: string, intoId?: string) => void;
   onDone: (pieceId?: string) => void;
 }
 
@@ -218,7 +223,8 @@ function DropPlay({ primitive, unitPx, frozen, onRight, onWrong, onDone }: PlayP
       if (Object.keys(next).length === p.tokens.length) onDone();
     } else {
       setMissed(token);
-      onWrong(token);
+      // Both halves of the mistake: what they moved, and the bin that refused it.
+      onWrong(token, zoneId);
     }
   };
 

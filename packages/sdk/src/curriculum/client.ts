@@ -47,6 +47,7 @@ export const CURRICULUM_CAPABILITIES = {
   overlayApply: 'curriculum.overlay.apply',
   status: 'curriculum.status',
   blueprint: 'curriculum.blueprint',
+  climb: 'curriculum.climb',
   ownRead: 'curriculum.own.read',
   ownConfirm: 'curriculum.own.confirm',
   ownPublish: 'curriculum.own.publish',
@@ -195,6 +196,24 @@ export interface CurriculumClient {
    * pool — the architect is a platform-paid job — so a cell without one simply answers null.
    */
   blueprint(cell: BlueprintCell): Promise<{ blueprint: unknown | null; held: number }>;
+  /**
+   * WHAT THIS LEARNER MEETS NEXT, re-chosen out of what just happened
+   * (docs/LEARNING-MODEL.md, "The tutor never leaves", rule 1).
+   *
+   * Called after EVERY module and never once at the start: hand it the module just answered and
+   * the evidence the previous call gave back, and it returns the next module, the reason in the
+   * pool's own words, and the group as it stands NOW. It builds nothing, so a chapter the
+   * architect has not designed a pool for answers `pool: false` and the screen teaches it exactly
+   * as it does today.
+   *
+   * The evidence travels both ways on purpose: the brain stores no per-learner climb state, so
+   * what comes back is what to send next time.
+   */
+  climb(
+    cell: BlueprintCell,
+    topic: string,
+    state?: { evidence?: ClimbEvidence; answered?: ClimbAnswer | null },
+  ): Promise<ClimbStep>;
   own: {
     /** Paste, photo or PDF in; a personal syllabus waiting for confirmation out (§6). */
     read(
@@ -218,6 +237,48 @@ export interface BlueprintCell {
   contentVersion: string;
   topics: readonly { id: string; name: string }[];
   minutesBudget?: number | null;
+}
+
+/** What this learner has shown on this chapter so far: ids off the pool, and their own words. */
+export interface ClimbEvidence {
+  done?: readonly string[];
+  wrong?: readonly string[];
+  heldIdeas?: readonly string[];
+  misconceptions?: readonly string[];
+  unmetAssumptions?: readonly string[];
+  style?: readonly string[];
+  slow?: readonly string[];
+  quick?: readonly string[];
+  said?: readonly string[];
+  lastModule?: string;
+  lastRight?: boolean;
+}
+
+/** One module, answered. The four things the re-choice after it reads. */
+export interface ClimbAnswer {
+  module: string;
+  right: boolean;
+  /** Misconception ids the answer itself showed, classified where the content lives. */
+  showed?: readonly string[];
+  /** How long they took, against the module's own minutes. */
+  seconds?: number | null;
+  /** What they said in their own words, read only against the chapter's own declarations. */
+  said?: string;
+}
+
+/** The module a learner meets next, and why, in the pool's own words. */
+export interface ClimbStep {
+  /** False when the architect has built no pool for this cell. Never an error. */
+  pool: boolean;
+  step: {
+    module: { id: string; aim: string; kind: string; role: string; minutes: number } | null;
+    why: string;
+    kind: string;
+  } | null;
+  /** The group that teaches this topic AS IT STANDS, re-chosen on every call. */
+  group: string[];
+  mastered: boolean;
+  evidence: ClimbEvidence;
 }
 
 const clean = <T extends Record<string, unknown>>(payload: T): T =>
@@ -297,6 +358,29 @@ export function createCurriculumClient(
         ...(cell.minutesBudget ? { minutesBudget: cell.minutesBudget } : {}),
       })) as { blueprint?: unknown; held?: number } | null;
       return { blueprint: raw?.blueprint ?? null, held: Number(raw?.held ?? 0) };
+    },
+
+    async climb(cell, topic, state = {}) {
+      const raw = (await post(C.climb, {
+        node: cell.node,
+        chapter: cell.chapter,
+        board: cell.board,
+        grade: cell.grade,
+        subject: cell.subject,
+        contentVersion: cell.contentVersion,
+        topics: cell.topics.map((t) => ({ id: t.id, name: t.name })),
+        ...(cell.minutesBudget ? { minutesBudget: cell.minutesBudget } : {}),
+        topic,
+        evidence: state.evidence ?? {},
+        ...(state.answered ? { answered: state.answered } : {}),
+      })) as Partial<ClimbStep> | null;
+      return {
+        pool: Boolean(raw?.pool),
+        step: raw?.step ?? null,
+        group: raw && Array.isArray(raw.group) ? raw.group : [],
+        mastered: Boolean(raw?.mastered),
+        evidence: raw?.evidence ?? {},
+      };
     },
 
     async pin(frameworkId, versionId) {

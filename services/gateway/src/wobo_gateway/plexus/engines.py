@@ -91,6 +91,13 @@ def _verify_items(raw: Any, need: int = 3) -> list[dict[str, Any]] | None:
         answer = str(item.get("answer") or "").strip()
         if not prompt or not answer:
             continue
+        # WHY that is the answer — the line a learner reads when they get this one wrong. Carried
+        # through rather than dropped: the client renders it beside the answer on a miss, and
+        # without it every miss reads "Not this one. The answer is X." (docs/LEARNING-MODEL.md
+        # rule 3). Optional HERE, so a course already in the cache still verifies; what a learner
+        # is actually handed is never optional, because :func:`fill_item_reasons` fills it on the
+        # serve path for every course, cached or fresh.
+        reason = str(item.get("explanation") or "").strip()
         if item["type"] == "mcq":
             opts = item.get("options")
             if not isinstance(opts, list):
@@ -100,29 +107,178 @@ def _verify_items(raw: Any, need: int = 3) -> list[dict[str, Any]] | None:
                 continue
             if sum(1 for o in options if o == answer) != 1:
                 continue
-            clean.append(
-                {
-                    "id": str(item.get("id") or f"i{i + 1}"),
-                    "type": "mcq",
-                    "prompt": prompt,
-                    "options": options,
-                    "answer": answer,
-                }
-            )
+            entry: dict[str, Any] = {
+                "id": str(item.get("id") or f"i{i + 1}"),
+                "type": "mcq",
+                "prompt": prompt,
+                "options": options,
+                "answer": answer,
+            }
         else:  # fill — the answer must be short and unambiguous enough to type
             if len(answer) > 60:
                 continue
-            clean.append(
-                {
-                    "id": str(item.get("id") or f"i{i + 1}"),
-                    "type": "fill",
-                    "prompt": prompt,
-                    "answer": answer,
-                }
-            )
+            entry = {
+                "id": str(item.get("id") or f"i{i + 1}"),
+                "type": "fill",
+                "prompt": prompt,
+                "answer": answer,
+            }
+        if reason:
+            entry["explanation"] = reason
+        clean.append(entry)
         if len(clean) == need:
             return clean
     return None
+
+
+# --- the reason a miss deserves, filled ON THE WAY OUT -----------------------------------
+# docs/LEARNING-MODEL.md, "The tutor never leaves", rule 3: *"Every wrong answer gets the reason it
+# is wrong ... Never 'incorrect, try again'. Never a generic hint."*
+#
+# `specs.Item.explanation` and the floor that fills it (`_level_from_core`) fixed this FOR COURSES
+# MADE AFTERWARDS, and only for those. Compose results are cached for ninety days and served back
+# verbatim (`run_engine`), so every course already in the cache — every course any learner has met
+# — carried items with no reason at all, and every miss on them read "Not this one. The answer is
+# X." forever, or until the record went stale. Marking those records stale would have been the
+# other repair: it buys a frontier generation for every cached course in the product to add one
+# sentence the concept core already owns. So the fill happens where the course is HANDED OVER
+# instead, out of material already bought: no model call, no regeneration, no migration, and the
+# next learner to miss on a course cached last month reads the reason.
+
+
+#: A reason shorter than this is a label, not a reason (the bar `test_where_they_went_wrong` holds).
+_REASON_MIN_WORDS = 4
+
+
+def _plain(text: Any) -> str:
+    """One line as a learner reads it: no em dash, no en dash, no doubled space (voice.md 10a)."""
+    return re.sub(r"\s+", " ", re.sub(r"\s*[—–]\s*", ", ", str(text or ""))).strip()
+
+
+def _is_a_reason(line: str, *, said: list[str]) -> bool:
+    """Is this a sentence about the idea that this screen has not already said?
+
+    A verdict on the learner ("not quite", "try again") is what rule 3 forbids, and the gate
+    already names those: :data:`validate._EMPTY_FEEDBACK`, matched as the WHOLE line the way the
+    gate matches it, so an honest sentence that happens to contain the word survives.
+    """
+    from wobo_gateway.plexus import validate  # validate imports engines: function-local, as above
+
+    if len(line.split()) < _REASON_MIN_WORDS or line in said:
+        return False
+    return line.strip().lower().rstrip(".!") not in validate._EMPTY_FEEDBACK
+
+
+def _reason_pool(core: dict[str, Any], course: dict[str, Any]) -> list[str]:
+    """Everything this concept can honestly say to a miss, in the order it is worth saying.
+
+    The core's own misconceptions first, because a distractor IS a misconception and the reason a
+    wrong pick is wrong is the belief it came from. Then the words, the check, the idea. Then the
+    course's own cards, which is what a course with no core in the store still owns — a seeded
+    course, or one cached before cores existed.
+    """
+    out: list[str] = []
+    for m in core.get("misconceptions") or []:
+        if not isinstance(m, dict):
+            continue
+        counter = _plain(m.get("counter"))
+        belief = _plain(m.get("belief") or m.get("wrong"))
+        if counter:
+            out.append(counter)
+        if belief:
+            out.append(f"Many learners think {belief}, and that is the wrong turn here.")
+    for v in core.get("vocabulary") or []:
+        if isinstance(v, dict):
+            term, meaning = _plain(v.get("term")), _plain(v.get("meaning"))
+            if term and meaning:
+                out.append(f"{term} is {meaning}.")
+    check = core.get("check") if isinstance(core.get("check"), dict) else {}
+    for line in (check.get("answer"), core.get("idea"), core.get("why"), check.get("question")):
+        if _plain(line):
+            out.append(_plain(line))
+    for card in course.get("cards") or []:
+        if isinstance(card, dict):
+            out += [_plain(card.get("reveal")), _plain(card.get("idea"))]
+    return [line for line in out if line]
+
+
+def _questions_for(answer: str) -> list[str]:
+    """What Wobo asks once this concept's words for this mistake are spent.
+
+    The tutor hands the thinking back rather than printing a hint it has already spent. Client
+    parity, deliberately: ``engines/composition/parse.ts``'s ``questionsFor`` does the same, so
+    both sides of the wire answer a spent mistake the same way.
+    """
+    short = _cap_words(answer, 10)
+    return [
+        f"What is it about “{short}” that decides the answer here?",
+        f"What would have to change for “{short}” to stop being the answer?",
+        f"Which part of the question points at “{short}”?",
+    ]
+
+
+def fill_item_reasons(
+    course: Any,
+    concept: str,
+    scope: dict[str, str] | None = None,
+    *,
+    core_record: dict[str, Any] | None = None,
+) -> Any:
+    """Give every workbook and boss item WHY its answer is the answer, before it is served.
+
+    Costs nothing and reaches everything: the core is read from the store (never made here — a
+    serve path may not buy a generation), and a concept with no stored core falls back to the
+    course's own cards rather than to a generic line. An item that already carries a reason of its
+    own keeps it; one whose reason repeats what another item on the same screen says is re-drawn,
+    because three identical lines is one generic hint printed three times (rule 4).
+
+    The stored record is never touched: the filled course is a copy, so what the cache holds stays
+    exactly what was generated and verified.
+    """
+    if not isinstance(course, dict):
+        return course
+    if not any(isinstance(course.get(s), list) for s in ("workbook", "boss")):
+        return course
+    if core_record is None:
+        with contextlib.suppress(Exception):  # a cache read may never take a serve down
+            core_record = store.load_core(concept, scope)
+    raw = (core_record or {}).get("core")
+    core = raw if isinstance(raw, dict) else (core_record or {})
+    pool = _reason_pool(core if isinstance(core, dict) else {}, course)
+    cap = _level_words(str((scope or {}).get("grade") or ""))
+    filled = dict(course)
+    for section in ("workbook", "boss"):
+        rows = course.get(section)
+        if not isinstance(rows, list):
+            continue
+        said: list[str] = []
+        served: list[Any] = []
+        for item in rows:
+            if not isinstance(item, dict):
+                served.append(item)
+                continue
+            own = _plain(item.get("explanation"))
+            if own and _is_a_reason(own, said=said):  # the model's own words, kept
+                said.append(own)
+                served.append(item)
+                continue
+            answer = str(item.get("answer") or "").strip()
+            # Drawn WHERE THE MISTAKE IS: a line that names this item's own answer first, then
+            # the next thing the concept has left to say, then a question.
+            fresh = [c for c in pool if _is_a_reason(_cap_words(c, cap), said=said)]
+            named = [c for c in fresh if answer and answer.lower() in c.lower()]
+            line = next(
+                (
+                    _cap_words(c, cap)
+                    for c in named + fresh + _questions_for(answer)
+                    if _is_a_reason(_cap_words(c, cap), said=said)
+                ),
+                f"Look again at what makes “{_cap_words(answer, 10)}” the one that fits.",
+            )
+            said.append(line)
+            served.append({**item, "explanation": line})
+        filled[section] = served
+    return filled
 
 
 def _fnum(v: Any) -> bool:
@@ -1436,9 +1592,13 @@ _SYSTEMS = {
         "physicsScene | chemScene | bioScene | socialScene | mapScene | anatomyScene, "
         "schemas below>}],"
         '"workbook":[{"id":"w1","type":"mcq","prompt":"...",'
-        '"options":["...","...","..."],"answer":"<copied character-for-character from options>"},'
+        '"options":["...","...","..."],"answer":"<copied character-for-character from options>",'
+        '"explanation":"<WHY that is the answer, in the words of this concept: the one line a '
+        "learner reads when they get this item wrong. Name the misconception the wrong options "
+        'are made of. Never a generic hint>"},'
         '{"id":"w2","type":"fill","prompt":"<a sentence with a ________ gap>",'
-        '"answer":"<one unambiguous word or short phrase>"}],'
+        '"answer":"<one unambiguous word or short phrase>",'
+        '"explanation":"<the same: one sentence saying why that is the answer>"}],'
         '"boss":[<3 items, same shapes, noticeably harder>]}\n\n'
         "PEDAGOGICAL SEQUENCE — the 4 to 6 cards MUST run in this order:\n"
         "  1. HOOK — a concrete real-world moment; a 'tap' interaction to notice something.\n"
@@ -1651,6 +1811,9 @@ _SYSTEMS = {
         "taught on the cards. Every mcq has 3 or 4 distinct options and its answer string "
         "appears exactly once among them; distractors are plausible misconceptions. Every "
         "fill answer is a single word or short phrase a learner could reasonably type. "
+        "EVERY ITEM CARRIES AN EXPLANATION: the reason its answer is the answer, drawn from the "
+        "misconception its distractors are made of, because that is the line the learner reads "
+        "when they get it wrong. No two items in one set may carry the same explanation. "
         + _JSON_RULES
     ),
     "simulate": (
@@ -2315,6 +2478,23 @@ def _public(record: dict[str, Any], rendered_url: str | None = None) -> dict[str
     }
 
 
+def _served(record: dict[str, Any], scope: dict[str, str] | None) -> dict[str, Any]:
+    """The record as a LEARNER gets it, which is not always the record as it was cached.
+
+    One thing happens here today and it is docs/LEARNING-MODEL.md rule 3: every workbook and boss
+    item leaves with the reason its answer is the answer (:func:`fill_item_reasons`). It is done on
+    the way out rather than at generation because the courses that need it most are the ones
+    already sitting in the cache, and a cached course is served back exactly as it was written.
+
+    The cached record itself is untouched: what the store holds stays what was generated, verified
+    and judged, and nothing here is ever written back.
+    """
+    if record.get("modality") != "compose":
+        return record
+    filled = fill_item_reasons(record.get("artifact"), str(record.get("concept") or ""), scope)
+    return record if filled is record.get("artifact") else {**record, "artifact": filled}
+
+
 def _spawn_validation(
     record: dict[str, Any],
     concept: str,
@@ -2508,7 +2688,9 @@ def run_engine(
                 cached=True,
             )
         rendered = _rendered_url(concept, modality, difficulty, scope)
-        return ProviderResponse(output=_public(cached, rendered), tokens=0, model=model)
+        return ProviderResponse(
+            output=_public(_served(cached, scope), rendered), tokens=0, model=model
+        )
 
     # Cache miss: a real generation. Hold the learner's slot for its whole duration (one at a time).
     with _generation_slot(subject):
@@ -2563,7 +2745,9 @@ def run_engine(
         # A fresh video has no MP4 yet (the render is out-of-band), so rendered_url is None here; a
         # later cache-hit picks it up once the worker has produced it. Cheap no-op for non-video.
         rendered = _rendered_url(concept, modality, difficulty, scope)
-        return ProviderResponse(output=_public(record, rendered), tokens=tokens, model=model_used)
+        return ProviderResponse(
+            output=_public(_served(record, scope), rendered), tokens=tokens, model=model_used
+        )
 
 
 # =========================================================================================
@@ -3167,6 +3351,12 @@ def _level_from_core(
     # keeps, and the fill items, which cannot collide, come last as the backstop.
     b0, c0 = misconceptions[0]["belief"], misconceptions[0]["counter"]
     b1, c1 = misconceptions[1]["belief"], misconceptions[1]["counter"]
+    # EVERY ITEM CARRIES THE REASON ITS ANSWER IS THE ANSWER (docs/LEARNING-MODEL.md rule 3). It is
+    # what a learner reads when they get this one wrong, and it is drawn from the core's own
+    # misconceptions rather than written as a hint: the distractors ARE the misconceptions, so the
+    # reason a wrong pick is wrong is the belief it came from and the counter that undoes it. No two
+    # items on one screen say the same thing, because three identical lines is one generic hint
+    # printed three times.
     items = [
         {
             "id": "w1",
@@ -3174,18 +3364,21 @@ def _level_from_core(
             "prompt": f"Which of these is true of {concept}?",
             "options": [_cap_words(c0, 18), _cap_words(b0, 18), _cap_words(b1, 18)],
             "answer": _cap_words(c0, 18),
+            "explanation": word(f"Many learners think {b0}, and that is the wrong turn here."),
         },
         {
             "id": "w2",
             "type": "fill",
             "prompt": f"{_cap_words(vocab[0]['meaning'], 18)} is called ________.",
             "answer": str(vocab[0]["term"]),
+            "explanation": word(f"{vocab[0]['term']} is {vocab[0]['meaning']}."),
         },
         {
             "id": "w3",
             "type": "fill",
             "prompt": f"{_cap_words(vocab[1]['meaning'], 18)} is called ________.",
             "answer": str(vocab[1]["term"]),
+            "explanation": word(f"{vocab[1]['term']} is {vocab[1]['meaning']}."),
         },
         {
             "id": "w4",
@@ -3193,18 +3386,21 @@ def _level_from_core(
             "prompt": f"Which statement about {concept} is the mistake?",
             "options": [_cap_words(b1, 18), _cap_words(c1, 18), _cap_words(c0, 18)],
             "answer": _cap_words(b1, 18),
+            "explanation": word(f"It is the mistake because {c1}"),
         },
         {
             "id": "w5",
             "type": "fill",
             "prompt": f"The idea behind {concept} is that ________.",
             "answer": _cap_words(idea, 8),
+            "explanation": word(why),
         },
         {
             "id": "w6",
             "type": "fill",
             "prompt": f"One reason {concept} matters is ________.",
             "answer": _cap_words(why, 8),
+            "explanation": word(idea),
         },
     ]
     boss = [
@@ -3214,6 +3410,7 @@ def _level_from_core(
             "prompt": str(check.get("question") or ""),
             "answer": answer if len(answer) <= 60 else _cap_words(answer, 12),
             "options": [_cap_words(answer, 12), _cap_words(b0, 12), _cap_words(b1, 12)],
+            "explanation": word(idea),
         },
         {
             "id": "b2",
@@ -3221,6 +3418,7 @@ def _level_from_core(
             "prompt": f"A classmate says: {_cap_words(b0, 14)} What do you answer?",
             "options": [_cap_words(c0, 16), _cap_words(b1, 16), _cap_words(b0, 16)],
             "answer": _cap_words(c0, 16),
+            "explanation": word(f"The belief it undoes is that {b0}"),
         },
         {
             "id": "b3",
@@ -3228,24 +3426,28 @@ def _level_from_core(
             "prompt": f"A classmate says: {_cap_words(b1, 14)} What do you answer?",
             "options": [_cap_words(c1, 16), _cap_words(c0, 16), _cap_words(b0, 16)],
             "answer": _cap_words(c1, 16),
+            "explanation": word(f"The belief it undoes is that {b1}"),
         },
         {
             "id": "b4",
             "type": "fill",
             "prompt": f"{_cap_words(str(check.get('question') or concept), 18)} ________.",
             "answer": _cap_words(answer, 10),
+            "explanation": word(why),
         },
         {
             "id": "b5",
             "type": "fill",
             "prompt": "The first term this lesson uses is ________.",
             "answer": _cap_words(str(vocab[0]["term"]), 6),
+            "explanation": word(f"{vocab[0]['term']} is {vocab[0]['meaning']}."),
         },
         {
             "id": "b6",
             "type": "fill",
             "prompt": "The second term this lesson uses is ________.",
             "answer": _cap_words(str(vocab[1]["term"]), 6),
+            "explanation": word(f"{vocab[1]['term']} is {vocab[1]['meaning']}."),
         },
     ]
     built = {"topic": concept, "cards": cards, "workbook": items, "boss": boss}
@@ -3566,18 +3768,44 @@ def _material(core: dict[str, Any]) -> dict[str, Any]:
     return core.get("material") if isinstance(core.get("material"), dict) else {}
 
 
-def _counter(core: dict[str, Any], fallback: str) -> str:
-    """The counter-example to this concept's commonest misconception, for a wrong move to teach.
+def _counters(core: dict[str, Any]) -> list[str]:
+    """Every counter-example this core carries, in the core's own order.
 
     Reads both spellings of the field: the core model writes ``belief``/``counter``, and a
     hand-written core in a test or a fixture writes ``wrong``/``counter``.
     """
+    out: list[str] = []
     for item in core.get("misconceptions") or []:
         if isinstance(item, dict):
             counter = str(item.get("counter") or "").strip()
-            if counter:
-                return counter
-    return fallback
+            if counter and counter not in out:
+                out.append(counter)
+    return out
+
+
+def _counter(core: dict[str, Any], ask: str, *, at: int = 0) -> str:
+    """The counter-example for THE MISTAKE AT HAND, for a wrong move to teach.
+
+    ``at`` is which mistake this slot is about — a zone's index, a step's index, an option's index
+    — so the bin that refuses a token and the step that will not close answer with DIFFERENT
+    sentences. It returned ``misconceptions[0]`` for every slot in every design until 2026-09-16,
+    which meant a whole design spoke one sentence however the learner went wrong, and a learner who
+    missed twice read it twice (docs/LEARNING-MODEL.md rules 3 and 4).
+
+    ``ask`` is what Wobo says once this concept's misconceptions are SPENT, and it is a QUESTION:
+    where the core has nothing left to assert about this particular mistake, the tutor hands the
+    thinking back rather than printing a generic hint, or repeating one it has already given.
+
+    Each misconception is spent ONCE, in order, and every slot past the last one asks. Cycling was
+    tried first and was wrong: a core with a single misconception (most of them) handed every bin,
+    every step and every option the identical sentence, which is the very fault this argument
+    exists to prevent. It is the same policy the client's own ``reasonFor`` follows, deliberately,
+    so the two sides of the wire answer a repeated mistake the same way.
+    """
+    counters = _counters(core)
+    if at < len(counters):
+        return counters[at]
+    return ask
 
 
 def _floor_items(core: dict[str, Any]) -> list[dict[str, str]]:
@@ -3724,7 +3952,11 @@ def _floor_classify(core: dict[str, Any], concept: str) -> list[specs.Interactio
                 ],
                 feedback=_fb(
                     f"that one belongs with {b.get('label')}.",
-                    _counter(core, f"read what {b.get('label')} means and try that one again."),
+                    _counter(
+                        core,
+                        f"What would have to be true of it to belong with {b.get('label')}?",
+                        at=i,
+                    ),
                 ),
             )
             for i, b in enumerate(bins)
@@ -3753,7 +3985,7 @@ def _floor_classify(core: dict[str, Any], concept: str) -> list[specs.Interactio
                     zones=zones,
                     feedback=_fb(
                         "every one is in its own group now.",
-                        _counter(core, "look again at what makes the two groups different."),
+                        _counter(core, "What makes the two groups different?", at=len(zones)),
                     ),
                 ),
                 surprise="the groups fill and the rule that separates them becomes visible",
@@ -3788,7 +4020,11 @@ def _floor_order(core: dict[str, Any], concept: str) -> list[specs.InteractionSt
                 ],
                 feedback=_fb(
                     "that is the order, and each one sets up the next.",
-                    _counter(core, f"{items[0]['label']} has to come before {items[-1]['label']}."),
+                    _counter(
+                        core,
+                        f"Which of {items[0]['label']} and {items[-1]['label']} has to happen "
+                        "first?",
+                    ),
                 ),
             ),
             surprise="the line settles and each step explains the one after it",
@@ -3821,9 +4057,7 @@ def _floor_match(core: dict[str, Any], concept: str) -> list[specs.InteractionSt
                 card=card[0],
                 feedback=_fb(
                     "every pair is joined.",
-                    _counter(
-                        core, "read the two sides again: only one of them says the same thing."
-                    ),
+                    _counter(core, "Which of the two sides says the same thing as this one?"),
                 ),
             ),
             surprise="the last two snap together and the whole set reads as one idea",
@@ -3854,7 +4088,7 @@ def _floor_vary(core: dict[str, Any], concept: str) -> list[specs.InteractionSte
                 valueLabel=str(q.get("name") or concept),
                 feedback=_fb(
                     "the relation held all the way across.",
-                    _counter(core, "move it back and watch which of the two actually changed."),
+                    _counter(core, "Which of the two actually changed when you moved it?"),
                 ),
             ),
             surprise="one side changes and the other does not",
@@ -3868,7 +4102,7 @@ def _floor_vary(core: dict[str, Any], concept: str) -> list[specs.InteractionSte
                 what=str(core.get("idea") or f"what stays true across {concept}"),
                 feedback=_fb(
                     "that is the relation.",
-                    _counter(core, "look at the two ends again."),
+                    _counter(core, "What is the same at both ends?", at=1),
                 ),
             ),
         ),
@@ -3893,14 +4127,18 @@ def _floor_construct(core: dict[str, Any], concept: str) -> list[specs.Interacti
                         check=it["why"],
                         feedback=_fb(
                             f"that step holds: {it['why']}",
-                            _counter(core, f"this step is not true yet: {it['why']}"),
+                            _counter(
+                                core,
+                                f"What has to be true before {it['label']} can hold?",
+                                at=i,
+                            ),
                         ),
                     )
                     for i, it in enumerate(items)
                 ],
                 feedback=_fb(
                     "it is built, and every step held on the way.",
-                    _counter(core, "the step before this one has to be true first."),
+                    _counter(core, "Which step has to be true before this one?", at=len(items)),
                 ),
             ),
             surprise="the last step closes and the whole construction stands",
@@ -3933,7 +4171,7 @@ def _floor_discriminate(core: dict[str, Any], concept: str) -> list[specs.Intera
                 ],
                 feedback=_fb(
                     "that is the one, and now show where it shows.",
-                    _counter(core, "that is the belief this concept exists to undo."),
+                    _counter(core, "What would have to be true for that one to be right?"),
                 ),
             ),
         ),
@@ -3958,7 +4196,7 @@ def _floor_discriminate(core: dict[str, Any], concept: str) -> list[specs.Intera
                 need=1,
                 feedback=_fb(
                     "that is the part that decides it.",
-                    _counter(core, "look for the one feature the two do not share."),
+                    _counter(core, "Which feature do the two not share?", at=1),
                 ),
             ),
             surprise="the deciding feature lights and the near thing stops looking near",
@@ -3982,7 +4220,7 @@ def _floor_drill(core: dict[str, Any], concept: str) -> list[specs.InteractionSt
                 onExpire="end",
                 feedback=_fb(
                     "you got through them inside the minute.",
-                    _counter(core, "the clock ran out; the pairs are the same next time."),
+                    "the clock ran out, and the pairs are the same next time.",
                 ),
             ),
         ),
@@ -3996,7 +4234,7 @@ def _floor_drill(core: dict[str, Any], concept: str) -> list[specs.InteractionSt
                 show="number",
                 feedback=_fb(
                     "that is your score for the round.",
-                    _counter(core, "a wrong pair costs nothing here, so read it and go again."),
+                    "a wrong pair costs nothing here, so read it and go again.",
                 ),
             ),
         ),
@@ -4015,7 +4253,9 @@ def _floor_watch(core: dict[str, Any], concept: str) -> list[specs.InteractionSt
                 what=str(core.get("idea") or f"{concept}, from one end to the other"),
                 feedback=_fb(
                     "that is the whole of it, once through.",
-                    _counter(core, "watch the middle again: that is where it turns."),
+                    # at=1: the order beat below already speaks the first misconception, and one
+                    # sentence for both mistakes is the fault this index exists to stop.
+                    _counter(core, "Where does it turn?", at=1),
                 ),
             ),
             surprise="the thing moves and the shape of it is suddenly obvious",

@@ -42,14 +42,17 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 | [LEARNING-MODEL.md: the tutor never leaves](LEARNING-MODEL.md) | The group re-chosen after every module, until understood, wrong answers explained in the concept's words, motivating, no dead end; proven by an adversary who plays a struggling learner | Continuously optimising and personalising until they master the topic; motivating, continuous support, guiding where they went wrong (2026-09-15) |
 | [LEGAL-REVIEW.md](LEGAL-REVIEW.md) | What needs a lawyer, in the order it would cost most to be wrong |  |
 | [LEVELS.md](LEVELS.md) | Levels: earned by XP alone, and each one costs more than the last | I want level ups only based off XP, and the same amount of XP doesn't lead |
+| [LEVELS.md 2 and 7](LEVELS.md) | The curve is one pure function with a test that pins every number: 30, 60 and 120 for the first three levels, and the cost stops rising at 8,000 XP around level 39 | Pinned 2026-09-16 rather than asked: a dev-only assert had carried 80 and 200 against the law's 30 and 90, and could not fail a build because it does not throw, so the pacing had drifted where nothing could see it |
 | [MAIL-PRIMARY.md](MAIL-PRIMARY.md) | Reaching Primary: the mail law | We need to use the right wordings in our mails so that we don't end up in Updates or Promo |
 | [MEMORY-LAW.md](MEMORY-LAW.md) | The memory law |  |
 | [MIND-SYNC-CONTRACT.md](MIND-SYNC-CONTRACT.md) | The mind sync contract |  |
 | [ONE-LEARNER-ONE-WOBO.md](ONE-LEARNER-ONE-WOBO.md) | One learner, one Wobo | context relevance for wobo and user relevance and their |
 | [OPERATIONS.md](OPERATIONS.md) | Operations |  |
 | [PLATFORMS.md](PLATFORMS.md) | The stores: what ships when, and why not all at once | How about our mobile apps and desktop apps we had planned? Are they going |
+| [PLATFORMS.md 7](PLATFORMS.md) | The install prompt and offline are set aside; what landed stays, no further work | We will be releasing our own apps on both stores so that shouldnt be a concern; we are currently not focusing on offine so ignore that too (2026-09-16) |
 | [PRICING.md](PRICING.md) | Pricing — the canonical table |  |
 | [REWARDS.md](REWARDS.md) | The reward system: composed, never chosen | How about the level system, XP vibe animations, celebration scenes, try |
+| [REWARDS.md 4](REWARDS.md) | Try again: never red and never a buzzer, it varies by attempt rather than by randomness, and the third rung stops asking and offers a different way in | A wrong answer is the moment a learner decides whether they like this product (docs/REWARDS.md §4, and the ladder it asks for was built and tested on 2026-09-16) |
 | [SELL.md](SELL.md) | SELL.md — how the public site converts |  |
 | [SELL.md: the money's voice](SELL.md) | Every money surface says where the money goes, once, like a person; the company words are forbidden | We use this money to invest in improving the application, create more beautiful content. We aren't showing ourselves like a business (2026-09-15) |
 | [SITE.md](SITE.md) | SITE.md — the public site: map, navigation, and how every page pitches |  |

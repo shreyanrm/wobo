@@ -28,7 +28,7 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 
 | What | Wave | Where it is |
 |---|---|---|
-| The tutor never leaves: re-chosen after every module until understood, where they went wrong in the concept's words, motivating, no dead end | 54 | next to launch |
+| Nothing. Wave 54 is in the tree and verified | 54 | LANDED in the tree, uncommitted. Verified 2026-09-16 on this index: typecheck clean, web 3949 pass 0 fail (266 files), gateway 6385 pass 0 fail (51 skipped), `bun run build` clean, all three gates clean. The four things it left open are named below, in "Named by wave 54, and open" |
 
 ## The queue, in order
 
@@ -37,13 +37,12 @@ deployed. Nothing here is lost, and nothing here has started.
 
 | # | What | Wave |
 |---|---|---|
-| 1 | The tutor never leaves: re-chosen after every module until understood, where they went wrong in the concept's words, motivating, no dead end | 54 |
-| 2 | The mail law enforced, and the animation library on every surface | 38 |
-| 3 | The daily allowance, the models desk, the free pool cap | 36 |
-| 4 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
-| 5 | The growth desk, the press page, chapter pages at tier two | 50 |
-| 6 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
-| 7 | The parent's account screens | 34 |
+| 1 | The mail law enforced, and the animation library on every surface | 38 |
+| 2 | The daily allowance, the models desk, the free pool cap | 36 |
+| 3 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
+| 4 | The growth desk, the press page, chapter pages at tier two | 50 |
+| 5 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
+| 6 | The parent's account screens | 34 |
 
 ## Landed, with the proof
 
@@ -62,6 +61,10 @@ deployed. Nothing here is lost, and nothing here has started.
 | The last tenth of the ink: size and placement solved together, one voice a turn | 48 | LANDED in `6c7b144`: 3.939 (relevance 3.983, correctness 3.983, craft 3.932, timing 3.983, experience 3.814; 46 of 59 perfect); what remains is on the ink's own list in INK-FOUR's discipline |
 | The boards: discovery runs, the cold start, the prewarm, the console | 45 | LANDED 2026-09-16: discovery ran end to end on three real state boards offline (Maharashtra reads faithfully; Uttar Pradesh's legacy-font pdf and Tamil Nadu's broken TLS chain are refused honestly and written up); eight faults found by the run, each with a test; the money ceiling survives restarts; the first learner on a cold board never sees an empty shelf; the console's syllabus desk; the runbook in OPERATIONS 9.2.1 |
 | The document's year is checked against the learner's (Maharashtra's 2012 syllabus would have published) | 45 | LANDED in the tree, uncommitted: `discovery/dating.py`, `verify.CHECK_DOCUMENT_YEAR`, the gate before a model is paid, 46 tests; docs/BOARD-COLD-START.md §9. NOT done: the four published syllabi are not re-checked for their year |
+| The climb: the group re-chosen after every module, and a door a learner can reach it through (rule 1) | 54 | LANDED in the tree, uncommitted. `climb.py` on the gateway is a pure selection over the chapter's pool: no model, no store write, no network, which is what makes re-choosing free. `curriculum.climb` sits on the registry at tier TINY with cache tier NONE, because a cached step hands one learner another learner's next module. 29 played tests against the real CBSE class 8 Science pool, and 25 more through the real door with a real token, the real meter and the real stored pool. The client half re-chooses through `groupFor`, with misses counted by the tally the product already keeps (`wobo/reteach.ts`), 7 played tests. A module that beat a learner twice never comes back, and what follows is never harder than what beat them |
+| Where they went wrong, said in this concept's own words (rule 3) | 54 | LANDED in the tree, uncommitted. `specs.Item.explanation` did not exist, so the client branch that renders a reason was dead on every course ever served and every miss in the workbook and the boss read one generic line, the same line for all three items. Now the floor fills it, the judge reads the core (`_concept_words`, `_misconception_reasons`) instead of refusing seven canned phrases, a design whose feedback slots all say one sentence is refused, and every course already on the shelf is repaired on the way out rather than rewritten in the cache, including one whose core has been evicted. 16 played gateway tests, 16 on the screen, 11 on the composed floors, 6 on the bottom rung of the asking |
+| Motivating without lying: the ladder wired to attempt count, the boss sized by rounds, the curve the law's own (rule 4) | 54 | LANDED in the tree, uncommitted. docs/REWARDS.md §4's third rung now offers a different way in (`tryAgainRung`, `offersAnotherWay`), the boss verdict says something new each round instead of one fixed line, and `bloomHold` sizes the moment by what it cost the learner. The level curve is one pure function pinned to docs/LEVELS.md §2 (30, 60, 120, and the cost stops rising at 8,000 XP around level 39); the dev-only `console.assert` that pinned 80 and 200 against the law's 30 and 90, and could not fail a build because it does not throw, is gone rather than corrected. 17 + 12 + 16 played tests |
+| The learner is never left, on a real screen (rule 5) | 54 | LANDED in the tree, uncommitted. `tests/tutor-never-leaves.spec.ts` walks a learner who keeps missing at 390 and 1440 in both themes: a control they can press on every state a miss puts them in, Wobo's head and the hold-to-talk still in the room rather than a menu, nothing scrolling sideways at 390, and no console error. Muted by the shared Playwright config, which this spec adds no launch options to |
 
 ## Queued, written, waiting only on the tree
 
@@ -73,11 +76,11 @@ deployed. Nothing here is lost, and nothing here has started.
 
 | What | Where it is specified |
 |---|---|
+| **Wave 54's fix does not reach a learner yet.** The gateway now re-chooses correctly, but `apps/web-pwa/src/curriculum/blueprint.ts` `groupFor` still has no done/struggled/pace and no re-choice loop, so the CLIENT can still hand a learner the module that just beat them twice — and no route serves the climb, so `curriculum/api.py` still hands the whole pool to the client to choose from. The gateway is the authority in name only | wave 54's own open item. Small and named: the same three `LearnerState` fields, the same `still_open` filter, plus a `curriculum.climb` capability. **This is the next thing worth doing** |
+
+| What | Where it is specified |
+|---|---|
 | **The cold start is not fixed.** Measured on a throttled phone: first paint 33,800 ms, first interactive lesson frame 33,900 ms, 1,195 kB of JS on the lesson route, 4,696 kB precached. Four causes are located precisely and NONE is landed; the Playwright suite is deliberately red against the target rather than green against today | wave 53's measurement, kept as `tests/cold-start.spec.ts`. It is an e2e spec, so it does not block `bun run test` or the gate. Needs its own wave |
-| The install offer has no way back: `askAgain()` is built and tested and has zero callers, because the settings row belongs on `screens/You.tsx` | wave 53, named defect. One row on You, wired to `askAgain()` |
-| A learner who declines an install offer can be shown it again — `INSTALL_SHOWINGS = 3` is a number a builder chose, and no law states one | docs/SUGGESTIONS-AND-NOTICES.md sets no repeat count. **Wants the owner's ruling** |
-| Should a kept lesson ever expire? Today a topic's lesson is frozen at the kept composition until the shelf evicts it, so a better engine or a moved syllabus reaches that learner only after eviction | wave 53, named. **Wants the owner's ruling** |
-| A photo shared while nobody is signed in is now DROPPED rather than held through sign-in — the learner meets the camera with nothing said and must share again | wave 53 made this trade to close the leak. **The owner should know; reversible** |
 
 | What | Where it is specified |
 |---|---|
@@ -85,7 +88,6 @@ deployed. Nothing here is lost, and nothing here has started.
 
 | What | Where it is specified |
 |---|---|
-| The tutor never leaves: the proof that teaching re-chooses after every module until understood, explains where they went wrong, motivates, never dead-ends | docs/LEARNING-MODEL.md, the 2026-09-15 section; wave 54, written, queued after 53 |
 | The money's voice on every money surface, with docs/copy/money.md verbatim | docs/SELL.md, the 2026-09-15 section; carried by wave 36's plans-and-bar builder |
 
 Everything else: Every decision on this board is running, queued on the tree, landed, or held below by a
@@ -101,6 +103,19 @@ breath as the saying.
 | Tamil Nadu's board serves a TLS chain Python cannot build; we refuse rather than loosen verification | the owner's decision, written up in the runbook |
 | A per-board money alert: the ceiling refuses but nothing pages anyone | wave 36 |
 
+## Named by wave 54, and open
+
+Wave 54's builders wrote their work into no row here and none in the ledger, and the list of what
+they knowingly left open was never written anywhere on disk. So it is reconstructed from the tree
+rather than remembered, and every line below was checked against the code on 2026-09-16.
+
+| What | Owner |
+|---|---|
+| `curriculum.climb` has no caller in the product. The door is built, the registry carries it and the SDK declares `climb()`, but no screen calls it, so the phone re-chooses locally through `groupFor` and the gateway's climb answers nobody. Rule 1 is true twice over and reachable once | wave 54's own follow-on: either one screen call, or the two re-choosers are stated as one thing on purpose |
+| Rule 5 is proved only outside the gate. `apps/web-pwa/tests/tutor-never-leaves.spec.ts` runs under Playwright, and `bun run test` runs `test/*.test.ts src`, so nothing in `bun run test` or `bun run gate` holds the no-dead-end law on a real screen. The same is true of `tests/cold-start.spec.ts` | whoever gives the e2e specs a gate; named twice on this board now, which is the point of naming it |
+| docs/REWARDS.md §8 still lists the try-again ladder as a thing to be built, though §4's third rung is built and tested. The law file is behind the code, which is how a built thing gets built a second time | a one-line correction to docs/REWARDS.md §8, outside this closer's named files |
+| No law file mentions `curriculum.climb`. It has a registry row, a door, a policy and a client, and no row in `docs/`, so the ledger cannot index it: the ledger is generated from the laws, and a capability no law names is invisible to it | docs/LEARNING-MODEL.md section 7, which already describes the seam this capability closes |
+
 ## Held on purpose, each by a named reason
 
 | What | Held by |
@@ -108,23 +123,40 @@ breath as the saying.
 | The Android shell and the desktop build | the owner walks the web version first and says he is satisfied (owner, 2026-09-10) |
 | Push notifications | last by design: nothing reaches a phone until the in-product suggestions have earned their place (docs/SUGGESTIONS-AND-NOTICES.md) |
 
+## The owner's answers, 2026-09-16
+
+| What was asked | What the owner said | What it means here |
+|---|---|---|
+| How many times may the home-screen offer be shown? | *"We will be releasing our own apps on both stores so that shouldn't be a concern"* | **CLOSED.** The offer is a web affordance; a learner who installs from a store never meets it. What landed stays; no settings row is built and `askAgain()` keeps zero callers. docs/PLATFORMS.md 7 |
+| Should a saved offline lesson ever expire? | *"we are currently not focusing on offline so ignore that too"* | **CLOSED.** Wave 53's offline work stays (working and tested; removing it would cost more than keeping it). No expiry rule, and no offline work in any queued wave. docs/PLATFORMS.md 7 |
+| A photo shared while signed out is discarded | *"a photo shared can be discarded, its not a serious issue"* | **CONFIRMED.** It stays discarded, which is what closed the sibling-to-sibling leak |
+| Leaked-password protection | *"can wait"* | Deferred by the owner. One advisory, nothing depends on it |
+
+| What was asked | What the owner said | What it means here |
+|---|---|---|
+| Push `the-life` to `main` | *"do it"* | **DONE**: `29684f2..07864b0`, fast-forward, 193 commits. `main` is current, so a Railway variable write or a UI redeploy no longer ships a stale gateway. The hazard is closed |
+| Set the repo's git identity | *"push the code as me then"* | **DONE**: `MSR <m.shreyanreddy@gmail.com>` for future commits. The 192 already made stay machine-authored; rewriting them would change every hash and was not asked for |
+| Supabase: turn off new sign-ups and anonymous sign-ins | *"it can be skipped"* | **SKIPPED, deliberately.** The gateway refuses every account-creating path and `/v1/doors` is false, so the exposure is a direct Supabase-API sign-up that never reaches our product. Recorded rather than quietly dropped |
+| A real mailbox behind hello@ and support@ | *"support@heywobo.com can take replies"* | **SATISFIED for replies.** `hello@mail.heywobo.com` remains the send-from; `support@heywobo.com` is the Reply-To and is live |
+| Claim the handles | *"pretty much done"* | **DONE** by the owner |
+| Razorpay keys | *"will do last"* | Deferred by the owner. Checkout answers 503 until then, and `/healthz` reports degraded for this reason alone |
+| Top up the Anthropic account | *"will do eventually"* | Deferred. Only the cross-provider second opinion is affected |
+| Reserve the name in Play Console and App Store Connect | *"will do"* | Deferred |
+| File the trademark, classes 41 and 9 | *"will do eventually"* | Deferred |
+| Turn on Supabase leaked-password protection | *"i dont find it?"* | Path given: Dashboard → Authentication → Sign In / Providers → Email → **Password security**. If the toggle is greyed out it is plan-gated, not missing. One advisory either way |
+
 ## Waiting on the owner, and nothing else
 
 | What | Why it matters | Effort |
 |---|---|---|
-| **Supabase: turn off "Allow new users to sign up" and anonymous sign-ins** | the only way an account can still be made; the gateway refuses them everywhere else | two clicks |
 
-| Claim @heywobo everywhere, and linkedin.com/company/wobo | a handle is first-come and unobtainable once noticed | an hour |
 | Reserve the app name Wobo in Play Console and App Store Connect | a namespace, not a build; the owner's call whether to do it now | a form, about 10,500 rupees a year |
-| A real mailbox behind hello@ and support@ | replies are the strongest inbox signal there is | minutes |
 
 | Top up the Anthropic account | the cross-provider second opinion is out of credit | minutes |
 | File the Wobo trademark in India, classes 41 and 9 | the legal backstop for the name | a lawyer |
 | Create the listings: Wikidata, LinkedIn, Crunchbase, Product Hunt, Google Business Profile | this is what makes an engine answer "Wobo is an AI tutor" | an afternoon, copy is written |
 | Razorpay keys | checkout answers 503 until they exist | minutes |
 | Turn on Supabase leaked-password protection | an open advisory | one switch |
-| Set the repo's git identity: `git config user.email` to the address of the Vercel account | every commit is authored by the machine (`depl@...local`), and Vercel now blocks a deploy whose commit author is not a team member; until then we deploy from a git-less export | one command |
-| **Push `the-life` to `main`** | NOT housekeeping any more: Railway is wired to `main`, and HEAD is **192 commits ahead** of it. Any variable write or UI redeploy rebuilds `main` and ships a months-old gateway — it did exactly that on 2026-09-16 and took `/v1/doors` down until HEAD was re-uploaded (docs/OPERATIONS.md, "The Railway trap") | one command, and it closes a standing hazard |
 
 ## The owner's walk, which gates the store apps
 
@@ -136,6 +168,10 @@ When it is close, the owner gets a clean build and a route through every surface
 a lesson with the ink, a photographed doubt, the arcade, the parent's view, plans, and the console.
 
 ## Landed today
+
+2026-09-16: **the tutor never leaves, and the record of it exists.** Wave 54's three builders made rules 1 through 5 of docs/LEARNING-MODEL.md true in code: the climb and its door on the gateway, the reason a miss is a miss carried on the item itself and repaired for courses already cached, the try-again ladder wired to attempt count, and a played spec on a real screen at 390 and 1440 in both themes. Two of those builders recorded nothing here or in the ledger and said a row should be added once the fleet settled. The fleet has settled: the four rows above carry the proof, the four things they left open are named in their own section rather than lost, and the ledger now indexes docs/REWARDS.md §4 and docs/LEVELS.md §2 and §7, the two law sections this work turned on and neither of which had a row. Verified on this index: typecheck clean, web 3949 pass 0 fail, gateway 6385 pass 0 fail, build clean, gates clean.
+
+2026-09-16: **`main` is current at last.** `the-life` fast-forwarded `29684f2..07864b0` (193 commits) on the owner's instruction, and the repo's identity is now the owner's rather than the machine's. This closes the Railway trap: the branch Railway builds from and the code actually running are finally the same thing.
 
 2026-09-16: discovery is live and ticking (`discovery.worker.started, interval_s=30`) on deploy `775708fa`, with `/v1/doors` shut and `/healthz` detailed again. Getting there cost one outage: setting the Railway variable rebuilt GitHub `main` (192 commits stale) instead of the uploaded snapshot. Written up as "The Railway trap" in docs/OPERATIONS.md.
 
@@ -187,5 +223,6 @@ Asked whether everything discussed is ready. It is not, and this is measured rat
 | the content's three layers, the interaction vocabulary | **built** (wave 37) |
 | the public site, 440 pages, the closed door, the syllabus door | **built and live** |
 | mail, verified and delivering to Primary | **built and live** |
+| The tutor never leaves — on the gateway | 54 | Played against the real 31-module pool rather than read: the standard was NOT true and three defects were found. The group was chosen ONCE and never again (no climb existed on the gateway at all); a learner wrong twice got THE SAME MODULE AGAIN, for ever; and the climb had no ending. New `climb.py`, `LearnerState` gains done/struggled/pace, `mastered()` reads ideas held and misconceptions gone. 29 played tests; a whole struggling climb played with `model_call.complete` rigged to raise, so re-choosing provably costs no model call |
 | The phone, three of four: the install prompt, the share target, offline lessons | 53 | Verified on the exact index: typecheck clean, board 1139 pass, web 3836 pass 0 fail, gateway 6259 pass. The install offer is armed at the entry (`main.tsx`) so Chromium's event is never fired into an empty room, made once after a first earned moment, never on a public surface. The share target works end to end on Android/Chromium. Offline lessons were FALSE before this and are now real: a played lesson kept its own cards, and the five faces are precached so an offline learner does not read the product in a fallback font |
 | Two real leaks closed while building the phone | 53 | A shared photo could open in a sibling's solver within ten minutes and be sent under THEIR account; and a QA engines bench was shipped and precached inside a children's app (486 kB, the largest precached file). Both found by the wave's own adversaries, both closed |

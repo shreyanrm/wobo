@@ -111,3 +111,26 @@ than a plan, and the rewrite above dropped it: it belongs wherever store apps ar
 
 Build the web version until the owner walks it and is satisfied. Then Android. Then iOS. No desktop.
 Reserve the two store names whenever the owner chooses, since that is a namespace rather than a build.
+
+## 7. What the owner set aside, 2026-09-16
+
+Section 5 lists offline lessons and the install prompt among the web work that makes a store build
+"packaging rather than a project". Two of those are now set aside by the owner, and this section
+supersedes that line rather than leaving it to be read as still true.
+
+**"We will be releasing our own apps on both stores, so that shouldn't be a concern."** The install
+prompt is a WEB affordance: it adds Wobo to a home screen from the browser. A learner who installs
+from Play or the App Store never meets it. It is built and landed and costs nothing to keep, but it
+earns no more work: the settings row that would let a learner who declined ask again is NOT built,
+and `askAgain()` keeps zero callers on purpose.
+
+**"We are currently not focusing on offline."** What wave 53 landed stays — a lesson already opened
+plays without the network, and removing that would be destroying working, tested code for nothing.
+What stops is further investment: no expiry rule for a kept lesson, no offline work in any queued
+wave, and the offline items drop out of the walk's own list above.
+
+**One consequence worth stating, because it cuts the other way.** The 33.8-second cold start measured
+in wave 53 is dominated by fetching 1,195 kB over slow 3G. Inside a store app the bundle is already on
+the device, so that figure largely goes away for app learners — it stays only for web visitors, who
+are the SEO surface and the owner's own walk. The cold-start wave therefore drops in urgency for
+learners and keeps its urgency for the public site.

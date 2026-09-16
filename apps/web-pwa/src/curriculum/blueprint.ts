@@ -193,9 +193,13 @@ export function isBlueprint(value: unknown): value is Blueprint {
 /**
  * Everything the planner reads to choose a group, and nothing else.
  *
- * Four lists of ids. No name, no age, no score, nothing that identifies a person: the group is a
+ * Five lists of ids. No name, no age, no score, nothing that identifies a person: the group is a
  * selection over the pool's own declarations, which is exactly why choosing costs nothing and why
  * it can happen on the device with no call to the brain.
+ *
+ * Four of them say what the learner KNOWS. The fifth, `stuckOn`, says what just HAPPENED to them,
+ * and it is the one that makes the group a re-choice rather than a plan made once at the door
+ * (docs/LEARNING-MODEL.md, "The tutor never leaves", rule 1).
  */
 export interface LearnerState {
   /** Assumption ids the learner has not shown. A placement check is where these come from. */
@@ -206,6 +210,20 @@ export interface LearnerState {
   heldIdeas?: readonly string[];
   /** Module kinds that have landed for this learner before, best first. */
   style?: readonly ModuleKind[];
+  /**
+   * Module ids this learner has missed enough times for it to be a pattern rather than a slip.
+   *
+   * Two, not one, and the count is not kept here: `wobo/reteach.ts` already keeps the durable
+   * per-concept tally the whole product uses (`conceptMisses`, `RETEACH_AFTER_MISSES`), and a
+   * second tally in the curriculum layer would be a second place for the two to disagree about
+   * whether a learner is struggling. This list is that tally's answer, read at the moment the
+   * group is chosen.
+   *
+   * It is what "right, wrong, how wrong, how slow" reduces to for a SELECTION: the planner does
+   * not need the answers, it needs to know which module stopped working. Still only ids, so the
+   * property that makes this whole file free is untouched.
+   */
+  stuckOn?: readonly string[];
 }
 
 function moduleOf(bp: Blueprint, id: string): BlueprintModule | undefined {
@@ -222,6 +240,66 @@ function ideasStillNeeded(bp: Blueprint, topicId: string, state: LearnerState): 
   const held = new Set(state.heldIdeas ?? []);
   return new Set(
     bp.ideas.filter((i) => i.topics.includes(topicId) && !held.has(i.id)).map((i) => i.id),
+  );
+}
+
+/**
+ * How far DOWN a module sits, so that "never a harder one" is a number this file can honour rather
+ * than a sentence in a document (docs/LEARNING-MODEL.md, "The tutor never leaves", rule 1).
+ *
+ * A prerequisite lays the ground under the chapter; a repair goes under one idea; a way in teaches
+ * it; a check asks for it back; a stretch goes past it; the boss asks for the whole chapter at
+ * once. A learner who has just failed something is only ever moved sideways or further down this
+ * list, never up it.
+ */
+const DEPTH: Record<ModuleRole, number> = {
+  prerequisite: 0,
+  repair: 1,
+  way_in: 2,
+  side_door: 2,
+  check: 3,
+  stretch: 4,
+  boss: 5,
+};
+
+/**
+ * The way out of a module that has stopped working for this learner, out of the pool and nowhere
+ * else. Four roads, tried in the order a tutor beside them would try them, and the first one the
+ * pool can actually supply is the one taken:
+ *
+ *   the architect's own   `flow.stuck` is the route they wrote for exactly this module, knowing
+ *                         what it assumes and what it was for. Nothing on the client knows better.
+ *   another way in        the same idea by a different road, which is the whole reason the pool
+ *                         is required to hold at least two of them (docs/LEARNING-MODEL.md 5).
+ *   under the idea        the repair. *"A module exists for each misconception a topic can
+ *                         produce, and it enters a learner's group only when they show it"*, and a
+ *                         learner who has now failed this idea by every road the pool holds has
+ *                         shown it in the only other way a learner can.
+ *   under the chapter     the prerequisite. Two failed ways in is the evidence a placement check
+ *                         would have gathered, arriving late rather than never.
+ *
+ * Nothing is invented and nothing outside the pool is reached for, so whatever is offered is one
+ * somebody designed to teach exactly this. A pool that can supply none of the four has not met
+ * section 5 of the model, and that is a judgeable fault in the pool rather than a licence here.
+ */
+function routeOutOf(
+  bp: Blueprint,
+  topicId: string,
+  from: BlueprintModule,
+  usable: (m: BlueprintModule | undefined) => boolean,
+): BlueprintModule | undefined {
+  const said = bp.modules.find((m) => m.id === insteadOf(bp, from.id));
+  if (usable(said)) return said;
+
+  const here = bp.modules
+    .filter((m) => m.serves.includes(topicId) && m.role !== 'side_door' && m.role !== 'boss')
+    .sort((a, b) => positionOf(bp, a.id) - positionOf(bp, b.id));
+  const sharesAnIdea = (m: BlueprintModule) => m.teaches.some((i) => from.teaches.includes(i));
+
+  return (
+    here.find((m) => m.role === 'way_in' && sharesAnIdea(m) && usable(m)) ??
+    here.find((m) => m.role === 'repair' && sharesAnIdea(m) && usable(m)) ??
+    here.find((m) => m.role === 'prerequisite' && usable(m))
   );
 }
 
@@ -243,6 +321,12 @@ function ideasStillNeeded(bp: Blueprint, topicId: string, state: LearnerState): 
  *
  * The boss is the chapter's and never a topic's. A side door is never in a group, because it is
  * never in the path.
+ *
+ * AND THEN IT IS RE-CHOSEN AGAINST WHAT JUST HAPPENED. `state.stuckOn` names the modules that have
+ * stopped working for this learner; each one is taken out and the pool's own way out of it is put
+ * in its place (`routeOutOf`). That is what makes this a thing to call after every module rather
+ * than once at the door: two learners who opened the same topic on the same morning are on
+ * different roads by the third card, and neither is ever handed back the module they just failed.
  */
 export function groupFor(
   bp: Blueprint,
@@ -283,6 +367,40 @@ export function groupFor(
 
   for (const m of here) {
     if (holdsItAll ? m.role === 'stretch' : m.role === 'check') take(m);
+  }
+
+  // THE RE-CHOICE. Everything above reads what the learner KNOWS, and not one of those four lists
+  // can change by doing a module and failing it. A group chosen from them alone hands back the
+  // module that just failed, for as long as the learner keeps failing it, because a module nobody
+  // finished is not finished: that is the shape of *"the module after my fourth wrong answer was
+  // the same next card in the same fixed list"*, and it is what this step exists to end.
+  const stuck = new Set(state.stuckOn ?? []);
+  if (stuck.size > 0) {
+    // The shallowest module the pool could not route this learner out of. Nothing harder than that
+    // is offered while they are still standing on it: asking for an idea back is not a way to
+    // teach it, and a check handed to a learner who cannot get in is the product testing what it
+    // has just failed to teach.
+    let floor = Number.POSITIVE_INFINITY;
+    for (const m of [...chosen.values()]) {
+      if (!stuck.has(m.id)) continue;
+      chosen.delete(m.id);
+      const route = routeOutOf(
+        bp,
+        topicId,
+        m,
+        (c): boolean =>
+          !!c &&
+          c.id !== m.id &&
+          !stuck.has(c.id) &&
+          !chosen.has(c.id) &&
+          c.role !== 'side_door' &&
+          c.role !== 'boss' &&
+          DEPTH[c.role] <= DEPTH[m.role],
+      );
+      if (route) take(route);
+      else floor = Math.min(floor, DEPTH[m.role]);
+    }
+    for (const m of [...chosen.values()]) if (DEPTH[m.role] > floor) chosen.delete(m.id);
   }
 
   return [...chosen.values()].sort((a, b) => positionOf(bp, a.id) - positionOf(bp, b.id));

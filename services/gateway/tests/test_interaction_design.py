@@ -75,14 +75,18 @@ def drop_design(concept: str = "equivalent fractions") -> specs.InteractionDesig
                             label="half the bar",
                             box=box(x=5, y=5, w=40, h=25),
                             accepts=["t0", "t1"],
-                            feedback=fb(),
+                            # Each bin refuses for its OWN reason: one sentence for every mistake
+                            # is the fault the gate refuses (docs/LEARNING-MODEL.md rule 3).
+                            feedback=fb(
+                                wrong="that card does not cover half the bar, so it cannot sit here"
+                            ),
                         ),
                         specs.DropZone(
                             id="z2",
                             label="a third of the bar",
                             box=box(x=55, y=5, w=40, h=25),
                             accepts=["t2", "t3"],
-                            feedback=fb(),
+                            feedback=fb(wrong="that card covers more of the bar than a third"),
                         ),
                     ],
                     feedback=fb(),

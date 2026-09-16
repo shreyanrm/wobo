@@ -254,13 +254,25 @@ class Card(Spec):
 
 
 class Item(Spec):
-    """A workbook / boss recall item with a structurally verified answer."""
+    """A workbook / boss recall item with a structurally verified answer.
+
+    ``explanation`` is WHY that answer is the answer, and it is the line a learner reads when they
+    get this item wrong (``screens/course/Composing.tsx`` prints it beside the answer on a miss).
+    docs/LEARNING-MODEL.md rule 3: *"Every wrong answer gets the reason it is wrong ... Never
+    'incorrect, try again'. Never a generic hint."*
+
+    It was missing, and the client's branch that renders it was therefore dead on every course ever
+    served: every miss in the workbook and the boss read "Not this one. The answer is X." — the
+    same sentence for all three items, in every module. Optional on the model, because a course
+    already in the cache has none and must still validate; the floor always fills it.
+    """
 
     id: str
     type: ItemType
     prompt: str
     options: list[str] | None = None  # mcq only
     answer: str
+    explanation: str | None = None
 
 
 class CourseSpec(Spec):

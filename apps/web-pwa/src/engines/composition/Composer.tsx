@@ -32,8 +32,8 @@ import {
   nextBeat,
   parseDesign,
   praiseFor,
+  reasonFor,
   STAGE_W,
-  teachFor,
 } from './parse';
 import { PlayView } from './primitives/plays';
 import './composition.css';
@@ -51,6 +51,12 @@ export interface ComposerProps {
 interface LiveBeat {
   /** The line a wrong move earned. Cleared by the next move. */
   teach: string;
+  /**
+   * Everything this beat has already told the learner. A tutor who repeats the sentence that just
+   * failed is teaching nothing (docs/LEARNING-MODEL.md rule 4, docs/REWARDS.md §4), so the beat
+   * remembers and `reasonFor` spends a new reason each time.
+   */
+  said: string[];
   /** True once the act is done and the idea is on the screen. */
   revealed: boolean;
   wrongs: number;
@@ -58,7 +64,7 @@ interface LiveBeat {
   chosen?: string;
 }
 
-const FRESH: LiveBeat = { teach: '', revealed: false, wrongs: 0 };
+const FRESH: LiveBeat = { teach: '', said: [], revealed: false, wrongs: 0 };
 
 /** Which words land when a beat is done: the design's reveal, then the beat's surprise, then praise. */
 function revealLine(design: Design, beat: Beat): string {
@@ -134,7 +140,7 @@ export function Composer({ design, hue, setBar, onDone, onScore }: ComposerProps
   }, [score, onScore]);
 
   const wrong = useCallback(
-    (pieceId?: string) => {
+    (pieceId?: string, intoId?: string) => {
       if (!beat) return;
       sfx.wrong();
       const cost = score?.perWrong ?? 0;
@@ -142,7 +148,12 @@ export function Composer({ design, hue, setBar, onDone, onScore }: ComposerProps
         setPoints((v) => Math.max(0, v + cost));
         onScore?.(cost);
       }
-      setLive((l) => ({ ...l, teach: teachFor(beat.primitive, pieceId), wrongs: l.wrongs + 1 }));
+      setLive((l) => {
+        // The reason is drawn on THIS mistake (the piece and the place it went), and never repeats
+        // what this beat has already said.
+        const line = reasonFor(beat.primitive, { piece: pieceId, into: intoId }, l.said);
+        return { ...l, teach: line, said: [...l.said, line], wrongs: l.wrongs + 1 };
+      });
     },
     [beat, score, onScore],
   );

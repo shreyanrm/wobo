@@ -546,6 +546,59 @@ def test_two_learners_walk_two_paths_and_both_can_reach_mastery() -> None:
         assert needed <= taught, "a group that cannot teach the topic's ideas is not a group"
 
 
+def test_a_module_the_learner_has_finished_is_not_chosen_for_them_again() -> None:
+    """The group is what is STILL to do, which is what lets it be re-chosen after every module
+    instead of once at the start (docs/LEARNING-MODEL.md, "The tutor never leaves", rule 1)."""
+    parsed = bp.parse(good_blueprint())
+    assert parsed is not None
+    after_one = bp.walk(parsed, "t4", bp.LearnerState(done=("p9",)))
+    assert "p9" not in after_one
+    assert after_one, "finishing one module must not empty the group"
+
+
+def test_a_module_that_beat_the_learner_twice_is_never_in_their_group_again() -> None:
+    """ "A learner who gets a module wrong twice gets a different module next, never the same one
+    again." The other way into the idea takes its place rather than the idea going untaught."""
+    parsed = bp.parse(good_blueprint())
+    assert parsed is not None
+    group = bp.walk(parsed, "t4", bp.LearnerState(struggled=("p9",)))
+    assert "p9" not in group
+    assert "p10" in group, "barring one way in must not leave the idea with no way in at all"
+
+
+def test_a_repair_is_owed_again_when_its_misconception_comes_back() -> None:
+    """A finished module stays finished, with one exception the law names: a misconception that is
+    standing again is not repaired, whatever was finished before."""
+    parsed = bp.parse(good_blueprint())
+    assert parsed is not None
+    again = bp.LearnerState(done=("r2",), misconceptions=("x2",))
+    assert "r2" in bp.walk(parsed, "t4", again)
+    assert "r2" not in bp.walk(parsed, "t4", bp.LearnerState(done=("r2",)))
+
+
+def test_the_pace_decides_between_two_ways_in_when_the_style_cannot() -> None:
+    """ "How slow" is one of the things the re-choice reads. Where the two ways in are the same
+    length the pace has nothing to choose between, so this shortens one of them."""
+    raw = draft()
+    module(raw, "p10")["minutes"] = 5
+    parsed = bp.parse(raw)
+    assert parsed is not None
+    assert "p10" in bp.walk(parsed, "t4", bp.LearnerState(pace="slow"))
+    assert "p9" in bp.walk(parsed, "t4", bp.LearnerState())
+
+
+def test_a_topic_is_held_by_its_own_evidence_and_never_by_a_count() -> None:
+    """docs/LEARNING-MODEL.md section 3: the ideas understood and the misconceptions gone. Not a
+    module count, and never a score."""
+    parsed = bp.parse(good_blueprint())
+    assert parsed is not None
+    assert bp.mastered(parsed, "t4", bp.LearnerState(held_ideas=("i5",)))
+    assert not bp.mastered(parsed, "t4", bp.LearnerState())
+    standing = bp.LearnerState(held_ideas=("i5",), misconceptions=("x2",))
+    assert not bp.mastered(parsed, "t4", standing), "a misconception standing holds the topic open"
+    assert not bp.mastered(parsed, "t99", bp.LearnerState(held_ideas=("i5",)))
+
+
 # --- 9. the money -------------------------------------------------------------------------------
 
 

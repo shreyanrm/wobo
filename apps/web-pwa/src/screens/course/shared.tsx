@@ -140,6 +140,58 @@ export const equationType: CSSProperties = {
   fontVariantNumeric: 'tabular-nums',
 };
 
+// --- The try-again ladder ------------------------------------------------------------------------
+
+/**
+ * THE TRY-AGAIN LADDER (docs/REWARDS.md §4, the rung the owner calls the one that matters most).
+ *
+ * *"It varies by attempt, not by randomness. The first miss is almost nothing: the mark simply
+ * does not confirm. The second brings the ink back to the step that went wrong. The third stops
+ * asking and offers a different way in."*
+ *
+ * Until this existed, a checked round that did not pass returned ONE sentence and returned that
+ * same sentence on every later round. A learner who missed the same set four times read the
+ * identical words four times, under a button that put the identical items back in front of them.
+ * That is the shape of a form, not of a tutor, and it is what rule 4 of "The tutor never leaves"
+ * (docs/LEARNING-MODEL.md) forbids.
+ *
+ * Three rules hold every rung. It never says they were wrong, because the ink is already on the
+ * screen and they can read it for themselves (REWARDS.md §4). It never narrates what Wobo is
+ * about to do (DESIGN.md §0.x, voice.md §10c): the third rung says the idea has another way into
+ * it, and the control beside it is what opens it. And no rung repeats the one before it, which is
+ * what `tutor-never-leaves.test.ts` walks a learner through to prove.
+ */
+export const TRY_AGAIN_RUNGS = 3;
+
+/**
+ * What the round says, on the rung it has reached. Past the last rung the ladder stops climbing
+ * and the SCREEN changes instead (`offersAnotherWay`), because a fourth sentence about the same
+ * three items would be the repetition this ladder exists to end.
+ */
+export function tryAgainRung(correct: number, total: number, round: number): string {
+  const score = `${correct} of ${total}.`;
+  const rung = Math.max(0, Math.min(Math.floor(round), TRY_AGAIN_RUNGS - 1));
+  if (rung === 0) {
+    return `${score} Not yet. The answer is under each one you missed: read it, see why it is the answer, then try again.`;
+  }
+  if (rung === 1) {
+    return `${score} Look at the line just before the answer on the ones that slipped. That is where these come apart.`;
+  }
+  return `${score} This idea has another way into it, and it is worth taking. The finish is still yours.`;
+}
+
+/**
+ * True once the same set behind one button has stopped being a next thing to do.
+ *
+ * Rule 5 of "The tutor never leaves": *"no dead end: every screen after a wrong answer has the
+ * next thing to do"*. Offering a learner who has now missed the same three items three times a
+ * button that offers them those same three items is not a next thing, so from this rung on the
+ * screen carries another way in beside it.
+ */
+export function offersAnotherWay(round: number): boolean {
+  return round >= TRY_AGAIN_RUNGS - 1;
+}
+
 // --- The action bar ------------------------------------------------------------------------------
 
 export interface BarAction {

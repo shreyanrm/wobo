@@ -639,39 +639,263 @@ export function movesNeeded(p: Primitive): number {
 }
 
 /**
- * The line a wrong move earns. The piece's own reason first (a token's `why`, an option's
- * `teaches`, a zone's refusal), the primitive's `feedback.wrong` after. Never "wrong".
+ * ONE MISTAKE: the piece the learner moved, and WHERE THEY PUT IT when the move had a where.
+ *
+ * The second half is the one that was missing. A drop is wrong as a PAIR — this token, that bin —
+ * and the bin's own refusal is the only line that says why the placement was wrong rather than why
+ * the piece is what it is. `DropPlay` passed the token alone, so the zone branch below was
+ * unreachable and every refusal a designer wrote went unread.
  */
-export function teachFor(p: Primitive, pieceId?: string): string {
-  if (pieceId) {
-    if (p.kind === 'drop') {
-      const token = p.tokens.find((t) => t.id === pieceId);
-      if (token?.why) return token.why;
-      const zone = p.zones.find((z) => z.id === pieceId);
-      if (zone) return zone.feedback.wrong;
-    }
-    if (p.kind === 'branch') {
-      const option = p.options.find((o) => o.id === pieceId);
-      if (option?.teaches) return option.teaches;
-    }
-    if (p.kind === 'sequence') {
-      const step = p.steps.find((s) => s.id === pieceId);
-      if (step) return step.feedback.wrong;
-    }
-    if (p.kind === 'match') {
-      const pair = p.pairs.find((x) => x.id === pieceId);
-      if (pair?.why) return pair.why;
-    }
-    if (p.kind === 'sort') {
-      const item = p.items.find((i) => i.id === pieceId);
-      if (item?.why) return item.why;
-    }
-    if (p.kind === 'mark') {
-      const target = p.targets.find((t) => t.id === pieceId);
-      if (target?.why) return target.why;
+export interface Mistake {
+  piece?: string | undefined;
+  /** The drop zone the token was put into. Only a drop has one. */
+  into?: string | undefined;
+}
+
+/** What a piece is called, for a question that names it rather than pointing vaguely. */
+function labelOf(p: Primitive, id: string): string {
+  switch (p.kind) {
+    case 'drop':
+      return p.tokens.find((t) => t.id === id)?.label ?? '';
+    case 'branch':
+      return p.options.find((o) => o.id === id)?.label ?? '';
+    case 'sequence':
+      return p.steps.find((s) => s.id === id)?.label ?? '';
+    case 'sort':
+      return p.items.find((i) => i.id === id)?.label ?? '';
+    case 'match':
+      return p.pairs.find((x) => x.id === id)?.left ?? '';
+    default:
+      return '';
+  }
+}
+
+/**
+ * Every reason THIS mistake could earn, best first: the refusal of the place they put it, then the
+ * piece's own reason, then the primitive's line, then its hint. Each one is about the IDEA.
+ */
+function reasonsFor(p: Primitive, mistake: Mistake): string[] {
+  const out: string[] = [];
+  const { piece, into } = mistake;
+
+  // 1. THE PLACE THEY PUT IT. A bin refuses for a reason, and that reason is the mistake itself.
+  if (p.kind === 'drop' && into) {
+    const zone = p.zones.find((z) => z.id === into);
+    if (zone?.feedback.wrong) out.push(zone.feedback.wrong);
+  }
+
+  // 2. the piece's own reason.
+  if (piece) {
+    switch (p.kind) {
+      case 'drop': {
+        const token = p.tokens.find((t) => t.id === piece);
+        if (token?.why) out.push(token.why);
+        // A zone id arriving as the piece (a learner tapping the bin itself) is still a real move.
+        const zone = p.zones.find((z) => z.id === piece);
+        if (zone?.feedback.wrong) out.push(zone.feedback.wrong);
+        break;
+      }
+      case 'branch': {
+        const option = p.options.find((o) => o.id === piece);
+        if (option?.teaches) out.push(option.teaches);
+        break;
+      }
+      case 'sequence': {
+        const step = p.steps.find((s) => s.id === piece);
+        if (step?.feedback.wrong) out.push(step.feedback.wrong);
+        break;
+      }
+      case 'match': {
+        const pair = p.pairs.find((x) => x.id === piece);
+        if (pair?.why) out.push(pair.why);
+        break;
+      }
+      case 'sort': {
+        const item = p.items.find((i) => i.id === piece);
+        if (item?.why) out.push(item.why);
+        break;
+      }
+      case 'mark': {
+        const target = p.targets.find((t) => t.id === piece);
+        if (target?.why) out.push(target.why);
+        break;
+      }
+      default:
+        break;
     }
   }
-  return 'feedback' in p && p.feedback ? p.feedback.wrong : '';
+
+  // 3. the primitive's own line, and the hint behind it.
+  const own = 'feedback' in p ? p.feedback : null;
+  if (own?.wrong) out.push(own.wrong);
+  if (own?.hint) out.push(own.hint);
+
+  return out.map((s) => s.trim()).filter((s, i, all) => s !== '' && all.indexOf(s) === i);
+}
+
+/** A name short enough to sit inside a question. A label that runs on is cut at its first clause. */
+function shortLabel(label: string): string {
+  const s = label.trim();
+  if (s.length <= 32) return s;
+  const cut = s.search(/[:;,]/);
+  return (cut > 0 ? s.slice(0, cut) : s).trim();
+}
+
+/** The alternatives this act puts in front of the learner, in the designer's own words. */
+function alternatives(p: Primitive): string[] {
+  switch (p.kind) {
+    case 'drop':
+      return p.zones.map((z) => z.label);
+    case 'branch':
+      return p.options.map((o) => o.label);
+    case 'sort':
+      return p.items.map((i) => i.label);
+    case 'sequence':
+      return p.steps.map((s) => s.label);
+    case 'match':
+      return p.pairs.map((x) => x.left);
+    default:
+      return [];
+  }
+}
+
+/**
+ * The last rung: what to ask after reading the act's OWN ask back, in the terms it is played in.
+ *
+ * The tail alone would be about anything; carried on this act's prompt it can only be about this
+ * concept, which is the whole point. A modifier has no ask and so has no rung here.
+ */
+const ASK_BACK: Readonly<Record<PrimitiveKind, string>> = {
+  drop: 'Which of them takes it, and what puts it there?',
+  sort: 'What has to be true of the one that comes first?',
+  match: 'What are you matching on?',
+  sequence: 'What has to happen before anything else can?',
+  branch: 'Which one can you rule out?',
+  mark: 'Which one are you sure of?',
+  tap: 'Which one are you sure of?',
+  drag: 'Where does it have to end up?',
+  slide: 'What should stay the same as you move it?',
+  timer: '',
+  score: '',
+  reveal: '',
+};
+
+/** The ask as a sentence, so a question can be hung off the end of it. */
+const asSentence = (s: string): string => (/[.?!]$/.test(s) ? s : `${s}.`);
+
+/**
+ * What Wobo ASKS once the concept's own words for this mistake are spent.
+ *
+ * docs/LEARNING-MODEL.md rule 3: where the core carries nothing for this mistake, the tutor asks
+ * one question rather than asserting. A question is not a generic hint: it hands the thinking back
+ * instead of repeating a sentence that has already failed twice (docs/REWARDS.md §4).
+ *
+ * AND RULE 3 EXEMPTS NO RUNG, LEAST OF ALL THIS ONE. The bottom of the ladder is reached exactly
+ * when the concept has nothing left, which is where a struggling learner arrives after repeated
+ * misses: the learner who needs this concept's own words most is the one this rung answers. So
+ * every question here is built out of the act's own material — the piece, the place they put it,
+ * the alternatives it offers, and finally its own ask read back — and there is no rung underneath
+ * that could be about fractions, marble or pressure equally. An act with no material worth naming
+ * asks nothing rather than asking about nothing, and `reasonFor` spends the concept's own reasons
+ * instead (`asking.test.ts` plays every act in the vocabulary to the bottom and proves it).
+ */
+function questionsFor(p: Primitive, mistake: Mistake): string[] {
+  const out: string[] = [];
+  const piece = mistake.piece ? shortLabel(labelOf(p, mistake.piece)) : '';
+  const place =
+    p.kind === 'drop' && mistake.into
+      ? shortLabel(p.zones.find((z) => z.id === mistake.into)?.label ?? '')
+      : '';
+
+  // 1. the piece and the place they put it, both named.
+  if (piece && place)
+    out.push(`What would have to be true of ${piece} for it to belong with ${place}?`);
+
+  // 2. the piece, asked the way this act is played.
+  if (piece) {
+    switch (p.kind) {
+      case 'drop':
+      case 'sort':
+        out.push(`What is it about ${piece} that decides where it goes?`);
+        break;
+      case 'branch':
+        out.push(`What would have to be true for ${piece} to be the answer?`);
+        break;
+      case 'match':
+        out.push(`What does ${piece} need from the one it joins?`);
+        break;
+      case 'sequence':
+        out.push(`What has to be true before ${piece} can happen?`);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // 3. two of this act's own alternatives, held against each other.
+  const [a, b] = alternatives(p)
+    .map(shortLabel)
+    .filter((l) => l !== '' && l !== piece);
+  if (a && b) {
+    switch (p.kind) {
+      case 'drop':
+        out.push(`What does ${a} ask of a piece that ${b} does not?`);
+        break;
+      case 'branch':
+        out.push(`What would rule out ${a} but leave ${b} standing?`);
+        break;
+      case 'sort':
+        out.push(`What decides whether ${a} comes before ${b}?`);
+        break;
+      case 'sequence':
+        out.push(`What has to be true before ${b} can follow ${a}?`);
+        break;
+      case 'match':
+        out.push(`What does ${a} need that ${b} does not?`);
+        break;
+      default:
+        break;
+    }
+  }
+
+  // 4. the act's own ask, read back, which is this concept's words whatever the concept is.
+  const ask = 'prompt' in p ? p.prompt.trim() : '';
+  const tail = ASK_BACK[p.kind];
+  if (ask && tail) out.push(`Read it again: ${asSentence(ask)} ${tail}`);
+
+  return out.map((s) => s.trim()).filter((s, i, all) => s !== '' && all.indexOf(s) === i);
+}
+
+/**
+ * THE LINE A WRONG MOVE EARNS, and never the one just said.
+ *
+ * Drawn where the mistake is (`reasonsFor`), spent one at a time, and once this concept has
+ * nothing left for this mistake the tutor asks (`questionsFor`). `said` is what this beat has
+ * already told the learner, so a repeated mistake is never answered with a repeated sentence:
+ * docs/LEARNING-MODEL.md, "the tutor never leaves", rules 3 and 4.
+ */
+export function reasonFor(
+  p: Primitive,
+  mistake: Mistake = {},
+  said: readonly string[] = [],
+): string {
+  const candidates = [...reasonsFor(p, mistake), ...questionsFor(p, mistake)];
+  const last = said.length > 0 ? said[said.length - 1] : '';
+  // Something they have not been told yet, in order of how well it fits the mistake.
+  const fresh = candidates.find((c) => !said.includes(c));
+  if (fresh) return fresh;
+  // All spent: come back round, but never land on the sentence that is still on the screen.
+  return candidates.find((c) => c !== last) ?? candidates[0] ?? '';
+}
+
+/**
+ * The line a wrong move earns, for a caller that knows only the piece.
+ *
+ * One policy, not two: this is `reasonFor` with no memory and no destination, kept because the
+ * piece-only shape is what the older call sites and their tests speak.
+ */
+export function teachFor(p: Primitive, pieceId?: string): string {
+  return reasonFor(p, { piece: pieceId });
 }
 
 /** The line a right move earns, when the primitive has one worth saying. */

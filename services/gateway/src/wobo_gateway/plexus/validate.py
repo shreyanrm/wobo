@@ -160,9 +160,10 @@ def _judge(
         # is a question with a right answer, which is why a level can be judged by a cheap model
         # and a core cannot.
         system += _LEVEL_FIDELITY_BARS
-        user += "\n\nTHE CONCEPT CORE this rendering must carry:\n" + json.dumps(
-            core, ensure_ascii=False
-        )[:4000]
+        user += (
+            "\n\nTHE CONCEPT CORE this rendering must carry:\n"
+            + json.dumps(core, ensure_ascii=False)[:4000]
+        )
     try:
         response = model_complete(
             model=judge_model,
@@ -643,9 +644,7 @@ def _enqueue_video_render(artifact_path: Path, artifact: Any) -> None:
         logger.warning("validate: render enqueue failed — promotion unaffected", exc_info=True)
 
 
-def _maybe_enqueue_manim(
-    artifact_path: Path, artifact: Any, concept: str, difficulty: str
-) -> None:
+def _maybe_enqueue_manim(artifact_path: Path, artifact: Any, concept: str, difficulty: str) -> None:
     """Flag and enqueue the films SVG cannot carry (owner's Manim escalation law).
 
     ``needs_manim`` and the manim queue were real and tested but had NO caller, so the escalation
@@ -761,8 +760,14 @@ def validate_and_promote(
     core = core_for_judging(concept, scope) if modality == "compose" else None
     verdict = _with_factbase(
         _judge(
-            judge_model, modality, concept, artifact,
-            facts=fact_context, contradictions=contradictions, scope=scope, core=core,
+            judge_model,
+            modality,
+            concept,
+            artifact,
+            facts=fact_context,
+            contradictions=contradictions,
+            scope=scope,
+            core=core,
         ),
         contradictions,
     )
@@ -792,7 +797,11 @@ def validate_and_promote(
             # is competing with — an empty payload sent it back to the generic reader the whole
             # fix removes. ``raster`` is deliberately not passed: the escalation is the SVG path.
             alt, alt_model, _tokens, alt_seeded = _generate_live(
-                modality, concept, difficulty, escalation_model, fallbacks,
+                modality,
+                concept,
+                difficulty,
+                escalation_model,
+                fallbacks,
                 {k: (scope or {}).get(k, "") for k in store.SCOPE_KEYS},
             )
         except Exception:
@@ -803,8 +812,14 @@ def validate_and_promote(
             alt_contra, _ = _factcheck(alt, concept, scope)
             alt_verdict = _with_factbase(
                 _judge(
-                    judge_model, modality, concept, alt,
-                    facts=fact_context, contradictions=alt_contra, scope=scope, core=core,
+                    judge_model,
+                    modality,
+                    concept,
+                    alt,
+                    facts=fact_context,
+                    contradictions=alt_contra,
+                    scope=scope,
+                    core=core,
                 ),
                 alt_contra,
             )
@@ -1078,7 +1093,132 @@ def _finger_reasons(design: Any) -> list[str]:
     return reasons
 
 
-def _template_reasons(design: Any) -> list[str]:
+#: Words that belong to no concept in particular, so sharing one proves nothing about embodiment.
+_COMMON_WORDS = frozenset(
+    """
+    about again against already also always another answer back because been before being below
+    between both cannot come could does doing done down each either else enough even every
+    first from generally give given goes going have here here'shers into itself just keep kind
+    know later least less like little look looking made make makes many might more most much must
+    need never next nothing once only other others over part parts place please point right same
+    should show shows since some something still such take than that their them then there these
+    they thing things think this those through time times together took true try turn twice under
+    until upon used uses using very want well were what when where which while will with within
+    without word words work would your yours
+    """.split()
+)
+
+
+def _words(text: str) -> set[str]:
+    """The distinctive words of a sentence: four letters or more, and not a word everything uses."""
+    import re
+
+    return {
+        w for w in re.findall(r"[a-z]+", text.lower()) if len(w) >= 4 and w not in _COMMON_WORDS
+    }
+
+
+def _concept_words(core: Any) -> set[str]:
+    """Every word THIS concept owns: its name, its idea, its misconceptions, its words, its stuff.
+
+    The vocabulary a design may legitimately teach with. A wrong line that shares none of it is a
+    line that would read the same for any other concept, which is precisely the embodiment bar in
+    ``_DESIGN_JUDGE_SYSTEM``, decided here by arithmetic before a judge is paid.
+    """
+    if not isinstance(core, dict):
+        return set()
+    parts: list[str] = [
+        str(core.get("concept") or ""),
+        str(core.get("title") or ""),
+        str(core.get("idea") or ""),
+        str(core.get("why") or ""),
+    ]
+    for m in core.get("misconceptions") or []:
+        if isinstance(m, dict):
+            parts += [str(m.get("belief") or m.get("wrong") or ""), str(m.get("counter") or "")]
+    for v in core.get("vocabulary") or []:
+        if isinstance(v, dict):
+            parts += [str(v.get("term") or ""), str(v.get("meaning") or "")]
+    material = core.get("material")
+    if isinstance(material, dict):
+        for rows in material.values():
+            if not isinstance(rows, list):
+                continue
+            for row in rows:
+                if isinstance(row, dict):
+                    parts += [
+                        str(row.get("label") or ""),
+                        str(row.get("why") or ""),
+                        str(row.get("teaches") or ""),
+                    ]
+    return _words(" ".join(parts))
+
+
+def _draws_on(line: str, spoken: set[str]) -> bool:
+    """Does this line use any of the concept's own words?"""
+    return bool(_words(line) & spoken)
+
+
+def _misconception_reasons(design: Any, core: Any) -> list[str]:
+    """BAR 1'S OTHER HALF: does a wrong move teach THIS CONCEPT'S OWN misconception?
+
+    docs/LEARNING-MODEL.md, "the tutor never leaves", rule 3: *"Every wrong answer gets the reason
+    it is wrong, drawn where the mistake is, from the concept core's own misconceptions. Never
+    'incorrect, try again'. Never a generic hint."*
+
+    The gate refused seven canned phrases and never looked at the core, so a design whose every
+    wrong line was "look again at what makes the two groups different." passed every bar and was
+    cached for ninety days. Two things are refused here, both by arithmetic, before a judge is paid:
+
+      · a design in which NOTHING draws on a misconception the core actually carries, and nothing
+        asks a question either. A design may honestly ASK where the core has nothing for that
+        mistake; what it may not do is assert something generic and call it teaching.
+      · a design that answers every different mistake with the SAME sentence, which is one generic
+        hint wearing the concept's words, and which a learner reads twice the moment they miss
+        twice.
+    """
+    if not isinstance(core, dict):
+        return []
+    counters = [
+        str(m.get("counter") or "").strip().lower()
+        for m in core.get("misconceptions") or []
+        if isinstance(m, dict) and str(m.get("counter") or "").strip()
+    ]
+    lines = [
+        feedback.wrong.strip()
+        for step in design.steps
+        for feedback in _feedbacks_of(step.primitive)
+        if feedback.wrong.strip()
+    ]
+    lines += [
+        option.teaches.strip()
+        for step in design.steps
+        for option in getattr(step.primitive, "options", []) or []
+        if not option.correct and option.teaches.strip()
+    ]
+    if not lines:
+        return []
+
+    reasons: list[str] = []
+    if len(lines) > 1 and len({line.lower() for line in lines}) == 1:
+        reasons.append(
+            f"every wrong move in this design is answered with the same sentence "
+            f"(“{lines[0]}”); a learner who misses twice reads it twice"
+        )
+    spoken = _concept_words(core)
+    if spoken:
+        drawn = any(_draws_on(line, spoken) for line in lines)
+        asked = any(line.rstrip().endswith("?") for line in lines)
+        if not drawn and not asked:
+            reasons.append(
+                "no wrong move in this design uses a word this concept owns (its idea, its "
+                "misconceptions, its vocabulary or its own material), and none asks a question "
+                "either: this feedback would read the same for any other concept"
+            )
+    return reasons
+
+
+def _template_reasons(design: Any, core: Any = None) -> list[str]:
     """Bar 1, the half of it a machine can decide: is this a quiz with a skin.
 
     A design in which the learner never MOVES anything is a multiple-choice quiz with lights on,
@@ -1105,6 +1245,7 @@ def _template_reasons(design: Any) -> list[str]:
                 )
     if len((design.why or "").split()) < 5:
         reasons.append("the design does not say why this mechanic embodies this concept")
+    reasons += _misconception_reasons(design, core)
     return reasons
 
 
@@ -1239,7 +1380,9 @@ def judge_interaction_design(
     flaky provider. The floor is always one refusal away, so nothing unjudged can be worse than
     the template.
     """
-    reasons = _template_reasons(design) + _finger_reasons(design) + _variety_reasons(design, recent)
+    reasons = (
+        _template_reasons(design, core) + _finger_reasons(design) + _variety_reasons(design, recent)
+    )
     if reasons:
         return DesignVerdict(False, 0.0, reasons, judged=False)
 
@@ -1293,6 +1436,7 @@ def design_is_stale(
         at = at.replace(tzinfo=UTC)
     days = int(record.get("refreshDays") or design_refresh_days())
     return (at - made_at).days >= days
+
 
 if __name__ == "__main__":  # runnable self-check — no framework, no network
     _rec = {

@@ -1100,19 +1100,49 @@ class LearnerState:
     held_ideas: tuple[str, ...] = ()
     #: module kinds that have landed for this learner before, best first
     style: tuple[str, ...] = ()
+    #: module ids the learner has already finished. A group is what is still to do.
+    done: tuple[str, ...] = ()
+    #: module ids that beat this learner twice. Never chosen again, for anything: "a learner who
+    #: gets a module wrong twice gets a different module next, never the same one again"
+    #: (docs/LEARNING-MODEL.md, "The tutor never leaves", rule 1).
+    struggled: tuple[str, ...] = ()
+    #: how this learner is moving against the pool's OWN minutes: "fast", "steady" or "slow".
+    #: It decides between two ways into one idea when the style has nothing to say.
+    pace: str = "steady"
 
 
 def group_for(bp: Blueprint, topic_id: str, state: LearnerState) -> list[BlueprintModule]:
     """The group of modules that teaches ONE topic to ONE learner, in the flow's own order.
 
     A selection, never a generation: prerequisites the learner has not shown come first, then one
-    way into each idea they do not hold (their style first), then the repair for each misconception
-    they have shown, then the check, and the stretch when the topic is already held. The boss is
-    the chapter's and never a topic's; a side door is never in a group, because it is never in the
-    path.
+    way into each idea they do not hold (their style first, then their pace), then the repair for
+    each misconception they have shown, then the check, and the stretch when the topic is already
+    held. The boss is the chapter's and never a topic's; a side door is never in a group, because
+    it is never in the path.
+
+    **It is re-chosen after every module, and this is what makes that possible.** What the learner
+    has already finished is out, and what beat them twice is out for good, so calling this again
+    after each answer gives the group as it stands rather than the group as it was
+    (:mod:`wobo_gateway.climb` is what calls it that way). A repair is the one thing a finished
+    module can be twice: a misconception that comes back is a misconception still standing, and the
+    module that undoes it is owed again.
     """
     order = {mid: i for i, mid in enumerate(bp.flow.order)}
-    here = [m for m in bp.modules if topic_id in m.serves and m.role not in ("side_door", "boss")]
+    barred = set(state.struggled)
+    finished = set(state.done)
+
+    def still_open(mod: BlueprintModule) -> bool:
+        if mod.id in barred:
+            return False
+        if mod.id in finished:
+            return mod.role == "repair" and mod.repairs in state.misconceptions
+        return True
+
+    here = [
+        m
+        for m in bp.modules
+        if topic_id in m.serves and m.role not in ("side_door", "boss") and still_open(m)
+    ]
     needed = {i.id for i in bp.ideas if topic_id in i.topics} - set(state.held_ideas)
     held_all = not needed
     chosen: dict[str, BlueprintModule] = {}
@@ -1124,9 +1154,13 @@ def group_for(bp: Blueprint, topic_id: str, state: LearnerState) -> list[Bluepri
         if mod.role == "prerequisite" and any(a in state.unmet_assumptions for a in mod.assumes):
             take(mod)
 
-    def style_rank(mod: BlueprintModule) -> tuple[int, int]:
+    def style_rank(mod: BlueprintModule) -> tuple[int, int, int]:
         pref = state.style.index(mod.kind) if mod.kind in state.style else len(state.style) + 1
-        return (pref, order.get(mod.id, len(order)))
+        # THE PACE BREAKS THE TIE THE STYLE CANNOT. A learner who has been running over the
+        # sitting the module asked for meets the shorter of two ways into the same idea; for
+        # everyone else the flow's own order decides, exactly as it did before.
+        pace = mod.minutes if state.pace == "slow" else 0
+        return (pref, pace, order.get(mod.id, len(order)))
 
     for iid in sorted(needed):
         ways = [m for m in here if m.role == "way_in" and iid in m.teaches]
@@ -1152,6 +1186,27 @@ def group_for(bp: Blueprint, topic_id: str, state: LearnerState) -> list[Bluepri
 def walk(bp: Blueprint, topic_id: str, state: LearnerState) -> list[str]:
     """The group as ids: what the course for this syllabus cell is built from, in order."""
     return [m.id for m in group_for(bp, topic_id, state)]
+
+
+def mastered(bp: Blueprint, topic_id: str, state: LearnerState) -> bool:
+    """Is the topic held?
+
+    *"A topic declares what must be true for it to be held: the ideas that must be understood, and
+    the misconceptions that must be gone. Not a module count, and never a score."*
+    (docs/LEARNING-MODEL.md section 3.) So this reads the evidence and never the walk: two learners
+    may arrive with four modules and eleven, and both are mastered.
+
+    A topic the chapter never declared an idea for is not held. There is nothing to have understood,
+    and answering yes would light a star for a topic nobody could have learned.
+    """
+    ideas = [i for i in bp.ideas if topic_id in i.topics]
+    if not ideas:
+        return False
+    held = set(state.held_ideas)
+    if any(idea.id not in held for idea in ideas):
+        return False
+    shown = set(state.misconceptions)
+    return not any(m.id in shown for m in bp.misconceptions if topic_id in m.topics)
 
 
 def side_doors_after(bp: Blueprint, module_id: str) -> list[str]:

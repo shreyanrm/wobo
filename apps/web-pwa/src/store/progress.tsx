@@ -32,25 +32,49 @@ import { useSdk } from './sdk';
 
 export type XpReason =
   | 'item'
-  | 'boss'
   | 'topic'
+  | 'chapter'
+  | 'boss'
+  | 'streak'
+  | 'bonus'
   | 'account'
   | 'profile_photo'
   | 'invite_friend'
   | 'invite_parent'
-  | 'mystery'
-  | 'bonus';
+  | 'mystery';
 
+/**
+ * WHAT EARNS EXPERIENCE POINTS (docs/LEVELS.md §1, and it is the table there, verbatim).
+ *
+ * The first six rows ARE that table. They were not before: topic paid 150 against the law's 50,
+ * boss paid 80 against 300, bonus paid 45 against 15, and the law's two remaining rows — a chapter
+ * finished, and a day kept in a streak — had no reason here at all, so the 20 the law pays for
+ * turning up was never paid to anybody. A rate that contradicts its own law is the "motivating
+ * without lying" rule (docs/LEARNING-MODEL.md, "The tutor never leaves", rule 4) failing at the
+ * only place a learner can check it: the number on the screen.
+ *
+ * `streak` is the one that is earned by ARRIVING rather than by being right, which is why rule 4
+ * asks the reward to fire "on effort and on progress, not only on right answers". It is paid by
+ * `rollForward` below, once a day, to a learner who has answered nothing yet.
+ *
+ * The rows under the table are the account moments. docs/LEVELS.md §1 does not price them because
+ * they are not learning, and they are left exactly as they were.
+ *
+ * These are dials on the console in the end (docs/LEVELS.md §7). This is their law-true default,
+ * and `levels.test.ts` pins every one of them.
+ */
 export const XP_AWARDS: Record<XpReason, number> = {
   item: 10,
-  boss: 80,
-  topic: 150,
+  topic: 50,
+  chapter: 200,
+  boss: 300,
+  streak: 20,
+  bonus: 15,
   account: 50,
   profile_photo: 20,
   invite_friend: 40,
   invite_parent: 40,
   mystery: 60,
-  bonus: 45,
 };
 
 export interface XpBloom {
@@ -61,13 +85,90 @@ export interface XpBloom {
   hue?: string;
   /** Set only when this award crossed a level boundary — the new level. Triggers the level-up beat. */
   crossedTo?: number;
+  /** How many attempts this cost the learner. 1 is a first-try answer. */
+  tries?: number;
 }
 
 /**
- * The level curve. Level n opens at cumForLevel(n) cumulative xp; the step to the next level
- * widens by 40 each time (80 → 120 → 160 …) so early levels come fast for the hook and later
- * ones stretch. Closed-form so a single xp number tells the whole story — no separate persistence.
+ * HOW LONG AN EARNED MOMENT IS HELD, DECIDED BY WHAT IT COST (docs/REWARDS.md §3).
+ *
+ * *"a bloom in the pigment, sized by how many tries it took: first try is quick and bright, fifth
+ * is slower and warmer, because arriving late is still arriving."*
+ *
+ * REWARDS.md §8 listed "the try-again ladder wired to attempt count" as unbuilt, and it was: every
+ * bloom was held for exactly the same 2.4 seconds whatever the learner had spent getting there, so
+ * the product gave the same breath to an answer that cost four attempts as to one that cost none.
+ * That is the half of rule 4 the owner names as firing on EFFORT rather than only on being right.
+ *
+ * It stays a breath and never becomes a ceremony: the ceiling is well inside the length that would
+ * make it something to sit through, and nothing about it blocks (REWARDS.md §7, rules 1 and 2).
  */
+export const BLOOM_HOLD_MS = 2400;
+export const BLOOM_HOLD_CEILING_MS = 3600;
+/** A third of a second more warmth per attempt it took, up to the ceiling. Never less. */
+export const BLOOM_HOLD_PER_TRY_MS = 300;
+
+export function bloomHold(tries = 1): number {
+  const late = Math.max(0, Math.floor(tries) - 1);
+  return Math.min(BLOOM_HOLD_CEILING_MS, BLOOM_HOLD_MS + late * BLOOM_HOLD_PER_TRY_MS);
+}
+
+/**
+ * THE LEVEL CURVE (docs/LEVELS.md §2), which is the law's curve and no longer a second opinion
+ * about it.
+ *
+ * The owner, 2026-09-09: *"I want level ups only based off XP... It should be progressive, it
+ * should get harder as they go."* The law settles that as `60 × level^1.35`, rounded to ten, with
+ * two deliberate departures: the first three levels are nearly free (30, 60, 120) because a first
+ * session should end two or three levels in, and the cost stops rising at 8,000 XP so a learner
+ * three years in is never facing a wall.
+ *
+ * What stood here instead was `20(l-1)(l+2)`: a different shape, reaching levels 2, 3 and 4 at
+ * 80, 200 and 360 against the law's 30, 90 and 210, and arriving at level 41 having asked for
+ * 34,400 XP against the law's 151,370. Under it a learner's first session ended one level in
+ * rather than three, and the top of the curve was four and a half times cheaper than the pacing
+ * the law had modelled against real use. docs/LEVELS.md §7 asks for exactly one pure function with
+ * a test that pins every number in the table; `levels.test.ts` is that test, and it is why the
+ * dev-only `console.assert` block that used to sit under here — pinning 80 and 200, and unable to
+ * fail a build because `console.assert` does not throw — is gone rather than corrected.
+ */
+export const CURVE_BASE = 60;
+export const CURVE_EXPONENT = 1.35;
+/** The cost stops rising here (docs/LEVELS.md §2), so the number never becomes meaningless. */
+export const CURVE_CEILING_XP = 8000;
+/** The law's three nearly-free levels: what it costs to reach 2, 3 and 4. That is the hook. */
+export const EARLY_LEVEL_COST = [30, 60, 120] as const;
+
+/** What the step INTO `level` costs on its own. The one pure function docs/LEVELS.md §7 asks for. */
+export function xpForLevel(level: number): number {
+  const l = Math.floor(level);
+  if (l <= 1) return 0; // nobody pays to be at level 1
+  const early = EARLY_LEVEL_COST[l - 2];
+  if (early !== undefined) return early;
+  const raw = CURVE_BASE * (l - 1) ** CURVE_EXPONENT;
+  return Math.min(CURVE_CEILING_XP, Math.round(raw / 10) * 10);
+}
+
+/** The first level whose step costs the ceiling — the law says "around level 39", and it is 39. */
+export const CURVE_CEILING_LEVEL = ((): number => {
+  let l = EARLY_LEVEL_COST.length + 2;
+  while (xpForLevel(l) < CURVE_CEILING_XP) l += 1;
+  return l;
+})();
+
+// Prefix sums, grown on demand and never recomputed. Index is the level; index 1 is 0, because
+// reaching level 1 costs nothing.
+const cumulative: number[] = [0, 0];
+
+/** Total xp needed to REACH `level`. */
+export function cumForLevel(level: number): number {
+  const l = Math.max(1, Math.floor(level));
+  while (cumulative.length <= l) {
+    cumulative.push((cumulative[cumulative.length - 1] as number) + xpForLevel(cumulative.length));
+  }
+  return cumulative[l] as number;
+}
+
 export interface LevelInfo {
   level: number;
   /** xp earned into the current level. */
@@ -80,24 +181,23 @@ export interface LevelInfo {
   progress: number;
 }
 
-const cumForLevel = (l: number): number => 20 * (l - 1) * (l + 2); // xp needed to REACH level l
-
 export function levelInfo(xp: number): LevelInfo {
   const x = Math.max(0, Math.floor(xp));
-  // invert cumForLevel: largest l with 20(l-1)(l+2) <= x. +epsilon guards fp at exact boundaries.
-  const level = Math.max(1, Math.floor((-1 + Math.sqrt(9 + x / 5)) / 2 + 1e-9));
+  const atCeiling = cumForLevel(CURVE_CEILING_LEVEL);
+  // Past the ceiling every step costs the same 8,000, so the tail is solved rather than walked: a
+  // learner with an implausible amount of xp must not cost a loop proportional to it.
+  const level =
+    x >= atCeiling
+      ? CURVE_CEILING_LEVEL + Math.floor((x - atCeiling) / CURVE_CEILING_XP)
+      : (() => {
+          let l = 1;
+          while (cumForLevel(l + 1) <= x) l += 1;
+          return l;
+        })();
   const base = cumForLevel(level);
-  const span = cumForLevel(level + 1) - base;
+  const span = xpForLevel(level + 1);
   const intoLevel = x - base;
   return { level, intoLevel, toNext: span - intoLevel, span, progress: intoLevel / span };
-}
-
-// ponytail: one runnable check — dev-only, console.assert never throws so a wrong curve just logs.
-if (import.meta.env.DEV) {
-  console.assert(levelInfo(0).level === 1 && levelInfo(0).toNext === 80, 'lvl@0');
-  console.assert(levelInfo(79).level === 1 && levelInfo(80).level === 2, 'lvl boundary 80');
-  console.assert(levelInfo(200).level === 3 && levelInfo(199).level === 2, 'lvl boundary 200');
-  console.assert(levelInfo(100).intoLevel === 20 && levelInfo(100).span === 120, 'into@100');
 }
 
 function today(): string {
@@ -116,8 +216,7 @@ const monthKey = (day: string): string => day.slice(0, 7);
  * it as `brokenStreak` so a logged streak-freeze can repair it within the window. A 1-day "streak"
  * isn't worth a freeze, so it just resets.
  */
-function rollForward(p: LearnerState): LearnerState {
-  const t = today();
+function rollDays(p: LearnerState, t: string): LearnerState {
   if (p.lastActiveDay === t) return p;
   const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
   if (p.lastActiveDay === yesterday)
@@ -125,6 +224,64 @@ function rollForward(p: LearnerState): LearnerState {
   const brokenStreak =
     p.streakDays >= 2 ? { days: p.streakDays, brokenOn: p.lastActiveDay } : p.brokenStreak;
   return { ...p, streakDays: 1, lastActiveDay: t, brokenStreak };
+}
+
+/** The once-a-day key the day's own earn is booked against. */
+export const streakDayKey = (day: string): string => `streak:${day}`;
+
+/**
+ * How many days of streak keys are kept. They exist only to answer "has today been paid", and a
+ * key older than the repair window can never be today, so keeping them forever would be one row
+ * of litter per day for the life of the account.
+ */
+const STREAK_KEY_WINDOW_DAYS = REPAIR_WINDOW_DAYS + 2;
+
+function pruneStreakKeys(keys: readonly string[], day: string): string[] {
+  const floor = Date.parse(day) - STREAK_KEY_WINDOW_DAYS * 86400000;
+  return keys.filter((k) => {
+    if (!k.startsWith('streak:')) return true; // every other one-time key is untouched
+    const on = Date.parse(k.slice('streak:'.length));
+    return Number.isNaN(on) || on >= floor;
+  });
+}
+
+/**
+ * THE DAY'S OWN EARN, PAID FOR TURNING UP (docs/LEVELS.md §1, "a day kept in a streak | 20", and
+ * §4, "a day pays once. The streak's 20 is per day, not per session").
+ *
+ * Nobody was ever paid it. The rate did not exist, so the only XP in the product came from getting
+ * something right, and a learner who opened Wobo, worked at one idea and got all of it wrong left
+ * with a reward moment count of zero. That is rule 4 of "The tutor never leaves" failing at its
+ * trigger: *"the reward system fires on effort and on progress, not only on right answers"*.
+ * Sizing the moment by what it cost (`bloomHold`) was the other half of that rule and was already
+ * built; this is the half that decides whether there is a moment at all.
+ *
+ * Booked against `awardedOnce` rather than against `lastActiveDay`, for three reasons that each
+ * bit in practice. A brand-new learner's state already carries today as `lastActiveDay`, so a
+ * day-comparison would never pay them their first day. `rollForward` runs at boot AND again when
+ * the remote state arrives, so a day-comparison would pay twice on one morning. And `awardedOnce`
+ * is unioned across devices by `mergeLearnerState`, so a phone and a laptop opened the same
+ * morning settle on one payment rather than two.
+ */
+function payTheDay(p: LearnerState, day: string): LearnerState {
+  const key = streakDayKey(day);
+  const awarded = p.awardedOnce ?? [];
+  if (awarded.includes(key)) return p;
+  return {
+    ...p,
+    xp: p.xp + XP_AWARDS.streak,
+    lastActiveDay: day,
+    awardedOnce: [...pruneStreakKeys(awarded, day), key],
+  };
+}
+
+/**
+ * The chain rolled forward, and the day paid. Pure, and idempotent within a day: call it as many
+ * times as a boot and a hydrate need to, and the 20 is paid exactly once.
+ */
+export function rollForward(p: LearnerState): LearnerState {
+  const t = today();
+  return payTheDay(rollDays(p, t), t);
 }
 
 /** Freezes still available this month (a new month resets the count without a write). */
@@ -188,6 +345,56 @@ function bumpToday() {
   }
 }
 
+/** What a grant did to the state, and what it actually paid. 0 is a one-time award, already paid. */
+export interface AwardOutcome {
+  state: LearnerState;
+  granted: number;
+}
+
+/**
+ * THE MONEY, AS A PURE FUNCTION.
+ *
+ * These two hold every rule docs/LEVELS.md §4 states about what may and may not be earned, and the
+ * provider below is a thin wrapper that stamps and queues the moment. They are exported because a
+ * test that plays a learner has to be able to drive the REAL rules — a test that re-implemented
+ * "what an answer pays" would be asserting against its own copy, and the copy is the thing that
+ * drifted from the law in the first place.
+ */
+export function applyAward(
+  prev: LearnerState,
+  reason: XpReason,
+  opts?: { amount?: number; onceKey?: string },
+): AwardOutcome {
+  const amount = opts?.amount ?? XP_AWARDS[reason];
+  const onceKey =
+    opts?.onceKey ?? (['account', 'profile_photo'].includes(reason) ? reason : undefined);
+  if (onceKey && prev.awardedOnce.includes(onceKey)) return { state: prev, granted: 0 };
+  return {
+    state: {
+      ...prev,
+      xp: prev.xp + amount,
+      lastActiveDay: today(),
+      awardedOnce: onceKey ? [...prev.awardedOnce, onceKey] : prev.awardedOnce,
+    },
+    granted: amount,
+  };
+}
+
+/** A topic mastered pays once and never again (docs/LEVELS.md §4, "a concept pays once"). */
+export function applyCompleteTopic(prev: LearnerState, topicId: string, xp?: number): AwardOutcome {
+  if (prev.completedTopics.includes(topicId)) return { state: prev, granted: 0 };
+  const amount = xp ?? XP_AWARDS.topic;
+  return {
+    state: {
+      ...prev,
+      xp: prev.xp + amount,
+      completedTopics: [...prev.completedTopics, topicId],
+      lastActiveDay: today(),
+    },
+    granted: amount,
+  };
+}
+
 export interface ProgressStore {
   xp: number;
   streakDays: number;
@@ -204,7 +411,11 @@ export interface ProgressStore {
   reportProgress: (topicId: string, fraction: number) => void;
   blooms: XpBloom[];
   /** Award XP with a bloom. One-time reasons (account, invites, photo) only ever grant once. */
-  award: (reason: XpReason, opts?: { amount?: number; onceKey?: string; hue?: string }) => number;
+  award: (
+    reason: XpReason,
+    /** `tries` is how many attempts it cost, so the moment is sized by effort (REWARDS.md §3). */
+    opts?: { amount?: number; onceKey?: string; hue?: string; tries?: number },
+  ) => number;
   completeTopic: (topicId: string, xp?: number) => void;
   /**
    * Owner law: a completed course can be redone freely, but a replay earns NO xp. While a
@@ -232,7 +443,15 @@ let trophySeq = 1;
 
 export function ProgressProvider({ children }: { children: ReactNode }) {
   const sdk = useSdk();
-  const [state, setState] = useState<LearnerState>(() => rollForward(sdk.state.loadCache()));
+  // Whether the day's own 20 was ALREADY paid before this session opened. `false` means this
+  // session is the one that earned it, and that is the only case that deserves the moment:
+  // announcing it again on every reload of the same day would be the nag docs/REWARDS.md §3 forbids.
+  const dayWasKnown = useRef<boolean | null>(null);
+  const [state, setState] = useState<LearnerState>(() => {
+    const cache = sdk.state.loadCache();
+    dayWasKnown.current ??= (cache.awardedOnce ?? []).includes(streakDayKey(today()));
+    return rollForward(cache);
+  });
   const [blooms, setBlooms] = useState<XpBloom[]>([]);
   const [trophies, setTrophies] = useState<TrophyAward[]>([]);
   // The already-celebrated milestone set — null until the first settle adopts (or silently backfills)
@@ -305,42 +524,67 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const pushBloom = useCallback((amount: number, reason: XpReason, hue?: string, fromXp = 0) => {
-    const id = bloomSeq++;
-    const before = levelInfo(fromXp).level;
-    const after = levelInfo(fromXp + amount).level;
-    const crossedTo = after > before ? after : undefined;
-    setBlooms((b) => [...b, { id, amount, reason, hue, crossedTo }]);
-    // a small bloom for a routine correct item, a bright glint for a bonus chest, a warm chord else
-    if (reason === 'item' && !crossedTo) sfx.bloom();
-    else if (reason === 'bonus' && !crossedTo) sfx.reward();
-    else sfx.chord();
-    // the level-up beat lingers a touch longer than a routine bloom
-    setTimeout(() => setBlooms((b) => b.filter((x) => x.id !== id)), crossedTo ? 3000 : 2400);
-  }, []);
+  const pushBloom = useCallback(
+    (amount: number, reason: XpReason, hue?: string, fromXp = 0, tries = 1) => {
+      const id = bloomSeq++;
+      const before = levelInfo(fromXp).level;
+      const after = levelInfo(fromXp + amount).level;
+      const crossedTo = after > before ? after : undefined;
+      setBlooms((b) => [...b, { id, amount, reason, hue, crossedTo, tries }]);
+      // a small bloom for a routine correct item, a bright glint for a bonus chest, a warm chord else
+      if (reason === 'item' && !crossedTo) sfx.bloom();
+      else if (reason === 'bonus' && !crossedTo) sfx.reward();
+      // "a streak is kept | tiny | the orb's bounce, once, never a nag" (docs/REWARDS.md §3). The
+      // day's own earn takes the small lift, never the warm chord a mastered topic gets.
+      else if (reason === 'streak' && !crossedTo) sfx.bloom();
+      else sfx.chord();
+      // The level-up beat lingers a touch longer than a routine bloom; a routine bloom lingers by
+      // what it cost the learner to earn it (`bloomHold`), so arriving late is warmer, not thinner.
+      setTimeout(
+        () => setBlooms((b) => b.filter((x) => x.id !== id)),
+        crossedTo ? 3000 : bloomHold(tries),
+      );
+    },
+    [],
+  );
+
+  /**
+   * THE DAY'S EARN, MADE VISIBLE.
+   *
+   * `rollForward` pays the 20 inside a state initialiser and again when the remote state lands,
+   * and neither of those can queue a moment. This is where turning up becomes something the
+   * learner sees — before they have answered anything, and whether or not they get anything right
+   * afterwards. That is rule 4 of "The tutor never leaves" at its trigger rather than at its hold.
+   */
+  const dayAnnounced = useRef(false);
+  useEffect(() => {
+    if (dayAnnounced.current || dayWasKnown.current !== false) return;
+    if (!state.awardedOnce.includes(streakDayKey(today()))) return;
+    dayAnnounced.current = true;
+    pushBloom(XP_AWARDS.streak, 'streak', undefined, Math.max(0, state.xp - XP_AWARDS.streak));
+  }, [state.awardedOnce, state.xp, pushBloom]);
 
   const award = useCallback(
-    (reason: XpReason, opts?: { amount?: number; onceKey?: string; hue?: string }) => {
+    (
+      reason: XpReason,
+      opts?: { amount?: number; onceKey?: string; hue?: string; tries?: number },
+    ) => {
       const amount = opts?.amount ?? XP_AWARDS[reason];
       if (replaying.current) return 0; // replay earns nothing — no grant, no bloom, no level math
       let granted = 0;
       let fromXp = 0;
       setState((prev) => {
-        const onceKey =
-          opts?.onceKey ?? (['account', 'profile_photo'].includes(reason) ? reason : undefined);
-        if (onceKey && prev.awardedOnce.includes(onceKey)) return prev;
-        granted = amount;
+        const out = applyAward(prev, reason, opts);
+        granted = out.granted;
         fromXp = prev.xp;
-        return stamp({
-          ...prev,
-          xp: prev.xp + amount,
-          lastActiveDay: today(),
-          awardedOnce: onceKey ? [...prev.awardedOnce, onceKey] : prev.awardedOnce,
-        });
+        return out.granted > 0 ? stamp(out.state) : prev;
       });
       bumpToday(); // the You heat map warms with every earned moment
       // The bloom must feel immediate; if the grant was a duplicate one-time award it is silent.
-      setTimeout(() => granted > 0 && pushBloom(amount, reason, opts?.hue, fromXp), 0);
+      setTimeout(
+        () => granted > 0 && pushBloom(amount, reason, opts?.hue, fromXp, opts?.tries ?? 1),
+        0,
+      );
       return amount;
     },
     [pushBloom, stamp],
@@ -352,15 +596,10 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       let fromXp = 0;
       let granted = false;
       setState((prev) => {
-        if (prev.completedTopics.includes(topicId)) return prev;
+        const out = applyCompleteTopic(prev, topicId, xp);
         fromXp = prev.xp;
-        granted = true;
-        return stamp({
-          ...prev,
-          xp: prev.xp + (xp ?? XP_AWARDS.topic),
-          completedTopics: [...prev.completedTopics, topicId],
-          lastActiveDay: today(),
-        });
+        granted = out.granted > 0;
+        return out.granted > 0 ? stamp(out.state) : prev;
       });
       bumpToday();
       // a completion bloom carries the mastered topic's subject hue; silent on a repeat completion

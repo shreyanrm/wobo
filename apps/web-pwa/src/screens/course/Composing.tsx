@@ -79,6 +79,7 @@ import type { CoreCard } from '../../wobo/instant';
 import {
   noteConceptCorrect,
   type ReteachTurn,
+  reteachNow,
   reteachOnMiss,
   seedFromEvidence,
 } from '../../wobo/reteach';
@@ -102,9 +103,11 @@ import {
   cardTitle,
   Deck,
   lead,
+  offersAnotherWay,
   readCoursePos,
   rgba,
   Stage,
+  tryAgainRung,
   whisper,
   writeCoursePos,
 } from './shared';
@@ -378,8 +381,19 @@ function withBridge(course: GenCourse, lesson: BridgeLesson | null): GenCourse {
   };
 }
 
-/** The client-side floor for mock mode or a network refusal — structural, never fabricated. */
-function seedCourse(title: string): GenCourse {
+/**
+ * The client-side floor for mock mode or a network refusal — structural, never fabricated.
+ *
+ * WHERE IT IS ACTUALLY SEEN, said plainly because it decides how much this floor owes a learner.
+ * It is built with `seeded: true`, and a seeded course is never started: the ink screen's bar reads
+ * "Back for now" rather than "Start the course", a saved position is not restored into one and a
+ * link that named a card is refused. So on a live build the cards below are read on the ink screen
+ * and the workbook and boss below are not reached through that door. They are still held to rule 3
+ * of "The tutor never leaves" (every item carries the reason its answer is the answer): a floor
+ * that teaches nothing on the one path that does render it is a floor waiting to be a defect, and
+ * the gateway's own floor was already fixed to the same bar.
+ */
+export function seedCourse(title: string): GenCourse {
   const n = title.toLowerCase();
   return {
     courseId: crypto.randomUUID(),
@@ -419,6 +433,21 @@ function seedCourse(title: string): GenCourse {
         reveal: 'Knowing where the rule breaks is part of knowing the rule.',
       },
     ],
+    /*
+     * EVERY ITEM CARRIES THE REASON ITS ANSWER IS THE ANSWER (docs/LEARNING-MODEL.md, "The tutor
+     * never leaves", rule 3: *"Every wrong answer gets the reason it is wrong ... Never 'incorrect,
+     * try again'. Never a generic hint."*).
+     *
+     * The gateway's own floor (`plexus/engines.py`, `_level_from_core`) gives all six of its
+     * workbook items and all six of its boss items an explanation drawn from the core's own
+     * misconceptions. This floor had none at all on any of its six, so on the one path that
+     * reaches it every miss fell back to the answer and nothing else. These reasons are about the
+     * method each item actually asks about, which is what this floor genuinely teaches; nothing
+     * here is invented about a topic, because this floor is structural and never claims to be one.
+     *
+     * No two of them say the same thing, for the reason the gateway's floor states in the same
+     * place: three identical lines on one screen is one generic hint printed three times.
+     */
     workbook: [
       {
         id: 'w1',
@@ -430,6 +459,8 @@ function seedCourse(title: string): GenCourse {
           'It was the first answer you found',
         ],
         answer: 'It survives being tested against the original problem',
+        explanation:
+          'Looking like the worked example only says it has the right shape, and finding it first only says it came quickly. Neither is evidence. Putting it back into the problem it came from is.',
       },
       {
         id: 'w2',
@@ -441,12 +472,16 @@ function seedCourse(title: string): GenCourse {
           'That extremes should be avoided',
         ],
         answer: 'Where the ideal model stops matching reality',
+        explanation:
+          'A rule that breaks at the extreme has not been shown to be false. It has been shown to have an edge, and knowing where that edge is, is part of knowing the rule.',
       },
       {
         id: 'w3',
         type: 'fill',
         prompt: 'Before trusting a result, test it against the ________ problem.',
         answer: 'original',
+        explanation:
+          'Every step you took could have carried a slip forward with it, so checking against your own working can agree with the slip. The problem you started from is the only thing that cannot.',
       },
     ],
     boss: [
@@ -460,6 +495,8 @@ function seedCourse(title: string): GenCourse {
           'One that removes the hardest part',
         ],
         answer: 'One that keeps the answer set exactly the same',
+        explanation:
+          'Smaller numbers and a dropped hard part are both about how the working looks to you. A move is legal when the set of things that satisfy the problem has not changed.',
       },
       {
         id: 'b2',
@@ -471,12 +508,16 @@ function seedCourse(title: string): GenCourse {
           'Checking only works on easy problems',
         ],
         answer: 'the answer does not survive the original problem',
+        explanation:
+          'The problem is the fixed thing here and the answer is the thing being claimed, so a disagreement is about the claim. That is the check doing exactly the job it is for.',
       },
       {
         id: 'b3',
         type: 'fill',
         prompt: 'Each legal move keeps the answer set exactly the ________.',
         answer: 'same',
+        explanation:
+          'This is the same rule b1 asks for, said from the other side: if a move changed which values satisfy the problem, the thing you end up solving is no longer the thing you were asked.',
       },
     ],
   };
@@ -642,29 +683,77 @@ export const WORKBOOK_PASS_NEEDED = 2;
 export const BOSS_PASS_NEEDED = 2;
 
 /**
+ * WHAT CLEARING THE BOSS IS WORTH, AND HOW MUCH OF THE MOMENT THIS LEARNER EARNED.
+ *
+ * docs/REWARDS.md §3 calls a boss cleared *"the largest"* moment in the product, and §3 again:
+ * *"Intensity is earned, not uniform ... a concept they came back to three times gets a slower,
+ * warmer, longer one, because that is the harder thing and it deserves more."*
+ *
+ * `bloomHold(tries)` in `store/progress.tsx` was built for exactly that and the workbook threads
+ * its round count into it. The boss did not: it awarded with no `tries` at all, so the one moment
+ * the law calls the largest was the only one held for a flat length, and the learner who finally
+ * cleared it on the fourth round got the same breath as the one who cleared it first time. That is
+ * rule 4 of "The tutor never leaves" (docs/LEARNING-MODEL.md) firing on being right rather than on
+ * effort, in the place where effort is most of what happened.
+ *
+ * `tries` is the number of checked rounds the set cost, never a score and never a penalty: nothing
+ * is deducted, ever (docs/LEVELS.md §4), so it only ever lengthens the moment.
+ */
+export function bossAward(
+  topicId: string,
+  hue: string,
+  tries: number,
+): { onceKey: string; hue: string; tries: number } {
+  return { onceKey: `gen-boss-${topicId}`, hue, tries: Math.max(1, Math.floor(tries)) };
+}
+
+/**
  * What a checked round means, said once. Below the bar the round never advances and the line
  * points at the teaching already on screen: every missed item shows its answer (and the
  * explanation, when the gateway sent one), so "one more look" is a look at something.
  */
+export interface RoundVerdict {
+  advance: boolean;
+  line: string;
+  /**
+   * True once the same items behind one button have stopped being a next thing to do, and another
+   * way into the idea belongs on the screen beside them (docs/REWARDS.md §4, the third rung; rule
+   * 5 of "The tutor never leaves", docs/LEARNING-MODEL.md).
+   */
+  anotherWay: boolean;
+}
+
 export function roundVerdict(
   correct: number,
   total: number,
   passNeeded: number,
-): { advance: boolean; line: string } {
-  if (correct >= total) return { advance: true, line: 'All of them. Clean.' };
+  /**
+   * How many rounds this learner has already had checked on this set. The try-again ladder in
+   * `shared.tsx` climbs with it, so the words change as the attempt changes rather than repeating.
+   * Defaults to the first round, which is what every caller that does not count them wants.
+   */
+  round = 0,
+): RoundVerdict {
+  if (correct >= total) return { advance: true, line: 'All of them. Clean.', anotherWay: false };
   // A full miss is never a pass, whatever bar a caller set.
   if (correct >= Math.max(1, passNeeded)) {
-    return { advance: true, line: `${correct} of ${total}. That is a pass, earned.` };
+    return {
+      advance: true,
+      line: `${correct} of ${total}. That is a pass, earned.`,
+      anotherWay: false,
+    };
   }
   return {
     advance: false,
-    line: `${correct} of ${total}. Not yet. The answer is under each one you missed: read it, see why it is the answer, then try again.`,
+    line: tryAgainRung(correct, total, round),
+    anotherWay: offersAnotherWay(round),
   };
 }
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
 
-function answerIsCorrect(item: GenItem, entry: string): boolean {
+/** Is what the learner typed or chose this item's answer? Exact for a choice, tolerant for a number. */
+export function answerIsCorrect(item: GenItem, entry: string): boolean {
   if (item.type === 'mcq') return entry === item.answer;
   const a = norm(entry);
   const b = norm(item.answer);
@@ -673,6 +762,48 @@ function answerIsCorrect(item: GenItem, entry: string): boolean {
   const nb = Number(b);
   if (Number.isFinite(na) && Number.isFinite(nb)) return Math.abs(na - nb) < 1e-9;
   return a === b;
+}
+
+/**
+ * THE ANSWER CLAUSE, WHICH IS NOT THE SAME SENTENCE THREE TIMES.
+ *
+ * docs/REWARDS.md §4: *"It never says they were wrong. It shows what is true and lets them see the
+ * difference."* And rule 4 of "The tutor never leaves" (docs/LEARNING-MODEL.md): the ladder never
+ * repeats the same line.
+ *
+ * Every missed item on this screen used to open with one fixed sentence, so a learner who missed
+ * all three read those same six words three times over on one screen, each time with a different
+ * tail hung off it. The lead clause was a form's sentence, and a form's sentence repeated is what
+ * rule 4 forbids. There is one clause per position instead, so the three blocks a learner reads
+ * down the workbook never open alike, whatever the items are.
+ *
+ * They are indexed, never random (REWARDS.md §4: *"It varies by attempt, not by randomness"*), so
+ * the same item in the same place says the same thing on every round, and re-reading is re-reading
+ * rather than a fresh line each look.
+ */
+export const MISS_ANSWER_CLAUSES: readonly ((answer: string) => string)[] = [
+  (a) => `The one that holds is “${a}”.`,
+  (a) => `Here the answer lands on “${a}”.`,
+  (a) => `“${a}” is where this one ends up.`,
+];
+
+/**
+ * What a learner reads under an item they missed: the reason first, in this item's own words, then
+ * what the answer actually is.
+ *
+ * THE REASON LEADS, and that ordering is the point of it. The answer alone is the thing a learner
+ * can already see; why it is the answer is the thing they came for, and it is the half that is
+ * different for every item on the screen. An item whose reason never arrived (a course composed
+ * before the schema grew one, read back off this device) still gets its own clause rather than the
+ * clause its neighbours got, so even the oldest cached course cannot print one line three times.
+ */
+export function missLine(item: GenItem, index: number): string {
+  const clause = MISS_ANSWER_CLAUSES[index % MISS_ANSWER_CLAUSES.length];
+  const answer = clause ? clause(item.answer) : `The one that holds is “${item.answer}”.`;
+  const reason = item.explanation?.trim();
+  if (!reason) return answer;
+  // A reason the model wrote may or may not close itself; two sentences need the stop between them.
+  return `${/[.?”"]$/.test(reason) ? reason : `${reason}.`} ${answer}`;
 }
 
 function ItemBlock({
@@ -734,8 +865,7 @@ function ItemBlock({
       )}
       {state === 'retry' && (
         <div style={{ fontSize: '0.88rem', color: 'var(--wobo-ink-700)', lineHeight: 1.55 }}>
-          Not this one. The answer is “{item.answer}”.
-          {item.explanation ? ` ${item.explanation}` : ''}
+          {missLine(item, index)}
         </div>
       )}
     </motion.div>
@@ -768,9 +898,15 @@ function ItemSet({
   /** Minimum correct to continue; below it the set re-opens for one more look. */
   passNeeded: number;
   setBar: (b: BarState | null) => void;
-  onDone: (correctCount: number) => void;
+  /**
+   * `tries` is how many checked rounds this set cost. It rides out with the result so whatever
+   * follows the set can be sized by what it took (docs/REWARDS.md §3), which is the half the boss
+   * was missing: its award is the largest moment in the product and it was held flat.
+   */
+  onDone: (correctCount: number, tries: number) => void;
   onAttempt: () => void;
-  awardCorrect: (item: GenItem, index: number) => void;
+  /** `tries` is how many rounds this answer cost, so the moment is sized by effort (REWARDS.md §3). */
+  awardCorrect: (item: GenItem, index: number, tries: number) => void;
 }) {
   const sdk = useSdk();
   const bus = useWoboBus();
@@ -826,6 +962,34 @@ function ItemSet({
     [sdk, nodeId, topicName, bus],
   );
 
+  /**
+   * THE SECOND DOOR, opened by the learner rather than waited for (rule 5 of "The tutor never
+   * leaves", docs/LEARNING-MODEL.md).
+   *
+   * A round that did not pass used to leave exactly ONE control on the screen, and that control
+   * put the same items straight back in front of the learner. On the third round that is not a
+   * next thing to do, it is a loop with no way out of it, which is the dead end rule 5 forbids.
+   *
+   * `reteachNow` is the same ladder the automatic switch climbs, so it can never hand back the
+   * approach that just failed, and what it has already tried survives a reload. Offline it changes
+   * nothing on the screen rather than opening an empty drawer: the rung's own line still stands
+   * and the primary is still there, so there is still something to do either way.
+   */
+  const anotherWayIn = useCallback(() => {
+    const turn = reteachNow(sdk, {
+      nodeId,
+      conceptId: nodeId,
+      from: 'worksheet',
+      context: { topic: topicName, world: preferredAnalogy() },
+    });
+    if (!turn) return;
+    bus.dispatch([{ type: 'setMood', mood: 'hint' }]);
+    const { ask, offline } = chatRef.current;
+    if (offline) return;
+    openCompanion({ reason: 'reteach', ask: turn.ask });
+    void ask(turn.ask, { silent: true }).catch(() => undefined);
+  }, [sdk, nodeId, topicName, bus]);
+
   // Mastery already persists this node's answers, so a session that ended on two misses resumes
   // with the ladder knowing to teach it another way. Ignored when this session is already counting.
   useEffect(() => {
@@ -876,7 +1040,8 @@ function ItemSet({
                 },
                 { ontologyNodeId: nodeId, courseId },
               );
-              if (r[i]) awardCorrect(item, i);
+              // `round.current` is still this round's own 0-based index here; it is bumped below.
+              if (r[i]) awardCorrect(item, i, round.current + 1);
             });
             round.current += 1;
             reteach(r);
@@ -886,9 +1051,14 @@ function ItemSet({
       });
     } else {
       const correct = results?.filter(Boolean).length ?? 0;
+      // The check that produced these results has already bumped the counter, so the rung the
+      // learner is standing on is the one before it.
+      const verdict = roundVerdict(correct, items.length, passNeeded, round.current - 1);
       setBar({
-        primary: roundVerdict(correct, items.length, passNeeded).advance
-          ? { label: 'Continue', onClick: () => onDone(correct) }
+        primary: verdict.advance
+          ? // `round.current` is the number of rounds the learner actually had checked, which is
+            // what the moment after this set is sized by.
+            { label: 'Continue', onClick: () => onDone(correct, Math.max(1, round.current)) }
           : {
               label: 'One more look',
               onClick: () => {
@@ -896,6 +1066,11 @@ function ItemSet({
                 startedAt.current = Date.now();
               },
             },
+        // Nothing announces the switch (DESIGN.md §0.x): the label names what it opens, and the
+        // explanation itself is what arrives.
+        ...(verdict.anotherWay
+          ? { secondary: { label: 'Another way in', onClick: anotherWayIn } }
+          : {}),
       });
     }
   }, [
@@ -913,6 +1088,7 @@ function ItemSet({
     nodeId,
     courseId,
     reteach,
+    anotherWayIn,
   ]);
 
   const state = (i: number): 'idle' | 'correct' | 'retry' =>
@@ -961,7 +1137,7 @@ function ItemSet({
               transition={{ duration: 0.35, ease: [0.2, 0, 0, 1] }}
               style={{ textAlign: 'center', color: 'var(--wobo-ink-700)', fontSize: '0.95rem' }}
             >
-              {roundVerdict(correct, items.length, passNeeded).line}
+              {roundVerdict(correct, items.length, passNeeded, round.current - 1).line}
             </motion.div>
           )}
         </AnimatePresence>
@@ -1683,14 +1859,19 @@ export function Composing({
   // activity is the second half of it. A card with nothing after the discovery moves on.
   const afterDiscovery = useCallback(() => setDiscoveryDone(true), []);
   const awardWorkbookItem = useCallback(
-    (item: GenItem) => award('item', { onceKey: `gen-wb-${topicId}-${item.id}`, hue }),
+    (item: GenItem, _index: number, tries: number) =>
+      award('item', { onceKey: `gen-wb-${topicId}-${item.id}`, hue, tries }),
     [award, topicId, hue],
   );
   const awardNothing = useCallback(() => {}, []);
-  const bossDone = useCallback(() => {
-    award('boss', { onceKey: `gen-boss-${topicId}`, hue });
-    setIdx((i) => i + 1);
-  }, [award, topicId, hue]);
+  const bossDone = useCallback(
+    (_correct: number, tries: number) => {
+      // The largest moment in the product, sized by what it cost to get here (docs/REWARDS.md §3).
+      award('boss', bossAward(topicId, hue, tries));
+      setIdx((i) => i + 1);
+    },
+    [award, topicId, hue],
+  );
 
   const segments = (course?.cards.length ?? 4) + 4; // + video, workbook, boss, greeting
   const stops = course ? course.cards.length : 0;

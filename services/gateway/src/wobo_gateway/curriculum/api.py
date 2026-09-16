@@ -74,6 +74,10 @@ CAPABILITIES: tuple[str, ...] = (
     # client that walks it. Until 2026-09-10 nothing served a blueprint and nothing asked for one,
     # so ``placement.ts``'s "THE ARCHITECT FIRST" branch and ``groupFor`` were unreachable code.
     "curriculum.blueprint",
+    # THE CLIMB (docs/LEARNING-MODEL.md, "The tutor never leaves"). What this learner meets
+    # NEXT, re-chosen after every module. Also a read: it chooses out of the stored pool and
+    # builds nothing, which is why adapting to a learner costs neither a model nor a generation.
+    "curriculum.climb",
     # The own-syllabus door (§6). It is the answer to every dead end above, so it is not optional:
     # without these four the "not listed? show me yours" line the other capabilities all carry
     # would lead nowhere.
@@ -1209,9 +1213,66 @@ def _blueprint(payload: dict[str, Any], subject: str, store: CurriculumStore) ->
     }
 
 
+def _climb(payload: dict[str, Any], subject: str, store: CurriculumStore) -> dict[str, Any]:
+    """WHAT THIS LEARNER MEETS NEXT, chosen again out of everything they have just shown.
+
+    docs/LEARNING-MODEL.md, "The tutor never leaves", rule 1: *"After every module the group that
+    teaches the topic is re-chosen from the chapter's pool using what just happened."* The chooser
+    that does it was built (``climb.next_step``) and, until this door, was imported by its own test
+    and by nothing else: no route, no capability, and therefore no learner. A re-chooser nobody can
+    call has never re-chosen anything, so rule 1 was true of a library and false of the product.
+
+    It keeps the three rules every read in this file keeps, and one of its own:
+
+    * **it never generates and never builds a pool.** ``create.blueprint`` is a platform-paid job
+      an operator runs; a learner asking what comes next must not be able to start one.
+    * **a cell with no pool is an ordinary answer**, exactly as for ``curriculum.blueprint``: the
+      screen teaches that chapter the way it does today and nothing here is an error page.
+    * **nothing here calls a model.** Choosing a group is a selection over a pool that already
+      exists, which is what makes "it does not stop until the topic is yours" affordable.
+    * **the door keeps nothing.** What the learner has shown arrives with the request and goes home
+      with the answer, so there is no per-learner state stored here at all — and what travels is
+      ids off the pool, never a name, an age or a score.
+    """
+    from wobo_gateway import climb
+    from wobo_gateway.plexus import blueprint as architect
+
+    try:
+        brief = architect.NodeBrief.from_dict(payload)
+    except (ValueError, TypeError) as exc:
+        raise CurriculumError(
+            "bad_request",
+            "I need the chapter and its topics before I can work out what comes next.",
+        ) from exc
+    topic_id = _text(payload, "topic", "topic_id", "topicId")
+    if not topic_id:
+        raise CurriculumError(
+            "needs_more",
+            "Tell me which topic you are on and I will pick up where you are.",
+        )
+    try:
+        pool = architect.load(brief)
+    except Exception:  # a cache that cannot be read is a cell with no pool, never an error page
+        logger.warning("curriculum: the climb's pool read failed", exc_info=True)
+        pool = None
+    if pool is None:
+        # Said plainly rather than implied: there is no pool for this cell, so there is no group to
+        # choose. The evidence still goes home, because a learner's own history is never dropped on
+        # the floor by a chapter that happens not to be built yet.
+        return {
+            "pool": False,
+            "step": None,
+            "group": [],
+            "mastered": False,
+            "evidence": climb.evidence_payload(climb.evidence_of(payload.get("evidence"))),
+        }
+    return {"pool": True, **climb.next_payload(pool, topic_id, payload)}
+
+
 _HANDLERS = {
     "curriculum.search": _search,
     "curriculum.blueprint": _blueprint,
+    "curriculum.climb": _climb,
     "curriculum.framework": _framework_capability,
     "curriculum.units": _units,
     "curriculum.topics": _topics,

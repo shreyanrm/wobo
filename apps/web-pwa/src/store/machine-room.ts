@@ -156,7 +156,9 @@ if (import.meta.env.DEV) {
     'band counts',
   );
   console.assert(snap.masteryBands?.not_started === undefined, 'not_started excluded');
-  console.assert(snap.progress?.level === 2 && snap.progress?.toNext === 100, 'level@100');
+  // docs/LEVELS.md §2: 90 xp reaches level 3 and 210 reaches level 4, so 100 is level 3 with 110
+  // still to go. Pinned for real, against the law's own table, in `store/levels.test.ts`.
+  console.assert(snap.progress?.level === 3 && snap.progress?.toNext === 110, 'level@100');
   console.assert(snap.reviews?.dueCount === 1 && snap.reviews?.scheduled === 1, 'one review due');
   console.assert(snap.generating?.what === 'photosynthesis', 'generation in flight');
   console.assert(
