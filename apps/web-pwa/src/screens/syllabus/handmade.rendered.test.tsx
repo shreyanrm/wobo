@@ -174,7 +174,10 @@ describe('the sixty-seven pages, as a reader actually meets them', () => {
     })
       .filter((row) => row.own < OWN_RUN_FLOOR)
       .sort((a, b) => a.own - b.own)
-      .map((row) => `${row.path}: ${(row.own * 100).toFixed(1)}% its own, floor is ${OWN_RUN_FLOOR * 100}%`);
+      .map(
+        (row) =>
+          `${row.path}: ${(row.own * 100).toFixed(1)}% its own, floor is ${OWN_RUN_FLOOR * 100}%`,
+      );
     expect(thin).toEqual([]);
   });
 });

@@ -153,6 +153,16 @@ const OURS: readonly string[] = [
   'Not a fixed course. A tutor.',
   'No two learners get the same lesson. It changes to your pace and your way of thinking, and it does not stop until the topic is yours.',
   'When one explanation does not land, it tries another. And another. It stays until it lands.',
+  /*
+    "MASTERED" NEVER REACHES A LEARNER (the same entry: "Never the word 'mastered' on a
+    learner-facing surface"). The prototype marks a finished topic "mastered" in three drawings;
+    the page says it in our words instead: "yours" in Wobo's hand over the settled curve, "held"
+    on the path's list, where the gate line under it already says "held", and the report's badge
+    says what the chapter did rather than grading it.
+  */
+  'yours',
+  'held',
+  'A chapter that stayed learnt',
 ];
 
 /**
@@ -293,6 +303,19 @@ describe('the landing copy', () => {
    * an em dash (voice.md §10a). The fourth form is the for-parents page's first promise, held in
    * `site/sell.test.ts`, which also holds that this line never joins the fun line on one section.
    */
+  it('never says "mastered" to a learner, anywhere on the page (lines.md, 2026-09-09)', () => {
+    // docs/copy/growth/lines.md: "Never the word 'mastered' on a learner-facing surface". The
+    // landing speaks to the learner (docs/SELL.md §1), so the drawings say it in our words instead:
+    // "yours" where Wobo's own hand marks a topic finished, "held" where the path lists one.
+    expect(pageStrings().filter((line) => /\bmastered\b/i.test(line))).toEqual([]);
+    const drawn = readFileSync(join(import.meta.dir, 'art.tsx'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^\s*\/\/.*$/gm, ' ');
+    expect(drawn).not.toMatch(/\bmastered\b/i);
+    expect(TEACHES.mastery.done).toBe('yours');
+    expect(CLIMB.rows.filter((row) => row.state === 'held').length).toBe(2);
+  });
+
   it('carries the adaptive line where lines.md places it (owner, 2026-09-09)', () => {
     expect(SUBJECTS.eyebrow).toBe('Not a fixed course. A tutor.');
     expect(TEACHES.adapts).toBe(

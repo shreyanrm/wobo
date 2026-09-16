@@ -175,20 +175,39 @@ const CHILD_KEY: Record<Layer, keyof RawNode | null> = {
  * together, so the sitemap, the pre-render list and the links on a rendered page cannot disagree
  * about which addresses exist.
  */
-export const OWN_WORD_FLOOR = 12;
+export const OWN_WORD_FLOOR = 15;
 
 /**
- * The words a node contributes that no sibling of it contributes: the board's own name for it, the
- * names of what it holds, and where inside the document it was read from. Not the sentence built
- * around them, not the label over the list, not the note under a link: a sibling renders every one
- * of those, so counting them measures the template rather than the page.
+ * AND A CHAPTER MUST HOLD THIS MANY TOPICS OF ITS OWN.
+ *
+ * A topic that carries the chapter's own name adds nothing: "Number System, with one topic in it,
+ * Number System" is the chapter's name printed twice, and it cleared the old floor of twelve only
+ * because the section of the document it was read from ("page 10, Class X, section 7") was
+ * counted as the page's own words. To a reviewer that page is a template with the name swapped.
+ * So the section is a locator and not prose, it no longer counts, and a chapter page needs a real
+ * contents list: at least three topics whose names are not its own (2026-09-17, 171 chapter pages
+ * down to 86).
+ */
+export const OWN_TOPIC_FLOOR = 3;
+
+function same(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/** The children that are not the node's own name again. */
+export function ownChildren(node: Node): Node[] {
+  return node.children.filter((child) => !same(child.name, node.name));
+}
+
+/**
+ * The words a node contributes that no sibling of it contributes: the board's own name for it and
+ * the names of what it holds, less any that only repeat its own name. Not the sentence built
+ * around them, not the label over the list, not the note under a link, and not the section of the
+ * document it was read from: a sibling renders every one of the first three, and the last is a
+ * page reference, which says where a thing is and nothing about what it is.
  */
 export function ownNameWords(node: Node): number {
-  const parts = [
-    node.name,
-    ...node.children.map((child) => child.name),
-    node.source?.section ?? '',
-  ];
+  const parts = [node.name, ...ownChildren(node).map((child) => child.name)];
   return parts
     .join(' ')
     .split(/\s+/)
@@ -205,6 +224,7 @@ export function hasPage(node: Node): boolean {
   // content at all, however long that name happens to be. Its name is carried by the subject page
   // above, beside the document it came from, and that is where a reader is better served.
   if (node.children.length === 0) return false;
+  if (ownChildren(node).length < OWN_TOPIC_FLOOR) return false;
   return ownNameWords(node) >= OWN_WORD_FLOOR;
 }
 

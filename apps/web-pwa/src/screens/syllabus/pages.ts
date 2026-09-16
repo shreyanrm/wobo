@@ -43,16 +43,21 @@ import {
   linkNote,
   linkText,
   NO_TOPICS,
+  OURS_LINE,
   provenance,
+  QUESTIONS_LABEL,
   summary,
   title,
 } from './copy';
+import { explanationFor } from './explained';
 import { handmade } from './handmade';
 import {
   boards,
   find,
   type Layer,
+  OWN_TOPIC_FLOOR,
   OWN_WORD_FLOOR,
+  ownChildren,
   type Place,
   PUBLISHED_LAYERS,
   pathOf,
@@ -107,6 +112,7 @@ export type Refusal =
   | 'no_source'
   | 'no_hash'
   | 'nothing_of_its_own'
+  | 'too_few_topics'
   | 'too_thin'
   | 'shared_title'
   | 'shared_heading';
@@ -134,11 +140,22 @@ export function ownProse(place: Place): string[] {
   const words: string[] = [distinctName(place.node, place.siblings, place.index)];
   const written = handmade(pathOf(place));
   if (written) words.push(written.opening, written.question, written.answer);
+  // A child that only repeats this page's name says nothing the name did not, and the section of
+  // the document is a page reference rather than words about the subject: both are rendered, and
+  // neither is counted as the page's own (`ownNameWords` in `tree.ts` says the same).
+  const own = new Set(ownChildren(place.node));
   place.node.children.forEach((child, at) => {
-    words.push(linkText(child, place.node.children, at));
+    if (own.has(child)) words.push(linkText(child, place.node.children, at));
   });
-  const section = place.node.source?.section;
-  if (section) words.push(section);
+  // TIER TWO, where the chapter has it: the core's own paragraph, its reason, and its three
+  // questions with their answers. All of it came off this concept's data and none of it is worn
+  // by a sibling page, so it is the page's own. The topic's name is already counted above as one
+  // of the chapter's topics and is not counted twice.
+  const explained = explanationFor(place);
+  if (explained) {
+    words.push(explained.idea, explained.why);
+    for (const asked of explained.questions) words.push(asked.q, asked.a);
+  }
   return words;
 }
 
@@ -146,6 +163,13 @@ export function ownProse(place: Place): string[] {
 export function pageProse(place: Place): string[] {
   const head = heading(place);
   const words: string[] = [headingLine(head), summary(place), ...ownProse(place).slice(1)];
+  // Rendered, and so read, though not the page's own: a child named as the page, and the section.
+  const own = new Set(ownChildren(place.node));
+  place.node.children.forEach((child, at) => {
+    if (!own.has(child)) words.push(linkText(child, place.node.children, at));
+  });
+  const section = place.node.source?.section;
+  if (section) words.push(section);
   if (place.kind === 'chapter' && place.node.children.length === 0) words.push(NO_TOPICS);
   if (place.node.children.length > 0) {
     words.push(childrenLabel(place.kind));
@@ -154,9 +178,12 @@ export function pageProse(place: Place): string[] {
       if (note) words.push(note);
     }
   }
+  // The two labels a tier two block wears are rendered and counted here, never as the page's own.
+  if (explanationFor(place)) words.push(QUESTIONS_LABEL);
   words.push(provenance(place.node.source, place.board));
   const checks = checksLine(place.node.source);
   if (checks) words.push(checks);
+  if (explanationFor(place)) words.push(OURS_LINE);
   const door = ask(place);
   words.push(door.heading, door.placeholder, ...door.chips);
   return words;
@@ -196,6 +223,9 @@ export function gate(place: Place): Refusal[] {
   // except its own name is a string its 151 brothers and sisters render word for word, which is
   // the shape the honest-count law calls a page we cannot prove (WOBO-TASKS §10.21).
   if (place.kind === 'chapter' && place.node.children.length === 0) out.push('nothing_of_its_own');
+  else if (place.kind === 'chapter' && ownChildren(place.node).length < OWN_TOPIC_FLOOR) {
+    out.push('too_few_topics');
+  }
   if (countWords(pageProse(place).join(' ')) < FLOOR) out.push('too_thin');
   else if (countWords(ownProse(place).join(' ')) < OWN_FLOOR) out.push('too_thin');
   return out;

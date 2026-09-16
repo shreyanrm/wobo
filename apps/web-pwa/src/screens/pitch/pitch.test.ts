@@ -107,6 +107,10 @@ const BETTER_HERE = new Set([
   'Reviewed and gated.',
   'Holds accounts, learning data and backups, encrypted.',
 
+  // How it works marks a chapter that still holds as "held" rather than the prototype's
+  // "mastered": docs/copy/growth/lines.md (2026-09-09) keeps that word off every surface a
+  // learner reads, and the for-parents page is the only public page it lets keep it.
+  'mastered',
   // the prototype dropped the sixth promise ("Train on a child without consent"); a page that
   // makes six promises to a parent does not quietly make five
   'Five lines wed put in a contract.',
@@ -296,5 +300,22 @@ describe('the lines a page reads from data', () => {
     expect(MAILBOXES.some((box) => box.address === 'support@heywobo.com')).toBe(true);
     const source = readFileSync(join(import.meta.dir, 'Security.tsx'), 'utf8');
     expect(source).toContain("startsWith('support@')");
+  });
+});
+
+/**
+ * "MASTERED" IS A SCHOOL-REPORT WORD, AND A LEARNER READS THIS PAGE (docs/copy/growth/lines.md,
+ * 2026-09-09: "Never the word 'mastered' on a learner-facing surface"). The for-parents page is
+ * the one public page the entry lets keep it. How it works marks a chapter that still holds as
+ * "held", which is the word its own sentence beside it uses.
+ */
+describe('how it works never tells a learner a topic is mastered', () => {
+  it('renders the word nowhere', () => {
+    const rendered = readFileSync(join(import.meta.dir, 'HowItWorks.tsx'), 'utf8')
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/^\s*\/\/.*$/gm, ' ');
+    expect(rendered).not.toMatch(/\bmastered\b/i);
+    expect(rendered).toContain('<em>held</em>');
   });
 });

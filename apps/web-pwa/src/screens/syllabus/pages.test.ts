@@ -35,7 +35,17 @@ import {
   releasedLayers,
   releasedPages,
 } from './pages';
-import { boards, find, hasPage, type Place, PUBLISHED_LAYERS, pathOf, type Source } from './tree';
+import {
+  boards,
+  find,
+  hasPage,
+  OWN_TOPIC_FLOOR,
+  ownChildren,
+  type Place,
+  PUBLISHED_LAYERS,
+  pathOf,
+  type Source,
+} from './tree';
 
 const PAGES = publishedPages();
 
@@ -76,17 +86,18 @@ const EVERY_PLACE: Place[] = (() => {
 describe('what the family publishes', () => {
   it('publishes exactly the counts docs/GROWTH-SEARCH.md §3 prints', () => {
     // NOT the 1,120 addresses the tree can compute. 152 of the 333 chapters are units two boards
-    // publish with nothing under them, and ten more name a single topic that repeats the chapter's
-    // own name; none of those pages has anything a reader cannot read on the subject page above
-    // it, so none of them is published (docs/GROWTH-SEARCH.md §5, WOBO-TASKS §10.21).
+    // publish with nothing under them, and 95 more hold fewer than three topics of their own or
+    // fewer than fifteen words of their own; none of those pages has anything a reader cannot read
+    // on the subject page above it, so none of them is published (docs/GROWTH-SEARCH.md §3,
+    // WOBO-TASKS §10.21). The topic family passes 6 of 711, and ships none of them.
     expect(published(PAGES)).toEqual({
       board: 4,
       class: 13,
       subject: 50,
-      chapter: 171,
-      topic: 309,
+      chapter: 86,
+      topic: 6,
       hub: 9,
-      total: 556,
+      total: 168,
     });
   });
 
@@ -125,7 +136,7 @@ describe('the gate', () => {
       board: 'cbse',
       level: 'class-10',
       subject: 'mathematics',
-      chapter: 'number-systems',
+      chapter: 'trigonometry',
     }) as Place;
     expect(gate(place)).toEqual([]);
     const naked: Place = { ...place, node: { ...place.node, source: null } };
@@ -163,6 +174,39 @@ describe('the gate', () => {
     expect(countWords(pageProse(stripped).join(' '))).toBeGreaterThan(40);
     expect(countWords(ownProse(stripped).join(' '))).toBeLessThan(OWN_FLOOR);
     expect(gate(stripped)).toContain('too_thin');
+  });
+
+  /**
+   * THE 2026-09-17 FINDING. Four chapter pages sat at exactly the old floor of twelve, and every
+   * one of them was its own name twice: "Number System is a chapter of CBSE class 9 maths with one
+   * topic in it, Number System." The section of the document carried them over. A page reference
+   * is not prose and a topic named as its chapter is not a topic list, so neither counts now.
+   */
+  it('refuses a chapter whose only topic is its own name, whatever its page reference says', () => {
+    for (const address of [
+      { board: 'cbse', level: 'class-9', subject: 'mathematics', chapter: 'number-system' },
+      { board: 'cbse', level: 'class-9', subject: 'mathematics', chapter: 'coordinate-geometry' },
+      { board: 'cbse', level: 'class-10', subject: 'mathematics', chapter: 'number-systems' },
+      { board: 'cbse', level: 'class-10', subject: 'mathematics', chapter: 'coordinate-geometry' },
+    ]) {
+      const place = find(address) as Place;
+      expect(place, JSON.stringify(address)).toBeTruthy();
+      expect(gate(place), pathOf(place)).toContain('too_few_topics');
+      expect(hasPage(place.node), pathOf(place)).toBe(false);
+      const section = place.node.source?.section ?? '';
+      expect(section.length).toBeGreaterThan(0);
+      expect(ownProse(place).join(' ')).not.toContain(section);
+    }
+  });
+
+  it('holds every chapter it ships to three topics and fifteen words of its own', () => {
+    const chapters = SHIPPED.filter(({ place }) => place.kind === 'chapter');
+    expect(chapters.length).toBe(86);
+    for (const { path, place } of chapters) {
+      expect(ownChildren(place.node).length, path).toBeGreaterThanOrEqual(OWN_TOPIC_FLOOR);
+      expect(countWords(ownProse(place).join(' ')), path).toBeGreaterThanOrEqual(15);
+    }
+    expect(OWN_FLOOR).toBe(15);
   });
 
   /**
@@ -252,9 +296,9 @@ describe('the pace of the release', () => {
       board: 4,
       class: 13,
       subject: 50,
-      chapter: 171,
+      chapter: 86,
       hub: 9,
-      total: 247,
+      total: 162,
     });
   });
 
@@ -269,7 +313,7 @@ describe('the pace of the release', () => {
       'topic',
       'hub',
     ]);
-    expect(releasedPages({ WOBO_SYLLABUS_LAYERS: 'all' }).length).toBe(556);
+    expect(releasedPages({ WOBO_SYLLABUS_LAYERS: 'all' }).length).toBe(168);
     expect(releasedPages({ WOBO_SYLLABUS_LAYERS: 'board,class' }).length).toBe(17);
   });
 });
@@ -277,7 +321,7 @@ describe('the pace of the release', () => {
 describe('the sitemap the build writes', () => {
   it('carries every released syllabus address and nothing the gate refused', () => {
     const rows = syllabusRoutes({});
-    expect(rows.length).toBe(247);
+    expect(rows.length).toBe(162);
     for (const row of rows) {
       expect(row.path.startsWith('/learn/') || row.path.startsWith('/subjects/')).toBe(true);
       expect(pathToRoute(row.path), row.path).not.toBeNull();
@@ -291,7 +335,7 @@ describe('the sitemap the build writes', () => {
     const mine = paths.filter(
       (path) => path.startsWith('/learn/') || /^\/subjects\/[^/]+$/.test(path),
     );
-    expect(mine.length).toBe(247);
+    expect(mine.length).toBe(162);
   });
 
   it('publishes none of them when the build says none', () => {

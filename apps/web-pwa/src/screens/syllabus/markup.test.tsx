@@ -14,10 +14,10 @@
 
 import { describe, expect, it } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { RouterProvider } from '../../shell/router';
+import { headFor, pathToRoute, type Route, RouterProvider } from '../../shell/router';
 import { handmade } from './handmade';
 import { SyllabusBody } from './Syllabus';
-import { find, hasPage, type Node, type Place } from './tree';
+import { find, hasPage, type Node, type Place, pathOf } from './tree';
 
 function markup(place: Place, freshness: 'built' | 'checked' | 'withdrawn' = 'built'): string {
   return renderToStaticMarkup(
@@ -32,6 +32,13 @@ const CHAPTER = find({
   level: 'class-10',
   subject: 'mathematics',
   chapter: 'algebra',
+}) as Place;
+
+const TRIG = find({
+  board: 'cbse',
+  level: 'class-10',
+  subject: 'mathematics',
+  chapter: 'trigonometry',
 }) as Place;
 
 const UNIT = find({
@@ -81,7 +88,10 @@ describe('the chapter page', () => {
     const subject = markup(
       find({ board: 'cbse', level: 'class-10', subject: 'mathematics' }) as Place,
     );
-    expect(subject).toContain('href="/learn/cbse/class-10/mathematics/algebra"');
+    expect(subject).toContain('href="/learn/cbse/class-10/mathematics/trigonometry"');
+    // Algebra holds four topics and too few words of its own, so it is named and not linked.
+    expect(subject).not.toContain('href="/learn/cbse/class-10/mathematics/algebra"');
+    expect(subject).toContain('<b>Algebra</b>');
   });
 
   it('walks up to the subject, the class and the board without being told how', () => {
@@ -238,5 +248,39 @@ describe('a page somebody lands on while deciding', () => {
   /** A chapter page has no handwritten paragraph, and must not grow one by accident. */
   it('puts none of it on a chapter page', () => {
     expect(markup(CHAPTER)).not.toContain('sy-written');
+  });
+});
+
+/**
+ * WHAT THE APP DRAWS AT AN ADDRESS THE BUILD WROTE NOTHING FOR (2026-09-17). The topic family and
+ * every chapter the gate refused still answer, through the app, and a crawler that runs the page
+ * must be told not to index them. The page tells the router, and the router's head says so.
+ */
+describe('an address the build wrote no page for', () => {
+  const route = (place: Place) => pathToRoute(pathOf(place)) as Route;
+
+  it('asks not to be indexed when the app draws it', () => {
+    const topic = find({
+      board: 'cbse',
+      level: 'class-10',
+      subject: 'mathematics',
+      chapter: 'trigonometry',
+      topic: (TRIG.node.children[0] as Node).slug,
+    }) as Place;
+    for (const place of [topic, CHAPTER]) {
+      expect(hasPage(place.node), pathOf(place)).toBe(false);
+      markup(place);
+      const head = headFor(route(place), 'https://heywobo.com');
+      expect(head.robots, pathOf(place)).toBe('noindex');
+      expect(head.canonical, pathOf(place)).toBeNull();
+    }
+  });
+
+  it('leaves a page the build did write alone', () => {
+    expect(hasPage(TRIG.node)).toBe(true);
+    markup(TRIG);
+    const head = headFor(route(TRIG), 'https://heywobo.com');
+    expect(head.robots).toBeNull();
+    expect(head.canonical).toBe(`https://heywobo.com${pathOf(TRIG)}`);
   });
 });

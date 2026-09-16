@@ -200,9 +200,6 @@ export const LANDING_CSS = `${FACES}
   .${ROOT} h2.t{font-size:clamp(26px,7.4vw,34px)}
   .${ROOT} .grid4{grid-template-columns:repeat(2,84px);grid-template-rows:repeat(2,84px)}
   .${ROOT} .try{padding:var(--s3) var(--s2)}
-  .${ROOT} .report .kpis{grid-template-columns:1fr}
-  .${ROOT} .report .kpi{display:flex;align-items:baseline;gap:10px}
-  .${ROOT} .report .kpi b{margin-top:0;font-size:22px}
   .${ROOT} .device .stage{height:clamp(240px,58vw,320px)}
   .${ROOT} .device .rail button{font-size:11px}
   .${ROOT} #close{padding:var(--s5) var(--s3);border-radius:24px}
@@ -442,6 +439,11 @@ export const LANDING_CSS = `${FACES}
   .${ROOT} header .wm{min-height:44px;display:inline-flex;align-items:center}
   .${ROOT} .chips button,.${ROOT} .device .rail button,.${ROOT} .climb .switch button{min-height:44px}
   .${ROOT} .safe .item .proof,.${ROOT} .cancel > a{min-height:44px;display:inline-flex;align-items:center}
+  /* The parent report's numbers, one per row. Here and not above: the three-column rule is
+     written later in the sheet with the same weight, and it won at 390. */
+  .${ROOT} .report .kpis{grid-template-columns:1fr}
+  .${ROOT} .report .kpi{display:flex;align-items:baseline;gap:10px}
+  .${ROOT} .report .kpi > b{margin-top:0;font-size:22px}
 }
 
 .${ROOT} .blink{transform-origin:center;animation:wb-blink 5.5s infinite}

@@ -21,17 +21,18 @@ shape may go.
 file.** PERSON means "a person presses send on something the machine wrote", and everything in it
 therefore has a drafted body sitting in a queue. If Reddit were in that tier, the desk would hold a
 Reddit-shaped draft, and the day somebody wires an approval queue to an outbox that posts on
-approval, Reddit goes out with everything else. So a NEVER channel has no shape, no draft, no
-queue row and no outbox entry, and :func:`shape_for` refuses to build one. There is nothing for a
-later wave to accidentally connect.
+approval, Reddit goes out with everything else. So a NEVER channel has no shape, no draft,
+no queue row and no outbox entry, and :func:`refuse` is called at the top of every path that
+builds one (:mod:`.shapes`, :mod:`.campaigns`, :mod:`.posters`, :mod:`.settings`). There is
+nothing for a later wave to accidentally connect.
 
-:func:`assert_no_automation` is the assertion the law asks for, and
-``services/gateway/tests/test_growth_channels.py`` runs it over the whole repository rather than
-over this file: a posting path added anywhere else is exactly the failure it exists to catch.
+The assertion the law asks for lives in ``services/gateway/tests/test_growth_channels.py``: it
+scans every source file in the repository for :data:`NEVER_AUTOMATED_MARKERS` rather than this
+file alone, because a posting path added anywhere else is exactly the failure it exists to catch.
 
 **X's price shapes the format, so it is a property of the channel and not of a writer's taste.**
 A post costs about 1.5 cents and a post carrying a link costs about 20 cents, so
-:data:`LINK_IN_LAST_REPLY` is set on X and :mod:`wobo_gateway.growth.shapes` puts the address in
+``link_in_last_reply`` is set on X and :mod:`wobo_gateway.growth.shapes` puts the address in
 the final reply of the thread. The platform rewards the same shape, so there is no tension to
 resolve.
 """
@@ -39,10 +40,10 @@ resolve.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class Tier(str, Enum):
+class Tier(StrEnum):
     """Who may send. The value is what goes in the store and on the wire."""
 
     #: A script may post, unattended, on a cadence.

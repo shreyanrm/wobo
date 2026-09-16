@@ -20,6 +20,7 @@ import {
   breadcrumbLd,
   breadcrumbTrail,
   crumbName,
+  FOUNDER_NAME,
   type JsonLd,
   namingViolations,
   ORG_ADDRESS,
@@ -84,6 +85,14 @@ describe('Organization: the entity itself', () => {
       `${a.streetAddress}, ${a.addressLocality}, ${a.addressRegion} ${a.postalCode}, ${ORG_COUNTRY_NAME}`,
     ).toBe(POSTAL_ADDRESS);
     expect((org.parentOrganization as JsonLd).address).toEqual(ORG_ADDRESS);
+  });
+
+  it('names its founder the way the press kit does, and only by name', () => {
+    // docs/copy/press-kit.md, "The founder": one name, spelled the same way on every listing, in
+    // every byline and in the Organization markup. A Person with a name and nothing else: no
+    // address, no photograph until the owner supplies one, no profile nobody has claimed.
+    expect(org.founder).toEqual({ '@type': 'Person', name: FOUNDER_NAME });
+    expect(FOUNDER_NAME).toBe('Shreyan Reddy');
   });
 
   it('publishes exactly the listings the ledger says are ours', () => {

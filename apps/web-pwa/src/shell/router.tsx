@@ -289,6 +289,61 @@ const ROUTER_TITLES = new Set(
 );
 
 /**
+ * ADDRESSES A PAGE HAS DISOWNED. The router cannot know which syllabus addresses the build wrote a
+ * page for (answering that here would put the whole syllabus in the entry chunk), so the page
+ * says so as it renders: an address with nothing published behind it (a topic, a chapter the gate
+ * refused) still draws, and asks not to be indexed, with no canonical, exactly like a 404 does.
+ */
+const DISOWNED = new Set<string>();
+
+export function disown(path: string, disowned: boolean): void {
+  if (disowned) DISOWNED.add(path);
+  else DISOWNED.delete(path);
+}
+
+/** Write the two head tags the running app owns: the canonical and the robots line. */
+function writeHead(head: Head): void {
+  let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  if (head.canonical) {
+    if (!canonical) {
+      canonical = document.createElement('link');
+      canonical.rel = 'canonical';
+      document.head.appendChild(canonical);
+    }
+    canonical.href = head.canonical;
+  } else {
+    canonical?.remove();
+  }
+  let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
+  if (head.robots) {
+    if (!robots) {
+      robots = document.createElement('meta');
+      robots.name = 'robots';
+      document.head.appendChild(robots);
+    }
+    robots.content = head.robots;
+  } else {
+    robots?.remove();
+  }
+}
+
+/**
+ * The page's half of the above. Registered during render, so the router's own head effect (which
+ * runs after the page's in the same commit) reads it; and written from an effect too, for a page
+ * that mounts after the router already wrote the head (a lazy screen).
+ */
+export function useDisowned(path: string, disowned: boolean): void {
+  disown(path, disowned);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `headFor` reads the registry `disowned` just changed
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    if (window.location.pathname !== path) return;
+    const route = routeFromPath(path);
+    if (route) writeHead(headFor(route));
+  }, [path, disowned]);
+}
+
+/**
  * A 404 KEEPS ITS ADDRESS AND DISOWNS IT. The bar shows what the learner typed or followed (the
  * comment on `routeToPath` says why), but the head used to be written from that address as though
  * the page were real: `/for-schools`, a surface removed on purpose, answered with a canonical
@@ -300,8 +355,9 @@ const ROUTER_TITLES = new Set(
 export function headFor(route: Route, origin?: string, facts?: PageFacts): Head {
   const owned = ROUTER_OWNED[route.name];
   const gone = route.name === 'notfound';
-  const canonical = gone ? null : canonicalUrl(route, origin);
-  const robots = gone ? ('noindex' as const) : null;
+  const unwritten = !gone && DISOWNED.has(addressOf(route));
+  const canonical = gone || unwritten ? null : canonicalUrl(route, origin);
+  const robots = gone || unwritten ? ('noindex' as const) : null;
   const title = (owned?.title ?? facts?.title ?? '').trim();
   const description = (owned ? owned.description : (facts?.description ?? '')).trim();
   return {
@@ -608,28 +664,7 @@ export function RouterProvider({ initial, children }: { initial: Route; children
     const route = stack[stack.length - 1] as Route | undefined;
     if (!route) return;
     const head = headFor(route);
-    let canonical = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
-    if (head.canonical) {
-      if (!canonical) {
-        canonical = document.createElement('link');
-        canonical.rel = 'canonical';
-        document.head.appendChild(canonical);
-      }
-      canonical.href = head.canonical;
-    } else {
-      canonical?.remove();
-    }
-    let robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
-    if (head.robots) {
-      if (!robots) {
-        robots = document.createElement('meta');
-        robots.name = 'robots';
-        document.head.appendChild(robots);
-      }
-      robots.content = head.robots;
-    } else {
-      robots?.remove();
-    }
+    writeHead(head);
     if (head.title) document.title = head.title;
     else if (ROUTER_TITLES.has(document.title)) document.title = baseTitle.current;
   }, [stack]);

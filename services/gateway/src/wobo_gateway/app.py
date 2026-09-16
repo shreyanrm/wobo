@@ -90,6 +90,8 @@ from wobo_gateway.doors import OPEN_PATHS as DOORS_OPEN_PATHS
 from wobo_gateway.doors import register_doors
 from wobo_gateway.doubt import register_doubt
 from wobo_gateway.email import register_email
+from wobo_gateway.growth.api import SOFT_AUTH_PATHS as GROWTH_SOFT_AUTH_PATHS
+from wobo_gateway.growth.api import register_growth_desk, register_growth_jobs
 from wobo_gateway.hospitality.api import register_mail_preferences
 from wobo_gateway.hospitality.jobs import welcome_after_first_meeting
 from wobo_gateway.mailwatch.api import SOFT_AUTH_PATHS as MAIL_WATCH_SOFT_AUTH_PATHS
@@ -628,6 +630,8 @@ _SOFT_AUTH_PATHS = frozenset(
         "/v1/internal/mail/nudges",
         # The deliverability watch's pass (mailwatch/api.py): the seeds, Postmaster, the rates.
         *MAIL_WATCH_SOFT_AUTH_PATHS,
+        # The growth desk's three daily passes (growth/api.py): gather, make, post.
+        *GROWTH_SOFT_AUTH_PATHS,
     }
 )
 
@@ -2103,6 +2107,10 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     # The mail desk (mailwatch/api.py): complaint rates, seeds, Postmaster, pauses and alerts, and
     # the owner's one control to lift a pause. Behind the same guarded router.
     register_mail_desk(app)
+    # The growth desk (growth/api.py, docs/GROWTH-DESK.md): the passes, the arrival that writes a
+    # campaign on a new account once, and the console's Growth page behind the same guard.
+    register_growth_jobs(app)
+    register_growth_desk(app)
     # The models desk and the pace: what answers what, at what price, and how generous the day
     # is (docs/CONSOLE-MODELS.md, docs/ALLOWANCE.md §3). Mounted after the desks so every route
     # under /v1/admin is behind the one guard.

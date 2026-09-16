@@ -1,0 +1,12 @@
+{
+  "rows": [
+    {"keys": ["probability class 10 notes", "https://heywobo.com/syllabus/cbse/class-10/mathematics/probability"], "clicks": 3, "impressions": 410, "ctr": 0.0073, "position": 8.4},
+    {"keys": ["what is probability", "https://heywobo.com/blog/probability?utm_id=x-202609-probability-01"], "clicks": 0, "impressions": 95, "ctr": 0.0, "position": 14.2},
+    {"keys": ["wobo", "https://heywobo.com/"], "clicks": 120, "impressions": 300, "ctr": 0.4, "position": 1.1},
+    {"keys": ["laws of motion class 9", "https://heywobo.com/syllabus/cbse/class-9/science/force-and-laws-of-motion"], "clicks": 0, "impressions": 12, "ctr": 0.0, "position": 38.0},
+    {"keys": ["statistics mean median mode", "https://heywobo.com/syllabus/cbse/class-10/mathematics/statistics"], "clicks": 1, "impressions": 0, "ctr": 0.0, "position": 9.0},
+    {"keys": ["only one key"], "clicks": 0, "impressions": 50, "position": 6.0},
+    {"keys": ["coordinate geometry distance formula", "https://heywobo.com/syllabus/cbse/class-10/mathematics/coordinate-geometry"], "clicks": 0, "impressions": 64, "ctr": 0.0, "position": "not a number"}
+  ],
+  "responseAggregationType": "byPage"
+}

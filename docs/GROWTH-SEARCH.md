@@ -76,10 +76,21 @@ string on it, including the sentence explaining that there is no list, is word f
 the other 151. So those 152 do not ship, and ten more chapters whose only named topic repeats the
 chapter's own name do not ship either. The units are all still published, with the document, the
 page inside it and the hash, on the SUBJECT page above them, which is where a reader was going to
-end up anyway. **The chapter family therefore publishes 171, not 333**, and the count in the table
-below is the count of addresses that could be computed rather than the count that passed the gate.
+end up anyway. The count in the table is the count of addresses that could be computed rather
+than the count that passed the gate.
+
+**And the floor was raised again (2026-09-17).** Of the 171 chapter pages that shipped, 35 had
+fifteen or fewer words of their own, and four sat at exactly the floor of twelve with a description
+that was their title rearranged ("Number System is a chapter of CBSE class 9 maths with one topic in
+it, Number System."). They cleared it only because the section of the document ("page 10, Class X,
+section 7") counted as their own words. To a reviewer that is a template with the name swapped. So
+the section no longer counts, a topic that repeats the chapter's name no longer counts, the floor is
+fifteen, and a chapter page needs at least three topics of its own (`OWN_TOPIC_FLOOR` in
+`apps/web-pwa/src/screens/syllabus/tree.ts`). **The chapter family publishes 86, not 333.** The
+same count takes the unreleased topic family from 309 passing pages to 6, and every address the
+build did not write a page for now asks not to be indexed when the app draws it.
 The honest-count law (WOBO-TASKS §10.21) governs which of the two we print anywhere a person reads
-it: 247 syllabus pages ship, of 409 addresses.
+it: 162 syllabus pages ship, of 409 addresses.
 
 The tutor door needed for these pages already exists and is open: the public ask endpoint, grounded,
 screened both ways, rate limited. Widening its corpus to the syllabus turns every chapter page into a

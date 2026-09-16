@@ -109,6 +109,30 @@ _CLASS_NUMBER = re.compile(r"(\d{1,2})")
 _NOT_A_HAND = {"", "seed", "mock", "core-render"}
 
 
+#: The site's own floors for a chapter page (``apps/web-pwa/src/screens/syllabus/tree.ts``,
+#: ``hasPage``): at least this many topics whose names are not the chapter's own, and at least this
+#: many words of its own in the chapter's name and those topics' names. A chapter under them has no
+#: page, so tier two is not written for it: the run's allowance goes to pages a reader can reach.
+OWN_TOPIC_FLOOR = 3
+OWN_WORD_FLOOR = 15
+_A_WORD = re.compile(r"[^\W_]")
+
+
+def has_page(chapter: Entry) -> bool:
+    """Does the site write a page for this chapter? The same rule as the website's ``hasPage``."""
+    if not chapter.publishable or not chapter.children:
+        return False
+    own = [
+        topic.name
+        for topic in chapter.children
+        if topic.name.strip().lower() != chapter.name.strip().lower()
+    ]
+    if len(own) < OWN_TOPIC_FLOOR:
+        return False
+    words = [w for w in " ".join([chapter.name, *own]).split() if _A_WORD.search(w)]
+    return len(words) >= OWN_WORD_FLOOR
+
+
 def band_of(level_name: str) -> str | None:
     """The depth band a class sits in, or ``None`` when the level carries no number.
 
@@ -342,6 +366,9 @@ def candidates(tree: Tree | None = None) -> tuple[list[dict[str, Any]], Counter[
                 for chapter in subject.children:
                     if not chapter.children:
                         why["no_topic"] += 1
+                        continue
+                    if not has_page(chapter):
+                        why["too_few_topics"] += 1
                         continue
                     entry = _first_explainable(board, level, subject, chapter, band=band, why=why)
                     if entry is not None:

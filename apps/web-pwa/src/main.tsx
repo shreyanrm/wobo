@@ -7,6 +7,7 @@ import { cssVariables } from '@wobo/config/css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { captureCampaign } from './shell/campaign';
 import { armInstallCapture } from './shell/install';
 import { bootIsPublic } from './shell/public-routes';
 import { migrateLegacyKeys } from './store/legacy-keys';
@@ -51,6 +52,10 @@ bootScope();
  * untouched: that is still the frame's gate, after an earned moment, once (`suggest/InstallOffer`).
  */
 armInstallCapture();
+
+// The campaign a visitor followed a link by (docs/GROWTH-DESK.md §4.4): kept on this device, taken
+// out of the address bar, and handed to the gateway once at sign-up. No render, no fetch.
+captureCampaign();
 
 // The older `--wobo-*` token layer, then the bridge that lays it onto palette v4 — the bridge comes
 // second on purpose, so a screen not yet rebuilt reads the new paper without a specificity fight.

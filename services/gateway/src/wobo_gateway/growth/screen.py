@@ -28,19 +28,61 @@ import unicodedata
 from dataclasses import dataclass
 from typing import Any
 
-# --- 1. no invented person --------------------------------------------------------------------------
+# --- 1. no invented person ------------------------------------------------------------------------
 #: The names the copy law names. A piece about a chapter has no business carrying any of them, and
 #: a generated example is exactly where one would appear.
 INVENTED_NAMES = (
-    "Aanya", "Aarav", "Aditi", "Advika", "Amit", "Ananya", "Anjali", "Anaya", "Arjun", "Asha",
-    "Ayesha", "Deepak", "Diya", "Fatima", "Imran", "Isha", "Ishaan", "Kabir", "Karan", "Kavya",
-    "Kiran", "Leela", "Manav", "Meera", "Myra", "Naina", "Neel", "Neha", "Nikhil", "Nisha",
-    "Pooja", "Priya", "Reyansh", "Riya", "Rohan", "Saanvi", "Sanya", "Shreya", "Siya", "Sunita",
-    "Tanvi", "Vihaan", "Vikram", "Varun", "Yash", "Zara", "Zoya",
+    "Aanya",
+    "Aarav",
+    "Aditi",
+    "Advika",
+    "Amit",
+    "Ananya",
+    "Anjali",
+    "Anaya",
+    "Arjun",
+    "Asha",
+    "Ayesha",
+    "Deepak",
+    "Diya",
+    "Fatima",
+    "Imran",
+    "Isha",
+    "Ishaan",
+    "Kabir",
+    "Karan",
+    "Kavya",
+    "Kiran",
+    "Leela",
+    "Manav",
+    "Meera",
+    "Myra",
+    "Naina",
+    "Neel",
+    "Neha",
+    "Nikhil",
+    "Nisha",
+    "Pooja",
+    "Priya",
+    "Reyansh",
+    "Riya",
+    "Rohan",
+    "Saanvi",
+    "Sanya",
+    "Shreya",
+    "Siya",
+    "Sunita",
+    "Tanvi",
+    "Vihaan",
+    "Vikram",
+    "Varun",
+    "Yash",
+    "Zara",
+    "Zoya",
 )
 NAME = re.compile(r"\b(?:{})\b".format("|".join(INVENTED_NAMES)))
 
-# --- 2. no grade gate -------------------------------------------------------------------------------
+# --- 2. no grade gate -----------------------------------------------------------------------------
 # A SINGLE class is fine and is most of what a syllabus piece says: "class 10 mathematics". A
 # RANGE is the gate, in either direction, and that is what these catch.
 _LEVEL = r"class(?:es)?|grades?|years?|std|standards?"
@@ -61,7 +103,7 @@ AGE_SPAN = re.compile(
 )
 GRADE_GATES = (GRADE_SPAN, GRADE_BOUND, GRADE_FLOOR, AGE_SPAN)
 
-# --- 3. no raw allowance ----------------------------------------------------------------------------
+# --- 3. no raw allowance --------------------------------------------------------------------------
 _ONES = (
     "one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen"
     "|sixteen|seventeen|eighteen|nineteen"
@@ -76,7 +118,7 @@ ALLOWANCE = re.compile(
 UNLIMITED = re.compile(rf"\bunlimited\s+(?:{_UNIT}|allowance)\b", re.I)
 ALLOWANCE_RULES = (ALLOWANCE, UNLIMITED)
 
-# --- 4. never name a vendor (voice.md section 7) ------------------------------------------------------
+# --- 4. never name a vendor (voice.md section 7) --------------------------------------------------
 #: Nobody reading Wobo can tell what is underneath. A generated piece is the likeliest place a
 #: model name leaks, because the thing writing it knows its own.
 VENDOR = re.compile(
@@ -86,7 +128,7 @@ VENDOR = re.compile(
     re.I,
 )
 
-# --- 5. never narrate (voice.md section 10c) ---------------------------------------------------------
+# --- 5. never narrate (voice.md section 10c) ------------------------------------------------------
 #: Wobo does; Wobo does not announce. The whole family of announcements, in the register a model
 #: reaches for first.
 NARRATION = re.compile(
@@ -96,7 +138,7 @@ NARRATION = re.compile(
     re.I,
 )
 
-# --- 6. no gendered pronoun for Wobo (voice.md section 1) ---------------------------------------------
+# --- 6. no gendered pronoun for Wobo (voice.md section 1) -----------------------------------------
 #: Within a short reach of the name, in either order, which is how one gets in.
 WOBO_GENDERED = re.compile(
     r"\bWobo\b[^.?!]{0,60}?\b(?:he|him|his|she|her|hers)\b"
@@ -104,14 +146,14 @@ WOBO_GENDERED = re.compile(
     re.I,
 )
 
-# --- 7. never name a late hour (voice.md section 8.7) -------------------------------------------------
+# --- 7. never name a late hour (voice.md section 8.7) ---------------------------------------------
 LATE_HOUR = re.compile(
     r"\b(?:1[01]|9)\s*(?:pm|p\.m\.)\b|\bmidnight\b|\blate at night\b|\bpast midnight\b"
     r"|\bwhen everyone(?:'s| is) asleep\b|\bburning the midnight oil\b",
     re.I,
 )
 
-# --- 8. never sell by running anything down (voice.md section 8.8) ------------------------------------
+# --- 8. never sell by running anything down (voice.md section 8.8) --------------------------------
 RUNS_DOWN = re.compile(
     r"\b(?:better|cheaper|faster|smarter|more effective)\s+than\s+(?:a\s+|an\s+|your\s+|the\s+)?"
     r"(?:teacher|tutor|school|tuition|coaching|classroom|textbook|app|competitor)"
@@ -121,7 +163,7 @@ RUNS_DOWN = re.compile(
     re.I,
 )
 
-# --- 9. the marks and the marks alone -----------------------------------------------------------------
+# --- 9. the marks and the marks alone -------------------------------------------------------------
 EM_DASH = "—"
 EN_DASH = "–"
 #: No exclamation marks anywhere (section 3). Counted rather than matched so the message can say
@@ -136,14 +178,14 @@ def has_emoji(text: str) -> bool:
         if char in {"™", "©", "®"}:
             return True
         code = ord(char)
-        if 0x1F000 <= code <= 0x1FAFF or 0x2600 <= code <= 0x27BF or 0xFE0F == code:
+        if 0x1F000 <= code <= 0x1FAFF or 0x2600 <= code <= 0x27BF or code == 0xFE0F:
             return True
         if unicodedata.category(char) == "So" and code > 0x2000:
             return True
     return False
 
 
-# --- 10. only claims CLAIMS.md has cleared -------------------------------------------------------------
+# --- 10. only claims CLAIMS.md has cleared --------------------------------------------------------
 #: The superlative and comparative shapes that are regulated advertising. A piece that reaches for
 #: one is refused unless the whole sentence is a line ``docs/CLAIMS.md`` has already cleared.
 SUPERLATIVE = re.compile(
@@ -184,7 +226,7 @@ def _sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.?!])\s+|\n+", text or "") if s.strip()]
 
 
-# --- the screen ----------------------------------------------------------------------------------------
+# --- the screen -----------------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Violation:
     """One thing wrong, in words that go in front of a person. ``rule`` is for the trail."""
@@ -236,13 +278,16 @@ def screen(text: str, *, where: str = "the piece") -> list[Violation]:
         add("runs-down", f"sells by running something down: {match.group(0)!r}")
     if EM_DASH in body:
         add("em-dash", "carries an em dash, which nothing a reader sees may")
-    if (count := len(BANG.findall(body))) :
+    if count := len(BANG.findall(body)):
         add("exclamation", f"carries {count} exclamation mark{'s' if count > 1 else ''}")
     if has_emoji(body):
         add("emoji", "carries an emoji, and nothing we publish does")
     for sentence in _sentences(body):
         if SUPERLATIVE.search(sentence) and not _claim_is_cleared(sentence):
-            add("uncleared-claim", f"makes a claim docs/CLAIMS.md has not cleared: {_clip(sentence)}")
+            add(
+                "uncleared-claim",
+                f"makes a claim docs/CLAIMS.md has not cleared: {_clip(sentence)}",
+            )
             break
     if (match := PROMISES_A_RESULT.search(body)) is not None:
         add("promises-a-result", f"promises a result we cannot evidence: {match.group(0)!r}")

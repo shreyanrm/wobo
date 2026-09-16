@@ -21,6 +21,8 @@ import { type BoardChangeDesk, boardChangePanels, isBoardChangeDesk } from './bo
 import type { AdminIdentity, Economics, HealthSnapshot, UsageWindow } from './contract';
 import { AllowanceActions, ModelsActions, mayTurn } from './DialActions';
 import { type DeskId, desk as deskById } from './desks';
+import { GrowthActions } from './GrowthActions';
+import { type GrowthDesk, growthPanels, isGrowthDesk } from './growth';
 import { MailActions } from './MailActions';
 import { isMailDesk, type MailDesk, mailPanels } from './mail';
 import { isModelsDesk, type ModelsDesk, routerPanels } from './models';
@@ -119,6 +121,8 @@ export function Console({
   const [activity, setActivity] = useState<ActivityDesk | null>(null);
   // The mail desk (ops.mail_watch, migration 0036): where our mail lands, and what was paused.
   const [mail, setMail] = useState<MailDesk | null>(null);
+  // The growth desk (growth.*, migration 0038): what to write next, what was made, where it went.
+  const [growth, setGrowth] = useState<GrowthDesk | null>(null);
   const [redeemed, setRedeemed] = useState<RedemptionPage | null>(null);
   // The board-change queue (ops.board_change_requests, migration 0031) and its three dials.
   const [boardChanges, setBoardChanges] = useState<BoardChangeDesk | null>(null);
@@ -167,6 +171,7 @@ export function Console({
       gotActivity,
       gotMail,
       gotBoardChanges,
+      gotGrowth,
       ...gotQueues
     ] = await Promise.all([
       read('health', isHealthSnapshot),
@@ -181,6 +186,7 @@ export function Console({
       read('activity', isActivityDesk),
       read('mail', isMailDesk),
       read('boardChanges', isBoardChangeDesk, { query: { limit: QUEUE_PAGE } }),
+      read('growth', isGrowthDesk),
       ...QUEUE_KINDS.map((kind) =>
         read('reports', isQueuePage, { query: { kind, limit: QUEUE_PAGE } }),
       ),
@@ -208,6 +214,8 @@ export function Console({
     setMail(gotMail.ok ? gotMail.value : null);
     // Dropped rather than kept: a stale queue is a request somebody already granted, still open.
     setBoardChanges(gotBoardChanges.ok ? gotBoardChanges.value : null);
+    // Dropped rather than kept: a stale queue is a post somebody already approved, still waiting.
+    setGrowth(gotGrowth.ok ? gotGrowth.value : null);
     const pages: Partial<Record<QueueKind, QueuePage>> = {};
     QUEUE_KINDS.forEach((kind, index) => {
       const got = gotQueues[index];
@@ -263,6 +271,7 @@ export function Console({
     activity,
     mail,
     boardChanges,
+    growth,
     register,
     at,
     permitted,
@@ -386,6 +395,10 @@ export function Console({
                 {desk.id === 'mail' && mayTurn(admin.permissions) && mayAct(held, desk.id) && (
                   <MailActions key={desk.id} desk={mail} onLifted={() => void refresh()} />
                 )}
+                {/* Owner only: the growth desk's approvals, sends, indexed marks, dials and notes. */}
+                {desk.id === 'growth' && mayTurn(admin.permissions) && mayAct(held, desk.id) && (
+                  <GrowthActions key={desk.id} desk={growth} onChanged={() => void refresh()} />
+                )}
                 {/* Retrying a refusal is an operator's act; confirming a reading and turning the
                 queue's order are the owner's, and the component draws only what this seat
                 carries. */}
@@ -444,6 +457,7 @@ function panelsFor(
     activity: ActivityDesk | null;
     mail: MailDesk | null;
     boardChanges: BoardChangeDesk | null;
+    growth: GrowthDesk | null;
     register: Register | null;
     at: string | null;
     permitted: boolean;
@@ -496,6 +510,8 @@ function panelsFor(
       return mailPanels(ctx.mail, ctx.at);
     case 'boardChanges':
       return boardChangePanels(ctx.boardChanges, ctx.at);
+    case 'growth':
+      return growthPanels(ctx.growth, ctx.at);
     case 'register':
       return registerPanels(ctx.register, ctx.at);
     default:

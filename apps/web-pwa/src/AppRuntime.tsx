@@ -40,6 +40,7 @@ import {
   takeArrival,
   withoutToken,
 } from './shell/arrival';
+import { hasCampaign, sendCampaign } from './shell/campaign';
 import { resolveDestination } from './shell/destinations';
 import { isPublicSite } from './shell/public-routes';
 import { useConnectivity } from './shell/resilience';
@@ -1235,15 +1236,22 @@ function AppInner({ sdk }: { sdk: Sdk }) {
     // learner's flow restores it. Onboarding writes the authoritative row on completion.
     if (!scoped.getItem(ONBOARDED_KEY)) return;
     const p = loadProfile();
-    void sdk.account?.syncProfile({
-      display_name: p.name,
-      grade: p.grade,
-      board: boardName(p.boardId),
-      // The account says setup is done. Onboarding's restore reads exactly this slot, and nothing
-      // wrote it before, so a learner signing back in (sign-out now empties the device) was sent
-      // through setup again instead of home.
-      archetype_slot: 'onboarded',
-    });
+    const account = sdk.account;
+    void account
+      ?.syncProfile({
+        display_name: p.name,
+        grade: p.grade,
+        board: boardName(p.boardId),
+        // The account says setup is done. Onboarding's restore reads exactly this slot, and nothing
+        // wrote it before, so a learner signing back in (sign-out now empties the device) was sent
+        // through setup again instead of home.
+        archetype_slot: 'onboarded',
+      })
+      // A campaign still held (an anonymous learner who has just signed in for real) goes now, and
+      // the gateway writes it only on an account that is new (shell/campaign.ts).
+      .then(() =>
+        account.isAnonymous() || !hasCampaign() ? false : sendCampaign(GATEWAY_URL ?? ''),
+      );
   }, [sdk]);
 
   // The guard: unauthenticated in live mode always lands on onboarding — the sign-in beat lives

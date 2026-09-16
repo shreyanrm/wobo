@@ -11,8 +11,9 @@ job-search app (wobo.ai). Sameness is the lever. Nothing here is a draft to be i
 
 ## The hundred words (Crunchbase, Product Hunt, LinkedIn, press kit)
 
-> Wobo is an AI tutor for Indian school students, across CBSE, ICSE and the state boards, for every
-> subject their board sets. It teaches the way a good teacher does: it draws. Ask a question and
+> Wobo is an AI tutor for Indian school students, for every subject their board sets. It holds the
+> official syllabus for CBSE, ICSE, ISC and NIOS, and a learner on any other board brings their own.
+> It teaches the way a good teacher does: it draws. Ask a question and
 > Wobo marks the page in front of you, circles the step that went wrong, builds the diagram stroke
 > by stroke, and explains as it goes. Photograph a page of homework and it reads the page and works on it with you.
 > It is free every day, it never judges, and it does not stop at one explanation: when one way does
@@ -29,16 +30,16 @@ job-search app (wobo.ai). Sameness is the lever. Nothing here is a draft to be i
 > page, marks the line that went wrong, and works through it with the learner rather than handing
 > over an answer.
 >
-> It follows the syllabus the learner's board actually sets, whatever that board is, across CBSE,
-> ICSE and the state boards, and it adapts: no two learners get the same lesson, and when one
-> explanation does not land it tries another, and another, until the topic is theirs.
+> It follows the syllabus the learner's board actually sets: the official one for CBSE, ICSE, ISC and
+> NIOS, and for any other board the one the learner brings as a photograph, a PDF or pasted text.
+> And it adapts: no two learners get the same lesson, and when one explanation does not land it
+> tries another, and another, until the topic is theirs.
 >
-> Wobo is free every day. Every learner gets the same tutor and the same lessons; a paid plan buys
+> Wobo is free every day. Every learner gets the same tutor and the same teaching; a paid plan buys
 > more time with it, never a better version of it.
 >
-> It is built for children by design: no advertising, no behavioural tracking of learners, no data
-> sold, parental consent for under-13s, and a parent view that shows what their child is learning
-> without showing every keystroke.
+> There is no advertising anywhere in Wobo, no learner's data is sold, and nothing tracks a learner
+> across other sites or apps. A learner can see what Wobo remembers and delete it, line by line.
 >
 > Wobo is made by Dot eVentures Pvt Ltd, Hyderabad, India, at heywobo.com.
 
@@ -66,7 +67,7 @@ is somebody whose job it is to read it.
 |---|---|
 | What | An AI tutor that draws its explanations live on the learner's page |
 | For | School students in India, and their parents |
-| Boards | CBSE, ICSE, and state boards |
+| Boards | CBSE, ICSE, ISC and NIOS; any other board from the learner's own syllabus |
 | Price | Free every day; paid plans buy more time, not better teaching |
 | Made by | Dot eVentures Pvt Ltd, Hyderabad, India |
 | Site | heywobo.com |
@@ -79,6 +80,16 @@ surface and a listing is the most public surface there is (docs/copy/voice.md §
 here say **every subject their board sets** and let anyone who reads them sign up and look. This
 file named a floor and a ceiling in three places until 2026-09-09; the gateway's own copy test
 failed on it, and the range came out rather than the law bending for a press release.
+
+A consent step Wobo does not take yet. Until 2026-09-17 the three hundred words promised "parental
+consent for under-13s", "no behavioural tracking of learners" and a parent view, and
+`docs/legal/childrens-privacy.md` §3 says in as many words that no consent gate ships and that
+whether the tutoring profile counts as behavioural monitoring is still with counsel. A press kit
+may not promise what the legal set says is missing, so that paragraph now carries only what §3
+lists as "true today either way". The consent line comes back the day `docs/CONSENT-PLAN.md`
+ships, and not before. The same day, "the same tutor and the same lessons" became "the same
+teaching": the paragraph before it says no two learners get the same lesson, and a journalist
+reads both.
 
 Any number we cannot show. Any claim of exam results or marks improved. "Personalised" as a claim on
 its own. The names of the models behind it (the white-label rule). A comparison naming a competitor
@@ -117,3 +128,19 @@ what it shows and where it came from.
 lesson being drawn is the one item of this kit that has to be recorded rather than built, and the
 page says so in one line rather than leaving a dead link. That is the only gap.
 
+
+## The launch assets (2026-09-17)
+
+`docs/copy/press/` holds the three things a person sends by hand, and nothing in the repo sends
+any of them: `product-hunt.md` (the launch page, field by field), `pitch-email.md` (one named
+journalist at a time, never a blast) and `awards.md` (the design award submissions). Every line a
+reader reads sits in a quote, exactly as it does here, and `press.test.ts` holds those quotes to
+this file and to the same law the page obeys. The one line, the hundred words and the three
+hundred words appear in them unchanged.
+
+A board we do not hold the official syllabus for, named as covered. Until 2026-09-17 this file
+claimed every board run by a state government, in three places, and the syllabus the site publishes
+holds CBSE, ICSE, ISC and NIOS and none of those, so a journalist who looked one up found nothing.
+What is backed is the four boards by name and the learner's own syllabus for every other one
+(docs/CLAIMS.md, `curriculum/OwnSyllabus.tsx`). A board is added to these words the day its
+syllabus is on the site, and not before.

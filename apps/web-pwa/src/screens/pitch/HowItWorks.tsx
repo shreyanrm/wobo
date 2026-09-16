@@ -600,7 +600,7 @@ export function HowItWorks() {
                       Understanding quadrilaterals
                       <span>four topics, every one of them still holding</span>
                     </b>
-                    <em>mastered</em>
+                    <em>held</em>
                   </div>
                   <div className="hw-fell">
                     <b>

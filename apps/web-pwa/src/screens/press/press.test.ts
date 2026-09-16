@@ -13,15 +13,17 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { BRAND_DESCRIPTION } from '../../shell/head';
+import { FOUNDER_NAME, organizationLd } from '../../shell/jsonld';
 import { PROFILES, sameAs } from '../../shell/profiles';
-import { PLAIN_ROUTES, pathToRoute } from '../../shell/router';
 import { isPublicSite } from '../../shell/public-routes';
-import { FOOTER_COLUMNS } from '../site/nav';
+import { PLAIN_ROUTES, pathToRoute } from '../../shell/router';
 import { MAILBOXES } from '../site/identity';
+import { FOOTER_COLUMNS } from '../site/nav';
 import { PUBLIC_ROUTES } from '../states/routes';
+import { boards } from '../syllabus/tree';
 import {
   FACTS,
   FILM_NOTE,
@@ -75,9 +77,11 @@ function quoted(heading: string): string[] {
 
 describe('every description is the law’s, word for word', () => {
   it('prints the one line the meta description and every listing carry', () => {
-    expect(quoted('The one line (use everywhere: listings, app stores, social bios, the meta description)')).toEqual([
-      plain(ONE_LINE),
-    ]);
+    expect(
+      quoted(
+        'The one line (use everywhere: listings, app stores, social bios, the meta description)',
+      ),
+    ).toEqual([plain(ONE_LINE)]);
     // And it is the SAME string, not a second copy of it: one edit changes every surface.
     expect(ONE_LINE).toBe(BRAND_DESCRIPTION);
   });
@@ -96,6 +100,12 @@ describe('every description is the law’s, word for word', () => {
 
   it('names the founder the law names, and nobody else', () => {
     expect(quoted('The founder')[0]).toContain(FOUNDER.name);
+    // and the page, the markup and the kit are one spelling, read from one constant
+    expect(FOUNDER.name).toBe(FOUNDER_NAME);
+    expect(organizationLd('https://heywobo.com').founder).toEqual({
+      '@type': 'Person',
+      name: FOUNDER.name,
+    });
   });
 
   it('prints the facts box row for row, in the law’s order', () => {
@@ -258,5 +268,186 @@ describe('the stylesheet keeps the site’s laws', () => {
 
   it('lets a table scroll inside itself rather than widening the page', () => {
     expect(PRESS_CSS).toMatch(/\.pr-facts\{[^}]*overflow-x:auto/);
+  });
+});
+
+/**
+ * THE LAUNCH ASSETS, AS FILES A PERSON SENDS (docs/GROWTH-PRESS.md §2).
+ *
+ * The Product Hunt copy, the pitch to the Indian tech press and the award submission live in
+ * `docs/copy/press/`. Nothing here sends anything: the files are what a person pastes, one outlet
+ * and one journalist at a time. What a reader will read is set in `>` blockquotes under a `##`
+ * heading, exactly as the kit is, so the same reader holds them to the same law. Everything
+ * outside a blockquote is the note to whoever sends it.
+ */
+describe('the launch assets carry the kit word for word, and nothing the kit forbids', () => {
+  const DIR = join(REPO, 'docs', 'copy', 'press');
+  const FILES = ['product-hunt.md', 'pitch-email.md', 'awards.md'] as const;
+  const read = (name: string) => readFileSync(join(DIR, name), 'utf8');
+
+  /** Every quoted block in one file, as one line of prose each. */
+  function blocks(text: string): string[] {
+    return text
+      .split('\n')
+      .map((line) => (line.startsWith('>') ? line : ''))
+      .join('\n')
+      .split(/\n(?:>\s*)?\n/)
+      .map((block) => plain(block.replace(/^>\s?/gm, ' ')))
+      .filter(Boolean);
+  }
+
+  /** The quoted words under one heading of one file. */
+  function under(text: string, heading: string): string[] {
+    const start = text.indexOf(`## ${heading}`);
+    expect([heading, start]).not.toEqual([heading, -1]);
+    const rest = text.slice(start + heading.length + 3);
+    const end = rest.indexOf('\n## ');
+    return blocks(end === -1 ? rest : rest.slice(0, end));
+  }
+
+  it('is exactly the three files the plan asks for', () => {
+    expect(
+      readdirSync(DIR)
+        .filter((f) => f.endsWith('.md'))
+        .sort(),
+    ).toEqual([...FILES].sort());
+  });
+
+  it('opens every file on the one line, word for word', () => {
+    for (const name of FILES) {
+      expect([name, blocks(read(name)).includes(plain(ONE_LINE))]).toEqual([name, true]);
+    }
+  });
+
+  it('gives Product Hunt the name, a tagline that fits, the hundred words and the real screenshots', () => {
+    const text = read('product-hunt.md');
+    expect(under(text, 'Name')).toEqual(['Wobo']);
+    const [tagline, ...more] = under(text, 'Tagline');
+    expect(more).toEqual([]);
+    // Product Hunt cuts a tagline at sixty characters.
+    expect((tagline ?? '').length).toBeLessThanOrEqual(60);
+    expect(under(text, 'Description')).toEqual([plain(ONE_LINE)]);
+    expect(under(text, 'About')).toEqual([plain(HUNDRED_WORDS)]);
+    // The gallery is the press page's three screenshots, captioned as the page captions them.
+    for (const shot of SCREENSHOTS) {
+      expect(text).toContain(`heywobo.com${shot.href}`);
+      expect(under(text, 'Gallery')).toContain(plain(`${shot.title}. ${shot.note}`));
+    }
+    expect(under(text, 'Maker')).toEqual([plain(`${FOUNDER.name}, founder of Wobo.`)]);
+  });
+
+  it('writes the pitch to one named person, with the three hundred words as its body', () => {
+    const text = read('pitch-email.md');
+    const body = under(text, 'The email');
+    // Addressed to a person by name, filled in by hand, never a list.
+    expect(body[0]).toMatch(/^Hi \{\{journalist_first_name\}\},$/);
+    expect(text).not.toMatch(
+      /\b(dear all|hi all|hi there|hello everyone|dear sir\/madam|to whom)\b/i,
+    );
+    // One sentence written for that journalist alone, about something they wrote.
+    expect(body.join(' ')).toContain('{{why_you}}');
+    for (const paragraph of THREE_HUNDRED_WORDS) expect(body).toContain(plain(paragraph));
+    expect(body.join(' ')).toContain(PRESS_MAILBOX);
+    expect(body.join(' ')).toContain(`heywobo.com/press`);
+    expect(body.at(-1)).toBe(plain(`${FOUNDER.name}, founder of Wobo.`));
+    // The outlets are the reachable tier the plan names, and the file says to send one at a time.
+    for (const outlet of ['YourStory', 'Inc42', 'Entrackr', 'Analytics India Magazine']) {
+      expect(text).toContain(outlet);
+    }
+    expect(text).toMatch(/one at a time/i);
+  });
+
+  it('gives the design awards a statement about the site and nothing about the stack', () => {
+    const text = read('awards.md');
+    expect(under(text, 'Site name')).toEqual(['Wobo']);
+    expect(under(text, 'Address')).toEqual(['https://heywobo.com']);
+    expect(under(text, 'Short description')).toEqual([plain(ONE_LINE)]);
+    expect(under(text, 'Design statement').length).toBeGreaterThan(0);
+    // The only technologies named are web standards: naming a library is naming a vendor.
+    for (const line of under(text, 'Technologies')) {
+      expect(line).toMatch(/^(HTML|CSS|SVG|JavaScript)(, (HTML|CSS|SVG|JavaScript))*$/);
+    }
+    expect(text).toContain('Awwwards');
+  });
+
+  describe('every quoted line obeys the law the page obeys', () => {
+    const words = FILES.flatMap((name) => blocks(read(name))).join('\n');
+
+    it('has no em dash, no exclamation mark and no emoji', () => {
+      expect(words).not.toContain('—');
+      expect(words).not.toContain('!');
+      expect(words).not.toMatch(/\p{Extended_Pictographic}/u);
+    });
+
+    it('names no class, grade or age range, no raw allowance and no late hour', () => {
+      expect(words).not.toMatch(/\bclass(es)? \d|\bgrades? \d|\b(ages?|aged) \d/i);
+      expect(words).not.toMatch(/\bunlimited\b|\b\d+\s+(questions?|turns?)\s+(a|per)\s+day\b/i);
+      expect(words).not.toMatch(/\b(tonight|midnight|late at night|10 ?pm|11 ?pm)\b/i);
+    });
+
+    it('names no vendor, model or provider, and calls the brand Wobo', () => {
+      expect(words).not.toMatch(
+        /\b(openai|gpt|gemini|claude|anthropic|supabase|vercel|railway|react|vite|gsap)\b/i,
+      );
+      expect(words).not.toMatch(/HeyWobo|Hey Wobo/);
+    });
+
+    it('claims no number it cannot show, no result and no rank (docs/CLAIMS.md)', () => {
+      expect(words).not.toMatch(/\d\s?%/);
+      expect(words).not.toMatch(
+        /\b\d[\d,]*\+?\s+(users|learners|students|families|schools|lessons|downloads)\b/i,
+      );
+      expect(words).not.toMatch(
+        /\b(guarantee|guaranteed|better marks|improve marks|top rank|best|leading|number one|#1|the only)\b/i,
+      );
+      // "first" only in the one form docs/CLAIMS.md §1 clears, word for word.
+      for (const match of words.matchAll(/[^.]*\bfirst\b[^.]*/gi)) {
+        expect(match[0]).toMatch(
+          /world’s first AI companion that shows you|world's first AI companion that shows you/,
+        );
+      }
+    });
+
+    it('runs nobody down (voice.md §8.8)', () => {
+      expect(words).not.toMatch(
+        /\b(better than|cheaper than|unlike|instead of) (a |your )?(teacher|school|tuition|other apps?)/i,
+      );
+    });
+  });
+});
+
+/**
+ * EVERY BOARD THE PRESS WORDS NAME IS A BOARD THE SITE PUBLISHES (2026-09-17). The kit said
+ * "across CBSE, ICSE and the state boards" in the hundred words, the three hundred words and the
+ * facts box, and the syllabus the site publishes holds no state board at all. A journalist who
+ * searched the site for one found nothing. What is backed: the official syllabus for the boards
+ * `syllabus.json` holds, and any other board's syllabus as the learner brings it
+ * (docs/CLAIMS.md, `curriculum/OwnSyllabus.tsx`).
+ */
+describe('the boards the press words name', () => {
+  const held = new Set(boards().map((board) => board.short));
+  const assets = ['product-hunt.md', 'pitch-email.md', 'awards.md'].map((name) =>
+    readFileSync(join(REPO, 'docs', 'copy', 'press', name), 'utf8'),
+  );
+  const everything = [
+    KIT,
+    HUNDRED_WORDS,
+    ...THREE_HUNDRED_WORDS,
+    ...FACTS.map((row) => row.value),
+    ...assets,
+  ];
+
+  it('never claims the state boards', () => {
+    for (const text of everything) expect(text).not.toMatch(/\bstate boards?\b/i);
+  });
+
+  it('names only boards the published syllabus holds', () => {
+    const named = [...everything.join(' ').matchAll(/\b(CBSE|ICSE|ISC|NIOS|IB|IGCSE)\b/g)].map(
+      (m) => m[1] as string,
+    );
+    expect(named.length).toBeGreaterThan(0);
+    for (const board of named) expect(held.has(board), board).toBe(true);
+    const boardsRow = FACTS.find((row) => row.label === 'Boards')?.value ?? '';
+    for (const board of held) expect(boardsRow).toContain(board);
   });
 });

@@ -280,6 +280,16 @@ describe('the landing stylesheet', () => {
     expect(LANDING_CSS).toContain('/fonts/Poppins-700-latin.woff2');
   });
 
+  it('stacks the parent report’s three numbers on a phone, after the rule that sets three columns', () => {
+    // Measured at 390 on 2026-09-17: the phone rule sat above the three-column rule with the same
+    // specificity, so it lost, and "Minutes 96 across five evenings" printed on top of itself.
+    const base = LANDING_CSS.indexOf(`.${ROOT} .report .kpis{display:grid;grid-template-columns:repeat(3,1fr)`);
+    const phone = LANDING_CSS.indexOf(`.${ROOT} .report .kpis{grid-template-columns:1fr}`);
+    expect(base).toBeGreaterThan(-1);
+    expect(phone).toBeGreaterThan(base);
+    expect(LANDING_CSS.lastIndexOf('@media (max-width:640px)', phone)).toBeGreaterThan(base);
+  });
+
   it('lays the pinned panel and the film out as ordinary content under reduced motion', () => {
     const at = LANDING_CSS.indexOf('@media (prefers-reduced-motion:reduce)');
     expect(at).toBeGreaterThan(-1);

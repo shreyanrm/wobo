@@ -357,17 +357,7 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-6/social-science/theme-c-our-cultural-heritage-and-knowledge-traditions</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-6/social-science/theme-d-governance-and-democracy</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-6/social-science/theme-e-economic-life-around-us</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -417,46 +407,6 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-7/social-science/theme-c-our-cultural-heritage-and-knowledge-traditions</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-7/social-science/theme-d-governance-and-democracy</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-7/social-science/theme-e-economic-life-around-us</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-7/social-science/theme-a-india-and-the-world-land-and-the-people-part-2</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-7/social-science/theme-b-tapestry-of-the-past-part-2</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-7/social-science/theme-c-our-cultural-heritage-and-knowledge-traditions-part-2</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-7/social-science/theme-d-governance-and-democracy-part-2</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-7/social-science/theme-e-economic-life-around-us-part-2</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-8</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -492,42 +442,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-8/social-science/theme-a-india-and-the-world-land-and-the-people</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-8/social-science/theme-b-tapestry-of-the-past</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-8/social-science/theme-d-governance-and-democracy</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-8/social-science/theme-e-economic-life-around-us</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-8/social-science/theme-a-india-and-the-world-land-and-the-people-part-2</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-8/social-science/theme-b-tapestry-of-the-past-part-2</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-8/social-science/theme-c-our-cultural-heritage-and-knowledge-traditions-part-2</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-8/social-science/theme-d-governance-and-democracy-part-2</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -547,17 +462,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-9/mathematics/number-system</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-9/mathematics/algebra</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-9/mathematics/coordinate-geometry</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -567,24 +472,9 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-9/mathematics/mensuration</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-9/mathematics/statistics-and-probability</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-9/science</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-9/science/world-of-living</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://heywobo.com/learn/cbse/class-9/science/matter-its-nature-and-behaviour</loc>
@@ -597,19 +487,9 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-9/science/earth-as-a-system</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-9/social-science</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-9/social-science/understanding-social-science</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://heywobo.com/learn/cbse/class-9/social-science/shaping-of-the-earth-s-surface</loc>
@@ -697,32 +577,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-10/mathematics/number-systems</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-10/mathematics/algebra</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-10/mathematics/coordinate-geometry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-10/mathematics/trigonometry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-10/mathematics/mensuration</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-10/mathematics/statistics-and-probability</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -743,16 +598,6 @@
   </url>
   <url>
     <loc>https://heywobo.com/learn/cbse/class-10/science/natural-phenomena</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-10/science/effects-of-current</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-10/science/natural-resources</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -792,22 +637,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/biology/diversity-of-living-organisms</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-11/biology/structural-organization-in-plants-and-animals</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/biology/cell-structure-and-function</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/biology/plant-physiology</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -862,19 +692,9 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/chemistry/hydrocarbons</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-11/mathematics</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/mathematics/sets-and-functions</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://heywobo.com/learn/cbse/class-11/mathematics/algebra</loc>
@@ -887,42 +707,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/physics/physical-world-and-measurement</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/physics/kinematics</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/physics/laws-of-motion</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/physics/work-energy-and-power</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/physics/motion-of-system-of-particles-and-rigid-body</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-11/physics/properties-of-bulk-matter</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/physics/behaviour-of-perfect-gases-and-kinetic-theory-of-gases</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-11/physics/oscillations-and-waves</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -935,31 +720,6 @@
     <loc>https://heywobo.com/learn/cbse/class-12/biology</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/biology/reproduction</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/biology/genetics-and-evolution</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/biology/biology-and-human-welfare</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/biology/biotechnology-and-its-applications</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/biology/ecology-and-environment</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://heywobo.com/learn/cbse/class-12/chemistry</loc>
@@ -1012,74 +772,14 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/chemistry/biomolecules</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-12/mathematics</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/mathematics/relations-and-functions</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/mathematics/calculus</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/cbse/class-12/physics</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/electrostatics</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/current-electricity</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/magnetic-effects-of-current-and-magnetism</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/electromagnetic-induction-and-alternating-currents</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/electromagnetic-waves</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/optics</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/dual-nature-of-radiation-and-matter</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/atoms-and-nuclei</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/cbse/class-12/physics/electronic-devices</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://heywobo.com/learn/icse</loc>
@@ -1232,27 +932,7 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/nios/class-10/mathematics/commercial-mathematics</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/nios/class-10/mathematics/geometry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-10/mathematics/mensuration</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-10/mathematics/trigonometry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-10/mathematics/statistics</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -1262,17 +942,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/nios/class-10/science-and-technology/measurement-in-science</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/nios/class-10/science-and-technology/matter-in-our-surroundings</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-10/science-and-technology/moving-things</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -1283,16 +953,6 @@
   </url>
   <url>
     <loc>https://heywobo.com/learn/nios/class-10/science-and-technology/the-living-world</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-10/science-and-technology/natural-resources</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-10/science-and-technology/human-environment</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -1352,37 +1012,12 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/nios/class-12/biology/emerging-areas-in-biology</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/nios/class-12/chemistry</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/nios/class-12/chemistry/some-basic-concepts-of-chemistry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/nios/class-12/chemistry/atomic-structure-and-chemical-bonding</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/chemistry/states-of-matter</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/chemistry/chemical-energetics</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/chemistry/chemical-dynamics</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -1397,11 +1032,6 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/nios/class-12/chemistry/chemistry-in-everyday-life</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/nios/class-12/mathematics</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -1412,47 +1042,12 @@
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/nios/class-12/mathematics/sequences-and-series</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/nios/class-12/mathematics/algebra-i</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://heywobo.com/learn/nios/class-12/mathematics/co-ordinate-geometry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/mathematics/statistics-and-probability</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/mathematics/algebra-ii</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/mathematics/relations-and-functions</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
     <loc>https://heywobo.com/learn/nios/class-12/mathematics/calculus</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/mathematics/vectors-and-three-dimensional-geometry</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/mathematics/linear-programming-and-mathematical-reasoning</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -1463,21 +1058,6 @@
   </url>
   <url>
     <loc>https://heywobo.com/learn/nios/class-12/physics/force-and-energy</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/physics/mechanics-of-solids-and-fluids</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/physics/thermal-physics</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/physics/oscillations-and-waves</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
@@ -1493,11 +1073,6 @@
   </url>
   <url>
     <loc>https://heywobo.com/learn/nios/class-12/physics/atoms-and-nuclei</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>https://heywobo.com/learn/nios/class-12/physics/semiconductor-devices-and-communication</loc>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>

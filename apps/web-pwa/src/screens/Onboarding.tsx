@@ -28,10 +28,12 @@ import { useRegisterTarget, useWoboBus } from '@wobo/wobo';
 import { type FormEvent, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ONBOARDED_KEY } from '../App';
 import { adoptFramework, adoptOwnSyllabus } from '../curriculum/adopt';
+import { gatewayUrl } from '../curriculum/client';
 import { useBoardSearch, useRegistryRevision } from '../curriculum/hooks';
 import { OwnSyllabus } from '../curriculum/OwnSyllabus';
 import { loadedTopics } from '../curriculum/registry';
 import { gradeOf, schoolLevels } from '../curriculum/world';
+import { sendCampaign } from '../shell/campaign';
 import { useRouter } from '../shell/router';
 import { lifetimeSnapshot } from '../store/mind';
 import { useProgress } from '../store/progress';
@@ -345,12 +347,17 @@ export function Onboarding() {
     sfx.tap();
     saveProfile({ ...loadProfile(), name: name.trim(), grade, boardId: board.id });
     void adoptFramework({ frameworkId: board.id, name: board.name, level: grade });
-    void account?.syncProfile({
-      display_name: name.trim(),
-      grade,
-      board: board.id,
-      archetype_slot: 'onboarded', // what `resumeAfterAuth` reads to send a returning learner home
-    });
+    void account
+      ?.syncProfile({
+        display_name: name.trim(),
+        grade,
+        board: board.id,
+        archetype_slot: 'onboarded', // what `resumeAfterAuth` reads to send a returning learner home
+      })
+      // The link this family arrived by, handed over once the account's row exists, then forgotten
+      // (shell/campaign.ts). Never awaited: it is worth less than the next screen. An anonymous
+      // session keeps it for the boot after a real sign-in (AppRuntime), which sends it then.
+      .then(() => (account.isAnonymous() ? false : sendCampaign(gatewayUrl())));
     go(3);
   };
 

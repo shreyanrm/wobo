@@ -346,7 +346,8 @@ export const TEACHES = {
   mastery: {
     days: ['today', '+2 days', '+1 week', '+3 weeks'] as readonly string[],
     slipped: 'slipped, taught again',
-    done: 'mastered',
+    /** "Yours" is our word for mastered, which never lands on a learner-facing surface (lines.md). */
+    done: 'yours',
   },
 } as const;
 
@@ -381,8 +382,9 @@ export const CLIMB = {
   marks: { reward: 'a reward', here: 'you are here', test: 'the whole chapter' },
   /** The same four chapters, as the plain list. */
   rows: [
-    { title: 'Fractions on a number line', state: 'mastered' },
-    { title: 'Equivalent fractions', state: 'mastered' },
+    // "held", as the gate line under the list says it; never "mastered" to a learner (lines.md).
+    { title: 'Fractions on a number line', state: 'held' },
+    { title: 'Equivalent fractions', state: 'held' },
     { title: 'Adding unlike denominators', state: 'in progress' },
     { title: 'Mixed numbers', state: 'next' },
   ],
@@ -500,7 +502,7 @@ export const PARENTS = {
     projection: ['ready by', 'the test'] as readonly string[],
     badges: [
       'Asked for help after a miss',
-      'Chapter mastered',
+      'A chapter that stayed learnt',
       'Ten minutes, five days',
     ] as readonly string[],
     note: {

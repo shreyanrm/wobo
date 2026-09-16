@@ -1074,12 +1074,12 @@ on an active seat was refused, and a value that is not a digest was refused.
 History of break-glass use: none yet. Write the date, the reason and the two ids here when it
 happens, besides the `admin.break_glass` row the recipes insert.
 
-### The database advisors, and the 34 findings that are the design (2026-09-16)
+### The database advisors, and the 37 findings that are the design (2026-09-16)
 
 Run `get_advisors(security)` after any migration. On 2026-09-16, with 0024 to 0033 applied, it
 returned three things and only one of them is work.
 
-**34 x `rls_enabled_no_policy`, level INFO: intentional, every one** (33 until 0036 added `ops.mail_watch`, server-only by the same design). Row level security is enabled
+**37 x `rls_enabled_no_policy`, level INFO: intentional, every one** (33 until 0036 added `ops.mail_watch` and 0038 added `growth.pieces`, `growth.campaigns` and `growth.signals`, all server-only by the same design). Row level security is enabled
 AND forced on these tables with no policy attached, which denies every client role outright and
 leaves the gateway's service role as the only reader. The linter reports it because in an ordinary
 Supabase app a policyless table means somebody forgot one; here it means the opposite, and each
@@ -1259,3 +1259,21 @@ new wording; the provider webhook is registered at `https://api.heywobo.com/v1/m
 `RESEND_WEBHOOK_SECRET` set on Railway; then a schedule calls the four jobs. Until then no family
 receives anything new. Also standing: `learner.parent_links` holds no rows, and the profile holds no
 age, so every learner is treated as under 13 and only a linked parent receives mail.
+
+**0037 and 0038 applied to production (2026-09-17), each driven inside a rolled-back transaction.**
+0038, as the service role: a campaign on Reddit was refused; a copy approved before its blog post was
+indexed was refused; deleting a campaign was refused; an account's campaign could not be changed once
+written; and no client role can reach the `growth` schema or write the account's campaign column.
+Nothing persisted (0 pieces, 0 campaigns, 0 accounts with a campaign afterwards). Thirty-four
+migrations are recorded.
+
+**The waiting list works end to end (2026-09-17).** A live `POST /v1/waiting-list` from the site's
+origin wrote a row; the probe row, the only one, was deleted afterwards. The list's emptiness is real,
+not a broken door.
+
+**The growth desk is built, stopped and keyless.** `growth.running` is off. Before it does anything it
+needs: a daily schedule calling `POST /v1/internal/growth/{gather,make,post}` in that order with the
+internal key; `GROWTH_SEARCH_CONSOLE_TOKEN` and `GROWTH_SEARCH_CONSOLE_PROPERTY`; poster credentials
+(`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`, `THREADS_USER_ID`, `THREADS_ACCESS_TOKEN`,
+`X_USER_ACCESS_TOKEN`); `GROWTH_BLOG_DIR`; and concept cores, because make never buys one and no
+topic has one yet. Tier two of the chapter pages ships nothing for the same reason.

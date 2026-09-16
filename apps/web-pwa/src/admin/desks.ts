@@ -25,6 +25,7 @@ export type DeskId =
   | 'health'
   | 'syllabus'
   | 'boardChanges'
+  | 'growth'
   | 'flag'
   | 'bug'
   | 'support'
@@ -239,6 +240,20 @@ export const DESKS: readonly Desk[] = [
       from:
         'GET /v1/admin/board-changes: ops.board_change_requests (migration 0031) and the three ' +
         'board dials in ops.settings. Operators grant, and the owner turns the dials',
+    },
+  },
+  {
+    id: 'growth',
+    name: 'Growth',
+    question:
+      'What should be written next, what was made, where did it go, and who signed up because ' +
+      'of it?',
+    supply: {
+      kind: 'live',
+      from:
+        'GET /v1/admin/growth: growth.pieces, growth.campaigns and growth.signals (migration ' +
+        '0038), the harvest in content/growth, and the growth dials in ops.settings. The owner ' +
+        'approves, marks sent and turns the dials',
     },
   },
   {

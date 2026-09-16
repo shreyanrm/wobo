@@ -25,8 +25,8 @@
  * all read this file.
  */
 
-import { FOUNDING_YEAR } from '../../shell/jsonld';
 import { BRAND_DESCRIPTION } from '../../shell/head';
+import { FOUNDER_NAME, FOUNDING_YEAR } from '../../shell/jsonld';
 import { COMPANY, MAILBOXES } from '../site/identity';
 
 /** The one line, everywhere: listings, app stores, social bios, the meta description. */
@@ -34,8 +34,9 @@ export const ONE_LINE = BRAND_DESCRIPTION;
 
 /** The hundred words: Crunchbase, Product Hunt, LinkedIn, and the top of this page. */
 export const HUNDRED_WORDS =
-  'Wobo is an AI tutor for Indian school students, across CBSE, ICSE and the state boards, for ' +
-  'every subject their board sets. It teaches the way a good teacher does: it draws. Ask a ' +
+  'Wobo is an AI tutor for Indian school students, for every subject their board sets. It holds ' +
+  'the official syllabus for CBSE, ICSE, ISC and NIOS, and a learner on any other board brings ' +
+  'their own. It teaches the way a good teacher does: it draws. Ask a ' +
   'question and Wobo marks the page in front of you, circles the step that went wrong, builds ' +
   'the diagram stroke by stroke, and explains as it goes. Photograph a page of homework and it ' +
   'reads the page and works on it with you. It is free every day, it never judges, and it does ' +
@@ -56,19 +57,23 @@ export const THREE_HUNDRED_WORDS: readonly string[] = [
     'explained, a labelled diagram appearing stroke by stroke while it talks. Photograph a page ' +
     'of homework and it reads the page, marks the line that went wrong, and works through it with ' +
     'the learner rather than handing over an answer.',
-  'It follows the syllabus the learner’s board actually sets, whatever that board is, across ' +
-    'CBSE, ICSE and the state boards, and it adapts: no two learners get the same lesson, and ' +
-    'when one explanation does not land it tries another, and another, until the topic is theirs.',
-  'Wobo is free every day. Every learner gets the same tutor and the same lessons; a paid plan ' +
+  // Only the boards the published syllabus holds, by name (press-kit.md, "What we never say").
+  'It follows the syllabus the learner’s board actually sets: the official one for CBSE, ICSE, ' +
+    'ISC and NIOS, and for any other board the one the learner brings as a photograph, a PDF or ' +
+    'pasted text. And it adapts: no two learners get the same lesson, and when one explanation ' +
+    'does not land it tries another, and another, until the topic is theirs.',
+  'Wobo is free every day. Every learner gets the same tutor and the same teaching; a paid plan ' +
     'buys more time with it, never a better version of it.',
-  'It is built for children by design: no advertising, no behavioural tracking of learners, no ' +
-    'data sold, parental consent for under-13s, and a parent view that shows what their child is ' +
-    'learning without showing every keystroke.',
+  // Only what docs/legal/childrens-privacy.md §3 lists as true today. It promised a consent step
+  // until 2026-09-17, and the legal set says none ships (press-kit.md, "What we never say").
+  'There is no advertising anywhere in Wobo, no learner’s data is sold, and nothing tracks a ' +
+    'learner across other sites or apps. A learner can see what Wobo remembers and delete it, ' +
+    'line by line.',
   'Wobo is made by Dot eVentures Pvt Ltd, Hyderabad, India, at heywobo.com.',
 ];
 
 /**
- * THE FOUNDER'S NAME, IN ONE PLACE.
+ * THE FOUNDER'S NAME, IN ONE PLACE: `shell/jsonld.ts`, which the Organization markup also reads.
  *
  * It is the owner's own name and it is spelled identically here, on every listing and in the page's
  * Organization markup, for exactly the reason every other string on this page is: an engine builds
@@ -76,13 +81,16 @@ export const THREE_HUNDRED_WORDS: readonly string[] = [
  * names the founder without one rather than shipping a grey placeholder of a person, and the
  * photograph drops in the day the owner supplies a file.
  */
-export const FOUNDER = { name: 'Shreyan Reddy', role: 'Founder' } as const;
+export const FOUNDER = { name: FOUNDER_NAME, role: 'Founder' } as const;
 
 /** The facts box, in the order the law sets it. Printed as a table, lifted as a block. */
 export const FACTS: readonly { label: string; value: string }[] = [
   { label: 'What', value: 'An AI tutor that draws its explanations live on the learner’s page' },
   { label: 'For', value: 'School students in India, and their parents' },
-  { label: 'Boards', value: 'CBSE, ICSE, and state boards' },
+  {
+    label: 'Boards',
+    value: 'CBSE, ICSE, ISC and NIOS; any other board from the learner’s own syllabus',
+  },
   { label: 'Price', value: 'Free every day; paid plans buy more time, not better teaching' },
   { label: 'Made by', value: `${COMPANY}, Hyderabad, India` },
   { label: 'Site', value: 'heywobo.com' },

@@ -465,7 +465,7 @@ export function RoutesArt({
   );
 }
 
-/** Beat 03: the curve dips where it slipped, settles, and only then says mastered. */
+/** Beat 03: the curve dips where it slipped, settles, and only then says the topic is yours. */
 export function MasteryArt({
   label,
   words,
@@ -626,7 +626,7 @@ export function ClimbFocus({
   gate: string;
 }) {
   const tone: Record<string, string> = {
-    mastered: 'var(--mint)',
+    held: 'var(--mint)',
     'in progress': 'var(--pig)',
     next: 'var(--ink-3)',
   };

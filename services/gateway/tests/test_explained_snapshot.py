@@ -343,9 +343,9 @@ def _a_real_chapter() -> tuple[Any, Any, Any, Any]:
                 continue
             for subject in level.children:
                 for chapter in subject.children:
-                    if chapter.children:
+                    if explained.has_page(chapter):
                         return board, level, subject, chapter
-    raise AssertionError("the published tree holds no chapter with topics under it")
+    raise AssertionError("the published tree holds no chapter the site writes a page for")
 
 
 def test_a_planted_core_and_figure_light_up_one_real_chapter_page(
@@ -383,6 +383,51 @@ def test_a_planted_core_and_figure_light_up_one_real_chapter_page(
     assert why["no_core"] >= 1
 
 
+def _chapter(board: str, level: str, subject: str, chapter: str) -> tuple[Any, ...]:
+    tree = public.build_tree()
+    for b in tree.boards:
+        for lv in b.children:
+            for sj in lv.children:
+                for ch in sj.children:
+                    if (b.slug, lv.slug, sj.slug, ch.slug) == (board, level, subject, chapter):
+                        return b, lv, sj, ch
+    raise AssertionError(f"no chapter {board}/{level}/{subject}/{chapter}")
+
+
+def test_a_chapter_the_site_does_not_publish_gets_no_tier_two(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """2026-09-17: the site refuses a chapter whose only topic is its own name, so the freezer
+    must not spend a run's allowance explaining a page nobody can reach."""
+    monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path))
+    _, level, subject, chapter = _chapter("cbse", "class-9", "mathematics", "number-system")
+    assert not explained.has_page(chapter)
+    topic = chapter.children[0]
+    band = explained.band_of(level.name)
+    scope = {"subject": subject.name, "chapter": chapter.name}
+    store.save_core(topic.name, _core(band=band, concept=topic.name), scope, band=band)
+    store.save(topic.name, "diagram", "core", _figure(concept=topic.name), scope)
+    found, why = explained.candidates()
+    assert not [e for e in found if e["path"].endswith("/class-9/mathematics/number-system")]
+    assert why["too_few_topics"] >= 1
+
+
+def test_the_freezer_and_the_site_agree_on_which_chapters_have_a_page() -> None:
+    """The same floors as ``apps/web-pwa/src/screens/syllabus/tree.ts`` (``hasPage``), which the
+    web suite pins at 86 chapter pages."""
+    tree = public.build_tree()
+    pages = [
+        ch
+        for b in tree.boards
+        for lv in b.children
+        for sj in lv.children
+        for ch in sj.children
+        if ch.source and ch.source.get("url") and explained.has_page(ch)
+    ]
+    assert len(pages) == 86
+    assert explained.OWN_TOPIC_FLOOR == 3 and explained.OWN_WORD_FLOOR == 15
+
+
 def test_the_pace_holds_on_a_real_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Two chapters ready, a limit of one: one ships, and the figure written is the one that did."""
     monkeypatch.setenv("PLEXUS_CACHE_DIR", str(tmp_path / "cache"))
@@ -395,7 +440,7 @@ def test_the_pace_holds_on_a_real_run(tmp_path: Path, monkeypatch: pytest.Monkey
                 continue
             for subject in level.children:
                 for chapter in subject.children:
-                    if not chapter.children or planted >= 2:
+                    if not explained.has_page(chapter) or planted >= 2:
                         continue
                     topic = chapter.children[0]
                     scope = {"subject": subject.name, "chapter": chapter.name}

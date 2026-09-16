@@ -51,6 +51,27 @@ export const SYLLABUS_CSS = `
 .sy-list span{font:400 14px/1.35 var(--sans);color:var(--ink-2);margin-left:auto}
 .sy-list.sy-wide ul{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 
+/* --- tier two: the explanation, the figure, and three questions (Syllabus.tsx, Explanation) ---- */
+.sy-explain{margin:40px 0;max-width:720px}
+/* Scoped under .sy-explain on purpose: the site sheet zeroes margins with .st p and .st h2,
+   which a bare class selector cannot outweigh. */
+.sy-explain h2{font:600 clamp(22px,2.8vw,28px)/1.25 var(--sans);color:var(--ink);margin-bottom:16px}
+/* The figure is a drawing in dark ink on no ground, so it sits on white paper in both themes. The
+   night palette is designed rather than inverted (DESIGN.md §0), and inverting someone's drawing
+   would change what it says; a sheet of paper on a dark desk is the honest way to show it. */
+.sy-figure{margin:0 0 20px;padding:clamp(12px,3vw,24px);border-radius:16px;background:#FFFFFF}
+.sy-figure img{display:block;width:100%;height:auto;max-width:100%}
+.sy-idea{font:400 18px/1.65 var(--sans);color:var(--ink);max-width:64ch}
+.sy-explain .sy-why{margin-top:10px;font:400 17px/1.6 var(--sans);color:var(--ink-2);max-width:64ch}
+.sy-explain .sy-qlabel{margin:28px 0 10px;font:600 15px/1.2 var(--sans);color:var(--ink-2)}
+.sy-qs{display:grid;gap:6px}
+.sy-qs details{border-radius:12px;background:var(--paper-2)}
+.sy-qs summary{list-style:none;cursor:pointer;padding:14px 16px;min-height:44px;font:500 16px/1.45 var(--sans);color:var(--ink);border-radius:12px}
+.sy-qs summary::-webkit-details-marker{display:none}
+.sy-qs summary:focus-visible{outline:2px solid var(--pig);outline-offset:2px}
+.sy-qs details[open] summary{color:var(--pig)}
+.sy-qs details p{margin:0;padding:0 16px 14px;font:400 16px/1.6 var(--sans);color:var(--ink-2)}
+
 /* --- the provenance: quiet, and the reason this page is allowed to exist ----------------------- */
 .sy-source{margin:36px 0;padding:20px 22px;border-radius:16px;background:var(--paper-2)}
 .sy-source h2{font:600 15px/1.2 var(--sans);color:var(--ink-2);margin-bottom:10px}

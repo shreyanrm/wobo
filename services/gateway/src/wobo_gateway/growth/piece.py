@@ -386,7 +386,9 @@ def check(piece: Piece, *, published: tuple[Published, ...] = ()) -> Verdict:
     if not piece.tags:
         because.append("declares no tag, and the blog gate refuses a post without one")
     if not piece.author.strip():
-        because.append("declares no author, and a byline nobody decided is a byline somebody invented")
+        because.append(
+            "declares no author, and a byline nobody decided is a byline somebody invented"
+        )
     if not _is_a_day(piece.drafted_on):
         because.append("carries no real date")
 
@@ -400,7 +402,8 @@ def check(piece: Piece, *, published: tuple[Published, ...] = ()) -> Verdict:
         if shared:
             because.append(
                 f"shares {len(shared)} paragraph{'s' if len(shared) > 1 else ''} with "
-                f"{already.slug!r}, and a paragraph at two addresses is one page pretending to be two"
+                f"{already.slug!r}, and a paragraph at two addresses is one page pretending "
+                "to be two"
             )
 
     violations = tuple(screen.screen(piece.reader_text(), where=f"piece {piece.slug}"))

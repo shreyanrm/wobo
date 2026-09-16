@@ -47,6 +47,7 @@ export const DESK_PANEL: Record<DeskId, PanelId> = {
   health: 'platform',
   syllabus: 'curriculum',
   boardChanges: 'boards',
+  growth: 'growth',
   flag: 'support',
   bug: 'support',
   support: 'support',
@@ -88,6 +89,14 @@ export const ENDPOINT_PANEL: Record<EndpointName, PanelId | null> = {
   boardChanges: 'boards',
   boardChangeGrant: 'boards',
   boardChangeDials: 'boards',
+  growth: 'growth',
+  growthDials: 'growth',
+  growthApprove: 'growth',
+  growthSent: 'growth',
+  growthWithdraw: 'growth',
+  growthIndexed: 'growth',
+  growthRepost: 'growth',
+  growthNotes: 'growth',
 };
 
 function has(held: readonly string[], panel: PanelId, side: 'read' | 'act'): boolean {

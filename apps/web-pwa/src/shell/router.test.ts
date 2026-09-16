@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'bun:test';
-import { applyPop, pathToRoute, type Route, routeFromPath, routeToPath } from './router';
+import {
+  applyPop,
+  disown,
+  headFor,
+  pathToRoute,
+  type Route,
+  routeFromPath,
+  routeToPath,
+} from './router';
 
 /** One of every named route, including the ones that carry parameters. */
 const EVERY_ROUTE: Route[] = [
@@ -149,5 +157,39 @@ describe('popstate — the system back gesture drives the stack', () => {
   it('pops back OFF a 404 the way it pops off any other screen', () => {
     const gone: Route = { name: 'notfound', path: '/gone' };
     expect(applyPop([home, gone], '/')).toEqual([home]);
+  });
+});
+
+/**
+ * AN ADDRESS THE BUILD WROTE NO PAGE FOR, DRAWN BY THE APP, ASKS NOT TO BE INDEXED (2026-09-17).
+ * The syllabus family answers every address it can compute, and the build pre-renders only the
+ * ones that pass the gate. The rest (the whole topic family, and every chapter the gate refused)
+ * were served through the app shell, whose `noindex` the router then took off on the way in and
+ * replaced with a canonical to the thin page itself. A crawler that runs the page was invited to
+ * index exactly what the gate refused.
+ */
+describe('a syllabus address with no page behind it', () => {
+  const topic: Route = {
+    name: 'syllabus',
+    board: 'cbse',
+    level: 'class-10',
+    subject: 'mathematics',
+    chapter: 'algebra',
+    topic: 'polynomials',
+  };
+
+  it('is disowned once the page says so, and owned again when it says otherwise', () => {
+    const origin = 'https://heywobo.com';
+    expect(headFor(topic, origin).robots).toBeNull();
+    disown(routeToPath(topic), true);
+    const head = headFor(topic, origin);
+    expect(head.robots).toBe('noindex');
+    expect(head.canonical).toBeNull();
+    expect(head.tags.some((tag) => tag.key === 'canonical')).toBe(false);
+    disown(routeToPath(topic), false);
+    expect(headFor(topic, origin).robots).toBeNull();
+    expect(headFor(topic, origin).canonical).toBe(
+      'https://heywobo.com/learn/cbse/class-10/mathematics/algebra/polynomials',
+    );
   });
 });

@@ -751,3 +751,111 @@ button.ar-cell[disabled] {
   background: var(--paper-2);
   color: var(--ink-2);
 }
+
+/* --------------------------------------------------------------------------------------------- */
+/* The growth desk's controls (`GrowthActions.tsx`). Namespaced `ag-` for the reason `aq-` is.     */
+/* A post is read before it is approved, so its words are shown whole, in the mono face, wrapped. */
+/* --------------------------------------------------------------------------------------------- */
+.ag-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ag-post {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--paper);
+  min-width: 0;
+}
+.ag-post-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.ag-post-head strong {
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.ag-tag {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--paper-3);
+  color: var(--ink-2);
+}
+.ag-id {
+  font: 400 12.5px / 1.4 var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+.ag-words summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+.ag-words summary:focus-visible {
+  outline: 3px solid var(--pig);
+  outline-offset: 2px;
+}
+.ag-words ol {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding-left: 22px;
+}
+.ag-words pre {
+  margin: 0;
+  font: 400 13px / 1.5 var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ag-grid,
+.ag-topics {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.ag-grid legend,
+.ag-topics legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-bottom: 8px;
+}
+.ag-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 128px), 1fr));
+  gap: 10px 12px;
+}
+.ag-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+.ag-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.ag-check input {
+  accent-color: var(--pig);
+}
+.aq-said[data-tone="refused"] {
+  color: var(--ink);
+  background: var(--rose-w);
+  padding: 8px 12px;
+  border-radius: 10px;
+}

@@ -169,7 +169,7 @@ def live_sources() -> tuple[str, ...]:
     return tuple(source.key for source in SOURCES if source.live)
 
 
-# --- reading the data ------------------------------------------------------------------------------
+# --- reading the data -----------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Node:
     """One node of the syllabus we hold: a unit, or a topic under one."""
@@ -218,7 +218,11 @@ def harvest() -> dict[str, tuple[str, ...]]:
     for query, engines in got.items():
         if not isinstance(query, str) or not query.strip():
             continue
-        found = tuple(sorted({e for e in engines if e in {"g", "b"}})) if isinstance(engines, list) else ()
+        found = (
+            tuple(sorted({e for e in engines if e in {"g", "b"}}))
+            if isinstance(engines, list)
+            else ()
+        )
         if found:
             out[query.strip().lower()] = found
     return out
@@ -270,18 +274,66 @@ def forget() -> None:
         _all_ranked = None
 
 
-# --- what a query is asking for ---------------------------------------------------------------------
+# --- what a query is asking for -------------------------------------------------------------------
 #: Words that say which class, board or document a query is about. They are stripped before a
 #: query is matched against a syllabus name, because every one of them appears in thousands of
 #: queries and none of them narrows anything.
 FURNITURE: frozenset[str] = frozenset(
     {
-        "class", "std", "standard", "cbse", "icse", "isc", "nios", "ncert", "board",
-        "chapter", "ch", "lesson", "unit", "topic", "part", "notes", "note", "solutions",
-        "solution", "explained", "explanation", "explain", "pdf", "free", "best", "for",
-        "the", "of", "and", "in", "a", "an", "to", "with", "how", "what", "is", "are",
-        "questions", "question", "important", "exercise", "answers", "answer", "summary",
-        "download", "online", "app", "video", "english", "hindi", "full", "short", "easy",
+        "class",
+        "std",
+        "standard",
+        "cbse",
+        "icse",
+        "isc",
+        "nios",
+        "ncert",
+        "board",
+        "chapter",
+        "ch",
+        "lesson",
+        "unit",
+        "topic",
+        "part",
+        "notes",
+        "note",
+        "solutions",
+        "solution",
+        "explained",
+        "explanation",
+        "explain",
+        "pdf",
+        "free",
+        "best",
+        "for",
+        "the",
+        "of",
+        "and",
+        "in",
+        "a",
+        "an",
+        "to",
+        "with",
+        "how",
+        "what",
+        "is",
+        "are",
+        "questions",
+        "question",
+        "important",
+        "exercise",
+        "answers",
+        "answer",
+        "summary",
+        "download",
+        "online",
+        "app",
+        "video",
+        "english",
+        "hindi",
+        "full",
+        "short",
+        "easy",
     }
 )
 
@@ -346,7 +398,7 @@ def level_in(query: str) -> str | None:
     return f"Class {int(found.group(1))}" if found else None
 
 
-# --- matching a query to the syllabus -----------------------------------------------------------------
+# --- matching a query to the syllabus -------------------------------------------------------------
 #: The share of a node's own content words a query has to carry before it counts as a match. Set
 #: at two thirds rather than at everything, because a board's chapter title carries words a person
 #: searching never types, and set well above a half because two loose words in common is how a
@@ -519,7 +571,12 @@ def _placement_order(node: Node) -> tuple[int, int, str]:
     return (0 if node.kind == "topic" else 1, int(level.group(1)) if level else 99, node.key)
 
 
-def rank(limit: int = 50, *, pool: Iterable[Query] | None = None) -> list[Topic]:
+def rank(
+    limit: int = 50,
+    *,
+    pool: Iterable[Query] | None = None,
+    syllabus: Sequence[Node] | None = None,
+) -> list[Topic]:
     """The ranked topics: what to write next, strongest first.
 
     Every query is matched against every syllabus node it lands on, and the nodes are collapsed by
@@ -529,10 +586,12 @@ def rank(limit: int = 50, *, pool: Iterable[Query] | None = None) -> list[Topic]
 
     The full ranking is computed once per process and sliced, because it is a few seconds of work
     over a static file and the console re-reads on a timer. ``pool`` bypasses the memo entirely,
-    so a test hands its own queries in and gets its own answer.
+    so a test hands its own queries in and gets its own answer. ``syllabus`` does the same for
+    the nodes: the gather job hands in the curriculum store's live tree.
     """
-    if pool is not None:
-        return _ranked(tuple(pool))[: max(0, limit)]
+    if pool is not None or syllabus is not None:
+        chosen = tuple(pool) if pool is not None else tuple(queries())
+        return _ranked(chosen, syllabus)[: max(0, limit)]
     with _lock:
         global _all_ranked
         if _all_ranked is None:
@@ -544,16 +603,16 @@ def rank(limit: int = 50, *, pool: Iterable[Query] | None = None) -> list[Topic]
 _all_ranked: list[Topic] | None = None
 
 
-def _ranked(pool: tuple[Query, ...]) -> list[Topic]:
+def _ranked(pool: tuple[Query, ...], syllabus: Sequence[Node] | None = None) -> list[Topic]:
     from wobo_gateway.growth import campaigns
 
-    syllabus = nodes()
+    chosen: tuple[Node, ...] = tuple(syllabus) if syllabus is not None else nodes()
     found: dict[str, Topic] = {}
     for query in pool:
         if query.demand <= 0:
             continue
         landed: dict[str, list[Node]] = {}
-        for node, _share in matches(query.text, syllabus):
+        for node, _share in matches(query.text, chosen):
             slug = campaigns.slugify(node.name)
             if slug:
                 landed.setdefault(slug, []).append(node)

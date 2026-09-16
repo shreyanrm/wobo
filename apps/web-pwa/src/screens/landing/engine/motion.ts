@@ -331,7 +331,7 @@ export function mountGap(root: ParentNode): Disposer {
 }
 
 /**
- * Mastery: the curve draws itself, dips where the chapter slipped, and only then says mastered.
+ * Mastery: the curve draws itself, dips where the chapter slipped, and only then says it is yours.
  *
  * The path publishes its own length as `--len` first (`measureDraw`), because the markup's 360 is
  * the prototype's measurement of the same path and a browser's is authoritative.

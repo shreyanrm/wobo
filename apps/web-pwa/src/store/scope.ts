@@ -213,6 +213,11 @@ export const DEVICE_KEYS: readonly DeviceKey[] = [
     why: 'sessionStorage: the card a mail link was pressed for, held across the door before there is a subject, taken once on the far side, then gone',
   },
   {
+    key: 'wobo-campaign-v1',
+    file: 'apps/web-pwa/src/shell/campaign.ts',
+    why: 'the campaign id a visitor followed a link by, a piece of ours and never a person: kept before there is a subject, taken once at sign-up, then gone',
+  },
+  {
     key: 'wobo-auth-session-v1',
     file: 'packages/sdk/src/identity.ts',
     why: 'the session itself: it is the key everything else is scoped BY',

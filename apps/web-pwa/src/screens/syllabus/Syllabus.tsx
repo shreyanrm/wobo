@@ -34,6 +34,7 @@
  */
 
 import { lazy, type ReactNode, Suspense } from 'react';
+import { useDisowned } from '../../shell/router';
 import { PitchAsk } from '../pitch/Ask';
 import { ClosePanel } from '../site/ClosePanel';
 import { syllabusClose } from '../site/handoffs';
@@ -56,7 +57,7 @@ import {
   summary,
   title,
 } from './copy';
-import { type Explained, explainedFor, figureSrc } from './explained';
+import { type Explained, explanationFor, figureScript, figureSrc } from './explained';
 import { type Handmade, handmade } from './handmade';
 import { ensureSyllabusStyles } from './styles';
 import {
@@ -275,6 +276,11 @@ function Explanation({ explained }: { explained: Explained }) {
           </details>
         ))}
       </div>
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD has no other rendering, and `figureScript` escapes < > & so nothing in it can close the element
+        dangerouslySetInnerHTML={{ __html: figureScript(explained) }}
+      />
     </section>
   );
 }
@@ -289,10 +295,13 @@ function Provenance({
   node,
   board,
   freshness,
+  ours,
 }: {
   node: Node;
   board: Board;
   freshness: Freshness;
+  /** The page carries an explanation we wrote, so the block says whose is whose. */
+  ours: boolean;
 }) {
   const source = node.source;
   const checks = checksLine(source);
@@ -302,6 +311,7 @@ function Provenance({
       <h2 id="sy-source">Where this came from</h2>
       <p>{provenance(source, board)}</p>
       {checks ? <p>{checks}</p> : null}
+      {ours ? <p>{OURS_LINE}</p> : null}
       {source?.url ? (
         <a className="sy-doc" href={source.url} rel="nofollow noopener" target="_blank">
           Open the document on the board's site
@@ -414,7 +424,11 @@ export function SyllabusBody({
   door: ReactNode;
 }) {
   const noTopics = place.kind === 'chapter' && place.node.children.length === 0;
+  // An address the build wrote no page for still draws, for a reader who followed a link to it,
+  // and asks a crawler not to index it: the gate refused it, and the app must not undo that.
+  useDisowned(pathOf(place), !hasPage(place.node));
   const written = handmade(pathOf(place));
+  const explained = explanationFor(place);
   return (
     <div className="sy">
       <div className="st-wrap">
@@ -423,7 +437,13 @@ export function SyllabusBody({
         {noTopics ? <p className="sy-none">{NO_TOPICS}</p> : null}
         <Children place={place} wide={place.kind === 'board' || place.kind === 'class'} />
         {written ? <Written written={written} /> : null}
-        <Provenance node={place.node} board={place.board} freshness={freshness} />
+        {explained ? <Explanation explained={explained} /> : null}
+        <Provenance
+          node={place.node}
+          board={place.board}
+          freshness={freshness}
+          ours={explained !== null}
+        />
         {door}
         <Around place={place} />
       </div>

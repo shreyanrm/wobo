@@ -139,6 +139,27 @@ export const ENDPOINT = {
   boardChangeGrant: '/v1/admin/board-changes/grant',
   /** POST: turn the three dials in ops.settings. `admin.manage`, owner only, audited. */
   boardChangeDials: '/v1/admin/board-changes/dials',
+  /** GET: the growth desk (docs/GROWTH-DESK.md): the dials as obeyed, the channels in their three
+   *  tiers, the ranked topics, every piece with its verdict and every post under its campaign id,
+   *  and the week's report, from growth.* (migration 0038) and ops.settings. */
+  growth: '/v1/admin/growth',
+  /** POST: the kill switch, the cadence per channel, topics off, the approval mode and the day's
+   *  pieces. `admin.manage`, owner only; every turn lands in ops.settings_audit. */
+  growthDials: '/v1/admin/growth/dials',
+  /** POST: approve one post waiting on a script channel. Owner only. A copy whose blog post is not
+   *  yet indexed is refused with 409 whatever this bundle draws. */
+  growthApprove: '/v1/admin/growth/approve',
+  /** POST: a person sent this post by hand; the body carries where it went. Owner only. */
+  growthSent: '/v1/admin/growth/sent',
+  /** POST: withdraw one post that has not gone. Owner only. The campaign id is never deleted. */
+  growthWithdraw: '/v1/admin/growth/withdraw',
+  /** POST: a person saw the blog post indexed, with a note saying how. Owner only. */
+  growthIndexed: '/v1/admin/growth/indexed',
+  /** POST: post a blog file again under the next attempt, when its page no longer answers (a
+   *  redeploy wiped it). Owner only; refused with 409 while the page is live. */
+  growthRepost: '/v1/admin/growth/repost',
+  /** POST: questions a person read in the study communities, pasted as a gather source. */
+  growthNotes: '/v1/admin/growth/notes',
 } as const;
 
 export type EndpointName = keyof typeof ENDPOINT;

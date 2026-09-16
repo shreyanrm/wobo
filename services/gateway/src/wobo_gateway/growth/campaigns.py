@@ -24,10 +24,10 @@ and the thing we actually want to know is which piece brought somebody, not whic
 1. **A NEVER channel has no campaign id.** :func:`build` refuses one, for the same reason
    :mod:`wobo_gateway.growth.shapes` refuses a shape: an id is the first thing a later outbox
    would look for.
-2. **It is written on the account exactly once, by the gateway.** Migration 0028 puts
+2. **It is written on the account exactly once, by the gateway.** Migration 0038 puts
    ``campaign_id`` on ``learner.profiles_cache``, leaves it out of the learner's column grants,
    and adds a trigger that refuses a second value. The column cannot be written by the browser
-   that read the cookie, so the attribution on an account is what our own server saw at sign-up
+   that carried the link, so the attribution on an account is what our own server saw at sign-up
    and is not a claim anybody can edit afterwards. :func:`is_well_formed` is what the gateway
    checks before it writes, so a junk query string never reaches the column.
 
@@ -49,7 +49,7 @@ from wobo_gateway.growth import channels
 #: The whole grammar, in one place, anchored at both ends. Channel keys are lower case letters and
 #: hyphens (``business-profile``), the month is six digits, the slug is lower case words separated
 #: by single hyphens, and the attempt is exactly two digits.
-PATTERN = re.compile(r"^([a-z][a-z-]{1,23})-(\d{6})-([a-z0-9]+(?:-[a-z0-9]+)*)-(\d{2})$")
+PATTERN = re.compile(r"^([a-z][a-z-]{0,23})-(\d{6})-([a-z0-9]+(?:-[a-z0-9]+)*)-(\d{2})$")
 
 #: The longest a campaign id may be. A ``utm_id`` rides in a query string that also has to survive
 #: being pasted into a phone keyboard, and a column somewhere has to hold it.

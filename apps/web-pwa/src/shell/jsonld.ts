@@ -83,6 +83,12 @@ export const ORG_COUNTRY_NAME = 'India';
 export const FOUNDING_YEAR = '2026';
 
 /**
+ * The press kit's founder (docs/copy/press-kit.md, "The founder"): one name, spelled the same way
+ * on every listing, in every byline and in this markup. The press page reads it from here.
+ */
+export const FOUNDER_NAME = 'Shreyan Reddy';
+
+/**
  * Schemas Google has retired. Adding one back costs a page nothing and gains it nothing, and it
  * makes a validator's report noisier for the next person reading it, so the build refuses them.
  */
@@ -147,6 +153,9 @@ export function organizationLd(rawOrigin: string): JsonLd {
     },
     image: absoluteUrl(origin, ogImagePath('/')),
     foundingDate: FOUNDING_YEAR,
+    // A Person with a name and nothing else: no photograph until the owner supplies one, and no
+    // profile address until one is claimed (the same discipline as `sameAs`).
+    founder: { '@type': 'Person', name: FOUNDER_NAME },
     // Who a parent is actually dealing with. Named on the legal pages already (identity.ts), so
     // naming it here publishes nothing new; it makes the relationship machine-readable.
     parentOrganization: {
