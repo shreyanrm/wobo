@@ -117,6 +117,7 @@ railway logs | grep '"alert":'      # machine-readable
 | `spend_threshold` | warn, critical at 100 % | the day's spend crossed a line (§2) | at 50 % nothing. At 80 % look at whether it is real traffic. At 100 % the free lanes are already shut; decide whether to raise `DAILY_SPEND_CEILING_USD` or leave it |
 | `auth_failure_burst` | warn | more refused tokens in one minute than `ALERT_AUTH_FAILURE_BURST` (default 25) | usually an expired session storm after a deploy. If it persists across minutes with one `ip_hash`, somebody is trying keys; the rate limiter is already holding them |
 | `provider_outage` | warn | one model call refused or timed out | one is weather. If `/healthz` also says `providers: fail`, the chain is genuinely down: check the provider's status page and whether the account has credit |
+| `pool_threshold` | warn, critical at 100 % | one of the two pools the platform pays for ITSELF crossed a line (`pools.py`): `pool` is `creative` (the work made once and cached for everyone) or `free` (the day's spend on all free learners together) | these are not the learners' money and not the `spend_threshold` ceiling. `creative` at 100 % means today's authoring is done and the cache carries the rest of the day; `free` at 100 % means the goodwill is spent and free learners meet the kind line until midnight. Both dials are on the models desk and apply without a deploy |
 
 **Rules the alarm follows**, so you can trust what you see: the log line is written every time,
 and the *page* is rate-limited to one per event per `ALERT_COOLDOWN_SECONDS` (default 300) so a
@@ -1172,3 +1173,54 @@ Observed at 11:4x: `railway deployment list` showed TWO builds in flight at once
 
 The Vercel side is unchanged and still needs the export: it blocks a deploy whose commit author is
 not a team member, and the 192 commits made before 2026-09-16 are authored by the machine.
+
+### The deploy procedure, confirmed by experiment (2026-09-16)
+
+Two earlier notes in this file guessed at this and one of them guessed wrong. This one was tested:
+wave 38 was committed, pushed, and NOTHING else was run — no `railway up`, no `vercel --prod`.
+
+**Result: the push alone deployed both ends.** Railway built `a36f0168` from `branch: main,
+commit d043e678`. Vercel built the same sha, twice, both marked `git push`. No CLI upload was
+involved anywhere.
+
+**So the procedure is: commit, push, stop.**
+
+```sh
+git push origin the-life:main    # Railway builds main; Vercel builds it too
+git push origin the-life         # keeps the working branch current
+```
+
+**Correcting an earlier claim in this file.** The "Vercel blocks a deploy whose commit author is not
+a team member" note was wrong about the mechanism. Deployment `dpl_CcwLvGCSvx6C8xASKt` built commit
+`07864b04` — authored `MSR <depl@Shreyans-MacBook-Air.local>`, the machine — and shipped fine, logged
+against the GitHub PUSHER (`ShreyanReddy`), not the commit author's email. Whatever refused a deploy
+on 2026-09-15 was never isolated, and the git-less export was a workaround for a cause that was never
+established. It is no longer a routine step.
+
+**Keep the export for one case only:** deploying something that is NOT on `main` — a verification
+snapshot, a rollback, or a fix that must not be pushed yet.
+
+**One cost, measured, not yet optimised.** Pushing both refs produces THREE builds of one commit: a
+Railway build from `main`, a Vercel build from `main`, and a Vercel build from `the-life`. They are
+the same code so nothing breaks, but it is wasteful. Pushing only `the-life:main` would probably drop
+it to two. That is an untested guess and is recorded as one.
+
+**Asking Railway anything from a script (2026-09-16).** The credential in `.env.local` is a
+**project** token, not an account token. Railway's GraphQL API at
+`https://backboard.railway.com/graphql/v2` accepts it in a `Project-Access-Token:` header;
+the ordinary `Authorization: Bearer` form is refused with `Not Authorized`, which is
+indistinguishable from a revoked key and will send you looking for the wrong problem. The
+`railway` CLI is separately logged out and says so — that is not evidence the token is dead.
+
+```bash
+TOK=$(grep '^RAILWAY_TOKEN=' .env.local | cut -d= -f2-)
+curl -s https://backboard.railway.com/graphql/v2 \
+  -H "Project-Access-Token: $TOK" -H 'Content-Type: application/json' \
+  -d '{"query":"query{project(id:\"bc8ee3fe-7274-422e-bf7a-4fed542348a1\"){deployments(first:3){edges{node{id status meta}}}}}"}'
+```
+
+The surer proof that a deploy carried a given commit is not the deploy record but the service
+itself: `curl -s https://api.heywobo.com/healthz` returns `version` — the running binary naming
+its own commit. On 2026-09-16 that read `d043e6783338eeb…`, matching `main`, with
+`status: degraded` for `payments` alone (Razorpay, awaiting the owner's keys) and
+`/v1/doors` answering `{"doors_open":false}`.
