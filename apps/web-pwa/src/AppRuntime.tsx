@@ -131,9 +131,31 @@ const DownloadCenter = lazy(() =>
 const CommandPalette = lazy(() =>
   import('./shell/CommandPalette').then((m) => ({ default: m.CommandPalette })),
 );
-const EnginesGallery = lazy(() =>
-  import('./screens/concepts/EnginesGallery').then((m) => ({ default: m.EnginesGallery })),
-);
+// DEV ONLY: the engine gallery at /concept/engines — the workshop bench that renders every engine
+// against its own hand-authored demo spec, so an engine is QA'd on the plane it will be taught on.
+// It is not a learner surface and never was.
+//
+// Until this gate it shipped to production, and it was not merely dead weight. At 486 kB it was
+// the SINGLE LARGEST FILE in the precache, so every child's phone downloaded the engine QA bench
+// at install, and /concept/engines was an ordinary unguarded address a store reviewer could open
+// and read (docs/PLATFORMS.md §5 and §6: the web version is the thing that gets walked and judged,
+// and the install is what a cheap Android pays for before a lesson has been taught).
+//
+// The import sits INSIDE the gate, which is the whole of the fix: `import.meta.env.DEV` is
+// replaced by `false` in a production build, the branch is dead, and Rollup emits no chunk at all.
+//
+// What the address answers with then, stated precisely rather than by analogy. /ui-kit is a PUBLIC
+// route, so it answers 404 to anybody. `concept` is not, so it sits behind the closed door like
+// every other app address: a signed-out visitor, a store reviewer or a crawler gets the sign-in
+// beat the lock below shows (`locked && !isPublicSite(route.name)`), and never learns whether
+// there was ever anything here. A signed-in learner who types it, or follows an old bookmark,
+// gets the real 404 — a page that says so in Wobo's own voice, not a blank frame where a bench
+// used to be. Both are honest answers; neither is the bench.
+const EnginesGallery = import.meta.env.DEV
+  ? lazy(() =>
+      import('./screens/concepts/EnginesGallery').then((m) => ({ default: m.EnginesGallery })),
+    )
+  : null;
 const FrameBuilding = lazy(() =>
   import('./screens/FrameBuilding').then((m) => ({ default: m.FrameBuilding })),
 );
@@ -357,7 +379,14 @@ function Screen() {
           {route.name === 'you' && <You />}
           {route.name === 'doubt' && <DoubtScreen />}
           {route.name === 'parent' && <ParentView />}
-          {route.name === 'concept' && route.which === 'engines' && <EnginesGallery />}
+          {/* the workshop bench, in a dev build only; in production this address is a real 404 */}
+          {route.name === 'concept' &&
+            route.which === 'engines' &&
+            (EnginesGallery ? (
+              <EnginesGallery />
+            ) : (
+              publicScreen({ name: 'notfound', path: '/concept/engines' })
+            ))}
           {/* the public site's own addresses, from the one table both hosts share */}
           {publicScreen(route)}
         </Suspense>

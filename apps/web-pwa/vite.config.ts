@@ -202,9 +202,22 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
           // Every screen is behind React.lazy, and the whole app runtime is behind one more, so
           // each route is its own chunk and a learner downloads a screen when they walk to it.
-          // What IS precached is the product working offline: the entry, the app runtime, every
-          // screen. The ceiling is a little above workbox's 2 MiB default, with room for the
-          // largest chunk that is still worth having offline.
+          // What IS precached is the product working offline: the entry, the app runtime, and
+          // every screen A LEARNER CAN REACH. The ceiling is a little above workbox's 2 MiB
+          // default, with room for the largest chunk that is still worth having offline.
+          //
+          // THE LAST FOUR WORDS OF THAT SENTENCE ARE LOAD-BEARING, and they were not always true.
+          // "Every screen" was read literally by the build and it swept up two workshop benches
+          // that no learner can reach: the engine gallery (486 kB, the single largest file in the
+          // precache — an internal engine QA demo downloaded at install by every child's phone)
+          // and the UI kit. Both are now absent from a production build entirely, gated at their
+          // own call sites in `src/AppRuntime.tsx` and `src/site/PublicRoutes.tsx`.
+          //
+          // THERE IS DELIBERATELY NO globIgnores PATTERN FOR EITHER. An ignore would keep a bench
+          // out of the precache while letting it ship and be served at its address, which is the
+          // quieter half of the same defect and would hide the return of the louder half. A bench
+          // must not be in the build at all, and `test/no-workshop-bench-ships.test.ts` fails on
+          // the built output if one ever is.
           maximumFileSizeToCacheInBytes: 2.5 * 1024 * 1024,
           // The heaviest on-demand payloads are NOT precached: RDKit's 6.9 MB wasm, three.js and
           // the molecule viewer — together megabytes that a visitor who opened the marketing page
@@ -213,13 +226,73 @@ export default defineConfig(({ mode }) => {
           // else — the entry, the runtime, every screen — is still precached, so the product works
           // offline the way it always has.
           //
-          // Each ignored pattern has exactly one runtime rule below and nothing else matches them:
-          // a file precached AND runtime-cached is stored twice, in two caches, on a phone whose
-          // storage is the scarce thing.
-          globIgnores: ['**/RDKit_minimal*.wasm', '**/assets/heavy-*', 'index.html'],
+          // The heavy three have exactly one runtime rule each below and nothing else matches
+          // them: a file precached AND runtime-cached is stored twice, in two caches, on a phone
+          // whose storage is the scarce thing. `share-target.js` is ignored for a different
+          // reason — it is not a page asset at all but the worker's OWN code, imported below, and
+          // the browser already keeps an imported script with the registration. Precaching it
+          // would store the worker's handler a second time, as a file no page ever fetches.
+          globIgnores: [
+            '**/RDKit_minimal*.wasm',
+            '**/assets/heavy-*',
+            'index.html',
+            '**/share-target.js',
+          ],
+          /**
+           * THE FACES THE PRODUCT IS DRAWN IN, PRECACHED — because they were not.
+           *
+           * Workbox's own default is `**​/*.{js,wasm,css,html}` and nothing else, and
+           * vite-plugin-pwa adds only `includeAssets` on top of it, which is why the icons,
+           * robots.txt and the sitemap are in the manifest and why no font ever was. Measured on
+           * the built app with the network off: 168 precached entries, not one of them a font, and
+           * `document.fonts.check('700 16px Poppins')` false. An offline learner read the whole
+           * product in the system's fallback face, so the first law of the design (DESIGN.md §0,
+           * Poppins for every interface word and Caveat for what Wobo writes by hand) quietly did
+           * not apply to the case this app exists to serve.
+           *
+           * The pattern names the five latin faces the first paint already preloads above, about
+           * 39 kB together. The latin-ext subsets stay out for the reason they are not preloaded
+           * (English copy never reaches them) and `Caveat-Regular.ttf` stays out because it is
+           * 403 kB of a face already shipped as a 74 kB woff2 beside it.
+           */
+          globPatterns: ['**/*.{js,wasm,css,html}', 'fonts/*-latin.woff2'],
+          /**
+           * THE SHARE TARGET'S HANDLER, in front of workbox's router.
+           *
+           * A phone delivers a shared photo as a POST to `/doubt/shared` (the manifest's
+           * `share_target` below), and the only thing that can answer a POST with no server in the
+           * story is the worker on the device. `public/share-target.js` is imported into the
+           * generated worker while it evaluates, so its fetch handler is registered BEFORE
+           * workbox's and gets the first look at every request; it answers that one POST and lets
+           * everything else fall through untouched. Written as a plain script so the precache,
+           * the navigation fallback and the runtime rules above stay exactly as they are — this
+           * is an addition to workbox's worker, not a replacement for it.
+           */
+          importScripts: ['/share-target.js'],
           navigateFallback: SHELL_FILE,
           additionalManifestEntries: [{ url: SHELL_FILE, revision: SHELL_REVISION }],
           runtimeCaching: [
+            /**
+             * THE BRAIN IS NEVER CACHED, said out loud.
+             *
+             * Every call to the gateway is a POST today (`/v1/capability/…`, the turn, the doubt)
+             * and a POST is not cacheable, so this rule fixes nothing that has happened. It is a
+             * guard against the obvious next change: the day one of those doors becomes a GET, a
+             * catch-all or a well-meant StaleWhileRevalidate would put `/v1/me`, the day's
+             * allowance, a console answer or another learner's turn into a cache that belongs to
+             * the ORIGIN rather than to a person, and every learner on a shared phone reads it.
+             * docs/CACHES.md is the law it would break: nothing that costs money is served from a
+             * cache to a learner it was not made for. `/db/` is the same rule for the same reason,
+             * since the database is reached through our own origin (vercel.json's rewrite).
+             *
+             * What makes a lesson survive with no signal is not this cache and could not be: it is
+             * the learner's OWN storage, keyed to them and swept when they sign out
+             * (`src/screens/course/kept.ts`).
+             */
+            {
+              urlPattern: /^https?:\/\/[^/]+\/(?:v1|db)\//,
+              handler: 'NetworkOnly',
+            },
             {
               urlPattern: /RDKit_minimal.*\.wasm$/,
               handler: 'CacheFirst',
@@ -251,6 +324,32 @@ export default defineConfig(({ mode }) => {
           background_color: '#FFFFFF',
           lang: 'en',
           categories: ['education'],
+          /**
+           * A PHOTO THAT WAS ALREADY TAKEN (docs/PLATFORMS.md §3 and §5: the share targets, which
+           * iOS requires of a real app and which the web version should have anyway).
+           *
+           * A child photographs the page in the gallery app, taps share, and chooses Wobo. This
+           * member is the whole reason Wobo appears in that sheet: an installed app is offered as
+           * a share target only if its manifest says what it accepts. POST with
+           * `multipart/form-data` is the only shape that can carry a file; `photo` is the field
+           * name, and the service worker reads it under exactly that name
+           * (public/share-target.js), stores it on the device, and sends the learner to the doubt
+           * solver with the photo already in hand.
+           *
+           * The action is a path of its own rather than `/doubt`, so the POST is unmistakable and
+           * an ordinary visit to the doubt solver can never be mistaken for a share.
+           */
+          share_target: {
+            action: '/doubt/shared',
+            method: 'POST',
+            enctype: 'multipart/form-data',
+            params: {
+              title: 'title',
+              text: 'text',
+              url: 'url',
+              files: [{ name: 'photo', accept: ['image/*'] }],
+            },
+          },
           icons: [
             { src: '/pwa-192.png', sizes: '192x192', type: 'image/png' },
             { src: '/pwa-512.png', sizes: '512x512', type: 'image/png' },

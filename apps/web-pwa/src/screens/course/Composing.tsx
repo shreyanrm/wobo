@@ -85,6 +85,14 @@ import {
 import { topicNodeUuid } from '../learn/mastery';
 import { BridgeStep } from './BridgeStep';
 import { Greeting } from './Greeting';
+import {
+  keepCardArtifact,
+  keepFilm,
+  keepLesson,
+  keptCardArtifact,
+  keptFilm,
+  keptLesson,
+} from './kept';
 import { composedCardFromLink } from './open-at';
 import { SideDoor } from './SideDoor';
 import type { BarState, LessonOutline } from './shared';
@@ -244,7 +252,7 @@ export interface GenCard {
  */
 type GenItem = Omit<WireItem, 'options'> & { options?: string[]; explanation?: string };
 
-interface GenCourse {
+export interface GenCourse {
   courseId: string;
   title: string;
   cards: GenCard[];
@@ -528,6 +536,15 @@ function useArtifact(card: GenCard, topic: string, courseId: string): Artifact {
     if (card.kind === 'text') return;
     let cancelled = false;
     setArtifact({ status: 'pending' });
+    // The picture this card already drew, kept beside its lesson (screens/course/kept.ts). It is
+    // what makes a kept lesson play IN FULL with no signal rather than as words with a gap where
+    // the diagram was, and online it spares the engine a second rendering of a card the learner
+    // has already been shown.
+    const held = keptCardArtifact(courseId, card.id);
+    if (held) {
+      setArtifact({ status: 'ready', ...held } as Artifact);
+      return;
+    }
     const { capability, payload } = engineRequest(card, topic, courseId);
     sdk.llm
       .invoke(capability, payload, { consentTier: 'un_elevated' })
@@ -544,6 +561,7 @@ function useArtifact(card: GenCard, topic: string, courseId: string): Artifact {
         }
         if (card.kind === 'sim') {
           const spec = simSpecFromGateway(res.output, card.title) ?? parseSimSpec(body);
+          if (spec) keepCardArtifact(courseId, card.id, { kind: 'sim', spec });
           setArtifact(spec ? { status: 'ready', kind: 'sim', spec } : { status: 'failed' });
         } else {
           const svg =
@@ -552,6 +570,10 @@ function useArtifact(card: GenCard, topic: string, courseId: string): Artifact {
               : isRecord(body) && typeof body.svg === 'string'
                 ? body.svg
                 : null;
+          // A raster card's picture is a base64 image inside its svg and is bigger than the whole
+          // budget for a lesson: `keepCardArtifact` refuses it, the card keeps working, and the
+          // refusal is why a picture like that is redrawn rather than kept (kept.ts, the header).
+          if (svg && svgIsClean(svg)) keepCardArtifact(courseId, card.id, { kind: 'diagram', svg });
           setArtifact(
             svg && svgIsClean(svg)
               ? { status: 'ready', kind: 'diagram', svg }
@@ -1112,25 +1134,62 @@ export function outlineSteps(course: Pick<GenCourse, 'cards' | 'seeded'>): strin
  */
 export const PLACEHOLDER_COURSE_LINE = 'Not written yet. Come back in a little while.';
 
+/**
+ * WHY THE FLOOR IS ON SCREEN, which is a different question from whether it is a floor.
+ *
+ *  · `answered` — engine.compose returned, and what came back was not this topic's course: the
+ *    seed envelope, or a course that could not be read. The queue's `ready` is stale.
+ *  · `unreachable` — nothing came back at all. The call threw, or the 75 seconds ran out. That is
+ *    a statement about the network and about nothing else.
+ *
+ * A course that was never floored has no reason at all, and neither has one still composing.
+ */
+export type FloorReason = 'answered' | 'unreachable';
+
+/**
+ * Does this floor mean the download record is wrong? Only when the brain answered.
+ *
+ * The guard here used to be `!isOffline()`, which is `navigator.onLine === false`. Aeroplane mode
+ * sets that flag; the phone this product is built for does not. On a village connection the radio
+ * is up and the requests time out, so `onLine` stayed true, the floor was read as the brain's
+ * answer, and the chain `screens/course/kept.ts` measured ran in full for any topic not already
+ * kept: the download flipped `ready` to `failed`, the gate in `screens/Course.tsx` enqueued the
+ * topic again, and `router.back()` sent the learner home. Going offline once cost them a course
+ * they already owned; going patchy cost them the same, and only the first was ever guarded.
+ *
+ * So the question is asked of the compose call rather than of the browser. Both phones are covered
+ * by the one rule, and it never has to trust what the radio believes about itself.
+ */
+export function reconcilesDownload(seeded: boolean, reason: FloorReason | null): boolean {
+  return seeded && reason === 'answered';
+}
+
 function InkScreen({
   topicId,
   title,
   course,
   settled,
+  reason,
 }: {
   topicId: string;
   title: string;
   course: GenCourse | null;
   settled: boolean;
+  /** Why the floor is on screen, when it is. Null while the course is still being decided. */
+  reason: FloorReason | null;
 }) {
   // A placeholder course has no outline worth reading: its cards are a scaffold with the topic's
   // name in it, and listing them would be listing the lesson this is not (SCORECARD.md 3.5 #9).
   const outline = course && !course.seeded ? outlineSteps(course) : null;
   // A course that opens as a placeholder was never ready, whatever an older build's queue said:
   // the "Your course is ready" toast and this page's "Still being made" cannot both stand.
+  // ...but ONLY when the brain actually answered with that placeholder. When nothing came back,
+  // the floor is what every un-kept topic shows on a bad connection, and flipping the queue on the
+  // strength of it throws away the record of a download the learner had already been given: the
+  // course they owned comes back as "That one slipped away" (`reconcilesDownload`).
   useEffect(() => {
-    if (course?.seeded) reconcilePlaceholder(topicId);
-  }, [course?.seeded, topicId]);
+    if (reconcilesDownload(course?.seeded === true, reason)) reconcilePlaceholder(topicId);
+  }, [course?.seeded, reason, topicId]);
   return (
     <CardBody maxWidth={560}>
       <CourseIntroScene
@@ -1264,6 +1323,12 @@ function useVideoScene(title: string, courseId: string): VideoState {
     let cancelled = false;
     let timer = 0;
     setState({ status: 'pending' });
+    // The film this course already played, when it was small enough to keep (screens/course/kept.ts).
+    const held = keptFilm(courseId);
+    if (held) {
+      setState({ status: 'ready', scene: held });
+      return;
+    }
     const timeout = new Promise<never>((_, reject) => {
       timer = window.setTimeout(() => reject(new Error('video timeout')), VIDEO_TIMEOUT_MS);
     });
@@ -1282,6 +1347,7 @@ function useVideoScene(title: string, courseId: string): VideoState {
         const scene = isPlaceholderEnvelope(res.output)
           ? null
           : motionSceneFromVideo(res.output, title);
+        if (scene) keepFilm(courseId, scene);
         setState(scene ? { status: 'ready', scene } : { status: 'failed' });
       })
       .catch(() => {
@@ -1424,6 +1490,9 @@ export function Composing({
   );
 
   const [course, setCourse] = useState<GenCourse | null>(null);
+  // Why the course below is the floor, when it is. Read by the ink screen, which corrects this
+  // topic's download record only for a floor the brain actually handed back.
+  const [floorReason, setFloorReason] = useState<FloorReason | null>(null);
   const [settled, setSettled] = useState(false);
   const [entered, setEntered] = useState(false);
   // idx walks: cards… then workbook, boss, greeting
@@ -1463,6 +1532,9 @@ export function Composing({
     setMood('thinking');
     (async () => {
       let parsed: GenCourse | null = null;
+      // Set only by the compose call below, and only by what it actually did. A kept lesson never
+      // touches it: a kept course is real, so there is no floor to explain.
+      let reason: FloorReason | null = null;
       // Asked for ALONGSIDE the course, never after it, so crossing the ground under a topic never
       // costs the learner a second wait. `bridgeFor` floors to an honest outline when the engine has
       // nothing verified to offer, so this is a lesson or it is nothing, never an error.
@@ -1477,35 +1549,59 @@ export function Composing({
             bridgeFromReport(sdk, topic, settled, topicById, groundAtEntry)
           : bridgeFor(sdk, { topic, completed: groundAtEntry, lookup: topicById })
       ).catch(() => null);
-      try {
-        const timeout = new Promise<never>((_, reject) => {
-          timer = window.setTimeout(() => reject(new Error('compose timeout')), COMPOSE_TIMEOUT_MS);
-        });
-        const res = await Promise.race([
-          sdk.llm.invoke(
-            'engine.compose',
-            { topic: title, topic_id: topicId, difficulty: 'core' },
-            { consentTier: 'un_elevated' },
-          ),
-          timeout,
-        ]);
-        parsed = parseGenCourse(res.output, title);
-        if (parsed && !cancelled) {
-          sdk.events.record(
-            'create.course.compiled.v1',
-            {
-              request_id: crypto.randomUUID(),
-              course_id: parsed.courseId,
-              node_count: parsed.cards.length,
-              reused_node_count: res.cached ? parsed.cards.length : 0,
-              new_node_count: res.cached ? 0 : parsed.cards.length,
-              all_verified: true,
-            },
-            { courseId: parsed.courseId },
-          );
+      /**
+       * THE LESSON THIS LEARNER HAS ALREADY OPENED COMES OFF THE DEVICE, and it comes off first.
+       *
+       * `engine.compose` used to be the only place a course's cards existed, so with no signal the
+       * player floored to the generic scaffold and a learner could not reopen a lesson they had
+       * played an hour earlier (`screens/course/kept.ts` carries the measurement in full). A kept
+       * course is this learner's own copy of the one their allowance already bought: it opens with
+       * the network off, and with the network on it also saves the SECOND compose this screen
+       * bought every time a course was opened after the download queue had just bought the first.
+       */
+      const kept = keptLesson(topicId);
+      if (kept) parsed = kept;
+      else {
+        try {
+          const timeout = new Promise<never>((_, reject) => {
+            timer = window.setTimeout(
+              () => reject(new Error('compose timeout')),
+              COMPOSE_TIMEOUT_MS,
+            );
+          });
+          const res = await Promise.race([
+            sdk.llm.invoke(
+              'engine.compose',
+              { topic: title, topic_id: topicId, difficulty: 'core' },
+              { consentTier: 'un_elevated' },
+            ),
+            timeout,
+          ]);
+          // THE BRAIN ANSWERED. Whatever it said, a floor from here is a statement about this
+          // topic's content rather than about the network, so the download record may be trusted
+          // to be wrong. The catch below is the other half, and it is the one the village phone
+          // reaches: a timeout and a dead fetch both land there.
+          reason = 'answered';
+          parsed = parseGenCourse(res.output, title);
+          if (parsed && !cancelled) {
+            sdk.events.record(
+              'create.course.compiled.v1',
+              {
+                request_id: crypto.randomUUID(),
+                course_id: parsed.courseId,
+                node_count: parsed.cards.length,
+                reused_node_count: res.cached ? parsed.cards.length : 0,
+                new_node_count: res.cached ? 0 : parsed.cards.length,
+                all_verified: true,
+              },
+              { courseId: parsed.courseId },
+            );
+          }
+        } catch {
+          // the floor below is the fallback — never an error state, and never a verdict on a
+          // course the learner may already own: nothing came back, so nothing is concluded.
+          reason = 'unreachable';
         }
-      } catch {
-        // the floor below is the fallback — never an error state
       }
       window.clearTimeout(timer);
       if (cancelled) return;
@@ -1525,7 +1621,15 @@ export function Composing({
       }
       setBridge(lesson);
       const built = withBridge(parsed ?? seedCourse(title), lesson);
+      // WHY this course is what it is, handed over WITH it. Set even when it is null, so a course
+      // that composed cleanly carries no leftover reason, and so the screen never has to guess.
+      setFloorReason(reason);
       setCourse(built);
+      // Kept for the next opening, with a network or without one. The COMPOSED course is what is
+      // kept, never `built`: the bridge in front of it is laid from the ground the learner stands
+      // on at the moment they open it, so it is re-decided each time rather than frozen. A seeded
+      // floor is refused inside `keepLesson`, so a placeholder can never become a topic's lesson.
+      if (parsed) keepLesson(topicId, parsed);
       // THE CONCEPT CORE, MADE ONCE WITH THE LEVEL (docs/INK-FOUR.md, steps 3 and 4). The cards
       // already hold the true sentence about every concept and every part they declare; the store
       // keeps them beside the level so Wobo can say the true thing about the hypotenuse before any
@@ -1707,7 +1811,13 @@ export function Composing({
   if (!entered || !course) {
     return (
       <Deck id="compose-ink">
-        <InkScreen topicId={topicId} title={title} course={course} settled={settled} />
+        <InkScreen
+          topicId={topicId}
+          title={title}
+          course={course}
+          settled={settled}
+          reason={floorReason}
+        />
       </Deck>
     );
   }

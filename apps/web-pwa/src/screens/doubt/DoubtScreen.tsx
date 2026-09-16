@@ -26,6 +26,7 @@
  * then Explain (2). The OS camera's own shutter and "Use photo" sit between them and are not ours.
  */
 
+import { createFocus, EMPTY_RECT, surfaceRegistry, WaitScene } from '@wobo/wobo';
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { useWorld } from '../../curriculum/hooks';
 import { loadedTopics } from '../../curriculum/registry';
@@ -36,11 +37,10 @@ import { GATEWAY_URL } from '../../store/app-sdk';
 import { useProgress } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { Button, Chip, Tag, TopBar, usePhone } from '../../ui/primitives';
-import { createFocus, EMPTY_RECT, surfaceRegistry, WaitScene } from '@wobo/wobo';
 import { screenStore } from '../../wobo/board-turn';
 import { setTurnFocus, turnFocus } from '../../wobo/capabilities';
 import { useWoboChat } from '../../wobo/chat';
-import { type Rotation, doubtSurfaceId, readingLine, strokeHold } from '../../wobo/doubt-surface';
+import { doubtSurfaceId, type Rotation, readingLine, strokeHold } from '../../wobo/doubt-surface';
 import {
   type Capture,
   DoubtUnreadable,
@@ -50,7 +50,7 @@ import {
   readingText,
 } from './api';
 import { doubtCaption } from './caption';
-import { acceptsFile, CaptureRefused, captureFromFile } from './capture';
+import { acceptsFile, CaptureRefused, captureFromFile, sharedCapture } from './capture';
 import {
   comeBackFor,
   type DoubtHint,
@@ -70,6 +70,7 @@ import {
   liveLines,
   liveRegions,
   reduce,
+  shared,
 } from './flow';
 import { PhotoStage } from './PhotoStage';
 
@@ -89,6 +90,7 @@ export function followTheCaption(scroller: HTMLElement | null, slack = 48): void
   if (fromBottom > slack) return;
   scroller.scrollTop = scroller.scrollHeight;
 }
+
 import './doubt.css';
 
 export const DOUBT_TITLE = 'Take a photo of the doubt';
@@ -304,11 +306,60 @@ export function DoubtScreen() {
     [frameworkId],
   );
 
-  // The entry control took the photo before this screen existed: collect it, once.
+  /**
+   * THE PHOTO THAT IS ALREADY TAKEN, whichever hand took it.
+   *
+   * Two ways one arrives and both end in the same place. The entry control took it before this
+   * screen existed and handed it over in memory (`takeCapture`, doubt-store.ts). Or the phone's
+   * own share sheet did: a child photographs the page in the gallery app, taps share and chooses
+   * Wobo, the OS POSTs the picture to `/doubt/shared` (the manifest's `share_target`,
+   * vite.config.ts), the service worker answers that POST itself, keeps the bytes on the device
+   * and redirects here (public/share-target.js), and the file is collected from that store ONCE
+   * (`takeSharedFile`, capture.ts). Either way it goes through `begin`, so a shared photo is
+   * screened, read, shown and corrected exactly as a photographed one is and LAW 1 is untouched:
+   * nothing is computed until the learner says Explain.
+   *
+   * SIGNED IN BEFORE THE SHUTTER, HERE TOO (LAW 2). The gateway keeps a photo against an account
+   * and answers an anonymous session with 403, so a share is not collected at all until the door
+   * is the camera: the bytes stay in the device's own store, the sign-in card is what the learner
+   * meets, and nothing has travelled. A share nobody collected is swept by the worker.
+   *
+   * AND A SHARE WITH NO PHOTO SAYS NOTHING (DESIGN.md §0.x). `shared` hands back no action at all,
+   * so the learner is on the capture step with the camera in front of them and not one word about
+   * what did not arrive.
+   */
   useEffect(() => {
     const capture = takeCapture();
-    if (capture) void begin(capture);
-  }, [begin]);
+    if (capture) {
+      void begin(capture);
+      return;
+    }
+    let live = true;
+    // `sharedCapture` holds the read itself (capture.ts), so the Cache is emptied once however
+    // many times this effect is mounted, and the photo waits there for whichever mount is alive.
+    // THE DOOR RIDES IN WITH IT, and the store is emptied on arrival WHATEVER the door is: a share
+    // met by the sign-in card is dropped, never left on the device for the next learner to sign in
+    // on this tablet. Nothing travels either way (LAW 2) and nothing is said (DESIGN.md §0.x).
+    void sharedCapture(window.location.href, doorFor(sdk.account))
+      .then((shot) => {
+        if (!live) return;
+        const action = shared(shot);
+        if (action) void begin(action.capture);
+      })
+      .catch((err: unknown) => {
+        if (!live) return;
+        dispatch({
+          type: 'unreadable',
+          say:
+            err instanceof CaptureRefused
+              ? err.message
+              : 'I could not open that photo. Try another?',
+        });
+      });
+    return () => {
+      live = false;
+    };
+  }, [begin, sdk]);
 
   const onFile = async (file: File | null | undefined) => {
     if (!file) return;

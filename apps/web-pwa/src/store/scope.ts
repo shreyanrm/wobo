@@ -95,6 +95,11 @@ export const SCOPED_KEYS = [
    */
   'wobo-cmdk-recent-v1',
   'wobo-voice',
+  // Whether this learner has been offered the app on their home screen, and whether it is there
+  // (shell/install.ts). The offer is made once per ACCOUNT rather than once per device: two
+  // children on one tablet are two learners, and an offer one of them waved away is not an answer
+  // the other gave. Whether the device is installed is read live from the display mode besides.
+  'wobo-install-v1',
 ] as const;
 
 /**
@@ -110,6 +115,11 @@ export const SCOPED_PREFIXES = [
   // The concept core beside each level (wobo/core-store.ts): the true sentence for every part the
   // level declares, and the handful of questions its misconceptions say a learner will ask.
   'wobo-core-v1:',
+  // The lesson itself, kept so a course a learner has already opened plays with the network off
+  // (screens/course/kept.ts): the composed cards, its workbook and boss, and the pictures its
+  // cards hydrated. It is content somebody's allowance paid for, so it is one learner's and it
+  // leaves with them (docs/CACHES.md).
+  'wobo-lesson-v1:',
 ] as const;
 
 /**
@@ -225,6 +235,11 @@ export const DEVICE_KEYS: readonly DeviceKey[] = [
     key: 'wobo-inspect',
     file: 'packages/wobo/src/registry.ts',
     why: 'a developer’s flag that turns the inspector on; never written by the product',
+  },
+  {
+    key: 'wobo-share-v1',
+    file: 'apps/web-pwa/src/screens/doubt/capture.ts',
+    why: 'the Cache a shared photo waits in for the seconds between the phone’s share sheet and the doubt screen collecting it (public/share-target.js puts it there, capture.ts empties it on arrival). The service worker that writes it runs with no session, so it CANNOT be keyed to a learner, and that is the reason it is here rather than the excuse it was read as until 2026-09-16: an unkeyed store on a family tablet is one every learner opens. So it is device-level and bounded to a single page load instead — a share belongs to the arrival the redirect opened (capture.ts `isThisArrival`), a share met by the sign-in card is DROPPED rather than kept for whoever signs in next (`takeSharedFile`, the door), and `wipeDeviceCaches` below takes it on a sign-out and on an erase, which no key walk could ever reach',
   },
 ];
 
@@ -399,6 +414,23 @@ export const scoped = scopedStore(raw, true);
 export const scopedSession = scopedStore(rawSession, false);
 
 /**
+ * THE SAME localStorage DOOR, FOR A CACHE RATHER THAN FOR THE LEARNER'S WORK.
+ *
+ * Same keys, same scope, same sweep — the only difference is that a refusal here is not reported
+ * as the learner failing to save. The refusal level above exists because a swallowed quota error
+ * once let the strip say "your work is safe on this device" while the write was being thrown away.
+ * The opposite is just as untrue: a lesson cache that cannot find room (screens/course/kept.ts)
+ * costs the ordinary compose and nothing else, and routing it through `scoped` put a sentence in
+ * front of a child saying this device would not keep their work and this piece might not be
+ * waiting next time — about a file they never made, at a moment nothing of theirs was at risk.
+ *
+ * So a store whose miss is free writes here, and the strip keeps meaning what it says. A store
+ * holding anything the learner would notice the loss of uses `scoped`, and that is the test for
+ * which door a new store takes: would a child miss it if it vanished?
+ */
+export const scopedCache = scopedStore(raw, false);
+
+/**
  * localStorage under a plain name, for the keys on DEVICE_KEYS and nothing else. A device key is
  * the phone's own (mute, motion, theme) and is the same whoever is signed in; this door exists so
  * a per-learner module holding one such key does not have to reach raw storage to do it.
@@ -442,11 +474,45 @@ function keysOf(store: Storage | null): string[] {
 }
 
 /**
- * Erase and start over: every wobo key this device holds, whoever's it is and the phone's own
- * settings included, from both stores. The You screen calls it last, after the brain and the
- * account, and reloads.
+ * THE STORE NO KEY WALK CAN REACH: every Cache this device holds under our own name.
+ *
+ * Cache Storage is not a `Storage`. It has no `length`, no `key(i)` and no `removeItem`, so
+ * `wipeDevice` below walked straight past it for as long as both have existed — and on
+ * 2026-09-16 there was something in it: `wobo-share-v1`, the Cache a photo of a child's homework
+ * waits in between the phone's share sheet and the doubt screen (screens/doubt/capture.ts). "Erase
+ * and start over" promises this device, and it left that photo on the phone.
+ *
+ * Matched by the `wobo-` prefix rather than by a list, exactly as the key sweep is, so the next
+ * Cache somebody adds is swept the day they add it rather than the day somebody notices. Workbox's
+ * own caches are not ours and are not touched: emptying the precache would cost an offline learner
+ * the whole product to no purpose, since it holds the app's code and nothing of anybody's.
  */
-export function wipeDevice(): void {
+export async function wipeDeviceCaches(): Promise<void> {
+  try {
+    if (typeof caches === 'undefined') return;
+    const names = await caches.keys();
+    await Promise.all(
+      names
+        .filter((name) => name.startsWith('wobo-') || name.startsWith('wobo.'))
+        .map((name) => caches.delete(name).catch(() => false)),
+    );
+  } catch {
+    // site data switched off, or a browser with no Cache at all: there is nothing to empty
+  }
+}
+
+/**
+ * Erase and start over: every wobo key this device holds, whoever's it is and the phone's own
+ * settings included, from both stores, AND every wobo Cache. The You screen calls it last, after
+ * the brain and the account, and reloads.
+ *
+ * The keys go synchronously, before the first await, so a caller that does not wait still empties
+ * the two Storages exactly as this always did. The Caches need a promise, and `eraseEverything`
+ * awaits this one BEFORE it reloads: a delete still in flight when the page goes is a delete that
+ * may not have happened, and this is the one call in the product whose whole promise is that it
+ * did.
+ */
+export async function wipeDevice(): Promise<void> {
   for (const store of [raw(), rawSession()]) {
     for (const key of keysOf(store)) {
       if (key.startsWith('wobo-') || key.startsWith('wobo.')) {
@@ -458,6 +524,7 @@ export function wipeDevice(): void {
       }
     }
   }
+  await wipeDeviceCaches();
 }
 
 /**
@@ -649,5 +716,15 @@ export function forgetScope(subjectId: string): void {
       // best effort
     }
   }
+  /*
+   * AND THE CACHES, WHICH CARRY NO SUFFIX TO FIND THEM BY. A sign-out is the family tablet being
+   * handed over, and `wobo-share-v1` can be holding a photo of the page this learner just shared.
+   * It is not awaited because this function is not async and its callers are mid-hand-over: the
+   * sweep outlives the call, and `handOverDevice` has a network round trip and a full navigation
+   * to run before anything could read the store again. The read side is closed regardless — a
+   * share is only ever opened by the page load its redirect made (screens/doubt/capture.ts) — so
+   * this is the second lock rather than the only one.
+   */
+  void wipeDeviceCaches();
   applyScope(null);
 }

@@ -43,7 +43,11 @@ function run(over: {
               if (account === 'throws') throw new Error('no');
               return account;
             },
-      wipeDevice: () => steps.push('wipe'),
+      // a block body on purpose: the door returns `void | Promise<void>` now, and `push` returns a
+      // number, which is exactly the kind of accident the widened type should keep out
+      wipeDevice: () => {
+        steps.push('wipe');
+      },
       queueRetry: () => steps.push('queue'),
       reload: () => steps.push('reload'),
     }),
@@ -89,6 +93,45 @@ describe('erase and start over', () => {
     const walk = run({ brain: 'local', account: null });
     expect((await walk.outcome).owed).toBe(false);
     expect(walk.steps).toEqual(['brain', 'wipe', 'reload']);
+  });
+
+  /**
+   * THE WIPE IS WAITED FOR, because part of it cannot be synchronous.
+   *
+   * `wipeDevice` sweeps Cache Storage as well as the two Storages now (`store/scope.ts`), and
+   * Cache Storage has no synchronous form. A delete still in flight when `reload` fires is a
+   * delete that may never land, on the one call in the product whose whole promise is that it did.
+   */
+  it('waits for a wipe that needs a promise before it reloads', async () => {
+    const steps: string[] = [];
+    const outcome = await eraseEverything({
+      eraseBrain: async () => 'erased',
+      eraseAccount: null,
+      wipeDevice: async () => {
+        steps.push('wipe starts');
+        await new Promise((r) => setTimeout(r, 5));
+        steps.push('wipe done');
+      },
+      queueRetry: () => steps.push('queue'),
+      reload: () => steps.push('reload'),
+    });
+    expect(outcome.owed).toBe(false);
+    expect(steps).toEqual(['wipe starts', 'wipe done', 'reload']);
+  });
+
+  it('reloads anyway when a Cache refused to be opened: the keys already went', async () => {
+    const steps: string[] = [];
+    await eraseEverything({
+      eraseBrain: async () => 'erased',
+      eraseAccount: null,
+      wipeDevice: () => {
+        steps.push('wipe');
+        return Promise.reject(new Error('site data is switched off'));
+      },
+      queueRetry: () => steps.push('queue'),
+      reload: () => steps.push('reload'),
+    });
+    expect(steps).toEqual(['wipe', 'reload']);
   });
 
   it('empties the device even when nothing upstream answered at all', async () => {

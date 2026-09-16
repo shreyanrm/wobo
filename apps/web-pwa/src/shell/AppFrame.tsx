@@ -19,6 +19,7 @@
 
 import type { ReactNode } from 'react';
 import { DoubtEntry } from '../screens/doubt/DoubtEntry';
+import { InstallOffer } from '../suggest/InstallOffer';
 import { FlagControl } from '../ui/FlagControl';
 import type { FlagAbout } from '../ui/flag';
 import { AllowanceCard, AppShell, type NavId } from '../ui/primitives';
@@ -75,6 +76,10 @@ export function AppFrame({ active, children, bottom, about }: AppFrameProps) {
       {/* The doubt solver's door, one tap from every screen behind the frame (screens/doubt).
           The doubt screen carries its own camera control, so the floating one stands down there. */}
       {router.route.name !== 'doubt' ? <DoubtEntry /> : null}
+      {/* The install offer, which is why it is HERE and nowhere else: the frame is behind the door,
+          so the landing pages, the two doors and onboarding — which render no frame — can never
+          show it. It draws nothing until a learner has earned something (shell/install.ts). */}
+      <InstallOffer />
     </AppShell>
   );
 }

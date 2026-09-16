@@ -7,6 +7,7 @@ import { cssVariables } from '@wobo/config/css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { armInstallCapture } from './shell/install';
 import { bootIsPublic } from './shell/public-routes';
 import { migrateLegacyKeys } from './store/legacy-keys';
 import { bootScope } from './store/scope';
@@ -24,6 +25,32 @@ migrateLegacyKeys();
 // THEN, still before any store reads: key the device to the learner it was last keyed to, so the
 // one sentinel the boot reads (has this learner finished setup?) is read under their name.
 bootScope();
+
+/**
+ * AND HERE, BEFORE ANY CHUNK IS FETCHED: start listening for `beforeinstallprompt`.
+ *
+ * The browser fires it once per page load and an event nobody is listening for is simply gone. The
+ * listener used to be armed in an effect inside the app frame — and the frame lives behind
+ * `App.tsx`'s `lazy(() => import('./AppRuntime'))`, whole seconds of download and parse away. On a
+ * cheap Android phone, where the first interactive frame was measured at 33.9 seconds, Chromium
+ * fires into an empty room: `routeFor()` then answers null for that entire load and the learner is
+ * offered nothing, silently, on exactly the phone the offer exists for. It is the ordinary case
+ * rather than a corner, because the offer is only ever made to a learner who has already mastered
+ * a topic — a returning visitor, whose service worker and manifest are already on the device,
+ * which is precisely when the browser can fire earliest.
+ *
+ * It also closes the gap the module was written to close. `shell/install.ts` calls
+ * `preventDefault()` *"the one line that takes the banner off the landing page"* — but the frame
+ * renders on no landing page, so the landing page was the one surface where nothing was listening
+ * and the browser's own banner could still draw itself over a stranger's first paint.
+ *
+ * Cheap enough to sit at the entry: two listeners and no render, no fetch, and no storage write
+ * beyond an already-installed device recording that it is installed. It runs AFTER `bootScope()`
+ * so that record is written under the learner whose device this is, and it asks for no permission
+ * and subscribes to no push (docs/SUGGESTIONS-AND-NOTICES.md §3). WHEN the offer is made is
+ * untouched: that is still the frame's gate, after an earned moment, once (`suggest/InstallOffer`).
+ */
+armInstallCapture();
 
 // The older `--wobo-*` token layer, then the bridge that lays it onto palette v4 — the bridge comes
 // second on purpose, so a screen not yet rebuilt reads the new paper without a specificity fight.

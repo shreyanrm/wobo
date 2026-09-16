@@ -1065,3 +1065,89 @@ around the gateway on purpose, so write the date, the reason and the two ids in 
 history below.
 
 History: none yet.
+
+### The database advisors, and the 33 findings that are the design (2026-09-16)
+
+Run `get_advisors(security)` after any migration. On 2026-09-16, with 0024 to 0033 applied, it
+returned three things and only one of them is work.
+
+**33 x `rls_enabled_no_policy`, level INFO: intentional, every one.** Row level security is enabled
+AND forced on these tables with no policy attached, which denies every client role outright and
+leaves the gateway's service role as the only reader. The linter reports it because in an ordinary
+Supabase app a policyless table means somebody forgot one; here it means the opposite, and each
+migration says so in its own header ("NO policy for `authenticated` and none for `anon`"). The one
+table that SHOULD carry a policy does: `learner.board_changes` has `board_changes_own_read`, and it
+is correctly absent from the findings. **Do not "fix" these by adding a policy.** A policy on
+`content.levels` hands a learner token the whole content library; one on `ops.promo_codes` hands it
+every unredeemed code; one on `growth.waiting_list` hands it the mailing list.
+
+**3 x `extension_in_public`, level WARN:** `vector`, `pgtap` and `pg_trgm` sit in `public`, from
+0001. Real but not urgent, and moving an extension's schema breaks every reference to it, so it is
+a planned change and not a tidy-up.
+
+**1 x `auth_leaked_password_protection`, level WARN:** a dashboard toggle, on the owner's list. No
+tool in this repo can set it.
+
+### The Railway trap: a variable write redeploys GitHub `main`, not your upload (2026-09-16)
+
+**This took production down once. Read it before touching a Railway variable.**
+
+The `wobo` service is connected to the GitHub repo's `main` branch. `railway up` uploads a one-off
+source SNAPSHOT and deploys that. Every OTHER trigger — a variable write, a redeploy pressed in the
+UI, a rollback — rebuilds from **connected `main`**, ignoring whatever you last uploaded.
+
+All of our work sits on `the-life`, unpushed. On 2026-09-16 `HEAD` was **192 commits ahead of
+`origin/main`**, so setting `WOBO_DISCOVERY_WORKER=1` rebuilt `main` at `29684f29` ("app-wide
+premium polish") and shipped a months-old gateway to production. Symptoms, in the order they appear:
+
+* `/v1/doors` answers `404` instead of `{"doors_open":false}` — wave 46 is not in that build, so the
+  door that refuses new accounts is not being served at all;
+* `/healthz` still answers `200` but with the SHORT body `{"status":"ok","mode":"live"}` instead of
+  the detailed one carrying `checks`. **A changed response SHAPE is the tell**: the status code lies,
+  the shape does not.
+
+**The fix, which takes about fifteen minutes:** re-upload verified HEAD as a snapshot.
+
+```sh
+git archive HEAD | tar -x -C /tmp/restore && cp .vercel/project.json .railwayignore /tmp/restore/
+cd /tmp/restore && railway up --service wobo --detach
+```
+
+**The permanent fix is the owner's:** push `the-life` to `main`. Until `main` is current, a Railway
+variable change is a production rollback with extra steps. If a variable MUST be changed before then,
+set it and immediately re-upload HEAD, and check `/v1/doors` and the `/healthz` shape afterwards.
+
+### What the first live hour of discovery actually did (2026-09-16)
+
+Switched on at 03:11 UTC. By 03:19 the worker had stopped, and every tick since reads
+`claimed=0 ... spent=true stopped=false`. **Nothing is broken.** The chain, traced rather than guessed:
+
+* `worker.run_job` asks `ceiling.verdict()` (the $5 day, the $0.50 board, the hard stop) and then
+  asks `self.afford()`. The two are SEPARATE gates and only the second returned `spent`.
+* `afford()` calls `budget.charge("system:curriculum-discovery", "curriculum.discovery")`. That is
+  the free plan's generation counter: `_FREE_GENERATIONS = 8`, and `FREE_DAILY_GENERATIONS` is not
+  set on Railway. Eight a day.
+* It spent all eight between 03:11 and 03:19: seven rechecks of `nios` (every one `unreachable`,
+  a timeout) and one `isc` `mismatch`.
+
+The money ceiling was never reached and never close: `model_calls_today = 0`, `spend_today_usd = 0`,
+every job row's `result.cost_usd` is null, and `_amount(None)` is `0.0`, so the day's total is
+**$0.00 against a $5.00 ceiling**. A reading of the tick that says "we hit the budget" is wrong.
+
+**Two faults this exposed, both design, neither urgent:**
+
+1. **An unreachable board consumes the whole day.** Seven of eight generations went to one board
+   whose document timed out every time, and no information was gained from any of them. A board
+   that has just timed out should not be the next thing tried; `BOARD_LEVEL_REASONS` already knows
+   `timeout` and `unreachable` are facts about the HOST, and `REFUSALS_BEFORE_REST` is 3 — but that
+   resting rule guards `ceiling.verdict`, which is not the gate that fired.
+2. **A run that cost nothing still spends a generation.** `budget.refund` exists and
+   `worker._refund()` calls it, but only when a CLAIM is lost, not when a run fails. A timeout
+   costs no model call, so the day's budget is being spent on failures that bought nothing.
+
+Neither is a reason to leave discovery off: it is bounded, honest, and it stops. The fix belongs in
+a wave, with a test that a board timing out three times rests before it eats the day.
+
+**Also observed and not a fault:** `/v1/doors` takes about 316 requests in the retained log window,
+roughly one a second, across a dozen rotating `ip_hash` values with none dominant. That is the CDN
+edge fanning out, not a runaway client.

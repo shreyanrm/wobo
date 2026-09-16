@@ -38,10 +38,12 @@ const AppRuntime = lazy(() => import('./AppRuntime').then((m) => ({ default: m.A
  * the entry chunk, which is the one thing a marketing page must not pay for. A started learner who
  * turns out to be signed out is corrected to `/onboarding` by the runtime, which can ask.
  *
- * ponytail: a dev preview hook — #engines boots straight into the engine gallery for QA.
+ * DEV ONLY: #engines boots straight into the engine gallery for QA. It is gated with the bench it
+ * opens (AppRuntime.tsx), because a production build has no gallery chunk to boot into: there the
+ * hash is an ordinary hash and the boot falls through to the front door or the learner's home.
  */
 function bootIntent(): Route {
-  if (typeof location !== 'undefined' && location.hash === '#engines') {
+  if (import.meta.env.DEV && typeof location !== 'undefined' && location.hash === '#engines') {
     return { name: 'concept', which: 'engines' };
   }
   // The learner's sentinel, read under the scope `bootScope()` set in main.tsx: after a sign-out

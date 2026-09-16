@@ -47,6 +47,7 @@ import { type LessonView, lessonView, useLessonView } from '../wobo/lesson-view'
 import { MuteButton, ReplayButton, useCardNarration } from '../wobo/speech';
 import { AtomJourney } from './course/AtomJourney';
 import { Composing } from './course/Composing';
+import { hasKeptLesson } from './course/kept';
 import { type BarState, type LessonOutline, useAdvanceTarget } from './course/shared';
 import { WhatIf } from './course/WhatIf';
 import { PlacementCheck, usePlacementGate } from './onboarding/PlacementCheck';
@@ -121,9 +122,16 @@ export function Course({
   // carry it (owner law: first click says downloading → notify when ready → then they enter; tapping
   // the ready toast opens it). The atom (a prebuilt node), a mastered course (warm cache), a course
   // already ready to open, and every practice sandbox all open instantly, untouched by the gate.
+  // A lesson already kept on this device is already owned: it opens, network or no network, and
+  // the gate must not read a queue entry an offline open had flipped and send the learner home
+  // (screens/course/kept.ts).
   const dl = getDownload(topicId);
   const needsDownload =
-    !resolving && mode === 'composing' && !completed.has(topicId) && dl?.status !== 'ready';
+    !resolving &&
+    mode === 'composing' &&
+    !completed.has(topicId) &&
+    dl?.status !== 'ready' &&
+    !hasKeptLesson(topicId);
   const [progress, setProgress] = useState<{ f: number; segments: number }>({
     f: 0.08,
     segments: 9,

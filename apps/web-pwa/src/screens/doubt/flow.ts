@@ -100,6 +100,27 @@ export function reduce(state: DoubtFlow, action: FlowAction): DoubtFlow {
   }
 }
 
+/** The one action a photo arrives on, whoever took it. */
+export type CapturedAction = Extract<FlowAction, { type: 'captured' }>;
+
+/**
+ * A SHARED PHOTO IS A CAPTURED PHOTO.
+ *
+ * A child who photographs the page in the gallery app and shares it to Wobo has done exactly what
+ * the camera button does, one screen earlier, so the flow must not learn a second way to begin: it
+ * is the same `captured` action, the same `reading` phase, the same reading shown before anything
+ * is computed (LAW 1). The share target's own halves are the manifest (vite.config.ts), the worker
+ * that answers the POST (public/share-target.js) and the collection on arrival (capture.ts).
+ *
+ * And the quiet case, which is why this returns null rather than an action of its own: a share
+ * that carried no image is NOT AN EVENT. The learner lands on the capture step with the camera in
+ * front of them and nothing is said about what did not arrive (DESIGN.md §0.x, never narrate) —
+ * there is no refusal to print, because nothing was refused.
+ */
+export function shared(capture: Capture | null): CapturedAction | null {
+  return capture ? { type: 'captured', capture } : null;
+}
+
 /** LAW 1's gate. A reading, shown, with at least one line still in it. */
 export function explainAllowed(state: DoubtFlow): boolean {
   return (

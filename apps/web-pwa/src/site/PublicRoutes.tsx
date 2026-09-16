@@ -48,7 +48,6 @@ const load = {
   exams: () => import('../screens/growth/Exams'),
   glossary: () => import('../screens/growth/Glossary'),
   syllabus: () => import('../screens/syllabus/Syllabus'),
-  uiKit: () => import('../ui/UiKit'),
 } as const;
 
 const About = lazy(() => load.about().then((m) => ({ default: m.About })));
@@ -90,8 +89,17 @@ const GlossaryPage = lazy(() => load.glossary().then((m) => ({ default: m.Glossa
 const GlossaryEntryPage = lazy(() => load.glossary().then((m) => ({ default: m.GlossaryEntry })));
 // DEV ONLY: the kit gallery at /ui-kit — every primitive in both themes, for the design gate. A
 // production build has no chunk for it and the address answers with the 404.
+//
+// THE IMPORT SITS INSIDE THE GATE, AND IT DID NOT USED TO, which is why this gate read as though
+// it had already removed the kit while the kit shipped anyway. `uiKit` was a property of the
+// `load` table above, and a property of an always-constructed object is always reachable: the
+// dynamic import stayed live in the module graph and Rollup emitted the chunk however dead the
+// `lazy` beside it was. Measured in the built app: `UiKit-C5vZXnZD.js`, 8.3 kB, precached into
+// every install. A dev-only surface is removed by making its `import()` lexically unreachable in
+// a production build, and by nothing else — so no loader for a bench may live in `load`.
+const loadUiKit = import.meta.env.DEV ? () => import('../ui/UiKit') : null;
 const UiKit = import.meta.env.DEV
-  ? lazy(() => load.uiKit().then((m) => ({ default: m.UiKit })))
+  ? lazy(() => import('../ui/UiKit').then((m) => ({ default: m.UiKit })))
   : null;
 
 /** The module a public address needs. Kept beside `publicScreen` so the two cannot drift. */
@@ -156,7 +164,8 @@ function loaderFor(route: Route): (() => Promise<unknown>) | null {
     case 'notfound':
       return load.notFound;
     case 'ui-kit':
-      return UiKit ? load.uiKit : load.notFound;
+      // `loadUiKit` is null in a production build, so the address preloads the 404 it will render.
+      return loadUiKit ?? load.notFound;
     default:
       return null;
   }

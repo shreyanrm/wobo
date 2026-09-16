@@ -94,9 +94,17 @@ function withoutComments(code: string): string {
   return code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
 }
 
-/** A use, not a mention: the name followed by a member, a call, a type mark, or after `typeof`. */
+/**
+ * A use, not a mention: the name followed by a member, a call, a type mark, or after `typeof`.
+ *
+ * CACHE STORAGE IS ON THIS LIST FOR EVERY VERB, not only `open`. It was `caches.open(` alone until
+ * 2026-09-16, which is the same blindness the store it guards was built with: Cache Storage holds
+ * a learner's data (a photograph of their homework, in `wobo-share-v1`) and is reachable by none
+ * of the key walks, so a file that only ever DELETES or ENUMERATES caches was invisible to the one
+ * test that exists to notice such a file.
+ */
 const STORAGE_USE =
-  /\b(localStorage|sessionStorage|indexedDB)\b(?=\s*[.;?)])|typeof\s+(localStorage|sessionStorage|indexedDB)\b|\bopenDatabase\(|\bcaches\.open\(/;
+  /\b(localStorage|sessionStorage|indexedDB)\b(?=\s*[.;?)])|typeof\s+(localStorage|sessionStorage|indexedDB)\b|\bopenDatabase\(|\bcaches\.(open|delete|keys|match|has)\(/;
 
 interface Hit {
   file: string;
@@ -370,9 +378,80 @@ describe('erase and start over', () => {
     scoped.setItem('wobo-archive-v1', 'x');
     scopedSession.setItem('wobo-sky-seen-v1', '[]');
     local.setItem('unrelated', 'stays');
-    wipeDevice();
+    // the keys go synchronously, before the first await, exactly as they always did
+    void wipeDevice();
     expect(local.keys()).toEqual(['unrelated']);
     expect(session.keys()).toEqual([]);
+  });
+});
+
+/**
+ * THE STORE NO KEY WALK REACHED (the fixer, 2026-09-16).
+ *
+ * Cache Storage is not a `Storage`: no `length`, no `key(i)`, no `removeItem`. So `wipeDevice` and
+ * `forgetScope` both walked straight past it for as long as both have existed, and there was
+ * something in it — `wobo-share-v1`, the Cache a photograph of a child's homework waits in between
+ * the phone's share sheet and the doubt screen (`screens/doubt/capture.ts`). "Erase and start
+ * over" promises THIS DEVICE and left the photo on the phone; a sign-out is the family tablet
+ * being handed to a sibling and left it there too.
+ */
+describe('the Caches go with the keys', () => {
+  /** Cache Storage, small enough to reason about: names in, names out, names deleted. */
+  function stubCaches(names: string[]): { left: () => string[]; restore: () => void } {
+    const held = new Set(names);
+    const had = (globalThis as { caches?: unknown }).caches;
+    (globalThis as { caches?: unknown }).caches = {
+      keys: async () => [...held],
+      delete: async (name: string) => held.delete(name),
+    };
+    return {
+      left: () => [...held],
+      restore: () => {
+        (globalThis as { caches?: unknown }).caches = had;
+      },
+    };
+  }
+
+  const ALL = ['wobo-share-v1', 'workbox-precache-v2-https://wobo.test/', 'rdkit-wasm'];
+
+  it('erase and start over empties every wobo Cache, and leaves the app’s own precache alone', async () => {
+    const store = stubCaches(ALL);
+    try {
+      await wipeDevice();
+      // a photograph of somebody's homework is not left on a phone that was asked to forget them
+      expect(store.left()).not.toContain('wobo-share-v1');
+      // and the offline product survives: workbox's caches hold the app's code and nobody's data
+      expect(store.left()).toEqual(['workbox-precache-v2-https://wobo.test/', 'rdkit-wasm']);
+    } finally {
+      store.restore();
+    }
+  });
+
+  it('a sign-out takes the share Cache too: the tablet is being handed over', async () => {
+    const store = stubCaches(ALL);
+    try {
+      applyScope('learner-a');
+      forgetScope('learner-a');
+      // fired rather than awaited (forgetScope is not async, and its caller has a navigation to
+      // run before anything could read the store again), so let the sweep settle
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(store.left()).not.toContain('wobo-share-v1');
+    } finally {
+      store.restore();
+    }
+  });
+
+  it('says nothing and breaks nothing in a browser with no Cache Storage at all', async () => {
+    const had = (globalThis as { caches?: unknown }).caches;
+    (globalThis as { caches?: unknown }).caches = undefined;
+    try {
+      local.setItem('wobo-theme-v1', 'dark');
+      await wipeDevice();
+      expect(local.keys()).toEqual([]);
+    } finally {
+      (globalThis as { caches?: unknown }).caches = had;
+    }
   });
 });
 

@@ -81,8 +81,10 @@ export const ONBOARDED_KEY = 'wobo-onboarded-v1';
  */
 export function bootIsPublic(): boolean {
   if (typeof window === 'undefined') return false;
-  // ponytail: a dev preview hook — #engines boots straight into the engine gallery for QA.
-  if (window.location.hash === '#engines') return false;
+  // DEV ONLY: the #engines preview hook, gated with the bench it opens (AppRuntime.tsx). In a
+  // production build there is no gallery chunk, so sending a visitor into the app runtime for this
+  // hash would cost them the whole runtime to arrive at a 404.
+  if (import.meta.env.DEV && window.location.hash === '#engines') return false;
   const path = window.location.pathname;
   if (path === '/' || path === '') {
     // No storage to read is a miss, and a miss is a new visitor, which is the safe guess.

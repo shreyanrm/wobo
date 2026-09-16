@@ -38,8 +38,12 @@ export interface EraseDoors {
   eraseBrain: () => Promise<BrainErase>;
   /** The account's rows, or null where this build has no account layer at all. */
   eraseAccount: (() => Promise<AccountErase>) | null;
-  /** Every `wobo-` key on this device, both stores. */
-  wipeDevice: () => void;
+  /**
+   * Every `wobo-` key on this device, both stores, and every `wobo-` Cache. The Caches need a
+   * promise (Cache Storage has no synchronous form), so this may return one and the sequence waits
+   * for it: a delete still in flight when `reload` fires is a delete that may never land.
+   */
+  wipeDevice: () => void | Promise<void>;
   /** Remember that the brain still has to be told. Called only AFTER the wipe. */
   queueRetry: () => void;
   /** Start over on a clean device. */
@@ -76,7 +80,14 @@ export async function eraseEverything(doors: EraseDoors): Promise<EraseOutcome> 
     }
   }
   const owed = brain === 'pending' || accountFailed.length > 0;
-  doors.wipeDevice();
+  try {
+    // Awaited, so Cache Storage is actually empty before the reload below: `wipeDevice` sweeps the
+    // Caches too now (store/scope.ts), and the share Cache can be holding a photograph.
+    await doors.wipeDevice();
+  } catch {
+    // The keys go synchronously inside it; a Cache this browser refused to open is not a reason to
+    // strand the learner on a screen that still holds their name.
+  }
   // AFTER the wipe, never before: `wipeDevice` takes every `wobo-` key, and the marker is one.
   if (owed) doors.queueRetry();
   doors.reload();

@@ -48,7 +48,27 @@ export default defineConfig({
   testDir: './tests',
   // The cross-browser matrix lives beside the journey specs but is a separate suite with its own
   // config, port and engines (tests/x-browser.config.ts) — `test:e2e` must not pull it in.
-  testIgnore: ['x-browser.spec.ts'],
+  // The cold-start stopwatch (tests/cold-start.config.ts) is out for the same reason and one more:
+  // it measures the BUILT site over a throttled link, so against this dev server it would be
+  // measuring a machine nobody owns.
+  // The offline proof (tests/offline-lessons.config.ts) is out for the same reason as the cold
+  // start and one of its own: what it proves is the service worker's precache and the lesson a
+  // learner keeps on the device, and this dev server ships no worker at all, so the network cut
+  // would be measuring a page that never needed the network.
+  //
+  // THIS LIST IS NOT WHAT EXCLUDES THEM, and that is worth knowing before trusting it. A PROJECT
+  // that declares its own `testIgnore` REPLACES this one rather than adding to it, and the
+  // `chromium` project below declares one (auth-doors, isolation). So for the only project that
+  // runs the journey suite, this array was dead: `bunx playwright test --list` collected the whole
+  // cross-browser matrix (16 tests), the offline proof and the cold-start stopwatch into the
+  // journey run and drove each of them against this dev server, which is the wrong server for all
+  // three and is exactly what their own comments say must not happen. Measured, not assumed:
+  // adding them here changed the collected count by nothing at all.
+  //
+  // It stays because it is right for any project added later that does not declare its own, and
+  // because the exclusion is stated once where a reader looks for it. What actually bites is the
+  // copy in the chromium project.
+  testIgnore: ['**/x-browser.spec.ts', '**/cold-start.spec.ts', '**/offline-lessons.spec.ts'],
   // Refuse to run against an app that can reach a gateway. `reuseExistingServer` below will attach
   // to whatever is already on the port, and a plain `bun run dev` is wired to the brain on 8081 —
   // which turns every console-error assertion in the suite into a CORS failure that says nothing
@@ -77,7 +97,18 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: ['auth-doors.spec.ts', 'isolation.spec.ts'],
+      // The two doors and the two learners have their own servers (above), and the three suites
+      // that follow them have their own configs: the cross-browser matrix, the offline proof and
+      // the cold-start stopwatch. A project's `testIgnore` REPLACES the top-level one, so the
+      // whole exclusion has to be stated here or it does not happen — which is how the matrix came
+      // to run inside every journey run.
+      testIgnore: [
+        'auth-doors.spec.ts',
+        'isolation.spec.ts',
+        '**/x-browser.spec.ts',
+        '**/cold-start.spec.ts',
+        '**/offline-lessons.spec.ts',
+      ],
     },
     {
       name: 'auth',
