@@ -28,7 +28,7 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 
 | What | Wave | Where it is |
 |---|---|---|
-| Nothing. Wave 36 landed as `22008958`, deployed, and the gateway names that commit in `/healthz` | 36 | Verified on an isolated index before the push: gateway 6878 passed, 51 skipped, 0 failed; web 3970 pass, 0 fail (the project's `bun run test`); board 1139, 0 fail; typecheck clean; gate clean. **Wave 55 is next** |
+| The wire: the course tells the teaching what just happened | 55 | RUNNING since 2026-09-16, run `wf_3f48e0b9-7b2`. Plays a learner through the real course screen first and halts itself if the re-choice already fires. One builder at the course boundary (record the miss, feed `stuckOn`, one answer ends a topic), one on the gateway climb, four adversaries, one closer. Wave 36 landed before it as `22008958` and the owner's rulings as `a09fb1f8`; the gateway serves `a09fb1f8` |
 
 ## The queue, in order
 
@@ -37,7 +37,7 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | # | What | Wave |
 |---|---|---|
-| 1 | The wire: the course tells the teaching what just happened, and one answer ends a topic | 55 |
+| 1 | The cadence: at least three mails a week, more when behaviour calls for it, a taper for the family that has gone | 56 |
 | 2 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
 | 3 | The growth desk, the press page, chapter pages at tier two | 50 |
 | 4 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
@@ -76,7 +76,7 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | What | Where it is specified |
 |---|---|
-| ~~`WEEKLY_NUDGE_CAP = 2` is the builder's own number~~ **RULED 2026-09-16: three a week**, see the owner's answers | wave 38. **Closed** |
+| ~~`WEEKLY_NUDGE_CAP = 2` is the builder's own number~~ **RULED, then REVISED 2026-09-16: at least three a week, more by behaviour** | wave 56 |
 | The orb library is wired into nothing: no file imports `orb-moves.css`, no component emits its markup, and only 8 of the 12 moves exist | wave 38's own open item. Everything resting on it (the rewards, the levels, the wait, the feel) stays blocked until one import and one component exist |
 | The signed card link is never minted in production, so a mail cannot yet open the exact card; no click is ever measured | wave 38. `quick_one` sends nothing until a surface supplies course_id and card_id |
 
@@ -153,7 +153,7 @@ rather than remembered, and every line below was checked against the code on 202
 | `main`'s three required checks were bypassed by the push | *"Keep bypassing, I verify first"* | **RULED.** Nothing reaches `main` without every suite, typecheck and the gate passing on an isolated index first; each bypass is named in its report. OPERATIONS.md carries it |
 | The bar says "Refills overnight."; ALLOWANCE.md said "Resets at midnight." | *"Keep 'Refills overnight.'"* | **RULED.** The clock law wins. ALLOWANCE.md §2 amended |
 | Should the creative pool refuse work at 100 percent? | *"Keep alerting, don't refuse"* | **RULED.** It warns at 50, 80 and 100 and never stops mid-authoring; only the free pool closes. ALLOWANCE.md amended |
-| `WEEKLY_NUDGE_CAP`, a builder's two | *"Three a week"* | **DONE.** `WEEKLY_NUDGE_CAP = 3`; both mail footers say "at most three times a week"; a test pins the number and fails at two; the cadence tests now read the constant. EMAILS-AND-ANIMATIONS.md carries it |
+| `WEEKLY_NUDGE_CAP`, a builder's two | *"Three a week"*, then the same day: *"we can honestly send more emails with a minimum of 3 a week depending on user behaviour and streak ... we need to constantly remind people that we exist and we are doing good for them"* | **REVISED.** Three is a FLOOR. `a09fb1f8` shipped three as a cap, which is now the interim. Wave 56 builds the floor, the behaviour-driven extras up to one a day, the taper for a family that has gone, and a true footer. EMAILS-AND-ANIMATIONS.md carries the revised law |
 
 ## Waiting on the owner, and nothing else
 

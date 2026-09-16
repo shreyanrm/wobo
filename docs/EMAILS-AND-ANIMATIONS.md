@@ -26,13 +26,25 @@ unsubscribe for that kind. Subject lines are the learner's name and a verb.
 
 The laws that bind every one:
 - **The inbox law stands:** no address hears from Wobo twice in twenty-four hours, and a nudge is
-  never sent on a day the learner came. A learner who came three days running gets no mail that week
-  but the Sunday note.
-- **The weekly cadence (the owner, 2026-09-16): three a week.** No address hears more than three
-  nudges in any rolling seven days, counted across every nudge kind, because a parent experiences
-  an inbox and not a taxonomy. A builder had set two; the owner ruled three. `WEEKLY_NUDGE_CAP` in
-  `hospitality/nudges.py`, pinned by a test that fails at any other number, and both mail footers
-  promise "at most three times a week".
+  never sent on a day the learner came. A learner who came three days running gets no "come back" mail that week (the good-news mail
+  under the cadence ruling below is not a "come back" mail and is not silenced by coming).
+- **The weekly cadence (the owner, 2026-09-16, revised the same day): at least three a week, and more
+  when the learner's behaviour calls for it.** The owner: *"we can honestly send more emails with a
+  minimum of 3 a week depending on user behaviour and streak and making them use the application
+  more ... we need to constantly remind people that we exist and we are doing good for them."*
+  Three is a FLOOR, not a ceiling. Every address hears from Wobo at least three times in any rolling
+  week, and most of those are good news about the learner's own work (what they did, what they
+  cracked, what comes next), which is what "we are doing good for them" means in an inbox. Above the
+  floor, behaviour earns more: a streak about to break, a chapter nearly done, a quiet spell. The
+  ceiling is the inbox law's one a day. Still binding on every one: never twice in twenty-four hours,
+  never after 8 pm, one-click unsubscribe per kind, under-13 mail to the parent, never narrate.
+  Two guards come with sending more. A "come back" mail never goes to someone who came that day. And
+  a family that has not come back after several "come back" mails falls back to the floor rather
+  than hearing daily from a product it has left; that number is a console dial, because a spam
+  complaint costs the Primary tab for every family (docs/MAIL-PRIMARY.md). The signal is whether the
+  learner came back, never an open-tracking pixel, which stays off. Content stays about the learner's
+  learning, because DPDP s.9(3) bars behavioural monitoring of a child for any other purpose
+  (docs/LEGAL-REVIEW.md). Wave 56 makes this true; until it lands the code still caps at three.
 - **Never a late hour** (the hours law): a nudge goes at the hour the learner usually learns, or at
   4 pm local, never after 8 pm.
 - **Under 13, the mail goes to the parent**, in the parent's register, about the child.
