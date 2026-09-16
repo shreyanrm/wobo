@@ -114,14 +114,35 @@ def test_a_lapsed_learners_parent_does_not_hear_from_us_thirteen_days_in_a_fortn
         if result.get("ok"):
             got += 1
             a_send(TEEN.email, when=moment)
-    assert got <= 4, f"a fortnight of nudges sent {got} mails to one address"
+    # Two rolling weeks, each held to the owner's weekly number: the thirteen becomes at most six.
+    ceiling = 2 * nudges_mod.WEEKLY_NUDGE_CAP
+    assert got <= ceiling, f"a fortnight sent {got} mails to one address (ceiling {ceiling})"
 
 
-def test_a_third_nudge_in_one_week_is_held() -> None:
+def test_the_owners_cadence_is_three_a_week() -> None:
+    """The owner, 2026-09-16, ruling on a number a builder had set at two: three a week."""
+    assert nudges_mod.WEEKLY_NUDGE_CAP == 3
+
+
+def _earlier_this_week(count: int) -> None:
+    """``count`` sends to one address on separate earlier days inside the rolling week."""
+    for i in range(count):
+        days_back = 2 + 2 * i  # 2, 4, 6: separate days, all inside seven
+        assert days_back < nudges_mod.NUDGE_WEEK.days, "raise the cap, re-space these sends"
+        a_send(TEEN.email, when=WED_FOUR_PM_IST - timedelta(days=days_back))
+
+
+def test_the_last_nudge_the_week_allows_still_goes() -> None:
     send = Recorder()
-    a_send(TEEN.email, when=WED_FOUR_PM_IST - timedelta(days=4))
-    a_send(TEEN.email, when=WED_FOUR_PM_IST - timedelta(days=2))
-    result = send_nudge(a_nudge(once_key="third"), now=WED_FOUR_PM_IST, send=send)
+    _earlier_this_week(nudges_mod.WEEKLY_NUDGE_CAP - 1)
+    result = send_nudge(a_nudge(once_key="last-allowed"), now=WED_FOUR_PM_IST, send=send)
+    assert result.get("ok"), result
+
+
+def test_a_nudge_past_the_weekly_cap_is_held() -> None:
+    send = Recorder()
+    _earlier_this_week(nudges_mod.WEEKLY_NUDGE_CAP)
+    result = send_nudge(a_nudge(once_key="one-too-many"), now=WED_FOUR_PM_IST, send=send)
     assert result.get("error") == "weekly_cap", result
     assert send.sent == []
 

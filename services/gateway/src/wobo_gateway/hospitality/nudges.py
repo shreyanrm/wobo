@@ -73,9 +73,10 @@ RETURN_NUDGES: frozenset[str] = frozenset({"quick_one", "mid_chapter", "bonus_le
 #: it. ``came_enough`` silences only the learner who came three days this week, so the ENGAGED
 #: family was capped and the LAPSED one was not, which is exactly backwards from the parent's
 #: chair: the family hearing from us most was the one showing least interest in hearing from us.
-#: Two a week, counted by ADDRESS over a rolling seven days and across every nudge kind, because
-#: what a parent experiences is an inbox and not a taxonomy.
-WEEKLY_NUDGE_CAP = 2
+#: Three a week (the owner, 2026-09-16, ruling on a number a builder had set at two), counted by
+#: ADDRESS over a rolling seven days and across every nudge kind, because what a parent experiences
+#: is an inbox and not a taxonomy.
+WEEKLY_NUDGE_CAP = 3
 NUDGE_WEEK = timedelta(days=7)
 
 #: The kinds whose own sentence names a card ("the next card is waiting", "two cards are left").

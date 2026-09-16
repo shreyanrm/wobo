@@ -28,6 +28,11 @@ The laws that bind every one:
 - **The inbox law stands:** no address hears from Wobo twice in twenty-four hours, and a nudge is
   never sent on a day the learner came. A learner who came three days running gets no mail that week
   but the Sunday note.
+- **The weekly cadence (the owner, 2026-09-16): three a week.** No address hears more than three
+  nudges in any rolling seven days, counted across every nudge kind, because a parent experiences
+  an inbox and not a taxonomy. A builder had set two; the owner ruled three. `WEEKLY_NUDGE_CAP` in
+  `hospitality/nudges.py`, pinned by a test that fails at any other number, and both mail footers
+  promise "at most three times a week".
 - **Never a late hour** (the hours law): a nudge goes at the hour the learner usually learns, or at
   4 pm local, never after 8 pm.
 - **Under 13, the mail goes to the parent**, in the parent's register, about the child.

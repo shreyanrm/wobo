@@ -1829,12 +1829,12 @@ def _why(kind_line: str, audience: str, learner: str, *, cadence: str = "") -> s
     lowered = f"{kind_line[0].lower()}{kind_line[1:]}" if kind_line else ""
     if audience == "parent":
         who = learner or "your child"
-        held = cadence or "It comes at most twice a week, and never on a day they came in."
+        held = cadence or "It comes at most three times a week, and never on a day they came in."
         return (
             f"You get this because {who} is under thirteen, so mail about their learning comes "
             f"to you. {opener} {held} Reply to this note and a person answers."
         )
-    held = cadence or "It comes at most twice a week, and never on a day you came in."
+    held = cadence or "It comes at most three times a week, and never on a day you came in."
     return (
         f"You get this because you have a {APP_NAME} account and {lowered} {held} "
         f"Reply to this note and a person answers."

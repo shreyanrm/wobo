@@ -26,7 +26,9 @@ arithmetic; the learner sees one bar.
 ## 2. What the learner sees
 
 One bar on the You page, under the plan: **"Today"**, filled by today's use against today's
-allowance, with one line underneath: "Resets at midnight." **No money anywhere at the learner's end,
+allowance, with one line underneath: "Refills overnight." (The owner, 2026-09-16: the clock law
+wins, so no hour is named on a learner's screen; the day is still the learner's own, midnight to
+midnight in their zone, and the refusal carries that moment on the wire.) **No money anywhere at the learner's end,
 and not at the parent's either** (the owner, 2026-09-08: "it's not money based at the users' end;
 that is only for internal purposes"). The rupees exist in the gateway's arithmetic and on the
 superadmin's pace desk, and nowhere else. When the bar is full, Wobo says the same honest line the
@@ -90,6 +92,11 @@ we will keep teaching until they understand, and we aren't the ones paying for t
 
 So the platform's share is small and bounded (the creative pool's cap), and "keep teaching until they
 understand" is paid by the plan, which is what a plan is for.
+
+**The creative pool warns and never stops (the owner, 2026-09-16).** At 50, 80 and 100 percent of
+its daily cap the owner is told. At 100 it does not refuse work, because halting `create.core`
+mid-authoring would leave half-made content behind. The owner closes it by hand from the console
+if they choose. The free pool is the one that closes on its own.
 
 ## The free tier: five rupees a day, on Luna (owner, 2026-09-08)
 

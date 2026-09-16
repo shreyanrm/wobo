@@ -1224,3 +1224,10 @@ itself: `curl -s https://api.heywobo.com/healthz` returns `version` — the runn
 its own commit. On 2026-09-16 that read `d043e6783338eeb…`, matching `main`, with
 `status: degraded` for `payments` alone (Razorpay, awaiting the owner's keys) and
 `/v1/doors` answering `{"doors_open":false}`.
+
+**`main`'s required checks are bypassed on purpose (the owner, 2026-09-16).** `main` carries branch
+protection with three required status checks, and a push from the owner's account lands by
+bypassing them (`remote: Bypassed rule violations for refs/heads/main`). The owner ruled to keep
+it that way, on one condition: nothing reaches `main` that has not first passed every suite,
+typecheck and the gate on an isolated index (the write-tree recipe above), which is stricter than
+those checks. Every commit that bypasses says so in its report. A bypass is never silent.

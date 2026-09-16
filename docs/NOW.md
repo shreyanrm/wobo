@@ -28,7 +28,7 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 
 | What | Wave | Where it is |
 |---|---|---|
-| Nothing. Wave 54 is in the tree and verified | 54 | LANDED in the tree, uncommitted. Verified 2026-09-16 on this index: typecheck clean, web 3949 pass 0 fail (266 files), gateway 6385 pass 0 fail (51 skipped), `bun run build` clean, all three gates clean. The four things it left open are named below, in "Named by wave 54, and open" |
+| Nothing. Wave 36 landed as `22008958`, deployed, and the gateway names that commit in `/healthz` | 36 | Verified on an isolated index before the push: gateway 6878 passed, 51 skipped, 0 failed; web 3970 pass, 0 fail (the project's `bun run test`); board 1139, 0 fail; typecheck clean; gate clean. **Wave 55 is next** |
 
 ## The queue, in order
 
@@ -47,6 +47,7 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | What | Wave | Proof |
 |---|---|---|
+| The allowance, the money's voice, and two leaks found in the wave's own work | 36 | `22008958`. The free lane finally wired (every free turn had been served by Terra at about eleven times Luna's price); both platform pools made real; the money's voice placed and held equal to money.md; every promo code had been 404ing, now fixed. The judge caught the parent companion dropping from Terra to Luna for every family, Max included, and the turn counters resetting on the server's day instead of the learner's; both closed red-first. Isolated index: gateway 6878/0, web 3970/0, board 1139/0 |
 | The ink's correctness at four out of four | 42, 47 | correctness scores 4.00; craft is what wave 48 is closing |
 | The public site readable by a crawler that runs no script | 43 | 440 pages of real HTML, a canonical on each, a real 404 |
 | The page families | 44 | the syllabus door, chapters, topics, subjects, comparisons, the blog |
@@ -75,7 +76,7 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | What | Where it is specified |
 |---|---|
-| **`WEEKLY_NUDGE_CAP = 2` is the builder's own number.** The mail design set a day cap but never a cadence, which left a licence for thirty mails a month. Two a week, counted by address, is a choice nobody ruled on | wave 38. **Wants the owner's confirmation** |
+| ~~`WEEKLY_NUDGE_CAP = 2` is the builder's own number~~ **RULED 2026-09-16: three a week**, see the owner's answers | wave 38. **Closed** |
 | The orb library is wired into nothing: no file imports `orb-moves.css`, no component emits its markup, and only 8 of the 12 moves exist | wave 38's own open item. Everything resting on it (the rewards, the levels, the wait, the feel) stays blocked until one import and one component exist |
 | The signed card link is never minted in production, so a mail cannot yet open the exact card; no click is ever measured | wave 38. `quick_one` sends nothing until a surface supplies course_id and card_id |
 
@@ -149,11 +150,16 @@ rather than remembered, and every line below was checked against the code on 202
 | Reserve the name in Play Console and App Store Connect | *"will do"* | Deferred |
 | File the trademark, classes 41 and 9 | *"will do eventually"* | Deferred |
 | Turn on Supabase leaked-password protection | *"i dont find it?"* | Path given: Dashboard → Authentication → Sign In / Providers → Email → **Password security**. If the toggle is greyed out it is plan-gated, not missing. One advisory either way |
+| `main`'s three required checks were bypassed by the push | *"Keep bypassing, I verify first"* | **RULED.** Nothing reaches `main` without every suite, typecheck and the gate passing on an isolated index first; each bypass is named in its report. OPERATIONS.md carries it |
+| The bar says "Refills overnight."; ALLOWANCE.md said "Resets at midnight." | *"Keep 'Refills overnight.'"* | **RULED.** The clock law wins. ALLOWANCE.md §2 amended |
+| Should the creative pool refuse work at 100 percent? | *"Keep alerting, don't refuse"* | **RULED.** It warns at 50, 80 and 100 and never stops mid-authoring; only the free pool closes. ALLOWANCE.md amended |
+| `WEEKLY_NUDGE_CAP`, a builder's two | *"Three a week"* | **DONE.** `WEEKLY_NUDGE_CAP = 3`; both mail footers say "at most three times a week"; a test pins the number and fails at two; the cadence tests now read the constant. EMAILS-AND-ANIMATIONS.md carries it |
 
 ## Waiting on the owner, and nothing else
 
 | What | Why it matters | Effort |
 |---|---|---|
+| A money line for the promo field, in the owner's own words | `docs/copy/money.md` has no row for it, and the verbatim rule means nobody else may write one. Until then the field carries only the forbidden-word half of the law | one sentence |
 
 | Reserve the app name Wobo in Play Console and App Store Connect | a namespace, not a build; the owner's call whether to do it now | a form, about 10,500 rupees a year |
 
