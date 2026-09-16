@@ -60,6 +60,12 @@ _ID_COLUMN = "subject_id"
 _PREFERENCES_TABLE = "mail_preferences"
 _PARENT_LINKS_TABLE = "parent_links"
 _LEARNER_COLUMN = "learner_id"
+#: The activity record (migration 0034, :mod:`wobo_gateway.activity`): the learner's summary row,
+#: the days they came, and their sessions. It exists to teach and to write their own mail, and a
+#: learner who asks to be forgotten takes all of it with them. The day rows and the sessions are
+#: deleted here too even though a client token may delete them itself, because the gateway's
+#: erase is the one that must be complete when the device's is not.
+_ACTIVITY_TABLES: tuple[str, ...] = ("activity", "meter_state", "sessions")
 
 #: A subject reaches a PostgREST filter, so it is checked before it is interpolated. Supabase
 #: subjects are uuids; the dev seam's are short slugs. Anything else is refused outright rather
@@ -98,6 +104,9 @@ class Erasure:
     #: that is unmistakably theirs.
     doubts: int = 0
     photos: int = 0
+    #: The activity record (0034): the summary row, the day rows and the sessions, counted
+    #: together — "when you came and what you did" is one thing to a family.
+    activity: int = 0
     #: True when a durable store was configured and answered. False means device-side only.
     durable: bool = False
     #: Stores that refused. Non-empty means the learner has NOT been fully forgotten.
@@ -116,6 +125,7 @@ class Erasure:
                 "parent_plane": self.parent_plane,
                 "doubts": self.doubts,
                 "photos": self.photos,
+                "activity": self.activity,
             },
             "durable": self.durable,
             "failed": list(self.failed),
@@ -277,6 +287,18 @@ def erase_durable(subject: str) -> Erasure:
             logger.warning(f"memory: {attr} erase failed", extra={"fields": {"error": str(exc)}})
             out.failed.append(table)
 
+    # The activity record: every row, every table, each attempted whatever the one before did.
+    for table in _ACTIVITY_TABLES:
+        try:
+            rows = _request(_url(base, table, subject), key, "DELETE", want_rows=True)
+            out.activity += len(rows) if isinstance(rows, list) else 0
+        except _NETWORK_ERRORS as exc:
+            logger.warning(
+                "memory: activity erase failed",
+                extra={"fields": {"table": table, "error": str(exc)}},
+            )
+            out.failed.append(table)
+
     return out
 
 
@@ -356,6 +378,12 @@ def erase(subject: str, *, board_key: str) -> Erasure:
     prefs_gone, links_gone = _forget_in_process(subject)
     out.mail_preferences += prefs_gone
     out.parent_links += links_gone
+    # The activity record held in this process (a run without a project, ``ACTIVITY_STORE=memory``).
+    from wobo_gateway import activity
+
+    record = activity.get_store()
+    if isinstance(record, activity.InMemoryActivityStore):
+        out.activity += record.forget_all(subject)
     # Cached generations keyed to this learner: the board turns still replayable in the resume
     # window carry the learner's own words and Wobo's answer to them.
     out.boards = board_stream.forget(board_key)

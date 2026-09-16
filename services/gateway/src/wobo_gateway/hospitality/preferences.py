@@ -54,12 +54,27 @@ _REGION = re.compile(r"^[A-Z]{2}-[A-Z0-9]{1,3}$")
 _TIMEZONE = re.compile(r"^[A-Za-z_+-]+(/[A-Za-z0-9_+-]+)*$")
 _CALENDAR = re.compile(r"^[a-z][a-z0-9-]*$")
 
-#: The five nudges (docs/EMAILS-AND-ANIMATIONS.md §1). Each is its own dial with its own
-#: one-click stop, because a family that wants the doubt answered but not the streak must be able
-#: to say exactly that: a single "fewer emails" switch is how a reader ends up pressing Block.
-NUDGE_KINDS: tuple[str, ...] = ("quick_one", "mid_chapter", "streak", "bonus_level", "doubt")
+#: The five nudges (docs/EMAILS-AND-ANIMATIONS.md §1), and the good-news note the weekly cadence
+#: fills its floor with (wave 56). Each is its own dial with its own one-click stop, because a
+#: family that wants the doubt answered but not the streak must be able to say exactly that: a
+#: single "fewer emails" switch is how a reader ends up pressing Block.
+NUDGE_KINDS: tuple[str, ...] = (
+    "quick_one",
+    "mid_chapter",
+    "streak",
+    "bonus_level",
+    "doubt",
+    "learning_note",
+)
 
 MAIL_KINDS: tuple[str, ...] = ("sunday_note", "wins", "festivals", *NUDGE_KINDS)
+
+#: Dials a later migration adds (``learning_note``: 0035). A project that has not had that
+#: migration applied answers any write carrying the column with "no such column" (PostgREST's
+#: PGRST204), which made every stop link and "stop everything" a 503 (2026-09-16). The store
+#: therefore writes the rest without it, and a row that cannot hold the dial reads it as OFF: a
+#: stop we cannot keep is a kind we do not send.
+LATE_COLUMNS: tuple[str, ...] = ("learning_note",)
 
 
 @dataclass(frozen=True)
@@ -73,6 +88,8 @@ class MailPreferences:
     streak: bool = True
     bonus_level: bool = True
     doubt: bool = True
+    # What the learner did, cracked and has next: the cadence's floor (migration 0035).
+    learning_note: bool = True
     festival_calendar: tuple[str, ...] = ()
     country: str | None = None
     region: str | None = None
@@ -229,8 +246,16 @@ def from_row(row: dict[str, Any]) -> MailPreferences:
     calendars = row.get("festival_calendar")
     if isinstance(calendars, str):  # PostgREST renders text[] as JSON; a raw pg literal is "{a,b}"
         calendars = [c for c in calendars.strip("{}").split(",") if c]
+    # A row the project returned carries the first dials (0010). If it lacks a later one, the
+    # project cannot hold that dial yet, and a dial nobody can switch off is not switched on.
+    from_the_table = "sunday_note" in row
     return MailPreferences(
-        **{kind: row.get(kind) is not False for kind in MAIL_KINDS},
+        **{
+            kind: (kind in row and row[kind] is not False)
+            if kind in LATE_COLUMNS and from_the_table
+            else row.get(kind) is not False
+            for kind in MAIL_KINDS
+        },
         festival_calendar=tuple(str(c) for c in (calendars or [])),
         country=str(row["country"]).upper() if row.get("country") else None,
         region=str(row["region"]).upper() if row.get("region") else None,
@@ -260,8 +285,8 @@ class StoreUnavailable(Exception):
 
 
 def _off(kinds: Iterable[str]) -> dict[str, bool]:
-    """The dials a one-click stop flips, as row columns. Only the three mail kinds are dials;
-    anything else in ``kinds`` is ignored rather than written."""
+    """The dials a one-click stop flips, as row columns. Only the mail kinds are dials; anything
+    else in ``kinds`` is ignored rather than written."""
     return {kind: False for kind in kinds if kind in MAIL_KINDS}
 
 
@@ -333,6 +358,21 @@ def _request(url: str, key: str, method: str, *, body: Any = None, want_rows: bo
 
 
 _NETWORK_ERRORS = (urllib.error.URLError, TimeoutError, ValueError, OSError)
+_MISSING_COLUMN = re.compile(r"Could not find the '([A-Za-z0-9_]+)' column")
+
+
+def _missing_column(exc: urllib.error.HTTPError) -> str | None:
+    """The column a PostgREST 400 says the table does not have (PGRST204), or ``None``."""
+    if exc.code != 400:
+        return None
+    try:
+        body = json.loads((exc.read() or b"{}").decode("utf-8", "ignore"))
+    except (ValueError, OSError):
+        return None
+    if not isinstance(body, dict) or body.get("code") != "PGRST204":
+        return None
+    found = _MISSING_COLUMN.search(str(body.get("message") or ""))
+    return found.group(1) if found else None
 
 
 class PostgrestPreferencesStore:
@@ -362,11 +402,30 @@ class PostgrestPreferencesStore:
 
     def _upsert(self, learner_id: str, row: dict[str, Any]) -> MailPreferences:
         url = self._url({"on_conflict": _ID_COLUMN})
-        try:
-            rows = self._request(url, self._key, "POST", body=[row], want_rows=True)
-        except _NETWORK_ERRORS as exc:
-            logger.warning("mail preferences: write failed", extra={"fields": {"error": str(exc)}})
-            raise StoreUnavailable(str(exc)) from exc
+        row = dict(row)
+        while True:
+            try:
+                rows = self._request(url, self._key, "POST", body=[row], want_rows=True)
+                break
+            except urllib.error.HTTPError as exc:
+                missing = _missing_column(exc)
+                if missing not in LATE_COLUMNS or missing not in row:
+                    logger.warning(
+                        "mail preferences: write refused", extra={"fields": {"status": exc.code}}
+                    )
+                    raise StoreUnavailable(str(exc)) from exc
+                # The migration that adds this dial is not applied yet. Keep everything else the
+                # reader asked for; the dial then reads as off (:func:`from_row`).
+                logger.warning(
+                    "mail preferences: a dial the project cannot hold yet was left out",
+                    extra={"fields": {"column": missing}},
+                )
+                row.pop(missing)
+            except _NETWORK_ERRORS as exc:
+                logger.warning(
+                    "mail preferences: write failed", extra={"fields": {"error": str(exc)}}
+                )
+                raise StoreUnavailable(str(exc)) from exc
         if isinstance(rows, list) and rows and isinstance(rows[0], dict):
             return from_row(rows[0])
         return from_row(row)

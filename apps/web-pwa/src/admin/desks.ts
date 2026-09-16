@@ -17,6 +17,8 @@ export type DeskId =
   | 'allowance'
   | 'pacing'
   | 'users'
+  | 'activity'
+  | 'mail'
   | 'subscriptions'
   | 'promo'
   | 'alerts'
@@ -89,16 +91,43 @@ export const DESKS: readonly Desk[] = [
     supply: {
       kind: 'none',
       because:
-        'There is no operator-side read of the learner population, and this console must not ' +
-        'make one for itself: every learner table is behind row-level security scoped to the ' +
-        'learner, and a browser bundle holding a service-role key would be the worst possible ' +
-        'way to get a count. The ledger counts CALLS and knows learners only as a salted one-way ' +
-        'digest, which is deliberately not enough to list anybody.',
+        'How many learners came, and when one learner was last seen, is now the Activity desk ' +
+        '(learner.activity, migration 0034). What is still missing is the account side: nothing ' +
+        'counts accounts or plans for an operator, every learner table is behind row-level ' +
+        'security scoped to the learner, and a browser bundle holding a service-role key would be ' +
+        'the worst possible way to get a count.',
       wouldFill:
-        'A counts-only rollup behind the console door — how many accounts, how many active in a ' +
-        'window, how many on each plan — plus a lookup by opaque learner id returning the least a ' +
-        'support task needs: the id, the plan, whether the account is active, when it was last ' +
-        'seen. Not a name, not an address, not a word of anyone’s work.',
+        'A counts-only rollup behind the console door of accounts and of learners on each plan ' +
+        '(learner.subscriptions), beside the Activity desk’s counts, and the plan added to its ' +
+        'lookup by opaque learner id. Not a name, not an address, not a word of anyone’s work.',
+    },
+  },
+  {
+    id: 'activity',
+    name: 'Activity',
+    question:
+      'Who came today, this week and this month, and how many sit on each step of the mail ' +
+      'ladder? One learner’s last visit, streak and mail step, for a seat that may look.',
+    supply: {
+      kind: 'live',
+      from:
+        'GET /v1/admin/activity — learner.activity (migration 0034), counted on each learner’s ' +
+        'own calendar by learner.activity_census, and the mail.ladder dial. One learner is ' +
+        'GET /v1/admin/learners/activity on learner.read, and every look is in the audit trail.',
+    },
+  },
+  {
+    id: 'mail',
+    name: 'Mail',
+    question:
+      'Is our mail landing? Complaints against 0.10% and 0.30%, bounces, suppressed addresses, ' +
+      'where each seed landed, what Gmail says, and what is paused and why.',
+    supply: {
+      kind: 'live',
+      from:
+        'GET /v1/admin/mail — ops.mail_watch (migration 0036), filled by the provider’s signed ' +
+        'events, the seed inboxes and Postmaster Tools (wobo_gateway.mailwatch), and the ' +
+        'mail.kinds_paused dial. Lifting a pause is POST /v1/admin/mail/unpause, owner only.',
     },
   },
   {

@@ -965,7 +965,10 @@ def status_view(link: ParentLink | None, *, now: datetime | None = None) -> dict
     if link is None:
         return {
             "status": "none",
-            "line": "No parent linked. Add an address and I will send them a note every Sunday.",
+            "line": (
+                "No parent linked. Add an address and I will send them a note every Sunday, and "
+                "short notes about your learning in the week."
+            ),
         }
     moment = (now or datetime.now(UTC)).astimezone(UTC)
     masked = mask_email(link.parent_email) if link.parent_email else None
@@ -975,7 +978,10 @@ def status_view(link: ParentLink | None, *, now: datetime | None = None) -> dict
     elif status == "invited":
         line = f"Invite sent to {masked}. Nothing goes out until they say yes."
     elif status == "linked":
-        line = f"Linked. {masked} gets a note every Sunday, when there is a week to tell."
+        line = (
+            f"Linked. {masked} gets a note every Sunday, when there is a week to tell, and short "
+            "notes about your learning in the week."
+        )
     elif link.revoked_by == "parent":
         line = (
             "The address you invited said it was not them. Check it and send the invite "
@@ -1174,12 +1180,15 @@ def register_parent_links(app: FastAPI) -> None:
             return settled
         name = _name_of(found.link)
         return _page(
-            f"{name} asked me to send you their Sunday notes",
-            f"Once a week, one page: what {_name_of(found.link, initial=False)} studied, what "
-            "they cracked, and one thing they drew. Not their conversations with me, not a list "
-            "of wrong answers, not a note when they are online. One tap and it starts; every "
-            "note carries a link that stops them.",
-            form=_form(parent_route_url("accept"), token or "", "Send me the Sunday notes"),
+            f"{name} asked me to send you notes about their learning",
+            # What will come, all of it, before the one tap (2026-09-16: this said "once a week,
+            # one page" and the weekly cadence then sent three or four notes a week).
+            f"A page every Sunday on what {_name_of(found.link, initial=False)} studied, what "
+            "they cracked and one thing they drew, and short notes in the week about their "
+            "learning. Not their conversations with me, not a list of wrong answers, not a note "
+            "when they are online. One tap and it starts; every note carries a link that stops "
+            "them.",
+            form=_form(parent_route_url("accept"), token or "", "Send me the notes"),
             quiet=(
                 f'Not you? <a href="{html.escape(decline_url(token or ""), quote=True)}">'
                 "Say so here</a> and I forget this address."
@@ -1196,9 +1205,10 @@ def register_parent_links(app: FastAPI) -> None:
             return settled
         name = _name_of(found.link, initial=False)
         return _page(
-            "Done. The Sunday notes will come here.",
-            f"The first one arrives on a Sunday evening, when {name} has had a week worth "
-            "telling. Every note carries a link that stops them.",
+            "Done. The notes will come here.",
+            f"The first Sunday note arrives on a Sunday evening, when {name} has had a week worth "
+            "telling, and short notes about their learning come in the week. Every note carries a "
+            "link that stops them.",
         )
 
     @app.get("/v1/parent/decline", response_class=HTMLResponse)

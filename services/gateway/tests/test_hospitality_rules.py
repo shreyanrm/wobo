@@ -342,8 +342,8 @@ def test_never_within_twenty_four_hours_of_another_email(calendar: Calendar) -> 
     assert calendar.decide(
         prefs, REPUBLIC_MORNING, last_email_at=datetime(2026, 1, 25, 8, 30, tzinfo=IST)
     ).send_now
-    # a mail half an hour ago at 19:30: the gap would end tomorrow, and the wish is lost, not late
-    evening = datetime(2026, 1, 26, 20, 0, tzinfo=IST)
+    # a mail half an hour ago at 19:00: the gap would end tomorrow, and the wish is lost, not late
+    evening = datetime(2026, 1, 26, 19, 30, tzinfo=IST)
     lost = calendar.decide(prefs, evening, last_email_at=evening - timedelta(minutes=30))
     assert not lost.send_now and lost.send_after is None and "day would be over" in lost.reason
     # a naive timestamp is read as UTC, never as the family's clock

@@ -134,7 +134,9 @@ PANELS: tuple[Panel, ...] = (
         id="mail",
         name="Mail",
         question="What was sent, what arrived, and what a person did next.",
-        routes=("/mail",),
+        # The activity desk (activity.py): who came when, and the step of the mail ladder that
+        # puts them on. Counts only, so it is the mail's to read rather than the learner desk's.
+        routes=("/mail", "/activity"),
     ),
     Panel(
         id="platform",

@@ -12,11 +12,21 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { ActivityLookup } from './ActivityLookup';
+import { type ActivityDesk, activityPanels, isActivityDesk } from './activity';
 import { type AllowanceDesk, allowancePanels, isAllowanceDesk } from './allowance';
 import { read } from './api';
-import type { AdminIdentity, Economics, HealthSnapshot, UsageWindow } from './contract';
+import {
+  type AdminIdentity,
+  type Economics,
+  type HealthSnapshot,
+  LEARNER_READ,
+  type UsageWindow,
+} from './contract';
 import { AllowanceActions, ModelsActions, mayTurn } from './DialActions';
 import { DESKS, type DeskId, desk as deskById } from './desks';
+import { MailActions } from './MailActions';
+import { isMailDesk, type MailDesk, mailPanels } from './mail';
 import { isModelsDesk, type ModelsDesk, routerPanels } from './models';
 import { PromoActions } from './PromoActions';
 import { asOf, type Panel } from './panels';
@@ -93,6 +103,10 @@ export function Console({
   // The boards desk (docs/BOARD-COLD-START.md §4): what every board is showing a learner and why,
   // the discovery queue, what refused, and what each one cost.
   const [syllabus, setSyllabus] = useState<SyllabusDesk | null>(null);
+  // The activity desk (learner.activity, migration 0034): who came when, and the mail ladder.
+  const [activity, setActivity] = useState<ActivityDesk | null>(null);
+  // The mail desk (ops.mail_watch, migration 0036): where our mail lands, and what was paused.
+  const [mail, setMail] = useState<MailDesk | null>(null);
   const [redeemed, setRedeemed] = useState<RedemptionPage | null>(null);
   const [at, setAt] = useState<string | null>(null);
   const [ended, setEnded] = useState(false);
@@ -108,6 +122,8 @@ export function Console({
       gotPromo,
       gotRedeemed,
       gotSyllabus,
+      gotActivity,
+      gotMail,
       ...gotQueues
     ] = await Promise.all([
       read('health', isHealthSnapshot),
@@ -119,6 +135,8 @@ export function Console({
       read('promo', isPromoPage, { query: { limit: QUEUE_PAGE } }),
       read('promoRedemptions', isRedemptionPage, { query: { limit: QUEUE_PAGE } }),
       read('syllabus', isSyllabusDesk, { query: { limit: QUEUE_PAGE } }),
+      read('activity', isActivityDesk),
+      read('mail', isMailDesk),
       ...QUEUE_KINDS.map((kind) =>
         read('reports', isQueuePage, { query: { kind, limit: QUEUE_PAGE } }),
       ),
@@ -138,6 +156,12 @@ export function Console({
     // Dropped rather than kept, for the same reason: a stale board list under a fresh timestamp
     // is a board somebody already confirmed, still reading as provisional.
     setSyllabus(gotSyllabus.ok ? gotSyllabus.value : null);
+    // Dropped rather than kept: yesterday's count under today's timestamp is a learner who came
+    // this morning still reading as away.
+    setActivity(gotActivity.ok ? gotActivity.value : null);
+    // Dropped rather than kept: an old rate under a fresh timestamp is a pause that was lifted, or
+    // a complaint that arrived, still reading as it was.
+    setMail(gotMail.ok ? gotMail.value : null);
     const pages: Partial<Record<QueueKind, QueuePage>> = {};
     QUEUE_KINDS.forEach((kind, index) => {
       const got = gotQueues[index];
@@ -157,6 +181,8 @@ export function Console({
       gotPromo,
       gotRedeemed,
       gotSyllabus,
+      gotActivity,
+      gotMail,
       ...gotQueues,
     ].some((result) => !result.ok && result.reason === 'not_permitted');
     setEnded(refused);
@@ -184,6 +210,8 @@ export function Console({
     promo,
     redeemed,
     syllabus,
+    activity,
+    mail,
     at,
     permitted,
   });
@@ -289,6 +317,15 @@ export function Console({
                 onChanged={() => void refresh()}
               />
             )}
+            {/* One learner's page. Drawn only for a seat that carries learner.read: the gateway
+                refuses anyone else, and a box that can only ever answer 403 is not a control. */}
+            {desk.id === 'activity' && permitted && admin.permissions.includes(LEARNER_READ) && (
+              <ActivityLookup key={desk.id} />
+            )}
+            {/* Owner only: lifting the watch's pause on a kind. */}
+            {desk.id === 'mail' && mayTurn(admin.permissions) && (
+              <MailActions key={desk.id} desk={mail} onLifted={() => void refresh()} />
+            )}
             {/* Retrying a refusal is an operator's act; confirming a reading and turning the
                 queue's order are the owner's, and the component draws only what this seat
                 carries. */}
@@ -322,6 +359,8 @@ function panelsFor(
     promo: PromoPage | null;
     redeemed: RedemptionPage | null;
     syllabus: SyllabusDesk | null;
+    activity: ActivityDesk | null;
+    mail: MailDesk | null;
     at: string | null;
     permitted: boolean;
   },
@@ -367,6 +406,10 @@ function panelsFor(
       return promoPanels(ctx.promo, ctx.redeemed, ctx.at);
     case 'syllabus':
       return syllabusPanels(ctx.syllabus, ctx.at);
+    case 'activity':
+      return activityPanels(ctx.activity, ctx.at);
+    case 'mail':
+      return mailPanels(ctx.mail, ctx.at);
     default:
       return healthPanels(ctx.health, ctx.at);
   }

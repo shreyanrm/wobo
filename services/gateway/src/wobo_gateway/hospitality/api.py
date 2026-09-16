@@ -40,7 +40,7 @@ from wobo_gateway.hospitality.preferences import (
     PreferenceError,
     StoreUnavailable,
 )
-from wobo_gateway.hospitality.tokens import StopClaim, parse_stop_token, stop_url
+from wobo_gateway.hospitality.tokens import StopClaim, kinds_to_stop, parse_stop_token, stop_url
 
 logger = logging.getLogger("wobo.gateway.hospitality")
 
@@ -78,12 +78,43 @@ _STOP_COPY: dict[str, tuple[str, str, str, str]] = {
         "Done. No more Sunday notes.",
         "The Sunday note will not come to this address again. Nothing else changes.",
     ),
+    # The learner's own link, when their wishes come to them too, and when they do not (then the
+    # wishes are the parent's, and this click leaves them alone).
     "learner": (
         "Stop the wins and wishes?",
         "Stop them",
-        "Done. No more email from me.",
-        "No more wins and no more wishes to this address. Account mail still comes when "
-        "something about the account needs saying.",
+        "Done. No more wins or wishes.",
+        "Neither will come to this address again. Account mail still comes when something about "
+        "the account needs saying.",
+    ),
+    "learner:wins": (
+        "Stop the notes about your wins?",
+        "Stop them",
+        "Done. No more notes about wins.",
+        "They will not come to this address again. Account mail still comes when something about "
+        "the account needs saying.",
+    ),
+    # "Stop all of these", from a learning note to the learner's own address.
+    "learner_all": (
+        "Stop every note I send you?",
+        "Stop them all",
+        "Done. No more notes from me.",
+        "The learning notes, the wins and the wishes will not come to this address again. Account "
+        "mail still comes when something about the account needs saying.",
+    ),
+    "learner_all:wins": (
+        "Stop every note I send you?",
+        "Stop them all",
+        "Done. No more notes from me.",
+        "The learning notes and the wins will not come to this address again. Account mail still "
+        "comes when something about the account needs saying.",
+    ),
+    # "Stop all of these", from a note to a parent about an under-13.
+    "parent": (
+        "Stop every note about your child?",
+        "Stop them all",
+        "Done. No more notes from me.",
+        "The Sunday note, the learning notes and the wishes about your child will not come again.",
     ),
     # One page per nudge. Each says the name of the one thing it stops, because a reader who
     # clicked the streak mail wants the streak mail stopped and would be right to distrust a
@@ -118,6 +149,12 @@ _STOP_COPY: dict[str, tuple[str, str, str, str]] = {
         "Done. No more notes about answered doubts.",
         "That one will not come again. The rest of your mail is unchanged.",
     ),
+    "learning_note": (
+        "Stop the notes about learning?",
+        "Stop it",
+        "Done. No more notes about learning.",
+        "That one will not come again. The rest of your mail is unchanged.",
+    ),
 }
 
 
@@ -142,6 +179,7 @@ class MailPreferencesUpdate(BaseModel):
     streak: bool | None = None
     bonus_level: bool | None = None
     doubt: bool | None = None
+    learning_note: bool | None = None
     festival_calendar: list[str] | None = None
     country: str | None = None
     region: str | None = None
@@ -217,6 +255,38 @@ async def _token_from_body(request: Request) -> str | None:
     return values[0] if values and isinstance(values[0], str) else None
 
 
+def _copy_for(claim: StopClaim, kinds: tuple[str, ...]) -> tuple[str, str, str, str]:
+    """The page's words for what this click stops, which for a learner's own link depends on
+    whether their wishes come to them."""
+    if claim.audience in {"learner", "learner_all"} and "festivals" not in kinds:
+        return _STOP_COPY[f"{claim.audience}:wins"]
+    return _STOP_COPY[claim.audience]
+
+
+class Unreachable(Exception):
+    """The parent links could not be read, so the other children at the address are unknown."""
+
+
+def same_address(claim: StopClaim) -> list[str]:
+    """Every learner whose mail this click is about: the one named, and, for a link that went to a
+    parent, every other learner linked to that same parent address. A parent of two children
+    receives one list, and stopping it from a note about one child stops it (2026-09-16)."""
+    if not claim.to_parent:
+        return [claim.learner_id]
+    from wobo_gateway import parents
+
+    try:
+        store = parents.get_store()
+        link = store.active(claim.learner_id)
+        if link is None or not link.parent_email_hash:
+            return [claim.learner_id]
+        linked = store.by_email_hash(link.parent_email_hash)
+    except parents.StoreUnavailable as exc:
+        raise Unreachable(str(exc)) from exc
+    others = sorted({row.learner_id for row in linked if row.learner_id} - {claim.learner_id})
+    return [claim.learner_id, *others]
+
+
 def _bad_link() -> HTMLResponse:
     return _page(
         "That link did not work",
@@ -285,20 +355,34 @@ def register_mail_preferences(app: FastAPI) -> None:
         return _view(stored)
 
     def _stop(claim: StopClaim) -> HTMLResponse:
+        not_yet = _page(
+            "Not yet",
+            "I could not save that just now. Try the link again in a moment.",
+            status=503,
+        )
+        kinds = kinds_to_stop(claim)
         try:
-            prefs_mod.get_store().stop(claim.learner_id, claim.kinds)
+            learners = same_address(claim)
+        except Unreachable:
+            return not_yet
+        try:
+            for learner_id in learners:
+                prefs_mod.get_store().stop(learner_id, kinds)
         except StoreUnavailable:
-            return _page(
-                "Not yet",
-                "I could not save that just now. Try the link again in a moment.",
-                status=503,
-            )
+            return not_yet
         logger.info(
             "mail stopped by link",
-            extra={"fields": {"subject": claim.learner_id, "audience": claim.audience}},
+            extra={
+                "fields": {
+                    "subject": claim.learner_id,
+                    "audience": claim.audience,
+                    "learners": len(learners),
+                }
+            },
         )
-        _note("unsubscribe", kind=claim.audience, learner_id=claim.learner_id)
-        _, _, title, line = _STOP_COPY[claim.audience]
+        for learner_id in learners:
+            _note("unsubscribe", kind=claim.audience, learner_id=learner_id)
+        _, _, title, line = _copy_for(claim, kinds)
         return _page(title, line)
 
     @app.get("/v1/mail/stop", response_class=HTMLResponse)
@@ -308,7 +392,7 @@ def register_mail_preferences(app: FastAPI) -> None:
         claim = parse_stop_token(token)
         if claim is None:
             return _bad_link()
-        question, button, _, _ = _STOP_COPY[claim.audience]
+        question, button, _, _ = _copy_for(claim, kinds_to_stop(claim))
         form = (
             f'<form method="post" action="{html.escape(stop_url(), quote=True)}">'
             f'<input type="hidden" name="token" value="{html.escape(token or "", quote=True)}">'

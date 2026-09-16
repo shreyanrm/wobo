@@ -175,11 +175,13 @@ def test_a_spend_threshold_crossing_reaches_the_sink(
 
 
 def test_every_event_name_the_operations_page_promises_exists() -> None:
-    """docs/OPERATIONS.md names these seven. A rename breaking a runbook grep fails here.
+    """docs/OPERATIONS.md names these eight. A rename breaking a runbook grep fails here.
 
     ``pool_threshold`` joined them when the two pools the platform pays for itself were given
     the caps their dials had always implied (``pools.py``, docs/ALLOWANCE.md "Best of both
     worlds" point 4): the creative pool, and the day's spend on every free learner together.
+    ``mail_deliverability`` joined them with the deliverability watch (wave 56): a complaint rate
+    over the line, a seed in spam, a failed authentication, a Postmaster verdict with a problem.
     """
     assert {
         "startup",
@@ -189,6 +191,7 @@ def test_every_event_name_the_operations_page_promises_exists() -> None:
         "auth_failure_burst",
         "provider_outage",
         "pool_threshold",
+        "mail_deliverability",
     } == alerts.EVENTS
 
 

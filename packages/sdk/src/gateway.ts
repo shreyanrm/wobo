@@ -45,6 +45,21 @@ export function configureGatewayAuth(config: GatewayAuthConfig): void {
   current = config;
 }
 
+/**
+ * WHERE THE LEARNER IS, by name (`Asia/Kolkata`), never an offset or a date: the gateway keeps the
+ * learner's day, their "last came" and the hour they usually start on this clock, and times their
+ * mail by it (services/gateway allowance.py, ZONE_HEADER). Until 2026-09-16 nothing sent it, and
+ * every learner's day was kept in UTC. Absent when the runtime cannot say.
+ */
+export function deviceTimeZone(): string | null {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return typeof zone === 'string' && zone.length > 0 && zone.length <= 64 ? zone : null;
+  } catch {
+    return null;
+  }
+}
+
 /** The headers that prove who is asking. Empty when nobody is established yet (the gateway 401s). */
 export async function gatewayAuthHeaders(): Promise<Record<string, string>> {
   const source = current.accessToken;
@@ -240,6 +255,8 @@ export async function gatewayFetch(
 ): Promise<Response> {
   const headers = new Headers(init.headers);
   for (const [k, v] of Object.entries(await gatewayAuthHeaders())) headers.set(k, v);
+  const zone = deviceTimeZone();
+  if (zone && !headers.has('x-wobo-timezone')) headers.set('x-wobo-timezone', zone);
   if (timeoutMs === null) return fetch(url, { ...init, headers });
 
   const deadline = new AbortController();

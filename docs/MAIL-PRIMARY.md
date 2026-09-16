@@ -255,6 +255,54 @@ sender for three reasons, and a sender that hops after landing in spam is the pa
 to catch across the whole of heywobo.com. A sender change remains a single setting (`EMAIL_FROM`) that
 the owner makes by hand once the cause is fixed.
 
+**In the code (wave 56, `services/gateway/src/wobo_gateway/mailwatch/`).**
+
+- *The provider's events* arrive at `POST /v1/mail/events`, signed the Svix way and checked over the
+  raw body before anything is parsed; unsigned, mis-signed or stale (over five minutes) is a 401, and
+  with `RESEND_WEBHOOK_SECRET` unset the route is shut (503). A complaint, a `Permanent` bounce, or
+  the provider's own suppression suppresses that address (by digest, never the address) for every
+  kind but sign-in codes, receipts and the owner's alert. Events are counted per day and per kind;
+  the kind is the `kind` tag every send now carries, else the `Feedback-ID`, else our own send log.
+  An open or click event is never counted: it means the provider's tracking was switched on, and
+  that is an alert.
+- *The seed inboxes* are `MAIL_SEED_<GMAIL|OUTLOOK|YAHOO|APPLE>_ADDRESS` and `_PASSWORD` (an app
+  password). From 16:00 in Kolkata, one real mail of each Primary-relevant kind goes to each, through
+  the ordinary send path; fifteen minutes later each inbox is read over IMAP for the Gmail tab (or
+  "inbox" where IMAP shows no tab) or the spam folder, and for SPF, DKIM and DMARC. Six hours with no
+  mail is "missing". The five kinds named above are joined by the good-news note, which is now most
+  of what a family receives. With nothing configured, nothing is sent.
+- *Postmaster Tools*: Google retired API v1 on 2025-10-31, and with it the domain reputation grade
+  (HIGH to BAD). The reader speaks v2: the spam rate overall and per Feedback-ID, the SPF, DKIM and
+  DMARC pass rates, and the compliance verdict. "Reputation below medium" is therefore read as a
+  verdict naming a problem (spam rate high, sender not compliant, negative feedback, SMTP errors) or
+  a compliance requirement that needs work. Gmail sends no complaint to the provider, so for most of
+  our addresses this reader is the complaint rate. Inert until `POSTMASTER_CLIENT_ID`,
+  `POSTMASTER_CLIENT_SECRET` and `POSTMASTER_REFRESH_TOKEN` are set.
+- *The response*: complaints over delivered mail, per kind, over seven days. Over 0.10 percent that
+  kind is paused on its own (the `mail.kinds_paused` dial). Between 0.10 and 0.30 percent a kind
+  needs two complaints of its own, because one confused adult is suppressed rather than allowed to
+  pause a kind for everyone; when the whole crosses and no one kind has, the worst kind not yet
+  paused is the one paused. Over 0.30 percent, overall or for any one kind on its own count
+  however small, every kind over 0.10 percent pauses on a single complaint (2026-09-16: one
+  complaint in three hundred crossed both lines and paused nothing). Every crossing is an alert,
+  paused or not, once per complaint. A Gmail rate with no Feedback-ID to point at is an alert and
+  pauses nothing. Only the owner lifts a pause, from the mail desk, and a lifted kind is judged
+  only on what happens after: a complaint about a mail sent before the lift is not counted. The
+  daily cap, the ladder, the floor and the sender are never touched, and the daily cap never holds
+  a sign-in code, a receipt or this alert.
+- *The alert*: mailed to `DELIVERABILITY_ALERT_TO` (default shreyan@doteventures.com) on the
+  transactional stream, past the daily cap; raised as the `mail_deliverability` alarm; kept as a row
+  the console's mail desk shows. One cause, one kind, one hour: one alert. A mail that did not go
+  (no provider key, a provider outage) is sent again on every hourly pass until it does, and the
+  desk says, alert by alert, whether it went. A receiving server's words are scrubbed of every
+  address before anything keeps, pages, mails or shows them.
+- *The cron door* is `POST /v1/internal/mail/watch`, hourly, behind `INTERNAL_EMAIL_KEY`.
+- *The store* is `ops.mail_watch`, append-only (migration 0036), never an address. It is read in
+  pages at start, so the project's row limit never hides the newest complainer, and read again
+  every half minute while it cannot be read. Until it answers, nobody can say who complained, so
+  every mail but sign-in codes, receipts and the alert is held (and retried), and the owner is
+  alerted. The webhook does its writes off the request loop.
+
 ## What the global senders do, adopted (the owner, 2026-09-16)
 
 The owner: *"how do all the global brands tackle these issues, we shall do the same"*. What large
@@ -278,7 +326,9 @@ consumer senders converge on, and where each lands here:
   receipt. This revises "one sender" above for the transactional stream only: learning notes keep one
   sender forever, and the display name is "Wobo" on both. It is set up once and warmed, never switched
   in response to spam. The code reads `EMAIL_FROM_TRANSACTIONAL` and falls back to today's sender until
-  the owner's DNS exists. Wave 56.
+  the owner's DNS exists. Wave 56: `email.sender_for` reads it for sign-in codes, receipts, account
+  mail and the owner's alerts, keeps the display name "Wobo", and with the variable unset every
+  From is byte-identical to today's.
 - **Watch placement continuously.** Postmaster Tools, feedback loops and seed inboxes. The section
   above, wave 56.
 - **Put daily reminders on push, and richer mail on email.** The large learning apps nudge daily

@@ -58,12 +58,19 @@ class FakeStore:
         *,
         prefs: int = 1,
         links: int = 1,
+        activity: int = 1,
+        days: int = 1,
+        sessions: int = 1,
     ) -> None:
         self.mind = mind if mind is not None else {"facts": ["plays cricket", "exam friday"]}
         self.threads = threads
         # the hospitality rows (0010, 0011): the family's mail dials and the parent link
         self.prefs = prefs
         self.links = links
+        # the activity record (0034): the learner's summary row, their day rows, their sessions
+        self.activity = activity
+        self.days = days
+        self.sessions = sessions
         self.calls: list[tuple[str, str, Any]] = []
         self.refuse: set[str] = set()
 
@@ -96,6 +103,9 @@ class FakeStore:
                 "learner_threads": "threads",
                 "mail_preferences": "prefs",
                 "parent_links": "links",
+                "activity": "activity",
+                "meter_state": "days",
+                "sessions": "sessions",
             }[table]
             rows = [{"id": n} for n in range(getattr(self, attr))]
             setattr(self, attr, 0)
@@ -134,16 +144,29 @@ def test_the_facts_and_the_twin_summary_leave_the_brain(
     # progress is not memory, so the erase patches the mind and never deletes the learner's record
     assert store.mind == {}
     assert store.prefs == 0 and store.links == 0
-    assert [c[0] for c in store.calls] == ["GET", "PATCH", "DELETE", "DELETE", "DELETE"]
+    assert [c[0] for c in store.calls] == ["GET", "PATCH"] + ["DELETE"] * 6
     tables = {c[1].split("/rest/v1/")[1].split("?")[0] for c in store.calls}
-    assert tables == {"learner_state", "learner_threads", "mail_preferences", "parent_links"}
+    assert tables == {
+        "learner_state",
+        "learner_threads",
+        "mail_preferences",
+        "parent_links",
+        # the activity record (0034): when they came and what they did, every row of it
+        "activity",
+        "meter_state",
+        "sessions",
+    }
+    assert body["erased"]["activity"] == 3
+    assert store.activity == 0 and store.days == 0 and store.sessions == 0
 
 
 def test_a_learner_with_nothing_remembered_is_told_the_truth(
     client: TestClient, auth, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Nothing to forget is not a failure, and it is not a fib either: zero, and no patch."""
-    store = FakeStore(mind={}, threads=0, prefs=0, links=0).install(monkeypatch)
+    store = FakeStore(
+        mind={}, threads=0, prefs=0, links=0, activity=0, days=0, sessions=0
+    ).install(monkeypatch)
     body = erase(client, auth()).json()
     assert body["erased"] == {
         "facts": 0,
@@ -159,9 +182,11 @@ def test_a_learner_with_nothing_remembered_is_told_the_truth(
         # the doubt solver (0021): no photographed page, so no row and no object in the bucket
         "doubts": 0,
         "photos": 0,
+        # the activity record (0034): no visit, no day, no session
+        "activity": 0,
     }
     # nothing to empty, so nothing written; the deletes are still attempted, and count zero
-    assert [c[0] for c in store.calls] == ["GET", "DELETE", "DELETE", "DELETE"]
+    assert [c[0] for c in store.calls] == ["GET"] + ["DELETE"] * 6
 
 
 def test_the_erase_only_ever_names_the_learner_who_asked(
@@ -253,6 +278,15 @@ def test_a_store_that_refused_is_named_and_the_answer_is_not_ok(
     body = res.json()
     assert body["failed"] == ["parent_links"]
     assert body["erased"]["mail_preferences"] == 1 and body["erased"]["parent_links"] == 0
+    # and for the activity record: a day ledger that would not go is named, and the summary row
+    # and the sessions that did go are still counted
+    store = FakeStore().install(monkeypatch)
+    store.refuse = {"meter_state"}
+    res = erase(client, auth())
+    assert res.status_code == 502
+    body = res.json()
+    assert body["failed"] == ["meter_state"]
+    assert body["erased"]["activity"] == 2
 
 
 def test_the_parent_link_and_the_mail_dials_held_in_process_go_too(
@@ -262,10 +296,21 @@ def test_the_parent_link_and_the_mail_dials_held_in_process_go_too(
     a learner empties those as well, counts them, and leaves another learner's alone."""
     from datetime import UTC, datetime
 
-    from wobo_gateway import parents
+    from wobo_gateway import activity, parents
     from wobo_gateway.hospitality import preferences as prefs_mod
 
     dials, links = prefs_mod.get_store(), parents.get_store()
+    record = activity.InMemoryActivityStore()
+    activity.set_store(record)
+    for learner in ("learner-under-test", "someone-else"):
+        record.note(
+            learner,
+            activity.Event(
+                kind="session_start",
+                at=datetime.now(UTC),
+                session=f"00000000-0000-4000-8000-{len(learner):012d}",
+            ),
+        )
     for learner in ("learner-under-test", "someone-else"):
         dials.put(learner, prefs_mod.MailPreferences(country="IN"))
         links.insert(
@@ -286,6 +331,11 @@ def test_the_parent_link_and_the_mail_dials_held_in_process_go_too(
     assert body["erased"]["mail_preferences"] == 1 and body["erased"]["parent_links"] == 1
     assert dials.get("learner-under-test") is None and links.latest("learner-under-test") is None
     assert dials.get("someone-else") is not None and links.latest("someone-else") is not None
+    # the activity record held in this process: this learner's summary, day and session go, and
+    # the other learner's stay
+    assert body["erased"]["activity"] == 3
+    assert record.get("learner-under-test") is None and record.sessions("learner-under-test") == []
+    assert record.get("someone-else") is not None
 
 
 def test_with_no_durable_store_the_answer_says_so(client: TestClient, auth) -> None:

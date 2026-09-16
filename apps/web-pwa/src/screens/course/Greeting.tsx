@@ -14,6 +14,7 @@ import { useWoboBus } from '@wobo/wobo';
 import { motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import type { Topic } from '../../data/model';
+import { MASTERED_BANDS, noteModuleFinished, noteTopicMastered } from '../../store/activity';
 import { levelInfo, useProgress, XP_AWARDS } from '../../store/progress';
 import { useSdk } from '../../store/sdk';
 import { TopicSigil } from '../../ui/art';
@@ -159,6 +160,8 @@ export function Greeting({
     completeTopic(topic.id, topic.xp);
     // bank the stars once, on the genuine first completion — every later replay reads these back
     if (!replay) writeCourseStars(topic.id, runStars);
+    // the activity record: a module finished is a moment the learner's own mail may speak about
+    if (!replay) noteModuleFinished(topic.id, topic.name);
     setMood('celebrate');
     const settle = window.setTimeout(() => setMood('idle'), 1600);
 
@@ -171,6 +174,8 @@ export function Greeting({
       } catch {
         // seed path — the fallback band is honest for a fresh pass
       }
+      // mastered only when the evidence says so; the fallback band never claims it
+      if (!replay && MASTERED_BANDS.includes(finalBand)) noteTopicMastered(topic.id, topic.name);
       sdk.events.record(
         'learn.node.completed.v1',
         {

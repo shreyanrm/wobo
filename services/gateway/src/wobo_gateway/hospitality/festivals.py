@@ -49,7 +49,9 @@ from wobo_gateway.hospitality.preferences import MailPreferences
 logger = logging.getLogger("wobo.gateway.hospitality")
 
 KINDS: tuple[str, ...] = ("civic", "seasonal", "religious")
-_DEFAULT_QUIET = ("21:00", "08:00")
+#: Night on the family's clock. It began at nine until 2026-09-16, and a wish held all day by the
+#: inbox gap then went at half past eight; the hours law is never after eight.
+_DEFAULT_QUIET = ("20:00", "08:00")
 _GAP = timedelta(hours=24)
 
 

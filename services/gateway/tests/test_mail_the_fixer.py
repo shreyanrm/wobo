@@ -16,6 +16,7 @@ from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 import pytest
+from wobo_gateway import activity
 from wobo_gateway import email as email_mod
 from wobo_gateway.email import MailLog, MailRecord, mail_log, to_hash
 from wobo_gateway.email_templates import (
@@ -26,7 +27,7 @@ from wobo_gateway.email_templates import (
     render,
     text_of,
 )
-from wobo_gateway.hospitality import jobs
+from wobo_gateway.hospitality import cadence, jobs
 from wobo_gateway.hospitality import nudges as nudges_mod
 from wobo_gateway.hospitality import preferences as prefs_mod
 from wobo_gateway.hospitality.nudges import Learner, Nudge, send_nudge
@@ -99,51 +100,82 @@ def a_send(
 
 
 # === SPAM ========================================================================================
-# One per day is not a cadence, it is a licence for thirty a month, and the rules that exist today
-# silence the ENGAGED learner (came_enough) while leaving the lapsed one uncapped.
-def test_a_lapsed_learners_parent_does_not_hear_from_us_thirteen_days_in_a_fortnight() -> None:
+# One per day is the ceiling (the inbox law) and three a week is the FLOOR (the owner, 2026-09-16,
+# revised the same day). What stops a lapsed learner hearing from us daily is not a weekly cap on
+# the engaged: it is the ladder, which steps the mail down with time away.
+FULL = activity.STEPS[0]
+
+
+def test_a_lapsed_learners_mail_steps_down_instead_of_arriving_every_day() -> None:
     """The audit drove this: one learner who came once and never came back, every surface
-    raising its nudge, and the parent got thirteen mails on thirteen of fourteen days."""
+    raising its nudge every day. A day at most, and once past the full cadence, the step's own
+    number and no more."""
     send = Recorder()
-    got = 0
-    for day in range(14):
+    first_away = 3
+    last_seen = WED_FOUR_PM_IST.date() - timedelta(days=first_away)
+    days_sent: list[int] = []
+    for day in range(45):
         moment = WED_FOUR_PM_IST + timedelta(days=day)
-        result = send_nudge(
-            a_nudge(once_key=f"day-{day}"), now=moment, send=send
-        )
+        away = first_away + day
+        learner = replace(TEEN, last_seen=last_seen, days_away=away)
+        result = send_nudge(a_nudge(learner=learner, once_key=f"day-{day}"), now=moment, send=send)
         if result.get("ok"):
-            got += 1
+            days_sent.append(away)
             a_send(TEEN.email, when=moment)
-    # Two rolling weeks, each held to the owner's weekly number: the thirteen becomes at most six.
-    ceiling = 2 * nudges_mod.WEEKLY_NUDGE_CAP
-    assert got <= ceiling, f"a fortnight sent {got} mails to one address (ceiling {ceiling})"
+    assert len(days_sent) == len(set(days_sent)), "two in one day"
+    for step in activity.STEPS[1:3]:
+        assert step.through is not None
+        for start in range(step.since, step.through - step.per_days + 2):
+            inside = [d for d in days_sent if start <= d < start + step.per_days]
+            assert len(inside) <= step.mails, (step.id, start, days_sent)
 
 
-def test_the_owners_cadence_is_three_a_week() -> None:
-    """The owner, 2026-09-16, ruling on a number a builder had set at two: three a week."""
-    assert nudges_mod.WEEKLY_NUDGE_CAP == 3
+def test_the_owners_cadence_is_three_a_week_at_least_and_one_a_day_at_most() -> None:
+    """The owner, 2026-09-16: "a minimum of 3 a week", and the inbox law's one a day on top."""
+    assert (FULL.mails, FULL.per_days) == (3, 7)
+    assert timedelta(hours=24) == jobs.INBOX_GAP
+    assert not hasattr(nudges_mod, "WEEKLY_NUDGE_CAP"), "the old ceiling is back"
+    sent: list[date] = []
+    today = WED_FOUR_PM_IST.date()
+    for n in range(28):
+        day = today + timedelta(days=n)
+        if cadence.floor_due(FULL, sent, day):
+            sent.append(day)
+    for start in range(28 - FULL.per_days + 1):
+        window = [d for d in sent if 0 <= (d - today).days - start < FULL.per_days]
+        assert len(window) >= FULL.mails, (start, sent)
+    # And the ceiling: a second mail inside twenty-four hours is refused, whatever it is.
+    a_send(TEEN.email, when=WED_FOUR_PM_IST - jobs.INBOX_GAP + timedelta(minutes=30))
+    result = send_nudge(a_nudge(once_key="second"), now=WED_FOUR_PM_IST, send=Recorder())
+    assert result.get("error") == "gap", result
 
 
 def _earlier_this_week(count: int) -> None:
     """``count`` sends to one address on separate earlier days inside the rolling week."""
     for i in range(count):
-        days_back = 2 + 2 * i  # 2, 4, 6: separate days, all inside seven
-        assert days_back < nudges_mod.NUDGE_WEEK.days, "raise the cap, re-space these sends"
+        days_back = 2 + i  # separate days, all inside seven
+        assert days_back < FULL.per_days
         a_send(TEEN.email, when=WED_FOUR_PM_IST - timedelta(days=days_back))
 
 
-def test_the_last_nudge_the_week_allows_still_goes() -> None:
+def test_past_the_floor_a_nudge_still_goes_on_the_full_cadence() -> None:
     send = Recorder()
-    _earlier_this_week(nudges_mod.WEEKLY_NUDGE_CAP - 1)
-    result = send_nudge(a_nudge(once_key="last-allowed"), now=WED_FOUR_PM_IST, send=send)
+    _earlier_this_week(FULL.mails + 1)
+    result = send_nudge(a_nudge(once_key="above-the-floor"), now=WED_FOUR_PM_IST, send=send)
     assert result.get("ok"), result
 
 
-def test_a_nudge_past_the_weekly_cap_is_held() -> None:
+def test_below_the_full_cadence_the_step_is_the_ceiling() -> None:
     send = Recorder()
-    _earlier_this_week(nudges_mod.WEEKLY_NUDGE_CAP)
-    result = send_nudge(a_nudge(once_key="one-too-many"), now=WED_FOUR_PM_IST, send=send)
-    assert result.get("error") == "weekly_cap", result
+    away = activity.STEPS[1]
+    _earlier_this_week(away.mails)
+    learner = replace(
+        TEEN,
+        last_seen=WED_FOUR_PM_IST.date() - timedelta(days=away.since + 6),
+        days_away=away.since + 6,
+    )
+    result = send_nudge(a_nudge(learner=learner, once_key="over"), now=WED_FOUR_PM_IST, send=send)
+    assert result.get("error") == "ladder", result
     assert send.sent == []
 
 
@@ -159,9 +191,18 @@ def test_the_week_turns_over_and_the_address_may_hear_from_us_again() -> None:
 #    pinned to 18:00, so on any Sunday with a nudge due the nudge takes the address's one slot.
 def test_a_nudge_never_takes_the_sunday_notes_slot() -> None:
     send = Recorder()
-    result = send_nudge(a_nudge(once_key="sun"), now=SUN_FOUR_PM_IST, send=send)
+    result = send_nudge(a_nudge(learner=CHILD, once_key="sun"), now=SUN_FOUR_PM_IST, send=send)
     assert result.get("error") == "sunday_note_first", result
     assert send.sent == []
+
+
+def test_a_teenagers_own_inbox_is_not_where_the_sunday_note_goes() -> None:
+    """The note goes to the parent. A nudge to the learner's own address takes nothing from it,
+    and holding it made every Sunday a day the floor could not be kept."""
+    send = Recorder()
+    result = send_nudge(a_nudge(once_key="sun"), now=SUN_FOUR_PM_IST, send=send)
+    assert result.get("ok"), result
+    assert send.sent[0]["to"] == TEEN.email
 
 
 def test_the_sunday_note_still_goes_at_six() -> None:

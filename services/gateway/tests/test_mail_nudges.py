@@ -30,6 +30,12 @@ SAMPLE: dict[str, dict[str, Any]] = {
     "streak": {"name": "Learner", "days": 7},
     "bonus_level": {"name": "Learner", "between": "Motion and Force"},
     "doubt": {"name": "Learner", "chapter": "Refraction"},
+    "learning_note": {
+        "name": "Learner",
+        "angle": "cracked",
+        "moment": "module_finished",
+        "title": "Triangles",
+    },
 }
 
 
@@ -38,8 +44,10 @@ def rendered(kind: str, extra: dict[str, Any] | None = None) -> dict[str, Any]:
 
 
 # --- the family exists ---------------------------------------------------------------------
-def test_the_five_kinds_are_registered_with_a_move_each() -> None:
-    assert NUDGE_KINDS == ("quick_one", "mid_chapter", "streak", "bonus_level", "doubt")
+def test_the_six_kinds_are_registered_with_a_move_each() -> None:
+    assert NUDGE_KINDS == (
+        "quick_one", "mid_chapter", "streak", "bonus_level", "doubt", "learning_note"
+    )
     for kind in NUDGE_KINDS:
         assert kind in TEMPLATES
         # §8: every mail carries one move, from the library, named by the template itself.
@@ -112,7 +120,12 @@ def test_the_subject_is_the_name_and_a_verb_and_the_line_is_only_this_learners(k
     assert any(
         str(token) in first
         for token in (
-            "Fractions, part two", "Linear equations", "Seven", "Motion and Force", "Refraction"
+            "Fractions, part two",
+            "Linear equations",
+            "Seven",
+            "Motion and Force",
+            "Refraction",
+            "Triangles",
         )
     ), first
 

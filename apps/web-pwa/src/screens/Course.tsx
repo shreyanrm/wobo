@@ -37,6 +37,7 @@ import { chapterById, subjectById, topicById } from '../curriculum/registry';
 import { ensureTopic, warmFromCache } from '../curriculum/warm';
 import { AppFrame } from '../shell/AppFrame';
 import { useRouter } from '../shell/router';
+import { cardsDone, noteProgress } from '../store/activity';
 import { enqueue as enqueueDownload, getDownload } from '../store/downloads';
 import { useProgress } from '../store/progress';
 import { useSdk } from '../store/sdk';
@@ -212,6 +213,13 @@ export function Course({
   useEffect(() => {
     if (!sandbox && topic && !needsDownload) reportProgress(topic.id, progress.f);
   }, [sandbox, topic, progress.f, reportProgress, needsDownload]);
+
+  // The activity record (store/activity.ts): where the learner is in this chapter, for the note
+  // that says what comes next. Never for a replay of a finished course — there is nothing left.
+  useEffect(() => {
+    if (sandbox || !topic || needsDownload || completed.has(topic.id)) return;
+    noteProgress(topic.id, topic.name, cardsDone(progress.f, progress.segments), progress.segments);
+  }, [sandbox, topic, progress.f, progress.segments, needsDownload, completed]);
 
   // free play on a real node is still an arrival worth recording
   useEffect(() => {

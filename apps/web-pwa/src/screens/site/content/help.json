@@ -2970,7 +2970,7 @@
           "lead": [
             {
               "t": "strong",
-              "v": "The parent link sends a parent one note a week showing what you actually learnt. You set it up, and you can switch it off."
+              "v": "The parent link sends a parent a note every Sunday showing what you actually learnt, and short notes about your learning during the week. You set it up, and you can switch it off."
             }
           ],
           "blocks": [
@@ -2988,7 +2988,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "A note, once a week: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in Wobo's words. No marks out of ten, no ranking, and no harsher version of the page you see."
+                  "v": "A note every Sunday: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in Wobo's words. And short notes in the week about your learning: something you finished, what comes next, or where you left off. No marks out of ten, no ranking, and no harsher version of the page you see. Every note carries a link that stops it, and one that stops them all."
                 }
               ]
             },
@@ -3060,7 +3060,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "The link works the same at every age today, and it is you who starts it. There is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the note itself."
+                  "v": "The link works the same at every age today, and it is you who starts it. There is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the notes themselves."
                 }
               ]
             },
@@ -3078,7 +3078,7 @@
               "text": [
                 {
                   "t": "text",
-                  "v": "Before you invite anyone you can look at the week the way a parent will see it, from the same card. There is no way to send a single board on its own yet; the weekly note is the whole of what goes out."
+                  "v": "Before you invite anyone you can look at the week the way a parent will see it, from the same card. There is no way to send a single board on its own yet; the notes are all that goes out."
                 }
               ]
             },
@@ -3096,8 +3096,8 @@
               ]
             }
           ],
-          "plain": "The parent link sends a parent one note a week showing what you actually learnt. You set it up, and you can switch it off. A note, once a week: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in Wobo's words. No marks out of ten, no ranking, and no harsher version of the page you see. Your conversations with Wobo. Your wrong answers, one by one. A live feed of when you are online. A way to set targets for you. It is a window, not a remote control. Open You, the last of the four doors, and find the card called Parents. Enter the parent's email address. They get one invite, and nothing else is sent until they open it and confirm from their own device. If they never confirm, the invite expires and nothing goes to them. The same screen, one tap. It stops immediately and the old pages stop working. You do not have to explain why, and Wobo does not tell them you turned it off, only that the link ended. The link works the same at every age today, and it is you who starts it. There is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the note itself. Before you invite anyone you can look at the week the way a parent will see it, from the same card. There is no way to send a single board on its own yet; the weekly note is the whole of what goes out. Related: Your privacy and your data.",
-          "text": "the parent link the parent link sends a parent one note a week showing what you actually learnt. you set it up, and you can switch it off. what the parent gets a note, once a week: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in wobo's words. no marks out of ten, no ranking, and no harsher version of the page you see. what the parent does not get your conversations with wobo. your wrong answers, one by one. a live feed of when you are online. a way to set targets for you. it is a window, not a remote control. setting it up open you, the last of the four doors, and find the card called parents. enter the parent's email address. they get one invite, and nothing else is sent until they open it and confirm from their own device. if they never confirm, the invite expires and nothing goes to them. turning it off the same screen, one tap. it stops immediately and the old pages stop working. you do not have to explain why, and wobo does not tell them you turned it off, only that the link ended. if you are under 18 the link works the same at every age today, and it is you who starts it. there is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the note itself. seeing it first before you invite anyone you can look at the week the way a parent will see it, from the same card. there is no way to send a single board on its own yet; the weekly note is the whole of what goes out. related: your privacy and your data."
+          "plain": "The parent link sends a parent a note every Sunday showing what you actually learnt, and short notes about your learning during the week. You set it up, and you can switch it off. A note every Sunday: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in Wobo's words. And short notes in the week about your learning: something you finished, what comes next, or where you left off. No marks out of ten, no ranking, and no harsher version of the page you see. Every note carries a link that stops it, and one that stops them all. Your conversations with Wobo. Your wrong answers, one by one. A live feed of when you are online. A way to set targets for you. It is a window, not a remote control. Open You, the last of the four doors, and find the card called Parents. Enter the parent's email address. They get one invite, and nothing else is sent until they open it and confirm from their own device. If they never confirm, the invite expires and nothing goes to them. The same screen, one tap. It stops immediately and the old pages stop working. You do not have to explain why, and Wobo does not tell them you turned it off, only that the link ended. The link works the same at every age today, and it is you who starts it. There is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the notes themselves. Before you invite anyone you can look at the week the way a parent will see it, from the same card. There is no way to send a single board on its own yet; the notes are all that goes out. Related: Your privacy and your data.",
+          "text": "the parent link the parent link sends a parent a note every sunday showing what you actually learnt, and short notes about your learning during the week. you set it up, and you can switch it off. what the parent gets a note every sunday: the strengths your work showed, the two or three things worth a nudge, and one line about where the term is heading, in wobo's words. and short notes in the week about your learning: something you finished, what comes next, or where you left off. no marks out of ten, no ranking, and no harsher version of the page you see. every note carries a link that stops it, and one that stops them all. what the parent does not get your conversations with wobo. your wrong answers, one by one. a live feed of when you are online. a way to set targets for you. it is a window, not a remote control. setting it up open you, the last of the four doors, and find the card called parents. enter the parent's email address. they get one invite, and nothing else is sent until they open it and confirm from their own device. if they never confirm, the invite expires and nothing goes to them. turning it off the same screen, one tap. it stops immediately and the old pages stop working. you do not have to explain why, and wobo does not tell them you turned it off, only that the link ended. if you are under 18 the link works the same at every age today, and it is you who starts it. there is no consent flow behind it yet, so nothing here asks a parent to agree to anything beyond the notes themselves. seeing it first before you invite anyone you can look at the week the way a parent will see it, from the same card. there is no way to send a single board on its own yet; the notes are all that goes out. related: your privacy and your data."
         },
         {
           "slug": "flagging-something-wrong",

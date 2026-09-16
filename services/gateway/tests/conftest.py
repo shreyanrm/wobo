@@ -174,6 +174,15 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     waiting_list.reset_meter()
     auth.reset_jwks_cache()
     voice.reset_tokens()
+    # The activity record (activity.py): in process, fresh per test, its throttle forgotten, and
+    # its background notes run inline so a test can read what a turn recorded.
+    from wobo_gateway import activity as activity_mod
+
+    monkeypatch.setenv("ACTIVITY_STORE", "memory")
+    activity_mod.set_store(None)
+    activity_mod.set_clock(None)
+    activity_mod.set_runner(lambda go: go())
+    activity_mod.reset()
     # Mail: console transport, an empty in-memory send log, and background sends run inline so
     # a test can assert on what went out without waiting on a thread.
     from wobo_gateway import email as email_mod
@@ -183,6 +192,32 @@ def _gateway_test_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("EMAIL_MODE", "console")
     email_mod.reset_mail_log()
     jobs.set_runner(lambda go: go())
+    # The deliverability watch (mailwatch/): an in-process store per test, no remembered event,
+    # and none of its credentials from a developer's shell. The suite must never be able to reach
+    # a seed inbox, Google or the provider's webhook secret, and one test's suppression or pause
+    # must never be another test's held mail.
+    from wobo_gateway.mailwatch import events as watch_events
+    from wobo_gateway.mailwatch import store as watch_store
+
+    monkeypatch.setenv("MAIL_WATCH_STORE", "memory")
+    for key in (
+        "RESEND_WEBHOOK_SECRET",
+        "DELIVERABILITY_ALERT_TO",
+        "EMAIL_FROM_TRANSACTIONAL",
+        "POSTMASTER_CLIENT_ID",
+        "POSTMASTER_CLIENT_SECRET",
+        "POSTMASTER_REFRESH_TOKEN",
+        "POSTMASTER_DOMAIN",
+        *(
+            f"MAIL_SEED_{provider}_{half}"
+            for provider in ("GMAIL", "OUTLOOK", "YAHOO", "APPLE")
+            for half in ("ADDRESS", "PASSWORD")
+        ),
+    ):
+        monkeypatch.delenv(key, raising=False)
+    watch_store.set_store(None)
+    watch_events.set_clock(None)
+    watch_events.reset()
 
 
 @pytest.fixture

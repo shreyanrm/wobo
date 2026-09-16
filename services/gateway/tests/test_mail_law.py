@@ -52,6 +52,8 @@ SAMPLE: dict[str, dict[str, Any]] = {
     "streak": {"name": "Learner", "days": 7},
     "bonus_level": {"name": "Learner", "between": "Motion and Force"},
     "doubt": {"name": "Learner", "chapter": "Refraction"},
+    "learning_note": {"name": "Learner", "angle": "next", "title": "Fractions", "done": 4,
+                      "cards_left": 6},
     "course_ready": {"name": "Learner", "topic": "Fractions"},
     "boss_victory": {"name": "Learner", "topic": "Fractions"},
     "win": {"name": "Learner", "chapter": "Triangles"},
@@ -82,7 +84,8 @@ SUBJECT_LIMIT = 60
 #: word ceiling is measured on what comes BEFORE this, because the footer is required text and
 #: counting it would punish a kind for carrying its own legal line.
 _FOOTER = re.compile(
-    r"^(You get this|You got this|You(?:'|’)re getting this|Wobo writes when)",
+    r"^(You get this|You got this|You(?:'|’)re getting this|Wobo writes when"
+    r"|A note like this comes)",
 )
 
 _EMOJI = re.compile("[\U0001f000-\U0001faff☀-➿←-⇿⬀-⯿️]")

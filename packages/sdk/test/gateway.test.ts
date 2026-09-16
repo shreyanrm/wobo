@@ -57,6 +57,15 @@ describe('every gateway call carries an identity', () => {
     expect(headerOf(seen[0] as Seen, 'authorization')).toBe('Bearer jwt-refreshed');
   });
 
+  it('names the device’s time zone, so the learner’s day is their own', async () => {
+    configureGatewayAuth({ accessToken: () => 'jwt-abc' });
+    const seen = capture(() => Response.json({ ok: true }));
+    await gatewayFetch('https://brain.test/v1/me/activity', { method: 'POST' });
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    expect(zone).toBeTruthy();
+    expect(headerOf(seen[0] as Seen, 'x-wobo-timezone')).toBe(zone);
+  });
+
   it('falls back to the dev subject header when the build is keyless', async () => {
     configureGatewayAuth({ devSubject: 'local-subject-1' });
     const seen = capture(() => Response.json({ ok: true }));

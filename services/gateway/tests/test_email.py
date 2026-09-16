@@ -147,12 +147,15 @@ def test_every_link_follows_APP_URL(monkeypatch: pytest.MonkeyPatch) -> None:
         importlib.reload(templates)
 
 
-def test_there_are_twenty_templates() -> None:
+def test_there_are_twenty_two_templates() -> None:
     """Ten on the shell, three drawn by hand, the wish on the same paper, the parent invite on
-    that paper too (account mail, so not one of the hand kinds that need a stop link), and the
-    five nudges of docs/EMAILS-AND-ANIMATIONS.md §1."""
-    assert len(KINDS) == 20
-    assert len(NUDGE_KINDS) == 5
+    that paper too (account mail, so not one of the hand kinds that need a stop link), the five
+    nudges of docs/EMAILS-AND-ANIMATIONS.md §1, the good-news note the weekly cadence fills
+    its floor with (wave 56), and the deliverability watch's alert to the owner (wave 56), which
+    is transactional and never reaches a family."""
+    assert len(KINDS) == 22
+    assert "mail_alert" in KINDS
+    assert len(NUDGE_KINDS) == 6
     assert {"sunday_note", "welcome", "win", "wish"} == HAND_KINDS
     assert HAND_KINDS | {"parent_invite"} == PAPER_KINDS
 

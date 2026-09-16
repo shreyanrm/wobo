@@ -231,9 +231,9 @@
     },
     "default_timezones_note": "Countries with one civil time zone. A family in one of these need not set a timezone; a family anywhere else (the United States, Canada, Australia and the rest) must, or nothing is timed and nothing sends.",
     "quiet_hours": {
-      "from": "21:00",
+      "from": "20:00",
       "to": "08:00",
-      "note": "Local to the family. Nothing sends between these; a wish waits for the morning."
+      "note": "Local to the family. Nothing sends between these; a wish waits for the morning. Eight at night is the hours law's (docs/EMAILS-AND-ANIMATIONS.md): nothing from Wobo after eight."
     },
     "wishes": [
       {

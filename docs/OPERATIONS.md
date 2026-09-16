@@ -101,7 +101,7 @@ which carries `spent_usd`, `ceiling_usd`, `fraction` and `calls` for the current
 
 ## 3. The alarm
 
-`services/gateway/src/wobo_gateway/alerts.py`. Seven events, one JSON log line each, and a webhook
+`services/gateway/src/wobo_gateway/alerts.py`. Eight events, one JSON log line each, and a webhook
 when one is configured.
 
 ```bash
@@ -118,10 +118,13 @@ railway logs | grep '"alert":'      # machine-readable
 | `auth_failure_burst` | warn | more refused tokens in one minute than `ALERT_AUTH_FAILURE_BURST` (default 25) | usually an expired session storm after a deploy. If it persists across minutes with one `ip_hash`, somebody is trying keys; the rate limiter is already holding them |
 | `provider_outage` | warn | one model call refused or timed out | one is weather. If `/healthz` also says `providers: fail`, the chain is genuinely down: check the provider's status page and whether the account has credit |
 | `pool_threshold` | warn, critical at 100 % | one of the two pools the platform pays for ITSELF crossed a line (`pools.py`): `pool` is `creative` (the work made once and cached for everyone) or `free` (the day's spend on all free learners together) | these are not the learners' money and not the `spend_threshold` ceiling. `creative` at 100 % means today's authoring is done and the cache carries the rest of the day; `free` at 100 % means the goodwill is spent and free learners meet the kind line until midnight. Both dials are on the models desk and apply without a deploy |
+| `mail_deliverability` | warn; critical at Gmail's cliff (0.30 percent) and for a failed authentication | the deliverability watch (`mailwatch/`) found something wrong with where our mail lands. `cause` says what: `complaint_rate` (a kind crossed 0.10 percent and was paused, named in `kind`), `gmail_spam_rate` (Postmaster's rate crossed with no kind to point at), `seed_in_spam`, `seed_missing`, `authentication` (SPF, DKIM or DMARC failed at a seed inbox, in Postmaster, or in a bounce), `reputation` (Postmaster's verdict or a compliance row needs work), `tracking_on` (the provider sent an open or click event, so its tracking was switched on) | the same alert is mailed to `DELIVERABILITY_ALERT_TO` (default shreyan@doteventures.com) and listed on the console's mail desk. Fix the cause, then lift the pause on the mail desk (owner only). Nothing else slowed down, and the sender never changes on its own: a new `EMAIL_FROM` is a setting you make by hand |
 
 **Rules the alarm follows**, so you can trust what you see: the log line is written every time,
 and the *page* is rate-limited to one per event per `ALERT_COOLDOWN_SECONDS` (default 300) so a
-thousand errors is one page. A suppressed page still logs, with `"suppressed": true`. Nothing an
+thousand errors is one page (`mail_deliverability` counts each `cause` and `kind` separately, so a
+seed in spam never swallows the page for a failed DKIM, and the watch itself raises each cause at
+most once an hour). A suppressed page still logs, with `"suppressed": true`. Nothing an
 alert carries includes a learner's words, a token, or a key: only categories, paths, exception
 type names and a salted `ip_hash`.
 
@@ -1067,12 +1070,12 @@ history below.
 
 History: none yet.
 
-### The database advisors, and the 33 findings that are the design (2026-09-16)
+### The database advisors, and the 34 findings that are the design (2026-09-16)
 
 Run `get_advisors(security)` after any migration. On 2026-09-16, with 0024 to 0033 applied, it
 returned three things and only one of them is work.
 
-**33 x `rls_enabled_no_policy`, level INFO: intentional, every one.** Row level security is enabled
+**34 x `rls_enabled_no_policy`, level INFO: intentional, every one** (33 until 0036 added `ops.mail_watch`, server-only by the same design). Row level security is enabled
 AND forced on these tables with no policy attached, which denies every client role outright and
 leaves the gateway's service role as the only reader. The linter reports it because in an ordinary
 Supabase app a policyless table means somebody forgot one; here it means the opposite, and each
@@ -1231,3 +1234,24 @@ bypassing them (`remote: Bypassed rule violations for refs/heads/main`). The own
 it that way, on one condition: nothing reaches `main` that has not first passed every suite,
 typecheck and the gate on an isolated index (the write-tree recipe above), which is stricter than
 those checks. Every commit that bypasses says so in its report. A bypass is never silent.
+
+**Previews of the working branch are off (2026-09-16).** Vercel's plan runs one build at a time, and
+every push to `the-life` used to start a 13-minute preview build that nobody opened, so production
+builds of `main` waited behind them. `vercel.json` sets `git.deploymentEnabled` to false for
+`the-life`. `main` still builds on every push. If a preview is ever wanted, push a separate branch.
+
+**Migrations 0034 to 0036 applied to production (2026-09-17).** The activity record
+(`learner.activity`, `learner.note_activity`, `learner.activity_census`, `learner.expire_activity`,
+with client writes to `meter_state` and `sessions` revoked), the cadence (`learning_note` and the
+`mail.ladder` dial), and the deliverability watch (`ops.mail_watch`, append-only, and the
+`mail.kinds_paused` dial). Verified after applying: a learner's token cannot write any of it or run
+the writer; the service role can; the dials hold their defaults; the security advisor shows only the
+34 intentional findings and the three standing warnings. Thirty-two migrations are recorded.
+
+**The mail system is built and NOT running (2026-09-17).** Measured by wave 56: nothing on the live
+system calls `/v1/internal/mail/{sunday,nudges,wishes}` or the hourly `/v1/internal/mail/watch`, so
+nothing but the welcome has ever been sent. Before it runs, in this order: the owner approves the
+new wording; the provider webhook is registered at `https://api.heywobo.com/v1/mail/events` with
+`RESEND_WEBHOOK_SECRET` set on Railway; then a schedule calls the four jobs. Until then no family
+receives anything new. Also standing: `learner.parent_links` holds no rows, and the profile holds no
+age, so every learner is treated as under 13 and only a linked parent receives mail.

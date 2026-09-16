@@ -858,6 +858,66 @@ def plan_opened(data: dict[str, Any]) -> dict[str, str]:
     }
 
 
+# --- the owner's alert about the mail (wave 56, the deliverability watch) -----------------------
+#: The kind the watch mails ``DELIVERABILITY_ALERT_TO`` with (``mailwatch/respond.py``). It never
+#: reaches a family: one address of ours, transactional, and never paused.
+ALERT_KIND = "mail_alert"
+_ALERT_STEADY = "Every other kind of mail carries on at its usual pace."
+_ALERT_SENDER = (
+    "The sender stays exactly as it is. Changing it is a manual setting (EMAIL_FROM), made by "
+    "hand once the cause is fixed, never by the watch."
+)
+_ALERT_WHERE = (
+    "The mail desk in the console shows the complaint rates, the seed inboxes, the Postmaster "
+    "verdict and every alert. This address hears about it because it is set as "
+    "DELIVERABILITY_ALERT_TO."
+)
+
+
+def _gateway_health_url() -> str:
+    gateway = (os.getenv("GATEWAY_URL") or "https://api.heywobo.com").rstrip("/")
+    return _safe_url(f"{gateway}/healthz", APP_URL)
+
+
+def mail_alert(data: dict[str, Any]) -> dict[str, str]:
+    """What went wrong with the mail, what the watch did about it, and what it will never do.
+
+    Plain on purpose: one cause, one action, one line saying the rest carries on, one saying the
+    sender is a manual setting. The button checks the gateway that runs the watch, because the
+    console has no public address to link to and must not be given one here.
+    """
+    headline = " ".join(str(data.get("headline") or "Something needs a look").split())[:48]
+    line = " ".join(str(data.get("line") or "The deliverability watch raised an alert.").split())
+    action = " ".join(str(data.get("action") or "Nothing was paused.").split())
+    health = _gateway_health_url()
+    body = (
+        _p(_esc(line))
+        + _p(_esc(action))
+        + _p(_ALERT_STEADY, color=SECONDARY)
+        + _p(_esc(_ALERT_SENDER), color=SECONDARY)
+        + _p(_esc(_ALERT_WHERE), color=SECONDARY)
+    )
+    html_out = _shell(
+        preheader=_ALERT_STEADY,
+        heading=_esc(headline),
+        body=body,
+        cta_label="Check the gateway",
+        cta_url=health,
+        unsubscribe_url=_unsubscribe(data),
+        postal_address=_postal(data),
+    )
+    text = (
+        f"{headline}\n\n{line}\n\n{action}\n\n{_ALERT_STEADY}\n\n{_ALERT_SENDER}\n\n"
+        f"{_ALERT_WHERE}\n\nCheck the gateway: {health}\n\n— {APP_NAME}"
+    ) + _shell_foot_text(data)
+    return {
+        "subject": _fits(f"Mail watch: {headline}", "Mail watch: something needs a look"),
+        "preheader": _ALERT_STEADY,
+        "html": html_out,
+        "text": text,
+    }
+
+
 # --- the hand-drawn three (design/email-v1.html, ported verbatim), and the wish -----------
 # The Sunday note, the welcome and the win are the owner's design: cream paper, navy ink, the
 # Caveat hand for what Wobo says, marigold and coral for the earned moments, tonal tiles and no
@@ -1078,11 +1138,17 @@ def sunday_note(data: dict[str, Any]) -> dict[str, Any]:
         f'<td style="padding-left:10px;background:transparent"><a href="{_esc(reply_url, quote=True)}" style="display:inline-block;padding:14px 20px;font:500 15px/1 {_HAND};color:{_NAVY};text-decoration:none;background:{_TONAL};border-radius:12px">Reply to {_esc(APP_NAME)}</a></td>'
         "</tr></table></td></tr>"
     )
+    # WHAT ELSE COMES (2026-09-16). This said "It comes once a week ... Nothing else comes from
+    # it" while the cadence sent the same parent notes about the learner on other days. Now it
+    # says which is true of this parent, and offers the one tap that stops all of it.
+    often = _sunday_often(data, learner)
+    stop_all = _safe_url(data.get("stop_all_url"), "")
     rows += _hand_foot(
-        f"You get this note because {learner_html} linked you as a parent. It comes once a week, on Sunday. "
-        "Nothing else comes from it, and a reply reaches a person. "
+        f"You get this note because {learner_html} linked you as a parent. {_esc(often)} "
+        "A reply reaches a person. "
         + (f'<a href="{_esc(prefs, quote=True)}" {_HAND_FOOT_LINK}>Change when it arrives</a> &middot; ' if prefs else "")
-        + f'<a href="{_esc(unsub, quote=True)}" {_HAND_FOOT_LINK}>Stop the notes</a>',
+        + f'<a href="{_esc(unsub, quote=True)}" {_HAND_FOOT_LINK}>Stop the notes</a>'
+        + (f' &middot; <a href="{_esc(stop_all, quote=True)}" {_HAND_FOOT_LINK}>Stop all of these</a>' if stop_all else ""),
         f'<a href="{_esc(_privacy_url(), quote=True)}" {_HAND_FOOT_LINK}>Privacy</a> &middot; '
         f'<a href="{_esc(_trust_url(), quote=True)}" {_HAND_FOOT_LINK}>Security and trust</a>',
         _postal(data),
@@ -1105,10 +1171,11 @@ def sunday_note(data: dict[str, Any]) -> dict[str, Any]:
         f"See the week: {page_url}",
         f"Reply to {APP_NAME}: {REPLY_TO}",
         "",
-        f"You get this note because {learner} linked you as a parent. It comes once a week, on Sunday.",
-        "Nothing else comes from it, and a reply reaches a person.",
+        f"You get this note because {learner} linked you as a parent. {often}",
+        "A reply reaches a person.",
         *([f"Change when it arrives: {prefs}"] if prefs else []),
         f"Stop the notes: {unsub}",
+        *([f"Stop all of these: {stop_all}"] if stop_all else []),
         f"{APP_NAME} · {_APP_HOST} · Privacy: {_privacy_url()}",
         f"Security and trust: {_trust_url()}",
         _postal(data),
@@ -1121,6 +1188,20 @@ def sunday_note(data: dict[str, Any]) -> dict[str, Any]:
         "headers": _list_unsubscribe(data),
     }
 
+
+def _sunday_often(data: dict[str, Any], learner: str) -> str:
+    """How often this parent hears from us, in one true sentence."""
+    if data.get("parent_gets_notes") is False:
+        return "It comes on Sunday evenings."
+    return f"It comes on Sunday evenings, and short notes about {learner}’s learning come in the week."
+
+
+#: What the welcome says about what follows it. It once promised "your Sunday note, and account
+#: things", and then "notes about your learning ... a few times a week" (wave 56), and neither was
+#: true of the learner reading it: the notes about their learning go to a linked parent while the
+#: product holds no age, and to nobody when no parent is linked (2026-09-16). What is true of
+#: every mail after this one is that it can be stopped from itself.
+WELCOME_CADENCE = "Anything I send after this carries a link that stops it."
 
 _WELCOME_THINGS: tuple[tuple[str, str], ...] = (
     ("Ask the basic thing.", "“What even is a hypotenuse” counts. I never keep score of what you should already know."),
@@ -1213,7 +1294,7 @@ def welcome(data: dict[str, Any]) -> dict[str, Any]:
         "</td></tr>"
     )
     rows += _hand_foot(
-        f"You’re getting this because you just made a {_esc(APP_NAME)} account. We’ll email you only when it’s useful: your Sunday note, and account things. "
+        f"You’re getting this because you just made a {_esc(APP_NAME)} account. {_esc(WELCOME_CADENCE)} "
         f'<a href="{_esc(prefs, quote=True)}" {_HAND_FOOT_LINK}>Email settings</a> &middot; '
         f'<a href="{_esc(unsub, quote=True)}" {_HAND_FOOT_LINK}>Stop these</a>',
         f'<a href="{_esc(_privacy_url(), quote=True)}" {_HAND_FOOT_LINK}>Privacy</a> &middot; '
@@ -1240,7 +1321,7 @@ def welcome(data: dict[str, Any]) -> dict[str, Any]:
             f"Ask your first question: {cta}",
             free_line,
             "",
-            f"You’re getting this because you just made a {APP_NAME} account. We’ll email you only when it’s useful: your Sunday note, and account things.",
+            f"You’re getting this because you just made a {APP_NAME} account. {WELCOME_CADENCE}",
             f"Email settings: {prefs}",
             f"Stop these: {unsub}",
             f"{APP_NAME} · {_APP_HOST} · Privacy: {_privacy_url()}",
@@ -1323,8 +1404,8 @@ def win(data: dict[str, Any]) -> dict[str, Any]:
         "</td></tr>"
     )
     rows += _hand_foot(
-        f"{_esc(APP_NAME)} writes when something real happens, never more than once a week. "
-        "It comes when you finish something, never on a schedule. "
+        "A note like this comes when you finish something real, never more than once a week, "
+        "and never on a schedule. "
         "Reply to this note and a person answers. "
         f'<a href="{_esc(prefs, quote=True)}" {_HAND_FOOT_LINK}>Fewer emails</a> &middot; '
         f'<a href="{_esc(unsub, quote=True)}" {_HAND_FOOT_LINK}>None at all</a>',
@@ -1350,8 +1431,8 @@ def win(data: dict[str, Any]) -> dict[str, Any]:
     text_lines += [
         f"{rest_label}: {rest_url}",
         "",
-        f"{APP_NAME} writes when something real happens, never more than once a week.",
-        "It comes when you finish something, never on a schedule.",
+        "A note like this comes when you finish something real, never more than once a week, "
+        "and never on a schedule.",
         "Reply to this note and a person answers.",
         f"Fewer emails: {prefs}",
         f"None at all: {unsub}",
@@ -1494,13 +1575,14 @@ def parent_invite(data: dict[str, Any]) -> dict[str, Any]:
         "Sunday notes."
     )
     what = (
-        f"Once a week you get one page: what {named} studied, what they cracked, and one thing "
-        "they drew. It takes about a minute to read."
+        f"You get a page every Sunday on what {named} studied, what they cracked and one thing "
+        f"they drew, and short notes in the week about {named}’s learning. Each takes about a "
+        "minute to read."
     )
     window = "It is a window into the work, not a monitor."
     why = (
-        f"You got this once because {named} typed your address. Nothing else comes unless you "
-        "say yes on the next page, and every Sunday note carries a link that stops them."
+        f"You got this once because {named} typed your address. Nothing more comes unless you "
+        "say yes on the next page, and every note carries a link that stops them."
     )
 
     rows = _hand_head(stamp)
@@ -1552,8 +1634,11 @@ def parent_invite(data: dict[str, Any]) -> dict[str, Any]:
         _postal(data),
     )
 
-    subject = f"{name} asked me to send you their Sunday notes"
-    preheader = "One page a week. No dashboard, nothing to check daily."
+    subject = _fits(
+        f"{name} asked me to send you notes about their learning",
+        f"{name} asked me to send you their notes",
+    )
+    preheader = "A page on Sundays, short notes in the week, and no dashboard to check."
     text = "\n".join(
         [
             greeting,
@@ -1599,8 +1684,16 @@ def parent_invite(data: dict[str, Any]) -> dict[str, Any]:
 # MAIL-PRIMARY §3 requires of the day the GIF arrives: at most one image, with alt text, and the
 # message whole without it. ``orb_url`` is the seam; a template never draws a move itself.
 
-#: The five kinds, in the order §1 lists them.
-NUDGE_KINDS: tuple[str, ...] = ("quick_one", "mid_chapter", "streak", "bonus_level", "doubt")
+#: The five kinds, in the order §1 lists them, and the good-news note the weekly cadence fills
+#: its floor with (wave 56): what the learner did, what they cracked, what comes next.
+NUDGE_KINDS: tuple[str, ...] = (
+    "quick_one",
+    "mid_chapter",
+    "streak",
+    "bonus_level",
+    "doubt",
+    "learning_note",
+)
 
 #: The one move each nudge carries (§2, §8). One thing at a time, never two.
 ORB_MOVES: dict[str, str] = {
@@ -1609,6 +1702,16 @@ ORB_MOVES: dict[str, str] = {
     "streak": "bounce",
     "bonus_level": "spark",
     "doubt": "reading",
+    "learning_note": "spark",
+}
+
+#: How often these notes come, said plainly in every footer and true of the code
+#: (``hospitality/cadence.py``): at least three a week while a learner is learning, fewer on
+#: the way down the ladder, never two inside a day, never after eight. No clock hour is named
+#: (docs/copy/voice.md §8.7). ``full`` is the full cadence, ``away`` any step below it.
+CADENCE_LINES: dict[str, str] = {
+    "full": "It comes a few times a week, never twice in a day, and never late.",
+    "away": "It comes less often now, never twice in a day, and never late.",
 }
 
 #: Where the rendered moves are published. They are written by ``tools/orb/render.mjs`` from the
@@ -1732,6 +1835,11 @@ def _note(
     """One nudge, drawn. Every kind above is this function with five different sentences."""
     stamp = str(data.get("stamp") or "Just now")
     prefs, unsub = _preferences(data), _unsubscribe(data)
+    # "Stop all of these": when the send path signed one, everything this address is sent about
+    # the learner, in one tap (hospitality/tokens.py). A parent has no account to sign in to, so
+    # "Fewer emails" (the signed-in settings page) would be a dead end for them.
+    stop_all = _safe_url(data.get("stop_all_url"), "")
+    first_link, first_label = (stop_all, "Stop all of these") if stop_all else (prefs, "Fewer emails")
     orb = _safe_url(data.get("orb_url"), "")
     # ``None`` for a kind that carries no move of its own (course_ready draws the concept, not
     # the character), and then the still mark stands in exactly as it does before a GIF exists.
@@ -1766,7 +1874,7 @@ def _note(
     rows += (
         f'<tr><td class="wobo-quiet" style="padding:18px 32px 26px;font:400 12px/1.6 {_HAND};color:{_FOOT_PROSE_PAPER}">'
         f"{_esc(why)} "
-        f'<a href="{_esc(prefs, quote=True)}" {_HAND_FOOT_LINK}>Fewer emails</a> &middot; '
+        f'<a href="{_esc(first_link, quote=True)}" {_HAND_FOOT_LINK}>{first_label}</a> &middot; '
         f'<a href="{_esc(unsub, quote=True)}" {_HAND_FOOT_LINK}>Stop this one</a><br>'
         f"{_esc(APP_NAME)} &middot; {_esc(_APP_HOST)} &middot; "
         f'<a href="{_esc(_privacy_url(), quote=True)}" {_HAND_FOOT_LINK}>Privacy</a><br>'
@@ -1782,7 +1890,7 @@ def _note(
             f"{cta_label}: {cta_url}",
             "",
             why,
-            f"Fewer emails: {prefs}",
+            f"{first_label}: {first_link}",
             f"Stop this one: {unsub}",
             f"{APP_NAME} · {_APP_HOST} · Privacy: {_privacy_url()}",
             _postal(data),
@@ -1800,7 +1908,19 @@ def _note(
     }
 
 
-def _why(kind_line: str, audience: str, learner: str, *, cadence: str = "") -> str:
+def _cadence_line(data: dict[str, Any]) -> str:
+    """The footer's sentence about how often, for the step this send was made on."""
+    return CADENCE_LINES.get(str(data.get("cadence") or ""), CADENCE_LINES["full"])
+
+
+def _why(
+    kind_line: str,
+    audience: str,
+    learner: str,
+    *,
+    cadence: str = "",
+    data: dict[str, Any] | None = None,
+) -> str:
     """Why this arrived, in the reader's own register.
 
     Three sentences, and every one of them earns its place: why this mail exists, the cadence it
@@ -1827,14 +1947,19 @@ def _why(kind_line: str, audience: str, learner: str, *, cadence: str = "") -> s
     """
     opener = f"{kind_line[0].upper()}{kind_line[1:]}" if kind_line else ""
     lowered = f"{kind_line[0].lower()}{kind_line[1:]}" if kind_line else ""
+    # THE CADENCE SENTENCE (wave 56). It said "at most three times a week, and never on a day
+    # they came in", and both halves stopped being true when the owner made three a week a floor
+    # and let good news go on a day the learner came. What is true of every one of these now is
+    # in CADENCE_LINES, chosen by the step the send path says the learner is on.
+    held = cadence or _cadence_line(data or {})
     if audience == "parent":
+        # Never an age: the product holds none, and most parents who get this are told a thing
+        # about their child that is not true of them (2026-09-16). The link is the reason.
         who = learner or "your child"
-        held = cadence or "It comes at most three times a week, and never on a day they came in."
         return (
-            f"You get this because {who} is under thirteen, so mail about their learning comes "
-            f"to you. {opener} {held} Reply to this note and a person answers."
+            f"You get this because {who} linked you as a parent, so notes about their learning "
+            f"come to you. {opener} {held} Reply to this note and a person answers."
         )
-    held = cadence or "It comes at most three times a week, and never on a day you came in."
     return (
         f"You get this because you have a {APP_NAME} account and {lowered} {held} "
         f"Reply to this note and a person answers."
@@ -1874,7 +1999,7 @@ def quick_one(data: dict[str, Any]) -> dict[str, Any]:
         cta_label=cta_label,
         cta_url=_link(data, "cta_url", "/learn"),
         subject=_subject_with(name, learner, subject_rest),
-        why=_why("notes about a waiting card are switched on.", audience, learner),
+        why=_why("notes about a waiting card are switched on.", audience, learner, data=data),
     )
 
 
@@ -1906,12 +2031,18 @@ def mid_chapter(data: dict[str, Any]) -> dict[str, Any]:
         cta_label=cta_label,
         cta_url=_link(data, "cta_url", "/learn"),
         subject=_subject_with(name, learner, subject_rest),
-        why=_why("notes about a chapter nearly done are switched on.", audience, learner),
+        why=_why("notes about a chapter nearly done are switched on.", audience, learner, data=data),
     )
 
 
 def streak(data: dict[str, Any]) -> dict[str, Any]:
-    """The streak: day three, day seven, day thirty, the morning after."""
+    """The streak: day three, day seven, day thirty, the morning after; and, once a run, a note on
+    the evening a run is still alive and the learner has not come yet.
+
+    It says the days that happened and nothing that has not: never "today makes eight"
+    (2026-09-16: a learner who stayed away that day had been told it would), never a threat.
+    The rest-day clause is the law's first line for this kind (docs/MAIL-PRIMARY.md).
+    """
     audience = _audience(data)
     learner = _learner_name(data)
     name = "" if audience == "parent" else str(data.get("name") or "").strip().split(" ")[0][:40]
@@ -1919,13 +2050,16 @@ def streak(data: dict[str, Any]) -> dict[str, Any]:
     spoken = _words(days)
     headline = f"{spoken.capitalize()} days."
     if audience == "parent":
-        line = f"{learner or 'Your child'} has come in {spoken} days running."
+        line = (
+            f"{learner or 'Your child'} has learned on {spoken} days in a row, and rest days "
+            "count too."
+        )
         subject_rest = f"is on {spoken} days"
         cta_label = "See the week"
     else:
-        line = f"{spoken.capitalize()} days in a row. Today makes {_words(days + 1)}."
+        line = f"{spoken.capitalize()} days in a row, and rest days count too."
         subject_rest = f"you are on {spoken} days"
-        cta_label = "Keep it going"
+        cta_label = "See what is next"
     return _note(
         kind="streak",
         data=data,
@@ -1934,7 +2068,7 @@ def streak(data: dict[str, Any]) -> dict[str, Any]:
         cta_label=cta_label,
         cta_url=_link(data, "cta_url", "/"),
         subject=_subject_with(name, learner, subject_rest),
-        why=_why("notes about days in a row are switched on.", audience, learner),
+        why=_why("notes about days in a row are switched on.", audience, learner, data=data),
     )
 
 
@@ -1962,7 +2096,7 @@ def bonus_level(data: dict[str, Any]) -> dict[str, Any]:
         cta_label=cta_label,
         cta_url=_link(data, "cta_url", "/learn"),
         subject=_subject_with(name, learner, subject_rest),
-        why=_why("notes about a side door opening are switched on.", audience, learner),
+        why=_why("notes about a side door opening are switched on.", audience, learner, data=data),
     )
 
 
@@ -1992,8 +2126,236 @@ def doubt(data: dict[str, Any]) -> dict[str, Any]:
         cta_url=_link(data, "cta_url", "/doubt"),
         subject=_subject_with(name, learner, subject_rest),
         why=_why(
-            "notes about a photographed page being answered are switched on.", audience, learner
+            "notes about a photographed page being answered are switched on.",
+            audience,
+            learner,
+            data=data,
         ),
+    )
+
+
+#: What a good-news note can say, in the order the cadence prefers them (hospitality/cadence.py).
+LEARNING_NOTE_ANGLES: tuple[str, ...] = ("cracked", "next", "days", "waiting")
+
+#: How many ways "what is waiting" is said. The cadence counts the notes a learner was sent and
+#: hands the count in as ``variant``, so the same fact is never the same sentence twice running.
+WAITING_WAYS = 6
+
+
+def _waiting(
+    variant: int,
+    parent: bool,
+    title: str,
+    who: str,
+    who_first: str,
+    to_go: str,
+    done: int | None,
+) -> tuple[str, str, str, str]:
+    """(headline, line, subject rest, button) for one way of saying what is waiting."""
+    way = variant % WAITING_WAYS
+    after = (done or 0) + 1
+    if way == 1:
+        if parent:
+            return (
+                "Their place is saved.",
+                f"{who_first}’s place in {title} is saved, at the card they stopped on.",
+                f"has a place saved in {title}",
+                "See the card",
+            )
+        return (
+            "Your place is saved.",
+            f"Your place in {title} is saved, at the card you stopped on.",
+            f"your place in {title} is saved",
+            "Pick it up",
+        )
+    if way == 2:
+        if parent:
+            return (
+                "Ready when they are.",
+                f"{who_first} can pick {title} up exactly where they stopped.",
+                f"can carry on with {title}",
+                "See the card",
+            )
+        return (
+            "Ready when you are.",
+            f"You can pick {title} up exactly where you stopped.",
+            f"{title} is ready when you are",
+            "Pick it up",
+        )
+    if way == 3:
+        if parent:
+            return (
+                "The next card.",
+                f"Card {_words(after)} of {title} is next for {who}.",
+                f"has card {_words(after)} of {title} next",
+                "See the card",
+            )
+        return (
+            "The next card.",
+            f"Card {_words(after)} of {title} is next.",
+            f"card {_words(after)} of {title} is next",
+            "Open it",
+        )
+    if way == 4:
+        if parent:
+            return (
+                "A bit at a time.",
+                f"A few cards at a time is how {title} gets easy for {who}.",
+                f"can take {title} a few cards at a time",
+                "See the card",
+            )
+        return (
+            "A bit at a time.",
+            f"A few cards at a time is how {title} gets easy.",
+            f"{title}, a few cards at a time",
+            "Take the next one",
+        )
+    if way == 5:
+        if parent:
+            return (
+                "Any question counts.",
+                f"Anything in {title} that did not make sense to {who} is worth asking about.",
+                f"can ask about anything in {title}",
+                "See the card",
+            )
+        return (
+            "Any question counts.",
+            f"Anything in {title} that did not make sense is worth asking about.",
+            f"ask about anything in {title}",
+            "Ask about it",
+        )
+    if parent:
+        return (
+            "Where they left it.",
+            f"{title} is where {who} left it, with {to_go}." if to_go else f"{title} is where {who} left it.",
+            f"can pick up {title} any time",
+            "See the card",
+        )
+    return (
+        "Where you left it.",
+        f"{title} is where you left it, with {to_go}." if to_go else f"{title} is where you left it.",
+        f"{title} is where you left it",
+        "Pick it up",
+    )
+
+
+def learning_note(data: dict[str, Any]) -> dict[str, Any]:
+    """The good-news note: the learner's own work, said back (the weekly cadence, wave 56).
+
+    The owner, 2026-09-16: three a week is a floor, and "most of those are good news about the
+    learner's own work". When nothing the learner did earned a mail of its own, the cadence
+    sends this, with ONE of four true things in it, chosen by the send path from the activity
+    record and never invented here:
+
+    * ``cracked`` — a module finished (``moment=module_finished``) or a topic made solid
+      (``moment=topic_mastered``), named by its title;
+    * ``next`` — where they are in a chapter: cards done and cards to go;
+    * ``days`` — how many days they learned in the last seven;
+    * ``waiting`` — what is where they left it, or, with nothing recorded, a question from class.
+
+    It encourages learning and asks for nothing else (the owner: "we wont say use more, we
+    encourage and motivate to learn"). It never counts days away, never says what we noticed,
+    and never threatens a streak. A fact the caller did not give is a sentence that is not
+    written: ``next`` without a title reads as ``waiting``.
+    """
+    audience = _audience(data)
+    learner = _learner_name(data)
+    parent = audience == "parent"
+    name = "" if parent else str(data.get("name") or "").strip().split(" ")[0][:40]
+    who = learner or "your child"
+    who_first = learner or "Your child"
+    title = str(data.get("title") or data.get("chapter") or "").strip()[:120]
+    angle = str(data.get("angle") or "").strip()
+    left = _count(data, "cards_left")
+    done = _count(data, "done")
+    days = _count(data, "days")
+    if angle == "cracked" and not title:
+        angle = "waiting"
+    if angle == "next" and not (title and left and left > 0):
+        angle = "waiting"
+    if angle == "days" and not (days and days >= 2):
+        angle = "waiting"
+    if angle not in LEARNING_NOTE_ANGLES:
+        angle = "waiting"
+    to_go = f"{_words(left)} {'card' if left == 1 else 'cards'} to go" if left and left > 0 else ""
+    cta_path = "/learn"
+
+    if angle == "cracked" and data.get("moment") == "topic_mastered":
+        headline = "That one is solid."
+        if parent:
+            line = f"{who_first} has {title} solid now, from practising it."
+            rest, cta_label = f"has {title} solid", "See the chapter"
+        else:
+            line = f"{title} is solid now, and you got it there by practising."
+            rest, cta_label = f"{title} is solid", "See what is next"
+    elif angle == "cracked":
+        headline = "Every card, done."
+        if parent:
+            line = f"{who_first} finished {title}, every card of it."
+            rest, cta_label = f"finished {title}", "See the chapter"
+        else:
+            line = f"You finished {title}, every card of it."
+            rest, cta_label = f"you finished {title}", "See what is next"
+    elif angle == "next":
+        headline = "Next up."
+        cards_in = f"{_words(done)} {'card' if done == 1 else 'cards'} into" if done else "partway into"
+        if parent:
+            line = f"{who_first} is {cards_in} {title}, with {to_go}."
+            rest, cta_label = f"is {cards_in} {title}", "See the card"
+        else:
+            line = f"You are {cards_in} {title}, with {to_go}."
+            rest, cta_label = f"{to_go} in {title}", "Carry on"
+    elif angle == "days":
+        spoken = _words(days or 0)
+        headline = f"{spoken.capitalize()} days this week."
+        if parent:
+            line = f"{who_first} learned on {spoken} days this week. That is how it gets easy."
+            rest, cta_label = f"learned on {spoken} days this week", "See the week"
+        else:
+            line = f"You learned on {spoken} days this week. That is how this gets easy."
+            rest, cta_label = f"{spoken} days of learning this week", "Pick the next one"
+    elif title:
+        headline, line, rest, cta_label = _waiting(
+            int(_count(data, "variant") or 0), parent, title, who, who_first, to_go, done
+        )
+    else:
+        cta_path = "/"
+        if int(_count(data, "variant") or 0) % 2:
+            if parent:
+                headline = "Worth asking."
+                line = f"If something in class did not make sense to {who}, that is a good place to start."
+                rest, cta_label = "can start from any question", "See where to start"
+            else:
+                headline = "Worth asking."
+                line = "If something in class did not make sense, that is a good place to start."
+                rest, cta_label = "start from any question", "Ask a question"
+        elif parent:
+            headline = "Any question counts."
+            line = (
+                f"{who_first} can bring anything from class that did not make sense, any time."
+            )
+            rest, cta_label = "can bring any question from class", "See where to start"
+        else:
+            headline = "Bring a question."
+            line = "Anything from class that did not make sense is a good place to start."
+            rest, cta_label = "bring a question from class", "Ask a question"
+
+    subject = _subject_with(name, learner, rest)
+    # A title long enough to push the subject past what a phone shows falls back to the short
+    # form of the same fact rather than being clipped mid-word.
+    if parent:
+        short = f"A note about {learner}'s learning" if learner else "A note about your child's learning"
+    else:
+        short = f"{name}, a note about your learning" if name else "A note about your learning"
+    return _note(
+        kind="learning_note",
+        data=data,
+        headline=headline,
+        line=line,
+        cta_label=cta_label,
+        cta_url=_link(data, "cta_url", cta_path),
+        subject=_fits(subject, short),
+        why=_why("notes about learning are switched on.", audience, learner, data=data),
     )
 
 
@@ -2023,6 +2385,10 @@ TEMPLATES: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "streak": streak,
     "bonus_level": bonus_level,
     "doubt": doubt,
+    # the good-news note the weekly cadence fills its floor with (wave 56)
+    "learning_note": learning_note,
+    # the deliverability watch's alert, to the owner and never to a family (wave 56)
+    ALERT_KIND: mail_alert,
 }
 
 KINDS = tuple(TEMPLATES)
@@ -2046,8 +2412,12 @@ NOTE_KINDS: frozenset[str] = frozenset(NUDGE_KINDS) | {"course_ready"}
 # TRANSACTIONAL mail carries no List-Unsubscribe and no List-Id: Google excludes password resets,
 # receipts, confirmations and one-time codes, and an unsubscribe link on a verification code is a
 # way for a person to lock themselves out of their own account.
+#
+# The same set is the TRANSACTIONAL STREAM (``email.sender_for``: ``EMAIL_FROM_TRANSACTIONAL``) and
+# what the deliverability watch never pauses (``mailwatch/respond.py``): a sign-in code, a
+# receipt, and the owner's own alert about the mail.
 TRANSACTIONAL_KINDS: frozenset[str] = frozenset(
-    {"verify_email", "account_created", "plan_opened"}
+    {"verify_email", "account_created", "plan_opened", ALERT_KIND}
 )
 
 # Everything else is SUBSCRIBED and carries both headers. This used to be true of the paper set

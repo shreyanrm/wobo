@@ -65,6 +65,20 @@ export const ENDPOINT = {
   /** POST: move one report through its states, on `support.act`, so the guard demands a step-up.
    *  The id rides in the body because this transport calls static endpoint names — see api.ts. */
   reportState: '/v1/admin/reports/state',
+  /** GET: who came today, in seven days and in thirty, and how many sit on each step of the mail
+   *  ladder, from `learner.activity` (migration 0034). Counts only; nobody is named. */
+  activity: '/v1/admin/activity',
+  /** GET: `?id=` — ONE learner's last visit, days active this month, streak and mail step, on
+   *  `learner.read`, audited as its own action. Never called on its own initiative. */
+  learnerActivity: '/v1/admin/learners/activity',
+  /** GET: the mail desk — complaint rates overall and per kind against 0.10 and 0.30 percent,
+   *  bounces, the COUNT of suppressed addresses, seed placement, Gmail's day from Postmaster Tools,
+   *  paused kinds and every alert, from `ops.mail_watch` (migration 0036). Nobody is named. */
+  mail: '/v1/admin/mail',
+  /** POST: lift the deliverability watch's pause on one kind. `admin.manage`, which only an owner
+   *  carries and which the guard demands a step-up for; audited, and the dial's own trail records
+   *  the owner and the note. Answers with the desk as it now stands. */
+  mailUnpause: '/v1/admin/mail/unpause',
   /** GET: every promo code with its real use count, from `ops.promo_codes` (migration 0027). */
   promo: '/v1/admin/promo',
   /** GET: who has taken a code, as a keyed digest, and what it granted. `?code=&limit=`. */
@@ -117,6 +131,11 @@ export const CONSOLE_READ = 'console.read';
  *  is shown the list and not a form that would only ever answer 403. This is a courtesy, never a
  *  control — the gateway refuses the write whatever this bundle renders. */
 export const ADMIN_MANAGE = 'admin.manage';
+
+/** The permission that may turn an opaque learner id into that learner's record
+ *  (`admin_auth.LEARNER_READ`). A viewer does not carry it; the console draws the lookup only for a
+ *  seat that does. A courtesy, never a control: the gateway refuses everyone else. */
+export const LEARNER_READ = 'learner.read';
 
 /** Who the SERVER says is looking. Minted by the guard, never constructed in this bundle. */
 export interface AdminIdentity {

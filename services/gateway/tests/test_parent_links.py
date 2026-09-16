@@ -155,8 +155,10 @@ def test_the_invite_renders_in_the_hand_with_no_vendor_and_no_gendered_pronoun(
     assert data["accept_url"] == f"https://api.heywobo.com{ACCEPT}?token={token}"
     assert data["decline_url"] == f"https://api.heywobo.com{DECLINE}?token={token}"
     out = render("parent_invite", data)
-    assert out["subject"] == "Learner asked me to send you their Sunday notes"
-    assert out["preheader"] == "One page a week. No dashboard, nothing to check daily."
+    assert out["subject"] == "Learner asked me to send you notes about their learning"
+    assert out["preheader"] == (
+        "A page on Sundays, short notes in the week, and no dashboard to check."
+    )
     html, text = out["html"], out["text"]
     # the same paper as the welcome, one button each way, and no unsubscribe link in the body:
     # "Not me" is the way out a person reads
@@ -390,7 +392,7 @@ def test_without_a_name_the_pages_read_as_sentences(
     client.post(INVITE, json={"email": PARENT}, headers=auth())
     token = token_for(only_link(_fresh))
     page = client.get(ACCEPT, params={"token": token}).text
-    assert "The learner asked me to send you their Sunday notes" in page
+    assert "The learner asked me to send you notes about their learning" in page
     assert "what the learner studied" in page and "The learner studied" not in page
     done = client.post(ACCEPT, data={"token": token}).text
     assert "when the learner has had a week" in done
@@ -460,15 +462,15 @@ def test_the_parents_tap_links_the_family_once(
     # a GET is a question: the page says what the parent will get, and nothing changes
     page = client.get(ACCEPT, params={"token": token})  # no Authorization header at all
     assert page.status_code == 200 and page.headers["content-type"].startswith("text/html")
-    assert "Learner asked me to send you their Sunday notes" in page.text
-    assert "Send me the Sunday notes" in page.text and 'method="post"' in page.text
+    assert "Learner asked me to send you notes about their learning" in page.text
+    assert "Send me the notes" in page.text and 'method="post"' in page.text
     assert "Not their conversations with me" in page.text
     assert not VENDOR.search(page.text) and not GENDERED.search(page.text)
     assert "<script" not in page.text and "!" not in page.text.split("<body")[1]
     assert only_link(_fresh).status == "invited"
     # the button's POST does the thing
     done = client.post(ACCEPT, data={"token": token})
-    assert done.status_code == 200 and "Done. The Sunday notes will come here." in done.text
+    assert done.status_code == 200 and "Done. The notes will come here." in done.text
     link = only_link(_fresh)
     assert link.status == "linked" and link.linked_at is not None
     assert link.invite_token_hash is None and link.parent_email == PARENT

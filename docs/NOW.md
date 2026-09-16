@@ -28,7 +28,7 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 
 | What | Wave | Where it is |
 |---|---|---|
-| Nothing. Wave 55 is in the tree and being verified before it ships | 55 | Played first: a question that beat a learner twice came back a THIRD time, the course never asked for a group, and misses were keyed on the topic so any right answer reset them. Now: the course records each miss by module, re-chooses at every module end through `groupFor`, ends a topic only on band held AND boss passed, and the gateway's metered `curriculum.climb` is retired (the device is the only chooser). Three reviewer findings closed by the fixer. **Wave 56 is next** |
+| Nothing. Wave 56 landed; the mail it built waits on the owner's review of its wording | 56 | Verified on an isolated index: gateway 7365 passed / 0 failed; web 4040 tests, 0 failed; board 1139; sdk 191; engine 30; typecheck 7; ruff clean; build and gate clean. Migrations 0034, 0035, 0036 applied to production and verified. The measurement found the live mail had never sent anything but the welcome: no schedule calls the mail jobs, the nudge source read a key that never existed, and the day ledger was never written. **Next: the owner's wording review (95 lines, published), then the webhook, the env and the schedule; then wave 49** |
 
 ## The queue, in order
 
@@ -37,11 +37,10 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | # | What | Wave |
 |---|---|---|
-| 1 | The activity record, the cadence (at least three a week, a ladder down to once a month, never zero), and the spam watch | 56 |
-| 2 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
-| 3 | The growth desk, the press page, chapter pages at tier two | 50 |
-| 4 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
-| 5 | The parent's account screens | 34 |
+| 1 | One owner and per-person roles, the board that changes once, the four suggestions | 49 |
+| 2 | The growth desk, the press page, chapter pages at tier two | 50 |
+| 3 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
+| 4 | The parent's account screens | 34 |
 
 ## Landed, with the proof
 
@@ -163,6 +162,7 @@ rather than remembered, and every line below was checked against the code on 202
 
 | What | Why it matters | Effort |
 |---|---|---|
+| Approve the 95 new lines a family could read (the learning notes, subjects, footers, stop pages, parent invitation, help centre) | nothing new is sent to any family until this is done; the page lists every line, checked against the final code | a read-through |
 | DNS for a transactional sending subdomain (sign-in codes, receipts), added in Resend | global practice: a bad week for learning notes never blocks a sign-in or a receipt. The code falls back to today's sender until it exists | a few DNS records |
 | The brand logo in the inbox (BIMI) | needs DMARC at enforcement and usually the registered trademark, so it follows the trademark filing | after the trademark |
 | Seed inboxes we own on Gmail, Outlook, Yahoo and Apple Mail, each with an app password | the daily spam check sends to them and reads which folder each mail landed in; without them it reports "not configured" | four sign-ups |

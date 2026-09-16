@@ -45,6 +45,7 @@ import { isPublicSite } from './shell/public-routes';
 import { useConnectivity } from './shell/resilience';
 import { type Route, routeFromPath, useRouter } from './shell/router';
 import { publicScreen } from './site/PublicRoutes';
+import { ActivityObserver } from './store/ActivityObserver';
 import { appSdk, GATEWAY_URL } from './store/app-sdk';
 import { machineRoomSnapshot } from './store/machine-room';
 import { MasteryProvider } from './store/mastery';
@@ -1417,6 +1418,8 @@ function AppInner({ sdk }: { sdk: Sdk }) {
       <ClickInk />
       {/* the per-learner mind — folds behavioural signals into Wobo's lifetime context */}
       <MindObserver />
+      {/* the activity record — a session is the app on screen (store/activity.ts) */}
+      <ActivityObserver />
       {/* Wobo speaks what Wobo writes — sound and ink on the same beat */}
       <SpeechNarrator />
       {/* the course-download queue: composes ungened courses one at a time, notifies on ready */}

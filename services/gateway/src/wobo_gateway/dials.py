@@ -21,6 +21,8 @@ ops.settings, one HTTP client, one audit trigger behind both.
 ``allowance.inr_per_usd``     the rate the ledger's USD is read in rupees at
 ``creative.pool.daily_usd``   the platform's own cap for the create tier (docs/ALLOWANCE.md)
 ``free.pool.daily_paise``     the day's ceiling on all free learners together
+``mail.ladder``               the mail's step-down by days away: four ascending last-days, the
+                              owner's default ``[14, 30, 60, 90]`` (docs/EMAILS-AND-ANIMATIONS.md)
 ============================  ================================================================
 
 **Env wins, and the desk says so.** The overrides are turned into the same ``WOBO_TIER_*``
@@ -64,6 +66,13 @@ FREE_PAISE_KEY = "allowance.free_daily_paise"
 INR_RATE_KEY = "allowance.inr_per_usd"
 CREATIVE_POOL_KEY = "creative.pool.daily_usd"
 FREE_POOL_KEY = "free.pool.daily_paise"
+#: The mail's step-down (docs/EMAILS-AND-ANIMATIONS.md, "The weekly cadence"): "The steps are one
+#: console dial." Four ascending whole days, the last day away on each step but the last, which
+#: never ends. ``wobo_gateway.activity`` owns the default and reads this through
+#: :func:`valid_mail_ladder`, so a bad value is ignored rather than obeyed.
+MAIL_LADDER_KEY = "mail.ladder"
+MAIL_LADDER_STEPS = 4
+MAIL_LADDER_MAX_DAYS = 365
 #: The discovery dials (docs/BOARD-COLD-START.md §5). The four about money and the switch live
 #: in ``curriculum/discovery/ceiling.py``; the fifth, how many academic years out of date a
 #: board's document may be before it is refused, lives in ``curriculum/discovery/dating.py``
@@ -99,7 +108,7 @@ def allowance_keys() -> tuple[str, ...]:
 
 
 def keys() -> tuple[str, ...]:
-    return (*tier_keys(), *allowance_keys(), *DISCOVERY_KEYS)
+    return (*tier_keys(), *allowance_keys(), *DISCOVERY_KEYS, MAIL_LADDER_KEY)
 
 
 # --- the defaults ------------------------------------------------------------------------------------
@@ -482,6 +491,40 @@ def allowance_effect(
     return rows
 
 
+# --- the mail ladder -----------------------------------------------------------------------------
+def valid_mail_ladder(value: Any) -> tuple[int, ...] | None:
+    """The ladder's bounds when ``value`` is one, else None. Never raises.
+
+    Four whole days, each at least one, strictly ascending, the last no more than a year: a bound
+    out of order would put a learner on two steps at once, and a ladder that never reaches its
+    last step would silently drop the owner's once-a-month floor.
+    """
+    if not isinstance(value, list | tuple) or len(value) != MAIL_LADDER_STEPS:
+        return None
+    bounds: list[int] = []
+    for item in value:
+        if not isinstance(item, int) or isinstance(item, bool) or item < 1:
+            return None
+        if bounds and item <= bounds[-1]:
+            return None
+        bounds.append(item)
+    if bounds[-1] > MAIL_LADDER_MAX_DAYS:
+        return None
+    return tuple(bounds)
+
+
+def set_mail_ladder(
+    bounds: Sequence[int] | None, *, actor: str | None, note: str | None = None
+) -> None:
+    """Move the step-down, or clear it back to the owner's default with ``None``."""
+    if bounds is not None and valid_mail_ladder(list(bounds)) is None:
+        raise BadDial(
+            "the ladder is four whole days, each larger than the last, the last within a year"
+        )
+    _write(MAIL_LADDER_KEY, None if bounds is None else list(bounds), actor=actor, note=note)
+    apply(force=True)
+
+
 # --- writing ---------------------------------------------------------------------------------------
 def _write(key: str, value: Any, *, actor: str | None, note: str | None) -> None:
     _store().write(key, value, actor=actor, note=note)
@@ -611,6 +654,7 @@ __all__ = [
     "GENEROSITY_KEY",
     "INR_RATE_KEY",
     "LADDER_KEY",
+    "MAIL_LADDER_KEY",
     "PAID_PLANS",
     "BadDial",
     "UnknownModel",
@@ -638,11 +682,13 @@ __all__ = [
     "set_allowance",
     "set_clock",
     "set_ladder",
+    "set_mail_ladder",
     "set_tier",
     "source_for_tier",
     "tier_chain_key",
     "tier_keys",
     "tier_primary_key",
+    "valid_mail_ladder",
     "value",
     "values",
 ]

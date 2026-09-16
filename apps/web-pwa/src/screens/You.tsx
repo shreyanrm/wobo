@@ -572,7 +572,8 @@ export function You() {
               <p style={{ color: 'var(--ink)' }}>{link.line}</p>
             ) : (
               <p style={{ color: 'var(--ink)' }}>
-                They get the Sunday note, and nothing else. You can{' '}
+                They get the Sunday note and short notes about your learning in the week. You
+                can{' '}
                 <a
                   href="/parent"
                   onClick={(e) => {

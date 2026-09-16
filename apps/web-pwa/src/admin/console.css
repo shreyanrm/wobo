@@ -593,3 +593,41 @@
   color: var(--ink);
   overflow-wrap: anywhere;
 }
+
+/* --------------------------------------------------------------------------------------------- */
+/* One learner on the activity desk (`ActivityLookup.tsx`): four facts in the marigold box that   */
+/* already means "this look is in the audit trail". Namespaced `aa-` for the same reason `aq-` is. */
+/* --------------------------------------------------------------------------------------------- */
+.aa-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+.aa-fact {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.aa-fact dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+}
+.aa-fact dd {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+}
+.aa-value {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.aa-value[data-tone="warn"] {
+  color: var(--marigold);
+}

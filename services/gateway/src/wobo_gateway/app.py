@@ -46,6 +46,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from wobo_gateway import (
+    activity,
     admin_auth,
     alerts,
     allowance,
@@ -91,14 +92,19 @@ from wobo_gateway.doubt import register_doubt
 from wobo_gateway.email import register_email
 from wobo_gateway.hospitality.api import register_mail_preferences
 from wobo_gateway.hospitality.jobs import welcome_after_first_meeting
+from wobo_gateway.mailwatch.api import SOFT_AUTH_PATHS as MAIL_WATCH_SOFT_AUTH_PATHS
+from wobo_gateway.mailwatch.api import register_mail_desk, register_mail_watch
+from wobo_gateway.mailwatch.events import OPEN_PATHS as MAIL_EVENTS_OPEN_PATHS
 from wobo_gateway.mind import register_mind
-from wobo_gateway.models_api import register_models_desk
 from wobo_gateway.model_call import ProviderUnavailable, is_provider_failure
+from wobo_gateway.models_api import register_models_desk
 from wobo_gateway.parent_api import LIMITED_PATHS as PARENT_API_LIMITED_PATHS
 from wobo_gateway.parent_api import register_parent_api
 from wobo_gateway.parents import LIMITED_PATHS as PARENT_LIMITED_PATHS
 from wobo_gateway.parents import OPEN_PATHS as PARENT_OPEN_PATHS
 from wobo_gateway.parents import register_parent_links
+from wobo_gateway.promo import LIMITED_PATHS as PROMO_LIMITED_PATHS
+from wobo_gateway.promo import register_promo, register_promo_desk
 from wobo_gateway.providers import Provider, build_provider
 from wobo_gateway.registry import (
     ConsentTier,
@@ -108,8 +114,6 @@ from wobo_gateway.registry import (
     platform_paid,
     policy,
 )
-from wobo_gateway.promo import LIMITED_PATHS as PROMO_LIMITED_PATHS
-from wobo_gateway.promo import register_promo, register_promo_desk
 from wobo_gateway.reports import LIMITED_PATHS as REPORT_LIMITED_PATHS
 from wobo_gateway.reports import register_reports
 from wobo_gateway.routing import (
@@ -594,6 +598,10 @@ _OPEN_PATHS = frozenset(
         # somebody who by definition has no session yet — the whole point of the route is to tell
         # the app where they were going before they go through the door.
         "/v1/mail/land",
+        # The mail provider's delivery events (mailwatch/events.py). The provider holds no learner
+        # token; its door is the signature over the raw body, checked before a byte is parsed,
+        # exactly as the payment provider's is.
+        *MAIL_EVENTS_OPEN_PATHS,
         *ASK_OPEN_PATHS,
         # The syllabus read (curriculum/public.py). No learner data behind it, nothing personal
         # in it, and every public chapter page is built from it.
@@ -618,6 +626,8 @@ _SOFT_AUTH_PATHS = frozenset(
         "/v1/internal/mail/sunday",
         "/v1/internal/mail/wishes",
         "/v1/internal/mail/nudges",
+        # The deliverability watch's pass (mailwatch/api.py): the seeds, Postmaster, the rates.
+        *MAIL_WATCH_SOFT_AUTH_PATHS,
     }
 )
 
@@ -1438,6 +1448,10 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         # with /v1/capability meant an eager sync spending the allowance the lesson needs. Its own
         # counter, its own ceiling, and a flood of syncs can only ever starve syncs.
         syncing = path.startswith("/v1/me/mind")
+        # The activity record (activity.py) on its own bucket for the same reason: a free
+        # background note from the app — a session opened, a card reported — must never spend
+        # the allowance a lesson needs, and a flood of notes can only ever starve notes.
+        noting = path == activity.ACTIVITY_PATH
         # Declared when the client declares it, counted off the wire when it does not. This is
         # awaited BEFORE the limiter so a body that is refused is never also a model call.
         oversized = await _over_the_ceiling(request)
@@ -1451,6 +1465,8 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
             """
             if syncing:
                 return _over_limit(f"mind:{key}", mind_limit)
+            if noting:
+                return _over_limit(f"activity:{key}", mind_limit)
             return limited and _over_limit(key, limit if (principal or soft) else unauth_limit)
 
         if oversized:
@@ -1763,6 +1779,15 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
         if name == "wobo.turn" and is_first_meeting(request.payload):
             welcome_after_first_meeting(principal, request.payload)
 
+        # THE ACTIVITY RECORD (activity.py, migration 0034): a signed-in learner asking for
+        # anything is a learner who came today. Off the request thread, at most once per ten
+        # minutes, never for an anonymous caller, and it never raises into the turn.
+        activity.note_turn(
+            principal.subject,
+            anonymous=principal.anonymous,
+            zone=allowance.zone_name(http.state.meter_key),
+        )
+
         # THE RECORD REACHES THE PROMPT (docs/MEMORY-LAW.md). The dossier used to be built from
         # whatever the browser put in `context.lifetime`, so the account's own row reached no
         # prompt at all and a crafted payload could claim a parent had said something. Here, once,
@@ -2051,7 +2076,11 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
 
     register_voice(app)
     register_email(app)
+    # The deliverability watch: the provider's signed events and the cron pass (mailwatch/).
+    register_mail_watch(app)
     register_mind(app)
+    # The activity record's own door: the app's sessions and learning moments (activity.py).
+    activity.register_activity(app)
     register_mail_preferences(app)
     register_parent_links(app)
     # AFTER register_parent_links: the parent's unauthenticated accept and decline pages are
@@ -2069,6 +2098,11 @@ def create_app(gateway: Gateway | None = None) -> FastAPI:
     # register_admin for the same reason register_console is: the desks hang off the same
     # guarded router factory, and the door must exist before anything is mounted behind it.
     register_desks(app)
+    # The activity desk and one learner's page (activity.py), behind the same guarded router.
+    activity.register_activity_desk(app)
+    # The mail desk (mailwatch/api.py): complaint rates, seeds, Postmaster, pauses and alerts, and
+    # the owner's one control to lift a pause. Behind the same guarded router.
+    register_mail_desk(app)
     # The models desk and the pace: what answers what, at what price, and how generous the day
     # is (docs/CONSOLE-MODELS.md, docs/ALLOWANCE.md §3). Mounted after the desks so every route
     # under /v1/admin is behind the one guard.

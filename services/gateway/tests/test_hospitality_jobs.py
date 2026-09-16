@@ -39,6 +39,12 @@ INTERNAL = {"X-Wobo-Internal": "test-internal-key"}
 STOP = "https://api.heywobo.com/v1/mail/stop?token="
 IST = ZoneInfo("Asia/Kolkata")
 REPO = Path(__file__).resolve().parents[3]
+#: What the learner's own link stops: "None at all" means the wins, the wishes and every learning
+#: note, and never the parent's Sunday note (hospitality/tokens.py, wave 56).
+#: The learner's own link, in their welcome and their wins: their own mail, and never the notes
+#: that go to a parent (2026-09-16). The wishes are stopped with it only while they come to the
+#: learner (``tokens.kinds_to_stop``).
+LEARNER_STOPS = ("wins", "festivals")
 
 
 @pytest.fixture(autouse=True)
@@ -281,7 +287,9 @@ def test_the_note_reads_as_the_design_and_says_nothing_it_was_not_told() -> None
     assert 'style="color:#FF6B57">which is exactly how learning looks.</span>' in html
     assert "Something worth saying" in html
     assert ">See the week<" in html and ">Reply to Wobo<" in html
-    assert "linked you as a parent. It comes once a week, on Sunday." in html
+    # It says what else this parent is sent (2026-09-16: it said "nothing else comes").
+    assert "linked you as a parent. It comes on Sunday evenings, and short notes about" in html
+    assert "Nothing else comes" not in html
     assert ">Stop the notes<" in html
     # the parent has no account to sign in to: "Change when it arrives" is drawn only when the
     # send path gave a page the parent can open, never as a link to a learner's sign-in
@@ -606,7 +614,7 @@ def test_the_welcome_carries_the_learners_own_one_click_link_and_their_clock(
     )
     [data] = sent
     assert data["unsubscribe_url"].startswith(STOP)
-    assert token_of(data["unsubscribe_url"]).kinds == ("wins", "festivals")
+    assert token_of(data["unsubscribe_url"]).kinds == LEARNER_STOPS
     assert data["stamp"] == "Tuesday, 9:38 pm"
     out = render("welcome", data)
     assert out["headers"]["List-Unsubscribe"] == f"<{data['unsubscribe_url']}>"
@@ -817,7 +825,7 @@ def test_the_win_holds_on_a_quiet_day_and_carries_the_learners_link_and_clock(
     assert ok["ok"] is True
     [data] = sent
     assert data["stamp"] == "Thursday, 12 pm"
-    assert token_of(data["unsubscribe_url"]).kinds == ("wins", "festivals")
+    assert token_of(data["unsubscribe_url"]).kinds == LEARNER_STOPS
     out = render("win", data)
     assert out["headers"]["List-Unsubscribe-Post"] == "List-Unsubscribe=One-Click"
 
@@ -961,7 +969,10 @@ def test_a_wish_goes_in_the_morning_of_the_familys_own_day(_dials: Any) -> None:
     )
     assert data["subject"] == "Happy Republic Day" and data["stamp"] == "Monday, 9 am"
     assert data["chosen_calendar"] == "" and data["festival_name"] == "Republic Day"
-    assert token_of(data["unsubscribe_url"]).kinds == ("wins", "festivals")
+    # A wish to the parent's address carries the parent's link: "None at all" is everything that
+    # address is sent about the child, and never the child's own wins.
+    claim = token_of(data["unsubscribe_url"])
+    assert claim.audience == "parent" and claim.to_parent
     [record] = sends()
     assert (record.kind, record.learner_id, record.period) == (
         "wish",

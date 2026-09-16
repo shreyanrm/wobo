@@ -261,7 +261,8 @@ def note_zone(meter_key: str, name: str | None) -> None:
 
 
 def _family_zone(meter_key: str) -> str | None:
-    """The zone on the family's own record (``hospitality.preferences``), or None.
+    """The zone on the family's own record (``hospitality.preferences``), else on the learner's
+    parent link (``parents``), or None.
 
     This is the zone docs/ALLOWANCE.md §4.6 puts first, and it is the only one a person actually
     told us — the device's is inferred from whatever the browser was set to. Cached for
@@ -285,6 +286,18 @@ def _family_zone(meter_key: str) -> str | None:
     except Exception as exc:  # noqa: BLE001 — a family row we cannot read is a row we do not have
         logger.debug("allowance: family zone unreadable (%s)", type(exc).__name__)
         found = None
+    if not found:
+        # THE LINK'S ZONE (2026-09-16). No family has a mail-settings row and no client sent the
+        # header, so every learner's day was kept in UTC while the mail about it was timed in
+        # Kolkata. A parent link carries the zone the learner's device named when they sent it.
+        try:
+            from wobo_gateway import parents
+
+            link = parents.get_store().active(subject)
+            found = link.timezone if link is not None else None
+        except Exception as exc:  # noqa: BLE001 — a link we cannot read is a link we do not have
+            logger.debug("allowance: link zone unreadable (%s)", type(exc).__name__)
+            found = None
     with _lock:
         if len(_family_zones) >= _STORE_MAX:
             _family_zones.clear()

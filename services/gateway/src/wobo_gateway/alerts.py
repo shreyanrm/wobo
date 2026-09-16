@@ -71,6 +71,13 @@ PROVIDER_OUTAGE = "provider_outage"
 #: ``pool`` and ``threshold``, so "the goodwill is running out" and "the authoring is running
 #: out" are one alarm with two faces rather than two alarms nobody wires up.
 POOL_THRESHOLD = "pool_threshold"
+#: Where our mail lands has gone wrong somewhere (:mod:`wobo_gateway.mailwatch`): a complaint rate
+#: over the line and the kind it paused, a seed inbox that put us in spam or never got the mail, a
+#: failed SPF, DKIM or DMARC, a Postmaster verdict that names a problem, or open tracking switched
+#: on at the provider. Carries ``cause`` and, where there is one, ``kind``. The same event is also
+#: mailed to ``DELIVERABILITY_ALERT_TO`` and shown on the mail desk, because an alarm about mail
+#: must not depend on mail alone.
+MAIL_DELIVERABILITY = "mail_deliverability"
 
 EVENTS = frozenset(
     {
@@ -81,6 +88,7 @@ EVENTS = frozenset(
         AUTH_FAILURE_BURST,
         PROVIDER_OUTAGE,
         POOL_THRESHOLD,
+        MAIL_DELIVERABILITY,
     }
 )
 
@@ -177,8 +185,19 @@ def reset() -> None:
 
 
 # --- the alarm -----------------------------------------------------------------------------------
-def alert(event: str, message: str, *, severity: str = WARN, **fields: Any) -> dict[str, Any]:
+def alert(
+    event: str,
+    message: str,
+    *,
+    severity: str = WARN,
+    page_key: str | None = None,
+    **fields: Any,
+) -> dict[str, Any]:
     """Raise one alert: always a log line, and a page when the sink is set and not cooling down.
+
+    ``page_key`` narrows the cooldown below the event name, for an event with several causes: a
+    seed in spam must not swallow the page for a failed DKIM five minutes later. Absent, the
+    cooldown is per event, as it always was.
 
     Returns the fields it wrote, which is what the tests assert on. Never raises: an alarm that
     can break a learner's turn is worse than no alarm.
@@ -191,7 +210,7 @@ def alert(event: str, message: str, *, severity: str = WARN, **fields: Any) -> d
         **fields,
     }
     url = webhook_url()
-    paged = bool(url) and _may_page(event, now)
+    paged = bool(url) and _may_page(f"{event}:{page_key}" if page_key else event, now)
     if url and not paged:
         record["suppressed"] = True
     logger.log(_LEVEL[record["severity"]], "ALERT %s", event, extra={"fields": record})
@@ -229,6 +248,7 @@ __all__ = [
     "CRITICAL",
     "EVENTS",
     "INFO",
+    "MAIL_DELIVERABILITY",
     "PROVIDER_OUTAGE",
     "SAFETY_GATE",
     "SERVER_ERROR",

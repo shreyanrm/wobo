@@ -21,12 +21,13 @@ unsubscribe for that kind. Subject lines are the learner's name and a verb.
 | The streak | day 3, day 7, day 30 of a streak, the morning after | "Seven days." | "Seven days in a row. Today makes eight." | home |
 | A bonus level | a bonus level opened on the climb | "A side door." | "There is a game between Motion and Force. Optional." | the bonus level |
 | Your doubt | a photographed doubt's answer is ready (if it was not read live) | "Solved." | "The page you photographed, explained on the page." | the doubt |
+| The good-news note | the cadence's floor, when nothing else was earned (wave 56) | "Every card, done." | "You finished Triangles, every card of it." (one true thing: cracked, next, days, or what is waiting) | the card, else the learn page |
 | The Sunday note | exists (hospitality) | unchanged | unchanged | unchanged |
 | The welcome, the win, the wish | exist (hospitality) | unchanged | unchanged | unchanged |
 
 The laws that bind every one:
-- **The inbox law stands:** no address hears from Wobo twice in twenty-four hours, and a nudge is
-  never sent on a day the learner came. A learner who came three days running gets no "come back" mail that week (the good-news mail
+- **The inbox law stands:** no address hears from Wobo twice in twenty-four hours, and a "come back"
+  mail is never sent on a day the learner came. A learner who came three days running gets no "come back" mail that week (the good-news mail
   under the cadence ruling below is not a "come back" mail and is not silenced by coming).
 - **The weekly cadence (the owner, 2026-09-16, revised the same day): at least three a week, and more
   when the learner's behaviour calls for it.** The owner: *"we can honestly send more emails with a
@@ -48,7 +49,28 @@ The laws that bind every one:
   address, because the law and Gmail require it. The signal is whether the
   learner came back, never an open-tracking pixel, which stays off. Content stays about the learner's
   learning, because DPDP s.9(3) bars behavioural monitoring of a child for any other purpose
-  (docs/LEGAL-REVIEW.md). Wave 56 makes this true; until it lands the code still caps at three.
+  (docs/LEGAL-REVIEW.md). Wave 56 made this the code (`hospitality/cadence.py`): the floor is
+  filled with the good-news note (`learning_note`, docs/copy/emails/learning-note.md), the "come
+  back" kinds are the quick one and mid-chapter only, the steps are the `mail.ladder` dial (seeded
+  by migration 0035), and a parent can stop everything in one tap. What the adversaries broke and
+  the fix wave closed (2026-09-16): a "come back" mail, and the streak's "keep it going" note (once
+  a run), wait two hours past the LATEST hour the learner starts a day in, and a learner who
+  starts too late for that before 8 pm, or whose hour is not known yet, is sent none (they still
+  get the good news); the Sunday note goes between 6 and 8 pm and Saturday evening is held for
+  it; the festival calendar's night begins at 8 pm; the inbox gap is measured from the start of
+  the pass's hour, so a cron a few seconds early never costs a day; on the full cadence the floor
+  is kept a day before its last day, and before a quiet day, a wish's day or a Sunday note's day,
+  and below it the step's ceiling yields only to the floor's own note on its last day (one a
+  month is the bare minimum); the learner's day, "last came" and usual hour are kept on the
+  family's clock (the device names its zone on every call, and a parent link's zone stands in when
+  the family set none); a parent is never told the child's age, and every sentence a parent reads
+  before and after linking says notes come in the week as well as on Sunday; a child's own
+  unsubscribe never stops the parent's notes, and a parent's stops the list for every child at
+  that address. A spam complaint or a hard bounce now reaches the gateway
+  on the provider's signed webhook and suppresses that address at once, and a kind whose complaint
+  rate crosses 0.10 percent is paused on its own while the rest of the cadence carries on
+  (`mailwatch/`, docs/MAIL-PRIMARY.md, "Watching where we land"). Neither works until the webhook
+  is registered with the provider and migration 0036 is applied.
 - **What the mail is for (the owner, 2026-09-16).** *"we wont say use more, we encourage and motivate
   to learn, that is our application."* No mail asks anyone to use Wobo more. Every one encourages and
   motivates learning: what the learner did, what they cracked, what is next, why it is worth it. That
@@ -75,7 +97,7 @@ clients that freeze the first frame. Eight moves, each one thing:
 | hover (the resting breath) | the quick one, the welcome |
 | wave | the welcome, the mid-chapter |
 | a small bounce | the streak |
-| the spark (the earned moment, marigold) | the win, the bonus level |
+| the spark (the earned moment, marigold) | the win, the bonus level, the good-news note |
 | thinking (the orb tilts, a dot orbits) | loading screens |
 | drawing (a pencil line grows beside it) | loading a lesson, the doubt |
 | reading (a page turns under it) | the doubt's reading |

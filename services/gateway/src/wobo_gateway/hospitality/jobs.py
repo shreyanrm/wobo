@@ -23,7 +23,7 @@ Four jobs, one rule each:
   confirmation in ``MAIL_CONFIRMED_FESTIVALS``.
 
 Two clock rules the calendar owns and every job reads from it, so there is one definition of
-night and one of a day to keep still: **quiet hours** (nothing between 21:00 and 08:00 on the
+night and one of a day to keep still: **quiet hours** (nothing between 20:00 and 08:00 on the
 family's clock) and **quiet days** (a day of mourning or remembrance in the family's country —
 the note and the win hold; a greetable wish still goes, alone). And one rule about the inbox:
 **no address hears from Wobo twice in twenty-four hours** — every job checks the mail log for
@@ -79,11 +79,13 @@ logger = logging.getLogger("wobo.gateway.hospitality")
 
 Send = Callable[..., dict[str, Any]]
 
-SUNDAY = 6  # datetime.weekday()
+SATURDAY = 5  # datetime.weekday()
+SUNDAY = 6
 NOTE_HOUR = 18  # 6 pm, the family's own clock
 # A cron that missed the hour (a deploy, a pause) still sends the same evening — the idempotency
-# key stops a second copy — but never later than nine, and never on Monday morning.
-NOTE_WINDOW_HOURS = 3
+# key stops a second copy — but never at or after eight (the hours law, docs/EMAILS-AND-
+# ANIMATIONS.md), and never on Monday morning. It was three hours, to nine, until 2026-09-16.
+NOTE_WINDOW_HOURS = 2
 WIN_GAP_DAYS = 7
 STREAK_MILESTONE_DAYS = 14
 # No inbox hears from Wobo twice in a day (the calendar's law: "never within twenty-four hours
@@ -110,6 +112,15 @@ class Family:
     #: Per-recipient links (tokened); the configured defaults apply when empty.
     unsubscribe_url: str = ""
     preferences_url: str = ""
+    #: The learner's own address, when the product holds one (it does not yet: the profile row
+    #: carries none). Empty means the learner is not written to directly.
+    learner_email: str = ""
+    #: ``None`` when the product cannot say, which today is always: there is no age field. The
+    #: nudges treat an unknown age as under thirteen and write to the parent.
+    under_13: bool | None = None
+    #: When the learner sent the invite, so a moment they were certainly here. The cadence places
+    #: a family the activity record has not seen yet by it (``hospitality/cadence.py``).
+    invited_at: datetime | None = None
 
 
 class FamilySource(Protocol):
@@ -176,6 +187,7 @@ class LinkedFamilies:
                 parent_email=link.parent_email or "",
                 timezone=link.timezone or "",
                 unsubscribe_url=link.unsubscribe_url or "",
+                invited_at=link.invited_at,
             )
             for link in links
             if link.parent_email and "@" in link.parent_email and link.learner_id
@@ -381,6 +393,22 @@ def sunday_note_due(local: datetime) -> bool:
     return local.weekday() == SUNDAY and NOTE_HOUR <= local.hour < NOTE_HOUR + NOTE_WINDOW_HOURS
 
 
+def parent_gets_notes(family: Family) -> bool:
+    """Do the learning notes about this learner come to the parent's address? Under thirteen,
+    an age we do not know, or a learner with no address of their own: yes (``nudges.recipient``)."""
+    from wobo_gateway.hospitality import nudges
+
+    where = nudges.recipient(
+        nudges.Learner(
+            learner_id=family.learner_id,
+            email=family.learner_email or "",
+            parent_email=family.parent_email or "",
+            under_13=family.under_13,
+        )
+    )
+    return where is not None and where[1] == "parent"
+
+
 def gap_until(to: str, moment: datetime) -> datetime | None:
     """When this address may next hear from us, or ``None`` when it may now: the last send to
     the address, whatever it was about, plus twenty-four hours."""
@@ -432,6 +460,9 @@ def _skip(report: dict[str, Any], reason: str) -> None:
 def _count_result(report: dict[str, Any], result: dict[str, Any]) -> None:
     if result.get("duplicate"):
         report["duplicate"] += 1
+    elif result.get("error") == "suppressed":
+        # The address complained or hard-bounced (mailwatch/events.py). Not a failure: the law.
+        _skip(report, "suppressed")
     elif result.get("queued"):
         report["queued"] += 1
     elif result.get("ok"):
@@ -508,6 +539,12 @@ def run_sunday(
         stop = _stop_link(family.learner_id, "sunday_note", family.unsubscribe_url)
         if stop:
             data["unsubscribe_url"] = stop
+        # The footer says what else this address is sent, and offers the one tap that stops all
+        # of it (2026-09-16: it said "nothing else comes" while three notes a week did).
+        stop_all = stop_link(family.learner_id, "parent", to_parent=True)
+        if stop_all:
+            data["stop_all_url"] = stop_all
+        data["parent_gets_notes"] = parent_gets_notes(family)
         if dry_run:
             report["would_send"] += 1
             continue
@@ -800,7 +837,15 @@ def run_wishes(
         }
         if family.preferences_url:
             data["preferences_url"] = family.preferences_url
-        stop = _stop_link(family.learner_id, "learner")
+        # "None at all" stops what THIS address is sent: to a parent, everything about the child
+        # (and about any sibling at the same address); to the learner's own address, their wins
+        # and wishes. A parent's click never stops a child's mail, nor a child's a parent's.
+        to_parent = to.strip().lower() == (family.parent_email or "").strip().lower()
+        stop = (
+            stop_link(family.learner_id, "parent", to_parent=True)
+            if to_parent
+            else _stop_link(family.learner_id, "learner")
+        )
         if stop:
             data["unsubscribe_url"] = stop
         if dry_run:

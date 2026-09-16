@@ -113,12 +113,12 @@ export const ERASURE_REGISTER: readonly ErasureEntry[] = [
   {
     store: 'learner.sessions',
     reach: 'client',
-    why: 'When they were here and on what (register J4). `sessions_own` is FOR ALL (0002:149).',
+    why: 'When they were here and on what (register J4). Written by the gateway since 0034; `sessions_own_erase` is FOR DELETE to the owner, so this client still reaches it, and so does `POST /v1/me/erase`.',
   },
   {
     store: 'learner.meter_state',
     reach: 'client',
-    why: 'The daily budget counter, per day (register J5). `meter_state_own` is FOR ALL (0002:157).',
+    why: 'One row per day they came, dated on their clock (register J5, and the activity record since 0034). `meter_state_own_erase` is FOR DELETE to the owner; `POST /v1/me/erase` reaches it too.',
   },
   {
     store: 'learner.notifications',
@@ -137,6 +137,11 @@ export const ERASURE_REGISTER: readonly ErasureEntry[] = [
     store: 'learner.mail_preferences',
     reach: 'gateway',
     why: 'Festival calendar and region, which is sensitive data. RLS grants select/insert/update only, no delete (0010:60-69), so `POST /v1/me/erase` does it with the service role.',
+  },
+  {
+    store: 'learner.activity',
+    reach: 'gateway',
+    why: 'The activity record (0034): when they first and last came, their streak, the hour they usually start, the chapter they are in and the latest moments. Read-only to its learner (`activity_own_read`), so `POST /v1/me/erase` deletes it with the service role.',
   },
   {
     store: 'learner.parent_links',

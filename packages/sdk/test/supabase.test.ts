@@ -281,9 +281,20 @@ describe('the erasure register accounts for every store', () => {
       'outbox',
       'content_cache',
       'wobo_mind',
+      'activity',
     ]) {
       expect(stores).toContain(`learner.${table}`);
     }
+  });
+
+  it('names the activity record, which only the brain can delete (0034)', () => {
+    // A learner's token may read learner.activity and may not write or delete it, so the client
+    // erase cannot reach it and POST /v1/me/erase must. The day rows and the sessions beside it
+    // keep a delete policy for the owner, so the client's own erase still reaches those.
+    expect(ERASURE_REGISTER.find((e) => e.store === 'learner.activity')?.reach).toBe('gateway');
+    expect(ERASABLE_TABLES).not.toContain('activity');
+    expect(ERASABLE_TABLES).toContain('sessions');
+    expect(ERASABLE_TABLES).toContain('meter_state');
   });
 
   it('reaches the mind, the most personal table there is, and names the parent plane', () => {

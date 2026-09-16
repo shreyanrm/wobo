@@ -75,6 +75,8 @@ def test_defaults_and_the_closed_list_of_calendars(client: TestClient, auth: Any
         "streak": True,
         "bonus_level": True,
         "doubt": True,
+        # The good-news note the weekly cadence fills its floor with (wave 56), its own dial.
+        "learning_note": True,
         "festival_calendar": [],
         "country": None,
         "region": None,
@@ -178,12 +180,17 @@ def test_the_stop_token_round_trips_and_refuses_tampering(monkeypatch: pytest.Mo
     token = tokens.stop_token("learner-under-test", "sunday_note")
     assert token
     claim = tokens.parse_stop_token(token)
-    assert claim == tokens.StopClaim("learner-under-test", "sunday_note")
+    # The Sunday note only ever goes to a parent, and its link says so.
+    assert claim == tokens.StopClaim("learner-under-test", "sunday_note", to_parent=True)
     assert claim.kinds == ("sunday_note",)
+    # The learner's own link is the learner's own mail: the wins, and the wishes while they come
+    # to the learner. Never a learning note, which under thirteen goes to the parent (2026-09-16).
     assert tokens.parse_stop_token(tokens.stop_token("x", "learner")).kinds == (  # type: ignore[union-attr]
         "wins",
         "festivals",
     )
+    # "Stop all of these" in a note to the learner's own address stops their notes too.
+    assert set(tokens.AUDIENCES["learner_all"]) == {"wins", "festivals", *NUDGES}
     head, sig = token.split(".")
     assert tokens.parse_stop_token(f"{head}.{sig[:-2]}AA") is None
     assert tokens.parse_stop_token(f"{head}x.{sig}") is None
@@ -252,19 +259,67 @@ def test_the_parents_link_stops_the_sunday_note_and_nothing_else(
     assert prefs["sunday_note"] is True
 
 
-def test_the_learners_link_stops_the_wins_and_wishes_and_not_the_parents_note(
-    client: TestClient, auth: Any, _fresh: InMemoryPreferencesStore
+NUDGES = ("quick_one", "mid_chapter", "streak", "bonus_level", "doubt", "learning_note")
+
+
+def test_the_learners_link_stops_the_learners_own_mail_and_never_the_parents(
+    client: TestClient, auth: Any, _fresh: InMemoryPreferencesStore, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """The learner's link says "None at all" in a win and "Stop these" in the welcome, and both go
+    to the learner's own address. It stops what that address is sent: the wins, and the wishes
+    only while the wishes come to it. The notes about their learning go to the parent under
+    thirteen, and a child's click never silences them (2026-09-16)."""
     client.put(PATH, json={"country": "IN", "festival_calendar": ["hindu"]}, headers=auth())
     token = tokens.stop_token("learner-under-test", "learner")
+    # No address of the learner's own on file: the wishes go to the parent and stay on.
     res = client.get(STOP, params={"token": token})
-    assert res.status_code == 200 and "Stop the wins and wishes?" in res.text
+    assert res.status_code == 200 and "Stop the notes about your wins?" in res.text
     res = client.post(STOP, data={"token": token})
-    assert res.status_code == 200 and "No more email from me" in res.text
-    assert "No more wins and no more wishes" in res.text
+    assert res.status_code == 200 and "No more notes about wins" in res.text
+    row = _fresh.rows["learner-under-test"]
+    assert row.wins is False and row.festivals is True and row.sunday_note is True
+    assert all(getattr(row, kind) is True for kind in NUDGES)
+    assert row.unsubscribed_at is None and row.festival_calendar == ("hindu",)
+    # With the learner's own address on file, the wishes are theirs, and the link stops them too.
+    monkeypatch.setattr(tokens, "wishes_come_to_learner", lambda learner_id: True)
+    res = client.get(STOP, params={"token": token})
+    assert "Stop the wins and wishes?" in res.text
+    res = client.post(STOP, data={"token": token})
+    assert res.status_code == 200 and "No more wins or wishes" in res.text
     row = _fresh.rows["learner-under-test"]
     assert row.wins is False and row.festivals is False and row.sunday_note is True
-    assert row.unsubscribed_at is None and row.festival_calendar == ("hindu",)
+    assert all(getattr(row, kind) is True for kind in NUDGES)
+
+
+def test_the_parents_stop_all_link_stops_everything_the_parent_gets(
+    client: TestClient, _fresh: InMemoryPreferencesStore
+) -> None:
+    token = tokens.stop_token("learner-under-test", "parent")
+    res = client.get(STOP, params={"token": token})
+    assert res.status_code == 200 and "Stop every note about your child?" in res.text
+    assert _fresh.rows.get("learner-under-test") is None  # a GET is a question
+    res = client.post(STOP, data={"token": token})
+    assert res.status_code == 200 and "No more notes from me" in res.text
+    row = _fresh.rows["learner-under-test"]
+    assert row.sunday_note is False and row.festivals is False
+    assert all(getattr(row, kind) is False for kind in NUDGES)
+    # The learner's own wins are the learner's mail, not the parent's to stop.
+    assert row.wins is True and row.unsubscribed_at is None
+
+
+def test_the_good_news_note_is_its_own_dial_and_its_own_link(
+    client: TestClient, auth: Any, _fresh: InMemoryPreferencesStore
+) -> None:
+    token = tokens.stop_token("learner-under-test", "learning_note")
+    res = client.get(STOP, params={"token": token})
+    assert "Stop the notes about learning?" in res.text
+    res = client.post(STOP, data={"token": token})
+    assert "No more notes about learning" in res.text
+    row = _fresh.rows["learner-under-test"]
+    assert row.learning_note is False
+    assert all(getattr(row, kind) is True for kind in NUDGES if kind != "learning_note")
+    back = client.put(PATH, json={"learning_note": True}, headers=auth()).json()["preferences"]
+    assert back["learning_note"] is True
 
 
 def test_a_second_click_is_harmless_and_a_row_is_made_for_a_first_click(

@@ -61,6 +61,7 @@ from wobo_gateway.email_templates import (
     HAND_KINDS,
     KINDS,
     SUBSCRIBED_KINDS,
+    TRANSACTIONAL_KINDS,
     postal_address_is_set,
     render,
 )
@@ -92,6 +93,50 @@ def idempotency_key(kind: str, to: str, period: str, *, learner_id: str | None =
 # verified with the provider EMAIL_MODE=console means nothing leaves on any of these.
 _FROM = os.getenv("EMAIL_FROM", "Wobo <hello@mail.heywobo.com>")
 _REPLY_TO = os.getenv("EMAIL_REPLY_TO", "support@heywobo.com")
+
+# --- two streams (docs/MAIL-PRIMARY.md, "What the global senders do, adopted") -------------------
+#: The transactional stream's sender: sign-in codes, receipts, account mail and the owner's own
+#: alerts. Its own sending subdomain, set up once and warmed, so a bad week for learning notes
+#: never stops a family signing in. Read at every send, so setting it is a variable and a
+#: restart. UNSET (today), every mail keeps ``EMAIL_FROM`` byte for byte. It is never switched in
+#: response to spam: nothing in this gateway writes it.
+TRANSACTIONAL_FROM_ENV = "EMAIL_FROM_TRANSACTIONAL"
+_BARE_ADDRESS = re.compile(r"^[^@\s<>,\"]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")
+
+
+def _address_of(value: str) -> str | None:
+    """The one address in ``value`` ("Name <a@b.c>", "<a@b.c>" or "a@b.c"), or ``None``.
+
+    Anything else (two addresses, an empty bracket, a word) is not an address, and a sender we
+    cannot read falls back to the one that works rather than breaking every sign-in code.
+    """
+    raw = value.strip()
+    if not raw:
+        return None
+    if "<" in raw or ">" in raw:
+        found = re.fullmatch(r"[^<>]*<([^<>]*)>", raw)
+        if not found:
+            return None
+        raw = found.group(1).strip()
+    return raw if _BARE_ADDRESS.match(raw) else None
+
+
+def _display_name() -> str:
+    """The name the reader sees on both streams: the learning stream's own, so the two can never
+    disagree. "Wobo" on both, whatever a variable says."""
+    name = _FROM.split("<", 1)[0].strip().strip('"') if "<" in _FROM else ""
+    return name or APP_NAME
+
+
+def sender_for(kind: str) -> str:
+    """The From for a mail of ``kind``. Learning notes keep ``EMAIL_FROM`` forever; transactional
+    mail takes ``EMAIL_FROM_TRANSACTIONAL`` when it names one readable address."""
+    if kind in TRANSACTIONAL_KINDS:
+        address = _address_of(os.getenv(TRANSACTIONAL_FROM_ENV) or "")
+        if address:
+            return f"{_display_name()} <{address}>"
+    return _FROM
+
 _API_URL = os.getenv("EMAIL_API_URL", "https://api.resend.com/emails")
 _HTTP_TIMEOUT_S = 20.0
 # Three tries: the first, then two more after 0.5 s and 2 s. A provider blip is seconds long; a
@@ -249,6 +294,24 @@ class MailLog:
                 and (kinds is None or r.kind in kinds)
                 and datetime.fromisoformat(r.sent_at).astimezone(UTC) >= floor
             )
+
+    def sent_to(self, to: str, *, since: datetime) -> list[MailRecord]:
+        """Every mail this address actually received at or after ``since``, oldest first.
+
+        What the weekly cadence reads (``hospitality/cadence.py``): the floor and the step are
+        promises about an inbox, so they are counted by address, whoever the mail was about.
+        """
+        digest = to_hash(to)
+        floor = since.astimezone(UTC)
+        with self._lock:
+            found = [
+                r
+                for r in self._by_key.values()
+                if r.to_hash == digest
+                and r.provider_id not in NOT_A_SEND
+                and datetime.fromisoformat(r.sent_at).astimezone(UTC) >= floor
+            ]
+        return sorted(found, key=lambda r: r.sent_at)
 
     def sent_today(self, moment: datetime) -> int:
         """How many mails have actually LEFT on the UTC day of ``moment``.
@@ -650,6 +713,92 @@ def kind_is_off(kind: str) -> bool:
     return kind in {str(v) for v in value}
 
 
+#: The deliverability watch's own switch (``mailwatch/respond.py``), in ``ops.settings``: kinds it
+#: paused because their complaint rate crossed the line, each with why and since when. Separate
+#: from :data:`KINDS_OFF_DIAL` on purpose: that one is the superadmin's decision, this one is the
+#: watch's, and only the owner lifts it (``POST /v1/admin/mail/unpause``). Seeded by 0036.
+KINDS_PAUSED_DIAL = "mail.kinds_paused"
+
+
+def kind_is_paused(kind: str) -> bool:
+    """Has the watch paused this kind? Never for a sign-in code, a receipt or an alert, whatever
+    the dial says. A dial we cannot read is not a pause, for the reason :func:`kind_is_off`
+    gives."""
+    if kind in TRANSACTIONAL_KINDS:
+        return False
+    try:
+        from wobo_gateway import doors
+
+        value = doors.get_store().read(KINDS_PAUSED_DIAL)
+    except Exception:
+        return False
+    if not isinstance(value, dict):
+        return False
+    entry = value.get(kind)
+    return isinstance(entry, dict) and entry.get("paused") is True
+
+
+def address_is_suppressed(to: str) -> bool:
+    """Has this address complained or hard-bounced? Read from the watch's store by digest.
+
+    A store we cannot read is not a suppression: the watch primes every suppression at start, so
+    the only way to get here unanswered is a project that never answered at all, and silencing
+    every family then would be the across-the-board slowdown the owner ruled out.
+    """
+    try:
+        from wobo_gateway.mailwatch import store as watch_store
+
+        return watch_store.get_store().is_suppressed(to_hash(to))
+    except Exception:
+        return False
+
+
+def suppression_list_unreadable(at: datetime | None = None) -> bool:
+    """Can nobody say right now who complained? Then the owner is told, once an hour.
+
+    The watch reads every suppression at start and again every half minute while that read
+    fails (``mailwatch/store.py``). Until it answers, a learning note could reach a parent who
+    reported us, which is the one thing the law and Gmail do not forgive; so the send path holds
+    everything but sign-in codes, receipts and this alert, and the hold clears by itself the
+    moment the list is read (2026-09-16: one failed read at start used to forget every
+    complainer until the next restart, and nobody heard).
+    """
+    try:
+        from wobo_gateway.mailwatch import store as watch_store
+
+        if watch_store.get_store().ensure_readable():
+            return False
+    except Exception:  # noqa: BLE001 — a store that cannot even be built has nothing to read
+        logger.warning("email: the suppression list could not be consulted")
+    try:
+        from wobo_gateway import alerts
+        from wobo_gateway.mailwatch import respond
+
+        respond.raise_alert(
+            respond.WATCH_UNREADABLE,
+            (
+                "The list of addresses that complained or bounced could not be read, so nobody "
+                "can say who must not be written to."
+            ),
+            severity=alerts.CRITICAL,
+            at=at or datetime.now(UTC),
+            action=(
+                "Learning mail is held until the list is read, which is tried again every half "
+                "minute. Sign-in codes and receipts still go."
+            ),
+        )
+    except Exception:  # noqa: BLE001 — the hold stands whatever the alarm does
+        logger.warning("email: the unreadable suppression list could not be raised")
+    return True
+
+
+#: Mail the day's cap never holds: sign-in codes, receipts, account mail and the owner's own alert
+#: (the transactional stream). The cap guards the learning stream's volume; a family that cannot
+#: sign in or get a receipt because the day's learning notes and seed checks used the allowance
+#: is the across-the-board slowdown the owner ruled out (2026-09-16: verify_email was held).
+UNCAPPED_KINDS: frozenset[str] = frozenset(TRANSACTIONAL_KINDS)
+
+
 def over_the_daily_cap(*, at: datetime | None = None) -> str | None:
     """``"daily_cap"`` when today's sends have reached the ceiling, else ``None``.
 
@@ -666,7 +815,19 @@ def over_the_daily_cap(*, at: datetime | None = None) -> str | None:
 #: The inboxes we own, that the seed test sends to (docs/MAIL-PRIMARY.md §3, "Then, the proof").
 SEED_INBOXES: tuple[str, ...] = ("gmail", "outlook", "yahoo", "apple")
 #: Where a seeded message landed. "unknown" is a real answer and is recorded as one.
-SEED_TABS: tuple[str, ...] = ("primary", "updates", "promotions", "social", "spam", "unknown")
+#: Gmail's five tabs; ``inbox`` where a provider shows no tab over IMAP (Outlook, Yahoo, Apple);
+#: ``missing`` for a mail that never arrived within the watch's wait (``mailwatch/placement.py``).
+SEED_TABS: tuple[str, ...] = (
+    "primary",
+    "updates",
+    "promotions",
+    "social",
+    "forums",
+    "spam",
+    "inbox",
+    "missing",
+    "unknown",
+)
 
 
 def record_seed_placement(
@@ -676,6 +837,7 @@ def record_seed_placement(
     tab: str,
     at: datetime | None = None,
     learner_id: str | None = None,
+    detail: dict[str, Any] | None = None,
 ) -> bool:
     """Record which tab a seeded message landed in. The gate on ever shipping the orb image.
 
@@ -703,7 +865,7 @@ def record_seed_placement(
         kind=kind,
         at=at,
         learner_id=learner_id,
-        detail={"inbox": inbox, "tab": tab},
+        detail={**(detail or {}), "inbox": inbox, "tab": tab},
     )
     return True
 
@@ -790,6 +952,17 @@ def send_email(
             )
             return {"ok": True, "mode": mode, "duplicate": True, "id": before.provider_id}
 
+    # An address that complained or hard-bounced hears nothing more but a sign-in code or a
+    # receipt (docs/MAIL-PRIMARY.md, "Watching where we land"). Not a would-send: nothing is
+    # recorded, because a suppression is not a condition that clears and a queued row would be
+    # retried for ever.
+    if kind not in TRANSACTIONAL_KINDS and address_is_suppressed(to):
+        logger.info(
+            "email held: the address is suppressed",
+            extra={"fields": {"kind": kind, "to_hash": to_hash(to)}},
+        )
+        return {"ok": False, "mode": mode, "error": "suppressed", "held": True}
+
     try:
         email = render(kind, data or {})
     except KeyError:
@@ -847,7 +1020,12 @@ def send_email(
     # mail is retried when the condition clears because a would-send is no longer a send.
     if kind_is_off(kind):
         return queued("kind_switched_off")
-    over = over_the_daily_cap(at=at)
+    # The watch's pause: this kind only, while every other kind carries on.
+    if kind not in TRANSACTIONAL_KINDS and kind_is_paused(kind):
+        return queued("kind_paused")
+    if kind not in TRANSACTIONAL_KINDS and suppression_list_unreadable(at):
+        return queued("suppression_unreadable")
+    over = None if kind in UNCAPPED_KINDS else over_the_daily_cap(at=at)
     if over is not None:
         return queued(over)
 
@@ -891,12 +1069,16 @@ def send_email(
         return queued("no_stop_link")
 
     envelope: dict[str, Any] = {
-        "from": _FROM,
+        "from": sender_for(kind),
         "to": [to],
         "reply_to": _REPLY_TO,
         "subject": email["subject"],
         "html": email["html"],
         "text": email["text"],
+        # Provider metadata, never a header in the message: the kind rides back on every
+        # delivery event, so a complaint finds its kind without parsing anything
+        # (``mailwatch/events.py``). Kind names are the provider's allowed characters already.
+        "tags": [{"name": "kind", "value": kind}],
     }
     if mail_headers:
         envelope["headers"] = mail_headers
