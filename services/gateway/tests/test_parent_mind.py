@@ -731,3 +731,66 @@ def test_an_anonymous_caller_cannot_read_a_memory_page(client: TestClient) -> No
     read = client.get("/v1/me/parent-offered", headers=anon)
     assert read.status_code == 403
     assert read.json()["detail"]["code"] == "sign_in_required"
+
+
+# --- the parent's own screen reads the same record (wave 57) --------------------------------------
+def test_the_parents_screen_reads_their_own_thread_back_from_the_record(client: TestClient) -> None:
+    """The memory law: the parent's conversation lives against the account, so the screen reads it
+    back from the gateway rather than from the browser. It was written after every turn and there
+    was no route that returned it, so a reload lost the conversation from the screen."""
+    link()
+    the_child_said_something()
+    headers = a_parent_looking_at(client)
+    client.post("/v1/parent/ask", json={"question": "How is she getting on?"}, headers=headers)
+
+    read = client.get("/v1/parent/ask", headers=headers)
+    assert read.status_code == 200, read.text
+    thread = read.json()["thread"]
+    assert [t["role"] for t in thread] == ["parent", "wobo"]
+    assert thread[0]["text"] == "How is she getting on?"
+    assert all(set(t) == {"role", "text", "at"} for t in thread)
+    # The child's words are nowhere in what comes back.
+    assert CHILD_WORDS not in read.text
+
+
+def test_a_student_account_has_no_thread_to_read(client: TestClient) -> None:
+    read = client.get("/v1/parent/ask", headers=auth(LEARNER))
+    assert read.status_code == 403
+    assert read.json()["detail"]["code"] == "not_a_parent_account"
+
+
+def test_the_thread_is_per_child_and_gone_when_the_link_ends(client: TestClient) -> None:
+    link()
+    link(SECOND_LEARNER, name="Second")
+    headers = a_parent_looking_at(client)
+    client.post("/v1/parent/ask", json={"question": "How is she getting on?"}, headers=headers)
+    client.post("/v1/parent/switch", json={"learner_id": SECOND_LEARNER}, headers=headers)
+    assert client.get("/v1/parent/ask", headers=headers).json()["thread"] == []
+
+    client.post("/v1/parent/switch", json={"learner_id": LEARNER}, headers=headers)
+    client.delete("/v1/me/parent-link", headers=auth(LEARNER))
+    gone = client.get("/v1/parent/ask", headers=headers)
+    assert gone.status_code in (404, 409)
+    link()
+    client.post("/v1/parent/sign-up", json={}, headers=headers)
+    client.post("/v1/parent/switch", json={"learner_id": LEARNER}, headers=headers)
+    assert client.get("/v1/parent/ask", headers=headers).json()["thread"] == []
+
+
+def test_the_parents_list_of_offers_never_says_what_the_child_did(client: TestClient) -> None:
+    """The offers list sent the raw row status, so a parent reading it saw ``removed_by_child``:
+    the exact thing the already-offered line was written never to say. To the parent, an accepted
+    offer stays passed on, whatever the child did with it afterwards."""
+    link()
+    headers = a_parent_looking_at(client)
+    offer = client.post(
+        "/v1/parent/offers", json={"body": "she has dyslexia"}, headers=headers
+    ).json()["offer"]
+    client.post(f"/v1/parent/offers/{offer['id']}/decide", json={"accept": True}, headers=headers)
+    seen = client.get("/v1/me/parent-offered", headers=auth(LEARNER)).json()["facts"]
+    client.delete(f"/v1/me/parent-offered/{seen[0]['id']}", headers=auth(LEARNER))
+
+    listed = client.get("/v1/parent/offers", headers=headers)
+    assert listed.status_code == 200
+    assert [o["status"] for o in listed.json()["offers"]] == ["accepted"]
+    assert "removed" not in listed.text

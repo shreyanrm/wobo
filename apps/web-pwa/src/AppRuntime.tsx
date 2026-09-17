@@ -177,6 +177,8 @@ const You = lazy(() => import('./screens/You').then((m) => ({ default: m.You }))
 const DoubtScreen = lazy(() =>
   import('./screens/doubt/DoubtScreen').then((m) => ({ default: m.DoubtScreen })),
 );
+// The LEARNER's own preview of what a parent is told (`/you/parent`). The parent account itself is
+// not in this runtime at all: it has its own host (screens/parent/ParentRuntime.tsx).
 const ParentView = lazy(() =>
   import('./screens/you/ParentView').then((m) => ({ default: m.ParentView })),
 );
@@ -380,7 +382,7 @@ function Screen() {
           {route.name === 'progress' && <ProgressScreen />}
           {route.name === 'you' && <You />}
           {route.name === 'doubt' && <DoubtScreen />}
-          {route.name === 'parent' && <ParentView />}
+          {route.name === 'parent-preview' && <ParentView />}
           {/* the workshop bench, in a dev build only; in production this address is a real 404 */}
           {route.name === 'concept' &&
             route.which === 'engines' &&

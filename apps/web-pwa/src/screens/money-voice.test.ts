@@ -12,12 +12,10 @@
  * improve a line in a component: money.md is the source, and a drift is a second voice for the
  * same moment. That is why the constants are compared to the file rather than to themselves.
  *
- * WHAT THIS WAVE OWNS, and what it deliberately does not. money.md names ten surfaces. Three are
- * in this app and are given their line here. The parent's pay screen, the donate screen and the
- * free learner's own line on You belong to other waves, and
- * `the surfaces another wave owns` below goes red the day one of them is built without its line —
- * asserting they are ABSENT rather than demanding a sentence from a screen nobody has written,
- * because a permanently red test in a shared tree is one everybody learns to ignore.
+ * WHAT THE APP CARRIES. money.md names ten surfaces; six are in this app. The plans page, the
+ * checkout card and the bar on You (both its rows) were placed by the money's-voice wave; the
+ * parent's pay screen and the donate screen by the parent-pay wave, which is when the test that
+ * held them absent was turned into one that holds them present.
  */
 
 import { describe, expect, it } from 'bun:test';
@@ -32,6 +30,7 @@ import {
   type MoneySurface,
   normalise,
 } from './money-voice';
+import { PAY_COPY } from './parent/pay-copy';
 import { PLANS_PAGE } from './plans/copy';
 import { moneyLine, type PanelView } from './you/plan';
 
@@ -212,27 +211,34 @@ describe('nothing on a money surface sounds like a company', () => {
   });
 });
 
-// --- the surfaces another wave owns ---------------------------------------------------------------
+// --- the parent's pay screen and the donate screen ------------------------------------------------
 
-describe('the surfaces another wave owns', () => {
-  /**
-   * Goes red the day the parent's pay screen or the donate screen is built, which is exactly when
-   * somebody has to come back here and give it its line.
-   *
-   * `freeLearnerYou` has LEFT this list. It never belonged on it: the brief names "the bar on You"
-   * as a surface this wave owns, and money.md writes that bar two rows — one for a learner whose
-   * plan pays and one for a free learner. Filing the second under "another wave" turned an
-   * approved, written line into a tripwire that kept it off the screen.
+describe('the parent’s pay screen and the donate screen carry their own lines', () => {
+  /*
+   * These two sat here as "the surfaces another wave owns", asserted ABSENT until somebody built
+   * them. The parent-pay wave built the parent's pay screen and the parent's door to giving, and
+   * put the donate line on /donate beside the price of a place, which is where a parent's donate door leads. Each carries its one row, verbatim,
+   * and never the other's.
    */
-  it('do not exist yet, and their lines are waiting for them', () => {
+  it('the parent’s pay screen says the parentPay line, and only that one', () => {
+    expect(PAY_COPY.money).toBe(MONEY_LINES.parentPay);
+    const screen = spoken('parent', 'PayForChild.tsx');
+    expect(screen).toContain('PAY_COPY.money');
+    expect(screen).not.toContain('MONEY_LINES');
+  });
+
+  it('the donate screen says the donate line, and only that one', () => {
+    // A parent's donate door is this page (screens/parent/actions.ts), so there is one screen.
+    const page = spoken('donate', 'Donate.tsx');
+    const carried = (Object.keys(MONEY_LINES) as MoneySurface[]).filter((s) =>
+      page.includes(`MONEY_LINES.${s}`),
+    );
+    expect(carried).toEqual(['donate']);
+  });
+
+  it('neither line says a forbidden word', () => {
     for (const key of ['parentPay', 'donate'] as MoneySurface[]) {
-      expect([key, MONEY_LINES[key].length > 0]).toEqual([key, true]);
-    }
-    const app = spoken('.', 'money-voice.ts');
-    for (const key of ['parentPay', 'donate'] as MoneySurface[]) {
-      // Declared in the table, rendered by nothing. When one of these starts being rendered, the
-      // surface that renders it needs its own assertion above.
-      expect([key, app.includes(`${key}:`)]).toEqual([key, true]);
+      expect([key, forbiddenWordsIn(MONEY_LINES[key])]).toEqual([key, []]);
     }
   });
 });

@@ -10,6 +10,7 @@
  * exists.
  */
 
+import { isParentDevice } from '../screens/parent/device';
 import { scoped } from '../store/scope';
 import { pathToRoute, type Route } from './router';
 
@@ -71,6 +72,29 @@ export function isPublicRoute(name: Route['name']): boolean {
   return name === 'landing' || isPublicSite(name);
 }
 
+/**
+ * WHICH OF THE THREE HOSTS an address opens: the public site, the learner's app, or the parent
+ * account's own host (screens/parent/ParentRuntime.tsx).
+ *
+ * The parent's host is its own because a parent account can hold no learner state (migration
+ * 0019), and the learner runtime starts writing some the moment it mounts: an anonymous session,
+ * the mind, the activity record, the setup lock. `parent-preview` is the LEARNER's page and stays
+ * in the learner's app.
+ */
+export function hostFor(name: Route['name']): 'site' | 'parent' | 'app' {
+  if (name === 'parent') return 'parent';
+  return isPublicRoute(name) ? 'site' : 'app';
+}
+
+/**
+ * What a bare `/` opens, from the two sentinels this device holds for the account it was last
+ * keyed to. A parent account's is its own home; the server is asked again the moment it opens.
+ */
+export function bootRouteFor(device: { onboarded: boolean; parent: boolean }): Route {
+  if (device.parent) return { name: 'parent' };
+  return device.onboarded ? { name: 'home' } : { name: 'landing' };
+}
+
 /** The learner has finished setup on this device — the sentinel App.tsx writes and reads. */
 export const ONBOARDED_KEY = 'wobo-onboarded-v1';
 
@@ -88,7 +112,11 @@ export function bootIsPublic(): boolean {
   const path = window.location.pathname;
   if (path === '/' || path === '') {
     // No storage to read is a miss, and a miss is a new visitor, which is the safe guess.
-    return !scoped.getItem(ONBOARDED_KEY);
+    const boot = bootRouteFor({
+      onboarded: Boolean(scoped.getItem(ONBOARDED_KEY)),
+      parent: isParentDevice(),
+    });
+    return isPublicRoute(boot.name);
   }
   const route = pathToRoute(path);
   // An address that is not ours is the 404 — itself a public page.

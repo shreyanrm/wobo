@@ -16,7 +16,8 @@
 
 import { lazy, Suspense, useEffect, useRef, useState, useTransition } from 'react';
 import { PublicSite } from './PublicSite';
-import { isPublicRoute, ONBOARDED_KEY } from './shell/public-routes';
+import { isParentDevice } from './screens/parent/device';
+import { bootRouteFor, hostFor, ONBOARDED_KEY } from './shell/public-routes';
 import { type Route, RouterProvider, useRouter } from './shell/router';
 import { scoped } from './store/scope';
 
@@ -31,6 +32,12 @@ export const SIGNIN_SOURCE_KEY = 'wobo-signin-source-v1';
 // three kilobytes — and behind its own dynamic import it cost the public site a whole round trip
 // before the page it names could even start downloading.
 const AppRuntime = lazy(() => import('./AppRuntime').then((m) => ({ default: m.AppRuntime })));
+// The parent account's own host (screens/parent/ParentRuntime.tsx). Its own chunk, and never the
+// learner runtime: a parent account holds no learner state, and the learner runtime starts writing
+// some the moment it mounts.
+const ParentRuntime = lazy(() =>
+  import('./screens/parent/ParentRuntime').then((m) => ({ default: m.ParentRuntime })),
+);
 
 /**
  * The first screen this load addresses. It is decided from one sentinel and the address alone,
@@ -46,10 +53,13 @@ function bootIntent(): Route {
   if (import.meta.env.DEV && typeof location !== 'undefined' && location.hash === '#engines') {
     return { name: 'concept', which: 'engines' };
   }
-  // The learner's sentinel, read under the scope `bootScope()` set in main.tsx: after a sign-out
-  // the device is unscoped and a bare `/` is the front door for whoever comes next.
-  const started = scoped.getItem(ONBOARDED_KEY);
-  return started ? { name: 'home' } : { name: 'landing' };
+  // The two sentinels, read under the scope `bootScope()` set in main.tsx: after a sign-out the
+  // device is unscoped and a bare `/` is the front door for whoever comes next. A parent account's
+  // bare `/` is its own home.
+  return bootRouteFor({
+    onboarded: Boolean(scoped.getItem(ONBOARDED_KEY)),
+    parent: isParentDevice(),
+  });
 }
 
 /**
@@ -59,8 +69,17 @@ function bootIntent(): Route {
  */
 function Host() {
   const { route } = useRouter();
-  const site = isPublicRoute(route.name);
-  const [runtime, setRuntime] = useState(!site);
+  // A PARENT ACCOUNT IS NEVER SHOWN THE LEARNER'S APP. The server last said the account this device
+  // is keyed to is a parent's (screens/parent/device.ts), and a parent account can hold no learner
+  // state (migration 0019), so a learner address typed or bookmarked on this device opens the
+  // parent's own host instead, which asks the server again the moment it opens.
+  // The parent's host corrects the address itself once it has mounted (a replace from here would
+  // run before the router's own first write and be overwritten by it).
+  const host = hostFor(route.name) === 'app' && isParentDevice() ? 'parent' : hostFor(route.name);
+  const site = host === 'site';
+  // The learner runtime starts only for the learner's own addresses. A parent who walks from their
+  // home to a public page (giving, the legal set) is shown the public site, never the learner's app.
+  const [runtime, setRuntime] = useState(host === 'app');
   const [, startTransition] = useTransition();
   // The last address the site itself could draw. It is what stays on screen while the runtime is
   // still arriving: a visitor who taps "Get started" keeps the page they tapped on until the app
@@ -71,9 +90,9 @@ function Host() {
   // Crossing from the site into the app. In a transition, so React holds the committed page up
   // until the runtime's chunk lands rather than tearing it down for a fallback.
   useEffect(() => {
-    if (site || runtime) return;
+    if (site || runtime || host === 'parent') return;
     startTransition(() => setRuntime(true));
-  }, [site, runtime]);
+  }, [site, runtime, host]);
 
   // While the visitor reads, the runtime arrives behind them: a door then costs a render rather
   // than a download. It waits for a sign of a real person — a move, a tap, a key, a wheel — and
@@ -82,7 +101,7 @@ function Host() {
   // looking at: ~180 kB of runtime downloading beside the landing pushed its first paint out by
   // more than a second.
   useEffect(() => {
-    if (runtime) return;
+    if (runtime || host === 'parent') return;
     let done = false;
     const pull = () => {
       if (done) return;
@@ -104,13 +123,15 @@ function Host() {
       done = true;
       stop();
     };
-  }, [runtime]);
+  }, [runtime, host]);
 
   return (
     // Nothing stands in for the app's own boot: main.tsx already has the one loader (WOBO-PLAN §16)
     // over the page, and a second thing under it would only be a second thing.
     <Suspense fallback={null}>
-      {runtime ? (
+      {host === 'parent' ? (
+        <ParentRuntime />
+      ) : runtime ? (
         <AppRuntime />
       ) : (
         <PublicSite route={lastSite.current} onFailure={() => setRuntime(true)} />

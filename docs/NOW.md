@@ -28,7 +28,7 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 
 | What | Wave | Where it is |
 |---|---|---|
-| Nothing. Wave 51 landed; wave 34, the last before the owner's walk, is next | 51 | Verified on an isolated index: gateway 8097 passed / 58 skipped / 0 failed; web 4201 tests, 0 failed; board 1139; sdk 191; engine 30; typecheck 7; ruff clean; build and gate clean. No migration. Spend $0 |
+| Nothing. Wave 34, the last queued wave, landed; the cold start on a cheap phone is the one engineering item the owner's walk still needs | 34 | Verified on an isolated index: gateway 8124 passed / 58 skipped / 0 failed; web 4329 tests, 0 failed; board 1139; sdk 191; engine 30; typecheck 7; ruff clean; build and gate clean. No migration |
 
 ## The queue, in order
 
@@ -37,12 +37,12 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | # | What | Wave |
 |---|---|---|
-| 1 | The parent's account screens | 34 |
 
 ## Landed, with the proof
 
 | What | Wave | Proof |
 |---|---|---|
+| The parent's side of Wobo, and four live bugs found on the way | 34 | The parent's door (Google), the switch between children (never shown for one child), asking Wobo about a child from the report level only, the parent's memory offered to the child, paying for a linked child only, and refer. Found and fixed on the way: Google sign-in never kept its session, for learners too (the router rewrote the address before the sign-in code read it, and mail links lost their key the same way); the plans page sent a promo code as `code` where the server reads `promo`, so no discount ever applied; a second learner on one phone saw the first learner's points; an open checkout could be handed between parent and child; existing parents were locked out while the doors are shut; a re-linked parent saw the conversation the child had ended; the parent was told when the child removed an offered line |
 | The inbox law on every rendered mail, 67 pages that tell the truth, cores that cannot cross bands | 51 | Of the mail law's 26 assertions, 14 were covered, 8 partly and 4 elsewhere; all are now held over every rendered kind. They found ten templates in lower case, a gift phrase the law forbids, em dashes in 18 kinds, an invented 'five minutes' on every quick one, and unreadable dark-mode text, all fixed, with a contrast script at 4.5:1. None of the 67 pages is a template, but 30 said untrue things (replaced textbooks, unprovable superlatives, invented shares of a paper); rewritten, with a distinctness check inside the build. A core could be copied across bands by dropping its stamp; now refused however it arrives |
 | The growth desk, an honest press page, chapter pages ready for tier two | 50 | The growth desk is built, stopped and keyless: gather, make, five shapes, posters with injected transports, publish-then-syndicate enforced in code, in the console and by a database trigger, Reddit and Quora refused at every entry and in the schema. The press copy no longer claims parental consent, no behavioural tracking or a parent view, which the legal set says are not true today, and names the boards it can prove (CBSE, ICSE, ISC, NIOS, and any board through the learner's own syllabus). The founder is in the Organization markup. Thin chapter pages left the sitemap (171 to 86). Tier two is built and ships nothing until concept cores exist. X threads would have posted with no campaign id; fixed |
 | The console seats people properly, board changes follow the rule, suggestions ask the one chooser | 49 | No invitation could ever have been accepted in production (the lookup refused every address with a dot; the write relied on a unique constraint that does not exist): fixed, with a signed single-use expiring link (0037). The console now draws only the desks a seat holds; money figures are stripped from every desk for a seat without the money panel. The app had never called the board-change rule (the picker wrote straight to the device); now it does, with only true cost sentences and a kept record of the old board's work. Suggestions were reachable only from tests and could name a module the course would not show; now they ask the course's own pick. A reduced-motion learner lost every other tap on the balance scale; fixed |
@@ -162,6 +162,11 @@ rather than remembered, and every line below was checked against the code on 202
 
 | What | Why it matters | Effort |
 |---|---|---|
+| 45 money lines on the parent's pay screen | renewal and ending must be disclosed before a parent pays, and these lines are not in docs/copy/money.md; approve, reword, or give the lines, and they go into money.md | a read-through |
+| When a child removes a line a parent offered, is the parent told? (TWO-MINDS open item 1) | today the parent's list says 'Passed on' either way | a ruling |
+| Parents who do not use Google | the parent door is Google only; a phone parent needs a migration and a new proof of who they are; an email sign-in link exists and is not wired | a ruling |
+| Referral credit | the refer screen shows a link and a code; nothing records or credits a referral | a decision |
+| A date of birth at the parent's door, and linking by invite code | both are new ways to grant or prove consent | two rulings |
 | The mail sign-off: 'Wobo' with no dash | the voice law forbids em dashes a reader sees; the old '— Wobo' was called a design choice for the owner | a ruling |
 | The launch-day mail sender | the launch template and its signed list link exist; nothing sends it (steady slices, oldest sign-ups last, a daily cap) | a wave when the doors open |
 | A founder photograph and a film for /press | the press page and the Product Hunt draft both want them | two files |

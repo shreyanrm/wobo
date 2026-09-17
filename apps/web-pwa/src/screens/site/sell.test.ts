@@ -532,9 +532,11 @@ describe('the front page has one declared address', () => {
     // the head is written from one table (`headFor`), which is where a 404 is told apart
     expect(router).toContain('canonical.href = head.canonical');
     expect(router).toContain('const head = headFor(route)');
-    expect(router).toContain(
-      "writePath(bare ? '/' : routeToPath(stack[0] as Route), 1, 'replace')",
-    );
+    // A bare slash is written back as a bare slash. What follows the path is kept only when the
+    // path is the one asked for (`bootAddressFor`, held in shell/router.test.ts), which is how a
+    // Google sign-in's fragment survives until the SDK adopts it.
+    expect(router).toContain("const target = bare ? '/' : routeToPath(stack[0] as Route);");
+    expect(router).toContain('bootAddressFor({');
   });
 });
 

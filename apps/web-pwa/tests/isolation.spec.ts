@@ -334,8 +334,12 @@ test('two learners on one phone never see each other, and the account brings Ash
     const { scoped } = await import('/src/store/scope.ts');
     const { PARENT_KEY, loadProfile } = await import('/src/screens/you/profile.ts');
     const { appSdk } = await import('/src/store/app-sdk.ts');
+    const { XP_AWARDS } = await import('/src/store/progress.tsx');
+    const cache = appSdk().state.loadCache();
     return {
-      xp: appSdk().state.loadCache().xp,
+      xp: cache.xp,
+      awarded: [...(cache.awardedOnce ?? [])],
+      dayAward: XP_AWARDS.streak,
       star: readCourseStars('demo-topic'),
       facts: loadMind().facts,
       parent: scoped.getItem(PARENT_KEY),
@@ -345,7 +349,12 @@ test('two learners on one phone never see each other, and the account brings Ash
       firstTurn: scoped.getItem('wobo-first-turn-v1'),
     };
   });
-  expect(riyaRead.xp).toBe(0);
+  // Riya starts from nothing but her OWN first day: the daily streak award (XP_AWARDS.streak) is
+  // written on her first active day, on her own row, with its key in her own awarded list. The
+  // spec predates that award and expected a flat 0; none of Asha's 120 may be here.
+  expect(riyaRead.awarded.every((k: string) => k.startsWith('streak:'))).toBe(true);
+  expect(riyaRead.xp).toBe(riyaRead.awarded.length * riyaRead.dayAward);
+  expect(riyaRead.xp).toBeLessThan(ashaRead.xp);
   expect(riyaRead.star).toBeUndefined();
   expect(riyaRead.facts).toEqual([]);
   expect(riyaRead.parent).toBeNull();

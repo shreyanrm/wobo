@@ -184,7 +184,7 @@ describe('starting a checkout on the gateway', () => {
     expect(JSON.parse(String(withCode.calls[0]?.init?.body))).toEqual({
       plan: 'pro',
       period: 'yearly',
-      code: 'WOBO50',
+      promo: 'WOBO50',
     });
     const without = answering(200, { subscription_id: 'sub_9', key_id: 'rzp_k' });
     await startCheckout('pro', 'yearly', null, GATEWAY, without.fetcher);
@@ -192,6 +192,22 @@ describe('starting a checkout on the gateway', () => {
       'plan',
       'period',
     ]);
+  });
+
+  /**
+   * The field name is the server's, not ours. The body once said `code`; the gateway's
+   * CheckoutBody reads `promo` and ignores what it does not know, so the discount never reached
+   * the provider and the full price was taken. Held against the Python source so a rename on
+   * either side fails here.
+   */
+  it('names the promo field exactly as the gateway reads it', () => {
+    const py = readFileSync(
+      join(import.meta.dir, '../../../../../services/gateway/src/wobo_gateway/billing/payments.py'),
+      'utf8',
+    );
+    const body = py.slice(py.indexOf('class CheckoutBody'), py.indexOf('def _refuse'));
+    expect(body).toMatch(/^\s+promo: str \| None/m);
+    expect(body).not.toMatch(/^\s+code: /m);
   });
 
   it('carries a key id of null when the gateway gives none, never an invented one', () => {

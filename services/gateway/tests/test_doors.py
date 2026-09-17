@@ -397,3 +397,65 @@ def test_a_change_to_the_dial_is_recorded(closed: doors.SettingsStore) -> None:
     assert closed.changes[-1]["key"] == doors.DIAL
     assert closed.changes[-1]["value"] is True
     assert closed.changes[-1]["actor"] == "the owner"
+
+
+# --- a parent account, which never has a learner record (fixer, 2026-09-17) ----------------------
+def _a_parent(subject: str, created_at: datetime) -> None:
+    from wobo_gateway import parent_account
+
+    store = parent_account.InMemoryParentStore()
+    store.put_account(
+        parent_account.ParentAccount(account_id=subject, email_hash="0" * 64, created_at=created_at)
+    )
+    parent_account.set_store(store)
+
+
+@pytest.fixture
+def _parent_plane() -> object:
+    from wobo_gateway import parent_account
+
+    yield
+    parent_account.set_store(None)
+
+
+def test_an_existing_parent_still_signs_in_while_the_door_is_shut(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, _parent_plane: object
+) -> None:
+    """The door's closed line promises "if you already have one, sign in". The lookup only read
+    the learner table, which migration 0019 forbids a parent to be in, so every parent was
+    refused as a new account."""
+    shut_at = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
+    doors.set_store(doors.InMemorySettingsStore(open_default=False, changed_at=shut_at))
+    _known(monkeypatch)  # no learner record for anybody
+    _a_parent("a-parent-from-before", shut_at - timedelta(days=3))
+    token = mint("a-parent-from-before")
+    answer = client.get("/v1/parent/me", headers={"Authorization": f"Bearer {token}"})
+    assert answer.json().get("code") != doors.CODE, answer.text
+
+
+def test_a_parent_account_made_after_the_door_shut_is_still_new(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch, _parent_plane: object
+) -> None:
+    shut_at = datetime(2026, 9, 9, 12, 0, tzinfo=UTC)
+    doors.set_store(doors.InMemorySettingsStore(open_default=False, changed_at=shut_at))
+    _known(monkeypatch)
+    _a_parent("a-parent-from-after", shut_at + timedelta(minutes=1))
+    token = mint("a-parent-from-after")
+    answer = client.get("/v1/parent/me", headers={"Authorization": f"Bearer {token}"})
+    assert answer.status_code == 403
+    assert answer.json()["code"] == doors.CODE
+
+
+def test_nobody_on_either_plane_is_still_refused(
+    closed: doors.SettingsStore,
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    _parent_plane: object,
+) -> None:
+    from wobo_gateway import parent_account
+
+    parent_account.set_store(parent_account.InMemoryParentStore())
+    _known(monkeypatch)
+    answer = client.get("/v1/parent/me", headers={"Authorization": f"Bearer {mint('nobody')}"})
+    assert answer.status_code == 403
+    assert answer.json()["code"] == doors.CODE

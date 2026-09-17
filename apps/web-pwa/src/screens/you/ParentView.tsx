@@ -12,9 +12,12 @@
  *
  * WHAT THIS PAGE IS NOT, and why the page now says so out loud. Everything below is read from
  * `loadProfile()` and `useProgress()` — localStorage on THIS device. It is the learner's preview
- * and it cannot be a parent's view: a parent has no account, no session and no route to a
- * server-side read, so a parent opening this on their own phone would see their own empty
- * storage. The Sunday note used to link here ("see the full picture") and no longer does
+ * and it cannot be a parent's view. A parent now has an account of their own, with its own host
+ * and its own address (`/parent`, screens/parent), which reads the server and never this device;
+ * this page moved to `/you/parent` (2026-09-17) so that address could be the parent's. The lock
+ * line used to say questions are shared "only if" the learner allows: there is no such switch,
+ * and the parent plane has no route that could carry a child's words (parent_api.py), so it says
+ * never. The Sunday note used to link here ("see the full picture") and no longer does
  * (`email_templates.parent_report`): the note carries the week itself, because it is the only
  * thing a parent can actually receive today. A real parent view needs a parent session and a
  * decision about what a parent may read, and both are the owner's.
@@ -85,7 +88,7 @@ export function ParentView() {
 
   useEffect(() => {
     bus.publishPage({
-      route: 'parent',
+      route: 'parent-preview',
       state: { name: firstName, lessons: summary.lessons.length, showedUp: summary.showedUp },
     });
   }, [bus, firstName, summary]);
@@ -132,13 +135,13 @@ export function ParentView() {
               <rect x="5" y="10" width="14" height="10" rx="3" />
               <path d="M8 10 v-3 a4 4 0 0 1 8 0 v3" />
             </svg>
-            Questions word for word: shared only if {firstName || profile.name} allows
+            Questions word for word: never shared with a parent
           </div>
           {/* Said on the screen, not only in the file: this is a preview drawn from THIS device.
               A page that looks like a parent's report and is not one is worse than no page. */}
           <p className="wy-preview">
-            This is a preview of what a parent would see, drawn from this device. Parents do not
-            have their own login yet, so the weekly note we email them is the whole picture today.
+            This is a preview, drawn from this device, of the week a parent hears about. Your
+            conversations with Wobo are never part of it.
           </p>
         </div>
       </div>

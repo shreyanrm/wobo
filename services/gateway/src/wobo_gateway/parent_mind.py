@@ -410,6 +410,12 @@ def retire_for_link_end(store: ParentStore, *, parent_account_id: str, learner_i
     the trigger in migration 0019 refuses to revive a retired row, whoever asks.
     """
     retired = store.retire_mind_facts(parent_account_id=parent_account_id, learner_id=learner_id)
+    # The conversation about this child goes too. It rode the next prompt (``_recent``) and came
+    # back on the parent's screen after a re-link, which made the consent retroactive after all.
+    try:
+        store.put_thread(parent_account_id, learner_id, [])
+    except StoreUnavailable as exc:
+        logger.warning("parent mind: thread not cleared", extra={"fields": {"error": str(exc)}})
     if retired:
         logger.info(
             "parent mind: retired on revoke",

@@ -47,16 +47,21 @@ describe('an invite link carries a code, never the child', () => {
     }
   });
 
-  it('keeps the join route and the guest kind', () => {
+  it('lands on a page that exists, and keeps the guest kind', async () => {
+    // It once built `/join`, which no route and no rewrite serves: a forwarded link opened the
+    // not-found page. A friend lands on the front page, a parent on the page written for parents.
+    const { pathToRoute } = await import('../shell/router');
     const url = new URL(inviteLink('https://app.example', 'parent', 'abcd2345'));
-    expect(url.pathname).toBe('/join');
+    expect(pathToRoute(url.pathname)).toEqual({ name: 'for-parents' });
+    const friend = new URL(inviteLink('https://app.example', 'friend', 'abcd2345'));
+    expect(friend.pathname).toBe('/');
     expect(url.searchParams.get('as')).toBe('parent');
     expect(url.searchParams.get('via')).toBe('abcd2345');
   });
 
   it('does not double the slash when the origin already ends in one', () => {
-    expect(inviteLink('https://app.example/', 'friend', 'code1234')).toContain(
-      'https://app.example/join?',
+    expect(inviteLink('https://app.example/', 'parent', 'code1234')).toContain(
+      'https://app.example/for-parents?',
     );
   });
 

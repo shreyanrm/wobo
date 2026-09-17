@@ -154,6 +154,9 @@ const APP_DOORS = new Set([
   // are that paying is not open yet, which is a thing to tell a buyer standing in front of it and
   // not a thing to ask an engine to index (`screens/states/routes.ts`).
   '/plans/checkout',
+  // The parent's door (screens/parent). The two learner doors point a parent at it; it is the
+  // parent account's own host, private, and rewritten to the shell like /onboarding.
+  '/parent',
 ]);
 
 /** Every internal address a published page points at, and which pages point at it. */

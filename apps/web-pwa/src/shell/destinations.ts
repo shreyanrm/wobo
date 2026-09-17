@@ -40,8 +40,10 @@ const EXACT: Record<string, Route> = {
   practice: { name: 'practice' },
   practise: { name: 'practice' },
   sandbox: { name: 'practice' },
-  'parent view': { name: 'parent' },
-  parent: { name: 'parent' },
+  // The LEARNER's preview. A learner's Wobo never walks anyone into the parent account: that is a
+  // different kind of account, and a student account never sees it (the owner, 2026-09-05).
+  'parent view': { name: 'parent-preview' },
+  parent: { name: 'parent-preview' },
   profile: { name: 'you' },
   settings: { name: 'you' },
   account: { name: 'you' },
@@ -113,7 +115,7 @@ function matchLoose(s: string): Route | null {
   if (/\bhome\b/.test(s)) return { name: 'home' };
   if (/\b(?:chat|conversation|messages?)\b/.test(s)) return { name: 'chat' };
   if (/\b(?:progress|mastery|knowledge twin|twin)\b/.test(s)) return { name: 'progress' };
-  if (/\bparent(?:'s)? view\b/.test(s)) return { name: 'parent' };
+  if (/\bparent(?:'s)? view\b/.test(s)) return { name: 'parent-preview' };
   if (/\b(?:practice|practise|sandbox)\b/.test(s)) return { name: 'practice' };
   if (/\b(?:profile|settings|account)\b/.test(s)) return { name: 'you' };
   // "open the camera", "show me my doubts": the doubt solver, only ever behind a go-there verb.
@@ -147,7 +149,7 @@ function destSay(route: Route): string {
       return 'Here is your progress.';
     case 'you':
       return 'Opening your profile.';
-    case 'parent':
+    case 'parent-preview':
       return "Opening the parent's view.";
     case 'doubt':
       return 'Opening the camera. Point it at the page.';

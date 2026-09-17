@@ -82,8 +82,14 @@ export function referralCode(): string {
   return code;
 }
 
-/** The invite URL for a kind of guest. The only place an invite link is built. */
+/**
+ * The invite URL for a kind of guest. The only place an invite link is built. It lands on a page
+ * that exists (there is no `/join` route): a parent on the page written for parents, a friend on
+ * the front page. Nothing reads `via` yet and the gateway credits nothing, so the code is carried
+ * for the day that exists and promises nothing today.
+ */
 export function inviteLink(origin: string, kind: 'friend' | 'parent', code: string): string {
   const params = new URLSearchParams({ via: code, as: kind });
-  return `${origin.replace(/\/+$/, '')}/join?${params.toString()}`;
+  const page = kind === 'parent' ? '/for-parents' : '/';
+  return `${origin.replace(/\/+$/, '')}${page}?${params.toString()}`;
 }

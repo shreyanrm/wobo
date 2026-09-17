@@ -39,6 +39,7 @@ import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from '../../shell/router';
 import { useSdk } from '../../store/sdk';
 import { WoboHead, Wordmark } from '../../ui/primitives';
+import { DOOR as PARENT_DOOR } from '../parent/copy';
 import { SIGN_IN as SITE_SIGN_IN } from '../site/cta';
 import { useDoorsOpen } from '../site/dial';
 import { LIST } from '../site/invitation';
@@ -171,7 +172,7 @@ function ProviderMark({ name }: { name: ProviderName }) {
  * button's accessible description, so a screen reader gets the truth without the page carrying a
  * paragraph of excuses. The `soon` chip is text, so nothing here is said by colour alone.
  */
-function ProviderButton({
+export function ProviderButton({
   name,
   open,
   busy,
@@ -830,6 +831,17 @@ export function Auth({ mode, run }: { mode: Mode; run?: DoorRun }) {
 
                   {/* nothing wired at all: say so, rather than draw a control that cannot work */}
                   {ways.anyOpen ? null : <p className="au-fine">{NO_WAY_IN}</p>}
+
+                  {/* A parent is a different kind of account with its own door (screens/parent).
+                      Not on the under-13 branch, where the parent is reached by a message. */}
+                  {childHolds ? null : (
+                    <p className="au-fine">
+                      {PARENT_DOOR.parentPrompt}{' '}
+                      <SiteLink to={{ name: 'parent' }}>
+                        <b>{PARENT_DOOR.parentAction}</b>
+                      </SiteLink>
+                    </p>
+                  )}
                 </>
               ) : null}
 

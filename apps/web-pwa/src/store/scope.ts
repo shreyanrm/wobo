@@ -78,6 +78,9 @@ export const SCOPED_KEYS = [
   'wobo-first-turn-v1', // whether Wobo has introduced themself to THIS learner (one introduction, ever)
   'wobo-parent-link-v1', // the parent they linked by phone
   'wobo-referral-code-v1', // the code that rides in their invite links
+  // Whether THIS account is a parent's, as the server last said (screens/parent/device.ts). A
+  // sibling on the same phone is a student, and must never inherit "this device is a parent's".
+  'wobo-account-kind-v1',
   'wobo-curriculum-world-v1', // which board and class they follow (curriculum/world.ts)
   'wobo-kept-boards-v1', // what they did on a board they moved off, by name (screens/you/kept.ts)
   'wobo-brain-erase-v1', // an erase the brain still has to be told about (store/mind.ts)
@@ -206,6 +209,11 @@ export const DEVICE_KEYS: readonly DeviceKey[] = [
     key: 'wobo-signin-source-v1',
     file: 'apps/web-pwa/src/screens/auth/source.ts',
     why: 'written at the door before there is a subject, read once on the next boot, then gone',
+  },
+  {
+    key: 'wobo-parent-door-v1',
+    file: 'apps/web-pwa/src/screens/parent/device.ts',
+    why: 'sessionStorage: the parent’s door was pressed, written before there is a subject because a Google sign-in leaves the page; stale after fifteen minutes, taken once on the far side, then gone',
   },
   {
     key: 'wobo-arrival-v1',

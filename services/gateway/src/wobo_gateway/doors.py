@@ -601,8 +601,13 @@ def refusal_for(path: str, principal: Any) -> Refusal | None:
         return None
     from wobo_gateway import consent
 
-    if consent.account_exists(str(subject)) is False:
-        return Refusal("new_account")
+    exists = consent.account_exists(str(subject))
+    if exists is False:
+        # A PARENT ACCOUNT HAS NO LEARNER RECORD, and never may (migration 0019's trigger
+        # `profiles_cache_is_not_a_parent`). So a parent is looked for on the parent plane, whose
+        # row only the server writes (service role, at /v1/parent/sign-up, itself shut while the
+        # dial is off). A parent row younger than the closure is still a new account.
+        return _parent_refusal(str(subject))
     # AND THE RECORD MUST PREDATE THE CLOSURE, because the record itself is writable by the
     # person it is about. `learner.profiles_cache` carries one policy, `profiles_cache_own ...
     # for all`, and migration 0014 re-granted INSERT on the columns the profile sync sends. So
@@ -621,6 +626,25 @@ def refusal_for(path: str, principal: Any) -> Refusal | None:
         first_seen = consent.account_created_at(str(subject))
         if first_seen is not None and first_seen >= shut_at:
             return Refusal("new_account")
+    return None
+
+
+def _parent_refusal(subject: str) -> Refusal | None:
+    """The door's answer for a subject with no learner record: through when the parent plane holds
+    an account that predates the closure, refused otherwise. A parent plane that cannot answer is
+    the one case read as "new": there is no learner record either, so nothing says this is
+    anybody the product already held."""
+    from wobo_gateway import parent_account
+
+    try:
+        account = parent_account.get_store().account(subject)
+    except parent_account.StoreUnavailable:
+        return Refusal("new_account")
+    if account is None:
+        return Refusal("new_account")
+    shut_at = closed_since()
+    if shut_at is not None and account.created_at is not None and account.created_at >= shut_at:
+        return Refusal("new_account")
     return None
 
 

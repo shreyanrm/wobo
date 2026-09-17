@@ -76,8 +76,19 @@ export type Route =
   | { name: 'you' }
   /** The doubt solver: a photo of the page, read back, explained on the photo. */
   | { name: 'doubt' }
-  // The parent's view of the week — read-only, the page the Sunday note links to (WOBO-PLAN §14).
-  | { name: 'parent' }
+  /**
+   * THE PARENT ACCOUNT (screens/parent). `/parent` is its home: the children, the switch, and the
+   * four doors. `/parent/<action>` is one of the four, and there is no fifth address because a
+   * parent account does four things (the owner, 2026-09-05; `parent_account.PARENT_ACTIONS`).
+   * The action names are spelled here rather than imported so the router stays a leaf.
+   */
+  | { name: 'parent'; action?: 'ask' | 'pay' | 'refer' | 'donate' }
+  /**
+   * The LEARNER's own preview of what a parent is told, reached from the Parents card on You. It
+   * lived at `/parent` until the parent account needed that address; it is the learner's page, so
+   * it lives under theirs now.
+   */
+  | { name: 'parent-preview' }
   // The public document pages: what Wobo is, and how to use it. Readable signed out.
   | { name: 'about' }
   | { name: 'help' }
@@ -198,6 +209,10 @@ export function routeToPath(route: Route): string {
       return route.path ?? '/404';
     case 'concept':
       return `/concept/${route.which}`;
+    case 'parent':
+      return route.action ? `/parent/${route.action}` : '/parent';
+    case 'parent-preview':
+      return PARENT_PREVIEW_PATH;
     default:
       return `/${route.name}`;
   }
@@ -417,6 +432,10 @@ export const PLAIN_ROUTES = new Set([
 ]);
 
 const INTENTS = new Set(['learn', 'practice']);
+/** The four doors of a parent account, and nothing else, under `/parent`. */
+const PARENT_ACTIONS = new Set(['ask', 'pay', 'refer', 'donate']);
+/** The learner's own preview of the parent's week, under the learner's own page. */
+const PARENT_PREVIEW_PATH = '/you/parent';
 /**
  * The segment between a course and one of its cards. A course id may not BE this word at the
  * second position, which costs nothing: the segment only ever appears after a course id.
@@ -448,6 +467,14 @@ export function pathToRoute(path: string): Route | null {
     }
   };
   if (PLAIN_ROUTES.has(head) && rest.length === 0) return { name: head } as Route;
+  if (head === 'parent' && rest.length === 1) {
+    const action = rest[0] ?? '';
+    return PARENT_ACTIONS.has(action)
+      ? { name: 'parent', action: action as 'ask' | 'pay' | 'refer' | 'donate' }
+      : null;
+  }
+  if (head === 'you' && rest.length === 1 && rest[0] === 'parent')
+    return { name: 'parent-preview' };
   if (head === 'subject') {
     const subjectId = decode(rest[0]);
     const intent = rest[1];
@@ -596,6 +623,24 @@ function writePath(path: string, depth: number, mode: 'push' | 'replace'): void 
   else window.history.replaceState(mark, '', path);
 }
 
+/**
+ * The first address the router writes, and what it keeps of the one it was given.
+ *
+ * A Google sign-in comes back with the session in the FRAGMENT, and a mail link comes with its
+ * token in the QUERY. Both are read by code in a lazy chunk (the SDK adopts the fragment when it is
+ * built; the runtime spends the token when it mounts), and both scrub their own piece once read.
+ * So when the path is the one that was asked for, the rest of the address is kept for them; it is
+ * dropped only when the address is being corrected to a different path.
+ */
+export function bootAddressFor(at: {
+  here: string;
+  target: string;
+  search: string;
+  hash: string;
+}): string {
+  return at.here === at.target ? `${at.target}${at.search}${at.hash}` : at.target;
+}
+
 /** The route this load addresses. A bare '/' carries no intention — the app's own initial wins. */
 function bootRoute(initial: Route): Route {
   if (typeof window === 'undefined') return initial;
@@ -648,7 +693,17 @@ export function RouterProvider({ initial, children }: { initial: Route; children
   useEffect(() => {
     const here = typeof window === 'undefined' ? '' : window.location.pathname;
     const bare = here === '/' || here === '';
-    writePath(bare ? '/' : routeToPath(stack[0] as Route), 1, 'replace');
+    const target = bare ? '/' : routeToPath(stack[0] as Route);
+    writePath(
+      bootAddressFor({
+        here: bare ? '/' : here,
+        target,
+        search: typeof window === 'undefined' ? '' : window.location.search,
+        hash: typeof window === 'undefined' ? '' : window.location.hash,
+      }),
+      1,
+      'replace',
+    );
   }, []);
 
   // ONE PAGE, ONE DECLARED ADDRESS. There was no <link rel="canonical"> anywhere in the app, so

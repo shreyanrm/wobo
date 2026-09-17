@@ -62,7 +62,16 @@ LIMITED_PATHS = frozenset(
         "/v1/parent/mind",
         "/v1/parent/offers",
         "/v1/me/parent-offered",
+        "/v1/parent/plan",
+        "/v1/parent/plan/cancel",
     }
+)
+
+#: The one refusal the pay action adds. A plan the child, or anybody else, paid for is not this
+#: parent's to end; the person who paid ends it from their own account.
+NOT_THE_PAYER = (
+    "This plan was paid for from another account, so it can only be ended from that account. "
+    "Nothing has changed."
 )
 
 _STORE_LINE = "I could not reach that just now. Try again in a moment."
@@ -153,6 +162,18 @@ def _address_is_confirmed(principal: Any) -> bool:
     )
 
 
+def _as_the_parent_sees_it(row: Any) -> dict[str, Any]:
+    """An offer as its parent may read it. What the child did with it afterwards is not here.
+
+    A row the child removed is still, from the parent's side, a sentence that was passed on: the
+    same answer :func:`wobo_gateway.parent_mind._already_line` gives, for the same reason.
+    """
+    out = row.as_dict()
+    if out.get("status") == "removed_by_child":
+        out["status"] = "accepted"
+    return out
+
+
 # --- the bodies -----------------------------------------------------------------------------------
 class SignUpRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -197,6 +218,10 @@ class DecideRequest(BaseModel):
 
 # --- the routes -----------------------------------------------------------------------------------
 def register_parent_api(app: FastAPI) -> None:
+    # The pay action's two reads of the child's plan live below, mounted with the rest so the
+    # parent surface is registered in one call.
+    register_parent_pay(app)
+
     @app.post("/v1/parent/sign-up")
     def parent_sign_up(body: SignUpRequest, request: Request) -> dict[str, Any]:
         """Make this account a parent account, and pick up the families already linked to it.
@@ -428,6 +453,34 @@ def register_parent_api(app: FastAPI) -> None:
         )
         return answer
 
+    @app.get("/v1/parent/ask")
+    def parent_ask_thread(request: Request) -> dict[str, Any]:
+        """This parent's own conversation about the selected child, read back from the record.
+
+        The memory law puts the thread in the database against the account, and ``ask`` wrote it
+        after every turn; without this route the parent's own screen could only keep it in the
+        browser, which is the thing the law forbids. Every line in it was typed by this parent or
+        written by Wobo from the allow-list, and a revoked link deletes it, so it carries nothing
+        the parent was not already allowed to see.
+        """
+        account = _door(request, "child.ask.read")
+        store = accounts.get_store()
+        child = _selected(store, account)
+        try:
+            thread = store.thread(account.account_id, child.learner_id)
+        except StoreUnavailable as exc:
+            raise _unavailable() from exc
+        turns = [
+            {
+                "role": str(t.get("role")),
+                "text": str(t.get("text") or ""),
+                "at": str(t.get("at") or ""),
+            }
+            for t in thread
+            if isinstance(t, dict) and t.get("role") in ("parent", "wobo") and t.get("text")
+        ]
+        return {"thread": turns}
+
     @app.get("/v1/parent/mind")
     def parent_mind_read(request: Request) -> dict[str, Any]:
         """What Wobo remembers on the parent's side: this child, and the household.
@@ -544,7 +597,7 @@ def register_parent_api(app: FastAPI) -> None:
             ]
         except StoreUnavailable as exc:
             raise _unavailable() from exc
-        return {"offers": [o.as_dict() for o in rows]}
+        return {"offers": [_as_the_parent_sees_it(o) for o in rows]}
 
     @app.post("/v1/parent/offers")
     def parent_offer(body: OfferRequest, request: Request) -> dict[str, Any]:
@@ -672,4 +725,142 @@ def register_parent_api(app: FastAPI) -> None:
         return {"removed": gone, "final": True}
 
 
-__all__ = ["LIMITED_PATHS", "register_parent_api"]
+# --- pay: the child's plan, on the parent's side ------------------------------------------------
+def _payer_of(sub: Any) -> str | None:
+    """Who paid for this row, as the provider's own notes say (``wobo_payer_id``, written by the
+    checkout when a parent opened it). ``None`` when nobody but the learner paid, when there is no
+    provider behind the row, or when the provider cannot be asked right now: an answer we cannot
+    get is never read as "you paid"."""
+    from wobo_gateway.billing import razorpay
+
+    if not getattr(sub, "provider_managed", False) or not sub.razorpay_subscription_id:
+        return None
+    provider = razorpay.get_client()
+    if provider is None:
+        return None
+    try:
+        found = provider.fetch_subscription(sub.razorpay_subscription_id)
+    except razorpay.RazorpayError:
+        return None
+    raw = found.get("notes")
+    notes: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    payer = str(notes.get("wobo_payer_id") or "").strip()
+    return payer or None
+
+
+def _plan_body(child: Child, sub: Any, *, paid_by_you: bool) -> dict[str, Any]:
+    """The child's plan in the gateway's own state words, minus the sentences.
+
+    :func:`wobo_gateway.billing.plan_view` speaks to the learner ("Your plan is running"), so its
+    ``line`` and ``confirm`` never reach a parent; the parent's screen says its own. ``can_cancel``
+    is narrowed to a plan this parent paid for, because the cancel route refuses the rest.
+    """
+    from wobo_gateway import billing
+    from wobo_gateway.billing import razorpay
+
+    view = billing.plan_view(sub, profile_plan=billing._profile_plan(child.learner_id))
+    view.pop("line", None)
+    view.pop("confirm", None)
+    view["can_cancel"] = bool(view.get("can_cancel")) and paid_by_you
+    # A parent cannot resume a plan either: a provider-backed cancel is final (billing.resume).
+    view["can_resume"] = False
+    return {
+        "child": child.as_dict(),
+        "plan": view,
+        "paid_by_you": paid_by_you,
+        "payments": "on" if razorpay.configured() else "off",
+    }
+
+
+def register_parent_pay(app: FastAPI) -> None:
+    """The second of the four actions, on the parent's side: read the selected child's plan, and
+    end one this parent paid for. Opening a plan is the checkout (``for_learner``)."""
+    from wobo_gateway import billing
+    from wobo_gateway.billing import razorpay
+
+    @app.get("/v1/parent/plan")
+    def parent_plan(request: Request) -> dict[str, Any]:
+        account = _door(request, "pay.plan.read")
+        store = accounts.get_store()
+        child = _selected(store, account)
+        try:
+            sub = billing.read(billing.get_store(), child.learner_id)
+        except billing.StoreUnavailable as exc:
+            raise _unavailable() from exc
+        paid = sub is not None and _payer_of(sub) == account.account_id
+        accounts.audit(
+            store,
+            parent_account_id=account.account_id,
+            action="pay.plan.read",
+            learner_id=child.learner_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=200,
+            ip_hash=_ip_hash(request),
+        )
+        return _plan_body(child, sub, paid_by_you=paid)
+
+    @app.post("/v1/parent/plan/cancel")
+    def parent_plan_cancel(request: Request) -> dict[str, Any]:
+        """The two-tap cancel, for a plan this parent paid for. The same promise as the learner's:
+        the provider is told to stop at cycle end first, and the plan runs to the day paid for."""
+        account = _door(request, "pay.cancel")
+        store = accounts.get_store()
+        child = _selected(store, account)
+
+        def refused(status: int, code: str, message: str) -> HTTPException:
+            accounts.audit(
+                store,
+                parent_account_id=account.account_id,
+                action="pay.cancel",
+                learner_id=child.learner_id,
+                decision="denied",
+                method=request.method,
+                path=request.url.path,
+                status_code=status,
+                ip_hash=_ip_hash(request),
+            )
+            return HTTPException(status_code=status, detail={"code": code, "message": message})
+
+        try:
+            sub = billing.read(billing.get_store(), child.learner_id)
+        except billing.StoreUnavailable as exc:
+            raise _unavailable() from exc
+        if sub is None:
+            raise refused(404, "no_subscription", billing._NO_PLAN)
+        # The payer check holds for a plan already ending too: a plan the child paid for and ended
+        # is still not this parent's, and answering "paid_by_you" for it would be untrue.
+        if _payer_of(sub) != account.account_id:
+            if sub.provider_managed and razorpay.get_client() is None:
+                # Payments are off: nothing can be ended here by anybody, and saying "not yours"
+                # would be a guess. The learner's route says the same thing in the same words.
+                raise refused(503, "payments_off", billing._CANCEL_NEEDS_PAYMENTS)
+            raise refused(403, "not_the_payer", NOT_THE_PAYER)
+        try:
+            ended = billing.cancel(
+                billing.get_store(),
+                child.learner_id,
+                profile_plan=billing._profile_plan(child.learner_id),
+                provider=razorpay.get_client(),
+            )
+        except billing.Refused as exc:
+            raise refused(exc.status, exc.code, exc.message) from exc
+        except billing.ProviderRefused as exc:
+            raise refused(503, "provider_unavailable", billing._PROVIDER_REFUSED) from exc
+        except billing.StoreUnavailable as exc:
+            raise _unavailable() from exc
+        billing._record_cancel(ended)
+        accounts.audit(
+            store,
+            parent_account_id=account.account_id,
+            action="pay.cancel",
+            learner_id=child.learner_id,
+            method=request.method,
+            path=request.url.path,
+            status_code=200,
+            ip_hash=_ip_hash(request),
+        )
+        return {**_plan_body(child, ended, paid_by_you=True), "cancelled": True}
+
+
+__all__ = ["LIMITED_PATHS", "NOT_THE_PAYER", "register_parent_api", "register_parent_pay"]

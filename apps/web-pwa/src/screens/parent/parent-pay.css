@@ -1,0 +1,225 @@
+/*
+ * The parent's pay, refer and give screens. Law v5 (DESIGN.md §0): white ground, cards on paper-2,
+ * no wash on anything, one pig per view (the primary door), and the one hairline only between rows.
+ * Every class is `pp-`, which appears nowhere else in src/.
+ */
+.pp {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--s3) var(--gutter) var(--s5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  color: var(--ink);
+  background: var(--paper);
+  min-width: 0;
+}
+.pp-back {
+  align-self: flex-start;
+  font: 500 14px / 1 var(--sans);
+  color: var(--ink-2);
+  background: none;
+  border: 0;
+  padding: 12px 0;
+  min-height: 44px;
+  cursor: pointer;
+}
+.pp-back::before {
+  content: "\2190";
+  margin-right: 8px;
+}
+.pp-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+.pp-title {
+  font: 700 clamp(28px, 5vw, 40px) / 1.1 var(--sans);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.pp-h2 {
+  font: 600 20px / 1.2 var(--sans);
+  margin: 0;
+}
+.pp-now {
+  font: 400 17px / 1.55 var(--sans);
+  margin: 0;
+  color: var(--ink);
+}
+.pp-intro {
+  color: var(--ink-2);
+}
+.pp-aside {
+  font: 400 15px / 1.5 var(--sans);
+  margin: 0;
+  color: var(--ink-2);
+}
+.pp-money {
+  font: 500 16px / 1.5 var(--sans);
+  margin: 0;
+  color: var(--ink);
+  border-left: 3px solid var(--marigold);
+  padding-left: 12px;
+}
+.pp-card {
+  background: var(--paper-2);
+  border-radius: 20px;
+  padding: clamp(20px, 4vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  min-width: 0;
+}
+.pp-pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pp-label {
+  font: 500 14px / 1.3 var(--sans);
+  color: var(--ink-2);
+}
+.pp-rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pp-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.pp-row:last-child {
+  border-bottom: 0;
+}
+.pp-row dt {
+  font: 400 15px / 1.4 var(--sans);
+  color: var(--ink-2);
+}
+.pp-row dd {
+  margin: 0;
+  font: 600 15px / 1.4 var(--sans);
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.pp-total dd {
+  font: 700 18px / 1.3 var(--sans);
+}
+.pp-linkrow {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.pp-linkrow dd {
+  text-align: left;
+}
+.pp-code {
+  font: 700 22px / 1 var(--sans);
+  letter-spacing: 0.12em;
+}
+.pp-link {
+  color: var(--ink);
+  font-weight: 500;
+  word-break: break-all;
+}
+.pp-box {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  cursor: pointer;
+  font: 400 14px / 1.5 var(--sans);
+  color: var(--ink-2);
+}
+.pp-box input {
+  width: 22px;
+  height: 22px;
+  margin: 2px 0 0;
+  flex: 0 0 auto;
+  accent-color: var(--pig);
+}
+.pp-box span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.pp-box b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.pp-box a {
+  color: var(--ink-2);
+}
+.pp-pay {
+  width: 100%;
+  justify-content: center;
+  min-height: 52px;
+  font-size: 16px;
+}
+.pp-pay[aria-disabled="true"] {
+  cursor: default;
+}
+.pp-fine {
+  font: 400 13px / 1.5 var(--sans);
+  color: var(--ink-3);
+  margin: 0;
+}
+.pp-status {
+  font: 500 15px / 1.5 var(--sans);
+  margin: 0;
+  color: var(--ink);
+}
+.pp-done {
+  color: var(--ink);
+  border-left: 3px solid var(--mint);
+  padding-left: 12px;
+}
+.pp-confirm {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pp-confirm p {
+  margin: 0;
+  font: 400 15px / 1.55 var(--sans);
+}
+.pp-acts {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.pp-end {
+  align-self: flex-start;
+}
+.pp-wait {
+  min-height: 220px;
+}
+/* A quiet button is paper-2 by default, which is the card's own ground: lift it to paper here. */
+.pp-card .wk-quiet {
+  background: var(--paper);
+}
+@media (max-width: 420px) {
+  .pp-pick {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .pp-pick .wk-seg {
+    align-self: flex-start;
+  }
+  .pp-acts .wk-btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+}

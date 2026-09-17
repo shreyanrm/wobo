@@ -650,10 +650,10 @@ export function You() {
               <p style={{ color: 'var(--ink)' }}>
                 They get the Sunday note and short notes about your learning in the week. You can{' '}
                 <a
-                  href="/parent"
+                  href="/you/parent"
                   onClick={(e) => {
                     e.preventDefault();
-                    router.navigate({ name: 'parent' });
+                    router.navigate({ name: 'parent-preview' });
                   }}
                 >
                   see the week the way they will

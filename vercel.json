@@ -99,7 +99,11 @@
       "destination": "/app.html"
     },
     {
-      "source": "/parent",
+      "source": "/parent/:path*",
+      "destination": "/app.html"
+    },
+    {
+      "source": "/you/parent",
       "destination": "/app.html"
     },
     {

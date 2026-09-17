@@ -210,7 +210,7 @@ export async function startCheckout(
     const res = await fetcher(`${gatewayUrl}${CHECKOUT_PATHS.start}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(code ? { plan, period, code } : { plan, period }),
+      body: JSON.stringify(code ? { plan, period, promo: code } : { plan, period }),
     });
     const body: unknown = await res.json().catch(() => null);
     if (!res.ok) {

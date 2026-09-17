@@ -35,6 +35,7 @@ import { giftSections, isButtonLine } from '../gift/content';
 import { legalPath } from '../legal/catalog';
 import { type Block, parseBlocks } from '../legal/markdown';
 import { Markdown } from '../legal/Prose';
+import { MONEY_LINES } from '../money-voice';
 import { CHECKOUT_PAGE } from '../plans/copy';
 import { GIFT_CADENCE, readMarket } from '../plans/prices';
 import { ClosePanel } from '../site/ClosePanel';
@@ -236,6 +237,8 @@ export function Donate() {
           <Reveal>
             <Label>{DONATE_PAGE.costLabel}</Label>
             <h2 className="dn-t">{DONATE_PAGE.costTitle}</h2>
+            {/* docs/copy/money.md, "donate screen": the one money line on this page, by the price. */}
+            <p className="dn-lede">{MONEY_LINES.donate}</p>
           </Reveal>
           <Reveal className="dn-places">
             {PLACES.map((place) => {

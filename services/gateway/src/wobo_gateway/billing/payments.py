@@ -2,18 +2,19 @@
 
 Two routes a learner's app calls or the provider calls, and one desk behind the console door:
 
-* ``POST /v1/billing/checkout`` ``{plan, period}`` — for the signed-in learner, creates a provider
-  subscription with the learner's id in its ``notes`` and answers what the browser's checkout
-  needs: ``subscription_id``, the public ``key_id``, the plan, the period and the total being
-  agreed to (``amount_display``, which is where docs/PRICING.md says the annual total appears).
-  **It writes nothing to the subscription row.** A checkout is an intention; the plan flips on
-  evidence of money, below. **One payable subscription per learner**: before it creates one it
-  reads the learner's newest ``checkout`` ledger row and asks the provider what became of that
+* ``POST /v1/billing/checkout`` ``{plan, period, for_learner?}`` — for the signed-in learner (or,
+  with ``for_learner``, for the child a parent account has selected: :func:`_beneficiary`), creates
+  a provider subscription with the learner's id in its ``notes`` and answers what the browser's
+  checkout needs: ``subscription_id``, the public ``key_id``, the plan, the period and the total
+  being agreed to (``amount_display``, which is where docs/PRICING.md says the annual total
+  appears). **It writes nothing to the subscription row.** A checkout is an intention; the plan
+  flips on evidence of money, below. **One payable subscription per learner**: before it creates one
+  it reads the learner's newest ``checkout`` ledger row and asks the provider what became of that
   subscription. Still ``created`` for the same plan and period: the same id is offered again.
   ``authenticated`` / ``active`` / ``pending`` / ``halted``: money has moved or is moving and the
-  webhook has not landed yet, so the answer is 409 and the honest line, never a second bill.
-  Closed (``cancelled`` / ``completed`` / ``expired``) or for another plan: a new one, with
-  ``expire_by`` a day out so an abandoned checkout does not stay payable for thirty years.
+  webhook has not landed yet, so the answer is 409 and the honest line, never a second bill. Closed
+  (``cancelled`` / ``completed`` / ``expired``) or for another plan: a new one, with ``expire_by`` a
+  day out so an abandoned checkout does not stay payable for thirty years.
 * ``POST /v1/billing/razorpay/webhook`` — open to the world, because the provider is not a
   learner, and safe because nothing is read from the body until the signature over the raw bytes
   has been checked (:func:`wobo_gateway.billing.razorpay.verify_webhook_signature`). A wrong or
@@ -146,6 +147,12 @@ class CheckoutBody(BaseModel):
     #: says so. A code that cannot be applied REFUSES the checkout rather than quietly letting it
     #: through at the full price.
     promo: str | None = Field(default=None, max_length=promo_codes.MAX_CODE)
+    #: A PARENT paying for a child (the owner's parent law, 2026-09-05: "they get to pay for the
+    #: subscriptions"). The subscription is the CHILD's and the payer is the parent. The id is a
+    #: candidate and nothing more: it must be the child this parent account has SELECTED, re-read
+    #: against the live consent on this very request (:func:`_beneficiary`), so there is no body
+    #: that pays for an unlinked child, a revoked one, or a sibling a stale screen still showed.
+    for_learner: str | None = Field(default=None, max_length=128)
 
 
 def _refuse(status: int, code: str, message: str, **extra: Any) -> HTTPException:
@@ -397,13 +404,21 @@ def _checkout_answer(
 
 
 def _open_checkout(
-    provider: razorpay.Provider, row: BillingEvent | None, spec: plans.PlanSpec
+    provider: razorpay.Provider,
+    row: BillingEvent | None,
+    spec: plans.PlanSpec,
+    payer: str | None = None,
 ) -> str | None:
     """The subscription id to offer again, or ``None`` to create one. Asks the provider what
     became of the learner's last checkout, because the ledger row is where we wrote it down and
     the provider is where money moves. Raises the honest refusals: 409 while a payment is being
     confirmed, 503 when the provider could not say (refusing costs a retry; a second subscription
-    could cost a second bill)."""
+    could cost a second bill).
+
+    The open row is the learner's, but the payer is written in the provider's notes, so a
+    subscription is offered again only to the same payer: the learner themselves (no payer) or the
+    same parent account. Otherwise a checkout a parent abandoned would be paid by the child with
+    the parent's name still on it as payer, and the parent could end a plan the child paid for."""
     if row is None or not row.subscription_id:
         return None
     try:
@@ -413,9 +428,82 @@ def _open_checkout(
     status = str(found.get("status") or "")
     if status in PAYING:
         raise _refuse(409, "already_subscribed", LINES["confirming"])
+    raw = found.get("notes")
+    notes: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    opened_by = str(notes.get("wobo_payer_id") or "").strip() or None
+    if opened_by != payer:
+        return None
     if status == "created" and row.plan == spec.plan and row.period == spec.period:
         return row.subscription_id
     return None
+
+
+def _beneficiary(
+    request: Request, principal: Any, for_learner: str | None
+) -> tuple[str, str | None]:
+    """Whose row this checkout is for, and who is paying: ``(learner_id, payer_id or None)``.
+
+    A learner pays for themselves, exactly as before, and nothing about that path changes. A
+    parent account pays for the child it has selected and for nobody else:
+
+    * a body naming a child from an account that is not a parent's is refused at the parent door
+      (403), and the refusal is on the parent plane's trail;
+    * the child must be the SELECTED one, and :func:`parent_account.selected` re-reads the consent
+      row on this request, so a link the child ended a second ago is already gone. A child this
+      parent does not hold is the parent plane's own 404; a held child who is not the one chosen is
+      its 409, and the parent chooses again;
+    * a parent account with no child named is refused too (409): a parent account never learns,
+      so a plan on its own row would be money spent on nobody.
+    """
+    from wobo_gateway import parent_account as accounts
+    from wobo_gateway import parent_api
+
+    wanted = (for_learner or "").strip()
+    if not wanted:
+        if accounts.is_parent_account(principal.subject):
+            exc = accounts.NoChildSelected()
+            raise _refuse(exc.status, exc.code, exc.message)
+        return principal.subject, None
+
+    account = parent_api._door(request, "pay.checkout")
+    store = accounts.get_store()
+
+    def denied(status: int) -> None:
+        accounts.audit(
+            store,
+            parent_account_id=account.account_id,
+            action="pay.checkout",
+            decision="denied",
+            method=request.method,
+            path=request.url.path,
+            status_code=status,
+        )
+
+    try:
+        held = accounts.children(store, account)
+        if not any(c.learner_id == wanted for c in held):
+            denied(accounts.NoSuchChild.status)
+            raise parent_api._refuse(accounts.NoSuchChild())
+        child, _ = accounts.selected(store, account)
+    except accounts.NoChildSelected as exc:
+        denied(exc.status)
+        raise parent_api._refuse(exc) from exc
+    except accounts.StoreUnavailable as exc:
+        raise parent_api._unavailable() from exc
+    if child.learner_id != wanted:
+        exc = accounts.NoChildSelected()
+        denied(exc.status)
+        raise parent_api._refuse(exc)
+    accounts.audit(
+        store,
+        parent_account_id=account.account_id,
+        action="pay.checkout",
+        learner_id=child.learner_id,
+        method=request.method,
+        path=request.url.path,
+        status_code=200,
+    )
+    return child.learner_id, account.account_id
 
 
 def register_payments(app: FastAPI) -> None:
@@ -425,6 +513,9 @@ def register_payments(app: FastAPI) -> None:
         principal = request.state.principal
         if principal is None or principal.anonymous:
             raise billing._sign_in_required()
+        # Whose row, and whose money. Settled before anything else, so a refused parent never
+        # reaches the provider and the answer does not depend on whether payments are on.
+        learner, payer = _beneficiary(request, principal, body.for_learner)
         if not razorpay.configured():
             raise _payments_off()
         spec = plans.spec_for(body.plan, body.period)
@@ -433,13 +524,11 @@ def register_payments(app: FastAPI) -> None:
 
         moment = datetime.now(UTC)
         try:
-            current = billing.read(billing.get_store(), principal.subject)
+            current = billing.read(billing.get_store(), learner)
         except billing.StoreUnavailable as exc:
             raise billing._unavailable(billing._UNREADABLE) from exc
         already = current is not None and current.running(moment)
-        if already or (
-            current is None and billing.is_paid(billing._profile_plan(principal.subject))
-        ):
+        if already or (current is None and billing.is_paid(billing._profile_plan(learner))):
             raise _refuse(409, "already_subscribed", LINES["already_subscribed"])
 
         # THE CODE IS CHECKED BEFORE ANYTHING IS CREATED ANYWHERE. A code that cannot be applied
@@ -449,14 +538,14 @@ def register_payments(app: FastAPI) -> None:
         offer: promo_codes.Offer | None = None
         if body.promo:
             try:
-                offer = promo_codes.offer_for_checkout(principal.subject, body.promo, now=moment)
+                offer = promo_codes.offer_for_checkout(learner, body.promo, now=moment)
             except promo_codes.Refused as refused:
                 raise refused.http() from refused
 
         ledger = records.get_store()
         try:
             ids = plans.plan_ids(ledger)
-            open_row = ledger.latest_checkout(principal.subject)
+            open_row = ledger.latest_checkout(learner)
         except RecordsUnavailable as exc:
             raise billing._unavailable(LINES["provider_unavailable"]) from exc
         if ids is None:
@@ -473,7 +562,7 @@ def register_payments(app: FastAPI) -> None:
         # never be added to one that already exists. So a checkout carrying a code always makes a
         # fresh one rather than offering back an older, undiscounted subscription the learner
         # abandoned; that one was never paid for and expires within the day (CHECKOUT_EXPIRES_S).
-        reused = None if offer is not None else _open_checkout(provider, open_row, spec)
+        reused = None if offer is not None else _open_checkout(provider, open_row, spec, payer)
         if reused is not None:
             return _checkout_answer(reused, spec)
 
@@ -484,11 +573,15 @@ def register_payments(app: FastAPI) -> None:
             "customer_notify": 1,
             "expire_by": int(moment.timestamp()) + CHECKOUT_EXPIRES_S,
             "notes": {
-                "wobo_learner_id": principal.subject,
+                "wobo_learner_id": learner,
                 "wobo_plan": spec.plan,
                 "wobo_period": spec.period,
             },
         }
+        if payer is not None:
+            # Who paid, beside whose plan it is. The webhook still lands on the learner's row; the
+            # parent's cancel reads this back from the provider before it will end anything.
+            wanted["notes"]["wobo_payer_id"] = payer
         if offer is not None:
             # The discount happens at the provider or it does not happen. There is no second path
             # here that takes money off afterwards, because taking money back is a refund and this
@@ -508,7 +601,7 @@ def register_payments(app: FastAPI) -> None:
                     event_id=f"checkout:{sub_id}",
                     kind="checkout",
                     event="checkout",
-                    learner_id=principal.subject,
+                    learner_id=learner,
                     subscription_id=sub_id,
                     plan=spec.plan,
                     period=spec.period,
@@ -524,7 +617,7 @@ def register_payments(app: FastAPI) -> None:
             # The use is recorded against the subscription the discount was attached to. The same
             # learner re-opening the same checkout reuses the row they already have, so a modal
             # closed over dinner does not burn the one code they were given.
-            promo_codes.bind_checkout(offer, principal.subject, sub_id, now=moment)
+            promo_codes.bind_checkout(offer, learner, sub_id, now=moment)
         return _checkout_answer(sub_id, spec, offer)
 
     @app.post(WEBHOOK_PATH)

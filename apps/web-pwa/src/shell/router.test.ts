@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   applyPop,
+  bootAddressFor,
   disown,
   headFor,
   pathToRoute,
@@ -30,6 +31,14 @@ const EVERY_ROUTE: Route[] = [
   { name: 'progress' },
   { name: 'you' },
   { name: 'doubt' },
+  // The parent account's own family (screens/parent), and the learner's preview that moved off
+  // `/parent` so the parent account could have it.
+  { name: 'parent' },
+  { name: 'parent', action: 'ask' },
+  { name: 'parent', action: 'pay' },
+  { name: 'parent', action: 'refer' },
+  { name: 'parent', action: 'donate' },
+  { name: 'parent-preview' },
   { name: 'about' },
   { name: 'help' },
   { name: 'helpArticle', group: 'wobo-basics', slug: 'what-is-wobo' },
@@ -113,6 +122,9 @@ describe('routes have addresses', () => {
       '/concept/b',
       '/concept/c',
       '/you/settings',
+      '/parent/read-the-chat', // a parent account does four things, and there is no fifth address
+      '/parent/ask/extra',
+      '/you/parent/extra',
     ]) {
       expect(pathToRoute(path)).toBeNull();
       expect(routeFromPath(path)).toEqual({ name: 'notfound', path });
@@ -124,6 +136,44 @@ describe('routes have addresses', () => {
     expect(routeToPath(routeFromPath('/coarse/m2-1'))).toBe('/coarse/m2-1');
     expect(routeFromPath('/gone?from=email')).toEqual({ name: 'notfound', path: '/gone' });
     expect(routeToPath({ name: 'notfound' })).toBe('/404');
+  });
+});
+
+describe('the first address the router writes', () => {
+  /**
+   * THE SESSION RIDES IN THE FRAGMENT. A Google sign-in comes back as `/onboarding#access_token=…`
+   * (or `/parent#…`), and the SDK that adopts it is built inside a LAZY chunk. The router's boot
+   * write used to replace the address with the bare path before that chunk arrived, so the SDK
+   * found no fragment and nobody was ever signed in by Google (measured 2026-09-17: the session key
+   * stayed null). The same write took a mail link's `?k=` before the runtime could spend it. The
+   * boot write keeps what came after the path whenever the path itself is unchanged; the SDK and
+   * the runtime each scrub their own piece once they have read it.
+   */
+  it('keeps the query and the fragment when the path is the one that was asked for', () => {
+    expect(
+      bootAddressFor({ here: '/parent', target: '/parent', search: '', hash: '#access_token=a' }),
+    ).toBe('/parent#access_token=a');
+    expect(
+      bootAddressFor({ here: '/course/m2-1', target: '/course/m2-1', search: '?k=t', hash: '' }),
+    ).toBe('/course/m2-1?k=t');
+    expect(bootAddressFor({ here: '/', target: '/', search: '?a=1', hash: '#x' })).toBe('/?a=1#x');
+  });
+
+  it('writes the bare path when the address is being corrected to another one', () => {
+    expect(bootAddressFor({ here: '/landing', target: '/', search: '?k=t', hash: '#x' })).toBe('/');
+  });
+});
+
+describe('the parent account’s addresses', () => {
+  it('is /parent for the home and /parent/<action> for each of the four doors', () => {
+    expect(routeToPath({ name: 'parent' })).toBe('/parent');
+    expect(routeToPath({ name: 'parent', action: 'ask' })).toBe('/parent/ask');
+    expect(pathToRoute('/parent/donate')).toEqual({ name: 'parent', action: 'donate' });
+  });
+
+  it('keeps the learner’s own preview, at an address under their own page', () => {
+    expect(routeToPath({ name: 'parent-preview' })).toBe('/you/parent');
+    expect(pathToRoute('/you/parent')).toEqual({ name: 'parent-preview' });
   });
 });
 

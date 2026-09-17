@@ -212,6 +212,12 @@ describe('a missing address is a 404, not a success', () => {
       '/you',
       '/doubt',
       '/parent',
+      // the parent account's four doors, and the learner's own preview that moved off /parent
+      '/parent/ask',
+      '/parent/pay',
+      '/parent/refer',
+      '/parent/donate',
+      '/you/parent',
       '/sandbox',
       '/sandbox/photosynthesis',
       '/subject/science/learn',

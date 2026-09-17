@@ -37,6 +37,11 @@ describe('resolveDestination — Wobo navigates on command', () => {
     ['open chemistry', 'subject:chemistry'],
     ['chemistry chapter', 'subject:chemistry'],
     ['take me to physics', 'subject:physics'],
+    // A LEARNER asking for the parent's view means their own preview. The parent ACCOUNT is not
+    // a place a learner's Wobo can walk them to (the owner, 2026-09-05: a student account never
+    // sees any of it).
+    ['parent view', 'parent-preview'],
+    ['parent', 'parent-preview'],
   ];
   for (const [text, want] of navigates) {
     it(`navigates: "${text}" -> ${want}`, () => {
@@ -96,5 +101,21 @@ describe('nav intents are resolved before the gateway round-trip', () => {
 
   it('resolves exactly one nav path — there is no second, later copy', () => {
     expect(app.split('resolveDestination(text)')).toHaveLength(2);
+  });
+});
+
+describe('a learner’s Wobo never opens the parent account', () => {
+  it('has no phrase that resolves to the parent account’s own pages', () => {
+    for (const text of [
+      'parent',
+      'parent view',
+      'parents',
+      'parent account',
+      'open the parent account',
+      'switch child',
+      'take me to the parent home',
+    ]) {
+      expect([text, outcome(text)]).not.toEqual([text, 'parent']);
+    }
   });
 });

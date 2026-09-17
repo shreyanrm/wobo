@@ -89,9 +89,13 @@ describe('"Go to the checkout" arrives at the checkout', () => {
   it('carries the fragment past a router that drops it', () => {
     const router = read('apps', 'web-pwa', 'src', 'shell', 'router.tsx');
     const nav = read('apps', 'web-pwa', 'src', 'screens', 'site', 'nav.tsx');
-    // the two reasons the fragment never arrived, still true, and still not this file's to fix
+    // the two reasons the fragment never arrived, still true, and still not this file's to fix.
+    // The router reads the fragment in ONE place, its first write on a fresh load (so a Google
+    // sign-in's session survives to the SDK, 2026-09-17); a navigation still carries none.
     expect(nav).toContain("href.split('#')[0]");
-    expect(router).not.toContain('location.hash');
+    const navigate = router.slice(router.indexOf('const navigate = useCallback'));
+    expect(navigate.slice(0, navigate.indexOf('}, []);'))).not.toContain('hash');
+    expect(router.match(/location\.hash/g)?.length ?? 0).toBe(1);
     // so the page that owns the link brings it along itself
     expect(CHECKOUT_PAGE.open.cta).toBe('Go to the checkout');
     expect(CHECKOUT).toContain('onNavigate={() => revealHash(');
