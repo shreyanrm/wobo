@@ -60,6 +60,7 @@ from wobo_gateway.email_templates import (
     APP_NAME,
     HAND_KINDS,
     KINDS,
+    NO_ACCOUNT_KINDS,
     SUBSCRIBED_KINDS,
     TRANSACTIONAL_KINDS,
     postal_address_is_set,
@@ -906,11 +907,17 @@ def _envelope_headers(kind: str, period: str | None, headers: dict[str, str]) ->
     out = dict(headers)
     if kind in SUBSCRIBED_KINDS and "List-Id" not in out:
         label = kind.replace("_", "-")
-        out["List-Id"] = f"{APP_NAME} {kind.replace('_', ' ')} <{label}.{_list_domain()}>"
+        # The sender's own display name, read off the From like the domain is: the list is named
+        # by the name the reader already sees, and a second source is how the two drift apart.
+        out["List-Id"] = f"{_display_name()} {kind.replace('_', ' ')} <{label}.{_list_domain()}>"
     if "Feedback-ID" not in out:
         # The colon is the separator, so nothing that rides in a segment may contain one.
         stream = "subscribed" if kind in SUBSCRIBED_KINDS else "transactional"
-        campaign = re.sub(r"[^A-Za-z0-9._-]", "-", period or "none")[:64] or "none"
+        # The law's shape (docs/MAIL-PRIMARY.md, FEEDBACK-ID): lower case, digits and hyphens,
+        # at most twenty. A period such as "2026-W36" or "chapter:triangles" used to ride here
+        # with its capitals and up to 64 characters, which the law's own pattern refuses.
+        campaign = re.sub(r"[^a-z0-9-]", "-", (period or "none").lower())[:20].strip("-")
+        campaign = campaign or "none"
         out["Feedback-ID"] = f"{kind}:{stream}:{campaign}:{SENDER_ID}"
     return out
 
@@ -1065,7 +1072,9 @@ def send_email(
     # whose footers promise a single tap.
     if kind in SUBSCRIBED_KINDS and "List-Unsubscribe" not in mail_headers:
         return queued("no_stop_link")
-    if kind in HAND_KINDS and "List-Unsubscribe-Post" not in mail_headers:
+    if kind in HAND_KINDS | NO_ACCOUNT_KINDS and "List-Unsubscribe-Post" not in mail_headers:
+        # The launch mail joins the paper set here: its reader has no account, so a signed
+        # one-click link is the only way out there is (the closer's run, 2026-09-17).
         return queued("no_stop_link")
 
     envelope: dict[str, Any] = {

@@ -28,6 +28,8 @@ export const SYLLABUS_CSS = `
 .sy-head{margin-bottom:16px}
 .sy-head h1{display:flex;flex-direction:column;gap:8px;font:600 clamp(30px,5vw,44px)/1.12 var(--sans)}
 .sy-head .sy-where{font:500 15px/1.3 var(--sans);color:var(--ink-2);letter-spacing:0;text-transform:none}
+/* The comma that makes the heading one sentence to a crawler; on screen the placement has its own line. */
+.sy-sep{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .sy-lead{margin:0 0 28px;font:400 19px/1.6 var(--sans);color:var(--ink);max-width:62ch}
 .sy-none{margin-top:16px;font:400 17px/1.6 var(--sans);color:var(--ink-2);max-width:62ch}
 
@@ -82,7 +84,7 @@ export const SYLLABUS_CSS = `
 .sy-source summary{font:500 14px/1.4 var(--sans);color:var(--ink-2);cursor:pointer}
 .sy-source details ul{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:4px}
 .sy-source details li{font:400 14px/1.5 var(--sans);color:var(--ink-2)}
-.sy-hash{margin-top:10px;font:400 13px/1.5 var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);color:var(--ink-2);word-break:break-all}
+.sy-hash{margin-top:10px;font:400 14px/1.5 var(--sans);color:var(--ink-2);overflow-wrap:anywhere}
 .sy-stale{margin-top:10px;font:500 14px/1.5 var(--sans);color:var(--ink)}
 
 /* --- the way on: up, and the two beside ------------------------------------------------------- */

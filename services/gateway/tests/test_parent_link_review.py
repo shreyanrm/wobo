@@ -37,6 +37,6 @@ def test_the_sunday_note_does_not_link_a_parent_to_the_learners_own_device() -> 
 def test_the_sunday_note_still_carries_the_week_itself() -> None:
     """The link is gone, so the email has to be the report rather than a pointer to one."""
     out = render("parent_report", DATA)
-    assert "fractions" in out["html"]
-    assert "angles" in out["html"]
+    assert "Fractions" in out["html"]  # sentence case where a line opens (voice.md)
+    assert "Angles" in out["html"]
     assert "steady" in out["html"]

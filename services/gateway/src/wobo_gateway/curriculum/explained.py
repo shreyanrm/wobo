@@ -393,15 +393,17 @@ def _first_explainable(
         why["no_band"] += 1
         return None
     for topic in chapter.children:
+        # THE PAGE'S OWN CLASS IS THE REQUEST'S CLASS. The core key is ``concept x band``
+        # (docs/CONTENT-INTERACTION.md §5b) and the store places a request by its class; a
+        # chapter page has no learner, only the class it is published under, so that class is the
+        # scope's grade. The store no longer takes a band a caller names over the one its class
+        # resolves to (that was a borrow), so a page whose class the store places in another band
+        # (a class 9 page for a concept the syllabus teaches in 4, 6 and 8) reads that band's core
+        # and :func:`refusals` keeps it off the page as ``other_band``.
+        # The figure's key is unchanged: it was never keyed on the class, so it keeps its scope.
         scope = {"subject": subject.name, "chapter": chapter.name}
         concept = store.concept_id(topic.name, scope)
-        # THE BAND IS THE PAGE'S OWN CLASS, named to the store outright. The core key is
-        # ``concept x band`` (docs/CONTENT-INTERACTION.md §5b) and the store resolves the band
-        # from a request's grade when nobody names one; a chapter page has no request and no
-        # learner, only the class it is published under, so the band is read from that class
-        # (:func:`band_of`) and handed over as the key's own argument. A core written for another
-        # band is then unreachable by construction, which is the section's prohibition.
-        core = store.load_core(topic.name, scope, band=band)
+        core = store.load_core(topic.name, {**scope, "grade": level.name})
         drawn = store.load(topic.name, "diagram", "core", scope)
         figure = figure_of(drawn, concept=concept, name=topic.name)
         refused = refusals(core, figure, band=band)

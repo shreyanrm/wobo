@@ -139,6 +139,39 @@ pipeline that draws for a learner, and the concept cores it needs are designed a
 seven decorations chosen by hand instead would be the swapped-name template this ruling forbids,
 wearing a picture.
 
+**Measured again, 2026-09-17.** Distinct, yes. With every board, class, subject and chapter name
+masked, no two written entries share more than 5% of their five-word runs. That is none of the 67
+made from a template. True, not all of them. Fourteen openings described a syllabus the page doesn't
+carry (the CBSE middle-year textbooks the board has replaced, ICSE and ISC units that aren't in the
+paper). Three made a superlative nothing proves, one of them "the most examined" syllabus in the
+country, and three printed a share of the paper the board never published. Nine questions belonged to
+another page or went unanswered, and five openings named nothing their own page lists. Thirty
+entries were rewritten, one at a time.
+
+**No superlative about a syllabus, because the tree cannot prove one (the closer, 2026-09-17).** The
+layer under a subject holds whatever the board publishes there: CBSE class 12 chemistry lists ten
+chapters while its mathematics and physics list units, class 10 social science lists four books, and
+the class 6 to 8 subjects list NCERT textbooks or theme sections. Eight "longest", "largest" and "more
+chapters than" lines were left, proven by counting that layer, which compares chapters with units and
+books, so none of them was established and all eight are gone (docs/CLAIMS.md: nothing uncleared is
+published). One comes back only with its own section in CLAIMS.md and a like-for-like count. The same
+closer found six subject pages calling a textbook "one chapter"; the pages now say what the list is
+(a textbook, a theme section, a book) and count the chapters inside it, and the provenance block says
+"We checked this list against that document on ..." and gives the fingerprint as a sentence, where
+it used to print a count of named checks and a "Document hash" label.
+
+The tests that keep this true: `handmade.test.ts` masks every name before comparing (ceiling 10%),
+checks every stated count against the tree, refuses any superlative, forbids a printed weighting, and
+requires a subject opening to name two things its own page lists; `copy.test.ts` holds the textbook,
+theme and book wording. `scripts/handmade-check.ts` fails the build if a shipped page falls under 25%
+of its own words once names are masked, and `bun run scripts/handmade-check.ts` prints the spread
+after a build: on 2026-09-17, 67 pages, lowest 36.0%, median 45.3% (the 38.0% and 47.5% first
+written here were a build earlier, before the provenance block's two sentences, which every page
+shares, were rewritten). **What that check proves is narrow:** a page is not the shared frame
+with the names swapped (a name-swapped frame scored at most 15.7%). It does not prove a person wrote
+the page; 67 pages each written separately by a model would pass it. That they were written one at a
+time is held by review, not by this number.
+
 **One template per large family, with content and artwork unique per page.** 333 chapters, 711 topics,
 the glossary. A shared frame is right here: it is what makes a site navigable and it is what every
 reference site on earth does. The template is not what makes a page thin; emptiness is. Ours carries,

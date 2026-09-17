@@ -151,8 +151,8 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-9': {
     opening:
-      'This is the year the syllabus gets long. Mathematics opens out, social science runs to ' +
-      'more chapters than any other year of the school course, and the pace is set by what ' +
+      'This is the year the syllabus opens out. Mathematics widens, social science puts the ' +
+      'earth, the past, government and money into one paper, and the pace is set by what ' +
       'follows rather than by what is being taught.',
     question: 'Why does this year feel harder than the one after it?',
     answer:
@@ -200,8 +200,8 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/icse/class-9': {
     opening:
-      'Six syllabuses run in this year of the ICSE course, and history and civics is the longest ' +
-      'of them. The Council publishes each as a set of units, and units are what these pages ' +
+      'Six syllabuses run in this year of the ICSE course, from history and civics to the three ' +
+      'sciences. The Council publishes each as a set of units, and units are what these pages ' +
       'hold.',
     question: 'Where are the topics under each unit?',
     answer:
@@ -272,9 +272,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
 
   '/learn/cbse/class-6/mathematics': {
     opening:
-      'The year the number line stops being a picture on the wall and starts being a tool. Whole ' +
-      'numbers, the first geometry with a name attached to it, and the beginnings of the idea ' +
-      'that a letter can stand for something you do not know yet.',
+      "This year's mathematics starts with patterns rather than rules: primes, fractions, lines " +
+      'and angles, symmetry, data, and a last chapter that walks past zero into the negative ' +
+      'numbers. The number line stops being a picture on the wall and becomes a tool.',
     question: 'My child can do the sums but cannot do the word problems. Why?',
     answer:
       'Because those are two different skills, and only one of them has been practised. Turning a ' +
@@ -284,21 +284,21 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-6/science': {
     opening:
-      'Middle school science begins as a set of things you can look at: what food is made of, ' +
-      'what materials do, how a plant is put together, how a magnet behaves. The explanations ' +
-      'stay close to the object.',
+      'Middle school science begins as a set of things you can look at: what we eat and why, ' +
+      'what materials are like, how living things differ, how a magnet behaves and what water ' +
+      'does as it changes state. The explanations stay close to the object.',
     question: 'Is it enough to memorise the answers at this stage?',
     answer:
-      'It works for a term and stops working after that. The chapters here are the ones later ' +
-      'years quietly assume, and a definition remembered without the reason behind it does not ' +
+      'It works for a term and stops working after that. The chapters in this textbook are the ' +
+      'ones later years quietly assume, and a definition remembered without the reason behind it does not ' +
       'survive being asked a slightly different way. Wobo builds the diagram while it explains, ' +
       'and asks the question back at the end to see whether it landed.',
   },
   '/learn/cbse/class-6/social-science': {
     opening:
-      'Three subjects share one syllabus here: the past, the earth and the way a country governs ' +
-      'itself. Each is taught as a way of asking questions rather than as a list of things that ' +
-      'happened.',
+      "Five themes share one syllabus here: the land and its people, the past, the country's " +
+      'cultural roots, how a community governs itself, and the value of work. Each one is ' +
+      'taught as a way of asking questions rather than as a list of things that happened.',
     question: 'How is anyone supposed to remember all these dates and names?',
     answer:
       'Mostly by not trying to remember them as a list. A date that hangs off a reason stays; a ' +
@@ -320,21 +320,22 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-7/science': {
     opening:
-      'The year science starts explaining rather than describing. Heat, acids and bases, ' +
-      'nutrition in plants and animals, and the first look at what is going on inside something ' +
-      'you cannot open.',
-    question: 'How do we know this is what the school will actually cover?',
+      'The year science starts explaining rather than describing. Acids and bases, circuits, ' +
+      'heat moving from one place to another, the changes that can and cannot be undone, and ' +
+      'how plants and animals keep themselves alive.',
+    question: 'Why does my child keep mixing up a physical change and a chemical one?',
     answer:
-      "Because it came out of the board's own paper and the page below says which one, which page " +
-      'inside it and the day it was read. That is checkable in a minute: open the document and ' +
-      'look. A school may reorder it or spend longer on one chapter, and the list itself is the ' +
-      "board's.",
+      'Because the everyday words blur them: melting and burning both look like one thing ' +
+      'turning into another. The question that separates them is whether a new substance was ' +
+      'made, and it only sticks once a child has asked it of a few real cases. Wobo puts two ' +
+      'changes side by side, asks which one could be undone, and talks through why before ' +
+      'giving the answer away.',
   },
   '/learn/cbse/class-7/social-science': {
     opening:
-      'A wide year: medieval history, the workings of the environment, and how power is shared ' +
-      'and checked. It covers more ground than any other subject in the year and is often the one ' +
-      'left until last.',
+      'A wide year: the weather and climates of India, the rise of empires and the Gupta era, ' +
+      'how governments differ, and the road from barter to money and banks. It comes in two ' +
+      'parts set out under the same themes, and it is often the subject left until last.',
     question: 'My child finds this the dullest subject on the timetable. Can that change?',
     answer:
       'Often it can, and usually the problem is that it is being met as a wall of paragraphs. The ' +
@@ -344,9 +345,10 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-8/mathematics': {
     opening:
-      'Rational numbers, linear equations in one variable, quadrilaterals and the first serious ' +
-      'exponents. Much of it looks like last year with the difficulty turned up, and the ' +
-      'difference is that the reasoning is now expected to be written down.',
+      'Squares and cubes, powers, quadrilaterals, proportional reasoning, the ' +
+      'Baudhayana-Pythagoras theorem and algebra met as play. Much of it looks like last year ' +
+      'with the difficulty turned up, and the difference is that the reasoning is now expected ' +
+      'to be written down.',
     question: 'How much working should a child be showing?',
     answer:
       'Enough that somebody reading it can follow the argument without asking a question. That is ' +
@@ -356,20 +358,21 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-8/science': {
     opening:
-      'Cells, force and pressure, chemical effects of current, and the first chapters that depend ' +
-      'on a model of something too small to see. The subject starts asking for imagination as ' +
-      'well as observation.',
-    question: 'Which of these chapters come back later?',
+      'Living things too small to see, forces, pressure and the storms it drives, the particles ' +
+      'matter is made of, and what a current does besides lighting a bulb. The subject starts ' +
+      'asking for imagination as well as observation.',
+    question: 'Which chapters of this textbook come back later?',
     answer:
-      'The ones built on a model rather than on an observation, which is most of them. A cell, a ' +
-      'force diagram and the idea of a current are all revisited with more asked of them. The ' +
-      "chapter list on this page is the board's own, and Wobo will check what is already solid " +
-      'before it teaches on top of it.',
+      'The ones built on a model rather than on an observation, which is most of them. ' +
+      'Particles, forces and the effects of a current are all revisited later with more asked ' +
+      "of them. The textbook's chapters are listed on its own page in the board's order, and " +
+      'Wobo will check what is already solid before it teaches on top of it.',
   },
   '/learn/cbse/class-8/social-science': {
     opening:
-      'Modern history, resources and their use, and the constitution as a working document. It is ' +
-      'the year the three strands start talking to each other rather than running in parallel.',
+      'The Marathas, the colonial era and the long road to independence, natural resources, and ' +
+      'parliament, the courts and the vote as working parts of one system. It is the year the ' +
+      'strands start talking to each other rather than running in parallel.',
     question: 'There is so much reading here. Where does a child even start?',
     answer:
       'With one chapter, out loud, in order. The volume is what makes this subject feel ' +
@@ -403,9 +406,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-9/social-science': {
     opening:
-      'The longest syllabus in the school course: revolutions and the making of the modern world, ' +
-      'the physical India, democracy as a set of institutions, and the economics of a village. ' +
-      'Sixteen chapters, and no filler among them.',
+      'Plate tectonics and the oceans, early humans and the first civilisations, democracy and ' +
+      'elections, supply and demand, and a chapter on managing money. Sixteen chapters, each ' +
+      'listed below in the words the board uses.',
     question: 'Is it possible to be good at this subject without a good memory?',
     answer:
       'Yes, and the children who do best at it usually are not memorising. They are holding a ' +
@@ -415,9 +418,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-10/mathematics': {
     opening:
-      'Real numbers, pairs of linear equations, quadratics, trigonometry and circles. It is the ' +
-      'most examined mathematics syllabus in the country and every chapter of it is fair game in ' +
-      'the paper.',
+      'Real numbers, polynomials, pairs of linear equations, quadratics, arithmetic ' +
+      'progressions, trigonometry out to heights and distances, circles and probability. Any ' +
+      'one of them can turn up in the paper, so none of them is a spare.',
     question: 'Is there a chapter that is safe to leave out?',
     answer:
       "Nobody can promise you one, and a page that named one would be guessing with your child's " +
@@ -473,15 +476,17 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-11/mathematics': {
     opening:
-      'Sets and functions, trigonometry taken seriously, sequences, straight lines, limits and ' +
-      'the first derivatives. The gap between the school certificate year and this one is the ' +
-      'widest in the whole course.',
-    question: 'My child did well last year and is suddenly lost. Is that normal?',
+      'Sets and functions, trigonometric functions, complex numbers, permutations and ' +
+      'combinations, the binomial theorem, conic sections, and a first look at limits and ' +
+      'derivatives. Nearly all of it is new, and it asks for a kind of abstraction the earlier ' +
+      'years never needed.',
+    question: 'Trigonometry was fine last year. Why does it look like a different subject now?',
     answer:
-      'It is extremely normal, and it is about the size of the step rather than about your child. ' +
-      'This syllabus asks for abstraction that the earlier years never needed. Wobo goes back and ' +
-      'tests the ground underneath a topic before teaching it, and teaches the missing piece ' +
-      'first rather than pressing on.',
+      'Because it has changed what it is about. Last year it was the ratios of a right ' +
+      'triangle. This year the angle keeps turning past a right angle and the ratios become ' +
+      'functions with graphs of their own. Wobo draws the unit circle, turns the angle a step ' +
+      'at a time while the graph grows beside it, and says aloud where the old triangle is ' +
+      'still hiding.',
   },
   '/learn/cbse/class-11/physics': {
     opening:
@@ -508,9 +513,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-12/chemistry': {
     opening:
-      'Solutions, electrochemistry, kinetics, the d block, and a long run of organic chemistry ' +
-      'from haloalkanes to biomolecules. It is the heaviest of the four senior syllabuses by ' +
-      'volume of named reactions.',
+      'Solutions, electrochemistry, kinetics, the transition and inner transition elements, ' +
+      'coordination compounds, and a long run of organic chemistry from haloalkanes to ' +
+      'biomolecules. Ten chapters, and the board names the topics under every one of them.',
     question: 'How does anyone hold this many reactions in their head?',
     answer:
       'Not as a list, which is the trap. Reactions come in families with a shared mechanism, and ' +
@@ -520,9 +525,10 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-12/mathematics': {
     opening:
-      'Relations and functions, matrices and determinants, calculus in both directions, vectors, ' +
-      'three-dimensional geometry and probability. Half the paper is calculus and the other half ' +
-      'is everything the earlier years were building towards.',
+      'Relations and functions, matrices and determinants, calculus in both directions, ' +
+      'vectors, three-dimensional geometry, linear programming and probability. Calculus alone ' +
+      'runs to five topics, from continuity to differential equations, and it is where the ' +
+      'earlier years were heading.',
     question: 'Should we be doing past papers or the textbook?',
     answer:
       'Both, in that order, and the order is the part people get wrong. A past paper attempted ' +
@@ -532,9 +538,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/cbse/class-12/physics': {
     opening:
-      'Electrostatics, current, magnetism, electromagnetic induction, optics, dual nature, atoms, ' +
-      'nuclei and semiconductors. Nine chapters, of which the electricity and magnetism run is ' +
-      'the one that decides most papers.',
+      'Electrostatics, current, magnetism, electromagnetic induction, optics, dual nature, ' +
+      'atoms, nuclei and semiconductors. Nine chapters, and the first four of them are one long ' +
+      'argument about charge and what it does when it moves.',
     question: 'Are the derivations really worth learning, or should we just do numericals?',
     answer:
       'They are asked for directly, and they are also where the numericals come from, so the ' +
@@ -556,8 +562,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/icse/class-9/chemistry': {
     opening:
-      'Matter, the language of chemistry, atomic structure, bonding and the study of acids, bases ' +
-      'and salts, listed here as units and nothing more, because that is all the paper gives.',
+      'The language of chemistry, chemical changes, water, atomic structure and bonding, the ' +
+      'periodic table, hydrogen, the gas laws and atmospheric pollution, listed here as units ' +
+      'and nothing more, because that is all the paper gives.',
     question: "Is the chemistry here the same as any other board's?",
     answer:
       'The science is the same and the syllabus is not, which matters more than it sounds. The ' +
@@ -567,9 +574,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/icse/class-9/geography': {
     opening:
-      'Geography is a separate subject on this board rather than a strand inside social science, ' +
-      'and its units cover the earth as a physical system and the map as a document you have to ' +
-      'be able to read.',
+      'Geography is a separate subject on this board rather than a strand inside social ' +
+      'science, and its units run from the structure of the earth through the hydrosphere and ' +
+      'the atmosphere to pollution.',
     question: 'Why does map work cost so many marks?',
     answer:
       'Because it is a practical skill being examined on paper, and practice is the only thing ' +
@@ -579,9 +586,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/icse/class-9/history-and-civics': {
     opening:
-      'The longest of the six syllabuses this year, and the one that puts the machinery of ' +
-      'government beside the history that produced it. Eleven of them, and they stand on these ' +
-      "pages in the Council's own words and order.",
+      'The constitution, elections and the state legislatures, beside the Harappan cities, the ' +
+      'Vedic period, the Mauryas and the Guptas, and on into medieval India and modern Europe. ' +
+      "Eleven units, in the Council's own order.",
     question: 'Is this two subjects or one?',
     answer:
       'One paper, two habits of mind, and the children who treat it as one subject usually lose ' +
@@ -591,15 +598,16 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/icse/class-9/mathematics': {
     opening:
-      "The Council's mathematics units for this year cover pure arithmetic, algebra, geometry, " +
-      'mensuration, trigonometry and statistics, each as a named unit with the working left to ' +
-      'the classroom.',
-    question: "Is this board's mathematics harder?",
+      "Eight units make up this year's paper from the Council, opening with pure arithmetic and " +
+      'commercial mathematics, where money becomes a topic in its own right, and closing on ' +
+      'trigonometry and coordinate geometry.',
+    question: 'Why is there a unit about money in a mathematics paper?',
     answer:
-      'It is a different paper rather than a harder one, and this page does not rank one board ' +
-      'against another. What is true is that a syllabus published as units leaves more to the ' +
-      "school, so what your child's teacher sets is the best guide to depth. Wobo works to the " +
-      'depth a given question actually asks for.',
+      'Because working out what a sum of money becomes over time is arithmetic a child will ' +
+      'actually use, and the Council examines it as a unit of its own rather than hiding it ' +
+      'inside algebra. It rewards careful setting out more than cleverness. Wobo works a money ' +
+      'problem through one line at a time, says what each figure stands for, and then hands ' +
+      'over a fresh one to try.',
   },
   '/learn/icse/class-9/physics': {
     opening:
@@ -614,9 +622,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/icse/class-10/biology': {
     opening:
-      "The certificate year's biology units take the plant and the human body further, and add " +
-      'the material on health and the environment that the paper leans on. Units only, as the ' +
-      'Council publishes them.',
+      "The certificate year's biology units take plant physiology and the human body further, " +
+      'and add population, human evolution and pollution. Units only, as the Council publishes ' +
+      'them.',
     question: 'Are diagrams really worth the time they take?',
     answer:
       'In this paper they carry marks of their own, and a labelled diagram often answers faster ' +
@@ -638,15 +646,15 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/icse/class-10/geography': {
     opening:
-      "The longest of this year's ICSE syllabuses. Its units run from map work through the " +
-      'climate and the soils of India to agriculture, industry and transport, published as units ' +
-      'by the Council.',
+      'Map work first, then the climate and the soils of India, and on to agriculture, industry ' +
+      'and transport, each published as a unit by the Council.',
     question: 'How much of this is India and how much is the world?',
     answer:
-      "The unit headings on this page are the honest answer to that, and they are the Council's " +
-      'own wording rather than a paraphrase. What is not here is any breakdown beneath them, ' +
-      'because the paper does not carry one. Every page below names the document and the section ' +
-      'it was read from.',
+      'Almost all of it is India. After the unit on reading a topographical map, the paper ' +
+      'follows one country through its climate, soils, vegetation, water, minerals, farms, ' +
+      'factories and transport, and ends on waste management. The map of India is the thread ' +
+      'through most of it. Wobo draws that map as it explains each unit and asks for places ' +
+      'back from memory.',
   },
   '/learn/icse/class-10/history-and-civics': {
     opening:
@@ -665,17 +673,18 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
       'Commercial mathematics, algebra, geometry, mensuration, trigonometry, statistics and ' +
       "probability, set out as the Council's own units for the final year of the school " +
       'certificate course.',
-    question: 'What is the fastest way to stop making careless mistakes?',
+    question: 'Probability is new this year. Why does it feel so slippery?',
     answer:
-      'Writing more lines rather than fewer, which is the opposite of what most children do when ' +
-      'they are trying to save time. A skipped line is where the sign gets lost. Wobo shows the ' +
-      'full working on the board rather than the compressed version, and says out loud where the ' +
-      'answer turned, instead of marking the whole thing wrong.',
+      'Because the answer is a fraction of possibilities rather than something you can measure, ' +
+      'and a child who miscounts the possibilities gets a confident wrong answer. Listing every ' +
+      'outcome before counting is the whole habit. Wobo lists the outcomes on the board where ' +
+      'they can be seen, counts them aloud, and then changes one detail of the question to ' +
+      'check the habit held.',
   },
   '/learn/icse/class-10/physics': {
     opening:
-      'Force, work, energy and power, machines, light, sound, electricity, heat and modern ' +
-      'physics, one named unit apiece in the paper for the certificate year, with the document ' +
+      'Force, work, power and energy, then light, sound, electricity and magnetism, heat, and ' +
+      'modern physics: six named units in the paper for the certificate year, with the document ' +
       'behind each.',
     question: 'Can a child catch up in physics in one year?',
     answer:
@@ -697,7 +706,7 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/isc/class-11/chemistry': {
     opening:
-      'Atomic structure, periodicity, bonding, states of matter, thermodynamics and the ' +
+      'Atomic structure, periodicity, bonding, thermodynamics, equilibrium, redox and the ' +
       'beginnings of organic chemistry, named as units by the Council and left at that.',
     question: 'How much mathematics is there really in chemistry?',
     answer:
@@ -719,15 +728,15 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/isc/class-11/physics': {
     opening:
-      'Measurement, kinematics, dynamics, gravitation, properties of matter, heat and ' +
-      'oscillations, with the practical work beside them, are how this board names its senior ' +
-      'first-year units.',
-    question: 'Does the practical work matter as much as the theory?',
+      'Measurement, kinematics, the laws of motion, rotation, gravitation, bulk matter, heat, ' +
+      'gases, oscillations and waves: ten units, which is how this board names its senior ' +
+      'first-year physics.',
+    question: 'Why does rotation trip up children who were fine with straight-line motion?',
     answer:
-      'It carries marks of its own and it also changes how the theory is understood, which is the ' +
-      'part that gets forgotten. A reading you have actually taken behaves differently in your ' +
-      'head from one you have read about. Wobo can walk through what an experiment is doing and ' +
-      'why, and it will not pretend to have done it for you.',
+      'Because every quantity they already know has a turning twin, and the twins behave just ' +
+      'differently enough to mislead. Torque is not force and moment of inertia is not mass, ' +
+      'though each plays the same part. Wobo sets the straight-line version and the turning ' +
+      'version side by side on the board and says aloud which is which at every step.',
   },
   '/learn/isc/class-12/biology': {
     opening:
@@ -743,26 +752,27 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/isc/class-12/chemistry': {
     opening:
-      'Solid state, solutions, electrochemistry, kinetics, surface chemistry, the elements, and a ' +
-      'long organic run, listed as the units this board publishes for the final senior year.',
+      'Solutions, electrochemistry, reaction rates, the d and f block elements and coordination ' +
+      'chemistry, then an organic stretch that ends on the nitrogen compounds and biomolecules, ' +
+      'set out as the units this board publishes for the final senior year.',
     question: 'Is it possible to leave organic chemistry until the end?',
     answer:
-      'It is possible and it is expensive, because organic is the part that needs the most ' +
-      'repetition over the longest time and the least last-minute reading. Mechanisms settle ' +
-      'slowly. Wobo will take one family of reactions at a time and bring it back later on its ' +
-      'own initiative, before it has gone.',
+      'It is possible and it is expensive, because organic is the part that needs repetition ' +
+      'spread over many months and the least last-minute reading. Mechanisms settle slowly. ' +
+      'Wobo will take one family of reactions at a time and bring it back later on its own ' +
+      'initiative, before it has gone.',
   },
   '/learn/isc/class-12/mathematics': {
     opening:
       'Relations and functions, algebra, calculus, probability, vectors and three-dimensional ' +
-      'geometry, with the applied sections the Council sets alongside them, published as units.',
+      'geometry, with linear programming alongside them: seven units, as the Council lists them ' +
+      'for the final senior year.',
     question: 'How much of the senior paper is calculus?',
     answer:
-      'Enough that it decides most results, and the unit list on this page is where to look ' +
-      'rather than any rule of thumb somebody repeats. What these pages will not do is print a ' +
-      'weighting the Council did not publish. Wobo works a calculus problem out in full on the ' +
-      'board, talks it through as it goes, and will do it again a different way if the first way ' +
-      'did not land.',
+      "One unit of the seven, by the Council's own list. How many marks it carries is the " +
+      "Council's to publish, and this page will not print a figure the paper does not. Wobo " +
+      'works a calculus problem out in full on the board, talks it through as it goes, and ' +
+      'tries a different way if the first one did not land.',
   },
   '/learn/isc/class-12/physics': {
     opening:
@@ -777,9 +787,9 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/nios/class-10/mathematics': {
     opening:
-      "The open school's secondary mathematics course, written for somebody working through it " +
-      'without a teacher in the room, which is why its chapters name what sits under them in ' +
-      'unusual detail.',
+      "The open school's secondary mathematics course, from exponents and factorisation through " +
+      'congruent and similar triangles to percentages, instalment buying and a first look at ' +
+      'probability, written for somebody working without a teacher in the room.',
     question: 'Can somebody actually learn mathematics alone?',
     answer:
       'They can, and the thing that decides it is not intelligence but whether anybody is there ' +
@@ -789,15 +799,15 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
   },
   '/learn/nios/class-10/science-and-technology': {
     opening:
-      'One course rather than three subjects: the open school puts physics, chemistry and biology ' +
-      'together with the technology that comes out of them, and names the topics under every ' +
-      'chapter.',
-    question: 'Is this course accepted the same way a school certificate is?',
+      'One course rather than three subjects: measurement, matter, moving things, energy and ' +
+      'the living world sit beside the natural resources and the human environment they shape, ' +
+      'and the open school names the topics under every chapter.',
+    question: 'What does the technology part of this course actually ask for?',
     answer:
-      'The open school is a national board and its certificate stands on its own, which is a ' +
-      'question for the board rather than for us and one they answer plainly on their own site. ' +
-      'What we can say is what is on this page: the chapters, the topics under them, and the ' +
-      'document each was read from.',
+      'Less machinery than the name suggests. The course follows each idea out into use: energy ' +
+      'into the sources a home runs on, living things into food production and hygiene, and ' +
+      'matter into the metals and materials around us. Wobo teaches the idea first and then the ' +
+      'use, and asks a question that joins the two before moving on.',
   },
   '/learn/nios/class-10/social-science': {
     opening:
@@ -814,30 +824,31 @@ export const HANDMADE: Readonly<Record<string, Handmade>> = {
     opening:
       'The senior secondary biology course of the open school, from the diversity of life to ' +
       'reproduction, genetics and ecology, with the topics named under every chapter.',
-    question: 'Is there enough here to prepare properly without a coaching class?',
+    question: 'What is in the emerging areas chapter, and is it worth the time?',
     answer:
-      'The syllabus itself is complete, and what is usually missing is not material but somebody ' +
-      'to ask at the moment the question arrives. Wobo is there the moment one appears, draws the ' +
-      'structure under discussion, and puts a process on film where watching it beats reading ' +
-      'about it.',
+      'Immunobiology and biotechnology: how the body defends itself, and how living cells are ' +
+      'put to work. It is the newest material in the course, and the chapters on cells and ' +
+      'inheritance before it are what it puts to use. Wobo explains a process one stage at a ' +
+      'time, puts it on film where watching beats reading, and asks for the stages back in ' +
+      'order.',
   },
   '/learn/nios/class-12/chemistry': {
     opening:
       "The open school's senior chemistry course, covering atomic structure, states of matter, " +
       'chemical energetics, the elements and organic chemistry, each chapter broken into named ' +
       'topics.',
-    question: 'Which topics are worth the most time?',
+    question: 'Chemistry was a long time ago for my child. Where does this course pick up?',
     answer:
-      'Not something this page will guess at, because a weighting we have not read off the open ' +
-      "school's own paper is one we would be inventing. The chapter and topic list below is " +
-      "complete and it is the open school's own. Wobo can work through it in order and keep track " +
-      'of what has stayed learnt.',
+      'At the very start, which is good news for anyone coming back to it. The first chapter is ' +
+      'atoms, molecules and chemical arithmetic, so the counting everything later depends on is ' +
+      'taught again rather than assumed, and the course ends on the chemistry of medicines, ' +
+      'soaps and polymers. Wobo checks what has survived the gap before it builds on it, and ' +
+      'teaches whatever has not.',
   },
   '/learn/nios/class-12/mathematics': {
     opening:
-      "The largest of the open school's senior courses by chapter count: sets, algebra, " +
-      'trigonometry, coordinate geometry, calculus, statistics and probability, each with its ' +
-      'topics named.',
+      'Sets, algebra, trigonometry, coordinate geometry, calculus, statistics and probability, ' +
+      "every chapter with its topics named, in the open school's own order.",
     question: 'This is a lot of chapters. Where should somebody start?',
     answer:
       'At the beginning, and the reason is structural rather than moral. The later chapters here ' +

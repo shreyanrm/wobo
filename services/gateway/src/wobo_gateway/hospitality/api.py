@@ -31,6 +31,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, ConfigDict
 
+from wobo_gateway import waiting_list
 from wobo_gateway.hospitality import preferences as prefs_mod
 from wobo_gateway.hospitality.festivals import get_calendar
 from wobo_gateway.hospitality.links import parse_card_link, redeem_sign_in
@@ -119,10 +120,20 @@ _STOP_COPY: dict[str, tuple[str, str, str, str]] = {
     # One page per nudge. Each says the name of the one thing it stops, because a reader who
     # clicked the streak mail wants the streak mail stopped and would be right to distrust a
     # page that answered about "emails" in general.
+    # The launch mail to the waiting list. The reader has no account, so nothing here may point
+    # them at a sign-in.
+    "waiting_list": (
+        "Take this address off the list?",
+        "Take it off",
+        "Done. This address is off the list.",
+        "I will not write to it about the day Wobo opens. If you want to hear after all, join the "
+        "list again on the site.",
+    ),
+    # No time in its name: nothing measures how long a card takes (the closer's run, 2026-09-17).
     "quick_one": (
-        "Stop the five-minute nudge?",
+        "Stop the note about a waiting card?",
         "Stop it",
-        "Done. No more five-minute nudges.",
+        "Done. No more notes about a waiting card.",
         "That one will not come again. The rest of your mail is unchanged.",
     ),
     "mid_chapter": (
@@ -217,8 +228,13 @@ def _unavailable() -> HTTPException:
     )
 
 
-def _page(title: str, line: str, *, status: int = 200, form: str = "") -> HTMLResponse:
-    """A plain confirmation page. Self-contained: no remote fonts, scripts or images."""
+def _page(
+    title: str, line: str, *, status: int = 200, form: str = "", signed_in: bool = True
+) -> HTMLResponse:
+    """A plain confirmation page. Self-contained: no remote fonts, scripts or images.
+
+    ``signed_in=False`` is a reader with no account (the waiting list), who is never told to sign
+    in to change anything."""
     safe_title = html.escape(title)
     safe_line = html.escape(line)
     app = html.escape(APP_NAME)
@@ -236,8 +252,13 @@ def _page(title: str, line: str, *, status: int = 200, form: str = "") -> HTMLRe
         "color:#FAF7F0;font:500 15px/1 inherit;cursor:pointer}</style></head>"
         f'<body><main><div class="mark">{app.lower()}</div><h1>{safe_title}</h1>'
         f"<p>{safe_line}</p>{form}"
-        f'<p class="quiet">Changed your mind? Sign in to {app} and switch any of it back on '
-        f"under mail settings.</p></main></body></html>"
+        + (
+            f'<p class="quiet">Changed your mind? Sign in to {app} and switch any of it back on '
+            "under mail settings.</p>"
+            if signed_in
+            else ""
+        )
+        + "</main></body></html>"
     )
     return HTMLResponse(content=body, status_code=status)
 
@@ -360,6 +381,16 @@ def register_mail_preferences(app: FastAPI) -> None:
             "I could not save that just now. Try the link again in a moment.",
             status=503,
         )
+        if claim.audience == waiting_list.STOP_AUDIENCE:
+            # A list row, not a learner: nothing in anybody's mail settings changes. A second
+            # click finds no row and says the same thing, because the address is off the list.
+            try:
+                removed = waiting_list.remove(claim.learner_id)
+            except waiting_list.ListUnavailable:
+                return not_yet
+            logger.info("waiting list: taken off by link", extra={"fields": {"removed": removed}})
+            _, _, title, line = _STOP_COPY[claim.audience]
+            return _page(title, line, signed_in=False)
         kinds = kinds_to_stop(claim)
         try:
             learners = same_address(claim)
@@ -393,12 +424,18 @@ def register_mail_preferences(app: FastAPI) -> None:
         if claim is None:
             return _bad_link()
         question, button, _, _ = _copy_for(claim, kinds_to_stop(claim))
+        listed = claim.audience == waiting_list.STOP_AUDIENCE
         form = (
             f'<form method="post" action="{html.escape(stop_url(), quote=True)}">'
             f'<input type="hidden" name="token" value="{html.escape(token or "", quote=True)}">'
             f'<button type="submit">{html.escape(button)}</button></form>'
         )
-        return _page(question, "One tap and I stop sending these to this address.", form=form)
+        line = (
+            "One tap and this address comes off the list."
+            if listed
+            else "One tap and I stop sending these to this address."
+        )
+        return _page(question, line, form=form, signed_in=not listed)
 
     @app.post("/v1/mail/stop", response_class=HTMLResponse)
     async def stop_by_post(request: Request, token: str | None = None) -> HTMLResponse:

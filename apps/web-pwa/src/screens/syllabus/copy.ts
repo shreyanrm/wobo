@@ -110,6 +110,53 @@ function topicCount(node: Node): number {
   return node.children.reduce((sum, child) => sum + child.children.length, 0);
 }
 
+/**
+ * WHAT THE LAYER UNDER A SUBJECT ACTUALLY HOLDS (the closer's run, 2026-09-17).
+ *
+ * The tree calls that layer "chapter" whatever the board published there. For most subjects it
+ * is a chapter or a unit. For the CBSE middle years it is an NCERT textbook ("Curiosity, Grade 6")
+ * or a theme section of one, and for CBSE class 10 social science it is a whole book; the
+ * chapters are the layer under those. Six pages told a parent a textbook was "one chapter". The
+ * shape is read off the board's own name, and anything that is not plainly one of these stays a
+ * chapter.
+ */
+export type Part = 'chapter' | 'textbook' | 'theme' | 'book';
+
+const PART_SHAPES: readonly (readonly [Part, RegExp])[] = [
+  ['textbook', /,\s*Grade\s+\d+\b/i],
+  ['theme', /^Theme\s+[A-Z]\s+-\s/],
+  ['book', /^(?:History|Geography|Political Science|Economics)\s+\(.+\)$/],
+];
+
+const PART_WORDS: Readonly<Record<Part, readonly [string, string]>> = {
+  chapter: ['chapter', 'chapters'],
+  textbook: ['textbook', 'textbooks'],
+  theme: ['theme section', 'theme sections'],
+  book: ['book', 'books'],
+};
+
+/** What one node under a subject is. */
+export function partOf(node: Node): Part {
+  if (node.kind !== 'chapter') return 'chapter';
+  for (const [part, shape] of PART_SHAPES) if (shape.test(node.name)) return part;
+  return 'chapter';
+}
+
+/** What a subject's list is made of: one kind of part throughout, else chapters. */
+export function partsOf(subject: Node): Part {
+  const kinds = new Set(subject.children.map(partOf));
+  return kinds.size === 1 ? ([...kinds][0] as Part) : 'chapter';
+}
+
+function partWord(part: Part, n: number): string {
+  return PART_WORDS[part][n === 1 ? 0 : 1];
+}
+
+/** The real chapters of a subject: its list, or what its textbooks, themes or books hold. */
+export function chapterCount(subject: Node): number {
+  return partsOf(subject) === 'chapter' ? subject.children.length : topicCount(subject);
+}
+
 // --- where a node sits ------------------------------------------------------------------------------
 
 /** "CBSE class 10 maths" — the placement line every deep page carries under its name. */
@@ -249,15 +296,19 @@ function chapterSummary(place: Place): string {
     // one thing we will not do is invent a chapter list nobody wrote (docs/GROWTH-SEARCH.md §3).
     return `${node.name} is a unit of the ${seat} syllabus. We hold the unit and the document it came from, and no topic list under it.`;
   }
+  // A textbook, a theme section or a book holds chapters, and says so.
+  const part = partOf(place.node);
+  const unit = partWord(part, 1);
+  const inner = part === 'chapter' ? 'topic' : 'chapter';
   if (topics.length === 1) {
-    return `${node.name} is a chapter of ${seat} with one topic in it, ${(topics[0] as Node).name}.`;
+    return `${node.name} is a ${unit} of ${seat} with one ${inner} in it, ${(topics[0] as Node).name}.`;
   }
   if (topics.length === 2) {
-    return `${node.name} is a chapter of ${seat}. Its two topics are ${(topics[0] as Node).name} and ${(topics[1] as Node).name}.`;
+    return `${node.name} is a ${unit} of ${seat}. Its two ${inner}s are ${(topics[0] as Node).name} and ${(topics[1] as Node).name}.`;
   }
   const first = (topics[0] as Node).name;
   const last = (topics[topics.length - 1] as Node).name;
-  return `${node.name} is a chapter of ${seat} with ${topics.length} topics in it, from ${first} to ${last}.`;
+  return `${node.name} is a ${unit} of ${seat} with ${topics.length} ${inner}s in it, from ${first} to ${last}.`;
 }
 
 function subjectSummary(place: Place): string {
@@ -266,6 +317,16 @@ function subjectSummary(place: Place): string {
   const topics = topicCount(node);
   const seat = `${place.board.short} ${classWords((place.level as Node).name)}`;
   const word = chapters === 1 ? 'chapter' : 'chapters';
+  const part = partsOf(node);
+  if (part === 'textbook') {
+    const books = `${number(chapters)} ${partWord(part, chapters)}`;
+    const inside = `${topics} chapters in ${chapters === 1 ? 'it' : 'them'}`;
+    const between = chapters === 1 ? inside : `${topics} chapters between them`;
+    return `${seat} teaches ${spoken(node.name)} from ${books}, ${list(node.children.map((child) => child.name))}, with ${between}.`;
+  }
+  if (part !== 'chapter') {
+    return `${seat} sets ${spoken(node.name)} as ${number(chapters)} ${partWord(part, chapters)}, with ${number(topics)} chapters between them.`;
+  }
   // A short list is named rather than counted. Four subject pages hold a single chapter, and
   // "sets one chapter of science" tells a reader nothing they could not have guessed; the
   // chapter's own name is the answer they came for.
@@ -282,7 +343,7 @@ function subjectSummary(place: Place): string {
 function classSummary(place: Place): string {
   const node = place.node;
   const named = node.children.map((subject) => spoken(subject.name));
-  const chapters = node.children.reduce((sum, subject) => sum + subject.children.length, 0);
+  const chapters = node.children.reduce((sum, subject) => sum + chapterCount(subject), 0);
   return `${place.board.short} ${classWords(node.name)} on Wobo: ${list(named)}. ${number(chapters)} chapters in all, each one read from the board's own document.`;
 }
 
@@ -294,7 +355,7 @@ function boardSummary(board: Board): string {
     classes += 1;
     for (const subject of level.children) {
       subjects += 1;
-      chapters += subject.children.length;
+      chapters += chapterCount(subject);
     }
   }
   return `We hold the ${board.short} syllabus for ${board.edition}: ${number(classes)} classes, ${number(subjects)} subject lists and ${number(chapters)} chapters. ${board.label}.`;
@@ -382,18 +443,36 @@ export function provenance(source: Source | null, board: Board): string {
   return `From ${article(board.short)} ${board.short} document found on the board's own site${at}${when}. We are still checking it, so this page says provisional rather than official.`;
 }
 
-/** The line under it: how many named checks passed, and when. */
+/**
+ * The line under it: that the list was checked against the document, and when.
+ *
+ * It used to read "19 named checks passed on it", which is the build's report and not a sentence
+ * for a parent (DESIGN.md 0.x, never narrate; the closer's run, 2026-09-17). The checks are still
+ * every one of them in the syllabus file; the page says what they amount to.
+ */
 export function checksLine(source: Source | null): string | null {
   if (!source || source.checks.length === 0) return null;
   const on = dateWords(source.verified ?? source.fetched);
-  const n = number(source.checks.length);
-  const word = source.checks.length === 1 ? 'check' : 'checks';
-  return on ? `${n} named ${word} passed on it on ${on}.` : `${n} named ${word} passed on it.`;
+  return on
+    ? `We checked this list against that document on ${on}.`
+    : 'We checked this list against that document.';
 }
 
 /** The hash of the bytes we read, shortened for the eye. The whole of it is in the page's markup. */
 export function shortHash(source: Source | null): string | null {
   return source?.hash ? source.hash.slice(0, 12) : null;
+}
+
+/**
+ * The fingerprint, said as a sentence. docs/GROWTH-SEARCH.md §3 keeps the hash of the bytes we
+ * read on every page, because it is what makes the provenance checkable; "Document hash
+ * cf752771b28a" was a label from a system report, so it is written the way a person would say it.
+ */
+export function fingerprintLine(source: Source | null): string | null {
+  const hash = shortHash(source);
+  return hash
+    ? `The copy we read has the fingerprint ${hash}, so anyone can check it is the same file.`
+    : null;
 }
 
 // --- the tutor door -----------------------------------------------------------------------------------
@@ -487,13 +566,18 @@ export function linkNote(node: Node): string | null {
   if (kids === 0) return null;
   if (node.kind === 'subject') {
     const topics = topicCount(node);
+    const part = partsOf(node);
+    if (part !== 'chapter') {
+      return `${number(kids)} ${partWord(part, kids)}, ${number(topics)} chapters`;
+    }
     const word = kids === 1 ? 'chapter' : 'chapters';
     return topics === 0
       ? `${number(kids)} ${word}`
       : `${number(kids)} ${word}, ${number(topics)} topics`;
   }
   if (node.kind === 'chapter') {
-    return `${number(kids)} ${kids === 1 ? 'topic' : 'topics'}`;
+    const inner = partOf(node) === 'chapter' ? 'topic' : 'chapter';
+    return `${number(kids)} ${kids === 1 ? inner : `${inner}s`}`;
   }
   if (node.kind === 'class') {
     return `${number(kids)} ${kids === 1 ? 'subject' : 'subjects'}`;
@@ -501,17 +585,23 @@ export function linkNote(node: Node): string | null {
   return `${number(kids)} ${kids === 1 ? 'class' : 'classes'}`;
 }
 
-/** What the list of children is called on a page. A reader gets "chapters", never "units". */
-export function childrenLabel(kind: Place['kind']): string {
+/**
+ * What the list of children is called on a page. A reader gets "chapters", never "units"; and a
+ * list of textbooks, theme sections or books is called that, with the chapters one page down.
+ */
+export function childrenLabel(kind: Place['kind'], node?: Node): string {
   switch (kind) {
     case 'board':
       return 'Classes';
     case 'class':
       return 'Subjects';
-    case 'subject':
-      return 'Chapters';
+    case 'subject': {
+      const part = node ? partsOf(node) : 'chapter';
+      const word = partWord(part, 2);
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
     default:
-      return 'Topics';
+      return node && partOf(node) !== 'chapter' ? 'Chapters' : 'Topics';
   }
 }
 

@@ -362,10 +362,11 @@ def test_a_planted_core_and_figure_light_up_one_real_chapter_page(
     board, level, subject, chapter = _a_real_chapter()
     topic = chapter.children[0]
     band = explained.band_of(level.name)
+    # The core key is concept x band (docs/CONTENT-INTERACTION.md §5b) and the store places a
+    # request by its class: the page's class is the core read's grade, exactly as the module does.
     scope = {"subject": subject.name, "chapter": chapter.name}
-    # The core key is concept x band (docs/CONTENT-INTERACTION.md §5b) and the band is the store's
-    # own argument, not a scope key: the page's class names it, exactly as the module does.
-    store.save_core(topic.name, _core(band=band, concept=topic.name), scope, band=band)
+    at = {**scope, "grade": level.name}
+    store.save_core(topic.name, _core(band=band, concept=topic.name), at)
     store.save(topic.name, "diagram", "core", _figure(concept=topic.name), scope)
 
     found, why = explained.candidates()
@@ -405,7 +406,8 @@ def test_a_chapter_the_site_does_not_publish_gets_no_tier_two(
     topic = chapter.children[0]
     band = explained.band_of(level.name)
     scope = {"subject": subject.name, "chapter": chapter.name}
-    store.save_core(topic.name, _core(band=band, concept=topic.name), scope, band=band)
+    at = {**scope, "grade": level.name}
+    store.save_core(topic.name, _core(band=band, concept=topic.name), at)
     store.save(topic.name, "diagram", "core", _figure(concept=topic.name), scope)
     found, why = explained.candidates()
     assert not [e for e in found if e["path"].endswith("/class-9/mathematics/number-system")]
@@ -444,9 +446,8 @@ def test_the_pace_holds_on_a_real_run(tmp_path: Path, monkeypatch: pytest.Monkey
                         continue
                     topic = chapter.children[0]
                     scope = {"subject": subject.name, "chapter": chapter.name}
-                    store.save_core(
-                        topic.name, _core(band=band, concept=topic.name), scope, band=band
-                    )
+                    at = {**scope, "grade": level.name}
+                    store.save_core(topic.name, _core(band=band, concept=topic.name), at)
                     store.save(topic.name, "diagram", "core", _figure(concept=topic.name), scope)
                     planted += 1
     assert planted == 2

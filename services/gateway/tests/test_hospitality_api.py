@@ -371,3 +371,51 @@ def test_a_store_outage_is_said_out_loud(client: TestClient, auth: Any) -> None:
     assert client.put(PATH, json={"wins": False}, headers=auth()).status_code == 503
     res = client.post(STOP, data={"token": tokens.stop_token("x", "learner")})
     assert res.status_code == 503 and "Try the link again" in res.text
+
+
+# --- the waiting list's way out (the closer's run, 2026-09-17) ---------------------------------
+def test_the_launch_mails_link_takes_the_address_off_the_list(client: TestClient) -> None:
+    """The launch mail goes to people with no account. Its link names the list row, a GET asks,
+    and the POST (the button, and a mail client's one-click) takes the address off the list."""
+    from wobo_gateway import waiting_list
+
+    store = waiting_list.InMemoryWaitingListStore()
+    waiting_list.set_store(store)
+    try:
+        waiting_list.join(store, email="reader@example.test")
+        entry = store.rows[0]
+        link = waiting_list.stop_link(entry.id)
+        assert link and tokens.is_one_click(link)
+        token = link.split("token=", 1)[1]
+        asked = client.get(STOP, params={"token": token})
+        assert asked.status_code == 200 and 'method="post"' in asked.text
+        assert "off the list" in asked.text and store.size() == 1
+        done = client.post(f"{STOP}?token={token}", data={"List-Unsubscribe": "One-Click"})
+        assert done.status_code == 200, done.text
+        assert store.size() == 0 and not VENDOR.search(done.text)
+        assert "Sign in" not in done.text
+        again = client.post(STOP, data={"token": token})
+        assert again.status_code == 200
+        # a list link never touches anybody's mail settings
+        assert entry.id not in _fresh_rows(client)
+        # and the address can join again later, as a new row
+        assert waiting_list.join(store, email="reader@example.test") is True
+    finally:
+        waiting_list.set_store(None)
+
+
+def _fresh_rows(client: TestClient) -> dict[str, Any]:
+    store = prefs_mod.get_store()
+    return getattr(store, "rows", {})
+
+
+def test_a_list_outage_on_the_way_out_is_said_out_loud(client: TestClient) -> None:
+    from wobo_gateway import waiting_list
+
+    waiting_list.set_store(waiting_list.UnconfiguredWaitingListStore())
+    try:
+        token = tokens.stop_token("5d1b0a52-1111-4222-8333-944455556666", "waiting_list")
+        res = client.post(STOP, data={"token": token})
+        assert res.status_code == 503 and "Try the link again" in res.text
+    finally:
+        waiting_list.set_store(None)

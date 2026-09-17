@@ -25,7 +25,8 @@
  * THE THRESHOLD, AND WHY IT IS THIS NUMBER. It was measured, not chosen. Counting six-word runs
  * over the rendered body of all 67 and asking what share of each page's runs appear on no other:
  *
- *   · every page as written today            59.8% to 93.0%   (worst: isc/class-11/mathematics)
+ *   · every page as written today            59.8% to 93.6%   (worst: isc/class-11/mathematics;
+ *                                                             re-measured 2026-09-17)
  *   · the same page given its sibling's
  *     written block with the name swapped    13.2%
  *   · the same page with the written block

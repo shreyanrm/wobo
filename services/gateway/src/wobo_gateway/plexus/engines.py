@@ -3178,7 +3178,17 @@ def _sample_core(
         },
         "createdAt": datetime.now(UTC).isoformat(timespec="seconds"),
     }
-    store.save_core(concept, record, scope)
+    try:
+        store.save_core(concept, record, scope)
+    except ValueError:
+        # The store refuses a core that teaches word for word what another band's core of this
+        # concept teaches (docs/CONTENT-INTERACTION.md §5b). Not stored, and the level below takes
+        # the honest old path rather than the learner losing it.
+        logger.warning(
+            "compose.core: refused (a copy of another band's core) — not stored",
+            extra={"fields": {"concept": concept}},
+        )
+        return None
     store.save_core_version(concept, record, scope)  # the retention law reaches the cores too
     return record
 
@@ -3208,6 +3218,15 @@ def core_for(
             cached=True,
         )
         return cached
+    if store.band_for(concept, scope) == store.UNBANDED:
+        # No class placed this request in a band (docs/CONTENT-INTERACTION.md §5b). A core bought
+        # here would be a third one for a concept taught in two bands, so none is bought and the
+        # level below takes the honest old path.
+        logger.info(
+            "compose.core: no band for this request — this level generates whole without one",
+            extra={"fields": {"concept": concept}},
+        )
+        return None
     if _core_recently_refused(concept, scope):
         # Already bought and refused inside the window. Say so once per level rather than pay
         # for the same refusal again; the level below takes the honest old path.

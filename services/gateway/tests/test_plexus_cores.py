@@ -228,17 +228,24 @@ def _level_json(brief: dict[str, Any]) -> str:
 class Provider:
     """A stub ``model_call.complete`` that answers by which system message it was handed."""
 
-    def __init__(self, *, core_score: float = 92.0, level_ok: bool = True) -> None:
+    def __init__(
+        self, *, core_score: float = 92.0, level_ok: bool = True, one_core: bool = False
+    ) -> None:
         self.calls: list[dict[str, Any]] = []
         self.core_score = core_score
         self.level_ok = level_ok
+        # A real model is told the band and writes for it; ``one_core`` is the model that ignores
+        # the band and hands every band the same words, which the store refuses as a copy.
+        self.one_core = one_core
 
     def __call__(self, **kwargs: Any) -> Any:
         system = kwargs["messages"][0]["content"]
         user = kwargs["messages"][1]["content"]
         model = kwargs["model"]
         if "You write CONCEPT CORES" in system:
-            kind, body, usage = "core", json.dumps(GOOD_CORE), (2400, 1100)
+            band = "" if self.one_core else str(json.loads(user).get("band") or "")
+            core = {**GOOD_CORE, "idea": f"{GOOD_CORE['idea']}{' for ' + band if band else ''}"}
+            kind, body, usage = "core", json.dumps(core), (2400, 1100)
         elif "strict judge of CONCEPT CORES" in system:
             kind = "core-judge"
             body = json.dumps(
@@ -415,7 +422,9 @@ def test_the_level_prompt_carries_the_core_verbatim_and_this_reader(provider) ->
     brief = json.loads(call["user"])
     # the STORED core, which is the verified one: an empty alsoCalled is dropped and the
     # concept is stamped on, so the level renders from what the judge actually read.
-    assert brief["core"] == engines._verify_core(GOOD_CORE, "equivalent fractions")
+    band = json.loads(provider.of("core")[0]["user"])["band"]
+    written = {**GOOD_CORE, "idea": f"{GOOD_CORE['idea']} for {band}"}
+    assert brief["core"] == engines._verify_core(written, "equivalent fractions")
     assert brief["core"]["misconceptions"] == GOOD_CORE["misconceptions"]
     assert brief["board"] == "ISC" and brief["class"] == "11"
     assert "ISC class 11 learner" in brief["audience"]
@@ -818,7 +827,7 @@ def test_the_core_row_carries_what_it_cost_and_what_the_judge_said(fake_db) -> N
             "judge": {"score": 91.0, "critical": False},
         },
     }
-    store.save_core("x", record)
+    store.save_core("x", record, CBSE_6)  # a core is written for a band, and a class names it
     row = fake_db.rows["cores"][-1]
     assert row["concept_id"] == store.concept_id("x")
     assert row["model"] == "openai/gpt-5.6-sol"
@@ -1073,6 +1082,175 @@ def test_a_level_rendering_cannot_borrow_another_band_s_core(depth_bands) -> Non
         store.core_path(FRACTIONS, _at("8"), band="class-8")
     with pytest.raises(ValueError):
         store.load_core(FRACTIONS, _at("8"), band="nearby")
+
+
+def test_a_core_cannot_be_copied_across_a_band_by_saving_it_under_another_key(
+    depth_bands,
+) -> None:
+    """Section 5b: borrowing must not be expressible. Reading the foundation core and saving it
+    under the middle key would restamp it middle and make the neighbour's core look like this
+    band's own. The store refuses the copy, so the middle band still misses and makes its own."""
+    store.save_core(
+        FRACTIONS,
+        {"concept": FRACTIONS, "promptVersion": store.CORE_PROMPT_VERSION, "core": {}},
+        _at("4"),
+    )
+    foundation = store.load_core(FRACTIONS, _at("4"))
+    assert foundation is not None and foundation["band"] == store.FOUNDATION
+    with pytest.raises(ValueError):
+        store.save_core(FRACTIONS, foundation, _at("8"))
+    with pytest.raises(ValueError):
+        store.save_core(FRACTIONS, foundation, None, band=store.MIDDLE)
+    with pytest.raises(ValueError):
+        store.save_core_version(FRACTIONS, foundation, _at("8"))
+    assert store.load_core(FRACTIONS, _at("8")) is None, "the middle band still makes its own"
+    assert not store.core_versions_dir(FRACTIONS, _at("8")).exists()
+    # saving it again under its own band is not a borrow
+    store.save_core(FRACTIONS, foundation, _at("5"))
+    store.save_core_version(FRACTIONS, foundation, _at("4"))
+
+
+def test_a_class_cannot_name_another_band_s_core_by_passing_the_band_outright(
+    depth_bands,
+) -> None:
+    """The explicit ``band`` argument is for a caller that has no class (a chapter page names its
+    band from the class it is published under). A request that DOES carry a class is already
+    placed by the resolver, and naming a different band beside it is the borrow section 5b
+    forbids, so it is refused rather than served."""
+    store.save_core(
+        FRACTIONS,
+        {"concept": FRACTIONS, "promptVersion": store.CORE_PROMPT_VERSION, "core": {}},
+        _at("4"),
+    )
+    with pytest.raises(ValueError):
+        store.load_core(FRACTIONS, _at("8"), band=store.FOUNDATION)
+    with pytest.raises(ValueError):
+        store.core_path(FRACTIONS, _at("8"), band=store.FOUNDATION)
+    with pytest.raises(ValueError):
+        store.core_key(FRACTIONS, _at("8"), band=store.FOUNDATION)
+    with pytest.raises(ValueError):
+        store.save_core(FRACTIONS, {"core": {}}, _at("8"), band=store.FOUNDATION)
+    # agreeing with the resolver is fine
+    assert store.load_core(FRACTIONS, _at("4"), band=store.FOUNDATION) is not None
+    assert store.load_core(FRACTIONS, _at("9"), band=store.MIDDLE) is None
+
+
+def test_a_caller_with_no_class_cannot_pick_a_band_of_a_concept_taught_in_two(
+    depth_bands,
+) -> None:
+    """2026-09-17, the closer's run: leaving the class out and naming the band outright handed the
+    foundation core of fractions to any caller at all. With no class, the resolver says fractions
+    is UNBANDED (two bands teach it and nobody said which), so a named band is a guess, and a guess
+    across a band is the borrow section 5b forbids. A concept taught in ONE band has nothing to
+    borrow, so naming that band with no class is still fine."""
+    store.save_core(
+        FRACTIONS,
+        {"concept": FRACTIONS, "promptVersion": store.CORE_PROMPT_VERSION, "core": {"i": "a"}},
+        _at("4"),
+    )
+    for scope in ({"board": "CBSE"}, {"board": "CBSE", "subject": "Mathematics"}, None):
+        with pytest.raises(ValueError):
+            store.load_core(FRACTIONS, scope, band=store.FOUNDATION)
+        with pytest.raises(ValueError):
+            store.core_path(FRACTIONS, scope, band=store.MIDDLE)
+        with pytest.raises(ValueError):
+            store.save_core(FRACTIONS, {"core": {"i": "b"}}, scope, band=store.FOUNDATION)
+    # the class, not the band, is how a caller reaches its core
+    assert store.load_core(FRACTIONS, {"board": "CBSE", "grade": "Class 4"}) is not None
+    # unbanded is what the resolver says here, so naming it is not a guess
+    assert store.load_core(FRACTIONS, None, band=store.UNBANDED) is None
+
+
+def test_an_unstamped_copy_of_another_band_s_core_cannot_be_saved(depth_bands) -> None:
+    """2026-09-17, the closer's run: the stamp refusal only caught a record that still said
+    'foundation'. Loading the foundation core, dropping its band key and saving it at class 8
+    wrote the foundation text as the middle core. The store now compares what a core teaches with
+    every other band's stored core of the same concept, live and versioned, and refuses a copy."""
+    foundation = {
+        "concept": FRACTIONS,
+        "promptVersion": store.CORE_PROMPT_VERSION,
+        "core": {"idea": "pieces of one whole", "check": "shade three of eight"},
+    }
+    store.save_core(FRACTIONS, foundation, _at("4"))
+    store.save_core_version(FRACTIONS, foundation, _at("4"))
+    loaded = store.load_core(FRACTIONS, _at("4"))
+    assert loaded is not None
+    unstamped = {k: v for k, v in loaded.items() if k != "band"}
+    with pytest.raises(ValueError):
+        store.save_core(FRACTIONS, unstamped, _at("8"))
+    with pytest.raises(ValueError):
+        store.save_core_version(FRACTIONS, unstamped, _at("8"))
+    retimed = {**unstamped, "createdAt": "2026-09-17T00:00:00+00:00", "provenance": {}}
+    with pytest.raises(ValueError):
+        store.save_core(FRACTIONS, retimed, _at("8"))
+    assert store.load_core(FRACTIONS, _at("8")) is None, "the middle band still makes its own"
+    # a copy found only in the foundation band's versions is still a copy
+    newer = {**foundation, "core": {"idea": "a newer foundation core"}}
+    store.save_core(FRACTIONS, newer, _at("4"))
+    with pytest.raises(ValueError):
+        store.save_core(FRACTIONS, unstamped, _at("8"))
+    # the band's own, different core is written, and its own record saves again under its band
+    middle = {**foundation, "core": {"idea": "a fraction is a number on the line"}}
+    store.save_core(FRACTIONS, middle, _at("8"))
+    assert store.load_core(FRACTIONS, _at("8"))["core"] == middle["core"]
+    store.save_core(FRACTIONS, unstamped, _at("5"))
+
+
+def test_a_record_with_no_band_stamp_is_not_served(depth_bands) -> None:
+    """Every write stamps the band, so a record at a band's path with no stamp was put there by
+    hand, and nothing says which band it was written for. It is a miss, never a hit."""
+    path = store.core_path(FRACTIONS, _at("8"))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    unstamped = {"concept": FRACTIONS, "promptVersion": store.CORE_PROMPT_VERSION, "core": {"i": 1}}
+    path.write_text(json.dumps(unstamped))
+    assert store.load_core(FRACTIONS, _at("8")) is None
+    assert not store.core_is_of_band({"core": {}}, store.MIDDLE)
+
+
+def test_a_model_that_writes_one_core_for_two_bands_is_refused_and_the_level_still_renders(
+    monkeypatch, depth_bands
+) -> None:
+    """The store refuses a core that teaches word for word what another band's core teaches. A
+    model that ignores the band it was told is exactly that, and the refusal must not take the
+    learner's level down with it: the middle core is not stored, and the level renders whole."""
+    stub = Provider(one_core=True)
+    monkeypatch.setattr("wobo_gateway.model_call.complete", stub)
+    _render(FRACTIONS, _at("4"))
+    _render(FRACTIONS, _at("8"))  # raised ValueError out of the render before the guard
+    assert economy.summary()["layers"]["full"]["made"] == 1, "the class 8 lesson is still made"
+    assert store.load_core(FRACTIONS, _at("4")) is not None
+    assert store.load_core(FRACTIONS, _at("8")) is None, "the copy was not stored"
+    assert not store.core_versions_dir(FRACTIONS, _at("8")).exists()
+
+
+def test_a_concept_taught_in_two_bands_never_pays_for_a_third_core(
+    provider, depth_bands, tmp_path
+) -> None:
+    """Section 5b's count: "a concept gets one core per band that actually teaches it". Fractions
+    is taught in two bands. A request with no class, or with a class written as a span across the
+    boundary ('5-6'), resolves to UNBANDED, and UNBANDED used to be a third key that core_for paid
+    for (the closer's run, 2026-09-17). Those requests now render whole, with no core bought and
+    none stored, so the concept owns exactly two cores however it is asked for."""
+    mathematics = {"board": "CBSE", "subject": "Mathematics", "chapter": "Fractions"}
+    for scope in (
+        _at("5"),
+        _at("6"),
+        _at("9"),
+        {**mathematics, "grade": "5-6"},
+        {**mathematics, "grade": "Class 5 and 6"},
+        mathematics,
+    ):
+        _render(FRACTIONS, scope)
+    bands = [json.loads(c["user"])["band"] for c in provider.of("core")]
+    assert bands == [store.FOUNDATION, store.MIDDLE], bands
+    stored = sorted(p.name.split("--")[1] for p in (tmp_path / store.CORE_MODALITY).glob("*.json"))
+    assert stored == [store.FOUNDATION, store.MIDDLE]
+    assert engines.core_for(FRACTIONS, mathematics) is None
+    assert len(provider.of("core")) == 2
+    with pytest.raises(ValueError):
+        store.save_core(FRACTIONS, {"core": {"i": "c"}}, mathematics)
+    with pytest.raises(ValueError):
+        store.save_core_version(FRACTIONS, {"core": {"i": "c"}}, None, band=store.UNBANDED)
 
 
 def test_a_miss_in_a_band_with_no_core_makes_that_band_s_core(provider, depth_bands) -> None:

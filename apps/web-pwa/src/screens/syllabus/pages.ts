@@ -32,6 +32,7 @@ import {
   childrenLabel,
   description,
   distinctName,
+  fingerprintLine,
   heading,
   headingLine,
   hubAsk,
@@ -172,7 +173,7 @@ export function pageProse(place: Place): string[] {
   if (section) words.push(section);
   if (place.kind === 'chapter' && place.node.children.length === 0) words.push(NO_TOPICS);
   if (place.node.children.length > 0) {
-    words.push(childrenLabel(place.kind));
+    words.push(childrenLabel(place.kind, place.node));
     for (const child of place.node.children) {
       const note = linkNote(child);
       if (note) words.push(note);
@@ -183,6 +184,8 @@ export function pageProse(place: Place): string[] {
   words.push(provenance(place.node.source, place.board));
   const checks = checksLine(place.node.source);
   if (checks) words.push(checks);
+  const fingerprint = fingerprintLine(place.node.source);
+  if (fingerprint) words.push(fingerprint);
   if (explanationFor(place)) words.push(OURS_LINE);
   const door = ask(place);
   words.push(door.heading, door.placeholder, ...door.chips);

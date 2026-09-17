@@ -17,6 +17,8 @@ the clicker was sent and nobody else's mail:
   a parent. Flips the Sunday note, the wishes and every learning note: everything that address is
   sent about the child. The learner's own wins are the learner's.
 * one audience per learning note (``quick_one`` … ``learning_note``) — "Stop this one".
+* ``waiting_list`` — "Take this address off the list" in the launch mail. The id in the token is
+  the waiting list row, not a learner, and the click deletes that row.
 
 A link minted into a PARENT's mail says so (the ``p`` claim, always on for ``sunday_note`` and
 ``parent``). Its click is applied to every learner linked to that same address, because a parent
@@ -83,6 +85,10 @@ AUDIENCES: dict[str, tuple[str, ...]] = {
     # per-kind link alone would make stopping everything a chore of six clicks, and the reader
     # who gives up on that presses Block instead (docs/MAIL-PRIMARY.md §2).
     "parent": ("sunday_note", "festivals", *_LEARNING_NOTES),
+    # The launch mail's link (docs/MAIL-PRIMARY.md, the launch mail to the list). The reader has
+    # no account and no learner row: the token's id is the waiting list row, and the click takes
+    # that address off the list (``waiting_list.remove``). No mail setting is touched.
+    "waiting_list": ("waiting_list",),
     # One audience per note, so a click on the streak mail stops the streak mail and nothing
     # else. A stop link that took more than the reader asked for would be the same lie as a
     # dead one.

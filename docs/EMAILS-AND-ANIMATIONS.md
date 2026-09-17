@@ -12,7 +12,8 @@ below a hairline. Nothing narrates. We do the same in our register, with our orb
 
 Every mail is: the wordmark, one orb animation, a headline of two to four words, one line, one
 button that deep-links to the exact place, the hairline, the badges, the address, one-click
-unsubscribe for that kind. Subject lines are the learner's name and a verb.
+unsubscribe for that kind. Subject lines follow docs/MAIL-PRIMARY.md's eight subjects where it names
+one (since 2026-09-17); elsewhere they are the learner's name and a verb.
 
 | Mail | When | Headline (draft) | The line | The button lands on |
 |---|---|---|---|---|
@@ -214,7 +215,7 @@ third thing; the first two come first.
   below a hairline, small, and are the ONLY extra links; we do the same or drop them.
 - Under 120 words. No promotional vocabulary: no "free", "offer", "unlock", "limited", "%", no
   exclamation mark, no ALL CAPS, no emoji in the subject. A test scans every template and subject.
-- The subject is the learner's name and a verb, and the first line of the body carries something
+- The subject is docs/MAIL-PRIMARY.md's subject where it names one, else the learner's name and a verb, and the first line of the body carries something
   only this learner would get (the chapter, the card count, the day of the streak). Personal is not
   a trick here; it is the inbox law's content rule.
 - No open-tracking pixel and no click-tracking rewrite (Resend's tracking stays OFF for the

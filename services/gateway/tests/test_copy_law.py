@@ -384,11 +384,10 @@ def test_the_patterns_are_honest(
 #
 # SCOPE, stated so nobody has to guess it later: the strings the product SPEAKS — the safety copy,
 # the public Ask box's lines, and the rendered body of every transactional email. Not code
-# comments, not docstrings, not the design archive. The ONE exception is the sign-off "— Wobo",
-# which is a signature dash rather than a dash inside a sentence, and is the house style of every
-# email in the deck; changing it is a design decision and belongs to the owner, not to this file.
-
-SIGN_OFF = "— Wobo"
+# comments, not docstrings, not the design archive. There is no exception any more: the sign-off
+# used to be "— Wobo" and was forgiven here as a signature dash, and voice.md 10a says "no em
+# dashes in anything a learner reads" without one (the closer's run, 2026-09-17). The mail now
+# signs "Wobo" alone; the owner reviews the mark.
 
 
 def _speaking_lines() -> Iterator[tuple[str, str]]:
@@ -412,8 +411,7 @@ def _speaking_lines() -> Iterator[tuple[str, str]]:
         out = render(name, data)
         for part in ("subject", "text", "html"):
             for line in str(out.get(part) or "").split("\n"):
-                if SIGN_OFF not in line:
-                    yield f"email:{name}.{part}", line
+                yield f"email:{name}.{part}", line
 
 
 def test_no_em_dash_in_anything_the_product_says() -> None:

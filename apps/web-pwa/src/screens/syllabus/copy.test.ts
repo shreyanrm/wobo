@@ -18,10 +18,12 @@ import {
   article,
   ask,
   checksLine,
+  childrenLabel,
   classWords,
   dateWords,
   description,
   distinctName,
+  fingerprintLine,
   heading,
   hubAsk,
   hubDescription,
@@ -264,7 +266,9 @@ describe('what a page claims', () => {
     expect(line).toContain('CBSE');
     expect(line).toContain(place.node.source?.section ?? '');
     expect(line).toMatch(/read on \d{1,2} \w+ \d{4}\./);
-    expect(checksLine(place.node.source)).toMatch(/named checks passed on it on /);
+    expect(checksLine(place.node.source)).toMatch(
+      /^We checked this list against that document on /,
+    );
   });
 
   it('says plainly when there is no source on file, rather than implying one', () => {
@@ -359,5 +363,111 @@ describe('the small words', () => {
     expect(distinctName(a, [a, other, b], 0)).toBe('Same');
     expect(distinctName(other, [a, other, b], 1)).toBe('Other');
     expect(distinctName(b, [a, other, b], 2)).toBe('Same (second of that name)');
+  });
+});
+
+// --- a textbook is not a chapter (the closer's run, 2026-09-17) ------------------------------------------
+
+/**
+ * The CBSE middle years publish each subject as one or two NCERT textbooks, or as theme sections,
+ * and class 10 social science as four books; the chapters sit one layer further down. Six shipped
+ * pages told a parent that a textbook was "one chapter ... 12 topics between them". The count
+ * matched the tree, so the count test passed, and the sentence was false.
+ */
+describe('a page never calls a textbook, a theme or a book a chapter', () => {
+  const at = (level: string, subject: string) => find({ board: 'cbse', level, subject }) as Place;
+
+  it('says a subject taught from a textbook is taught from a textbook', () => {
+    expect(summary(at('class-6', 'science'))).toBe(
+      'CBSE class 6 teaches science from one textbook, Curiosity, Grade 6, with 12 chapters in it.',
+    );
+    expect(summary(at('class-8', 'mathematics'))).toBe(
+      'CBSE class 8 teaches maths from two textbooks, Ganita Prakash, Grade 8, Part 1 and ' +
+        'Ganita Prakash, Grade 8, Part 2, with 14 chapters between them.',
+    );
+    for (const [level, subject] of [
+      ['class-6', 'science'],
+      ['class-6', 'mathematics'],
+      ['class-7', 'science'],
+      ['class-7', 'mathematics'],
+      ['class-8', 'science'],
+      ['class-8', 'mathematics'],
+    ] as const) {
+      const line = summary(at(level, subject));
+      expect(line).not.toMatch(/\bchapters? of\b|topics between them|\bIt is\b/);
+      expect(line).toContain('textbook');
+    }
+  });
+
+  it('counts theme sections and books as what they are, and the chapters inside them', () => {
+    expect(summary(at('class-6', 'social-science'))).toBe(
+      'CBSE class 6 sets social science as 5 theme sections, with 14 chapters between them.',
+    );
+    expect(summary(at('class-10', 'social-science'))).toBe(
+      'CBSE class 10 sets social science as 4 books, with 21 chapters between them.',
+    );
+  });
+
+  it('labels the list and each entry in it by what it is', () => {
+    const science = at('class-6', 'science');
+    const book = science.node.children[0] as Place['node'];
+    expect(linkNote(science.node)).toBe('one textbook, 12 chapters');
+    expect(linkNote(book)).toBe('12 chapters');
+    expect(childrenLabel('subject', science.node)).toBe('Textbooks');
+    expect(childrenLabel('chapter', book)).toBe('Chapters');
+    expect(childrenLabel('subject', at('class-10', 'mathematics').node)).toBe('Chapters');
+    const page = find({
+      board: 'cbse',
+      level: 'class-6',
+      subject: 'science',
+      chapter: book.slug,
+    }) as Place;
+    expect(summary(page)).toMatch(
+      /^Curiosity, Grade 6 is a textbook of CBSE class 6 science with 12 chapters in it, from /,
+    );
+  });
+
+  it('counts only real chapters on a class page and a board page', () => {
+    const six = find({ board: 'cbse', level: 'class-6' }) as Place;
+    // maths 10 + science 12 + social science 14: not the 7 nodes the layer holds
+    expect(summary(six)).toContain('36 chapters in all');
+  });
+
+  it('holds on every page the family writes', () => {
+    for (const place of everyPlace()) {
+      if (place.kind !== 'subject') continue;
+      const line = summary(place);
+      for (const child of place.node.children) {
+        if (
+          /,\s*Grade \d+|^Theme [A-Z] - |^(History|Geography|Political Science|Economics) \(/.test(
+            child.name,
+          )
+        ) {
+          expect(line).not.toMatch(/\bchapters? of\b/);
+        }
+      }
+    }
+  });
+});
+
+describe('the provenance block reads as sentences, not a system report', () => {
+  it('says what was checked, without a count of named checks', () => {
+    const place = find({
+      board: 'cbse',
+      level: 'class-8',
+      subject: 'science',
+    }) as Place;
+    const line = checksLine(place.node.source) ?? '';
+    expect(line).toMatch(/^We checked this list against that document on \d{1,2} \w+ \d{4}\.$/);
+    expect(line).not.toMatch(/named|\d+ checks?/);
+  });
+
+  it('gives the fingerprint as a sentence a parent can read', () => {
+    const place = find({ board: 'cbse', level: 'class-8', subject: 'science' }) as Place;
+    const line = fingerprintLine(place.node.source) ?? '';
+    expect(line).toMatch(
+      /^The copy we read has the fingerprint [0-9a-f]{12}, so anyone can check it is the same file\.$/,
+    );
+    expect(fingerprintLine(null)).toBeNull();
   });
 });

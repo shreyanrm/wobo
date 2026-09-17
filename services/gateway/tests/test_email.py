@@ -20,6 +20,7 @@ from wobo_gateway.email_templates import (
     NUDGE_KINDS,
     PAPER_KINDS,
     SUBSCRIBED_KINDS,
+    TRANSACTIONAL_KINDS,
     render,
 )
 from wobo_gateway.hospitality.tokens import stop_link
@@ -60,8 +61,12 @@ def test_every_template_renders(kind: str) -> None:
     # stand here is gone: docs/MAIL-PRIMARY.md names it as the only line in any footer that sells.
     assert "You get this because you have a Wobo account" in html
     assert "made for curious minds" not in html
-    assert "unsubscribe" in html
-    assert "&mdash; Wobo" in html  # the sign-off
+    # Sentence case, like every label (voice.md). Account mail is not a list: it links the
+    # settings, and never an "Unsubscribe" that goes nowhere (MAIL-PRIMARY §2).
+    label = ">Email settings<" if kind in TRANSACTIONAL_KINDS else ">Unsubscribe<"
+    assert label in html
+    assert "line-height:1;\">Wobo</div>" in html  # the sign-off, with no dash (voice.md 10a)
+    assert "&mdash;" not in html and "—" not in out["text"]
 
 
 @pytest.mark.parametrize("kind", sorted(HAND_KINDS))
@@ -103,11 +108,16 @@ def test_the_footer_carries_a_real_opt_out_and_postal_address(
         if kind == "welcome":
             # account mail is not switchable (docs/copy/emails): it links the settings instead
             assert 'href="https://example.test/you"' in html
+        elif kind in TRANSACTIONAL_KINDS:
+            # account mail is not a list: it links the settings, and no dead stop route
+            assert 'href="https://example.test/you"' in html
+            assert "/v1/mail/stop" not in html
         elif kind == "parent_invite":
             # sent once, to a parent with no account: "Not me" is the way out, on our own route
             assert 'href="https://api.example.test/v1/parent/decline"' in html
         else:
-            # the list-wide fallback is our own stop route — a page, never a 404
+            # the untokened fallback is our own stop route, a page and never a 404; a live send
+            # that carries only this is held where the reader has no other way out
             assert 'href="https://api.example.test/v1/mail/stop"' in html
         assert "12 Example Road, Bengaluru 560001, India" in html
         assert "{{" not in html and "placeholder" not in html
@@ -147,13 +157,15 @@ def test_every_link_follows_APP_URL(monkeypatch: pytest.MonkeyPatch) -> None:
         importlib.reload(templates)
 
 
-def test_there_are_twenty_two_templates() -> None:
+def test_there_are_twenty_three_templates() -> None:
     """Ten on the shell, three drawn by hand, the wish on the same paper, the parent invite on
     that paper too (account mail, so not one of the hand kinds that need a stop link), the five
     nudges of docs/EMAILS-AND-ANIMATIONS.md §1, the good-news note the weekly cadence fills
-    its floor with (wave 56), and the deliverability watch's alert to the owner (wave 56), which
-    is transactional and never reaches a family."""
-    assert len(KINDS) == 22
+    its floor with (wave 56), the deliverability watch's alert to the owner (wave 56), which
+    is transactional and never reaches a family, and the launch mail the waiting list was
+    promised (docs/MAIL-PRIMARY.md, 2026-09-17), which nothing sends yet."""
+    assert len(KINDS) == 23
+    assert "launch" in KINDS
     assert "mail_alert" in KINDS
     assert len(NUDGE_KINDS) == 6
     assert {"sunday_note", "welcome", "win", "wish"} == HAND_KINDS
@@ -197,7 +209,7 @@ def test_console_mode_never_sends(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr(email_mod.urllib.request, "urlopen", _boom)
     result = send_email("account_created", "learner@example.com", {"name": "Learner"})
-    assert result == {"ok": True, "mode": "console", "subject": "welcome to Wobo"}
+    assert result == {"ok": True, "mode": "console", "subject": "Welcome to Wobo"}
 
 
 def test_send_unknown_kind_is_graceful(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -221,7 +233,7 @@ def test_live_mode_without_key_is_a_queued_would_send(monkeypatch: pytest.Monkey
         "queued": True,
         "mode": "live",
         "error": "no_api_key",
-        "subject": "welcome to Wobo",
+        "subject": "Welcome to Wobo",
     }
 
 
@@ -322,7 +334,7 @@ def test_endpoint_sends_in_console_with_header_and_consent(monkeypatch: pytest.M
     }
     r = client.post("/v1/email/send", json=body, headers=INTERNAL_HEADER)
     assert r.status_code == 200
-    assert r.json() == {"ok": True, "mode": "console", "subject": "welcome to Wobo"}
+    assert r.json() == {"ok": True, "mode": "console", "subject": "Welcome to Wobo"}
 
 
 def test_endpoint_404s_on_unknown_kind(monkeypatch: pytest.MonkeyPatch) -> None:

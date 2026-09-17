@@ -45,6 +45,7 @@ import {
   ask,
   checksLine,
   childrenLabel,
+  fingerprintLine,
   heading,
   headingLine,
   linkNote,
@@ -53,7 +54,6 @@ import {
   OURS_LINE,
   provenance,
   QUESTIONS_LABEL,
-  shortHash,
   summary,
   title,
 } from './copy';
@@ -131,7 +131,10 @@ function Head({ place, written }: { place: Place; written: Handmade | null }) {
       <header className="sy-head">
         <h1>
           <span className="sy-name">{head.name}</span>
-          <span className="sy-where">, {head.where}</span>
+          <span className="sy-where">
+            <span className="sy-sep">, </span>
+            {head.where}
+          </span>
         </h1>
       </header>
       {written ? <p className="sy-lead">{written.opening}</p> : null}
@@ -179,8 +182,8 @@ function Children({ place, wide }: { place: Place; wide?: boolean }) {
   if (kids.length === 0) return null;
   const childLayer = CHILD_KIND[place.kind];
   const addressable = childLayer !== null && PUBLISHED_LAYERS.includes(childLayer);
-  const label = childrenLabel(place.kind);
-  const id = `sy-${label.toLowerCase()}`;
+  const label = childrenLabel(place.kind, place.node);
+  const id = `sy-${label.toLowerCase().replace(/\s+/g, '-')}`;
   const pathTo = (child: Node): string => {
     const address: Address = { board: place.board.slug };
     if (place.kind === 'board') address.level = child.slug;
@@ -305,7 +308,7 @@ function Provenance({
 }) {
   const source = node.source;
   const checks = checksLine(source);
-  const hash = shortHash(source);
+  const fingerprint = fingerprintLine(source);
   return (
     <section className="sy-source" aria-labelledby="sy-source">
       <h2 id="sy-source">Where this came from</h2>
@@ -317,9 +320,13 @@ function Provenance({
           Open the document on the board's site
         </a>
       ) : null}
-      {hash ? (
-        <p className="sy-hash" title={source?.hash ?? undefined}>
-          Document hash {hash}
+      {fingerprint ? (
+        <p
+          className="sy-hash"
+          title={source?.hash ?? undefined}
+          data-sha256={source?.hash ?? undefined}
+        >
+          {fingerprint}
         </p>
       ) : null}
       {freshness === 'withdrawn' ? (

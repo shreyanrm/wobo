@@ -249,6 +249,10 @@ class WaitingListStore(Protocol):
 
     def size(self) -> int: ...
 
+    def remove(self, entry_id: str) -> bool:
+        """Delete one row by its id. ``True`` when a row went, ``False`` when there was none."""
+        ...
+
 
 class InMemoryWaitingListStore:
     """The suite's store and a local run's. Asked for BY NAME (``WAITING_LIST_STORE=memory``)."""
@@ -270,6 +274,14 @@ class InMemoryWaitingListStore:
         with self._lock:
             return len(self.rows)
 
+    def remove(self, entry_id: str) -> bool:
+        with self._lock:
+            gone = [row for row in self.rows if row.id == entry_id]
+            self.rows = [row for row in self.rows if row.id != entry_id]
+            for row in gone:
+                self._seen.discard(row.email_hash)
+            return bool(gone)
+
 
 class UnconfiguredWaitingListStore:
     """No project. Every write REFUSES, and the person is told honestly."""
@@ -279,6 +291,9 @@ class UnconfiguredWaitingListStore:
 
     def size(self) -> int:
         raise ListUnavailable("no project is configured, so there is no list to count")
+
+    def remove(self, entry_id: str) -> bool:
+        raise ListUnavailable("no project is configured, so there is no list to take anyone off")
 
 
 def _request(url: str, key: str, method: str, *, body: Any = None) -> tuple[int, Any]:
@@ -330,6 +345,13 @@ class PostgrestWaitingListStore:
         except Exception as exc:  # noqa: BLE001
             raise ListUnavailable(str(exc)) from exc
         return len(rows) if isinstance(rows, list) else 0
+
+    def remove(self, entry_id: str) -> bool:
+        try:
+            _status, rows = self._request(self._url({"id": f"eq.{entry_id}"}), self.key, "DELETE")
+        except Exception as exc:  # noqa: BLE001
+            raise ListUnavailable(str(exc)) from exc
+        return bool(isinstance(rows, list) and rows)
 
 
 _store: WaitingListStore | None = None
@@ -472,6 +494,28 @@ def join(
     )
 
 
+# --- the way off the list ------------------------------------------------------------------------
+#: The stop token's audience for a list row (hospitality/tokens.py).
+STOP_AUDIENCE = "waiting_list"
+
+
+def stop_link(entry_id: str) -> str | None:
+    """The launch mail's signed way out for one row, or ``None`` when no token can be minted.
+
+    The people on this list have no account, so a page behind a sign-in is no way out for them
+    and a bare stop route is a dead link (the closer's run, 2026-09-17). The link names the row,
+    the stop route asks on a GET and deletes the row on a POST, and a launch send without one is
+    held (``email.send_email``)."""
+    from wobo_gateway.hospitality.tokens import stop_link as signed
+
+    return signed(entry_id, STOP_AUDIENCE)
+
+
+def remove(entry_id: str) -> bool:
+    """Take one row off the list. :class:`ListUnavailable` when the list cannot be reached."""
+    return get_store().remove(entry_id)
+
+
 # --- the body ------------------------------------------------------------------------------------
 class JoinBody(BaseModel):
     """Two fields at most, and the second is optional.
@@ -556,6 +600,7 @@ __all__ = [
     "ListUnavailable",
     "Meter",
     "NotAnAddress",
+    "STOP_AUDIENCE",
     "PostgrestWaitingListStore",
     "Refused",
     "UnconfiguredWaitingListStore",
@@ -571,7 +616,9 @@ __all__ = [
     "normalise_email",
     "normalise_page",
     "register_waiting_list",
+    "remove",
     "reset_meter",
     "set_clock",
     "set_store",
+    "stop_link",
 ]

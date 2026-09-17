@@ -39,6 +39,7 @@ Nothing is 'remembered for later'. If a thing is decided and not written, it did
 | [GROWTH-ENTITY.md](GROWTH-ENTITY.md) | Taking the name: how Wobo becomes the answer to "Wobo" | We need to be more dominating. We need to take over the name Wobo |
 | [GROWTH-PRESS.md](GROWTH-PRESS.md) | Press, awards and being the named answer | If we could somehow get ourselves published on all the top media |
 | [GROWTH-SEARCH.md](GROWTH-SEARCH.md) | Search: the market is open, and our site is invisible |  |
+| [GROWTH-SEARCH.md: the 67 pages, measured](GROWTH-SEARCH.md) | None of the 67 board, class and subject pages is a template; no superlative about a syllabus until CLAIMS.md clears one; a distinctness check runs inside the build | Are we specially designing each of those pages handcrafted uniquely? (2026-09-15) |
 | [INK-FOUR.md](INK-FOUR.md) | Four out of four: what each lens means, and the one thing we do not ha | 0.96 out of 4 is not enough. We have to be 100% |
 | [INK-FREEZE-PLAN-TRACE.md](INK-FREEZE-PLAN-TRACE.md) | Ink: freeze, plan, trace | 0.92 is horrible. Deeply understand the mechanics |
 | [KICKOFF-PROMPT.md](KICKOFF-PROMPT.md) | The single kickoff prompt (paste into Claude Code) |  |

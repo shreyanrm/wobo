@@ -278,13 +278,13 @@ def test_the_note_reads_as_the_design_and_says_nothing_it_was_not_told() -> None
     assert data is not None
     out = render("sunday_note", data)
     html, text = out["html"], out["text"]
-    assert out["subject"] == "Learner's week"
+    assert out["subject"] == "Learner's week, in one page"
     assert out["preheader"] == "Three lessons, and the right kind of stuck."
     # the design, verbatim where it is not a family's own words
     assert "Learner&#8217;s week" in html
     assert "font:600 27px/1.2 Caveat,'Comic Sans MS',cursive" in html  # Wobo's hand
     assert "background:#FFF1D6;border-radius:18px" in html  # the marigold card
-    assert 'style="color:#FF6B57">which is exactly how learning looks.</span>' in html
+    assert 'style="color:#C8452F">which is exactly how learning looks.</span>' in html
     assert "Something worth saying" in html
     assert ">See the week<" in html and ">Reply to Wobo<" in html
     # It says what else this parent is sent (2026-09-16: it said "nothing else comes").
@@ -426,7 +426,7 @@ def test_a_digest_line_the_copy_law_forbids_is_dropped_not_sent() -> None:
     assert data["note"] == "Learner asked why twice after a miss."
     for key in ("headline", "note_accent", "worth_saying", "days_note"):
         assert key not in data, key
-    assert render("sunday_note", data)["subject"] == "Learner's week"
+    assert render("sunday_note", data)["subject"] == "Learner's week, in one page"
 
 
 def test_the_stamp_reads_like_the_design() -> None:
@@ -630,7 +630,8 @@ def test_the_welcome_reads_as_the_design() -> None:
     html = out["html"]
     assert "Hi Learner. I’m Wobo." in html
     assert (
-        "Class 8, CBSE, mathematics first. I’ve already found this week’s chapter: Triangles."
+        "I have your syllabus: CBSE, class 8, every subject it sets. I’ve already found this "
+        "week’s chapter: Triangles."
         in html
     )
     # NEVER A LATE HOUR (owner's standing law; ``hours.test.ts`` is the guard on the web side).
@@ -866,7 +867,7 @@ def test_the_win_reads_as_the_design() -> None:
     )
     assert out["subject"] == "Triangles is finished"
     html = out["html"]
-    assert ">chapter done<" in html and "transform:rotate(-4deg)" in html  # the marigold tag
+    assert ">Chapter done<" in html and "transform:rotate(-4deg)" in html  # the marigold tag
     assert "Triangles. All five lessons. Done." in html
     assert 'color:#2B45FF;margin-top:10px">Ten days ago you asked what a hypotenuse was.' in html
     assert ">Start data handling<" in html and ">Take the weekend<" in html
@@ -1007,14 +1008,15 @@ def test_the_wish_reads_as_wobos_hand() -> None:
     assert "background:#FFF1D6;border-radius:18px" in html  # the marigold card
     assert "font:600 30px/1.2 Caveat,'Comic Sans MS',cursive" in html  # Wobo's hand
     assert "Happy Diwali, Learner. I hope the house is full of light tonight." in html
-    assert "&mdash; Wobo" in html and ">Sunday, 9 am<" in html
+    assert 'cursive;color:#14142B">Wobo</td>' in html and ">Sunday, 9 am<" in html
+    assert "&mdash;" not in html
     assert "Nothing to do today. Come back when you come back." in html
     assert "your family chose to be wished on these days" in html
     assert ">Fewer emails<" in html and ">None at all<" in html
     # a greeting is a greeting: no lesson, no streak, no plan, no button to anything
     for word in ("lesson", "streak", "plan", "Plus", "Pro", "offer"):
         assert word not in html.split("</table></td></tr></table></td></tr>")[0], word
-    assert "!" not in out["text"] and "— Wobo" in out["text"]
+    assert "!" not in out["text"] and "\nWobo\n" in out["text"] and "—" not in out["text"]
     local = render("wish", {"line": "Happy Republic Day. I hope the day is an easy one."})
     assert "today is a holiday where your family told me you are" in local["html"]
     assert local["subject"] == "A small wish from me"

@@ -17,6 +17,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { headFor, pathToRoute, type Route, RouterProvider } from '../../shell/router';
 import { handmade } from './handmade';
 import { SyllabusBody } from './Syllabus';
+import { SYLLABUS_CSS } from './styles';
 import { find, hasPage, type Node, type Place, pathOf } from './tree';
 
 function markup(place: Place, freshness: 'built' | 'checked' | 'withdrawn' = 'built'): string {
@@ -105,9 +106,14 @@ describe('the chapter page', () => {
     expect(html).toContain('From the official CBSE document');
     expect(html).toContain(source.section as string);
     expect(html).toMatch(/read on \d{1,2} \w+ \d{4}/);
-    expect(html).toContain('named checks passed');
-    expect(html).toContain('Document hash');
-    expect(html).toContain((source.hash as string).slice(0, 12));
+    // Sentences a parent reads, not the build's report (DESIGN.md 0.x): no count of named checks
+    // and no "Document hash" label, and the whole hash still in the markup for anyone checking.
+    expect(html).toContain('We checked this list against that document on');
+    expect(html).not.toMatch(/named checks|Document hash/);
+    expect(html).toContain(
+      `The copy we read has the fingerprint ${(source.hash as string).slice(0, 12)},`,
+    );
+    expect(html).toContain(`data-sha256="${source.hash}"`);
     // The document itself, openable, and never followed for ranking.
     expect(html).toContain(`href="${source.url}"`);
     expect(html).toContain('rel="nofollow noopener"');
@@ -242,7 +248,18 @@ describe('a page somebody lands on while deciding', () => {
   });
 
   it('reads its heading as a sentence, with the placement set off by a comma', () => {
-    expect(html).toContain('Mathematics</span><span class="sy-where">, CBSE class 10');
+    const h1 = html.match(/<h1>[\s\S]*?<\/h1>/)?.[0] ?? '';
+    expect(h1.replace(/<[^>]+>/g, '')).toBe('Mathematics, CBSE class 10');
+  });
+
+  /**
+   * The comma is for a reader who meets the heading as one line (a crawler, a screen reader). On
+   * screen the placement sits on its own line under the name, where a leading comma read as a
+   * typo on every one of these pages (seen at 390 and 1440, 2026-09-17), so it is hidden there.
+   */
+  it('keeps that comma off the screen, where the placement has a line of its own', () => {
+    expect(html).toContain('<span class="sy-where"><span class="sy-sep">, </span>CBSE class 10');
+    expect(SYLLABUS_CSS).toMatch(/\.sy-sep\{[^}]*clip-path:inset\(50%\)/);
   });
 
   /** A chapter page has no handwritten paragraph, and must not grow one by accident. */

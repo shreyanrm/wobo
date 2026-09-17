@@ -111,30 +111,33 @@ def test_it_never_narrates_and_never_says_there(kind: str) -> None:
     assert " there," not in blob
 
 
+# The subject used to be "the learner's name and a verb" (docs/EMAILS-AND-ANIMATIONS.md §1). The
+# mail law (docs/MAIL-PRIMARY.md, "The eight subjects") replaced it for five of these kinds with a
+# fact about the work only this reader could have been sent; test_mail_law.py holds the exact
+# sentences. What still holds for all six is the content rule: something only this learner would
+# recognise, in the subject or the first line.
 @pytest.mark.parametrize("kind", NUDGE_KINDS)
-def test_the_subject_is_the_name_and_a_verb_and_the_line_is_only_this_learners(kind: str) -> None:
+def test_the_subject_or_the_line_is_only_this_learners(kind: str) -> None:
     out = rendered(kind)
-    assert out["subject"].startswith("Learner, ")
-    # The first body line carries the thing only this learner would recognise.
-    first = out["line"]
+    blob = f"{out['subject']} {out['line']}"
     assert any(
-        str(token) in first
+        str(token) in blob
         for token in (
             "Fractions, part two",
             "Linear equations",
-            "Seven",
+            "7 days",
             "Motion and Force",
-            "Refraction",
+            "photographed",
             "Triangles",
         )
-    ), first
+    ), blob
 
 
 @pytest.mark.parametrize("kind", NUDGE_KINDS)
 def test_without_a_name_the_sentence_is_rewritten_not_filled(kind: str) -> None:
     out = rendered(kind, {"name": ""})
-    assert "," not in out["subject"].split(" ")[0]
-    assert out["subject"][0].isupper()
+    assert not out["subject"].startswith(("Learner", ","))
+    assert out["subject"][0].isupper() or out["subject"][0].isdigit()
 
 
 # --- the way out -----------------------------------------------------------------------------
@@ -168,7 +171,8 @@ def test_under_thirteen_it_is_written_to_the_parent_about_the_child(kind: str) -
     assert not re.search(r"\byou (are|were|left|have)\b", blob.lower())
     for kinship in ("mum", "mom", "dad", "papa", "mummy", "beta"):
         assert kinship not in blob.lower()
-    assert out["subject"].startswith("Learner ")
+    # A parent of two must know whose note it is: the child is named in every subject.
+    assert "Learner" in out["subject"], out["subject"]
 
 
 # --- the dark client ---------------------------------------------------------------------------

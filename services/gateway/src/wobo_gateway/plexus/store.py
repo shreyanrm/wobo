@@ -676,10 +676,10 @@ SENIOR = "senior"  # classes 9 to 12
 BANDS: tuple[str, ...] = (FOUNDATION, MIDDLE, SENIOR)
 
 #: The band of a request that names no class AND whose concept the syllabus teaches in more than
-#: one band. It is its OWN key space, never a default band: "nobody said which" filed as
-#: "foundation" is precisely the papering-over §5b forbids, and it would hand a class 4 core to a
-#: caller who never said class 4. An unscoped internal call (a reindex, a test) lands here and is
-#: self-consistent — it writes and reads the same key — without ever colliding with a real band.
+#: one band. It is never a default band: "nobody said which" filed as "foundation" is precisely
+#: the papering-over §5b forbids, and it would hand a class 4 core to a caller who never said
+#: class 4. It is not a core's key either: a core is never written under it (see
+#: :func:`_stamp_for`), because a third key for a concept taught in two bands breaks §5b's count.
 UNBANDED = "unbanded"
 
 #: Every band a core key may carry.
@@ -799,9 +799,14 @@ def band_for(
        gets one core per band that actually teaches it" is the count the law fixes, and a senior
        core for fractions would make it three. This is rule 1 again, one band at a time.
     3. **Nothing named a class and the syllabus named more than one band** — :data:`UNBANDED`,
-       which is its own key space rather than a guess.
+       which is its own key space rather than a guess. A class written as a span across a band
+       boundary ("5-6") names no one band, so it lands here too.
     4. **The registry has never catalogued the concept** — the request's own class, because
        nothing else can say, and :data:`UNBANDED` when there is no class either.
+
+    :data:`UNBANDED` is never paid for and never stored (:func:`save_core` refuses it and
+    ``engines.core_for`` does not ask for it): a concept taught in two bands owns two cores, not
+    three, and such a request renders whole instead.
 
     ``classes`` lets a caller who knows better than the registry say so (the curriculum publisher
     holding a board's own class list for this concept). It is the same computation either way.
@@ -876,15 +881,112 @@ CORE_MODALITY = "core"
 
 
 def _core_band(concept: str, scope: dict[str, str] | None, band: str | None) -> str:
-    """The band a core call is for: the caller's, when it named one, else the resolver's.
+    """The band a core call is for: the resolver's, which a caller may only repeat, never overrule.
 
     An explicit band that is not a band is a coding mistake, not a request, and it is refused
-    rather than slugged into a key nothing will ever read again."""
+    rather than slugged into a key nothing will ever read again.
+
+    An explicit band that DISAGREES with the resolver is the borrow §5b forbids, and it is refused
+    whether or not the scope carries a class. With a class, the resolver has already placed the
+    request. Without one, a concept taught in two bands is :data:`UNBANDED` (nobody said which), so
+    naming one of those bands outright is a guess, and it handed the class 4 core of fractions to
+    any caller that left the class out (the closer's run, 2026-09-17). A caller reaches its band by
+    saying its class; a concept taught in one band resolves to that band with or without one."""
+    placed = band_for(concept, scope)
     if band is None:
-        return band_for(concept, scope)
+        return placed
     if band not in CORE_BANDS:
         raise ValueError(f"{band!r} is not a depth band; one of {CORE_BANDS} was expected")
+    if band != placed:
+        grade = (scope or {}).get("grade")
+        asked = f"class {grade!r}" if grade else "a request with no class"
+        raise ValueError(
+            f"{asked} reads the {placed!r} core of {concept!r}, never the {band!r} one"
+        )
     return band
+
+
+def _core_file(concept: str, scope: dict[str, str] | None, band: str) -> Path:
+    """The file for one band, with the band already settled. Private: every public path goes
+    through :func:`_core_band` first, and only the copy check below looks at a band on purpose."""
+    cid = concept_id(concept, scope)
+    digest = hashlib.sha256(f"{concept_identity(concept, scope)}\x00{band}".encode()).hexdigest()[
+        :16
+    ]
+    return _inside_cache(cache_dir() / CORE_MODALITY / f"{cid}--{band}--{digest}.json")
+
+
+def _substance(record: dict[str, Any]) -> str | None:
+    """What a core teaches, in one comparable string, or ``None`` when it teaches nothing.
+
+    The ``core`` body is the teaching; the stamp, the clock and the provenance are not, so a copy
+    with a new ``createdAt`` is still a copy. An empty body carries nothing to borrow."""
+    body = record.get("core")
+    if not body:
+        return None
+    return json.dumps(body, sort_keys=True, ensure_ascii=False)
+
+
+def _other_band_cores(
+    concept: str, scope: dict[str, str] | None, band: str
+) -> list[dict[str, Any]]:
+    """Every stored core of this concept in every OTHER band: the live file, its database row and
+    its kept versions. Read only to refuse a copy; nothing here is ever served."""
+    from wobo_gateway.plexus import db
+
+    found: list[dict[str, Any]] = []
+    for other in CORE_BANDS:
+        if other == band:
+            continue
+        live = _core_file(concept, scope, other)
+        record = _read(live)
+        if record is not None:
+            found.append(record)
+        elif db.configured():
+            key = f"{CORE_MODALITY}/{live.stem}"
+            with contextlib.suppress(Exception):  # a failed read must not block a real write
+                row = db.read(db.CORES, key)
+                body = row.get("body") if isinstance(row, dict) else None
+                if isinstance(body, dict):
+                    found.append(body)
+        versions = live.parent / "versions" / live.stem
+        if versions.is_dir():
+            for path in versions.glob("*.json"):
+                with contextlib.suppress(OSError, json.JSONDecodeError):
+                    kept = json.loads(path.read_text(encoding="utf-8"))
+                    if isinstance(kept, dict):
+                        found.append(kept)
+    return found
+
+
+def _stamp_for(
+    concept: str, scope: dict[str, str] | None, record: dict[str, Any], band: str
+) -> dict[str, Any]:
+    """The record stamped with the band it is being written under, or a refusal.
+
+    Two refusals, and both are the copy §5b forbids. A record already stamped with ANOTHER band is
+    that band's core. A record with no stamp, or this band's stamp, that teaches exactly what
+    another band's stored core of the same concept teaches is that core with its label taken off
+    (the closer's run, 2026-09-17, dropped the key and saved it). Either way the band that has no
+    core still misses and makes its own."""
+    if band not in BANDS:
+        # §5b's count is one core per band that ACTUALLY teaches the concept. "Nobody said which"
+        # teaches nobody, and a core written under it would be a third key for a concept taught
+        # in two bands (the closer's run, 2026-09-17). It is never written, so it is never read.
+        raise ValueError(f"no core is written for {concept!r} until a class places it in a band")
+    stamped = str(record.get("band") or "").strip()
+    if stamped and stamped != band:
+        raise ValueError(f"a {stamped!r} core cannot be written as the {band!r} core")
+    mine = _substance(record)
+    if mine is not None:
+        for other in _other_band_cores(concept, scope, band):
+            if _substance(other) == mine:
+                theirs = str(other.get("band") or "another band's")
+                raise ValueError(
+                    f"this is the {theirs} core of {concept!r}, and it cannot be written as the "
+                    f"{band!r} one"
+                )
+    return {**record, "band": band}
 
 
 def core_path(
@@ -896,12 +998,7 @@ def core_path(
     version. Two requests that differ in every curriculum coordinate and agree on the concept and
     the band land on this one file; two that agree on everything and differ in the band cannot
     reach each other's, which is §5b's prohibition made unexpressible rather than forbidden."""
-    band = _core_band(concept, scope, band)
-    cid = concept_id(concept, scope)
-    digest = hashlib.sha256(f"{concept_identity(concept, scope)}\x00{band}".encode()).hexdigest()[
-        :16
-    ]
-    return _inside_cache(cache_dir() / CORE_MODALITY / f"{cid}--{band}--{digest}.json")
+    return _core_file(concept, scope, _core_band(concept, scope, band))
 
 
 def _legacy_core_path(concept: str, scope: dict[str, str] | None = None) -> Path:
@@ -924,13 +1021,14 @@ def core_is_of_band(record: dict[str, Any] | None, band: str) -> bool:
 
     The second lock on §5b's prohibition. The key already makes borrowing unexpressible through
     the front door; this refuses a record that came through any other one — a row re-keyed by
-    hand, a file restored from a pre-band backup, a database seeded by an operator. A record with
-    NO stamp is accepted, because the only way it can be at this path is that this band wrote it;
-    a record stamped with a DIFFERENT band is a miss, and a miss makes this band's own core."""
+    hand, a file restored from a pre-band backup, a database seeded by an operator. Every write
+    stamps the band (:func:`save_core`, and the legacy read stamps what it re-indexes), so a
+    record with NO stamp was put here by hand and nothing says which band it was written for: a
+    miss, exactly like a record stamped with a DIFFERENT band, and a miss makes this band's own
+    core. Silence is not permission (the chapter page's own rule, curriculum/explained.py)."""
     if not isinstance(record, dict):
         return False
-    stamped = str(record.get("band") or "").strip()
-    return not stamped or stamped == band
+    return str(record.get("band") or "").strip() == band
 
 
 def core_key(concept: str, scope: dict[str, str] | None = None, *, band: str | None = None) -> str:
@@ -940,12 +1038,7 @@ def core_key(concept: str, scope: dict[str, str] | None = None, *, band: str | N
     operator reading the stores desk can see at a glance that fractions has two cores and why,
     and can ask the database for one band's cores with a ``LIKE``. The ``content.cores`` table
     grows no column for it — the key IS the column, exactly as the modality is for a level."""
-    band = _core_band(concept, scope, band)
-    cid = concept_id(concept, scope)
-    digest = hashlib.sha256(f"{concept_identity(concept, scope)}\x00{band}".encode()).hexdigest()[
-        :16
-    ]
-    return f"{CORE_MODALITY}/{cid}--{band}--{digest}"
+    return f"{CORE_MODALITY}/{_core_file(concept, scope, _core_band(concept, scope, band)).stem}"
 
 
 def row_for_core(key: str, record: dict[str, Any], *, concept_id_value: str) -> dict[str, Any]:
@@ -1066,7 +1159,7 @@ def save_core(
     :func:`core_is_of_band` reads back, and a record that travels (to the database, into a
     version, onto the console) has to be able to say which band it is for on its own."""
     band = _core_band(concept, scope, band)
-    stamped = {**record, "band": band}
+    stamped = _stamp_for(concept, scope, record, band)
     _write_atomic(
         core_path(concept, scope, band=band), json.dumps(stamped, ensure_ascii=False, indent=1)
     )
@@ -1105,7 +1198,7 @@ def save_core_version(
     """Append one immutable core version. The owner's retention law reaches the cores too: a core
     that a refresh supersedes is kept forever, because the learners mid-chapter are on it."""
     band = _core_band(concept, scope, band)
-    record = {**record, "band": band}
+    record = _stamp_for(concept, scope, record, band)
     vdir = core_versions_dir(concept, scope, band=band)
     vdir.mkdir(parents=True, exist_ok=True)
     prov = record.get("provenance") if isinstance(record.get("provenance"), dict) else {}

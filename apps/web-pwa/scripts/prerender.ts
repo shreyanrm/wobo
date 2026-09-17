@@ -78,6 +78,7 @@ import {
 import { crumbName, renderJsonLd, structuredDataFor } from '../src/shell/jsonld';
 import { headFor, type Route, routeFromPath } from '../src/shell/router';
 import { verificationFiles } from '../src/shell/verification';
+import { checkHandmadePages } from './handmade-check';
 import { checkStructuredData, extractJsonLd, nodesOfType } from './jsonld-check';
 import { leadParagraphs } from './lead';
 import { checkPrerenderedPages, reportViolations, sharedCanonicals } from './prerender-check';
@@ -583,6 +584,9 @@ async function main(): Promise<void> {
     // (`scripts/jsonld-check.ts`). A page that says nothing about which Wobo it is, or that says
     // "HeyWobo" in a name field, fails the build rather than teaching an engine the wrong string.
     ...checkStructuredData(files, origin),
+    // The 67 written pages, read off the bytes just written with every name masked: one that
+    // shipped as the shared frame with a name swapped fails here (`scripts/handmade-check.ts`).
+    ...checkHandmadePages(files),
   ];
   // THE TWO SEARCH CONSOLES, verified without a deploy of source. Both tokens are read from the
   // build environment (`GOOGLE_SITE_VERIFICATION`, `BING_SITE_VERIFICATION`), so the owner sets a

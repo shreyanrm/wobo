@@ -28,7 +28,7 @@ Exactly one wave runs at a time, so a usage cap lands between waves and never in
 
 | What | Wave | Where it is |
 |---|---|---|
-| Nothing. Wave 50 landed; wave 51 is next | 50 | Verified on an isolated index: gateway 7601 passed / 58 skipped / 0 failed; web 4180 tests, 0 failed; board 1139; sdk 191; engine 30; typecheck 7; ruff clean; build and gate clean. 0038 applied and driven on production. Spend: $0 across the wave |
+| Nothing. Wave 51 landed; wave 34, the last before the owner's walk, is next | 51 | Verified on an isolated index: gateway 8097 passed / 58 skipped / 0 failed; web 4201 tests, 0 failed; board 1139; sdk 191; engine 30; typecheck 7; ruff clean; build and gate clean. No migration. Spend $0 |
 
 ## The queue, in order
 
@@ -37,13 +37,13 @@ deployed. Nothing here is lost, and nothing here has started. Wave 55 was writte
 
 | # | What | Wave |
 |---|---|---|
-| 1 | The mail law's 26 assertions, the 67 pages measured, the core's depth band | 51 |
-| 2 | The parent's account screens | 34 |
+| 1 | The parent's account screens | 34 |
 
 ## Landed, with the proof
 
 | What | Wave | Proof |
 |---|---|---|
+| The inbox law on every rendered mail, 67 pages that tell the truth, cores that cannot cross bands | 51 | Of the mail law's 26 assertions, 14 were covered, 8 partly and 4 elsewhere; all are now held over every rendered kind. They found ten templates in lower case, a gift phrase the law forbids, em dashes in 18 kinds, an invented 'five minutes' on every quick one, and unreadable dark-mode text, all fixed, with a contrast script at 4.5:1. None of the 67 pages is a template, but 30 said untrue things (replaced textbooks, unprovable superlatives, invented shares of a paper); rewritten, with a distinctness check inside the build. A core could be copied across bands by dropping its stamp; now refused however it arrives |
 | The growth desk, an honest press page, chapter pages ready for tier two | 50 | The growth desk is built, stopped and keyless: gather, make, five shapes, posters with injected transports, publish-then-syndicate enforced in code, in the console and by a database trigger, Reddit and Quora refused at every entry and in the schema. The press copy no longer claims parental consent, no behavioural tracking or a parent view, which the legal set says are not true today, and names the boards it can prove (CBSE, ICSE, ISC, NIOS, and any board through the learner's own syllabus). The founder is in the Organization markup. Thin chapter pages left the sitemap (171 to 86). Tier two is built and ships nothing until concept cores exist. X threads would have posted with no campaign id; fixed |
 | The console seats people properly, board changes follow the rule, suggestions ask the one chooser | 49 | No invitation could ever have been accepted in production (the lookup refused every address with a dot; the write relied on a unique constraint that does not exist): fixed, with a signed single-use expiring link (0037). The console now draws only the desks a seat holds; money figures are stripped from every desk for a seat without the money panel. The app had never called the board-change rule (the picker wrote straight to the device); now it does, with only true cost sentences and a kept record of the old board's work. Suggestions were reachable only from tests and could name a module the course would not show; now they ask the course's own pick. A reduced-motion learner lost every other tap on the balance scale; fixed |
 | The allowance, the money's voice, and two leaks found in the wave's own work | 36 | `22008958`. The free lane finally wired (every free turn had been served by Terra at about eleven times Luna's price); both platform pools made real; the money's voice placed and held equal to money.md; every promo code had been 404ing, now fixed. The judge caught the parent companion dropping from Terra to Luna for every family, Max included, and the turn counters resetting on the server's day instead of the learner's; both closed red-first. Isolated index: gateway 6878/0, web 3970/0, board 1139/0 |
@@ -162,6 +162,8 @@ rather than remembered, and every line below was checked against the code on 202
 
 | What | Why it matters | Effort |
 |---|---|---|
+| The mail sign-off: 'Wobo' with no dash | the voice law forbids em dashes a reader sees; the old '— Wobo' was called a design choice for the owner | a ruling |
+| The launch-day mail sender | the launch template and its signed list link exist; nothing sends it (steady slices, oldest sign-ups last, a daily cap) | a wave when the doors open |
 | A founder photograph and a film for /press | the press page and the Product Hunt draft both want them | two files |
 | Concept cores (a platform-paid create run) | the growth desk makes nothing and tier-two chapter pages ship nothing until cores exist; it is spending, so it is the owner's call | a decision and a budget |
 | 'mastered' on learner-facing pages | docs/copy/voice.md lists it as a word to use; docs/copy/growth/lines.md forbids it on learner surfaces; the help centre uses it | a ruling |
@@ -171,7 +173,7 @@ rather than remembered, and every line below was checked against the code on 202
 | Where the console lives (`CONSOLE_URL`) | the console has no public address, and an invitation link needs one; nobody but the owner uses the console today, so nothing waits on it | a decision |
 | Board changes for under-13s | the server has no age signal, and the parent account allows four actions with boards forbidden; a ruling on both before the parent path can exist | two rulings |
 | Progress across boards | CONSOLE-ROLES-AND-BOARD.md says progress re-maps to the new board; it does not (completion is stored per board). Build the re-map, or change the sentence | a ruling |
-| Approve the 173 new lines a family or visitor could read (mail, board change, suggestions, the lesson, the press page and launch drafts, chapter pages, growth posts), and glance at 135 console lines | nothing new is sent to any family until this is done; the page lists every line, checked against the final code | a read-through |
+| Approve the 264 new lines a family or visitor could read (mail, board change, suggestions, the lesson, the press page and launch drafts, chapter pages, growth posts, mail subjects, the 67 pages), and glance at 135 console lines | nothing new is sent to any family until this is done; the page lists every line, checked against the final code | a read-through |
 | DNS for a transactional sending subdomain (sign-in codes, receipts), added in Resend | global practice: a bad week for learning notes never blocks a sign-in or a receipt. The code falls back to today's sender until it exists | a few DNS records |
 | The brand logo in the inbox (BIMI) | needs DMARC at enforcement and usually the registered trademark, so it follows the trademark filing | after the trademark |
 | Seed inboxes we own on Gmail, Outlook, Yahoo and Apple Mail, each with an app password | the daily spam check sends to them and reads which folder each mail landed in; without them it reports "not configured" | four sign-ups |
